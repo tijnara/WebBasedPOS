@@ -91,7 +91,8 @@ export default function ProductManagementPage({ reload }) {
                                 {products.map(p => (
                                     <TableRow key={p.id}>
                                         <TableCell>{p.name}</TableCell>
-                                        <TableCell>₱{(p.price||0).toFixed(2)}</TableCell>
+                                        {/* FIX: Convert p.price to a Number before calling .toFixed() */}
+                                        <TableCell>₱{Number(p.price||0).toFixed(2)}</TableCell>
                                         <TableCell>
                                             <div className="flex space-x-2">
                                                 <Button variant="ghost" onClick={() => startEdit(p)}>Edit</Button>

@@ -24,7 +24,7 @@ export default function HistoryPage() {
                   <TableRow key={s.id}>
                     <TableCell>{new Date(s.saleTimestamp || s.sale_timestamp || s.created_at || Date.now()).toLocaleString()}</TableCell>
                     <TableCell>{s.customerName || s.customer_name || 'N/A'}</TableCell>
-                    <TableCell>₱{(s.totalAmount || s.total_amount || 0).toFixed(2)}</TableCell>
+                      <TableCell>₱{Number(s.totalAmount || s.total_amount || 0).toFixed(2)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
