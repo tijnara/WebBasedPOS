@@ -42,13 +42,35 @@ export async function createCustomer(payload) {
 }
 
 export async function createProduct(payload) {
-  const res = await fetch(`${BASE}/items/products`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ data: payload }),
-  });
-  const json = await handleRes(res);
-  return json.data;
+  // Validate payload
+  if (!payload || typeof payload !== 'object') {
+    throw new Error('Invalid payload: Payload must be a non-empty object');
+  }
+
+  // Add required fields validation (example: name and price are required)
+  if (!payload.name || !payload.price) {
+    throw new Error('Invalid payload: Missing required fields (name, price)');
+  }
+
+  try {
+    const res = await fetch(`${BASE}/items/products`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data: payload }),
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text(); // Log server response for debugging
+      console.error('API Error:', res.status, res.statusText, errorText);
+      throw new Error(`API Error: ${res.status} ${res.statusText}`);
+    }
+
+    const json = await res.json();
+    return json.data;
+  } catch (error) {
+    console.error('createProduct failed:', error);
+    throw error;
+  }
 }
 
 export async function createSale(payload) {

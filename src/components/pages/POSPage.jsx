@@ -49,7 +49,7 @@ export default function POSPage() {
                 {products.map(p => (
                   <button key={p.id} className="p-3 border rounded text-left" onClick={() => handleAdd(p)}>
                     <div className="font-medium">{p.name}</div>
-                    <div className="text-sm text-gray-600">₱{(p.price||0).toFixed(2)}</div>
+                    <div className="text-sm text-gray-600">₱{Number(p.price || 0).toFixed(2)}</div>
                   </button>
                 ))}
               </div>
