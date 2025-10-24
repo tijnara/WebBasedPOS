@@ -8,7 +8,6 @@ export const useStore = create((set, get) => ({
     sales: [],
     currentSale: {},
     currentCustomer: null,
-    currentPage: 'pos',
     loading: { products: true, customers: true, sales: true },
     toasts: [],
 
@@ -16,7 +15,6 @@ export const useStore = create((set, get) => ({
     setProducts: (products) => set({ products, loading: { ...get().loading, products: false } }),
     setCustomers: (customers) => set({ customers, loading: { ...get().loading, customers: false } }),
     setSales: (sales) => set({ sales, loading: { ...get().loading, sales: false } }),
-    setCurrentPage: (page) => set({ currentPage: page }),
     setCurrentCustomer: (cust) => set({ currentCustomer: cust }),
     setLoading: (key, val) => set({ loading: { ...get().loading, [key]: val } }),
 

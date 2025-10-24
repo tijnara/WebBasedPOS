@@ -5,16 +5,20 @@ export function cn(...inputs) {
   return clsx(...inputs);
 }
 
+// Enhanced Button component with additional variants and states
 export const Button = React.forwardRef(({ className, variant = 'default', size = 'default', asChild = false, ...props }, ref) => {
   const Comp = asChild ? 'span' : 'button';
   const base = 'btn';
   const variants = {
     default: '',
     primary: 'btn--primary',
-    outline: 'btn--secondary',
+    outline: 'btn--outline',
     ghost: 'btn--ghost',
-    destructive: 'btn--secondary',
+    destructive: 'btn--destructive',
     secondary: 'btn--secondary',
+    success: 'btn--success',
+    warning: 'btn--warning',
+    danger: 'btn--danger',
   };
   const sizes = {
     default: '',
@@ -47,8 +51,13 @@ export const CardFooter = ({ children, className }) => (
 );
 
 // Very small dialog placeholder
-export const Dialog = ({ open, children }) => (
-  open ? <div className="dialog-backdrop fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">{children}</div> : null
+// Enhanced Dialog component with modern styling
+export const Dialog = ({ open, children, className }) => (
+  open ? (
+    <div className={cn('dialog-backdrop fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50', className)}>
+      <div className="dialog-content bg-white rounded-lg shadow-lg p-4">{children}</div>
+    </div>
+  ) : null
 );
 export const DialogContent = ({ children, className }) => (
   <div className={cn('dialog-content bg-white rounded-lg shadow-lg p-6', className)}>{children}</div>
