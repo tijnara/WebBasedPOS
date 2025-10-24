@@ -18,7 +18,8 @@ export const Button = React.forwardRef(({ className, variant = 'default', size =
   };
   const sizes = {
     default: '',
-    sm: '',
+    sm: 'btn--sm',
+    lg: 'btn--lg',
     icon: 'btn--icon',
   };
   const classes = cn(base, variants[variant] || variants.default, sizes[size] || '', className);
@@ -46,13 +47,22 @@ export const CardFooter = ({ children, className }) => (
 );
 
 // Very small dialog placeholder
-export const Dialog = ({ open, children }) => (open ? <div className="dialog-backdrop">{children}</div> : null);
-export const DialogContent = ({ children, className }) => (
-  <div className={cn('card card__content', className)}>{children}</div>
+export const Dialog = ({ open, children }) => (
+  open ? <div className="dialog-backdrop fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">{children}</div> : null
 );
-export const DialogHeader = ({ children }) => <div className="mb-4">{children}</div>;
+export const DialogContent = ({ children, className }) => (
+  <div className={cn('dialog-content bg-white rounded-lg shadow-lg p-6', className)}>{children}</div>
+);
+export const DialogHeader = ({ children }) => (
+  <div className="dialog-header mb-4 font-semibold text-lg">{children}</div>
+);
 export const DialogTitle = ({ children }) => <h2 className="text-lg font-semibold">{children}</h2>;
-export const DialogFooter = ({ children }) => <div className="mt-4 flex justify-end space-x-2">{children}</div>;
+export const DialogFooter = ({ children }) => (
+  <div className="dialog-footer mt-4 flex justify-end space-x-2">{children}</div>
+);
+export const DialogCloseButton = ({ onClick }) => (
+  <button onClick={onClick} className="absolute top-2 right-2 text-gray-500 hover:text-gray-800">&times;</button>
+);
 
 export const Table = ({ children, className }) => <div className={cn('table-wrap', className)}><table className="table">{children}</table></div>;
 export const TableHeader = ({ children }) => <thead className="table__head">{children}</thead>;

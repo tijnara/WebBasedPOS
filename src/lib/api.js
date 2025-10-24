@@ -47,21 +47,31 @@ export async function createProduct(payload) {
         throw new Error('Invalid payload: Payload must be a non-empty object');
     }
 
-    // Add required fields validation (example: name and price are required)
-    if (!payload.name || !payload.price) {
-        throw new Error('Invalid payload: Missing required fields (name, price)');
+    // Add required fields validation
+    if (!payload.id || !payload.name || !payload.price || !payload.category || payload.stock == null) {
+        throw new Error('Invalid payload: Missing required fields (id, name, price, category, stock)');
     }
 
     try {
         const res = await fetch(`${BASE}/items/products`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload), // Removed `data` wrapper
+            // FIX: Wrap in { data: ... } to be consistent with other calls
+            body: JSON.stringify({ data: payload }),
         });
 
         if (!res.ok) {
             const errorText = await res.text(); // Log server response for debugging
             console.error('API Error:', res.status, res.statusText, errorText);
+            try {
+                const errorJson = JSON.parse(errorText);
+                const serverMessage = errorJson?.errors?.[0]?.message || errorJson?.error || errorJson?.message;
+                if (serverMessage) {
+                    throw new Error(serverMessage); // Throw the *actual* server error
+                }
+            } catch (e) {
+                // Ignore parsing error
+            }
             throw new Error(`API Error: ${res.status} ${res.statusText}`);
         }
 
