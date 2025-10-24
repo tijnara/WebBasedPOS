@@ -41,9 +41,9 @@ export default function ProductManagementPage({ reload }) {
                 await api.updateItem('products', editing.id, { name, price: parsedPrice });
                 addToast({ title: 'Updated', description: `Product ${name} updated` });
             } else {
-                // The server will generate the ID. Do NOT send one.
-                // Use the parsedPrice
-                const payload = { name, price: parsedPrice };
+                // FIX: Generate a unique ID for the new product, as required by your API
+                const id = Date.now().toString();
+                const payload = { id, name, price: parsedPrice };
                 console.log('Creating product with payload:', payload); // Log payload for debugging
                 await api.createProduct(payload);
                 addToast({ title: 'Created', description: `Product ${name} created` });

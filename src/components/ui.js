@@ -57,7 +57,13 @@ export const DialogFooter = ({ children }) => <div className="mt-4 flex justify-
 export const Table = ({ children, className }) => <div className={cn('table-wrap', className)}><table className="table">{children}</table></div>;
 export const TableHeader = ({ children }) => <thead className="table__head">{children}</thead>;
 export const TableBody = ({ children }) => <tbody>{children}</tbody>;
-export const TableRow = ({ children }) => <tr className="table__row">{children}</tr>;
+export const TableRow = ({ children }) => (
+  <tr className="table__row">
+    {React.Children.toArray(children).filter(child =>
+      typeof child !== 'string' || child.trim() !== ''
+    )}
+  </tr>
+);
 export const TableHead = ({ children }) => <th className="table__th">{children}</th>;
 export const TableCell = ({ children }) => <td className="table__td">{children}</td>;
 

@@ -21,9 +21,44 @@ export default function AppMain() {
         api.fetchCustomers(),
         api.fetchSales()
       ]);
-      setProducts(products.map(p => ({ id: p.id, ...p })));
-      setCustomers(customers.map(c => ({ id: c.id, ...c })));
-      setSales(sales.map(s => ({ id: s.id, ...s })));
+
+      // Map products
+      setProducts(products.map(p => ({
+        id: p.id,
+        name: p.name,
+        price: parseFloat(p.price) // Ensure price is a number
+      })));
+
+      // Map customers
+      setCustomers(customers.map(c => ({
+        id: c.id,
+        name: c.name,
+        contact: c.contact || 'N/A', // Default to 'N/A' if contact is null
+        address: c.address,
+        dateAdded: new Date(c.dateAdded) // Convert dateAdded to a Date object
+      })));
+
+      // Map sales
+      setSales(sales.map(s => ({
+        id: s.id,
+        saleTimestamp: new Date(s.saleTimestamp), // Convert saleTimestamp to a Date object
+        totalAmount: parseFloat(s.totalAmount), // Ensure totalAmount is a number
+        customerId: s.customerId,
+        customerName: s.customerName
+      })));
+
+      // If sale items are needed, fetch and map them here
+      // Example:
+      // const saleItems = await api.fetchSaleItems();
+      // setSaleItems(saleItems.map(item => ({
+      //   id: item.id,
+      //   saleId: item.saleId,
+      //   productId: item.productId,
+      //   productName: item.productName,
+      //   quantity: item.quantity,
+      //   priceAtSale: parseFloat(item.priceAtSale),
+      //   subtotal: parseFloat(item.subtotal)
+      // })));
     } catch (e) {
       console.error('Error loading data', e);
     } finally {
