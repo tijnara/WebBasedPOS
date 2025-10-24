@@ -2,7 +2,7 @@ import { create } from 'zustand';
 
 export const useStore = create((set, get) => ({
     userId: null,
-    isAuthReady: true, // not using firebase in this port
+    isAuthReady: true,
     products: [],
     customers: [],
     sales: [],
@@ -20,25 +20,54 @@ export const useStore = create((set, get) => ({
 
     addItemToSale: (product, quantity = 1, overridePrice = null) =>
         set((state) => {
-            // FIX: Ensure price is a number using parseFloat
             const price = parseFloat(overridePrice !== null ? overridePrice : product.price || 0);
+            if (isNaN(price)) {
+                console.error("Invalid price for product:", product);
+                return {}; // Prevent adding item with invalid price
+            }
 
+            // Use product.id and price to create a unique key for items with potentially different prices (e.g., discounts)
+            // If overridePrice isn't used often, just product.id might be sufficient as the key.
             const key = `${product.id}__${price.toFixed(2)}`;
             const existing = state.currentSale[key];
-            const newQty = (existing ? existing.quantity : 0) + quantity;
+
+            // Calculate new quantity, ensuring it doesn't go below 0
+            const currentQty = existing ? existing.quantity : 0;
+            const newQty = Math.max(0, currentQty + quantity); // Use Math.max to prevent negative quantity
+
+            // If the new quantity is 0 or less, remove the item
             if (newQty <= 0) {
+                // Create a new object excluding the key to be removed
                 const { [key]: _, ...rest } = state.currentSale;
                 return { currentSale: rest };
             }
-            return { currentSale: { ...state.currentSale, [key]: { productId: product.id, name: product.name, price, quantity: newQty } } };
+
+            // Otherwise, update or add the item
+            return {
+                currentSale: {
+                    ...state.currentSale,
+                    [key]: {
+                        productId: product.id,
+                        name: product.name,
+                        price, // Store the numeric price
+                        quantity: newQty
+                    }
+                }
+            };
         }),
 
-    removeItemFromSale: (key) => set((state) => { const { [key]: _, ...rest } = state.currentSale; return { currentSale: rest }; }),
+    // Function to remove an item completely, regardless of quantity
+    removeItemFromSale: (key) => set((state) => {
+        const { [key]: _, ...rest } = state.currentSale;
+        return { currentSale: rest };
+    }),
+
     clearSale: () => set({ currentSale: {}, currentCustomer: null }),
 
-    getTotalAmount: () => {
+    // Renamed to getSubtotalAmount for clarity
+    getTotalAmount: () => { // This calculates subtotal before tax
         const sale = get().currentSale;
-        return Object.values(sale).reduce((t, i) => t + i.price * i.quantity, 0);
+        return Object.values(sale).reduce((total, item) => total + (item.price * item.quantity), 0);
     },
 
     // toasts
