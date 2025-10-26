@@ -84,9 +84,9 @@ export const Table = ({ children, className }) => <div className={cn('table-wrap
 export const TableHeader = ({ children }) => <thead className="table__head">{children}</thead>;
 export const TableBody = ({ children }) => <tbody>{children}</tbody>;
 export const TableRow = ({ children }) => (
-    <tr className="table__row border-b border-gray-200"> {/* Added subtle border */}
+    <tr className="table__row border-b border-gray-200">
         {React.Children.toArray(children).filter(child =>
-            typeof child !== 'string' || child.trim() !== ''
+            typeof child !== 'string' || child.trim() !== '' // Ensure no whitespace-only children
         )}
     </tr>
 );

@@ -4,10 +4,16 @@ async function handleRes(res) {
     const text = await res.text();
     try {
         const json = JSON.parse(text || '{}');
-        if (!res.ok) throw new Error(json?.errors?.[0]?.message || json?.error || json?.message || res.statusText);
+        if (!res.ok) {
+            console.error(`API Error: ${res.url}`, json); // Log endpoint and response
+            throw new Error(json?.errors?.[0]?.message || json?.error || json?.message || res.statusText);
+        }
         return json;
     } catch (e) {
-        if (!res.ok) throw new Error(res.statusText || e.message);
+        if (!res.ok) {
+            console.error(`API Error: ${res.url}`, e.message); // Log endpoint and error
+            throw new Error(res.statusText || e.message);
+        }
         // if parsing error but ok, return text
         return text;
     }
@@ -96,13 +102,28 @@ export async function createSale(payload) {
 
 // New: update and delete helpers for basic CRUD
 export async function updateItem(collectionName, id, payload) {
-    const res = await fetch(`${BASE}/items/${collectionName}/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data: payload }),
-    });
-    const json = await handleRes(res);
-    return json.data;
+    try {
+        const res = await fetch(`${BASE}/items/${collectionName}/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ data: payload }),
+        });
+        if (!res.ok) {
+            const errorText = await res.text();
+            console.error(`API Error: ${res.url}`, {
+                status: res.status,
+                statusText: res.statusText,
+                response: errorText,
+                payload,
+            });
+            throw new Error(`API Error: ${res.status} ${res.statusText}`);
+        }
+        const json = await handleRes(res);
+        return json.data;
+    } catch (error) {
+        console.error('updateItem failed:', error);
+        throw error;
+    }
 }
 
 export async function deleteItem(collectionName, id) {

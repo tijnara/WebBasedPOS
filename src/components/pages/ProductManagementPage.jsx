@@ -43,7 +43,6 @@ export default function ProductManagementPage({ reload }) {
         const parsedPrice = parseFloat(price);
         const parsedStock = parseInt(stock, 10);
 
-        // Validate inputs
         if (!name || !price || !category || !stock) {
             addToast({ title: 'Error', description: 'All fields are required.' });
             return;
@@ -53,28 +52,21 @@ export default function ProductManagementPage({ reload }) {
             return;
         }
 
-        const payload = {
-            name,
-            price: parsedPrice,
-            category,
-            stock: parsedStock
-        };
+        const payload = { name, price: parsedPrice, category, stock: parsedStock };
 
         try {
             if (editing) {
+                console.log('Updating product with payload:', payload);
                 await api.updateItem('products', editing.id, payload);
                 addToast({ title: 'Updated', description: `Product ${name} updated` });
             } else {
-                // FIX: Generate a unique ID for the new product, as required by your API
                 const id = Date.now().toString();
                 const createPayload = { ...payload, id };
-
                 console.log('Creating product with payload:', createPayload);
                 await api.createProduct(createPayload);
                 addToast({ title: 'Created', description: `Product ${name} created` });
             }
 
-            // Reset form
             setEditing(null);
             setName('');
             setPrice('');
@@ -93,7 +85,10 @@ export default function ProductManagementPage({ reload }) {
             await api.deleteItem('products', p.id);
             addToast({ title: 'Deleted', description: `${p.name} deleted` });
             if (reload) reload();
-        } catch (e) { console.error(e); addToast({ title: 'Error', description: e.message }); }
+        } catch (e) {
+            console.error(e);
+            addToast({ title: 'Error', description: e.message });
+        }
     };
 
     return (
