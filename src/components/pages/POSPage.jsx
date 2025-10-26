@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'; // Import useEffect
 import { useStore } from '../../store/useStore';
 import * as api from '../../lib/api';
-// MODIFIED: Imported DialogTitle
-import { Button, Card, CardHeader, CardContent, CardFooter, Table, TableBody, TableRow, TableCell, ScrollArea, Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogCloseButton, Input } from '../ui';
+// MODIFIED: Imported DialogTitle, Label, and Select
+import { Button, Card, CardHeader, CardContent, CardFooter, Table, TableBody, TableRow, TableCell, ScrollArea, Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogCloseButton, Input, Label, Select } from '../ui';
 
 // Empty cart icon
 const EmptyCartIcon = () => (
@@ -39,6 +39,13 @@ export default function POSPage() {
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
     const [searchResults, setSearchResults] = useState([]);
     const [isSearching, setIsSearching] = useState(false);
+
+    // --- NEW: State for Custom Sale Modal ---
+    const [isCustomSaleModalOpen, setIsCustomSaleModalOpen] = useState(false);
+    const [customSaleProduct, setCustomSaleProduct] = useState('');
+    const [customSalePrice, setCustomSalePrice] = useState('');
+    const [customSaleQuantity, setCustomSaleQuantity] = useState('1');
+    // ----------------------------------------
 
     const subtotal = getTotalAmount();
 
@@ -147,10 +154,66 @@ export default function POSPage() {
         }
     };
 
+    // --- NEW: Custom Sale Modal Functions ---
+    const openCustomSaleModal = () => {
+        setCustomSaleProduct('');
+        setCustomSalePrice('');
+        setCustomSaleQuantity('1');
+        setIsCustomSaleModalOpen(true);
+    };
+
+    const closeCustomSaleModal = () => {
+        setIsCustomSaleModalOpen(false);
+    };
+
+    const handleCustomProductChange = (productId) => {
+        const product = products.find(p => p.id === productId);
+        if (product) {
+            setCustomSaleProduct(product.id);
+            setCustomSalePrice(String(product.price || 0));
+        } else {
+            setCustomSaleProduct('');
+            setCustomSalePrice('');
+        }
+    };
+
+    const handleCustomSaleSubmit = (e) => {
+        e.preventDefault();
+
+        const selectedProduct = products.find(p => p.id === customSaleProduct);
+        const parsedPrice = parseFloat(customSalePrice);
+        const parsedQuantity = parseInt(customSaleQuantity, 10);
+
+        if (!selectedProduct) {
+            addToast({ title: 'Error', description: 'Please select a product.', variant: 'destructive' });
+            return;
+        }
+        if (isNaN(parsedPrice) || parsedPrice < 0) {
+            addToast({ title: 'Error', description: 'Please enter a valid, non-negative price.', variant: 'destructive' });
+            return;
+        }
+        if (isNaN(parsedQuantity) || parsedQuantity <= 0) {
+            addToast({ title: 'Error', description: 'Please enter a valid quantity greater than 0.', variant: 'destructive' });
+            return;
+        }
+
+        // Use the addItemToSale function with the overridePrice parameter
+        addItemToSale(selectedProduct, parsedQuantity, parsedPrice);
+
+        addToast({ title: 'Item Added', description: `${parsedQuantity} x ${selectedProduct.name} added.`, variant: 'success' });
+        closeCustomSaleModal();
+    };
+    // ----------------------------------------
+
+
     return (
         <div>
             <div className="flex justify-between items-center mb-4">
                 <h1 className="text-2xl font-bold">Point of Sale</h1>
+                {/* NEW: Custom Sale Button */}
+                <Button variant="outline" onClick={openCustomSaleModal}>
+                    Add Custom Sale
+                </Button>
             </div>
             <div className="flex flex-row-reverse gap-4 h-full">
                 {/* Current Order Sidebar */}
@@ -284,6 +347,8 @@ export default function POSPage() {
                                     className="w-full justify-start text-left h-auto py-2 px-3"
                                     onClick={() => handleSelectCustomer(null)}
                                 >
+                                    {/* ADDED: Label for walk-in customer */}
+                                    Walk-in Customer
                                 </Button>
                                 <hr className="my-1 border-border" />
                                 {isSearching ? (
@@ -327,6 +392,68 @@ export default function POSPage() {
                     </div>
                 </DialogContent>
             </Dialog>
+
+            {/* --- NEW: CUSTOM SALE DIALOG (MODAL) --- */}
+            <Dialog open={isCustomSaleModalOpen} onOpenChange={setIsCustomSaleModalOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Add Custom Sale</DialogTitle>
+                        <DialogCloseButton onClick={closeCustomSaleModal} />
+                    </DialogHeader>
+                    <form onSubmit={handleCustomSaleSubmit}>
+                        <div className="p-4 space-y-4">
+                            <div>
+                                <Label htmlFor="customProduct">Product</Label>
+                                <Select
+                                    id="customProduct"
+                                    className="w-full"
+                                    value={customSaleProduct}
+                                    onChange={(e) => handleCustomProductChange(e.target.value)}
+                                    required
+                                >
+                                    <option value="" disabled>Select a product...</option>
+                                    {products.map(p => (
+                                        <option key={p.id} value={p.id}>
+                                            {p.name}
+                                        </option>
+                                    ))}
+                                </Select>
+                            </div>
+                            <div>
+                                <Label htmlFor="customPrice">Custom Price (₱)</Label>
+                                <Input
+                                    id="customPrice"
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    value={customSalePrice}
+                                    onChange={e => setCustomSalePrice(e.target.value)}
+                                    required
+                                    className="w-full"
+                                />
+                            </div>
+                            <div>
+                                <Label htmlFor="customQuantity">Quantity</Label>
+                                <Input
+                                    id="customQuantity"
+                                    type="number"
+                                    step="1"
+                                    min="1"
+                                    value={customSaleQuantity}
+                                    onChange={e => setCustomSaleQuantity(e.target.value)}
+                                    required
+                                    className="w-full"
+                                />
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button variant="outline" type="button" onClick={closeCustomSaleModal}>Cancel</Button>
+                            <Button type="submit">Add to Cart</Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
 
         </div> // End of wrapper div
     );

@@ -116,7 +116,7 @@ export const DialogCloseButton = ({ onClick }) => (
 );
 
 
-// ... (Table, ScrollArea, LoadingSpinner, Label components remain the same) ...
+// ... (Table, ScrollArea, LoadingSpinner components remain the same) ...
 export const Table = ({ children, className }) => <div className={cn('table-wrap', className)}><table className="table w-full">{children}</table></div>; // Added w-full
 export const TableHeader = ({ children }) => <thead className="table__head">{children}</thead>;
 export const TableBody = ({ children }) => <tbody>{children}</tbody>;
@@ -141,5 +141,14 @@ export const LoadingSpinner = ({ className }) => (
 );
 
 export const Label = ({ children, htmlFor }) => <label htmlFor={htmlFor} className="block text-sm font-medium text-gray-700 mb-1">{children}</label>; // Adjusted styles
+
+// *** NEW: Select component ***
+export const Select = React.forwardRef(({ className, children, ...props }, ref) => (
+    <select ref={ref} className={cn('input', className)} {...props}>
+        {children}
+    </select>
+));
+Select.displayName = 'Select';
+
 
 export default {};
