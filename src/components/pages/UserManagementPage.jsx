@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../../store/useStore';
 import * as api from '../../lib/api';
+// MODIFIED: Added Dialog components
 import { Button, Card, CardHeader, CardContent, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, ScrollArea, Input, Label, Dialog, DialogContent, DialogHeader, DialogCloseButton } from '../ui';
 
 // Simple SVG Icon for Edit
@@ -73,7 +74,7 @@ export default function UserManagementPage() {
 
     const closeModal = () => {
         setIsModalOpen(false);
-        resetForm();
+        setTimeout(resetForm, 200);
     };
 
     const openModal = () => {
@@ -176,57 +177,37 @@ export default function UserManagementPage() {
                 </CardContent>
             </Card>
 
-            {isModalOpen && (
-                <div className="modal" style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    zIndex: 1000
-                }}>
-                    <div className="modal-content" style={{
-                        backgroundColor: '#fff',
-                        padding: '20px',
-                        borderRadius: '8px',
-                        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-                        width: '90%',
-                        maxWidth: '500px'
-                    }}>
-                        <Card>
-                            <CardHeader><h3 className="font-semibold">{editing ? 'Edit User' : 'Add User'}</h3></CardHeader>
-                            <CardContent>
-                                <form onSubmit={save} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <Label htmlFor="fullname">Fullname</Label>
-                                        <Input id="fullname" value={fullName} onChange={e => setFullName(e.target.value)} required />
-                                    </div>
-                                    <div>
-                                        <Label htmlFor="email">Email</Label>
-                                        <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
-                                    </div>
-                                    <div>
-                                        <Label htmlFor="password">Password</Label>
-                                        <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder={editing ? "Leave blank to keep unchanged" : ""} />
-                                    </div>
-                                    <div>
-                                        <Label htmlFor="contactNumber">Contact Number</Label>
-                                        <Input id="contactNumber" value={contactNumber} onChange={e => setContactNumber(e.target.value)} required />
-                                    </div>
-                                    <div className="md:col-span-2 flex space-x-2">
-                                        <Button type="submit">Save</Button>
-                                        <Button variant="outline" type="button" onClick={closeModal}>Cancel</Button>
-                                    </div>
-                                </form>
-                            </CardContent>
-                        </Card>
-                    </div>
-                </div>
-            )}
+            {/* MODIFIED: Replaced custom modal with Dialog component */}
+            <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <h3 className="font-semibold">{editing ? 'Edit User' : 'Add User'}</h3>
+                        <DialogCloseButton onClick={closeModal} />
+                    </DialogHeader>
+                    <form onSubmit={save} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <Label htmlFor="fullname">Fullname</Label>
+                            <Input id="fullname" value={fullName} onChange={e => setFullName(e.target.value)} required />
+                        </div>
+                        <div>
+                            <Label htmlFor="email">Email</Label>
+                            <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
+                        </div>
+                        <div>
+                            <Label htmlFor="password">Password</Label>
+                            <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder={editing ? "Leave blank to keep unchanged" : ""} />
+                        </div>
+                        <div>
+                            <Label htmlFor="contactNumber">Contact Number</Label>
+                            <Input id="contactNumber" value={contactNumber} onChange={e => setContactNumber(e.target.value)} required />
+                        </div>
+                        <div className="md:col-span-2 flex space-x-2 pt-4">
+                            <Button type="submit">Save</Button>
+                            <Button variant="outline" type="button" onClick={closeModal}>Cancel</Button>
+                        </div>
+                    </form>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

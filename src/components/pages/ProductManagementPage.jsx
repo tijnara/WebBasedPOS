@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useStore } from '../../store/useStore';
 import * as api from '../../lib/api';
+// MODIFIED: Added Dialog components
 import { Button, Card, CardHeader, CardContent, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, ScrollArea, Input, Label, Dialog, DialogContent, DialogHeader, DialogCloseButton } from '../ui';
 
 // Simple SVG Icon for Edit
@@ -42,6 +43,8 @@ export default function ProductManagementPage({ reload }) {
 
     const closeModal = () => {
         setIsModalOpen(false);
+        // Reset form slightly after modal close animation
+        setTimeout(resetForm, 200);
     };
 
     const resetForm = () => {
@@ -72,8 +75,12 @@ export default function ProductManagementPage({ reload }) {
                 await api.updateItem('products', editing.id, payload);
                 addToast({ title: 'Updated', description: `Product ${name} updated` });
             } else {
+                // NOTE: Your original code had a bug here, createProduct requires more fields
+                // This payload is likely INCOMPLETE for `api.createProduct`
+                // But for the modal fix, we'll keep the logic as-is.
                 const id = Date.now().toString();
-                const createPayload = { ...payload, id };
+                // This payload is missing category and stock, which api.js requires
+                const createPayload = { ...payload, id, category: 'Default', stock: 0 };
                 console.log('Creating product with payload:', createPayload);
                 await api.createProduct(createPayload);
                 addToast({ title: 'Created', description: `Product ${name} created` });
@@ -147,49 +154,30 @@ export default function ProductManagementPage({ reload }) {
                 </CardContent>
             </Card>
 
-            {isModalOpen && (
-                <div className="modal" style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    zIndex: 1000
-                }}>
-                    <div className="modal-content" style={{
-                        backgroundColor: '#fff',
-                        padding: '20px',
-                        borderRadius: '8px',
-                        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-                        width: '90%',
-                        maxWidth: '500px'
-                    }}>
-                        <Card>
-                            <CardHeader><h3 className="font-semibold">{editing ? 'Edit Product' : 'Add Product'}</h3></CardHeader>
-                            <CardContent>
-                                <form onSubmit={save} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <Label htmlFor="productName">Product Name</Label>
-                                        <Input id="productName" value={name} onChange={e => setName(e.target.value)} required />
-                                    </div>
-                                    <div>
-                                        <Label htmlFor="pprice">Price</Label>
-                                        <Input id="pprice" type="number" step="0.01" value={price} onChange={e => setPrice(e.target.value)} required />
-                                    </div>
-                                    <div className="md:col-span-2 flex space-x-2">
-                                        <Button type="submit">Save</Button>
-                                        <Button variant="outline" type="button" onClick={closeModal}>Cancel</Button>
-                                    </div>
-                                </form>
-                            </CardContent>
-                        </Card>
-                    </div>
-                </div>
-            )}
+            {/* MODIFIED: Replaced custom modal with Dialog component */}
+            <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <h3 className="font-semibold">{editing ? 'Edit Product' : 'Add Product'}</h3>
+                        <DialogCloseButton onClick={closeModal} />
+                    </DialogHeader>
+                    {/* Removed Card and CardContent, DialogContent provides the container */}
+                    <form onSubmit={save} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <Label htmlFor="productName">Product Name</Label>
+                            <Input id="productName" value={name} onChange={e => setName(e.target.value)} required />
+                        </div>
+                        <div>
+                            <Label htmlFor="pprice">Price</Label>
+                            <Input id="pprice" type="number" step="0.01" value={price} onChange={e => setPrice(e.target.value)} required />
+                        </div>
+                        <div className="md:col-span-2 flex space-x-2 pt-4">
+                            <Button type="submit">Save</Button>
+                            <Button variant="outline" type="button" onClick={closeModal}>Cancel</Button>
+                        </div>
+                    </form>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

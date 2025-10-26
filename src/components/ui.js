@@ -52,30 +52,57 @@ export const CardFooter = ({ children, className }) => (
 );
 
 // --- Dialog Components ---
-export const Dialog = ({ open, children, className }) => (
+// MODIFIED: Added onOpenChange and fixed transparency issue
+export const Dialog = ({ open, children, className, onOpenChange }) => (
     open ? (
-        <div className={cn('dialog-backdrop fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50', className)}>
-            {/* Removed inner div to allow direct styling of content */}
+        <div
+            // MODIFIED: Removed 'bg-black bg-opacity-50'
+            // Added inline style for a proper backdrop that doesn't affect child opacity
+            className={cn('dialog-backdrop fixed inset-0 flex items-center justify-center z-50', className)}
+            style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+            // MODIFIED: Added backdrop click handler to close
+            onClick={(e) => {
+                if (e.target === e.currentTarget && onOpenChange) {
+                    onOpenChange(false);
+                }
+            }}
+        >
             {children}
         </div>
     ) : null
 );
+
+// MODIFIED: Added stopPropagation
 export const DialogContent = ({ children, className }) => (
-    // Added width classes: w-full (full width on small screens) and max-w-lg (max width on larger screens)
-    <div className={cn('dialog-content bg-white rounded-lg shadow-lg p-6 relative w-full max-w-lg', className)}>
+    <div
+        className={cn('dialog-content bg-white rounded-lg shadow-lg p-6 relative w-full max-w-lg', className)}
+        // MODIFIED: Stop click propagation so backdrop click doesn't close the content
+        onClick={(e) => e.stopPropagation()}
+    >
         {children}
     </div>
 );
 export const DialogHeader = ({ children }) => (
-    <div className="dialog-header mb-4 font-semibold text-lg">{children}</div>
+    // MODIFIED: Made header flex to space-between title and close button
+    <div className="dialog-header mb-4 flex justify-between items-center">
+        {children}
+    </div>
 );
 export const DialogTitle = ({ children }) => <h2 className="text-lg font-semibold">{children}</h2>;
 export const DialogFooter = ({ children }) => (
     <div className="dialog-footer mt-4 flex justify-end space-x-2">{children}</div>
 );
 // Make sure DialogCloseButton is exported if used directly
+// MODIFIED: Added type="button"
 export const DialogCloseButton = ({ onClick }) => (
-    <button onClick={onClick} className="absolute top-2 right-2 text-gray-500 hover:text-gray-800 text-2xl leading-none p-1">&times;</button>
+    <button
+        type="button"
+        onClick={onClick}
+        // MODIFIED: Adjusted positioning and styling
+        className="text-gray-400 hover:text-gray-800 text-2xl leading-none p-1 -mt-2 -mr-2"
+    >
+        &times;
+    </button>
 );
 
 

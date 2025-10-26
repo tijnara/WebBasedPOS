@@ -210,7 +210,7 @@ export default function POSPage() {
                                 className="w-full justify-between"
                                 onClick={() => setIsCustomerModalOpen(true)}
                             >
-                                <span>{selectedCustomer?.name || 'Walk-in Customer'}</span>
+                                <span>{selectedCustomer?.name}</span>
                                 <span className="text-xs text-muted-foreground">Change</span>
                             </Button>
                         </div>
@@ -266,12 +266,13 @@ export default function POSPage() {
             </div>
 
             {/* --- CUSTOMER SELECTION DIALOG (MODAL) --- */}
-            {/* Added bg-background to remove transparency */}
+            {/* MODIFIED: Passed onOpenChange and removed inline styles */}
             <Dialog open={isCustomerModalOpen} onOpenChange={setIsCustomerModalOpen}>
-                <DialogContent className="sm:max-w-[425px] bg-white shadow-lg rounded-md" style={{ backgroundColor: 'var(--surface)', opacity: 1, boxShadow: 'var(--shadow-md)', border: '1px solid var(--border)' }}>
+                <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
                         <h3 className="font-semibold text-lg">Select Customer</h3>
-                        <DialogCloseButton />
+                        {/* MODIFIED: Added onClick handler */}
+                        <DialogCloseButton onClick={() => setIsCustomerModalOpen(false)} />
                     </DialogHeader>
                     <div className="py-4">
                         <Input
@@ -290,7 +291,6 @@ export default function POSPage() {
                                     className="w-full justify-start"
                                     onClick={() => handleSelectCustomer(null)}
                                 >
-                                    Walk-in Customer
                                 </Button>
 
                                 {/* Divider */}

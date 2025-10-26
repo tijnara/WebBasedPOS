@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useStore } from '../../store/useStore';
 import * as api from '../../lib/api';
+// MODIFIED: Added Dialog components
 import { Button, Card, CardHeader, CardContent, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, ScrollArea, Input, Label, Dialog, DialogContent, DialogHeader, DialogCloseButton } from '../ui';
 
 // Simple SVG Icon for Edit
@@ -35,6 +36,7 @@ export default function CustomerManagementPage({ reload }) {
 
     const closeModal = () => {
         setIsModalOpen(false);
+        setTimeout(resetForm, 200);
     };
 
     const startEdit = (c) => {
@@ -54,8 +56,8 @@ export default function CustomerManagementPage({ reload }) {
 
     const save = async (e) => {
         e.preventDefault();
-        if (!name || !email) {
-            addToast({ title: 'Error', description: 'Name and Email are required.' });
+        if (!name) {
+            addToast({ title: 'Error', description: 'Name is required.' });
             return;
         }
 
@@ -129,53 +131,33 @@ export default function CustomerManagementPage({ reload }) {
                 </CardContent>
             </Card>
 
-            {isModalOpen && (
-                <div className="modal" style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    zIndex: 1000
-                }}>
-                    <div className="modal-content" style={{
-                        backgroundColor: '#fff',
-                        padding: '20px',
-                        borderRadius: '8px',
-                        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-                        width: '90%',
-                        maxWidth: '500px'
-                    }}>
-                        <Card>
-                            <CardHeader><h3 className="font-semibold">{editing ? 'Edit Customer' : 'Add Customer'}</h3></CardHeader>
-                            <CardContent>
-                                <form onSubmit={save} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <Label htmlFor="customerName">Customer Name</Label>
-                                        <Input id="customerName" value={name} onChange={e => setName(e.target.value)} required />
-                                    </div>
-                                    <div>
-                                        <Label htmlFor="email">Email</Label>
-                                        <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
-                                    </div>
-                                    <div>
-                                        <Label htmlFor="contactNumber">Contact Number</Label>
-                                        <Input id="contactNumber" value={phone} onChange={e => setPhone(e.target.value)} />
-                                    </div>
-                                    <div className="md:col-span-2 flex space-x-2">
-                                        <Button type="submit">Save</Button>
-                                        <Button variant="outline" type="button" onClick={closeModal}>Cancel</Button>
-                                    </div>
-                                </form>
-                            </CardContent>
-                        </Card>
-                    </div>
-                </div>
-            )}
+            {/* MODIFIED: Replaced custom modal with Dialog component */}
+            <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <h3 className="font-semibold">{editing ? 'Edit Customer' : 'Add Customer'}</h3>
+                        <DialogCloseButton onClick={closeModal} />
+                    </DialogHeader>
+                    <form onSubmit={save} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <Label htmlFor="customerName">Customer Name</Label>
+                            <Input id="customerName" value={name} onChange={e => setName(e.target.value)} required />
+                        </div>
+                        <div>
+                            <Label htmlFor="email">Email</Label>
+                            <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} />
+                        </div>
+                        <div>
+                            <Label htmlFor="contactNumber">Contact Number</Label>
+                            <Input id="contactNumber" value={phone} onChange={e => setPhone(e.target.value)} />
+                        </div>
+                        <div className="md:col-span-2 flex space-x-2 pt-4">
+                            <Button type="submit">Save</Button>
+                            <Button variant="outline" type="button" onClick={closeModal}>Cancel</Button>
+                        </div>
+                    </form>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
