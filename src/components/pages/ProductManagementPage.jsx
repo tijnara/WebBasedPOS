@@ -26,16 +26,12 @@ export default function ProductManagementPage({ reload }) {
     const [editing, setEditing] = useState(null);
     const [name, setName] = useState('');
     const [price, setPrice] = useState('');
-    const [category, setCategory] = useState('');
-    const [stock, setStock] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     const startEdit = (p) => {
         setEditing(p);
         setName(p?.name || '');
         setPrice(p?.price != null ? String(p.price) : '');
-        setCategory(p?.category || '');
-        setStock(p?.stock != null ? String(p.stock) : '');
         setIsModalOpen(true);
     };
 
@@ -52,26 +48,23 @@ export default function ProductManagementPage({ reload }) {
         setEditing(null);
         setName('');
         setPrice('');
-        setCategory('');
-        setStock('');
     };
 
     const save = async (e) => {
         e.preventDefault();
 
         const parsedPrice = parseFloat(price);
-        const parsedStock = parseInt(stock, 10);
 
-        if (!name || !price || !category || !stock) {
+        if (!name || !price) {
             addToast({ title: 'Error', description: 'All fields are required.' });
             return;
         }
-        if (isNaN(parsedPrice) || isNaN(parsedStock)) {
-            addToast({ title: 'Error', description: 'Price and Stock must be valid numbers.' });
+        if (isNaN(parsedPrice)) {
+            addToast({ title: 'Error', description: 'Price must be a valid number.' });
             return;
         }
 
-        const payload = { name, price: parsedPrice, category, stock: parsedStock };
+        const payload = { name, price: parsedPrice };
 
         try {
             if (editing) {
@@ -127,9 +120,7 @@ export default function ProductManagementPage({ reload }) {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Product Name</TableHead>
-                                    <TableHead>Category</TableHead>
                                     <TableHead>Price</TableHead>
-                                    <TableHead>Stock</TableHead>
                                     <TableHead>Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -137,11 +128,7 @@ export default function ProductManagementPage({ reload }) {
                                 {products.map(p => (
                                     <TableRow key={p.id}>
                                         <TableCell>{p.name}</TableCell>
-                                        <TableCell>{p.category}</TableCell>
-                                        <TableCell>${Number(p.price||0).toFixed(2)}</TableCell>
-                                        <TableCell>
-                                            <span className="stock-badge">{p.stock} units</span>
-                                        </TableCell>
+                                        <TableCell>₱{Number(p.price||0).toFixed(2)}</TableCell>
                                         <TableCell>
                                             <div className="flex space-x-2">
                                                 <Button variant="ghost" size="icon" onClick={() => startEdit(p)}>
@@ -190,16 +177,8 @@ export default function ProductManagementPage({ reload }) {
                                         <Input id="productName" value={name} onChange={e => setName(e.target.value)} required />
                                     </div>
                                     <div>
-                                        <Label htmlFor="pcategory">Category</Label>
-                                        <Input id="pcategory" value={category} onChange={e => setCategory(e.target.value)} required />
-                                    </div>
-                                    <div>
                                         <Label htmlFor="pprice">Price</Label>
                                         <Input id="pprice" type="number" step="0.01" value={price} onChange={e => setPrice(e.target.value)} required />
-                                    </div>
-                                    <div>
-                                        <Label htmlFor="pstock">Stock</Label>
-                                        <Input id="pstock" type="number" step="1" value={stock} onChange={e => setStock(e.target.value)} required />
                                     </div>
                                     <div className="md:col-span-2 flex space-x-2">
                                         <Button type="submit">Save</Button>

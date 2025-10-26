@@ -479,3 +479,20 @@ button:disabled {
     width: 100%;
     margin: 1rem; /* Add margin for small screens */
 }
+
+/* Hide scrollbar for Current Order and Product Grid */
+.scroll-area::-webkit-scrollbar {
+  display: none;
+}
+.scroll-area {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.overflow-auto::-webkit-scrollbar {
+  display: none;
+}
+.overflow-auto {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}

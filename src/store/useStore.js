@@ -107,6 +107,18 @@ export const useStore = create((set, get) => ({
         }
         set({ token: null, user: null });
     },
+
+    fetchUser: async () => {
+        try {
+            const response = await fetch('http://localhost:8055/items/users');
+            const data = await response.json();
+            if (data?.data?.length) {
+                set({ user: data.data[0] });
+            }
+        } catch (error) {
+            console.error('Failed to fetch user:', error);
+        }
+    },
 }));
 
 export default useStore;

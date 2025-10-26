@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react'; // Import useEffect
 import { useStore } from '../../store/useStore';
 import * as api from '../../lib/api';
 import { Button, Card, CardHeader, CardContent, CardFooter, Table, TableBody, TableRow, TableCell, ScrollArea, Dialog, DialogContent, DialogHeader, DialogFooter, DialogCloseButton, Input } from '../ui';
@@ -25,20 +25,71 @@ export default function POSPage() {
     const products = useStore(s => s.products);
     const currentSale = useStore(s => s.currentSale);
     const addItemToSale = useStore(s => s.addItemToSale);
-    const removeItemFromSale = useStore(s => s.removeItemFromSale); // Get remove function
+    const removeItemFromSale = useStore(s => s.removeItemFromSale);
     const clearSale = useStore(s => s.clearSale);
-    const getTotalAmount = useStore(s => s.getTotalAmount); // This is actually the subtotal
-    const currentCustomer = useStore(s => s.currentCustomer);
+    const getTotalAmount = useStore(s => s.getTotalAmount);
     const addToast = useStore(s => s.addToast);
+    // const customers = useStore(s => s.customers); // No longer needed for search
 
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [selectedCustomer, setSelectedCustomer] = useState(null);
+    const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
+
+    // State for API search
+    const [searchTerm, setSearchTerm] = useState('');
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+    const [searchResults, setSearchResults] = useState([]);
+    const [isSearching, setIsSearching] = useState(false);
 
     // --- Calculations for Current Order Footer ---
     const subtotal = getTotalAmount();
-    const taxRate = 0.08; // 8% tax rate (as implied by image calculation)
-    const taxAmount = subtotal * taxRate;
-    const totalAmount = subtotal + taxAmount;
     // -------------------------------------------
+
+    // Debounce effect for search
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedSearchTerm(searchTerm);
+        }, 300); // 300ms delay
+
+        return () => {
+            clearTimeout(handler);
+        };
+    }, [searchTerm]);
+
+    // API fetching effect
+    useEffect(() => {
+        // Don't fetch if modal is closed
+        if (!isCustomerModalOpen) {
+            setSearchResults([]);
+            return;
+        }
+
+        const fetchCustomers = async () => {
+            setIsSearching(true);
+            try {
+                // Use `search` param. If no term, it should return all (or first page)
+                const url = `http://localhost:8055/items/customers?search=${encodeURIComponent(debouncedSearchTerm)}`;
+
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch customers');
+                }
+                const result = await response.json();
+                // API returns results in a 'data' array
+                setSearchResults(result.data || []);
+            } catch (error) {
+                console.error("Failed to fetch customers:", error);
+                setSearchResults([]);
+                addToast({ title: 'Search Error', description: error.message, variant: 'destructive' });
+            } finally {
+                setIsSearching(false);
+            }
+        };
+
+        fetchCustomers();
+
+    }, [debouncedSearchTerm, isCustomerModalOpen, addToast]);
+
 
     const handleAdd = (p) => addItemToSale(p, 1);
     const handleIncreaseQuantity = (key) => {
@@ -57,38 +108,47 @@ export default function POSPage() {
         removeItemFromSale(key);
     };
 
+    // Handler for selecting customer from modal
+    const handleSelectCustomer = (customer) => {
+        setSelectedCustomer(customer);
+        setSearchTerm(''); // Clear search input
+        setIsCustomerModalOpen(false); // Close modal
+    };
 
     const handleCheckout = async () => {
         const items = Object.values(currentSale).map(i => ({ productId: i.productId, productName: i.name, quantity: i.quantity, priceAtSale: i.price, subtotal: i.price * i.quantity }));
         if (items.length === 0) return addToast({ title: 'No items', description: 'Add items before finalizing', variant: 'warning' });
 
-        // Removed customer check - assuming walk-in or optional customer selection elsewhere
-
         setIsSubmitting(true);
         try {
             const payload = {
+                id: Date.now(),
                 saleTimestamp: new Date().toISOString(),
-                totalAmount: totalAmount, // Use the calculated total including tax
-                customerId: currentCustomer?.id || null, // Allow null customer
-                customerName: currentCustomer?.name || 'Walk-in', // Default to Walk-in
+                totalAmount: subtotal,
+                // Use null for walk-in, or the customer ID if one is selected
+                customerId: selectedCustomer?.id || null,
+                customerName: selectedCustomer?.name || 'Walk-in',
                 items,
                 status: 'Completed',
-                paymentMethod: 'Cash', // Default payment method
-                // You might want to add subtotal and taxAmount to the payload too
+                paymentMethod: 'Cash',
                 subtotal: subtotal,
-                taxAmount: taxAmount,
             };
 
             console.log('Payload for createSale:', payload);
 
             const created = await api.createSale(payload);
-            addToast({ title: 'Sale saved', description: `Sale ${created.id} recorded`, variant: 'success' });
+            addToast({ title: 'Sale saved', description: `Sale ₱{created.id} recorded`, variant: 'success' });
             clearSale();
+            setSelectedCustomer(null); // Reset customer
+            setSearchTerm('');
         } catch (e) {
             console.error(e);
             addToast({ title: 'Error saving sale', description: e.message, variant: 'destructive' });
         } finally { setIsSubmitting(false); }
     };
+
+    // Filtered customers is no longer needed
+    // const filteredCustomers = ...
 
     return (
         // Wrapper div is needed as the direct child of <main>
@@ -98,7 +158,7 @@ export default function POSPage() {
             </div>
 
             {/* Main content area - Reversed layout */}
-            <div className="flex flex-row-reverse gap-4 h-[calc(100vh-12rem)]"> {/* Adjusted height */}
+            <div className="flex flex-row-reverse gap-4 h-full"> {/* Adjusted height to full */}
 
                 {/* Current Order Sidebar */}
                 <div className="w-full max-w-sm flex-shrink-0">
@@ -106,24 +166,22 @@ export default function POSPage() {
                         <CardHeader>
                             <div className="flex justify-between items-center">
                                 <h3 className="font-semibold text-primary">Current Order</h3>
-                                {/* Simple close button - functionality can be added later */}
                                 <Button variant="ghost" size="sm" className="p-1 h-auto">✖</Button>
                             </div>
                         </CardHeader>
-                        <CardContent className="flex-1 overflow-auto p-0"> {/* Remove padding */}
+                        <CardContent className="flex-1 overflow-auto p-0">
                             {!Object.keys(currentSale).length ? (
                                 <div className="flex flex-col items-center justify-center h-full text-center p-4">
                                     <EmptyCartIcon />
                                     <p className="text-muted mt-2">Your cart is empty</p>
                                 </div>
                             ) : (
-                                // Use a div for scrolling instead of Table wrapper
                                 <ScrollArea className="h-full">
                                     <Table>
                                         <TableBody>
                                             {Object.entries(currentSale).map(([key, item]) => (
                                                 <TableRow key={key}>
-                                                    <TableCell className="font-medium">{item.name}<br/><span className="text-sm text-muted">${item.price.toFixed(2)} each</span></TableCell>
+                                                    <TableCell className="font-medium">{item.name}<br/><span className="text-sm text-muted">₱{item.price.toFixed(2)} each</span></TableCell>
                                                     <TableCell className="text-center">
                                                         <div className="flex items-center justify-center space-x-1">
                                                             <Button variant="ghost" size="sm" className="p-1 h-auto" onClick={() => handleDecreaseQuantity(key)}>-</Button>
@@ -131,7 +189,6 @@ export default function POSPage() {
                                                             <Button variant="ghost" size="sm" className="p-1 h-auto" onClick={() => handleIncreaseQuantity(key)}>+</Button>
                                                         </div>
                                                     </TableCell>
-                                                    {/* Price column removed as it's under name now */}
                                                     <TableCell className="text-right">
                                                         <Button variant="ghost" size="icon" className="text-destructive h-auto p-1" onClick={() => handleRemoveItem(key)}>
                                                             <TrashIcon />
@@ -144,19 +201,30 @@ export default function POSPage() {
                                 </ScrollArea>
                             )}
                         </CardContent>
+
+                        {/* --- CUSTOMER SECTION --- */}
+                        <div className="p-4 border-t space-y-2">
+                            <h4 className="text-sm font-medium">Customer</h4>
+                            <Button
+                                variant="outline"
+                                className="w-full justify-between"
+                                onClick={() => setIsCustomerModalOpen(true)}
+                            >
+                                <span>{selectedCustomer?.name || 'Walk-in Customer'}</span>
+                                <span className="text-xs text-muted-foreground">Change</span>
+                            </Button>
+                        </div>
+                        {/* --- END CUSTOMER SECTION --- */}
+
                         <CardFooter>
                             <div className="w-full">
                                 <div className="flex justify-between mb-2 text-sm">
                                     <span>Subtotal</span>
-                                    <span>${subtotal.toFixed(2)}</span>
-                                </div>
-                                <div className="flex justify-between mb-2 text-sm">
-                                    <span>Tax ({(taxRate * 100).toFixed(0)}%)</span> {/* Display tax rate */}
-                                    <span>${taxAmount.toFixed(2)}</span>
+                                    <span>₱{subtotal.toFixed(2)}</span>
                                 </div>
                                 <div className="flex justify-between mb-4 font-bold text-lg border-t pt-2 mt-2">
                                     <span>Total</span>
-                                    <span className="text-success">${totalAmount.toFixed(2)}</span>
+                                    <span className="text-success">₱{subtotal.toFixed(2)}</span>
                                 </div>
                                 <Button
                                     variant="primary"
@@ -173,26 +241,21 @@ export default function POSPage() {
 
                 {/* Main product grid */}
                 <div className="flex-1 overflow-auto">
-                    {/* Search Bar - Add functionality later */}
                     <div className="mb-4">
                         <Input placeholder="Search products..." className="w-full" />
                     </div>
 
                     <Card>
-                        {/* Removed Header for cleaner look */}
                         <CardContent>
                             {!products.length ? <div className="p-4 text-center text-muted">No products available</div> : (
                                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                                     {products.map(p => (
                                         <button key={p.id} className="product-card" onClick={() => handleAdd(p)}>
                                             <div className="product-card-image">
-                                                {/* Replace with actual image if available */}
                                                 <span role="img" aria-label={p.name} style={{fontSize: '3rem'}}>🍔</span>
                                             </div>
                                             <div className="font-medium text-lg">{p.name}</div>
-                                            <div className="text-sm text-muted">${Number(p.price || 0).toFixed(2)}</div>
-                                            {/* Stock indicator can be added here if needed */}
-                                            {/* <span className="stock-indicator">{p.stock}</span> */}
+                                            <div className="text-sm text-muted">₱{Number(p.price || 0).toFixed(2)}</div>
                                         </button>
                                     ))}
                                 </div>
@@ -201,6 +264,65 @@ export default function POSPage() {
                     </Card>
                 </div>
             </div>
+
+            {/* --- CUSTOMER SELECTION DIALOG (MODAL) --- */}
+            {/* Added bg-background to remove transparency */}
+            <Dialog open={isCustomerModalOpen} onOpenChange={setIsCustomerModalOpen}>
+                <DialogContent className="sm:max-w-[425px] bg-white shadow-lg rounded-md" style={{ backgroundColor: 'var(--surface)', opacity: 1, boxShadow: 'var(--shadow-md)', border: '1px solid var(--border)' }}>
+                    <DialogHeader>
+                        <h3 className="font-semibold text-lg">Select Customer</h3>
+                        <DialogCloseButton />
+                    </DialogHeader>
+                    <div className="py-4">
+                        <Input
+                            id="customer-search-modal"
+                            type="text"
+                            placeholder="Search customers..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full mb-4"
+                        />
+                        <ScrollArea className="h-[300px] border rounded-md">
+                            <div className="p-2 space-y-1">
+                                {/* Static "Walk-in" option to select 'null' customer */}
+                                <Button
+                                    variant={selectedCustomer === null ? "secondary" : "ghost"}
+                                    className="w-full justify-start"
+                                    onClick={() => handleSelectCustomer(null)}
+                                >
+                                    Walk-in Customer
+                                </Button>
+
+                                {/* Divider */}
+                                {(isSearching || searchResults.length > 0) && <hr className="my-1" />}
+
+                                {/* API Search Results */}
+                                {isSearching ? (
+                                    <p className="p-4 text-sm text-center text-muted">Searching...</p>
+                                ) : (
+                                    <>
+                                        {searchResults.map(customer => (
+                                            <Button
+                                                key={customer.id}
+                                                variant={selectedCustomer?.id === customer.id ? "secondary" : "ghost"}
+                                                className="w-full justify-start"
+                                                onClick={() => handleSelectCustomer(customer)}
+                                            >
+                                                {customer.name}
+                                            </Button>
+                                        ))}
+                                        {/* Show "No customers" only if a search was typed and no results found */}
+                                        {searchResults.length === 0 && debouncedSearchTerm && (
+                                            <p className="p-4 text-sm text-center text-muted">No customers found.</p>
+                                        )}
+                                    </>
+                                )}
+                            </div>
+                        </ScrollArea>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
         </div> // End of wrapper div
     );
 }

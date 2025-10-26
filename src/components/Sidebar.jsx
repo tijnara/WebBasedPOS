@@ -1,12 +1,23 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button, cn } from './ui';
 import { useRouter } from 'next/router';
-import { useStore } from '../store/useStore';
+import axios from 'axios';
 
 const Sidebar = () => {
     const router = useRouter();
-    const logout = useStore(s => s.logout);
-    const user = useStore(s => s.user);
+    const [user, setUser] = useState(null);
+
+    useEffect(() => {
+        // Fetch user data from the API
+        axios.get('http://localhost:8055/items/users')
+            .then(response => {
+                const userData = response.data.data[0]; // Assuming the first user is the logged-in user
+                setUser(userData);
+            })
+            .catch(error => {
+                console.error('Error fetching user data:', error);
+            });
+    }, []);
 
     const links = [
         { name: 'Point of Sale', path: '/' },
@@ -17,7 +28,7 @@ const Sidebar = () => {
     ];
 
     const handleLogout = () => {
-        logout();
+        // Logout logic here
         router.push('/login');
     };
 
@@ -41,7 +52,7 @@ const Sidebar = () => {
             <div className="meta p-4 border-t border-gray-700">
                 <div className="text-sm mb-2">
                     Logged in as: <br />
-                    <span className="font-medium">{user?.first_name} {user?.last_name}</span>
+                    <span className="font-medium">{user?.name}</span>
                     <br />
                     <span className="text-xs text-gray-400">{user?.email}</span>
                 </div>

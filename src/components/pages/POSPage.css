@@ -1,0 +1,18 @@
+/* POSPage.css */
+
+/* Hide scrollbar for Current Order and Product Grid */
+.scroll-area::-webkit-scrollbar {
+  display: none;
+}
+.scroll-area {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.overflow-auto::-webkit-scrollbar {
+  display: none;
+}
+.overflow-auto {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
