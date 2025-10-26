@@ -114,7 +114,7 @@ export default function ProductManagementPage({ reload }) {
 
     return (
         <div>
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
                 <div>
                     <h1 className="text-2xl font-semibold">Products</h1>
                     <p className="text-muted">Manage your product inventory</p>

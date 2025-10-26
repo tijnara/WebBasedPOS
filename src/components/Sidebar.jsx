@@ -1,23 +1,22 @@
 import React, { useEffect, useState } from 'react';
-import { Button, cn } from './ui';
+import { Button, cn } from './ui'; // Import cn
 import { useRouter } from 'next/router';
 import axios from 'axios';
+import { useStore } from '../store/useStore'; // Import useStore
 
 const Sidebar = () => {
     const router = useRouter();
-    const [user, setUser] = useState(null);
+    const { logout, user: storeUser } = useStore(s => ({ logout: s.logout, user: s.user })); // Get user and logout from store
 
-    useEffect(() => {
-        // Fetch user data from the API
-        axios.get('http://localhost:8055/items/users')
-            .then(response => {
-                const userData = response.data.data[0]; // Assuming the first user is the logged-in user
-                setUser(userData);
-            })
-            .catch(error => {
-                console.error('Error fetching user data:', error);
-            });
-    }, []);
+    // This local state is still fine for fetching details if the storeUser is just an ID/email
+    // But for this app, the user object is already in the store after login.
+    // const [user, setUser] = useState(null);
+    // useEffect(() => {
+    //     ...
+    // }, []);
+
+    // Use the user from the store directly
+    const user = storeUser;
 
     const links = [
         { name: 'Point of Sale', path: '/' },
@@ -28,33 +27,44 @@ const Sidebar = () => {
     ];
 
     const handleLogout = () => {
-        // Logout logic here
+        logout(); // Use the logout function from the store
         router.push('/login');
     };
 
     return (
-        <div className="sidebar bg-secondary text-white h-full w-64 flex flex-col">
+        // REMOVED conflicting Tailwind classes like w-64, h-full, bg-secondary, etc.
+        // The ".sidebar" class is now fully controlled by styles/globals.css
+        <div className="sidebar">
             <div className="brand p-4 font-bold text-lg border-b border-gray-700">
                 SEASIDE POS
             </div>
+
+            {/* Nav links scroll horizontally on mobile, stack vertically on desktop */}
             <nav className="flex-1 overflow-auto p-4 space-y-2">
                 {links.map(link => (
                     <Button
                         key={link.path}
                         variant="ghost"
-                        className={`w-full justify-start text-white hover:bg-gray-700 ${router.pathname === link.path ? 'bg-gray-800' : ''}`}
+                        // UPDATED: Use cn() to conditionally apply the "active" class
+                        // globals.css now styles ".sidebar .btn.active"
+                        className={cn('w-full justify-start', {
+                            'active': router.pathname === link.path
+                        })}
                         onClick={() => router.push(link.path)}
                     >
                         {link.name}
                     </Button>
                 ))}
             </nav>
+
+            {/* This "meta" div is hidden on mobile and shown on desktop by globals.css */}
             <div className="meta p-4 border-t border-gray-700">
                 <div className="text-sm mb-2">
                     Logged in as: <br />
-                    <span className="font-medium">{user?.name}</span>
+                    {/* Use storeUser */}
+                    <span className="font-medium">{user?.name || user?.first_name || 'User'}</span>
                     <br />
-                    <span className="text-xs text-gray-400">{user?.email}</span>
+                    <span className="text-xs text-muted">{user?.email}</span>
                 </div>
                 <Button variant="destructive" className="w-full" onClick={handleLogout}>
                     Logout

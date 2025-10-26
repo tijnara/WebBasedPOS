@@ -215,7 +215,7 @@ export default function POSPage() {
                     Add Custom Sale
                 </Button>
             </div>
-            <div className="flex flex-row-reverse gap-4 h-full">
+            <div className="flex flex-col-reverse lg:flex-row-reverse gap-4 h-full">
                 {/* Current Order Sidebar */}
                 <div className="w-full max-w-sm flex-shrink-0">
                     <Card className="flex flex-col h-full">
