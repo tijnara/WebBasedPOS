@@ -11,24 +11,48 @@ const BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8055';
 
 async function handleRes(res) {
     const text = await res.text();
+    let json;
+
     try {
-        if (!text) {
-            return res.ok ? {} : Promise.reject(new Error(res.statusText));
-        }
-        const json = JSON.parse(text);
-        if (!res.ok) {
-            console.error(`API Error: ${res.url}`, json);
-            throw new Error(json?.errors?.[0]?.message || json?.error || json?.message || res.statusText);
-        }
-        return json;
+        // Try to parse the response text as JSON
+        json = text ? JSON.parse(text) : {};
     } catch (e) {
-        if (!res.ok) {
-            console.error(`API Error: ${res.url}`, e.message);
-            throw new Error(res.statusText || e.message);
+        // If parsing fails but the status was OK, return the raw text
+        if (res.ok) {
+            return text;
         }
-        // if parsing error but ok, return text
-        return text;
+        // If parsing fails and status is not OK, throw an error
+        console.error(`API Error: ${res.url} (JSON parse failed)`, res.statusText);
+        throw new Error(res.statusText);
     }
+
+    // If the response was NOT ok (e.g., 401, 403, 500)
+    if (!res.ok) {
+        // *** FIX: Check for 401 Unauthorized ***
+        if (res.status === 401) {
+            console.warn('API call unauthorized (401). Token might be expired. Logging out.');
+
+            // Get the logout function from the zustand store
+            useStore.getState().logout();
+
+            // Force a reload to the login page.
+            // The AuthGate in _app.js will handle the redirect.
+            if (typeof window !== 'undefined') {
+                window.location.href = '/login';
+            }
+
+            // Throw a specific error to stop further processing
+            throw new Error('Unauthorized. Logging out.');
+        }
+
+        // Handle other errors (403, 500, etc.)
+        const errorMsg = json?.errors?.[0]?.message || json?.error || json?.message || res.statusText;
+        console.error(`API Error: ${res.url}`, errorMsg, json);
+        throw new Error(errorMsg);
+    }
+
+    // If the response was OK, return the parsed JSON
+    return json;
 }
 
 // Helper to get auth headers
@@ -36,6 +60,13 @@ const getAuthHeaders = () => {
     const token = useStore.getState().token;
     if (!token) {
         console.warn('API call made without token');
+        // If there's no token, we can pre-emptively log out
+        // although AuthGate should ideally prevent this.
+        // This is a good safeguard.
+        if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+            useStore.getState().logout();
+            window.location.href = '/login';
+        }
         return { 'Content-Type': 'application/json' };
     }
     return {
@@ -86,7 +117,7 @@ export async function createUser(payload) {
     const res = await fetch(`${BASE}/items/users`, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify({ data: payload }),
+        body: JSON.stringify({ data: payload }), // Assuming payload is correct, Directus 9+ uses root
     });
     const json = await handleRes(res);
     return json.data;
@@ -96,7 +127,7 @@ export async function updateUser(id, payload) {
     const res = await fetch(`${BASE}/items/users/${id}`, {
         method: 'PATCH',
         headers: getAuthHeaders(),
-        body: JSON.stringify({ data: payload }),
+        body: JSON.stringify(payload), // Directus 9+ updates just use the payload
     });
     const json = await handleRes(res);
     return json.data;
@@ -107,24 +138,29 @@ export async function deleteUser(id) {
         method: 'DELETE',
         headers: getAuthHeaders(),
     });
+    // Directus delete returns 204 No Content, handleRes will handle this
     return await handleRes(res);
 }
 
 // --- Products, Customers, Sales ---
 
 export async function fetchProducts() {
+    // Note: This endpoint is public (no getAuthHeaders())
     const res = await fetch(`${BASE}/items/products`);
     const json = await handleRes(res);
     return Array.isArray(json.data) ? json.data : [];
 }
 
 export async function fetchCustomers() {
+    // Note: This endpoint is public (no getAuthHeaders())
     const res = await fetch(`${BASE}/items/customers`);
     const json = await handleRes(res);
     return Array.isArray(json.data) ? json.data : [];
 }
 
 export async function fetchSales() {
+    // Note: This endpoint is public (no getAuthHeaders())
+    // You may want to add `getAuthHeaders()` here if sales data should be private
     const res = await fetch(`${BASE}/items/sales`);
     const json = await handleRes(res);
     return Array.isArray(json.data) ? json.data : [];
@@ -134,7 +170,7 @@ export async function createCustomer(payload) {
     const res = await fetch(`${BASE}/items/customers`, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify({ data: payload }),
+        body: JSON.stringify(payload), // Directus 9+
     });
     const json = await handleRes(res);
     return json.data;
@@ -155,27 +191,13 @@ export async function createProduct(payload) {
         const res = await fetch(`${BASE}/items/products`, {
             method: 'POST',
             headers: getAuthHeaders(),
-            // FIX: Wrap in { data: ... } to be consistent with other calls
-            body: JSON.stringify({ data: payload }),
+            body: JSON.stringify(payload), // Directus 9+
         });
 
-        if (!res.ok) {
-            const errorText = await res.text(); // Log server response for debugging
-            console.error('API Error:', res.status, res.statusText, errorText);
-            try {
-                const errorJson = JSON.parse(errorText);
-                const serverMessage = errorJson?.errors?.[0]?.message || errorJson?.error || errorJson?.message;
-                if (serverMessage) {
-                    throw new Error(serverMessage); // Throw the *actual* server error
-                }
-            } catch (e) {
-                // Ignore parsing error
-            }
-            throw new Error(`API Error: ${res.status} ${res.statusText}`);
-        }
-
-        const json = await res.json();
+        // handleRes will throw if !res.ok
+        const json = await handleRes(res);
         return json.data;
+
     } catch (error) {
         console.error('createProduct failed:', error);
         throw error;
@@ -187,7 +209,7 @@ export async function createSale(payload) {
     const res = await fetch(`${BASE}/items/sales`, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify({ data: payload }),
+        body: JSON.stringify(payload), // Directus 9+
     });
     const json = await handleRes(res);
     return json.data;
@@ -199,18 +221,9 @@ export async function updateItem(collectionName, id, payload) {
         const res = await fetch(`${BASE}/items/${collectionName}/${id}`, {
             method: 'PATCH',
             headers: getAuthHeaders(),
-            body: JSON.stringify({ data: payload }),
+            body: JSON.stringify(payload), // Directus 9+
         });
-        if (!res.ok) {
-            const errorText = await res.text();
-            console.error(`API Error: ${res.url}`, {
-                status: res.status,
-                statusText: res.statusText,
-                response: errorText,
-                payload,
-            });
-            throw new Error(`API Error: ${res.status} ${res.statusText}`);
-        }
+
         const json = await handleRes(res);
         return json.data;
     } catch (error) {
@@ -224,9 +237,8 @@ export async function deleteItem(collectionName, id) {
         method: 'DELETE',
         headers: getAuthHeaders(), // Add auth header for deletion
     });
-    // Directus returns data for delete; handle accordingly
-    const json = await handleRes(res);
-    return json.data;
+    // handleRes will handle the 204 No Content response
+    return await handleRes(res);
 }
 
 export default {

@@ -305,6 +305,7 @@ button:disabled {
 .h-auto { height: auto; }
 .h-screen { height: 100vh; }
 .max-w-sm { max-width: 24rem; }
+.max-w-lg { max-width: 32rem; } /* Added for larger modals */
 
 /* --- Overflow & Positioning --- */
 .overflow-auto { overflow: auto; }
@@ -471,4 +472,10 @@ button:disabled {
     align-items: center;
     justify-content: center;
     background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+}
+/* Added to ensure dialog content has a good default size */
+.dialog-content {
+    max-width: 32rem; /* 512px */
+    width: 100%;
+    margin: 1rem; /* Add margin for small screens */
 }

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useStore } from '../../store/useStore';
 import * as api from '../../lib/api';
-import { Button, Card, CardHeader, CardContent, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, ScrollArea, Input, Label } from '../ui';
+import { Button, Card, CardHeader, CardContent, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, ScrollArea, Input, Label, Dialog, DialogContent, DialogHeader, DialogCloseButton } from '../ui';
 
 // Simple SVG Icon for Edit
 const EditIcon = () => (
@@ -26,12 +26,30 @@ export default function CustomerManagementPage({ reload }) {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [phone, setPhone] = useState('');
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
+    const openModal = () => {
+        resetForm();
+        setIsModalOpen(true);
+    };
+
+    const closeModal = () => {
+        setIsModalOpen(false);
+    };
 
     const startEdit = (c) => {
         setEditing(c);
         setName(c?.name || '');
         setEmail(c?.email || '');
         setPhone(c?.phone || '');
+        setIsModalOpen(true);
+    };
+
+    const resetForm = () => {
+        setEditing(null);
+        setName('');
+        setEmail('');
+        setPhone('');
     };
 
     const save = async (e) => {
@@ -51,7 +69,7 @@ export default function CustomerManagementPage({ reload }) {
                 await api.createCustomer({ ...payload, dateAdded: new Date().toISOString() });
                 addToast({ title: 'Created', description: `Customer ${name} created` });
             }
-            setEditing(null); setName(''); setEmail(''); setPhone('');
+            closeModal();
             if (reload) reload();
         } catch (e) { console.error(e); addToast({ title: 'Error', description: e.message }); }
     };
@@ -69,25 +87,21 @@ export default function CustomerManagementPage({ reload }) {
         <div>
             <div className="flex justify-between items-center mb-4">
                 <div>
-                    <h1 className="text-2xl font-semibold">Customers</h1>
-                    <p className="text-muted">Manage your customer database</p>
+                    <h1 className="text-2xl font-semibold">Customer Management</h1>
+                    <p className="text-muted">Manage your customer records</p>
                 </div>
-                <Button onClick={() => startEdit(null)}>Add Customer</Button>
+                <Button onClick={openModal}>Add Customer</Button>
             </div>
 
-            <div className="mb-4">
-                <Input placeholder="Search customers..." className="w-full" />
-            </div>
-
-            <Card>
+            <Card className="mb-4">
                 <CardContent>
                     <ScrollArea className="max-h-96">
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Name</TableHead>
+                                    <TableHead>Customer Name</TableHead>
                                     <TableHead>Email</TableHead>
-                                    <TableHead>Phone</TableHead>
+                                    <TableHead>Contact Number</TableHead>
                                     <TableHead>Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -95,8 +109,8 @@ export default function CustomerManagementPage({ reload }) {
                                 {customers.map(c => (
                                     <TableRow key={c.id}>
                                         <TableCell>{c.name}</TableCell>
-                                        <TableCell>{c.email || '-'}</TableCell>
-                                        <TableCell>{c.phone || '-'}</TableCell>
+                                        <TableCell>{c.email}</TableCell>
+                                        <TableCell>{c.phone}</TableCell>
                                         <TableCell>
                                             <div className="flex space-x-2">
                                                 <Button variant="ghost" size="icon" onClick={() => startEdit(c)}>
@@ -115,31 +129,53 @@ export default function CustomerManagementPage({ reload }) {
                 </CardContent>
             </Card>
 
-            <div className="mt-4">
-                <Card>
-                    <CardHeader><h3 className="font-semibold">{editing ? 'Edit Customer' : 'Add Customer'}</h3></CardHeader>
-                    <CardContent>
-                        <form onSubmit={save} className="space-y-2">
-                            <div>
-                                <Label htmlFor="cname">Name</Label>
-                                <Input id="cname" value={name} onChange={e => setName(e.target.value)} required />
-                            </div>
-                            <div>
-                                <Label htmlFor="cemail">Email</Label>
-                                <Input id="cemail" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
-                            </div>
-                            <div>
-                                <Label htmlFor="cphone">Phone</Label>
-                                <Input id="cphone" value={phone} onChange={e => setPhone(e.target.value)} />
-                            </div>
-                            <div className="flex space-x-2">
-                                <Button type="submit">Save</Button>
-                                <Button variant="outline" type="button" onClick={() => { setEditing(null); setName(''); setEmail(''); setPhone(''); }}>Cancel</Button>
-                            </div>
-                        </form>
-                    </CardContent>
-                </Card>
-            </div>
+            {isModalOpen && (
+                <div className="modal" style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    zIndex: 1000
+                }}>
+                    <div className="modal-content" style={{
+                        backgroundColor: '#fff',
+                        padding: '20px',
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                        width: '90%',
+                        maxWidth: '500px'
+                    }}>
+                        <Card>
+                            <CardHeader><h3 className="font-semibold">{editing ? 'Edit Customer' : 'Add Customer'}</h3></CardHeader>
+                            <CardContent>
+                                <form onSubmit={save} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <Label htmlFor="customerName">Customer Name</Label>
+                                        <Input id="customerName" value={name} onChange={e => setName(e.target.value)} required />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="email">Email</Label>
+                                        <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="contactNumber">Contact Number</Label>
+                                        <Input id="contactNumber" value={phone} onChange={e => setPhone(e.target.value)} />
+                                    </div>
+                                    <div className="md:col-span-2 flex space-x-2">
+                                        <Button type="submit">Save</Button>
+                                        <Button variant="outline" type="button" onClick={closeModal}>Cancel</Button>
+                                    </div>
+                                </form>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../../store/useStore';
 import * as api from '../../lib/api';
-import { Button, Card, CardHeader, CardContent, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, ScrollArea, Input, Label } from '../ui';
+import { Button, Card, CardHeader, CardContent, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, ScrollArea, Input, Label, Dialog, DialogContent, DialogHeader, DialogCloseButton } from '../ui';
 
 // Simple SVG Icon for Edit
 const EditIcon = () => (
@@ -32,10 +32,9 @@ export default function UserManagementPage() {
 
     const loadData = async () => {
         try {
-            const response = await fetch(apiUrl);
-            if (!response.ok) throw new Error('Failed to fetch users');
-            const data = await response.json();
-            setUsers(data.data.map(user => ({
+            // Using api.fetchUsers() instead of direct fetch for consistency
+            const data = await api.fetchUsers();
+            setUsers(data.map(user => ({
                 id: user.id,
                 name: user.name,
                 email: user.email,
@@ -44,7 +43,10 @@ export default function UserManagementPage() {
             })));
         } catch (e) {
             console.error(e);
-            addToast({ title: 'Error', description: 'Failed to load users' });
+            // Don't show toast on 401, as api.js handles the redirect
+            if (e.message !== 'Unauthorized. Logging out.') {
+                addToast({ title: 'Error', description: 'Failed to load users' });
+            }
         }
     };
 
@@ -58,6 +60,7 @@ export default function UserManagementPage() {
         setEmail(u?.email || '');
         setContactNumber(u?.phone || '');
         setPassword(''); // Clear password field for editing
+        setIsModalOpen(true);
     };
 
     const resetForm = () => {
@@ -68,6 +71,16 @@ export default function UserManagementPage() {
         setContactNumber('');
     };
 
+    const closeModal = () => {
+        setIsModalOpen(false);
+        resetForm();
+    };
+
+    const openModal = () => {
+        resetForm();
+        setIsModalOpen(true);
+    };
+
     const save = async (e) => {
         e.preventDefault();
 
@@ -75,7 +88,8 @@ export default function UserManagementPage() {
             name: fullName,
             email,
             phone: contactNumber,
-            password
+            // Only include password if it's not blank
+            ...(password && { password })
         };
 
         if (!editing && !password) {
@@ -89,13 +103,15 @@ export default function UserManagementPage() {
 
         try {
             if (editing) {
-                await updateUser(editing.id, payload);
+                // Using api.updateUser for consistency
+                await api.updateUser(editing.id, payload);
                 addToast({ title: 'Updated', description: `User ${email} updated` });
             } else {
-                await addUser(payload);
+                // Using api.createUser for consistency
+                await api.createUser(payload);
                 addToast({ title: 'Created', description: `User ${email} created` });
             }
-            resetForm();
+            closeModal();
             loadData(); // Reload users list
         } catch (e) {
             console.error(e);
@@ -112,64 +128,7 @@ export default function UserManagementPage() {
         } catch (e) { console.error(e); addToast({ title: 'Error', description: e.message }); }
     };
 
-    const addUser = async (user) => {
-        try {
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ data: [user] }),
-            });
-            if (!response.ok) throw new Error('Failed to add user');
-            loadData();
-            addToast({ title: 'Success', description: 'User added successfully' });
-        } catch (e) {
-            console.error(e);
-            addToast({ title: 'Error', description: 'Failed to add user' });
-        }
-    };
-
-    const updateUser = async (id, updatedData) => {
-        try {
-            const response = await fetch(`${apiUrl}/${id}`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ data: updatedData }),
-            });
-            if (!response.ok) throw new Error('Failed to update user');
-            loadData();
-            addToast({ title: 'Success', description: 'User updated successfully' });
-        } catch (e) {
-            console.error(e);
-            addToast({ title: 'Error', description: 'Failed to update user' });
-        }
-    };
-
-    const deleteUser = async (id) => {
-        try {
-            const response = await fetch(`${apiUrl}/${id}`, {
-                method: 'DELETE',
-            });
-            if (!response.ok) throw new Error('Failed to delete user');
-            loadData();
-            addToast({ title: 'Success', description: 'User deleted successfully' });
-        } catch (e) {
-            console.error(e);
-            addToast({ title: 'Error', description: 'Failed to delete user' });
-        }
-    };
-
-    const openModal = () => {
-        resetForm();
-        setIsModalOpen(true);
-    };
-
-    const closeModal = () => {
-        setIsModalOpen(false);
-    };
+    // Removed local addUser, updateUser, deleteUser as we now use api.js
 
     return (
         <div>
@@ -218,8 +177,26 @@ export default function UserManagementPage() {
             </Card>
 
             {isModalOpen && (
-                <div className="modal">
-                    <div className="modal-content">
+                <div className="modal" style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    zIndex: 1000
+                }}>
+                    <div className="modal-content" style={{
+                        backgroundColor: '#fff',
+                        padding: '20px',
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                        width: '90%',
+                        maxWidth: '500px'
+                    }}>
                         <Card>
                             <CardHeader><h3 className="font-semibold">{editing ? 'Edit User' : 'Add User'}</h3></CardHeader>
                             <CardContent>

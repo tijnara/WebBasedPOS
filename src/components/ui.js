@@ -61,8 +61,8 @@ export const Dialog = ({ open, children, className }) => (
     ) : null
 );
 export const DialogContent = ({ children, className }) => (
-    // Added relative positioning context for absolute close button
-    <div className={cn('dialog-content bg-white rounded-lg shadow-lg p-6 relative', className)}>
+    // Added width classes: w-full (full width on small screens) and max-w-lg (max width on larger screens)
+    <div className={cn('dialog-content bg-white rounded-lg shadow-lg p-6 relative w-full max-w-lg', className)}>
         {children}
     </div>
 );

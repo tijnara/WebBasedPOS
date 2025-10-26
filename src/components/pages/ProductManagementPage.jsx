@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useStore } from '../../store/useStore';
 import * as api from '../../lib/api';
-import { Button, Card, CardHeader, CardContent, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, ScrollArea, Input, Label } from '../ui';
+import { Button, Card, CardHeader, CardContent, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, ScrollArea, Input, Label, Dialog, DialogContent, DialogHeader, DialogCloseButton } from '../ui';
 
 // Simple SVG Icon for Edit
 const EditIcon = () => (
@@ -28,6 +28,7 @@ export default function ProductManagementPage({ reload }) {
     const [price, setPrice] = useState('');
     const [category, setCategory] = useState('');
     const [stock, setStock] = useState('');
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     const startEdit = (p) => {
         setEditing(p);
@@ -35,6 +36,24 @@ export default function ProductManagementPage({ reload }) {
         setPrice(p?.price != null ? String(p.price) : '');
         setCategory(p?.category || '');
         setStock(p?.stock != null ? String(p.stock) : '');
+        setIsModalOpen(true);
+    };
+
+    const openModal = () => {
+        resetForm();
+        setIsModalOpen(true);
+    };
+
+    const closeModal = () => {
+        setIsModalOpen(false);
+    };
+
+    const resetForm = () => {
+        setEditing(null);
+        setName('');
+        setPrice('');
+        setCategory('');
+        setStock('');
     };
 
     const save = async (e) => {
@@ -67,11 +86,7 @@ export default function ProductManagementPage({ reload }) {
                 addToast({ title: 'Created', description: `Product ${name} created` });
             }
 
-            setEditing(null);
-            setName('');
-            setPrice('');
-            setCategory('');
-            setStock('');
+            closeModal();
             if (reload) reload();
         } catch (e) {
             console.error(e);
@@ -98,7 +113,7 @@ export default function ProductManagementPage({ reload }) {
                     <h1 className="text-2xl font-semibold">Products</h1>
                     <p className="text-muted">Manage your product inventory</p>
                 </div>
-                <Button onClick={() => startEdit(null)}>Add Product</Button>
+                <Button onClick={openModal}>Add Product</Button>
             </div>
 
             <div className="mb-4">
@@ -145,36 +160,57 @@ export default function ProductManagementPage({ reload }) {
                 </CardContent>
             </Card>
 
-            {/* Editor form (Modal or separate view recommended, but inline for simplicity) */}
-            <div className="mt-4">
-                <Card>
-                    <CardHeader><h3 className="font-semibold">{editing ? 'Edit Product' : 'Add Product'}</h3></CardHeader>
-                    <CardContent>
-                        <form onSubmit={save} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <Label htmlFor="pname">Name</Label>
-                                <Input id="pname" value={name} onChange={e => setName(e.target.value)} required />
-                            </div>
-                            <div>
-                                <Label htmlFor="pcategory">Category</Label>
-                                <Input id="pcategory" value={category} onChange={e => setCategory(e.target.value)} required />
-                            </div>
-                            <div>
-                                <Label htmlFor="pprice">Price</Label>
-                                <Input id="pprice" type="number" step="0.01" value={price} onChange={e => setPrice(e.target.value)} required />
-                            </div>
-                            <div>
-                                <Label htmlFor="pstock">Stock</Label>
-                                <Input id="pstock" type="number" step="1" value={stock} onChange={e => setStock(e.target.value)} required />
-                            </div>
-                            <div className="md:col-span-2 flex space-x-2">
-                                <Button type="submit">Save</Button>
-                                <Button variant="outline" type="button" onClick={() => { setEditing(null); setName(''); setPrice(''); setCategory(''); setStock(''); }}>Cancel</Button>
-                            </div>
-                        </form>
-                    </CardContent>
-                </Card>
-            </div>
+            {isModalOpen && (
+                <div className="modal" style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    zIndex: 1000
+                }}>
+                    <div className="modal-content" style={{
+                        backgroundColor: '#fff',
+                        padding: '20px',
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                        width: '90%',
+                        maxWidth: '500px'
+                    }}>
+                        <Card>
+                            <CardHeader><h3 className="font-semibold">{editing ? 'Edit Product' : 'Add Product'}</h3></CardHeader>
+                            <CardContent>
+                                <form onSubmit={save} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <Label htmlFor="productName">Product Name</Label>
+                                        <Input id="productName" value={name} onChange={e => setName(e.target.value)} required />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="pcategory">Category</Label>
+                                        <Input id="pcategory" value={category} onChange={e => setCategory(e.target.value)} required />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="pprice">Price</Label>
+                                        <Input id="pprice" type="number" step="0.01" value={price} onChange={e => setPrice(e.target.value)} required />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="pstock">Stock</Label>
+                                        <Input id="pstock" type="number" step="1" value={stock} onChange={e => setStock(e.target.value)} required />
+                                    </div>
+                                    <div className="md:col-span-2 flex space-x-2">
+                                        <Button type="submit">Save</Button>
+                                        <Button variant="outline" type="button" onClick={closeModal}>Cancel</Button>
+                                    </div>
+                                </form>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
