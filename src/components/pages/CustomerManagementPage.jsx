@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useStore } from '../../store/useStore';
 import * as api from '../../lib/api';
-// MODIFIED: Added Dialog components
-import { Button, Card, CardHeader, CardContent, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, ScrollArea, Input, Label, Dialog, DialogContent, DialogHeader, DialogCloseButton } from '../ui';
+// MODIFIED: Added DialogTitle and DialogFooter
+import { Button, Card, CardHeader, CardContent, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, ScrollArea, Input, Label, Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogCloseButton } from '../ui';
 
 // Simple SVG Icon for Edit
 const EditIcon = () => (
@@ -56,8 +56,8 @@ export default function CustomerManagementPage({ reload }) {
 
     const save = async (e) => {
         e.preventDefault();
-        if (!name) {
-            addToast({ title: 'Error', description: 'Name is required.' });
+        if (!name) { // Email is optional now
+            addToast({ title: 'Error', description: 'Customer Name is required.' });
             return;
         }
 
@@ -68,21 +68,28 @@ export default function CustomerManagementPage({ reload }) {
                 await api.updateItem('customers', editing.id, payload);
                 addToast({ title: 'Updated', description: `Customer ${name} updated` });
             } else {
+                // Ensure dateAdded is included for creation
                 await api.createCustomer({ ...payload, dateAdded: new Date().toISOString() });
                 addToast({ title: 'Created', description: `Customer ${name} created` });
             }
             closeModal();
-            if (reload) reload();
-        } catch (e) { console.error(e); addToast({ title: 'Error', description: e.message }); }
+            if (reload) reload(); // Use the reload prop from _app.js
+        } catch (e) {
+            console.error(e);
+            addToast({ title: 'Error', description: e.message || 'Failed to save customer' });
+        }
     };
 
     const remove = async (c) => {
-        if (!confirm(`Delete ${c.name}?`)) return;
+        if (!confirm(`Delete ${c.name}? This cannot be undone.`)) return;
         try {
             await api.deleteItem('customers', c.id);
             addToast({ title: 'Deleted', description: `${c.name} deleted` });
-            if (reload) reload();
-        } catch (e) { console.error(e); addToast({ title: 'Error', description: e.message }); }
+            if (reload) reload(); // Use the reload prop from _app.js
+        } catch (e) {
+            console.error(e);
+            addToast({ title: 'Error', description: e.message || 'Failed to delete customer' });
+        }
     };
 
     return (
@@ -95,15 +102,20 @@ export default function CustomerManagementPage({ reload }) {
                 <Button onClick={openModal}>Add Customer</Button>
             </div>
 
+            <div className="mb-4">
+                <Input placeholder="Search customers..." className="w-full" />
+            </div>
+
             <Card className="mb-4">
                 <CardContent>
-                    <ScrollArea className="max-h-96">
+                    <ScrollArea className="max-h-96"> {/* Adjust max height */}
                         <Table>
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Customer Name</TableHead>
                                     <TableHead>Email</TableHead>
                                     <TableHead>Contact Number</TableHead>
+                                    <TableHead>Date Added</TableHead>
                                     <TableHead>Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -111,14 +123,15 @@ export default function CustomerManagementPage({ reload }) {
                                 {customers.map(c => (
                                     <TableRow key={c.id}>
                                         <TableCell>{c.name}</TableCell>
-                                        <TableCell>{c.email}</TableCell>
-                                        <TableCell>{c.phone}</TableCell>
+                                        <TableCell>{c.email || 'N/A'}</TableCell>
+                                        <TableCell>{c.phone || 'N/A'}</TableCell>
+                                        <TableCell>{c.dateAdded ? c.dateAdded.toLocaleDateString() : 'N/A'}</TableCell>
                                         <TableCell>
-                                            <div className="flex space-x-2">
-                                                <Button variant="ghost" size="icon" onClick={() => startEdit(c)}>
+                                            <div className="flex space-x-1"> {/* Reduced space */}
+                                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEdit(c)}> {/* Smaller icons */}
                                                     <EditIcon />
                                                 </Button>
-                                                <Button variant="ghost" size="icon" onClick={() => remove(c)} className="text-destructive">
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(c)}> {/* Smaller icons */}
                                                     <DeleteIcon />
                                                 </Button>
                                             </div>
@@ -127,34 +140,40 @@ export default function CustomerManagementPage({ reload }) {
                                 ))}
                             </TableBody>
                         </Table>
+                        {customers.length === 0 && (
+                            <p className="p-4 text-center text-muted">No customers found.</p>
+                        )}
                     </ScrollArea>
                 </CardContent>
             </Card>
 
-            {/* MODIFIED: Replaced custom modal with Dialog component */}
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <h3 className="font-semibold">{editing ? 'Edit Customer' : 'Add Customer'}</h3>
+                        <DialogTitle>{editing ? 'Edit Customer' : 'Add Customer'}</DialogTitle>
                         <DialogCloseButton onClick={closeModal} />
                     </DialogHeader>
-                    <form onSubmit={save} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <Label htmlFor="customerName">Customer Name</Label>
-                            <Input id="customerName" value={name} onChange={e => setName(e.target.value)} required />
+                    <form onSubmit={save}>
+                        <div className="p-4 space-y-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="sm:col-span-2">
+                                    <Label htmlFor="customerName">Customer Name</Label>
+                                    <Input id="customerName" value={name} onChange={e => setName(e.target.value)} required />
+                                </div>
+                                <div>
+                                    <Label htmlFor="email">Email (Optional)</Label>
+                                    <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} />
+                                </div>
+                                <div>
+                                    <Label htmlFor="contactNumber">Contact Number (Optional)</Label>
+                                    <Input id="contactNumber" value={phone} onChange={e => setPhone(e.target.value)} />
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <Label htmlFor="email">Email</Label>
-                            <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} />
-                        </div>
-                        <div>
-                            <Label htmlFor="contactNumber">Contact Number</Label>
-                            <Input id="contactNumber" value={phone} onChange={e => setPhone(e.target.value)} />
-                        </div>
-                        <div className="md:col-span-2 flex space-x-2 pt-4">
-                            <Button type="submit">Save</Button>
+                        <DialogFooter>
                             <Button variant="outline" type="button" onClick={closeModal}>Cancel</Button>
-                        </div>
+                            <Button type="submit">Save Customer</Button>
+                        </DialogFooter>
                     </form>
                 </DialogContent>
             </Dialog>

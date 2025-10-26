@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../../store/useStore';
 import * as api from '../../lib/api';
-// MODIFIED: Added Dialog components
-import { Button, Card, CardHeader, CardContent, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, ScrollArea, Input, Label, Dialog, DialogContent, DialogHeader, DialogCloseButton } from '../ui';
+// MODIFIED: Added DialogTitle and DialogFooter
+import { Button, Card, CardHeader, CardContent, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, ScrollArea, Input, Label, Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogCloseButton } from '../ui';
 
 // Simple SVG Icon for Edit
 const EditIcon = () => (
@@ -19,7 +19,7 @@ const DeleteIcon = () => (
     </svg>
 );
 
-const apiUrl = 'http://localhost:8055/items/users';
+// const apiUrl = 'http://localhost:8055/items/users'; // No longer needed
 
 export default function UserManagementPage() {
     const addToast = useStore(s => s.addToast);
@@ -33,20 +33,12 @@ export default function UserManagementPage() {
 
     const loadData = async () => {
         try {
-            // Using api.fetchUsers() instead of direct fetch for consistency
-            const data = await api.fetchUsers();
-            setUsers(data.map(user => ({
-                id: user.id,
-                name: user.name,
-                email: user.email,
-                phone: user.phone,
-                dateAdded: new Date(user.dateAdded).toLocaleString(),
-            })));
+            const data = await api.fetchUsers(); // Assuming api.fetchUsers maps the response correctly
+            setUsers(data); // Store the mapped data directly
         } catch (e) {
             console.error(e);
-            // Don't show toast on 401, as api.js handles the redirect
             if (e.message !== 'Unauthorized. Logging out.') {
-                addToast({ title: 'Error', description: 'Failed to load users' });
+                addToast({ title: 'Error', description: 'Failed to load users', variant: 'destructive' });
             }
         }
     };
@@ -60,7 +52,7 @@ export default function UserManagementPage() {
         setFullName(u?.name || '');
         setEmail(u?.email || '');
         setContactNumber(u?.phone || '');
-        setPassword(''); // Clear password field for editing
+        setPassword(''); // Always clear password for edit form
         setIsModalOpen(true);
     };
 
@@ -74,7 +66,7 @@ export default function UserManagementPage() {
 
     const closeModal = () => {
         setIsModalOpen(false);
-        setTimeout(resetForm, 200);
+        setTimeout(resetForm, 200); // Delay reset to allow modal animation
     };
 
     const openModal = () => {
@@ -85,51 +77,54 @@ export default function UserManagementPage() {
     const save = async (e) => {
         e.preventDefault();
 
+        // Basic validation
+        if (!fullName || !email || !contactNumber) {
+            addToast({ title: 'Error', description: 'Fullname, Email, and Contact Number are required.', variant: 'destructive' });
+            return;
+        }
+        if (!editing && !password) {
+            addToast({ title: 'Error', description: 'Password is required for new users.', variant: 'destructive' });
+            return;
+        }
+
+        // Prepare payload, only include password if provided
         const payload = {
             name: fullName,
             email,
             phone: contactNumber,
-            // Only include password if it's not blank
-            ...(password && { password })
+            ...(password && { password }), // Only add password if it's not empty
+            // Assuming default role or handling role assignment elsewhere if needed
         };
-
-        if (!editing && !password) {
-            addToast({ title: 'Error', description: 'Password is required for new users.' });
-            return;
-        }
-        if (!contactNumber) {
-            addToast({ title: 'Error', description: 'Contact number is required.' });
-            return;
-        }
 
         try {
             if (editing) {
-                // Using api.updateUser for consistency
+                // Ensure password isn't accidentally set to empty string if left blank during edit
+                if (!password) delete payload.password;
                 await api.updateUser(editing.id, payload);
-                addToast({ title: 'Updated', description: `User ${email} updated` });
+                addToast({ title: 'Updated', description: `User ${email} updated`, variant: 'success' });
             } else {
-                // Using api.createUser for consistency
-                await api.createUser(payload);
-                addToast({ title: 'Created', description: `User ${email} created` });
+                await api.createUser(payload); // createUser likely needs role info too
+                addToast({ title: 'Created', description: `User ${email} created`, variant: 'success' });
             }
             closeModal();
-            loadData(); // Reload users list
+            loadData(); // Refresh the user list
         } catch (e) {
             console.error(e);
-            addToast({ title: 'Error', description: e.message });
+            addToast({ title: 'Error', description: e.message || 'Failed to save user', variant: 'destructive' });
         }
     };
 
     const remove = async (u) => {
-        if (!confirm(`Delete ${u.email}?`)) return;
+        if (!confirm(`Are you sure you want to delete ${u.email}? This cannot be undone.`)) return;
         try {
             await api.deleteUser(u.id);
-            addToast({ title: 'Deleted', description: `${u.email} deleted` });
-            loadData(); // Reload users list
-        } catch (e) { console.error(e); addToast({ title: 'Error', description: e.message }); }
+            addToast({ title: 'Deleted', description: `${u.email} deleted`, variant: 'success' });
+            loadData(); // Refresh the user list
+        } catch (e) {
+            console.error(e);
+            addToast({ title: 'Error', description: e.message || 'Failed to delete user', variant: 'destructive' });
+        }
     };
-
-    // Removed local addUser, updateUser, deleteUser as we now use api.js
 
     return (
         <div>
@@ -141,15 +136,20 @@ export default function UserManagementPage() {
                 <Button onClick={openModal}>Add User</Button>
             </div>
 
+            <div className="mb-4">
+                <Input placeholder="Search users..." className="w-full" />
+            </div>
+
             <Card className="mb-4">
                 <CardContent>
-                    <ScrollArea className="max-h-96">
+                    <ScrollArea className="max-h-96"> {/* Adjust max height */}
                         <Table>
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Fullname</TableHead>
                                     <TableHead>Email</TableHead>
                                     <TableHead>Contact Number</TableHead>
+                                    {/* <TableHead>Role</TableHead> Optionally add role */}
                                     <TableHead>Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -158,13 +158,14 @@ export default function UserManagementPage() {
                                     <TableRow key={u.id}>
                                         <TableCell>{u.name}</TableCell>
                                         <TableCell>{u.email}</TableCell>
-                                        <TableCell>{u.phone}</TableCell>
+                                        <TableCell>{u.phone || 'N/A'}</TableCell>
+                                        {/* <TableCell>{u.role?.name || 'N/A'}</TableCell> Optionally add role */}
                                         <TableCell>
-                                            <div className="flex space-x-2">
-                                                <Button variant="ghost" size="icon" onClick={() => startEdit(u)}>
+                                            <div className="flex space-x-1"> {/* Reduced space */}
+                                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEdit(u)}> {/* Smaller icons */}
                                                     <EditIcon />
                                                 </Button>
-                                                <Button variant="ghost" size="icon" onClick={() => remove(u)} className="text-destructive">
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(u)}> {/* Smaller icons */}
                                                     <DeleteIcon />
                                                 </Button>
                                             </div>
@@ -173,38 +174,45 @@ export default function UserManagementPage() {
                                 ))}
                             </TableBody>
                         </Table>
+                        {users.length === 0 && (
+                            <p className="p-4 text-center text-muted">No users found.</p>
+                        )}
                     </ScrollArea>
                 </CardContent>
             </Card>
 
-            {/* MODIFIED: Replaced custom modal with Dialog component */}
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <h3 className="font-semibold">{editing ? 'Edit User' : 'Add User'}</h3>
+                        <DialogTitle>{editing ? 'Edit User' : 'Add User'}</DialogTitle>
                         <DialogCloseButton onClick={closeModal} />
                     </DialogHeader>
-                    <form onSubmit={save} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <Label htmlFor="fullname">Fullname</Label>
-                            <Input id="fullname" value={fullName} onChange={e => setFullName(e.target.value)} required />
+                    <form onSubmit={save}>
+                        <div className="p-4 space-y-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <Label htmlFor="fullname">Fullname</Label>
+                                    <Input id="fullname" value={fullName} onChange={e => setFullName(e.target.value)} required />
+                                </div>
+                                <div>
+                                    <Label htmlFor="email">Email</Label>
+                                    <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
+                                </div>
+                                <div>
+                                    <Label htmlFor="password">Password</Label>
+                                    <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder={editing ? "Leave blank to keep current" : ""} required={!editing} />
+                                </div>
+                                <div>
+                                    <Label htmlFor="contactNumber">Contact Number</Label>
+                                    <Input id="contactNumber" value={contactNumber} onChange={e => setContactNumber(e.target.value)} required />
+                                </div>
+                                {/* Add Role Selection Here if needed */}
+                            </div>
                         </div>
-                        <div>
-                            <Label htmlFor="email">Email</Label>
-                            <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
-                        </div>
-                        <div>
-                            <Label htmlFor="password">Password</Label>
-                            <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder={editing ? "Leave blank to keep unchanged" : ""} />
-                        </div>
-                        <div>
-                            <Label htmlFor="contactNumber">Contact Number</Label>
-                            <Input id="contactNumber" value={contactNumber} onChange={e => setContactNumber(e.target.value)} required />
-                        </div>
-                        <div className="md:col-span-2 flex space-x-2 pt-4">
-                            <Button type="submit">Save</Button>
+                        <DialogFooter>
                             <Button variant="outline" type="button" onClick={closeModal}>Cancel</Button>
-                        </div>
+                            <Button type="submit">Save User</Button>
+                        </DialogFooter>
                     </form>
                 </DialogContent>
             </Dialog>

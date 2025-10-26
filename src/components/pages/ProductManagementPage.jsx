@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useStore } from '../../store/useStore';
 import * as api from '../../lib/api';
-// MODIFIED: Added Dialog components
-import { Button, Card, CardHeader, CardContent, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, ScrollArea, Input, Label, Dialog, DialogContent, DialogHeader, DialogCloseButton } from '../ui';
+// MODIFIED: Added DialogTitle and DialogFooter
+import { Button, Card, CardHeader, CardContent, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, ScrollArea, Input, Label, Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogCloseButton } from '../ui';
 
 // Simple SVG Icon for Edit
 const EditIcon = () => (
@@ -27,12 +27,16 @@ export default function ProductManagementPage({ reload }) {
     const [editing, setEditing] = useState(null);
     const [name, setName] = useState('');
     const [price, setPrice] = useState('');
+    const [category, setCategory] = useState('Default'); // Default category
+    const [stock, setStock] = useState('0');       // Default stock
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     const startEdit = (p) => {
         setEditing(p);
         setName(p?.name || '');
         setPrice(p?.price != null ? String(p.price) : '');
+        setCategory(p?.category || 'Default');
+        setStock(p?.stock != null ? String(p.stock) : '0');
         setIsModalOpen(true);
     };
 
@@ -43,7 +47,6 @@ export default function ProductManagementPage({ reload }) {
 
     const closeModal = () => {
         setIsModalOpen(false);
-        // Reset form slightly after modal close animation
         setTimeout(resetForm, 200);
     };
 
@@ -51,23 +54,30 @@ export default function ProductManagementPage({ reload }) {
         setEditing(null);
         setName('');
         setPrice('');
+        setCategory('Default');
+        setStock('0');
     };
 
     const save = async (e) => {
         e.preventDefault();
 
         const parsedPrice = parseFloat(price);
+        const parsedStock = parseInt(stock, 10);
 
-        if (!name || !price) {
+        if (!name || !price || !category || !stock) {
             addToast({ title: 'Error', description: 'All fields are required.' });
             return;
         }
-        if (isNaN(parsedPrice)) {
-            addToast({ title: 'Error', description: 'Price must be a valid number.' });
+        if (isNaN(parsedPrice) || parsedPrice < 0) {
+            addToast({ title: 'Error', description: 'Price must be a valid non-negative number.' });
+            return;
+        }
+        if (isNaN(parsedStock) || parsedStock < 0) {
+            addToast({ title: 'Error', description: 'Stock must be a valid non-negative integer.' });
             return;
         }
 
-        const payload = { name, price: parsedPrice };
+        const payload = { name, price: parsedPrice, category, stock: parsedStock };
 
         try {
             if (editing) {
@@ -75,12 +85,8 @@ export default function ProductManagementPage({ reload }) {
                 await api.updateItem('products', editing.id, payload);
                 addToast({ title: 'Updated', description: `Product ${name} updated` });
             } else {
-                // NOTE: Your original code had a bug here, createProduct requires more fields
-                // This payload is likely INCOMPLETE for `api.createProduct`
-                // But for the modal fix, we'll keep the logic as-is.
                 const id = Date.now().toString();
-                // This payload is missing category and stock, which api.js requires
-                const createPayload = { ...payload, id, category: 'Default', stock: 0 };
+                const createPayload = { ...payload, id };
                 console.log('Creating product with payload:', createPayload);
                 await api.createProduct(createPayload);
                 addToast({ title: 'Created', description: `Product ${name} created` });
@@ -122,12 +128,14 @@ export default function ProductManagementPage({ reload }) {
 
             <Card>
                 <CardContent>
-                    <ScrollArea className="max-h-96">
+                    <ScrollArea className="max-h-96"> {/* Adjust max height as needed */}
                         <Table>
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Product Name</TableHead>
+                                    <TableHead>Category</TableHead>
                                     <TableHead>Price</TableHead>
+                                    <TableHead>Stock</TableHead>
                                     <TableHead>Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -135,13 +143,15 @@ export default function ProductManagementPage({ reload }) {
                                 {products.map(p => (
                                     <TableRow key={p.id}>
                                         <TableCell>{p.name}</TableCell>
+                                        <TableCell>{p.category}</TableCell>
                                         <TableCell>₱{Number(p.price||0).toFixed(2)}</TableCell>
+                                        <TableCell>{p.stock}</TableCell>
                                         <TableCell>
-                                            <div className="flex space-x-2">
-                                                <Button variant="ghost" size="icon" onClick={() => startEdit(p)}>
+                                            <div className="flex space-x-1"> {/* Reduced space */}
+                                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEdit(p)}> {/* Smaller icons */}
                                                     <EditIcon />
                                                 </Button>
-                                                <Button variant="ghost" size="icon" onClick={() => remove(p)} className="text-destructive">
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(p)}> {/* Smaller icons */}
                                                     <DeleteIcon />
                                                 </Button>
                                             </div>
@@ -150,31 +160,44 @@ export default function ProductManagementPage({ reload }) {
                                 ))}
                             </TableBody>
                         </Table>
+                        {products.length === 0 && (
+                            <p className="p-4 text-center text-muted">No products found.</p>
+                        )}
                     </ScrollArea>
                 </CardContent>
             </Card>
 
-            {/* MODIFIED: Replaced custom modal with Dialog component */}
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <h3 className="font-semibold">{editing ? 'Edit Product' : 'Add Product'}</h3>
+                        <DialogTitle>{editing ? 'Edit Product' : 'Add Product'}</DialogTitle>
                         <DialogCloseButton onClick={closeModal} />
                     </DialogHeader>
-                    {/* Removed Card and CardContent, DialogContent provides the container */}
-                    <form onSubmit={save} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <Label htmlFor="productName">Product Name</Label>
-                            <Input id="productName" value={name} onChange={e => setName(e.target.value)} required />
+                    <form onSubmit={save}>
+                        <div className="p-4 space-y-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="sm:col-span-2">
+                                    <Label htmlFor="productName">Product Name</Label>
+                                    <Input id="productName" value={name} onChange={e => setName(e.target.value)} required />
+                                </div>
+                                <div>
+                                    <Label htmlFor="category">Category</Label>
+                                    <Input id="category" value={category} onChange={e => setCategory(e.target.value)} required />
+                                </div>
+                                <div>
+                                    <Label htmlFor="pprice">Price (₱)</Label>
+                                    <Input id="pprice" type="number" step="0.01" min="0" value={price} onChange={e => setPrice(e.target.value)} required />
+                                </div>
+                                <div>
+                                    <Label htmlFor="stock">Stock</Label>
+                                    <Input id="stock" type="number" step="1" min="0" value={stock} onChange={e => setStock(e.target.value)} required />
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <Label htmlFor="pprice">Price</Label>
-                            <Input id="pprice" type="number" step="0.01" value={price} onChange={e => setPrice(e.target.value)} required />
-                        </div>
-                        <div className="md:col-span-2 flex space-x-2 pt-4">
-                            <Button type="submit">Save</Button>
+                        <DialogFooter>
                             <Button variant="outline" type="button" onClick={closeModal}>Cancel</Button>
-                        </div>
+                            <Button type="submit">Save Product</Button>
+                        </DialogFooter>
                     </form>
                 </DialogContent>
             </Dialog>

@@ -5,7 +5,7 @@ export function cn(...inputs) {
     return clsx(...inputs);
 }
 
-// Enhanced Button component
+// ... (Button, Input, Card components remain the same) ...
 export const Button = React.forwardRef(({ className, variant = 'default', size = 'default', asChild = false, ...props }, ref) => {
     const Comp = asChild ? 'span' : 'button';
     const base = 'btn';
@@ -31,13 +31,11 @@ export const Button = React.forwardRef(({ className, variant = 'default', size =
 });
 Button.displayName = 'Button';
 
-// --- Input Component ---
 export const Input = React.forwardRef(({ className, ...props }, ref) => (
     <input ref={ref} className={cn('input', className)} {...props} />
 ));
 Input.displayName = 'Input';
 
-// --- Card Components ---
 export const Card = ({ children, className }) => (
     <div className={cn('card', className)}>{children}</div>
 );
@@ -52,15 +50,11 @@ export const CardFooter = ({ children, className }) => (
 );
 
 // --- Dialog Components ---
-// MODIFIED: Added onOpenChange and fixed transparency issue
 export const Dialog = ({ open, children, className, onOpenChange }) => (
     open ? (
         <div
-            // MODIFIED: Removed 'bg-black bg-opacity-50'
-            // Added inline style for a proper backdrop that doesn't affect child opacity
-            className={cn('dialog-backdrop fixed inset-0 flex items-center justify-center z-50', className)}
+            className={cn('dialog-backdrop fixed inset-0 flex items-center justify-center z-50 p-4', className)} // Added padding
             style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
-            // MODIFIED: Added backdrop click handler to close
             onClick={(e) => {
                 if (e.target === e.currentTarget && onOpenChange) {
                     onOpenChange(false);
@@ -72,41 +66,57 @@ export const Dialog = ({ open, children, className, onOpenChange }) => (
     ) : null
 );
 
-// MODIFIED: Added stopPropagation
 export const DialogContent = ({ children, className }) => (
     <div
-        className={cn('dialog-content bg-white rounded-lg shadow-lg p-6 relative w-full max-w-lg', className)}
-        // MODIFIED: Stop click propagation so backdrop click doesn't close the content
+        // MODIFIED: Changed max-w-lg to max-w-md for a slightly smaller default
+        className={cn('dialog-content bg-white rounded-lg shadow-lg relative w-full max-w-md overflow-hidden', className)} // Added overflow-hidden
         onClick={(e) => e.stopPropagation()}
     >
+        {/* Content is rendered directly now, padding/structure handled by DialogHeader, DialogFooter, and content divs */}
         {children}
     </div>
 );
-export const DialogHeader = ({ children }) => (
-    // MODIFIED: Made header flex to space-between title and close button
-    <div className="dialog-header mb-4 flex justify-between items-center">
+
+export const DialogHeader = ({ children, className }) => (
+    // MODIFIED: Added padding, border, ensure flex alignment
+    <div className={cn("dialog-header p-4 border-b flex justify-between items-start gap-4", className)}>
+        {/* Child should typically be DialogTitle */}
+        {children}
+        {/* DialogCloseButton is usually placed inside here by the component using it */}
+    </div>
+);
+
+// NEW: DialogTitle component for consistency
+export const DialogTitle = ({ children, className }) => (
+    <h2 className={cn("text-lg font-semibold leading-none tracking-tight", className)}>
+        {children}
+    </h2>
+);
+
+export const DialogFooter = ({ children, className }) => (
+    // MODIFIED: Added padding and border
+    <div className={cn("dialog-footer mt-auto p-4 border-t flex justify-end space-x-2", className)}>
         {children}
     </div>
 );
-export const DialogTitle = ({ children }) => <h2 className="text-lg font-semibold">{children}</h2>;
-export const DialogFooter = ({ children }) => (
-    <div className="dialog-footer mt-4 flex justify-end space-x-2">{children}</div>
-);
-// Make sure DialogCloseButton is exported if used directly
-// MODIFIED: Added type="button"
+
 export const DialogCloseButton = ({ onClick }) => (
     <button
         type="button"
         onClick={onClick}
-        // MODIFIED: Adjusted positioning and styling
-        className="text-gray-400 hover:text-gray-800 text-2xl leading-none p-1 -mt-2 -mr-2"
+        // MODIFIED: Adjusted styles for better alignment and appearance
+        className="text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary rounded-sm p-1 -m-1" // Adjusted margin/padding
+        aria-label="Close"
     >
-        &times;
+        {/* Simple X icon */}
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+        </svg>
     </button>
 );
 
 
-// --- Table Components ---
+// ... (Table, ScrollArea, LoadingSpinner, Label components remain the same) ...
 export const Table = ({ children, className }) => <div className={cn('table-wrap', className)}><table className="table w-full">{children}</table></div>; // Added w-full
 export const TableHeader = ({ children }) => <thead className="table__head">{children}</thead>;
 export const TableBody = ({ children }) => <tbody>{children}</tbody>;
@@ -121,10 +131,8 @@ export const TableHead = ({ children }) => <th className="table__th px-2 py-3 te
 export const TableCell = ({ children, className }) => <td className={cn('table__td px-2 py-3 whitespace-nowrap', className)}>{children}</td>; // Adjusted padding
 
 
-// --- ScrollArea Component ---
 export const ScrollArea = ({ children, className }) => <div className={cn('scroll-area overflow-auto', className)}>{children}</div>; // Added overflow-auto
 
-// --- LoadingSpinner Component ---
 export const LoadingSpinner = ({ className }) => (
     <svg className={cn('loading-spinner animate-spin h-5 w-5 text-white', className)} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -132,8 +140,6 @@ export const LoadingSpinner = ({ className }) => (
     </svg>
 );
 
-
-// --- Label Component ---
 export const Label = ({ children, htmlFor }) => <label htmlFor={htmlFor} className="block text-sm font-medium text-gray-700 mb-1">{children}</label>; // Adjusted styles
 
-export default {}; // Keep default export if needed elsewhere
+export default {};
