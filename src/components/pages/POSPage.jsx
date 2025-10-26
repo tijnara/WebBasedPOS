@@ -124,11 +124,38 @@ export default function POSPage() {
             setSelectedCustomer(null);
             setSearchTerm('');
         } catch (e) {
-            console.error(e);
+            console.error('Error during checkout:', e);
             addToast({ title: 'Error saving sale', description: e.message, variant: 'destructive' });
         } finally { setIsSubmitting(false); }
     };
 
+    const handleAddCustomer = async (newCustomer) => {
+        try {
+            const response = await fetch('http://localhost:8055/items/customers', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ data: [newCustomer] }),
+            });
+
+            if (!response.ok) {
+                const errorResponse = await response.json(); // Log the server's response body
+                console.error('Server Response:', errorResponse);
+                throw new Error('Failed to add customer');
+            }
+
+            const result = await response.json();
+            const addedCustomer = result.data[0];
+            setSelectedCustomer(addedCustomer);
+            setSearchResults((prev) => [...prev, addedCustomer]);
+            setIsCustomerModalOpen(false);
+            addToast({ title: 'Customer Added', description: `${addedCustomer.name} has been added.`, variant: 'success' });
+        } catch (error) {
+            console.error('Error adding customer:', error);
+            addToast({ title: 'Error', description: error.message, variant: 'destructive' });
+        }
+    };
 
     return (
         <div>
@@ -284,7 +311,21 @@ export default function POSPage() {
                                             </Button>
                                         ))}
                                         {searchResults.length === 0 && debouncedSearchTerm && (
-                                            <p className="p-4 text-sm text-center text-muted">No customers found.</p>
+                                            <div className="p-4 text-center">
+                                                <p className="text-sm text-muted mb-2">No customers found.</p>
+                                                <Button
+                                                    variant="primary"
+                                                    onClick={() => handleAddCustomer({
+                                                        id: `c${Date.now()}`,
+                                                        name: debouncedSearchTerm,
+                                                        contact: null,
+                                                        address: null,
+                                                        dateAdded: new Date().toISOString(),
+                                                    })}
+                                                >
+                                                    Add "{debouncedSearchTerm}" as a new customer
+                                                </Button>
+                                            </div>
                                         )}
                                         {searchResults.length === 0 && !debouncedSearchTerm && !isSearching && (
                                             <p className="p-4 text-sm text-center text-muted">Type to search for customers.</p>
