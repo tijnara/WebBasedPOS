@@ -1,6 +1,23 @@
 import { create } from 'zustand';
 
+const getTokenFromStorage = () => {
+    if (typeof window !== 'undefined') {
+        return localStorage.getItem('pos_token');
+    }
+    return null;
+};
+
+const getUserFromStorage = () => {
+    if (typeof window !== 'undefined') {
+        const user = localStorage.getItem('pos_user');
+        return user ? JSON.parse(user) : null;
+    }
+    return null;
+};
+
 export const useStore = create((set, get) => ({
+    token: getTokenFromStorage(),
+    user: getUserFromStorage(),
     userId: null,
     isAuthReady: true,
     products: [],
@@ -73,6 +90,23 @@ export const useStore = create((set, get) => ({
     // toasts
     addToast: (t) => set((s) => ({ toasts: [...s.toasts, { ...t, id: Date.now() }] })),
     dismissToast: (id) => set((s) => ({ toasts: s.toasts.filter(x => x.id !== id) })),
+
+    // auth
+    setAuth: (token, user) => {
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('pos_token', token);
+            localStorage.setItem('pos_user', JSON.stringify(user));
+        }
+        set({ token, user });
+    },
+
+    logout: () => {
+        if (typeof window !== 'undefined') {
+            localStorage.removeItem('pos_token');
+            localStorage.removeItem('pos_user');
+        }
+        set({ token: null, user: null });
+    },
 }));
 
 export default useStore;
