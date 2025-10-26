@@ -18,31 +18,33 @@ const DeleteIcon = () => (
     </svg>
 );
 
+const apiUrl = 'http://localhost:8055/items/users';
+
 export default function UserManagementPage() {
     const addToast = useStore(s => s.addToast);
     const [users, setUsers] = useState([]);
-    const [roles, setRoles] = useState([]); // To store available roles
     const [editing, setEditing] = useState(null);
-    const [firstName, setFirstName] = useState('');
-    const [lastName, setLastName] = useState('');
+    const [fullName, setFullName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [role, setRole] = useState(''); // This will be the role ID
+    const [contactNumber, setContactNumber] = useState('');
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     const loadData = async () => {
         try {
-            const [fetchedUsers, fetchedRoles] = await Promise.all([
-                api.fetchUsers(),
-                api.fetchRoles()
-            ]);
-            setUsers(fetchedUsers);
-            setRoles(fetchedRoles);
-            if (fetchedRoles.length > 0) {
-                setRole(fetchedRoles[0].id); // Default to first role
-            }
+            const response = await fetch(apiUrl);
+            if (!response.ok) throw new Error('Failed to fetch users');
+            const data = await response.json();
+            setUsers(data.data.map(user => ({
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                phone: user.phone,
+                dateAdded: new Date(user.dateAdded).toLocaleString(),
+            })));
         } catch (e) {
             console.error(e);
-            addToast({ title: 'Error', description: 'Failed to load users or roles' });
+            addToast({ title: 'Error', description: 'Failed to load users' });
         }
     };
 
@@ -52,55 +54,53 @@ export default function UserManagementPage() {
 
     const startEdit = (u) => {
         setEditing(u);
-        setFirstName(u?.first_name || '');
-        setLastName(u?.last_name || '');
+        setFullName(u?.name || '');
         setEmail(u?.email || '');
-        setRole(u?.role || (roles.length > 0 ? roles[0].id : ''));
+        setContactNumber(u?.phone || '');
         setPassword(''); // Clear password field for editing
     };
 
     const resetForm = () => {
         setEditing(null);
-        setFirstName('');
-        setLastName('');
+        setFullName('');
         setEmail('');
         setPassword('');
-        setRole(roles.length > 0 ? roles[0].id : '');
+        setContactNumber('');
     };
 
     const save = async (e) => {
         e.preventDefault();
 
         const payload = {
-            first_name: firstName,
-            last_name: lastName,
+            name: fullName,
             email,
-            role
+            phone: contactNumber,
+            password
         };
 
         if (!editing && !password) {
             addToast({ title: 'Error', description: 'Password is required for new users.' });
             return;
         }
-        if (password) {
-            payload.password = password;
-        }
-        if (!role) {
-            addToast({ title: 'Error', description: 'Role is required.' });
+        if (!contactNumber) {
+            addToast({ title: 'Error', description: 'Contact number is required.' });
             return;
         }
 
         try {
             if (editing) {
-                await api.updateUser(editing.id, payload);
+                await updateUser(editing.id, payload);
                 addToast({ title: 'Updated', description: `User ${email} updated` });
             } else {
-                await api.createUser(payload);
+                await addUser(payload);
                 addToast({ title: 'Created', description: `User ${email} created` });
             }
             resetForm();
             loadData(); // Reload users list
-        } catch (e) { console.error(e); addToast({ title: 'Error', description: e.message }); }
+        } catch (e) {
+            console.error(e);
+            addToast({ title: 'Error', description: e.message });
+        }
     };
 
     const remove = async (u) => {
@@ -112,6 +112,65 @@ export default function UserManagementPage() {
         } catch (e) { console.error(e); addToast({ title: 'Error', description: e.message }); }
     };
 
+    const addUser = async (user) => {
+        try {
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ data: [user] }),
+            });
+            if (!response.ok) throw new Error('Failed to add user');
+            loadData();
+            addToast({ title: 'Success', description: 'User added successfully' });
+        } catch (e) {
+            console.error(e);
+            addToast({ title: 'Error', description: 'Failed to add user' });
+        }
+    };
+
+    const updateUser = async (id, updatedData) => {
+        try {
+            const response = await fetch(`${apiUrl}/${id}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ data: updatedData }),
+            });
+            if (!response.ok) throw new Error('Failed to update user');
+            loadData();
+            addToast({ title: 'Success', description: 'User updated successfully' });
+        } catch (e) {
+            console.error(e);
+            addToast({ title: 'Error', description: 'Failed to update user' });
+        }
+    };
+
+    const deleteUser = async (id) => {
+        try {
+            const response = await fetch(`${apiUrl}/${id}`, {
+                method: 'DELETE',
+            });
+            if (!response.ok) throw new Error('Failed to delete user');
+            loadData();
+            addToast({ title: 'Success', description: 'User deleted successfully' });
+        } catch (e) {
+            console.error(e);
+            addToast({ title: 'Error', description: 'Failed to delete user' });
+        }
+    };
+
+    const openModal = () => {
+        resetForm();
+        setIsModalOpen(true);
+    };
+
+    const closeModal = () => {
+        setIsModalOpen(false);
+    };
+
     return (
         <div>
             <div className="flex justify-between items-center mb-4">
@@ -119,7 +178,7 @@ export default function UserManagementPage() {
                     <h1 className="text-2xl font-semibold">User Management</h1>
                     <p className="text-muted">Manage your staff accounts</p>
                 </div>
-                <Button onClick={() => startEdit(null)}>Add User</Button>
+                <Button onClick={openModal}>Add User</Button>
             </div>
 
             <Card className="mb-4">
@@ -128,18 +187,18 @@ export default function UserManagementPage() {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Name</TableHead>
+                                    <TableHead>Fullname</TableHead>
                                     <TableHead>Email</TableHead>
-                                    <TableHead>Role</TableHead>
+                                    <TableHead>Contact Number</TableHead>
                                     <TableHead>Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {users.map(u => (
                                     <TableRow key={u.id}>
-                                        <TableCell>{u.first_name} {u.last_name}</TableCell>
+                                        <TableCell>{u.name}</TableCell>
                                         <TableCell>{u.email}</TableCell>
-                                        <TableCell>{u.role_name || u.role}</TableCell>
+                                        <TableCell>{u.phone}</TableCell>
                                         <TableCell>
                                             <div className="flex space-x-2">
                                                 <Button variant="ghost" size="icon" onClick={() => startEdit(u)}>
@@ -158,48 +217,39 @@ export default function UserManagementPage() {
                 </CardContent>
             </Card>
 
-            <div>
-                <Card>
-                    <CardHeader><h3 className="font-semibold">{editing ? 'Edit User' : 'Add User'}</h3></CardHeader>
-                    <CardContent>
-                        <form onSubmit={save} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <Label htmlFor="fname">First Name</Label>
-                                <Input id="fname" value={firstName} onChange={e => setFirstName(e.target.value)} required />
-                            </div>
-                            <div>
-                                <Label htmlFor="lname">Last Name</Label>
-                                <Input id="lname" value={lastName} onChange={e => setLastName(e.target.value)} required />
-                            </div>
-                            <div>
-                                <Label htmlFor="email">Email</Label>
-                                <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
-                            </div>
-                            <div>
-                                <Label htmlFor="password">Password</Label>
-                                <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder={editing ? "Leave blank to keep unchanged" : ""} />
-                            </div>
-                            <div className="md:col-span-2">
-                                <Label htmlFor="role">Role</Label>
-                                <select
-                                    id="role"
-                                    value={role}
-                                    onChange={e => setRole(e.target.value)}
-                                    className="input"
-                                >
-                                    {roles.map(r => (
-                                        <option key={r.id} value={r.id}>{r.name}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="md:col-span-2 flex space-x-2">
-                                <Button type="submit">Save</Button>
-                                <Button variant="outline" type="button" onClick={resetForm}>Cancel</Button>
-                            </div>
-                        </form>
-                    </CardContent>
-                </Card>
-            </div>
+            {isModalOpen && (
+                <div className="modal">
+                    <div className="modal-content">
+                        <Card>
+                            <CardHeader><h3 className="font-semibold">{editing ? 'Edit User' : 'Add User'}</h3></CardHeader>
+                            <CardContent>
+                                <form onSubmit={save} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <Label htmlFor="fullname">Fullname</Label>
+                                        <Input id="fullname" value={fullName} onChange={e => setFullName(e.target.value)} required />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="email">Email</Label>
+                                        <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="password">Password</Label>
+                                        <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder={editing ? "Leave blank to keep unchanged" : ""} />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="contactNumber">Contact Number</Label>
+                                        <Input id="contactNumber" value={contactNumber} onChange={e => setContactNumber(e.target.value)} required />
+                                    </div>
+                                    <div className="md:col-span-2 flex space-x-2">
+                                        <Button type="submit">Save</Button>
+                                        <Button variant="outline" type="button" onClick={closeModal}>Cancel</Button>
+                                    </div>
+                                </form>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

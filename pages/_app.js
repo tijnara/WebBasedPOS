@@ -1,5 +1,5 @@
 import '../styles/globals.css';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useStore } from '../src/store/useStore';
 import { useRouter } from 'next/router';
 import * as api from '../src/lib/api';
@@ -9,21 +9,25 @@ import { Button } from '../src/components/ui';
 function AuthGate({ children }) {
     const token = useStore(s => s.token);
     const router = useRouter();
+    const [isHydrated, setIsHydrated] = useState(false);
 
     useEffect(() => {
-        if (!token && router.pathname !== '/login') {
-            router.push('/login');
+        setIsHydrated(true);
+        if (isHydrated) {
+            if (!token && router.pathname !== '/login') {
+                router.push('/login');
+            }
+            if (token && router.pathname === '/login') {
+                router.push('/');
+            }
         }
-        if (token && router.pathname === '/login') {
-            router.push('/');
-        }
-    }, [token, router]);
+    }, [token, router, isHydrated]);
 
-    if (router.pathname === '/login') {
-        return children;
+    if (!isHydrated) {
+        return <div>Loading...</div>; // Prevent mismatched rendering during hydration
     }
 
-    if (token) {
+    if (router.pathname === '/login' || token) {
         return children;
     }
 

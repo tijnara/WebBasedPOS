@@ -65,9 +65,15 @@ export async function fetchCurrentUser(token) {
 }
 
 export async function fetchUsers() {
-    const res = await fetch(`${BASE}/users?fields=*,role.name`, { headers: getAuthHeaders() });
+    const res = await fetch(`${BASE}/items/users`, { headers: getAuthHeaders() });
     const json = await handleRes(res);
-    return Array.isArray(json.data) ? json.data.map(u => ({ ...u, role_name: u.role?.name || 'N/A' })) : [];
+    return Array.isArray(json.data) ? json.data.map(u => ({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        phone: u.phone,
+        dateAdded: new Date(u.dateAdded),
+    })) : [];
 }
 
 export async function fetchRoles() {
@@ -77,27 +83,27 @@ export async function fetchRoles() {
 }
 
 export async function createUser(payload) {
-    const res = await fetch(`${BASE}/users`, {
+    const res = await fetch(`${BASE}/items/users`, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ data: payload }),
     });
     const json = await handleRes(res);
     return json.data;
 }
 
 export async function updateUser(id, payload) {
-    const res = await fetch(`${BASE}/users/${id}`, {
+    const res = await fetch(`${BASE}/items/users/${id}`, {
         method: 'PATCH',
         headers: getAuthHeaders(),
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ data: payload }),
     });
     const json = await handleRes(res);
     return json.data;
 }
 
 export async function deleteUser(id) {
-    const res = await fetch(`${BASE}/users/${id}`, {
+    const res = await fetch(`${BASE}/items/users/${id}`, {
         method: 'DELETE',
         headers: getAuthHeaders(),
     });
