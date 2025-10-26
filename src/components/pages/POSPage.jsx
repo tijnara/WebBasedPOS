@@ -131,28 +131,18 @@ export default function POSPage() {
 
     const handleAddCustomer = async (newCustomer) => {
         try {
-            const response = await fetch('http://localhost:8055/items/customers', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ data: [newCustomer] }),
-            });
+            // Use the existing api.createCustomer function
+            // It correctly formats the payload and adds the auth headers
+            const addedCustomer = await api.createCustomer(newCustomer);
 
-            if (!response.ok) {
-                const errorResponse = await response.json(); // Log the server's response body
-                console.error('Server Response:', errorResponse);
-                throw new Error('Failed to add customer');
-            }
-
-            const result = await response.json();
-            const addedCustomer = result.data[0];
+            // The api.createCustomer function returns the new customer object directly
             setSelectedCustomer(addedCustomer);
             setSearchResults((prev) => [...prev, addedCustomer]);
             setIsCustomerModalOpen(false);
             addToast({ title: 'Customer Added', description: `${addedCustomer.name} has been added.`, variant: 'success' });
         } catch (error) {
             console.error('Error adding customer:', error);
+            // The error from api.js will be more descriptive
             addToast({ title: 'Error', description: error.message, variant: 'destructive' });
         }
     };
