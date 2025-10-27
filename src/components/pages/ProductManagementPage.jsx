@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useStore } from '../../store/useStore';
 import * as api from '../../lib/api';
-// MODIFIED: Added DialogTitle and DialogFooter
 import { Button, Card, CardHeader, CardContent, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, ScrollArea, Input, Label, Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogCloseButton } from '../ui';
 
 // Simple SVG Icon for Edit
@@ -27,16 +26,12 @@ export default function ProductManagementPage({ reload }) {
     const [editing, setEditing] = useState(null);
     const [name, setName] = useState('');
     const [price, setPrice] = useState('');
-    const [category, setCategory] = useState('Default'); // Default category
-    const [stock, setStock] = useState('0');       // Default stock
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     const startEdit = (p) => {
         setEditing(p);
         setName(p?.name || '');
         setPrice(p?.price != null ? String(p.price) : '');
-        setCategory(p?.category || 'Default');
-        setStock(p?.stock != null ? String(p.stock) : '0');
         setIsModalOpen(true);
     };
 
@@ -54,17 +49,14 @@ export default function ProductManagementPage({ reload }) {
         setEditing(null);
         setName('');
         setPrice('');
-        setCategory('Default');
-        setStock('0');
     };
 
     const save = async (e) => {
         e.preventDefault();
 
         const parsedPrice = parseFloat(price);
-        const parsedStock = parseInt(stock, 10);
 
-        if (!name || !price || !category || !stock) {
+        if (!name || !price) {
             addToast({ title: 'Error', description: 'All fields are required.' });
             return;
         }
@@ -72,12 +64,8 @@ export default function ProductManagementPage({ reload }) {
             addToast({ title: 'Error', description: 'Price must be a valid non-negative number.' });
             return;
         }
-        if (isNaN(parsedStock) || parsedStock < 0) {
-            addToast({ title: 'Error', description: 'Stock must be a valid non-negative integer.' });
-            return;
-        }
 
-        const payload = { name, price: parsedPrice, category, stock: parsedStock };
+        const payload = { name, price: parsedPrice };
 
         try {
             if (editing) {
@@ -133,9 +121,7 @@ export default function ProductManagementPage({ reload }) {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Product Name</TableHead>
-                                    <TableHead>Category</TableHead>
                                     <TableHead>Price</TableHead>
-                                    <TableHead>Stock</TableHead>
                                     <TableHead>Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -143,9 +129,7 @@ export default function ProductManagementPage({ reload }) {
                                 {products.map(p => (
                                     <TableRow key={p.id}>
                                         <TableCell>{p.name}</TableCell>
-                                        <TableCell>{p.category}</TableCell>
                                         <TableCell>₱{Number(p.price||0).toFixed(2)}</TableCell>
-                                        <TableCell>{p.stock}</TableCell>
                                         <TableCell>
                                             <div className="flex space-x-1"> {/* Reduced space */}
                                                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEdit(p)}> {/* Smaller icons */}
@@ -181,16 +165,8 @@ export default function ProductManagementPage({ reload }) {
                                     <Input id="productName" value={name} onChange={e => setName(e.target.value)} required />
                                 </div>
                                 <div>
-                                    <Label htmlFor="category">Category</Label>
-                                    <Input id="category" value={category} onChange={e => setCategory(e.target.value)} required />
-                                </div>
-                                <div>
                                     <Label htmlFor="pprice">Price (₱)</Label>
                                     <Input id="pprice" type="number" step="0.01" min="0" value={price} onChange={e => setPrice(e.target.value)} required />
-                                </div>
-                                <div>
-                                    <Label htmlFor="stock">Stock</Label>
-                                    <Input id="stock" type="number" step="1" min="0" value={stock} onChange={e => setStock(e.target.value)} required />
                                 </div>
                             </div>
                         </div>
