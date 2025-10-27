@@ -1,8 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useStore } from '../../store/useStore';
-import * as api from '../../lib/api';
-// MODIFIED: Added DialogTitle and DialogFooter
-import { Button, Card, CardHeader, CardContent, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, ScrollArea, Input, Label, Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogCloseButton } from '../ui';
+// Removed: import * as api from '../../lib/api';
+import {
+    Button, Card, CardContent, Table, TableHeader, TableBody, TableRow,
+    TableHead, TableCell, ScrollArea, Input, Label, Dialog, DialogContent,
+    DialogHeader, DialogTitle, DialogFooter, DialogCloseButton
+} from '../ui';
+
+// --- NEW: Import all the hooks ---
+import {
+    useUsers,
+    useCreateUser,
+    useUpdateUser,
+    useDeleteUser
+} from '../../hooks/useUserMutations'; // Assuming you created this file
 
 // Simple SVG Icon for Edit
 const EditIcon = () => (
@@ -19,11 +30,19 @@ const DeleteIcon = () => (
     </svg>
 );
 
-// const apiUrl = 'http://localhost:8055/items/users'; // No longer needed
 
 export default function UserManagementPage() {
     const addToast = useStore(s => s.addToast);
-    const [users, setUsers] = useState([]);
+
+    // --- REFACTORED: Get data from useUsers hook ---
+    const { data: users = [], isLoading } = useUsers();
+
+    // --- NEW: Initialize mutations ---
+    const createUser = useCreateUser();
+    const updateUser = useUpdateUser();
+    const deleteUser = useDeleteUser();
+
+    // State for the modal
     const [editing, setEditing] = useState(null);
     const [fullName, setFullName] = useState('');
     const [email, setEmail] = useState('');
@@ -31,21 +50,7 @@ export default function UserManagementPage() {
     const [contactNumber, setContactNumber] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    const loadData = async () => {
-        try {
-            const data = await api.fetchUsers(); // Assuming api.fetchUsers maps the response correctly
-            setUsers(data); // Store the mapped data directly
-        } catch (e) {
-            console.error(e);
-            if (e.message !== 'Unauthorized. Logging out.') {
-                addToast({ title: 'Error', description: 'Failed to load users', variant: 'destructive' });
-            }
-        }
-    };
-
-    useEffect(() => {
-        loadData();
-    }, []);
+    // Removed: loadData and useEffect
 
     const startEdit = (u) => {
         setEditing(u);
@@ -77,9 +82,8 @@ export default function UserManagementPage() {
     const save = async (e) => {
         e.preventDefault();
 
-        // Basic validation
-        if (!fullName || !email || !contactNumber) {
-            addToast({ title: 'Error', description: 'Fullname, Email, and Contact Number are required.', variant: 'destructive' });
+        if (!fullName || !email) { // Contact number is optional based on User hook
+            addToast({ title: 'Error', description: 'Fullname and Email are required.', variant: 'destructive' });
             return;
         }
         if (!editing && !password) {
@@ -87,27 +91,23 @@ export default function UserManagementPage() {
             return;
         }
 
-        // Prepare payload, only include password if provided
         const payload = {
-            name: fullName,
+            name: fullName, // Mapped to first_name in the hook
             email,
             phone: contactNumber,
-            ...(password && { password }), // Only add password if it's not empty
-            // Assuming default role or handling role assignment elsewhere if needed
+            ...(password && { password }),
         };
 
         try {
             if (editing) {
-                // Ensure password isn't accidentally set to empty string if left blank during edit
-                if (!password) delete payload.password;
-                await api.updateUser(editing.id, payload);
+                await updateUser.mutateAsync({ ...payload, id: editing.id });
                 addToast({ title: 'Updated', description: `User ${email} updated`, variant: 'success' });
             } else {
-                await api.createUser(payload); // createUser likely needs role info too
+                await createUser.mutateAsync(payload);
                 addToast({ title: 'Created', description: `User ${email} created`, variant: 'success' });
             }
             closeModal();
-            loadData(); // Refresh the user list
+            // No loadData() needed, hooks invalidate the query
         } catch (e) {
             console.error(e);
             addToast({ title: 'Error', description: e.message || 'Failed to save user', variant: 'destructive' });
@@ -117,14 +117,16 @@ export default function UserManagementPage() {
     const remove = async (u) => {
         if (!confirm(`Are you sure you want to delete ${u.email}? This cannot be undone.`)) return;
         try {
-            await api.deleteUser(u.id);
+            await deleteUser.mutateAsync(u.id);
             addToast({ title: 'Deleted', description: `${u.email} deleted`, variant: 'success' });
-            loadData(); // Refresh the user list
+            // No loadData() needed
         } catch (e) {
             console.error(e);
             addToast({ title: 'Error', description: e.message || 'Failed to delete user', variant: 'destructive' });
         }
     };
+
+    const isMutating = createUser.isPending || updateUser.isPending || deleteUser.isPending;
 
     return (
         <div>
@@ -154,29 +156,37 @@ export default function UserManagementPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {users.map(u => (
-                                    <TableRow key={u.id}>
-                                        <TableCell>{u.name}</TableCell>
-                                        <TableCell>{u.email}</TableCell>
-                                        <TableCell>{u.phone || 'N/A'}</TableCell>
-                                        {/* <TableCell>{u.role?.name || 'N/A'}</TableCell> Optionally add role */}
-                                        <TableCell>
-                                            <div className="flex space-x-1"> {/* Reduced space */}
-                                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEdit(u)}> {/* Smaller icons */}
-                                                    <EditIcon />
-                                                </Button>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(u)}> {/* Smaller icons */}
-                                                    <DeleteIcon />
-                                                </Button>
-                                            </div>
-                                        </TableCell>
+                                {/* --- REFACTORED: Show loading state --- */}
+                                {isLoading ? (
+                                    <TableRow>
+                                        <TableCell colSpan={4} className="text-center text-muted">Loading users...</TableCell>
                                     </TableRow>
-                                ))}
+                                ) : users.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={4} className="text-center text-muted">No users found.</TableCell>
+                                    </TableRow>
+                                ) : (
+                                    users.map(u => (
+                                        <TableRow key={u.id}>
+                                            <TableCell>{u.name}</TableCell>
+                                            <TableCell>{u.email}</TableCell>
+                                            <TableCell>{u.phone || 'N/A'}</TableCell>
+                                            {/* <TableCell>{u.role?.name || 'N/A'}</TableCell> Optionally add role */}
+                                            <TableCell>
+                                                <div className="flex space-x-1"> {/* Reduced space */}
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEdit(u)}> {/* Smaller icons */}
+                                                        <EditIcon />
+                                                    </Button>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(u)}> {/* Smaller icons */}
+                                                        <DeleteIcon />
+                                                    </Button>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
                             </TableBody>
                         </Table>
-                        {users.length === 0 && (
-                            <p className="p-4 text-center text-muted">No users found.</p>
-                        )}
                     </ScrollArea>
                 </CardContent>
             </Card>
@@ -203,15 +213,17 @@ export default function UserManagementPage() {
                                     <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder={editing ? "Leave blank to keep current" : ""} required={!editing} />
                                 </div>
                                 <div>
-                                    <Label htmlFor="contactNumber">Contact Number</Label>
-                                    <Input id="contactNumber" value={contactNumber} onChange={e => setContactNumber(e.target.value)} required />
+                                    <Label htmlFor="contactNumber">Contact Number (Optional)</Label> {/* Changed from required */}
+                                    <Input id="contactNumber" value={contactNumber} onChange={e => setContactNumber(e.target.value)} />
                                 </div>
                                 {/* Add Role Selection Here if needed */}
                             </div>
                         </div>
                         <DialogFooter>
-                            <Button variant="outline" type="button" onClick={closeModal}>Cancel</Button>
-                            <Button type="submit">Save User</Button>
+                            <Button variant="outline" type="button" onClick={closeModal} disabled={isMutating}>Cancel</Button>
+                            <Button type="submit" disabled={isMutating}>
+                                {isMutating ? 'Saving...' : 'Save User'}
+                            </Button>
                         </DialogFooter>
                     </form>
                 </DialogContent>

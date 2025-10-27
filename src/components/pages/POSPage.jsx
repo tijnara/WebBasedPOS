@@ -371,4 +371,126 @@ export default function POSPage() {
                             type="text"
                             placeholder="Search customers..."
                             value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.g...
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full"
+                        />
+                        <ScrollArea className="h-[350px] border rounded-md">
+                            <div className="p-2 space-y-1">
+                                <Button
+                                    variant={selectedCustomer === null ? "secondary" : "ghost"}
+                                    className="w-full justify-start text-left h-auto py-2 px-3"
+                                    onClick={() => handleSelectCustomer(null)}
+                                >
+                                    {/* ADDED: Label for walk-in customer */}
+                                    Walk-in Customer
+                                </Button>
+                                <hr className="my-1 border-border" />
+                                {isSearching ? (
+                                    <p className="p-4 text-sm text-center text-muted">Searching...</p>
+                                ) : (
+                                    <>
+                                        {searchResults.map(customer => (
+                                            <Button
+                                                key={customer.id}
+                                                variant={selectedCustomer?.id === customer.id ? "secondary" : "ghost"}
+                                                className="w-full justify-start text-left h-auto py-2 px-3"
+                                                onClick={() => handleSelectCustomer(customer)}
+                                            >
+                                                {customer.name}
+                                            </Button>
+                                        ))}
+                                        {searchResults.length === 0 && debouncedSearchTerm && (
+                                            <div className="p-4 text-center">
+                                                <p className="text-sm text-muted mb-2">No customers found.</p>
+                                                <Button
+                                                    variant="primary"
+                                                    onClick={() => handleAddCustomer({
+                                                        // No need for ID here, mutation hook handles it
+                                                        name: debouncedSearchTerm,
+                                                        // email: null, // Add if you have an email field
+                                                        // phone: null, // Add if you have a phone field
+                                                        dateAdded: new Date().toISOString(),
+                                                    })}
+                                                    // Disable if mutation is pending
+                                                    disabled={createCustomerMutation.isPending}
+                                                >
+                                                    {createCustomerMutation.isPending ? 'Adding...' : `Add "${debouncedSearchTerm}" as new customer`}
+                                                </Button>
+                                            </div>
+                                        )}
+                                        {searchResults.length === 0 && !debouncedSearchTerm && !isSearching && (
+                                            <p className="p-4 text-sm text-center text-muted">Type to search for customers.</p>
+                                        )}
+                                    </>
+                                )}
+                            </div>
+                        </ScrollArea>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* --- NEW: CUSTOM SALE DIALOG (MODAL) --- */}
+            <Dialog open={isCustomSaleModalOpen} onOpenChange={setIsCustomSaleModalOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Add Custom Sale</DialogTitle>
+                        <DialogCloseButton onClick={closeCustomSaleModal} />
+                    </DialogHeader>
+                    <form onSubmit={handleCustomSaleSubmit}>
+                        <div className="p-4 space-y-4">
+                            <div>
+                                <Label htmlFor="customProduct">Product</Label>
+                                <Select
+                                    id="customProduct"
+                                    className="w-full"
+                                    value={customSaleProduct}
+                                    onChange={(e) => handleCustomProductChange(e.target.value)}
+                                    required
+                                >
+                                    <option value="" disabled>Select a product...</option>
+                                    {/* Ensure products array is available */}
+                                    {products && products.map(p => (
+                                        <option key={p.id} value={p.id}>
+                                            {p.name}
+                                        </option>
+                                    ))}
+                                </Select>
+                            </div>
+                            <div>
+                                <Label htmlFor="customPrice">Custom Price (₱)</Label>
+                                <Input
+                                    id="customPrice"
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    value={customSalePrice}
+                                    onChange={e => setCustomSalePrice(e.target.value)}
+                                    required
+                                    className="w-full"
+                                />
+                            </div>
+                            <div>
+                                <Label htmlFor="customQuantity">Quantity</Label>
+                                <Input
+                                    id="customQuantity"
+                                    type="number"
+                                    step="1"
+                                    min="1"
+                                    value={customSaleQuantity}
+                                    onChange={e => setCustomSaleQuantity(e.target.value)}
+                                    required
+                                    className="w-full"
+                                />
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button variant="outline" type="button" onClick={closeCustomSaleModal}>Cancel</Button>
+                            <Button type="submit">Add to Cart</Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+        </div> // End of wrapper div
+    );
+}

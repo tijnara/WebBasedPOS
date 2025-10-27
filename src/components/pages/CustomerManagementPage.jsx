@@ -1,8 +1,19 @@
 import React, { useState } from 'react';
 import { useStore } from '../../store/useStore';
-import * as api from '../../lib/api';
-// MODIFIED: Added DialogTitle and DialogFooter
-import { Button, Card, CardHeader, CardContent, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, ScrollArea, Input, Label, Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogCloseButton } from '../ui';
+// Removed: import * as api from '../../lib/api';
+import {
+    Button, Card, CardContent, Table, TableHeader, TableBody, TableRow,
+    TableHead, TableCell, ScrollArea, Input, Label, Dialog, DialogContent,
+    DialogHeader, DialogTitle, DialogFooter, DialogCloseButton
+} from '../ui';
+
+// --- NEW: Import all the hooks ---
+import { useCreateCustomer } from '../../hooks/useCreateCustomer'; // From POSPage
+import {
+    useCustomers,
+    useUpdateCustomer,
+    useDeleteCustomer
+} from '../../hooks/useCustomerMutations'; // Assuming you created this file
 
 // Simple SVG Icon for Edit
 const EditIcon = () => (
@@ -19,9 +30,15 @@ const DeleteIcon = () => (
     </svg>
 );
 
-export default function CustomerManagementPage({ reload }) {
-    const customers = useStore(s => s.customers);
+export default function CustomerManagementPage() {
+    // --- REFACTORED: Get data from useCustomers hook ---
+    const { data: customers = [], isLoading } = useCustomers();
     const addToast = useStore(s => s.addToast);
+
+    // --- NEW: Initialize mutations ---
+    const createCustomer = useCreateCustomer();
+    const updateCustomer = useUpdateCustomer();
+    const deleteCustomer = useDeleteCustomer();
 
     const [editing, setEditing] = useState(null);
     const [name, setName] = useState('');
@@ -29,6 +46,7 @@ export default function CustomerManagementPage({ reload }) {
     const [phone, setPhone] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
 
+    // --- Modal control functions remain the same ---
     const openModal = () => {
         resetForm();
         setIsModalOpen(true);
@@ -53,10 +71,11 @@ export default function CustomerManagementPage({ reload }) {
         setEmail('');
         setPhone('');
     };
+    // --- End modal control functions ---
 
     const save = async (e) => {
         e.preventDefault();
-        if (!name) { // Email is optional now
+        if (!name) { // Email and Phone are optional based on hook
             addToast({ title: 'Error', description: 'Customer Name is required.' });
             return;
         }
@@ -65,15 +84,15 @@ export default function CustomerManagementPage({ reload }) {
 
         try {
             if (editing) {
-                await api.updateItem('customers', editing.id, payload);
+                await updateCustomer.mutateAsync({ ...payload, id: editing.id });
                 addToast({ title: 'Updated', description: `Customer ${name} updated` });
             } else {
-                // Ensure dateAdded is included for creation
-                await api.createCustomer({ ...payload, dateAdded: new Date().toISOString() });
+                // Ensure dateAdded is included for creation if your hook requires it
+                await createCustomer.mutateAsync({ ...payload, dateAdded: new Date().toISOString() });
                 addToast({ title: 'Created', description: `Customer ${name} created` });
             }
             closeModal();
-            if (reload) reload(); // Use the reload prop from _app.js
+            // No reload() needed, hooks handle invalidation
         } catch (e) {
             console.error(e);
             addToast({ title: 'Error', description: e.message || 'Failed to save customer' });
@@ -83,14 +102,16 @@ export default function CustomerManagementPage({ reload }) {
     const remove = async (c) => {
         if (!confirm(`Delete ${c.name}? This cannot be undone.`)) return;
         try {
-            await api.deleteItem('customers', c.id);
+            await deleteCustomer.mutateAsync(c.id);
             addToast({ title: 'Deleted', description: `${c.name} deleted` });
-            if (reload) reload(); // Use the reload prop from _app.js
+            // No reload() needed
         } catch (e) {
             console.error(e);
             addToast({ title: 'Error', description: e.message || 'Failed to delete customer' });
         }
     };
+
+    const isMutating = createCustomer.isPending || updateCustomer.isPending || deleteCustomer.isPending;
 
     return (
         <div>
@@ -120,29 +141,38 @@ export default function CustomerManagementPage({ reload }) {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {customers.map(c => (
-                                    <TableRow key={c.id}>
-                                        <TableCell>{c.name}</TableCell>
-                                        <TableCell>{c.email || 'N/A'}</TableCell>
-                                        <TableCell>{c.phone || 'N/A'}</TableCell>
-                                        <TableCell>{c.dateAdded ? c.dateAdded.toLocaleDateString() : 'N/A'}</TableCell>
-                                        <TableCell>
-                                            <div className="flex space-x-1"> {/* Reduced space */}
-                                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEdit(c)}> {/* Smaller icons */}
-                                                    <EditIcon />
-                                                </Button>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(c)}> {/* Smaller icons */}
-                                                    <DeleteIcon />
-                                                </Button>
-                                            </div>
-                                        </TableCell>
+                                {/* --- REFACTORED: Show loading state --- */}
+                                {isLoading ? (
+                                    <TableRow>
+                                        <TableCell colSpan={5} className="text-center text-muted">Loading customers...</TableCell>
                                     </TableRow>
-                                ))}
+                                ) : customers.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={5} className="text-center text-muted">No customers found.</TableCell>
+                                    </TableRow>
+                                ) : (
+                                    customers.map(c => (
+                                        <TableRow key={c.id}>
+                                            <TableCell>{c.name}</TableCell>
+                                            <TableCell>{c.email || 'N/A'}</TableCell>
+                                            <TableCell>{c.phone || 'N/A'}</TableCell>
+                                            {/* Ensure dateAdded is a Date object */}
+                                            <TableCell>{c.dateAdded instanceof Date ? c.dateAdded.toLocaleDateString() : 'N/A'}</TableCell>
+                                            <TableCell>
+                                                <div className="flex space-x-1"> {/* Reduced space */}
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEdit(c)}> {/* Smaller icons */}
+                                                        <EditIcon />
+                                                    </Button>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(c)}> {/* Smaller icons */}
+                                                        <DeleteIcon />
+                                                    </Button>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
                             </TableBody>
                         </Table>
-                        {customers.length === 0 && (
-                            <p className="p-4 text-center text-muted">No customers found.</p>
-                        )}
                     </ScrollArea>
                 </CardContent>
             </Card>
@@ -171,8 +201,10 @@ export default function CustomerManagementPage({ reload }) {
                             </div>
                         </div>
                         <DialogFooter>
-                            <Button variant="outline" type="button" onClick={closeModal}>Cancel</Button>
-                            <Button type="submit">Save Customer</Button>
+                            <Button variant="outline" type="button" onClick={closeModal} disabled={isMutating}>Cancel</Button>
+                            <Button type="submit" disabled={isMutating}>
+                                {isMutating ? 'Saving...' : 'Save Customer'}
+                            </Button>
                         </DialogFooter>
                     </form>
                 </DialogContent>

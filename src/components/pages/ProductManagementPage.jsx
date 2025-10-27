@@ -1,7 +1,19 @@
 import React, { useState } from 'react';
 import { useStore } from '../../store/useStore';
-import * as api from '../../lib/api';
-import { Button, Card, CardHeader, CardContent, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, ScrollArea, Input, Label, Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogCloseButton } from '../ui';
+// Removed: import * as api from '../../lib/api';
+import {
+    Button, Card, CardContent, Table, TableHeader, TableBody, TableRow,
+    TableHead, TableCell, ScrollArea, Input, Label, Dialog, DialogContent,
+    DialogHeader, DialogTitle, DialogFooter, DialogCloseButton
+} from '../ui';
+
+// --- NEW: Import all the hooks ---
+import { useProducts } from '../../hooks/useProducts';
+import {
+    useCreateProduct,
+    useUpdateProduct,
+    useDeleteProduct
+} from '../../hooks/useProductMutations'; // Assuming you created this file
 
 // Simple SVG Icon for Edit
 const EditIcon = () => (
@@ -19,19 +31,31 @@ const DeleteIcon = () => (
 );
 
 
-export default function ProductManagementPage({ reload }) {
-    const products = useStore(s => s.products);
+export default function ProductManagementPage() {
+    // --- REFACTORED: Get data from useProducts hook ---
+    const { data: products = [], isLoading } = useProducts();
     const addToast = useStore(s => s.addToast);
 
+    // --- NEW: Initialize mutations ---
+    const createProduct = useCreateProduct();
+    const updateProduct = useUpdateProduct();
+    const deleteProduct = useDeleteProduct();
+
+    // State for the modal
     const [editing, setEditing] = useState(null);
     const [name, setName] = useState('');
     const [price, setPrice] = useState('');
+    const [category, setCategory] = useState('Default'); // Default category
+    const [stock, setStock] = useState('0');       // Default stock
     const [isModalOpen, setIsModalOpen] = useState(false);
 
+    // --- Modal control functions remain the same ---
     const startEdit = (p) => {
         setEditing(p);
         setName(p?.name || '');
         setPrice(p?.price != null ? String(p.price) : '');
+        setCategory(p?.category || 'Default');
+        setStock(p?.stock != null ? String(p.stock) : '0');
         setIsModalOpen(true);
     };
 
@@ -49,14 +73,18 @@ export default function ProductManagementPage({ reload }) {
         setEditing(null);
         setName('');
         setPrice('');
+        setCategory('Default');
+        setStock('0');
     };
+    // --- End modal control functions ---
 
     const save = async (e) => {
         e.preventDefault();
 
         const parsedPrice = parseFloat(price);
+        const parsedStock = parseInt(stock, 10);
 
-        if (!name || !price) {
+        if (!name || !price || !category || stock === '') { // Check stock is not empty string
             addToast({ title: 'Error', description: 'All fields are required.' });
             return;
         }
@@ -64,24 +92,30 @@ export default function ProductManagementPage({ reload }) {
             addToast({ title: 'Error', description: 'Price must be a valid non-negative number.' });
             return;
         }
+        if (isNaN(parsedStock) || parsedStock < 0) {
+            addToast({ title: 'Error', description: 'Stock must be a valid non-negative integer.' });
+            return;
+        }
 
-        const payload = { name, price: parsedPrice };
+        const payload = {
+            name,
+            price: parsedPrice,
+            category,
+            stock: parsedStock
+        };
 
         try {
             if (editing) {
-                console.log('Updating product with payload:', payload);
-                await api.updateItem('products', editing.id, payload);
+                await updateProduct.mutateAsync({ ...payload, id: editing.id });
                 addToast({ title: 'Updated', description: `Product ${name} updated` });
             } else {
-                const id = Date.now().toString();
-                const createPayload = { ...payload, id };
-                console.log('Creating product with payload:', createPayload);
-                await api.createProduct(createPayload);
+                // The hook now handles ID generation implicitly via Directus
+                await createProduct.mutateAsync(payload);
                 addToast({ title: 'Created', description: `Product ${name} created` });
             }
 
             closeModal();
-            if (reload) reload();
+            // No reload() needed, hooks invalidate query
         } catch (e) {
             console.error(e);
             addToast({ title: 'Error', description: e.message });
@@ -91,14 +125,16 @@ export default function ProductManagementPage({ reload }) {
     const remove = async (p) => {
         if (!confirm(`Delete ${p.name}?`)) return;
         try {
-            await api.deleteItem('products', p.id);
+            await deleteProduct.mutateAsync(p.id);
             addToast({ title: 'Deleted', description: `${p.name} deleted` });
-            if (reload) reload();
+            // No reload() needed
         } catch (e) {
             console.error(e);
             addToast({ title: 'Error', description: e.message });
         }
     };
+
+    const isMutating = createProduct.isPending || updateProduct.isPending || deleteProduct.isPending;
 
     return (
         <div>
@@ -121,32 +157,44 @@ export default function ProductManagementPage({ reload }) {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Product Name</TableHead>
+                                    <TableHead>Category</TableHead>
                                     <TableHead>Price</TableHead>
+                                    <TableHead>Stock</TableHead>
                                     <TableHead>Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {products.map(p => (
-                                    <TableRow key={p.id}>
-                                        <TableCell>{p.name}</TableCell>
-                                        <TableCell>₱{Number(p.price||0).toFixed(2)}</TableCell>
-                                        <TableCell>
-                                            <div className="flex space-x-1"> {/* Reduced space */}
-                                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEdit(p)}> {/* Smaller icons */}
-                                                    <EditIcon />
-                                                </Button>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(p)}> {/* Smaller icons */}
-                                                    <DeleteIcon />
-                                                </Button>
-                                            </div>
-                                        </TableCell>
+                                {/* --- REFACTORED: Show loading state --- */}
+                                {isLoading ? (
+                                    <TableRow>
+                                        <TableCell colSpan={5} className="text-center text-muted">Loading products...</TableCell>
                                     </TableRow>
-                                ))}
+                                ) : products.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={5} className="text-center text-muted">No products found.</TableCell>
+                                    </TableRow>
+                                ) : (
+                                    products.map(p => (
+                                        <TableRow key={p.id}>
+                                            <TableCell>{p.name}</TableCell>
+                                            <TableCell>{p.category}</TableCell>
+                                            <TableCell>₱{Number(p.price||0).toFixed(2)}</TableCell>
+                                            <TableCell>{p.stock}</TableCell>
+                                            <TableCell>
+                                                <div className="flex space-x-1"> {/* Reduced space */}
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEdit(p)}> {/* Smaller icons */}
+                                                        <EditIcon />
+                                                    </Button>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(p)}> {/* Smaller icons */}
+                                                        <DeleteIcon />
+                                                    </Button>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
                             </TableBody>
                         </Table>
-                        {products.length === 0 && (
-                            <p className="p-4 text-center text-muted">No products found.</p>
-                        )}
                     </ScrollArea>
                 </CardContent>
             </Card>
@@ -165,14 +213,24 @@ export default function ProductManagementPage({ reload }) {
                                     <Input id="productName" value={name} onChange={e => setName(e.target.value)} required />
                                 </div>
                                 <div>
+                                    <Label htmlFor="category">Category</Label>
+                                    <Input id="category" value={category} onChange={e => setCategory(e.target.value)} required />
+                                </div>
+                                <div>
                                     <Label htmlFor="pprice">Price (₱)</Label>
                                     <Input id="pprice" type="number" step="0.01" min="0" value={price} onChange={e => setPrice(e.target.value)} required />
+                                </div>
+                                <div>
+                                    <Label htmlFor="stock">Stock</Label>
+                                    <Input id="stock" type="number" step="1" min="0" value={stock} onChange={e => setStock(e.target.value)} required />
                                 </div>
                             </div>
                         </div>
                         <DialogFooter>
-                            <Button variant="outline" type="button" onClick={closeModal}>Cancel</Button>
-                            <Button type="submit">Save Product</Button>
+                            <Button variant="outline" type="button" onClick={closeModal} disabled={isMutating}>Cancel</Button>
+                            <Button type="submit" disabled={isMutating}>
+                                {isMutating ? 'Saving...' : 'Save Product'}
+                            </Button>
                         </DialogFooter>
                     </form>
                 </DialogContent>
