@@ -1,7 +1,12 @@
-import React, { useState, useEffect } from 'react'; // Import useEffect
+import React, { useState, useEffect } from 'react';
 import { useStore } from '../../store/useStore';
-import * as api from '../../lib/api';
-// MODIFIED: Imported DialogTitle, Label, and Select
+
+// --- NEW: Import your custom hooks ---
+import { useProducts } from '../../hooks/useProducts';
+import { useCreateSale } from '../../hooks/useCreateSale';
+import { useCreateCustomer } from '../../hooks/useCreateCustomer'; // For adding customers
+// ------------------------------------
+
 import { Button, Card, CardHeader, CardContent, CardFooter, Table, TableBody, TableRow, TableCell, ScrollArea, Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogCloseButton, Input, Label, Select } from '../ui';
 
 // Empty cart icon
@@ -23,15 +28,27 @@ const TrashIcon = () => (
 
 
 export default function POSPage() {
-    const products = useStore(s => s.products);
+    // --- NEW: Fetch products with useQuery ---
+    // We provide a default empty array `[]` for products
+    const { data: products = [], isLoading: isLoadingProducts } = useProducts();
+
+    // --- KEEP: Zustand is perfect for UI state like the cart ---
     const currentSale = useStore(s => s.currentSale);
     const addItemToSale = useStore(s => s.addItemToSale);
     const removeItemFromSale = useStore(s => s.removeItemFromSale);
     const clearSale = useStore(s => s.clearSale);
     const getTotalAmount = useStore(s => s.getTotalAmount);
     const addToast = useStore(s => s.addToast);
+    // -----------------------------------------------------------
 
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    // --- NEW: Initialize mutation hooks ---
+    const createSaleMutation = useCreateSale();
+    const createCustomerMutation = useCreateCustomer();
+    // --------------------------------------
+
+    // --- REMOVED: isSubmitting is now handled by createSaleMutation.isPending ---
+    // const [isSubmitting, setIsSubmitting] = useState(false);
+
     const [selectedCustomer, setSelectedCustomer] = useState(null);
     const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
 
@@ -40,7 +57,7 @@ export default function POSPage() {
     const [searchResults, setSearchResults] = useState([]);
     const [isSearching, setIsSearching] = useState(false);
 
-    // --- NEW: State for Custom Sale Modal ---
+    // --- State for Custom Sale Modal (remains the same) ---
     const [isCustomSaleModalOpen, setIsCustomSaleModalOpen] = useState(false);
     const [customSaleProduct, setCustomSaleProduct] = useState('');
     const [customSalePrice, setCustomSalePrice] = useState('');
@@ -49,7 +66,7 @@ export default function POSPage() {
 
     const subtotal = getTotalAmount();
 
-    // Debounce effect
+    // Debounce effect (remains the same)
     useEffect(() => {
         const handler = setTimeout(() => {
             setDebouncedSearchTerm(searchTerm);
@@ -57,7 +74,8 @@ export default function POSPage() {
         return () => clearTimeout(handler);
     }, [searchTerm]);
 
-    // API fetching effect
+    // API fetching effect for CUSTOMER SEARCH (remains the same)
+    // This is fine as a direct fetch since it's inside a modal
     useEffect(() => {
         if (!isCustomerModalOpen) {
             setSearchResults([]);
@@ -66,6 +84,9 @@ export default function POSPage() {
         const fetchCustomers = async () => {
             setIsSearching(true);
             try {
+                // NOTE: This still uses fetch(). For full offline, you'd
+                // replace this with a useQuery(['customers', debouncedSearchTerm], ...)
+                // But for simplicity, we leave this as-is.
                 const url = `http://localhost:8055/items/customers?search=${encodeURIComponent(debouncedSearchTerm)}`;
                 const response = await fetch(url);
                 if (!response.ok) throw new Error('Failed to fetch customers');
@@ -82,6 +103,8 @@ export default function POSPage() {
         fetchCustomers();
     }, [debouncedSearchTerm, isCustomerModalOpen, addToast]);
 
+
+    // --- All cart handling functions remain the same ---
     const handleAdd = (p) => addItemToSale(p, 1);
     const handleIncreaseQuantity = (key) => {
         const item = currentSale[key];
@@ -98,21 +121,23 @@ export default function POSPage() {
     const handleRemoveItem = (key) => {
         removeItemFromSale(key);
     };
-
     const handleSelectCustomer = (customer) => {
         setSelectedCustomer(customer);
         setSearchTerm('');
         setIsCustomerModalOpen(false);
     };
+    // ----------------------------------------------------
 
+    // --- REFACTORED: handleCheckout ---
     const handleCheckout = async () => {
         const items = Object.values(currentSale).map(i => ({ productId: i.productId, productName: i.name, quantity: i.quantity, priceAtSale: i.price, subtotal: i.price * i.quantity }));
         if (items.length === 0) return addToast({ title: 'No items', description: 'Add items before finalizing', variant: 'warning' });
 
-        setIsSubmitting(true);
+        // REMOVED: setIsSubmitting(true);
+
         try {
             const payload = {
-                id: Date.now(),
+                // REMOVED: id: Date.now() (Let Directus handle ID)
                 saleTimestamp: new Date().toISOString(),
                 totalAmount: subtotal,
                 customerId: selectedCustomer?.id || null,
@@ -125,36 +150,40 @@ export default function POSPage() {
 
             console.log('Payload for createSale:', payload);
 
-            const created = await api.createSale(payload);
-            addToast({ title: 'Sale saved', description: `Sale ₱${created.id} recorded`, variant: 'success' });
+            // --- REFACTORED: Use the mutation hook ---
+            // mutateAsync returns a promise so we can await it
+            const created = await createSaleMutation.mutateAsync(payload);
+            // ---------------------------------------
+
+            addToast({ title: 'Sale saved', description: `Sale #${created.id} recorded`, variant: 'success' });
             clearSale();
             setSelectedCustomer(null);
             setSearchTerm('');
         } catch (e) {
             console.error('Error during checkout:', e);
+            // The mutation hook will retry, but if it fails finally, this will show
             addToast({ title: 'Error saving sale', description: e.message, variant: 'destructive' });
-        } finally { setIsSubmitting(false); }
+        }
+        // REMOVED: finally { setIsSubmitting(false); }
     };
 
+    // --- REFACTORED: handleAddCustomer ---
     const handleAddCustomer = async (newCustomer) => {
         try {
-            // Use the existing api.createCustomer function
-            // It correctly formats the payload and adds the auth headers
-            const addedCustomer = await api.createCustomer(newCustomer);
+            // Use the mutation hook instead of api.js
+            const addedCustomer = await createCustomerMutation.mutateAsync(newCustomer);
 
-            // The api.createCustomer function returns the new customer object directly
             setSelectedCustomer(addedCustomer);
             setSearchResults((prev) => [...prev, addedCustomer]);
             setIsCustomerModalOpen(false);
             addToast({ title: 'Customer Added', description: `${addedCustomer.name} has been added.`, variant: 'success' });
         } catch (error) {
             console.error('Error adding customer:', error);
-            // The error from api.js will be more descriptive
             addToast({ title: 'Error', description: error.message, variant: 'destructive' });
         }
     };
 
-    // --- NEW: Custom Sale Modal Functions ---
+    // --- NEW: Custom Sale Modal Functions (remain the same) ---
     const openCustomSaleModal = () => {
         setCustomSaleProduct('');
         setCustomSalePrice('');
@@ -222,7 +251,6 @@ export default function POSPage() {
                         <CardHeader>
                             <div className="flex justify-between items-center">
                                 <h3 className="font-semibold text-primary">Current Order</h3>
-                                {/* TODO: Add clearSale functionality to this button */}
                                 <Button variant="ghost" size="sm" className="p-1 h-auto" onClick={clearSale}>✖</Button>
                             </div>
                         </CardHeader>
@@ -259,7 +287,7 @@ export default function POSPage() {
                             )}
                         </CardContent>
 
-                        {/* --- CUSTOMER SECTION --- */}
+                        {/* --- CUSTOMER SECTION (remains the same) --- */}
                         <div className="p-4 border-t space-y-2">
                             <h4 className="text-sm font-medium">Customer</h4>
                             <Button
@@ -287,9 +315,10 @@ export default function POSPage() {
                                     variant="primary"
                                     className="w-full"
                                     onClick={handleCheckout}
-                                    disabled={isSubmitting || Object.keys(currentSale).length === 0}
+                                    // --- REFACTORED: Use mutation's pending state ---
+                                    disabled={createSaleMutation.isPending || Object.keys(currentSale).length === 0}
                                 >
-                                    {isSubmitting ? 'Processing...' : 'Checkout'}
+                                    {createSaleMutation.isPending ? 'Processing...' : 'Checkout'}
                                 </Button>
                             </div>
                         </CardFooter>
@@ -303,7 +332,12 @@ export default function POSPage() {
                     </div>
                     <Card>
                         <CardContent>
-                            {!products.length ? <div className="p-4 text-center text-muted">No products available</div> : (
+                            {/* --- REFACTORED: Add loading state --- */}
+                            {isLoadingProducts ? (
+                                <div className="p-4 text-center text-muted">Loading products...</div>
+                            ) : !products.length ? (
+                                <div className="p-4 text-center text-muted">No products available</div>
+                            ) : (
                                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                                     {products.map(p => (
                                         <button key={p.id} className="product-card" onClick={() => handleAdd(p)}>
@@ -337,124 +371,4 @@ export default function POSPage() {
                             type="text"
                             placeholder="Search customers..."
                             value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full"
-                        />
-                        <ScrollArea className="h-[350px] border rounded-md">
-                            <div className="p-2 space-y-1">
-                                <Button
-                                    variant={selectedCustomer === null ? "secondary" : "ghost"}
-                                    className="w-full justify-start text-left h-auto py-2 px-3"
-                                    onClick={() => handleSelectCustomer(null)}
-                                >
-                                    {/* ADDED: Label for walk-in customer */}
-                                    Walk-in Customer
-                                </Button>
-                                <hr className="my-1 border-border" />
-                                {isSearching ? (
-                                    <p className="p-4 text-sm text-center text-muted">Searching...</p>
-                                ) : (
-                                    <>
-                                        {searchResults.map(customer => (
-                                            <Button
-                                                key={customer.id}
-                                                variant={selectedCustomer?.id === customer.id ? "secondary" : "ghost"}
-                                                className="w-full justify-start text-left h-auto py-2 px-3"
-                                                onClick={() => handleSelectCustomer(customer)}
-                                            >
-                                                {customer.name}
-                                            </Button>
-                                        ))}
-                                        {searchResults.length === 0 && debouncedSearchTerm && (
-                                            <div className="p-4 text-center">
-                                                <p className="text-sm text-muted mb-2">No customers found.</p>
-                                                <Button
-                                                    variant="primary"
-                                                    onClick={() => handleAddCustomer({
-                                                        id: `c${Date.now()}`,
-                                                        name: debouncedSearchTerm,
-                                                        contact: null,
-                                                        address: null,
-                                                        dateAdded: new Date().toISOString(),
-                                                    })}
-                                                >
-                                                    Add "{debouncedSearchTerm}" as a new customer
-                                                </Button>
-                                            </div>
-                                        )}
-                                        {searchResults.length === 0 && !debouncedSearchTerm && !isSearching && (
-                                            <p className="p-4 text-sm text-center text-muted">Type to search for customers.</p>
-                                        )}
-                                    </>
-                                )}
-                            </div>
-                        </ScrollArea>
-                    </div>
-                </DialogContent>
-            </Dialog>
-
-            {/* --- NEW: CUSTOM SALE DIALOG (MODAL) --- */}
-            <Dialog open={isCustomSaleModalOpen} onOpenChange={setIsCustomSaleModalOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Add Custom Sale</DialogTitle>
-                        <DialogCloseButton onClick={closeCustomSaleModal} />
-                    </DialogHeader>
-                    <form onSubmit={handleCustomSaleSubmit}>
-                        <div className="p-4 space-y-4">
-                            <div>
-                                <Label htmlFor="customProduct">Product</Label>
-                                <Select
-                                    id="customProduct"
-                                    className="w-full"
-                                    value={customSaleProduct}
-                                    onChange={(e) => handleCustomProductChange(e.target.value)}
-                                    required
-                                >
-                                    <option value="" disabled>Select a product...</option>
-                                    {products.map(p => (
-                                        <option key={p.id} value={p.id}>
-                                            {p.name}
-                                        </option>
-                                    ))}
-                                </Select>
-                            </div>
-                            <div>
-                                <Label htmlFor="customPrice">Custom Price (₱)</Label>
-                                <Input
-                                    id="customPrice"
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
-                                    value={customSalePrice}
-                                    onChange={e => setCustomSalePrice(e.target.value)}
-                                    required
-                                    className="w-full"
-                                />
-                            </div>
-                            <div>
-                                <Label htmlFor="customQuantity">Quantity</Label>
-                                <Input
-                                    id="customQuantity"
-                                    type="number"
-                                    step="1"
-                                    min="1"
-                                    value={customSaleQuantity}
-                                    onChange={e => setCustomSaleQuantity(e.target.value)}
-                                    required
-                                    className="w-full"
-                                />
-                            </div>
-                        </div>
-                        <DialogFooter>
-                            <Button variant="outline" type="button" onClick={closeCustomSaleModal}>Cancel</Button>
-                            <Button type="submit">Add to Cart</Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
-
-
-        </div> // End of wrapper div
-    );
-}
+                            onChange={(e) => setSearchTerm(e.g...
