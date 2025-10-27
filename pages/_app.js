@@ -8,7 +8,7 @@ import { Button } from '../src/components/ui';
 // --- NEW IMPORTS for Offline-First ---
 import { QueryClient } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
-import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
+import { createSyncStoragePersister } from '@tanstack/react-query-persist-client';
 import { get, set, del } from 'idb-keyval';
 // -------------------------------------
 
