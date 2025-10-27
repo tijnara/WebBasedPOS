@@ -8,9 +8,10 @@ import { Button } from '../src/components/ui';
 // --- NEW IMPORTS for Offline-First ---
 import { QueryClient } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
-// --- CORRECTED IMPORT ---
 import { get, set, del } from 'idb-keyval';
-// -------------------------------------
+// --- DEVTOOLS IMPORT ---
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+// ----------------------
 
 // --- Custom IndexedDB Persister for TanStack Query ---
 const persister = {
@@ -135,6 +136,9 @@ export default function App({ Component, pageProps }) {
                     </div>
                 </div>
             </AuthGate>
+            {/* --- ADD DEVTOOLS --- */}
+            <ReactQueryDevtools initialIsOpen={false} />
+            {/* -------------------- */}
         </PersistQueryClientProvider> // --- End provider wrap ---
     );
 }

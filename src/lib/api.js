@@ -5,17 +5,29 @@ import directus from './directus'; // Import the new SDK client
 // handleRes and getAuthHeaders are no longer needed,
 // the Directus SDK handles responses and auth headers automatically.
 
-export async function login(email, password) {
-    // Use the SDK's login method. It automatically handles errors.
-    await directus.login(email, password, { mode: 'json' });
+export async function login({ email, password }) {
+    try {
+        // Attempt to log in with a valid mode (e.g., 'json')
+        console.log('Logging in with:', { email, password });
+        await directus.login({ email, password, mode: 'json' });
 
-    // Fetch the user data
-    const user = await directus.users.me.read();
+        // Verify if the login was successful
+        const token = await directus.getToken();
+        if (!token) {
+            throw new Error('Authentication failed: No token received.');
+        }
 
-    // Get the token from the SDK
-    const token = await directus.getToken();
+        // Fetch the user data
+        const user = await directus.users.me.read();
+        if (!user) {
+            throw new Error('Failed to retrieve user data after login.');
+        }
 
-    return { token, user };
+        return { token, user };
+    } catch (error) {
+        console.error('Login failed:', error);
+        throw new Error(error.message || 'Login failed. Please check your credentials.');
+    }
 }
 
 export async function fetchCurrentUser(token) {

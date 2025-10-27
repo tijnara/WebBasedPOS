@@ -17,12 +17,21 @@ export default function LoginPage() {
         setError(null);
         setIsLoading(true);
 
+        // Validate email and password
+        if (typeof email !== 'string' || typeof password !== 'string') {
+            setError('Email and password must be valid strings.');
+            setIsLoading(false);
+            return;
+        }
+
+        console.log('Attempting login with:', { email, password }); // Debug log
+
         try {
-            const { token, user } = await api.login(email, password);
+            const { token, user } = await api.login({ email, password });
             setAuth(token, user);
             router.push('/');
         } catch (err) {
-            console.error(err);
+            console.error('Login error:', err);
             setError(err.message || 'Failed to login. Please check your credentials.');
         } finally {
             setIsLoading(false);

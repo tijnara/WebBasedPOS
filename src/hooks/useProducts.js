@@ -1,31 +1,37 @@
 import { useQuery } from '@tanstack/react-query';
 import directus from '../lib/directus';
+import { readItems } from '@directus/sdk';
 
 export function useProducts() {
     return useQuery({
-        // 1. A unique key for this data
         queryKey: ['products'],
-
-        // 2. The function to fetch the data
         queryFn: async () => {
-            console.log('Fetching products from Directus API...');
-            const response = await directus.items('products').readByQuery({
-                limit: -1, // Get all products
-            });
+            console.log('useProducts: Fetching...');
+            try {
+                const response = await directus.request(
+                    readItems('products', { limit: -1 })
+                );
+                console.log('useProducts: API Response:', response);
 
-            if (!response.data || !Array.isArray(response.data)) {
-                console.error('Invalid response data:', response);
-                return [];
+                if (!response || !Array.isArray(response)) {
+                    console.error('useProducts: Invalid response data structure:', response);
+                    return [];
+                }
+
+                // Map data with safeguards
+                const mappedData = response.map(p => ({
+                    id: p.id,
+                    name: p.name || 'Unnamed Product',
+                    price: parseFloat(p.price) || 0,
+                    category: p.category || 'N/A',
+                    stock: parseInt(p.stock, 10) || 0,
+                }));
+                console.log('useProducts: Mapped Data:', mappedData);
+                return mappedData;
+            } catch (error) {
+                console.error('useProducts: Error fetching data:', error);
+                throw error;
             }
-
-            // Map data with safeguards
-            return response.data.map(p => ({
-                id: p.id,
-                name: p.name,
-                price: parseFloat(p.price).toFixed(2), // Ensure price is formatted
-                category: p.category || 'N/A',
-                stock: parseInt(p.stock, 10) || 0,
-            }));
         },
     });
 }
