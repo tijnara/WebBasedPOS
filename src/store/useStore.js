@@ -1,13 +1,53 @@
 // src/store/useStore.js
 import { create } from 'zustand';
-import api from '../lib/api'; // Import the updated api functions
+import api from '../lib/api';
+
+// Optional: Basic persistence for the custom user object (not secure like a session)
+const persistUserToStorage = (user) => {
+    if (typeof window !== 'undefined') {
+        if (user) {
+            // Only store necessary, non-sensitive user info
+            const userToStore = {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                // Add other relevant fields like 'role' if applicable, but NOT password
+            };
+            localStorage.setItem('pos_custom_user', JSON.stringify(userToStore));
+            console.log("Store: Persisted user to localStorage", userToStore);
+        } else {
+            localStorage.removeItem('pos_custom_user');
+            console.log("Store: Removed user from localStorage");
+        }
+    }
+};
+
+const getUserFromStorage = () => {
+    if (typeof window !== 'undefined') {
+        const userJson = localStorage.getItem('pos_custom_user');
+        if (!userJson) return null;
+        try {
+            const user = JSON.parse(userJson);
+            console.log("Store: Loaded user from localStorage", user);
+            return user;
+        } catch (e) {
+            console.error("Store: Failed to parse user from localStorage", e);
+            localStorage.removeItem('pos_custom_user'); // Clear invalid data
+            return null;
+        }
+    }
+    return null;
+};
+
 
 export const useStore = create((set, get) => ({
-    // --- Auth State (Updated for Supabase) ---
-    user: null, // Stores the Supabase user object (from auth.users)
-    profile: null, // Stores additional profile data (from your 'profiles' table)
-    session: null, // Stores the Supabase session object
-    sessionLoaded: false, // Tracks if the initial session check is done
+    // --- Auth State (Updated for Custom User Object) ---
+    user: getUserFromStorage(), // Load initial user from storage if persisted
+    // profile: null, // Removed - assuming user object from 'users' table has all needed info
+    // session: null, // Removed - No Supabase session
+    // Set to true immediately - no async session check needed, but check if user exists from storage
+    sessionLoaded: true, // Renamed from sessionLoaded for clarity, indicates initial state is ready
+
 
     // --- UI / Cart State (Keep) ---
     currentSale: {},
@@ -16,109 +56,72 @@ export const useStore = create((set, get) => ({
 
     // --- Setters (Keep Cart/Customer/Toast) ---
     setCurrentCustomer: (cust) => set({ currentCustomer: cust }),
-
     addItemToSale: (product, quantity = 1, overridePrice = null) =>
         set((state) => {
             const price = parseFloat(overridePrice !== null ? overridePrice : product.price || 0);
             if (isNaN(price)) {
                 console.error("Invalid price for product:", product);
-                return {}; // Prevent adding item with invalid price
+                return {};
             }
-
-            const key = `${product.id}__${price.toFixed(2)}`; // Use product ID + price as key
+            const key = `${product.id}__${price.toFixed(2)}`;
             const existing = state.currentSale[key];
-
             const currentQty = existing ? existing.quantity : 0;
-            const newQty = Math.max(0, currentQty + quantity); // Ensure quantity doesn't go below 0
-
-            // If new quantity is 0 or less, remove the item
+            const newQty = Math.max(0, currentQty + quantity);
             if (newQty <= 0) {
                 const { [key]: _, ...rest } = state.currentSale;
                 console.log(`Removing item ${key} from sale.`);
                 return { currentSale: rest };
             }
-
-            // Otherwise, add or update the item
             console.log(`Adding/Updating item ${key} to quantity ${newQty}.`);
             return {
                 currentSale: {
                     ...state.currentSale,
-                    [key]: {
-                        productId: product.id,
-                        name: product.name,
-                        price, // Use the calculated price
-                        quantity: newQty
-                    }
+                    [key]: { productId: product.id, name: product.name, price, quantity: newQty }
                 }
             };
         }),
-
-
     removeItemFromSale: (key) => set((state) => {
         console.log(`Removing item ${key} explicitly.`);
         const { [key]: _, ...rest } = state.currentSale;
         return { currentSale: rest };
     }),
-
     clearSale: () => {
         console.log("Clearing current sale and customer.");
         set({ currentSale: {}, currentCustomer: null });
     },
-
-
     getTotalAmount: () => {
         const sale = get().currentSale;
         return Object.values(sale).reduce((total, item) => total + (item.price * item.quantity), 0);
     },
-
-    // --- Toasts (Keep) ---
     addToast: (t) => set((s) => ({ toasts: [...s.toasts, { ...t, id: Date.now() }] })),
     dismissToast: (id) => set((s) => ({ toasts: s.toasts.filter(x => x.id !== id) })),
 
-    // --- Auth (Updated for Supabase) ---
-    // Called after successful login OR when session is checked/refreshed
-    setAuth: (user, session, profile) => {
-        // Supabase handles session persistence automatically via localStorage
-        console.log("Store: Setting Auth State", { user, session, profile });
-        set({ user, session, profile, sessionLoaded: true }); // Mark session as loaded
+    // --- Auth (Updated for Custom Login) ---
+    // Called after successful custom table login
+    setAuth: (user) => {
+        console.log("Store: Setting custom user state", user);
+        persistUserToStorage(user); // Persist user to localStorage
+        // No session to set, just the user object from your 'users' table
+        set({ user, sessionLoaded: true }); // Ensure sessionLoaded remains true
     },
 
-    // Checks the current Supabase session and fetches profile
-    checkSession: async () => {
-        // Prevent multiple checks running concurrently if called rapidly
-        if (get().sessionLoaded && get().session !== undefined) {
-            // console.log("Store: Session check already performed or in progress.");
-            // return; // Or maybe allow re-check? Depends on logic. Re-checking is safer.
-        }
-        set({ sessionLoaded: false }); // Indicate checking has started
+    // checkSession is no longer needed as there's no external session to check
+    // checkSession: async () => { ... REMOVED ... },
 
-        try {
-            const { session, user } = await api.getCurrentSession();
-            let profile = null;
-            if (user) {
-                profile = await api.getUserProfile(user.id);
-            }
-            console.log("Store: Checked session, calling setAuth", { user, session, profile });
-            get().setAuth(user, session, profile); // Use setAuth to update state
-        } catch (error) {
-            console.error("Store: Error in checkSession:", error);
-            // Ensure sessionLoaded is true even on error, and clear auth state
-            set({ user: null, session: null, profile: null, sessionLoaded: true });
-        }
-    },
-
-    // Logs the user out
+    // Logs the user out (client-side state clearing only)
     logout: async () => {
         try {
+            // Call the simplified api.logout (which does nothing async)
             await api.logout();
-            console.log("Store: Logout successful, clearing state.");
-            set({ user: null, session: null, profile: null });
+            console.log("Store: Logout successful, clearing custom user state.");
+            persistUserToStorage(null); // Remove user from localStorage
+            set({ user: null }); // Clear user state
         } catch (error) {
+            // Should not happen with the simplified logout, but keep for safety
             console.error("Store: Logout failed:", error);
             get().addToast({ title: 'Logout Error', description: error.message, variant: 'destructive' });
         }
     },
-
 }));
 
 export default useStore;

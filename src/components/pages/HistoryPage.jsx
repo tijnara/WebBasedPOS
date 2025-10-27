@@ -1,15 +1,10 @@
 import React from 'react';
-// Removed: import { useStore } from '../../store/useStore';
 import { Card, CardHeader, CardContent, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Input } from '../ui';
 
-// --- NEW: Import the useSales hook ---
-import { useSales } from '../../hooks/useSales';
-
 export default function HistoryPage() {
-    // --- REFACTORED: Get data from useSales hook ---
-    const { data: sales = [], isLoading } = useSales();
+    const sales = []; // Replace with your new data source
+    const isLoading = false; // Replace with your new loading state
 
-    // --- Calculation logic remains the same ---
     const totalRevenue = sales.reduce((sum, sale) => sum + Number(sale.totalAmount || 0), 0);
     const transactionsCount = sales.length;
     const avgTransaction = transactionsCount > 0 ? (totalRevenue / transactionsCount).toFixed(2) : '0.00';
@@ -19,7 +14,6 @@ export default function HistoryPage() {
         const today = new Date();
         return saleDate.toDateString() === today.toDateString();
     }).reduce((sum, sale) => sum + Number(sale.totalAmount || 0), 0).toFixed(2);
-    // --- End Calculation logic ---
 
     return (
         <div className="history-page">
@@ -28,7 +22,7 @@ export default function HistoryPage() {
                 <Card>
                     <CardHeader><h3 className="font-semibold">Total Revenue</h3></CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">₱{totalRevenue.toFixed(2)}</div> {/* Changed $ to ₱ */}
+                        <div className="text-2xl font-bold">₱{totalRevenue.toFixed(2)}</div>
                     </CardContent>
                 </Card>
 
@@ -42,7 +36,7 @@ export default function HistoryPage() {
                 <Card>
                     <CardHeader><h3 className="font-semibold">Avg. Transaction</h3></CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">₱{avgTransaction}</div> {/* Changed $ to ₱ */}
+                        <div className="text-2xl font-bold">₱{avgTransaction}</div>
                         <div className="text-sm text-muted">Per transaction</div>
                     </CardContent>
                 </Card>
@@ -67,7 +61,6 @@ export default function HistoryPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {/* --- REFACTORED: Show loading state --- */}
                             {isLoading ? (
                                 <TableRow>
                                     <TableCell colSpan={7} className="text-center text-muted">Loading history...</TableCell>
@@ -89,7 +82,7 @@ export default function HistoryPage() {
                                               {sale.status || 'Completed'}
                                             </span>
                                         </TableCell>
-                                        <TableCell>₱{Number(sale.totalAmount || 0).toFixed(2)}</TableCell> {/* Changed $ to ₱ */}
+                                        <TableCell>₱{Number(sale.totalAmount || 0).toFixed(2)}</TableCell>
                                     </TableRow>
                                 ))
                             )}

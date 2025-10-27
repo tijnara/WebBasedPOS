@@ -2,22 +2,22 @@ import React, { useEffect, useState } from 'react';
 import { Button, cn } from './ui';
 import { useRouter } from 'next/router';
 import { useStore } from '../store/useStore';
-// No need to import api.js here anymore, logout is handled by the store
 
-// Hamburger Icon SVG (keep as is)
+// Hamburger Icon SVG
 const HamburgerIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
         <path fillRule="evenodd" d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5z"/>
     </svg>
 );
 
-// Hamburger Button Component (keep as is)
+// Hamburger Button Component
 const HamburgerButton = ({ onClick }) => (
     <Button
         variant="ghost"
         size="icon"
-        className="md:hidden" // md:hidden makes it visible only below the 'md' breakpoint
+        className="md:hidden" // Only show on small screens
         onClick={onClick}
+        aria-label="Toggle menu" // Accessibility
     >
         <HamburgerIcon />
     </Button>
@@ -25,36 +25,32 @@ const HamburgerButton = ({ onClick }) => (
 
 const Sidebar = () => {
     const router = useRouter();
-    // Get logout function, user object, and profile object from store
-    const { logout, user, profile } = useStore(s => ({
+    // Get logout function and the custom user object from store
+    const { logout, user } = useStore(s => ({
         logout: s.logout,
-        user: s.user,
-        profile: s.profile
+        user: s.user // This is now the object from your 'users' table
     }));
 
-    // State to manage the mobile menu's open/closed status
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-    // Define links - adjust paths/names as needed
+    // Define links
     const links = [
         { name: 'Point of Sale', path: '/' },
         { name: 'Products', path: '/product-management' },
         { name: 'Customers', path: '/customer-management' },
         { name: 'History', path: '/history' },
-        // Optional: Conditionally show Users link based on role
+        // Conditionally show Users link based on role if needed
         // { name: 'Users', path: '/user-management', roles: ['admin'] },
-        { name: 'Users', path: '/user-management' }, // Simpler version for now
+        { name: 'Users', path: '/user-management' }, // Simpler version
     ];
 
-    // Filter links based on user role (Example)
-    // const userRole = profile?.role || 'user'; // Assuming role is in profile
-    // const visibleLinks = links.filter(link => !link.roles || link.roles.includes(userRole));
-    const visibleLinks = links; // Simpler version for now
+    // Filter links (keep simple for now)
+    const visibleLinks = links;
 
     const handleLogout = async () => {
-        // The store's logout function now handles the API call and state clearing
+        // Use the store's simplified logout
         await logout();
-        // Redirect is handled by AuthGate, but explicit push ensures quick redirect
+        // Redirect handled by AuthGate, but explicit push is fine
         router.push('/login');
     };
 
@@ -64,45 +60,51 @@ const Sidebar = () => {
             setIsMobileMenuOpen(false);
         };
         router.events.on('routeChangeComplete', handleRouteChange);
+        // Clean up the event listener on component unmount
         return () => {
             router.events.off('routeChangeComplete', handleRouteChange);
         };
     }, [router.events]);
 
-    // Determine the display name: Profile name > User metadata name > Email
+    // Determine the display name from the custom user object
     const getDisplayName = () => {
-        if (profile?.full_name) return profile.full_name;
-        if (user?.user_metadata?.full_name) return user.user_metadata.full_name;
+        if (user?.name) return user.name; // Use the 'name' field from your 'users' table
         if (user?.email) return user.email.split('@')[0]; // Fallback to part of email
-        return 'User';
+        return 'User'; // Default fallback
     };
 
 
     return (
-        <div className="sidebar">
-            {/* Brand header with title and hamburger */}
-            <div className="brand p-4 font-bold text-lg border-b border-gray-700 flex justify-between items-center">
+        // Sidebar container: Column layout, fixed width on desktop, full width on mobile
+        <div className="sidebar flex flex-col bg-white border-b md:border-b-0 md:border-r border-gray-200 md:w-64 flex-shrink-0 relative md:h-screen">
+
+            {/* Brand header */}
+            <div className="brand p-4 font-bold text-lg text-primary flex justify-between items-center h-16 border-b border-gray-200">
                 <span>SEASIDE POS</span>
                 <HamburgerButton onClick={() => setIsMobileMenuOpen(s => !s)} />
             </div>
 
-            {/* Wrapper div hides/shows both nav and meta on mobile */}
+            {/* Mobile menu wrapper: Absolute position below header on mobile, static on desktop */}
             <div className={cn(
-                'w-full flex-1 flex flex-col', // Base styles
-                { 'hidden': !isMobileMenuOpen }, // Hide if menu closed on mobile
-                'md:flex' // Always show on medium+ screens
+                'absolute md:static top-16 left-0 right-0 md:top-auto md:left-auto md:right-auto', // Positioning
+                'bg-white border-r border-l border-b md:border-none', // Borders
+                'flex-1 flex flex-col overflow-y-auto md:overflow-visible', // Layout & Overflow
+                { 'hidden': !isMobileMenuOpen }, // Hide on mobile if closed
+                'md:flex' // Always display flex on medium+ screens
             )}>
 
-                {/* Navigation links */}
-                <nav className="flex-1 overflow-auto p-4 space-y-2">
+                {/* Navigation Links */}
+                <nav className="flex-1 p-4 space-y-2">
                     {visibleLinks.map(link => (
                         <Button
                             key={link.path}
-                            variant="ghost"
-                            className={cn('w-full justify-start text-left h-auto py-2 px-3', { // Adjusted style
-                                'active bg-primary text-primary-foreground hover:bg-primary/90': router.pathname === link.path, // Active state
-                                'hover:bg-accent hover:text-accent-foreground': router.pathname !== link.path // Hover state
-                            })}
+                            variant="ghost" // Use ghost variant for base style
+                            className={cn(
+                                'w-full justify-start text-left h-auto py-2 px-3 text-gray-600 hover:bg-gray-100 hover:text-gray-900', // Base styles
+                                { // Active state using primary colors
+                                    'bg-blue-50 text-primary font-semibold': router.pathname === link.path,
+                                }
+                            )}
                             onClick={() => router.push(link.path)}
                         >
                             {link.name}
@@ -110,17 +112,20 @@ const Sidebar = () => {
                     ))}
                 </nav>
 
-                {/* Meta/User section */}
-                <div className="meta p-4 border-t border-gray-700 mt-auto"> {/* Added mt-auto */}
-                    <div className="text-sm mb-2">
+                {/* Meta/User section: Pushed to bottom */}
+                <div className="meta p-4 border-t border-gray-200 mt-auto">
+                    <div className="text-sm mb-2 text-gray-700">
                         Logged in as: <br />
-                        <span className="font-medium">{getDisplayName()}</span>
-                        <br />
-                        <span className="text-xs text-muted">{user?.email}</span>
-                        {/* Optionally display role */}
-                        {/* {profile?.role && <span className="text-xs text-muted block capitalize">Role: {profile.role}</span>} */}
+                        <span className="font-medium text-gray-900 block truncate">{getDisplayName()}</span><br />
+                        <span className="text-xs text-gray-500 block truncate">{user?.email}</span>
+                        {/* Optional: Display role if available in user object */}
+                        {/* {user?.role && <span className="text-xs text-blue-600 block capitalize mt-1">Role: {user.role}</span>} */}
                     </div>
-                    <Button variant="destructive" className="w-full" onClick={handleLogout}>
+                    <Button
+                        variant="destructive" // Use destructive variant for logout
+                        className="w-full"
+                        onClick={handleLogout}
+                    >
                         Logout
                     </Button>
                 </div>

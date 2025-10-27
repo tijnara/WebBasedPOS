@@ -1,410 +1,225 @@
+// src/hooks/useUserMutations.js (Simplified for Custom Table CRUD - INSECURE PASSWORD HANDLING)
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient';
-import useStore from '../store/useStore'; // Import store to get current user ID
+import useStore from '../store/useStore';
 
-// Key for the profiles query
-const profilesKey = ['profiles'];
+// Key for the custom users table query
+const usersTableKey = ['usersTableData']; // Changed key to avoid confusion with auth
 
-// --- Hook for GETTING ALL User Profiles (Admin/Specific Use Case) ---
-// Assumes RLS allows fetching multiple profiles (e.g., for an admin)
+// --- Hook for GETTING Data from 'users' Table ---
+// NOTE: Ensure RLS allows this fetch (e.g., only for admins or specific roles)
 export function useUsers() {
     return useQuery({
-        queryKey: profilesKey,
+        queryKey: usersTableKey,
         queryFn: async () => {
-            console.log('useUsers (Profiles): Fetching all profiles...');
+            console.log('useUsers (Table): Fetching all users...');
             try {
-                // Adjust select query as needed (e.g., 'id, full_name, email, phone, role')
+                // Select needed columns, **EXCLUDE password**
                 const { data, error } = await supabase
-                    .from('profiles')
-                    .select('*');
+                    .from('users')
+                    .select('id, name, email, phone, dateadded'); // Adjust columns as per your schema
 
-                if (error) throw error;
-
-                const responseData = data;
-                console.log('useUsers (Profiles): API Response:', responseData);
-
-                if (!responseData || !Array.isArray(responseData)) {
-                    console.error('useUsers (Profiles): Invalid response data structure:', responseData);
-                    return [];
+                if (error) {
+                    console.error('useUsers (Table): Supabase query error:', error);
+                    throw error;
                 }
 
-                // Map profile data
-                const mappedData = responseData.map(u => ({
-                    id: u.id, // This should match auth.users.id
-                    name: u.full_name || u.raw_user_meta_data?.full_name || 'Unnamed User', // Check both places if needed
-                    email: u.email, // Assuming email might be stored here too, otherwise get from auth user
+                console.log('useUsers (Table): API Response:', data);
+                if (!data || !Array.isArray(data)) return [];
+
+                // Map data from your 'users' table
+                return data.map(u => ({
+                    id: u.id,
+                    name: u.name || 'Unnamed User',
+                    email: u.email,
                     phone: u.phone || 'N/A',
-                    // Add other profile fields like 'role' if they exist
-                    // role: u.role
+                    // Adjust 'dateadded' based on your actual column name
+                    dateAdded: u.dateadded ? new Date(u.dateadded) : (u.created_at ? new Date(u.created_at) : null)
                 }));
-                console.log('useUsers (Profiles): Mapped Data:', mappedData);
-                return mappedData;
-
             } catch (error) {
-                console.error('useUsers (Profiles): Error fetching data:', error);
+                console.error('useUsers (Table): Error fetching data:', error);
                 throw error;
             }
         },
-        // Enable this query only if needed, e.g., on an admin page
-        // enabled: !!isAdminUser, // Example: only run if user is admin
-    });
-}
-
-// --- Hook for GETTING CURRENT User Profile ---
-// Fetches profile for the currently logged-in user
-export function useCurrentUserProfile() {
-    // Get the user ID from the Zustand store
-    const userId = useStore(state => state.user?.id);
-
-    return useQuery({
-        // Include userId in the queryKey so it refetches if the user changes
-        queryKey: ['currentUserProfile', userId],
-        queryFn: async () => {
-            if (!userId) {
-                console.log('useCurrentUserProfile: No user ID, skipping fetch.');
-                return null; // Don't fetch if no user is logged in
-            }
-            console.log('useCurrentUserProfile: Fetching profile for user ID:', userId);
-            try {
-                const { data, error, status } = await supabase
-                    .from('profiles')
-                    .select(`*`) // Select desired profile columns
-                    .eq('id', userId)
-                    .single(); // Expect exactly one row
-
-                // Handle cases where profile might not exist yet (common after signup)
-                if (error && status === 406) { // 406 Not Acceptable -> .single() found 0 rows
-                    console.log('useCurrentUserProfile: No profile found for user, returning null.');
-                    return null;
-                }
-                if (error) throw error; // Throw other errors
-
-                console.log('useCurrentUserProfile: Profile data:', data);
-                // Map if necessary, though direct use might be fine
-                return {
-                    id: data.id,
-                    name: data.full_name || 'Unnamed User',
-                    email: data.email, // If stored in profile
-                    phone: data.phone || 'N/A',
-                    //... other fields
-                };
-            } catch (error) {
-                console.error('useCurrentUserProfile: Error fetching profile:', error);
-                throw error;
-            }
-        },
-        // Only run the query if the userId is available
-        enabled: !!userId,
-        staleTime: 1000 * 60 * 15, // Keep profile data fresh for 15 mins
+        // Consider enabling only for specific roles/pages if needed
+        // enabled: userHasAdminRole,
     });
 }
 
 
-// --- Hook for CREATING User Profiles (NOT Auth Users) ---
-// Typically called *after* successful Supabase Auth signup to add profile details
-export function useCreateUserProfile() {
+// --- Hook for CREATING Users in 'users' Table ---
+// !! INSECURE !! Assumes plain text password. Requires server-side hashing in practice.
+export function useCreateUser() {
     const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: async (userProfilePayload) => {
-            // Payload MUST include 'id' matching the auth.users.id
-            // Example payload: { id: 'user-uuid', full_name: 'Test User', phone: '123' }
-            if (!userProfilePayload.id) {
-                throw new Error("Profile creation requires an 'id' matching the authenticated user.");
-            }
-            console.log('useCreateUserProfile: Creating profile with payload:', userProfilePayload);
-            const { data, error } = await supabase
-                .from('profiles')
-                .insert([userProfilePayload]) // Use insert for creating
-                .select()
-                .single();
-
-            if (error) {
-                console.error('useCreateUserProfile: Supabase error:', error);
-                throw error;
-            }
-            console.log('useCreateUserProfile: Create successful:', data);
-            return data;
-        },
-        onSuccess: (data) => {
-            // Invalidate the general profiles list if used
-            queryClient.invalidateQueries({ queryKey: profilesKey });
-            // Directly update the currentUserProfile cache
-            if (data?.id) {
-                queryClient.setQueryData(['currentUserProfile', data.id], data);
-                console.log('useCreateUserProfile: Updated currentUserProfile cache for ID:', data.id);
-                // Also update profile in Zustand store
-                useStore.setState({ profile: data });
-            }
-        },
-        onError: (error) => {
-            console.error("useCreateUserProfile: Mutation failed:", error);
-        }
-    });
-}
-
-// --- Hook for UPDATING User Profiles (NOT Auth Users) ---
-// Used for updating non-auth details like name, phone, etc.
-export function useUpdateUserProfile() {
-    const queryClient = useQueryClient();
-    const currentUserId = useStore(state => state.user?.id); // Get current user ID
+    const addToast = useStore(s => s.addToast);
 
     return useMutation({
-        mutationFn: async (profileUpdatePayload) => {
-            // Expects payload like { id: 'user-uuid', full_name: 'New Name', phone: '456' }
-            const { id, ...updateData } = profileUpdatePayload;
-            if (!id) {
-                throw new Error("Profile update requires an 'id'.");
+        mutationFn: async (userData) => {
+            // userData includes { name, email, phone, password } from the form
+            if (!userData.password) {
+                throw new Error("Password is required to create a user.");
             }
-            // Optional: Ensure users can only update their own profile unless admin
-            // if (id !== currentUserId && !isAdmin) throw new Error("Permission denied.");
+            console.warn('useCreateUser: Attempting to save user with plain text password (INSECURE):', userData.email);
 
-            console.log('useUpdateUserProfile: Updating profile ID', id, 'with data:', updateData);
-            const { data, error } = await supabase
-                .from('profiles')
-                .update(updateData) // Only pass fields to update
-                .eq('id', id)
-                .select()
-                .single();
-
-            if (error) {
-                console.error('useUpdateUserProfile: Supabase error:', error);
-                throw error;
-            }
-            console.log('useUpdateUserProfile: Update successful:', data);
-            return data;
-        },
-        // Optional: Optimistic Updates
-        onMutate: async (updatedProfile) => {
-            const profileQueryKey = ['currentUserProfile', updatedProfile.id];
-            await queryClient.cancelQueries({ queryKey: profileQueryKey });
-            const previousProfile = queryClient.getQueryData(profileQueryKey);
-            queryClient.setQueryData(profileQueryKey, old => ({ ...old, ...updatedProfile }));
-            console.log('useUpdateUserProfile: Optimistic update applied for ID:', updatedProfile.id);
-            // Also optimistically update the main list if needed
-            // await queryClient.cancelQueries({ queryKey: profilesKey });
-            // const previousProfiles = queryClient.getQueryData(profilesKey);
-            // queryClient.setQueryData(profilesKey, (oldProfiles = []) => /* map logic */);
-            return { previousProfile /*, previousProfiles */ };
-        },
-        onError: (err, updatedProfile, context) => {
-            console.error('useUpdateUserProfile: Mutation error, rolling back optimistic update for ID:', updatedProfile.id, err);
-            queryClient.setQueryData(['currentUserProfile', updatedProfile.id], context.previousProfile);
-            // if (context.previousProfiles) {
-            //    queryClient.setQueryData(profilesKey, context.previousProfiles);
-            //}
-        },
-        onSettled: (data, error, updatedProfile) => {
-            console.log('useUpdateUserProfile: Mutation settled for ID:', updatedProfile.id, 'Refetching profile.');
-            // Invalidate both current profile and potentially the list
-            queryClient.invalidateQueries({ queryKey: ['currentUserProfile', updatedProfile.id] });
-            queryClient.invalidateQueries({ queryKey: profilesKey });
-            // Also update profile in Zustand store on success
-            if (data && !error && updatedProfile.id === currentUserId) {
-                useStore.setState({ profile: data });
-            }
-        },
-    });
-}
-
-// --- Hook for DELETING User Profiles (NOT Auth Users) ---
-// Deleting the auth user requires admin privileges. This only deletes the profile row.
-export function useDeleteUserProfile() {
-    const queryClient = useQueryClient();
-    const currentUserId = useStore(state => state.user?.id); // Get current user ID
-
-    return useMutation({
-        mutationFn: async (userIdToDelete) => {
-            if (!userIdToDelete) {
-                throw new Error("User ID is required for deletion.");
-            }
-            // Optional: Add admin check here if needed
-            // if (!isAdmin) throw new Error("Permission denied.");
-
-            console.log('useDeleteUserProfile: Deleting profile for ID:', userIdToDelete);
-            const { error } = await supabase
-                .from('profiles')
-                .delete()
-                .eq('id', userIdToDelete);
-
-            if (error) {
-                console.error('useDeleteUserProfile: Supabase error:', error);
-                throw error;
-            }
-            console.log('useDeleteUserProfile: Delete successful for profile ID:', userIdToDelete);
-            return userIdToDelete;
-        },
-        // Optional: Optimistic Updates
-        onMutate: async (userIdToDelete) => {
-            // Optimistically remove from the main list
-            await queryClient.cancelQueries({ queryKey: profilesKey });
-            const previousProfiles = queryClient.getQueryData(profilesKey);
-            queryClient.setQueryData(profilesKey, (old = []) =>
-                old.filter((p) => p.id !== userIdToDelete)
-            );
-            // If deleting the current user's profile, also clear that cache
-            let previousProfile = null;
-            if (userIdToDelete === currentUserId) {
-                await queryClient.cancelQueries({ queryKey: ['currentUserProfile', userIdToDelete] });
-                previousProfile = queryClient.getQueryData(['currentUserProfile', userIdToDelete]);
-                queryClient.setQueryData(['currentUserProfile', userIdToDelete], null);
-            }
-            console.log('useDeleteUserProfile: Optimistic removal applied for ID:', userIdToDelete);
-            return { previousProfiles, previousProfile, deletedUserId: userIdToDelete };
-        },
-        onError: (err, userIdToDelete, context) => {
-            console.error('useDeleteUserProfile: Mutation error, rolling back optimistic removal for ID:', userIdToDelete, err);
-            queryClient.setQueryData(profilesKey, context.previousProfiles);
-            if (context.deletedUserId === currentUserId && context.previousProfile) {
-                queryClient.setQueryData(['currentUserProfile', context.deletedUserId], context.previousProfile);
-            }
-        },
-        onSettled: (data, error, userIdToDelete) => {
-            console.log('useDeleteUserProfile: Mutation settled for ID:', userIdToDelete, 'Refetching profiles.');
-            queryClient.invalidateQueries({ queryKey: profilesKey });
-            // Also invalidate current user profile if it was deleted
-            if (userIdToDelete === currentUserId) {
-                queryClient.invalidateQueries({ queryKey: ['currentUserProfile', userIdToDelete] });
-                // Clear profile from Zustand store if current user's profile deleted
-                if (!error) {
-                    useStore.setState({ profile: null });
-                }
-            }
-        },
-    });
-}
-
-// --- Hooks for AUTHENTICATION actions ---
-
-// Example: Hook for creating an Auth user (Sign Up)
-export function useSignUpUser() {
-    const queryClient = useQueryClient();
-    // Optional: Get the create profile mutation hook if you want to create profile immediately
-    const createProfile = useCreateUserProfile();
-
-    return useMutation({
-        mutationFn: async ({ email, password, options }) => {
-            console.log('useSignUpUser: Signing up with email:', email);
-            // 'options.data' can contain additional metadata like 'full_name'
-            const { data, error } = await supabase.auth.signUp({ email, password, options });
-            if (error) {
-                console.error('useSignUpUser: Supabase signup error:', error);
-                throw error;
-            }
-            console.log('useSignUpUser: Signup successful:', data);
-
-            // IMPORTANT: Supabase often requires email confirmation by default.
-            // The user object might be returned but the session might be null until confirmed.
-
-            // Optionally create profile immediately after successful sign up
-            // Check if user object exists and has an ID
-            if (data.user?.id) {
-                try {
-                    console.log('useSignUpUser: Attempting to create profile for new user:', data.user.id);
-                    await createProfile.mutateAsync({
-                        id: data.user.id,
-                        email: data.user.email, // Store email in profile if desired
-                        full_name: options?.data?.full_name || email.split('@')[0], // Use provided name or default
-                        // Add other default profile fields if needed (e.g., role: 'customer')
-                    });
-                    console.log('useSignUpUser: Profile creation successful (or triggered).');
-                } catch (profileError) {
-                    console.error('useSignUpUser: Failed to create profile after signup:', profileError);
-                    // Decide how to handle this - maybe alert user, maybe log, maybe ignore
-                    // Don't throw here usually, as signup itself succeeded
-                }
-            } else {
-                console.warn("useSignUpUser: Signup response did not contain user ID, cannot create profile immediately.");
-            }
-
-            return data; // Return the auth sign up response ({ user, session })
-        },
-        onSuccess: (data) => {
-            console.log('useSignUpUser: Mutation succeeded.');
-            // If sign up automatically logs in (e.g., email confirmation disabled),
-            // you might want to update the store here, but typically you wait for
-            // the user to log in after confirming their email.
-            // The onAuthStateChange listener in _app.js should handle session updates.
-
-            // You might invalidate the 'profiles' list if an admin is creating users
-            // queryClient.invalidateQueries({ queryKey: profilesKey });
-        },
-        onError: (error) => {
-            console.error('useSignUpUser: Mutation failed:', error);
-        }
-    });
-}
-
-// Example: Hook for updating Auth user details (like email or password)
-export function useUpdateAuthUser() {
-    const queryClient = useQueryClient();
-    const addToast = useStore(state => state.addToast);
-
-    return useMutation({
-        mutationFn: async (updateData) => {
-            // updateData could be { email: 'new@example.com' } or { password: 'new_password' }
-            // Or { data: { full_name: 'Updated Name' } } for metadata
-            console.log('useUpdateAuthUser: Updating auth user with:', updateData);
-            const { data, error } = await supabase.auth.updateUser(updateData);
-            if (error) {
-                console.error('useUpdateAuthUser: Supabase update error:', error);
-                throw error;
-            }
-            console.log('useUpdateAuthUser: Update successful:', data);
-            return data;
-        },
-        onSuccess: (data) => {
-            console.log('useUpdateAuthUser: Mutation succeeded.');
-            // Update user/profile state in Zustand store
-            useStore.getState().checkSession(); // Re-fetch session and profile
-            addToast({ title: 'User Updated', description: 'Your details have been updated.', variant: 'success' });
-            // Optionally invalidate profile queries if metadata was updated
-            // queryClient.invalidateQueries({ queryKey: ['currentUserProfile', data.user.id] });
-            // queryClient.invalidateQueries({ queryKey: profilesKey });
-        },
-        onError: (error) => {
-            console.error('useUpdateAuthUser: Mutation failed:', error);
-            addToast({ title: 'Update Failed', description: error.message, variant: 'destructive' });
-        }
-    });
-}
-
-
-// Example: Hook for DELETING an Auth user (Requires ADMIN privileges)
-// This should ideally call a secure Supabase Edge Function.
-// **DO NOT** call supabase.auth.admin.deleteUser directly from the client-side
-// unless you have VERY specific RLS policies and understand the risks.
-export function useDeleteAuthUserAdmin() {
-    const queryClient = useQueryClient();
-    const addToast = useStore(state => state.addToast);
-
-    return useMutation({
-        mutationFn: async (userIdToDelete) => {
-            console.warn('useDeleteAuthUserAdmin: Attempting to delete user via Edge Function (placeholder):', userIdToDelete);
-            // **Replace with your actual Edge Function call**
-            // Example:
-            // const { data, error } = await supabase.functions.invoke('delete-user-admin', {
-            //   body: { userId: userIdToDelete }
+            // ** SECURITY RISK: HASH PASSWORD SERVER-SIDE BEFORE INSERTING **
+            // In a real app, you'd call an Edge Function here to hash the password securely.
+            // const { data, error } = await supabase.functions.invoke('create-user-securely', {
+            //    body: userData,
             // });
-            // if (error) throw error;
-            // return data; // Function might return success message or deleted user ID
+            // For DEMO ONLY - inserting plain text password:
+            const payload = {
+                name: userData.name,
+                email: userData.email,
+                phone: userData.phone || null,
+                password: userData.password, // <-- Storing plain text password - BAD PRACTICE
+                // dateadded is likely handled by Supabase default value or trigger
+            };
+            const { data, error } = await supabase
+                .from('users')
+                .insert([payload])
+                .select('id, name, email, phone, dateadded') // Exclude password from response
+                .single();
 
-            // Placeholder simulation:
-            if (!userIdToDelete) throw new Error("User ID required");
-            console.log(`Simulating deletion of auth user ${userIdToDelete}. In production, call an Edge Function.`);
-            // You might also delete the corresponding profile row here or in the Edge Function
-            // await supabase.from('profiles').delete().eq('id', userIdToDelete);
-            return { message: `User ${userIdToDelete} deletion simulated.` }; // Simulate success
+            if (error) {
+                console.error('useCreateUser: Supabase error:', error);
+                // Check for unique constraint violation (e.g., duplicate email)
+                if (error.code === '23505') { // Postgres unique violation code
+                    throw new Error(`Email ${userData.email} already exists.`);
+                }
+                throw error;
+            }
+            console.log('useCreateUser: Create successful (excluding password):', data);
+            return data;
         },
-        onSuccess: (data, userIdToDelete) => {
-            console.log('useDeleteAuthUserAdmin: Deletion successful for user:', userIdToDelete, data);
-            addToast({ title: 'User Deleted', description: `User ${userIdToDelete} has been deleted.`, variant: 'success' });
-            // Invalidate user/profile lists
-            queryClient.invalidateQueries({ queryKey: profilesKey });
-            queryClient.invalidateQueries({ queryKey: ['currentUserProfile', userIdToDelete] }); // In case admin deletes self? Unlikely needed.
+        onSuccess: (data) => {
+            console.log('useCreateUser: Success! Invalidating users table query.', data);
+            queryClient.invalidateQueries({ queryKey: usersTableKey });
+            addToast({ title: 'User Created', description: `User ${data.email} created.`, variant: 'success' });
         },
-        onError: (error, userIdToDelete) => {
-            console.error('useDeleteAuthUserAdmin: Deletion failed for user:', userIdToDelete, error);
-            addToast({ title: 'Deletion Failed', description: error.message, variant: 'destructive' });
+        onError: (error) => {
+            console.error('useCreateUser: Mutation failed:', error);
+            // Toast is now added directly in the mutation hook
+            addToast({ title: 'Create Failed', description: error.message, variant: 'destructive' });
+        }
+    });
+}
+
+// --- Hook for UPDATING Users in 'users' Table ---
+// !! INSECURE !! Allows updating potentially plain text password.
+export function useUpdateUser() {
+    const queryClient = useQueryClient();
+    const addToast = useStore(s => s.addToast);
+
+    return useMutation({
+        mutationFn: async (userData) => {
+            const { id, ...payload } = userData; // userData from form { id, name, email, phone, password? }
+            if (!id) throw new Error("User ID is required for update.");
+
+            const updateData = {
+                name: payload.name,
+                email: payload.email,
+                phone: payload.phone || null,
+                // dateadded should typically not be updated manually
+            };
+
+            // Only include password if it's provided and not empty
+            // ** SECURITY RISK: HASH PASSWORD SERVER-SIDE BEFORE UPDATING **
+            if (payload.password && payload.password.trim() !== '') {
+                console.warn("useUpdateUser: Updating password with plain text (INSECURE) for user:", id);
+                // In a real app, call an Edge Function:
+                // await supabase.functions.invoke('update-user-password-securely', { body: { userId: id, password: payload.password } });
+                // For DEMO ONLY:
+                updateData.password = payload.password; // <-- Updating plain text password
+            } else {
+                console.log("useUpdateUser: Password field empty or not provided, skipping password update for user:", id);
+            }
+
+            console.log('useUpdateUser: Updating user ID', id); // Avoid logging updateData if it contains password
+            const { data, error } = await supabase
+                .from('users')
+                .update(updateData)
+                .eq('id', id)
+                .select('id, name, email, phone, dateadded') // Exclude password from response
+                .single();
+
+            if (error) {
+                console.error('useUpdateUser: Supabase error:', error);
+                if (error.code === '23505') { // Unique constraint violation
+                    throw new Error(`Email ${updateData.email} might already be in use by another user.`);
+                }
+                throw error;
+            }
+            console.log('useUpdateUser: Update successful:', data);
+            return data;
+        },
+        // Optional: Add optimistic updates like in other hooks if desired
+        onSuccess: (data) => {
+            console.log('useUpdateUser: Success! Invalidating users table query.', data);
+            queryClient.invalidateQueries({ queryKey: usersTableKey });
+            addToast({ title: 'User Updated', description: `User ${data.email} updated.`, variant: 'success' });
+        },
+        onError: (error, variables) => { // variables contains the input userData
+            console.error('useUpdateUser: Mutation failed for ID:', variables.id, error);
+            addToast({ title: 'Update Failed', description: error.message, variant: 'destructive' });
+        },
+        // onSettled: () => { queryClient.invalidateQueries({ queryKey: usersTableKey }); } // Can simplify if no optimistic updates
+    });
+}
+
+// --- Hook for DELETING Users from 'users' Table ---
+export function useDeleteUser() {
+    const queryClient = useQueryClient();
+    const addToast = useStore(s => s.addToast);
+
+    return useMutation({
+        mutationFn: async (userId) => {
+            if (!userId) throw new Error("User ID is required for deletion.");
+            console.log('useDeleteUser: Deleting user ID:', userId);
+
+            // ** IMPORTANT: This ONLY deletes the row from your `users` table. **
+            // It does NOT delete the user from Supabase Auth if they exist there.
+            // If using Supabase Auth alongside this, you need separate logic (likely an Edge Function)
+            // to delete the corresponding auth.users record using admin privileges.
+
+            const { error } = await supabase
+                .from('users')
+                .delete()
+                .eq('id', userId);
+
+            if (error) {
+                console.error('useDeleteUser: Supabase error:', error);
+                throw error;
+            }
+            console.log('useDeleteUser: Delete successful for ID:', userId);
+            return userId; // Return ID for potential optimistic update
+        },
+        // Optional: Add optimistic updates
+        onMutate: async (userIdToDelete) => {
+            await queryClient.cancelQueries({ queryKey: usersTableKey });
+            const previousUsers = queryClient.getQueryData(usersTableKey);
+            queryClient.setQueryData(usersTableKey, (old = []) =>
+                old.filter((u) => u.id !== userIdToDelete)
+            );
+            console.log('useDeleteUser: Optimistic removal applied for ID:', userIdToDelete);
+            return { previousUsers };
+        },
+        onSuccess: (userId) => {
+            console.log('useDeleteUser: Success! Invalidating users table query for ID:', userId);
+            // Invalidation might be redundant if optimistic update is reliable
+            // queryClient.invalidateQueries({ queryKey: usersTableKey });
+            addToast({ title: 'User Deleted', description: `User deleted successfully.`, variant: 'success' });
+        },
+        onError: (error, userId, context) => {
+            console.error('useDeleteUser: Mutation failed for ID:', userId, error);
+            if (context?.previousUsers) {
+                queryClient.setQueryData(usersTableKey, context.previousUsers); // Rollback optimistic update
+            }
+            addToast({ title: 'Delete Failed', description: error.message, variant: 'destructive' });
+        },
+        onSettled: (data, error, userId) => {
+            // Always refetch to ensure consistency, even after optimistic updates
+            console.log('useDeleteUser: Mutation settled for ID:', userId, '. Refetching users table data.');
+            queryClient.invalidateQueries({ queryKey: usersTableKey });
         }
     });
 }

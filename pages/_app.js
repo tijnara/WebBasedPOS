@@ -1,86 +1,67 @@
+// pages/_app.js
 import '../styles/globals.css';
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../src/store/useStore';
 import { useRouter } from 'next/router';
 import Sidebar from '../src/components/Sidebar';
 import { Button } from '../src/components/ui';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'; // Changed import
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import { supabase } from '../src/lib/supabaseClient'; // Import supabase client
+// Removed: supabase import, no longer needed here for auth listener
 
-// --- Create the QueryClient (removed mutation retry) ---
 const queryClient = new QueryClient({
     defaultOptions: {
         queries: {
-            // Keep cached data for 7 days
-            gcTime: 1000 * 60 * 60 * 24 * 7,
-            staleTime: 1000 * 60 * 5, // Consider data stale after 5 minutes
-            refetchOnWindowFocus: true, // Refetch on window focus
+            gcTime: 1000 * 60 * 60 * 24 * 7, // 7 days garbage collection time
+            staleTime: 1000 * 60 * 5, // Data considered fresh for 5 minutes
+            refetchOnWindowFocus: true, // Refetch data when window gains focus
         },
     },
 });
-// -----------------------------------
-
 
 function AuthGate({ children }) {
-    // Get user and session loading state from store
-    const { user, sessionLoaded, checkSession } = useStore(s => ({
+    // Get user state and sessionLoaded (now just indicates store hydration/initial load)
+    const { user, sessionLoaded } = useStore(s => ({
         user: s.user,
-        sessionLoaded: s.sessionLoaded,
-        checkSession: s.checkSession
+        sessionLoaded: s.sessionLoaded // Use this to wait for initial state load
     }));
     const router = useRouter();
+    const [isClient, setIsClient] = useState(false); // Track if running on client
 
-    // Check session on initial load
+    // Ensure this runs only on the client after mount
     useEffect(() => {
-        checkSession(); // Check Supabase session on mount
+        setIsClient(true);
+    }, []);
 
-        // Listen for Supabase auth changes (e.g., token refresh, logout in another tab)
-        const { data: authListener } = supabase.auth.onAuthStateChange(
-            (event, session) => {
-                console.log("Auth state changed:", event, session);
-                checkSession(); // Re-check session on auth state change
-            }
-        );
-
-        // Cleanup listener on unmount
-        return () => {
-            authListener?.subscription?.unsubscribe();
-        };
-
-    }, [checkSession]);
-
-    // Redirect logic based on session state
+    // Redirect logic based purely on Zustand state
     useEffect(() => {
-        // Only redirect once the session has been checked
-        if (sessionLoaded) {
+        // Only run redirects on the client and after initial state might be loaded
+        if (isClient && sessionLoaded) {
             const isLoggedIn = !!user;
             const isLoginPage = router.pathname === '/login';
 
             if (!isLoggedIn && !isLoginPage) {
-                console.log("AuthGate: Not logged in, redirecting to login");
+                console.log("AuthGate: Not logged in (custom auth), redirecting to login");
                 router.push('/login');
             } else if (isLoggedIn && isLoginPage) {
-                console.log("AuthGate: Logged in, redirecting from login to home");
+                console.log("AuthGate: Logged in (custom auth), redirecting from login to home");
                 router.push('/');
             }
         }
-    }, [user, sessionLoaded, router]);
+    }, [user, sessionLoaded, router, isClient]); // Depend on client-side flag too
 
-    // Show loading indicator until session is checked
-    if (!sessionLoaded) {
-        // You can replace this with a more sophisticated loading spinner component
-        return <div className="flex items-center justify-center min-h-screen">Loading Authentication...</div>;
+    // Show loading indicator until mounted on client (prevents hydration mismatch/flashing)
+    if (!isClient || !sessionLoaded) {
+        // You could replace this with a more sophisticated loading spinner
+        return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
     }
 
-    // Allow rendering if session is loaded and conditions are met
-    // Render login page OR if user is logged in
+    // Allow rendering if conditions met (on login page OR user exists)
     if (router.pathname === '/login' || user) {
         return children;
     }
 
-    // Fallback: If session is loaded, user is not logged in, and not on login page
-    // (This case should be handled by the redirect effect, but acts as a safeguard)
+    // Fallback while redirecting or if state is unexpected
     return null;
 }
 
@@ -100,27 +81,39 @@ export default function App({ Component, pageProps }) {
                             <Component {...pageProps} />
                         </div>
                     </main>
-                    <div className="toasts" aria-live="polite">
+                    {/* Toast Container */}
+                    <div className="toasts fixed bottom-4 right-4 z-50 flex flex-col gap-2" aria-live="polite">
                         {toasts.map(t => (
-                            <div key={t.id} className="toast">
-                                <div className="toast__title">{t.title}</div>
-                                <div className="toast__desc">{t.description}</div>
+                            <div key={t.id} className={`toast bg-white border border-gray-200 p-3 rounded-md shadow-lg w-80 max-w-[calc(100vw-2rem)] ${
+                                t.variant === 'destructive' ? 'border-l-4 border-red-500' :
+                                    t.variant === 'success' ? 'border-l-4 border-green-500' :
+                                        t.variant === 'warning' ? 'border-l-4 border-yellow-500' : ''
+                            }`}>
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <div className="toast__title font-semibold">{t.title}</div>
+                                        {t.description && <div className="toast__desc text-sm text-gray-600 mt-1">{t.description}</div>}
+                                    </div>
+                                    <Button variant="ghost" size="sm" className="p-1 -mr-1 -mt-1 h-auto" onClick={() => dismissToast(t.id)}>
+                                        {/* Simple X icon */}
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                            <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+                                        </svg>
+                                    </Button>
+                                </div>
                                 {t.action && (
-                                    <div className="toast__actions">
+                                    <div className="toast__actions mt-2 text-right">
                                         <Button variant="ghost" size="sm" onClick={t.action.onClick}>
                                             {t.action.label}
                                         </Button>
                                     </div>
                                 )}
-                                <div className="toast__actions">
-                                    <Button variant="ghost" size="sm" onClick={() => dismissToast(t.id)}>Dismiss</Button>
-                                </div>
                             </div>
                         ))}
-                    </div>
+                    </div> {/* End Toast Container */}
                 </div>
             </AuthGate>
-            {/* --- ADD DEVTOOLS --- */}
+            {/* React Query DevTools */}
             <ReactQueryDevtools initialIsOpen={false} position="bottom" />
         </QueryClientProvider>
     );

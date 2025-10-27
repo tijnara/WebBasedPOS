@@ -3,33 +3,26 @@ import { supabase } from './supabaseClient'; // Import the Supabase client
 
 // Logs in the user using Supabase email/password auth
 export async function login({ email, password }) {
-    console.log('Attempting Supabase login with:', { email, password }); // Log email and password for debugging
+    console.log('Attempting custom login with:', { email });
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-        email: email,
-        password: password,
-    });
-
-    console.log('Supabase response:', { data, error }); // Log Supabase response for debugging
+    const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', email)
+        .single();
 
     if (error) {
-        console.error('Supabase Login error:', error);
-        // Provide more specific error messages if possible
-        let errorMessage = 'Login failed. Please check credentials.';
-        if (error.message.includes('Invalid login credentials')) {
-            errorMessage = 'Invalid email or password.';
-        } else if (error.message.includes('Email not confirmed')) {
-            errorMessage = 'Please confirm your email address first.';
-        }
-        throw new Error(errorMessage);
+        console.error('Login error:', error);
+        throw new Error('Invalid email or password.');
     }
 
-    // data contains { user, session }
-    console.log('Supabase Login successful:', data);
-    if (!data.user || !data.session) {
-        throw new Error('Login succeeded but no user/session data received.');
+    if (data.password !== password) {
+        console.error('Password mismatch for user:', email);
+        throw new Error('Invalid email or password.');
     }
-    return { user: data.user, session: data.session };
+
+    console.log('Login successful for user:', data);
+    return data;
 }
 
 // Logs out the user from Supabase
