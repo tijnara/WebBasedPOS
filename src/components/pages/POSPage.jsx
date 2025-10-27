@@ -1,15 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../../store/useStore';
 
-// --- NEW: Import your custom hooks ---
+// --- Import Supabase hooks ---
 import { useProducts } from '../../hooks/useProducts';
 import { useCreateSale } from '../../hooks/useCreateSale';
-import { useCreateCustomer } from '../../hooks/useCreateCustomer'; // For adding customers
-// ------------------------------------
+import { useCreateCustomer } from '../../hooks/useCreateCustomer';
+// useCustomers is needed if you want to pre-load or offer a dropdown
+// import { useCustomers } from '../../hooks/useCustomerMutations';
+import { supabase } from '../../lib/supabaseClient'; // Import supabase for direct search query
 
-import { Button, Card, CardHeader, CardContent, CardFooter, Table, TableBody, TableRow, TableCell, ScrollArea, Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogCloseButton, Input, Label, Select } from '../ui';
+import {
+    Button, Card, CardHeader, CardContent, CardFooter, Table, TableBody, TableRow, TableCell,
+    ScrollArea, Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogCloseButton,
+    Input, Label, Select // Assuming Select is correctly exported from ui.js
+} from '../ui';
 
-// Empty cart icon
+// Empty cart icon (keep as is)
 const EmptyCartIcon = () => (
     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-muted">
         <path d="M7.5 7.625C7.5 4.7625 9.7625 2.5 12.625 2.5C15.4875 2.5 17.75 4.7625 17.75 7.625" stroke="#6b7280" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
@@ -18,7 +24,7 @@ const EmptyCartIcon = () => (
     </svg>
 );
 
-// Trash icon
+// Trash icon (keep as is)
 const TrashIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
         <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
@@ -28,162 +34,194 @@ const TrashIcon = () => (
 
 
 export default function POSPage() {
-    // --- NEW: Fetch products with useQuery ---
-    // We provide a default empty array `[]` for products
+    // --- Fetch products using the Supabase hook ---
     const { data: products = [], isLoading: isLoadingProducts } = useProducts();
 
-    // --- KEEP: Zustand is perfect for UI state like the cart ---
-    const currentSale = useStore(s => s.currentSale);
-    const addItemToSale = useStore(s => s.addItemToSale);
-    const removeItemFromSale = useStore(s => s.removeItemFromSale);
-    const clearSale = useStore(s => s.clearSale);
-    const getTotalAmount = useStore(s => s.getTotalAmount);
-    const addToast = useStore(s => s.addToast);
-    // -----------------------------------------------------------
+    // --- Zustand state for UI (Cart, Customer, Toasts) ---
+    const {
+        currentSale, addItemToSale, removeItemFromSale, clearSale, getTotalAmount, addToast,
+        currentCustomer, setCurrentCustomer // Get customer state management
+    } = useStore();
 
-    // --- NEW: Initialize mutation hooks ---
+    // --- Initialize mutation hooks ---
     const createSaleMutation = useCreateSale();
     const createCustomerMutation = useCreateCustomer();
-    // --------------------------------------
 
-    // --- REMOVED: isSubmitting is now handled by createSaleMutation.isPending ---
-    // const [isSubmitting, setIsSubmitting] = useState(false);
-
-    const [selectedCustomer, setSelectedCustomer] = useState(null);
+    // --- Component State ---
+    const [selectedCustomer, setSelectedCustomer] = useState(currentCustomer); // Init from store
     const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState(''); // Search input for customers/products
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(''); // Debounced customer search term
+    const [customerSearchResults, setCustomerSearchResults] = useState([]); // Results for customer search modal
+    const [isSearchingCustomers, setIsSearchingCustomers] = useState(false); // Loading state for customer search
 
-    const [searchTerm, setSearchTerm] = useState('');
-    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
-    const [searchResults, setSearchResults] = useState([]);
-    const [isSearching, setIsSearching] = useState(false);
-
-    // --- State for Custom Sale Modal (remains the same) ---
+    // State for Custom Sale Modal
     const [isCustomSaleModalOpen, setIsCustomSaleModalOpen] = useState(false);
     const [customSaleProduct, setCustomSaleProduct] = useState('');
     const [customSalePrice, setCustomSalePrice] = useState('');
     const [customSaleQuantity, setCustomSaleQuantity] = useState('1');
-    // ----------------------------------------
+
+    // State for Payment Modal
+    const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+    const [paymentMethod, setPaymentMethod] = useState('Cash'); // Default payment method
+    const [amountReceived, setAmountReceived] = useState('');
+
+
+    // Sync local selectedCustomer with global store state
+    useEffect(() => {
+        setSelectedCustomer(currentCustomer);
+    }, [currentCustomer]);
+
+    // Update global store when local selectedCustomer changes
+    const handleSetSelectedCustomer = (customer) => {
+        setSelectedCustomer(customer);
+        setCurrentCustomer(customer); // Update Zustand store
+    };
+
 
     const subtotal = getTotalAmount();
+    const changeDue = Math.max(0, parseFloat(amountReceived || 0) - subtotal);
 
-    // Debounce effect (remains the same)
+    // Debounce effect for customer search
     useEffect(() => {
         const handler = setTimeout(() => {
             setDebouncedSearchTerm(searchTerm);
-        }, 300);
+        }, 300); // 300ms delay
         return () => clearTimeout(handler);
     }, [searchTerm]);
 
-    // API fetching effect for CUSTOMER SEARCH (remains the same)
-    // This is fine as a direct fetch since it's inside a modal
+    // Customer Search Effect
     useEffect(() => {
-        if (!isCustomerModalOpen) {
-            setSearchResults([]);
+        // Only search if the modal is open and the debounced term is not empty
+        if (!isCustomerModalOpen || !debouncedSearchTerm) {
+            setCustomerSearchResults([]);
+            setIsSearchingCustomers(false);
             return;
         }
-        const fetchCustomers = async () => {
-            setIsSearching(true);
+
+        const searchCustomers = async () => {
+            setIsSearchingCustomers(true);
             try {
-                // NOTE: This still uses fetch(). For full offline, you'd
-                // replace this with a useQuery(['customers', debouncedSearchTerm], ...)
-                // But for simplicity, we leave this as-is.
-                const url = `http://localhost:8055/items/customers?search=${encodeURIComponent(debouncedSearchTerm)}`;
-                const response = await fetch(url);
-                if (!response.ok) throw new Error('Failed to fetch customers');
-                const result = await response.json();
-                setSearchResults(result.data || []);
+                const { data, error } = await supabase
+                    .from('customers')
+                    .select('*')
+                    .ilike('name', `%${debouncedSearchTerm}%`) // Case-insensitive search
+                    .limit(10); // Limit results
+
+                if (error) throw error;
+
+                setCustomerSearchResults(data || []);
             } catch (error) {
-                console.error("Failed to fetch customers:", error);
-                setSearchResults([]);
+                console.error("Failed to search customers:", error);
+                setCustomerSearchResults([]);
                 addToast({ title: 'Search Error', description: error.message, variant: 'destructive' });
             } finally {
-                setIsSearching(false);
+                setIsSearchingCustomers(false);
             }
         };
-        fetchCustomers();
+        searchCustomers();
     }, [debouncedSearchTerm, isCustomerModalOpen, addToast]);
 
 
-    // --- All cart handling functions remain the same ---
+    // --- Cart handling functions ---
     const handleAdd = (p) => addItemToSale(p, 1);
     const handleIncreaseQuantity = (key) => {
         const item = currentSale[key];
-        if (item) {
-            addItemToSale({ id: item.productId, name: item.name, price: item.price }, 1);
-        }
+        if (item) addItemToSale({ id: item.productId, name: item.name, price: item.price }, 1);
     };
     const handleDecreaseQuantity = (key) => {
         const item = currentSale[key];
-        if (item) {
-            addItemToSale({ id: item.productId, name: item.name, price: item.price }, -1);
-        }
+        if (item) addItemToSale({ id: item.productId, name: item.name, price: item.price }, -1);
     };
-    const handleRemoveItem = (key) => {
-        removeItemFromSale(key);
-    };
-    const handleSelectCustomer = (customer) => {
-        setSelectedCustomer(customer);
-        setSearchTerm('');
+    const handleRemoveItem = (key) => removeItemFromSale(key);
+
+    // --- Customer selection ---
+    const handleSelectCustomerFromModal = (customer) => {
+        handleSetSelectedCustomer(customer); // Use combined function
+        setSearchTerm(''); // Clear search term after selection
         setIsCustomerModalOpen(false);
     };
-    // ----------------------------------------------------
 
-    // --- REFACTORED: handleCheckout ---
-    const handleCheckout = async () => {
-        const items = Object.values(currentSale).map(i => ({ productId: i.productId, productName: i.name, quantity: i.quantity, priceAtSale: i.price, subtotal: i.price * i.quantity }));
-        if (items.length === 0) return addToast({ title: 'No items', description: 'Add items before finalizing', variant: 'warning' });
+    // --- Add New Customer ---
+    const handleAddCustomer = async (newCustomerName) => {
+        if (!newCustomerName || !newCustomerName.trim()) {
+            addToast({ title: 'Error', description: 'Customer name cannot be empty.', variant: 'destructive' });
+            return;
+        }
+        try {
+            const payload = { name: newCustomerName.trim() }; // Basic payload
+            const addedCustomer = await createCustomerMutation.mutateAsync(payload);
+            handleSelectCustomerFromModal(addedCustomer); // Select the newly added customer
+            addToast({ title: 'Customer Added', description: `${addedCustomer.name} added and selected.`, variant: 'success' });
+        } catch (error) {
+            console.error('Error adding customer:', error);
+            addToast({ title: 'Error Adding Customer', description: error.message, variant: 'destructive' });
+        }
+    };
 
-        // REMOVED: setIsSubmitting(true);
+    // --- Checkout Process ---
+    const openPaymentModal = () => {
+        if (Object.keys(currentSale).length === 0) {
+            addToast({ title: 'Empty Cart', description: 'Add items before proceeding to payment.', variant: 'warning' });
+            return;
+        }
+        setAmountReceived(subtotal.toFixed(2)); // Pre-fill with exact amount
+        setPaymentMethod('Cash'); // Reset to default
+        setIsPaymentModalOpen(true);
+    };
+
+    const closePaymentModal = () => {
+        setIsPaymentModalOpen(false);
+        setAmountReceived(''); // Clear amount received
+    }
+
+    const handleFinalizeSale = async () => {
+        const items = Object.values(currentSale).map(i => ({
+            productId: i.productId,
+            productName: i.name, // Store name at time of sale
+            quantity: i.quantity,
+            priceAtSale: i.price, // Store price at time of sale
+            subtotal: i.price * i.quantity
+        }));
+
+        // Basic validation in modal ensures amountReceived is likely valid number
+        const received = parseFloat(amountReceived || 0);
 
         try {
             const payload = {
-                // REMOVED: id: Date.now() (Let Directus handle ID)
+                // Supabase handles 'id' and 'created_at'
                 saleTimestamp: new Date().toISOString(),
                 totalAmount: subtotal,
                 customerId: selectedCustomer?.id || null,
+                // Store selected customer name or 'Walk-in' at time of sale
                 customerName: selectedCustomer?.name || 'Walk-in',
-                items,
-                status: 'Completed',
-                paymentMethod: 'Cash',
-                subtotal: subtotal,
+                items: items, // Should be acceptable by Supabase if column type is jsonb
+                status: 'Completed', // Default status
+                paymentMethod: paymentMethod,
+                amountReceived: received,
+                changeGiven: Math.max(0, received - subtotal), // Calculate change given
+                // subtotal: subtotal, // totalAmount usually serves this purpose
             };
 
-            console.log('Payload for createSale:', payload);
-
-            // --- REFACTORED: Use the mutation hook ---
-            // mutateAsync returns a promise so we can await it
+            console.log('Finalizing Sale - Payload:', payload);
             const created = await createSaleMutation.mutateAsync(payload);
-            // ---------------------------------------
+            console.log('Finalizing Sale - Success:', created);
 
-            addToast({ title: 'Sale saved', description: `Sale #${created.id} recorded`, variant: 'success' });
+            addToast({ title: 'Sale Completed', description: `Sale #${created.id.toString().slice(-6)} recorded.`, variant: 'success' });
             clearSale();
-            setSelectedCustomer(null);
-            setSearchTerm('');
+            handleSetSelectedCustomer(null); // Clear selected customer via store
+            closePaymentModal(); // Close the payment modal
+
         } catch (e) {
-            console.error('Error during checkout:', e);
-            // The mutation hook will retry, but if it fails finally, this will show
-            addToast({ title: 'Error saving sale', description: e.message, variant: 'destructive' });
-        }
-        // REMOVED: finally { setIsSubmitting(false); }
-    };
-
-    // --- REFACTORED: handleAddCustomer ---
-    const handleAddCustomer = async (newCustomer) => {
-        try {
-            // Use the mutation hook instead of api.js
-            const addedCustomer = await createCustomerMutation.mutateAsync(newCustomer);
-
-            setSelectedCustomer(addedCustomer);
-            setSearchResults((prev) => [...prev, addedCustomer]);
-            setIsCustomerModalOpen(false);
-            addToast({ title: 'Customer Added', description: `${addedCustomer.name} has been added.`, variant: 'success' });
-        } catch (error) {
-            console.error('Error adding customer:', error);
-            addToast({ title: 'Error', description: error.message, variant: 'destructive' });
+            console.error('Error finalizing sale:', e);
+            addToast({ title: 'Checkout Error', description: e.message, variant: 'destructive' });
+            // Keep payment modal open on error? Or close? Closing might be less confusing.
+            // closePaymentModal();
         }
     };
 
-    // --- NEW: Custom Sale Modal Functions (remain the same) ---
+
+    // --- Custom Sale Modal Functions ---
     const openCustomSaleModal = () => {
         setCustomSaleProduct('');
         setCustomSalePrice('');
@@ -195,26 +233,27 @@ export default function POSPage() {
         setIsCustomSaleModalOpen(false);
     };
 
+    // Auto-fill price when product is selected in custom sale modal
     const handleCustomProductChange = (productId) => {
-        const product = products.find(p => p.id === productId);
+        const product = products.find(p => String(p.id) === String(productId)); // Compare as strings just in case
         if (product) {
             setCustomSaleProduct(product.id);
-            setCustomSalePrice(String(product.price || 0));
+            setCustomSalePrice(String(product.price || 0)); // Set price based on selected product
         } else {
             setCustomSaleProduct('');
-            setCustomSalePrice('');
+            setCustomSalePrice(''); // Clear price if product not found
         }
     };
 
     const handleCustomSaleSubmit = (e) => {
         e.preventDefault();
 
-        const selectedProduct = products.find(p => p.id === customSaleProduct);
+        const selectedProduct = products.find(p => String(p.id) === String(customSaleProduct));
         const parsedPrice = parseFloat(customSalePrice);
         const parsedQuantity = parseInt(customSaleQuantity, 10);
 
         if (!selectedProduct) {
-            addToast({ title: 'Error', description: 'Please select a product.', variant: 'destructive' });
+            addToast({ title: 'Error', description: 'Please select a valid product.', variant: 'destructive' });
             return;
         }
         if (isNaN(parsedPrice) || parsedPrice < 0) {
@@ -229,7 +268,7 @@ export default function POSPage() {
         // Use the addItemToSale function with the overridePrice parameter
         addItemToSale(selectedProduct, parsedQuantity, parsedPrice);
 
-        addToast({ title: 'Item Added', description: `${parsedQuantity} x ${selectedProduct.name} added.`, variant: 'success' });
+        addToast({ title: 'Item Added', description: `${parsedQuantity} x ${selectedProduct.name} at ₱${parsedPrice.toFixed(2)} each added.`, variant: 'success' });
         closeCustomSaleModal();
     };
     // ----------------------------------------
@@ -237,45 +276,64 @@ export default function POSPage() {
 
     return (
         <div>
-            <div className="flex justify-between items-center mb-4">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
                 <h1 className="text-2xl font-bold">Point of Sale</h1>
-                {/* NEW: Custom Sale Button */}
-                <Button variant="outline" onClick={openCustomSaleModal}>
-                    Add Custom Sale
-                </Button>
+                <div className="flex gap-2">
+                    <Input
+                        placeholder="Search products..."
+                        className="w-full sm:w-64"
+                        // Add onChange handler for product search if needed
+                    />
+                    <Button variant="outline" onClick={openCustomSaleModal}>
+                        Custom Sale
+                    </Button>
+                </div>
             </div>
-            <div className="flex flex-col-reverse lg:flex-row-reverse gap-4 h-full">
-                {/* Current Order Sidebar */}
-                <div className="w-full max-w-sm flex-shrink-0">
+
+            {/* Main Layout: Product Grid | Order Sidebar */}
+            <div className="flex flex-col lg:flex-row-reverse gap-4" style={{ height: 'calc(100vh - 150px)' }}> {/* Adjust height calculation based on your header/footer */}
+
+                {/* --- Current Order Sidebar --- */}
+                <div className="w-full lg:w-1/3 xl:w-1/4 flex-shrink-0">
                     <Card className="flex flex-col h-full">
+                        {/* Card Header */}
                         <CardHeader>
                             <div className="flex justify-between items-center">
-                                <h3 className="font-semibold text-primary">Current Order</h3>
-                                <Button variant="ghost" size="sm" className="p-1 h-auto" onClick={clearSale}>✖</Button>
+                                <h3 className="font-semibold text-lg">Current Order</h3>
+                                <Button variant="ghost" size="sm" className="p-1 h-auto text-destructive" onClick={clearSale} title="Clear Sale">✖ Clear</Button>
                             </div>
                         </CardHeader>
+
+                        {/* Cart Items */}
                         <CardContent className="flex-1 overflow-auto p-0">
                             {!Object.keys(currentSale).length ? (
-                                <div className="flex flex-col items-center justify-center h-full text-center p-4">
+                                <div className="flex flex-col items-center justify-center h-full text-center p-4 text-gray-500">
                                     <EmptyCartIcon />
-                                    <p className="text-muted mt-2">Your cart is empty</p>
+                                    <p className="mt-2">Cart is empty</p>
                                 </div>
                             ) : (
-                                <ScrollArea className="h-full">
+                                // Use ScrollArea for consistent styling if needed, or just rely on overflow-auto
+                                <ScrollArea className="h-full px-2 py-1">
                                     <Table>
                                         <TableBody>
                                             {Object.entries(currentSale).map(([key, item]) => (
                                                 <TableRow key={key}>
-                                                    <TableCell className="font-medium">{item.name}<br/><span className="text-sm text-muted">₱{item.price.toFixed(2)} each</span></TableCell>
-                                                    <TableCell className="text-center">
+                                                    <TableCell className="font-medium pr-1 py-2"> {/* Reduced padding */}
+                                                        {item.name}
+                                                        <br/>
+                                                        <span className="text-xs text-muted">₱{item.price.toFixed(2)}</span>
+                                                    </TableCell>
+                                                    <TableCell className="text-center px-0 py-2"> {/* Reduced padding */}
                                                         <div className="flex items-center justify-center space-x-1">
-                                                            <Button variant="ghost" size="sm" className="p-1 h-auto" onClick={() => handleDecreaseQuantity(key)}>-</Button>
-                                                            <span>{item.quantity}</span>
-                                                            <Button variant="ghost" size="sm" className="p-1 h-auto" onClick={() => handleIncreaseQuantity(key)}>+</Button>
+                                                            <Button variant="ghost" size="sm" className="p-1 h-6 w-6" onClick={() => handleDecreaseQuantity(key)}>-</Button>
+                                                            <span className="w-4 text-center">{item.quantity}</span>
+                                                            <Button variant="ghost" size="sm" className="p-1 h-6 w-6" onClick={() => handleIncreaseQuantity(key)}>+</Button>
                                                         </div>
                                                     </TableCell>
-                                                    <TableCell className="text-right">
-                                                        <Button variant="ghost" size="icon" className="text-destructive h-auto p-1" onClick={() => handleRemoveItem(key)}>
+                                                    <TableCell className="text-right pl-1 py-2"> {/* Reduced padding */}
+                                                        <span className="font-semibold mr-1">₱{(item.price * item.quantity).toFixed(2)}</span>
+                                                        <Button variant="ghost" size="icon" className="text-destructive h-6 w-6 p-0" onClick={() => handleRemoveItem(key)} title="Remove Item">
                                                             <TrashIcon />
                                                         </Button>
                                                     </TableCell>
@@ -287,175 +345,190 @@ export default function POSPage() {
                             )}
                         </CardContent>
 
-                        {/* --- CUSTOMER SECTION (remains the same) --- */}
-                        <div className="p-4 border-t space-y-2">
-                            <h4 className="text-sm font-medium">Customer</h4>
+                        {/* Customer Section */}
+                        <div className="p-3 border-t space-y-1">
+                            <Label className="text-sm font-medium">Customer</Label>
                             <Button
                                 variant="outline"
-                                className="w-full justify-between"
+                                className="w-full justify-between h-9 px-3 py-2" // Adjusted size
                                 onClick={() => setIsCustomerModalOpen(true)}
                             >
-                                <span>{selectedCustomer?.name || 'Select a Customer'}</span>
-                                <span className="text-xs text-muted-foreground">Change</span>
+                                <span className="truncate">{selectedCustomer?.name || 'Walk-in Customer'}</span>
+                                <span className="text-xs text-muted-foreground ml-2">Change</span>
                             </Button>
                         </div>
-                        {/* --- END CUSTOMER SECTION --- */}
 
-                        <CardFooter>
+                        {/* Totals & Checkout Button */}
+                        <CardFooter className="p-3">
                             <div className="w-full">
-                                <div className="flex justify-between mb-2 text-sm">
+                                <div className="flex justify-between mb-1 text-sm">
                                     <span>Subtotal</span>
                                     <span>₱{subtotal.toFixed(2)}</span>
                                 </div>
-                                <div className="flex justify-between mb-4 font-bold text-lg border-t pt-2 mt-2">
+                                {/* Add Taxes/Discounts here if needed */}
+                                <div className="flex justify-between mb-3 font-bold text-lg border-t pt-2 mt-2">
                                     <span>Total</span>
                                     <span className="text-success">₱{subtotal.toFixed(2)}</span>
                                 </div>
                                 <Button
                                     variant="primary"
-                                    className="w-full"
-                                    onClick={handleCheckout}
-                                    // --- REFACTORED: Use mutation's pending state ---
-                                    disabled={createSaleMutation.isPending || Object.keys(currentSale).length === 0}
+                                    className="w-full h-12 text-lg" // Larger checkout button
+                                    onClick={openPaymentModal}
+                                    disabled={Object.keys(currentSale).length === 0 || createSaleMutation.isPending}
                                 >
-                                    {createSaleMutation.isPending ? 'Processing...' : 'Checkout'}
+                                    {createSaleMutation.isPending ? 'Processing...' : 'Proceed to Payment'}
                                 </Button>
                             </div>
                         </CardFooter>
                     </Card>
                 </div>
 
-                {/* Main product grid */}
-                <div className="flex-1 overflow-auto">
-                    <div className="mb-4">
-                        <Input placeholder="Search products..." className="w-full" />
-                    </div>
-                    <Card>
-                        <CardContent>
-                            {/* --- REFACTORED: Add loading state --- */}
-                            {isLoadingProducts ? (
-                                <div className="p-4 text-center text-muted">Loading products...</div>
-                            ) : !products.length ? (
-                                <div className="p-4 text-center text-muted">No products available</div>
-                            ) : (
-                                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                                    {products.map(p => (
-                                        <button key={p.id} className="product-card" onClick={() => handleAdd(p)}>
-                                            <div className="product-card-image">
-                                                {/* Replace with actual image if available */}
-                                                <span role="img" aria-label={p.name} style={{fontSize: '3rem'}}>🍔</span>
-                                            </div>
-                                            <div className="font-medium text-lg">{p.name}</div>
-                                            <div className="text-sm text-muted">₱{Number(p.price || 0).toFixed(2)}</div>
-                                            {/* Stock indicator can be added here if needed */}
-                                            {/* <span className="stock-indicator">{p.stock}</span> */}
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                </div>
-            </div>
 
-            {/* --- CUSTOMER SELECTION DIALOG (MODAL) --- */}
+                {/* --- Main Product Grid --- */}
+                <div className="flex-1 overflow-auto pr-2"> {/* Added padding-right */}
+                    {/* Product Search Input (Moved to Header) */}
+                    {/* <div className="mb-4">
+                        <Input placeholder="Search products..." className="w-full" />
+                    </div> */}
+                    {isLoadingProducts ? (
+                        <div className="p-10 text-center text-muted">Loading products...</div>
+                    ) : !products.length ? (
+                        <div className="p-10 text-center text-muted">No products available. Add products in Management.</div>
+                    ) : (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3"> {/* Adjusted gaps */}
+                            {products
+                                // Optional: Filter products based on search term state if you implement it
+                                // .filter(p => p.name.toLowerCase().includes(productSearchTerm.toLowerCase()))
+                                .map(p => (
+                                    <button
+                                        key={p.id}
+                                        className="product-card p-3 text-center border rounded-md shadow-sm hover:border-primary hover:shadow-md transition-all duration-150 bg-white flex flex-col items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                                        onClick={() => handleAdd(p)}
+                                        disabled={p.stock <= 0} // Disable if out of stock
+                                        title={p.stock <= 0 ? `${p.name} - Out of Stock` : p.name}
+                                    >
+                                        {/* Placeholder Image */}
+                                        <div className="product-card-image h-16 w-16 mb-2 flex items-center justify-center text-4xl bg-gray-100 rounded">
+                                            {/* You can replace this emoji based on category or use a placeholder image component */}
+                                            <span>{p.category?.startsWith('Drink') ? '🥤' : '🍔'}</span>
+                                        </div>
+                                        <div className="font-medium text-sm leading-tight mb-1 line-clamp-2">{p.name}</div>
+                                        <div className="text-xs text-muted font-semibold">₱{Number(p.price || 0).toFixed(2)}</div>
+                                        {/* Stock Indicator */}
+                                        <div className={`text-xs mt-1 ${p.stock <= 0 ? 'text-destructive font-semibold' : 'text-gray-500'}`}>
+                                            {p.stock <= 0 ? 'Out of Stock' : `${p.stock} in stock`}
+                                        </div>
+                                    </button>
+                                ))}
+                        </div>
+                    )}
+                </div>
+
+            </div> {/* End Main Layout Flex */}
+
+
+            {/* --- CUSTOMER SELECTION DIALOG --- */}
             <Dialog open={isCustomerModalOpen} onOpenChange={setIsCustomerModalOpen}>
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
-                        <DialogTitle>Select Customer</DialogTitle>
+                        <DialogTitle>Select or Add Customer</DialogTitle>
                         <DialogCloseButton onClick={() => setIsCustomerModalOpen(false)} />
                     </DialogHeader>
                     <div className="p-4 space-y-4">
                         <Input
                             id="customer-search-modal"
                             type="text"
-                            placeholder="Search customers..."
+                            placeholder="Search by name..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full"
+                            autoFocus
                         />
-                        <ScrollArea className="h-[350px] border rounded-md">
+                        <ScrollArea className="h-[300px] border rounded-md">
                             <div className="p-2 space-y-1">
+                                {/* Walk-in Option */}
                                 <Button
                                     variant={selectedCustomer === null ? "secondary" : "ghost"}
                                     className="w-full justify-start text-left h-auto py-2 px-3"
-                                    onClick={() => handleSelectCustomer(null)}
+                                    onClick={() => handleSelectCustomerFromModal(null)}
                                 >
-                                    {/* ADDED: Label for walk-in customer */}
                                     Walk-in Customer
                                 </Button>
                                 <hr className="my-1 border-border" />
-                                {isSearching ? (
+
+                                {/* Search Results / Loading / Add New */}
+                                {isSearchingCustomers ? (
                                     <p className="p-4 text-sm text-center text-muted">Searching...</p>
                                 ) : (
                                     <>
-                                        {searchResults.map(customer => (
+                                        {customerSearchResults.map(customer => (
                                             <Button
                                                 key={customer.id}
                                                 variant={selectedCustomer?.id === customer.id ? "secondary" : "ghost"}
                                                 className="w-full justify-start text-left h-auto py-2 px-3"
-                                                onClick={() => handleSelectCustomer(customer)}
+                                                onClick={() => handleSelectCustomerFromModal(customer)}
                                             >
-                                                {customer.name}
+                                                {customer.name} {customer.phone && `(${customer.phone})`}
                                             </Button>
                                         ))}
-                                        {searchResults.length === 0 && debouncedSearchTerm && (
+                                        {/* Option to Add New Customer */}
+                                        {customerSearchResults.length === 0 && debouncedSearchTerm && (
                                             <div className="p-4 text-center">
-                                                <p className="text-sm text-muted mb-2">No customers found.</p>
+                                                <p className="text-sm text-muted mb-2">No existing customer found.</p>
                                                 <Button
                                                     variant="primary"
-                                                    onClick={() => handleAddCustomer({
-                                                        // No need for ID here, mutation hook handles it
-                                                        name: debouncedSearchTerm,
-                                                        // email: null, // Add if you have an email field
-                                                        // phone: null, // Add if you have a phone field
-                                                        dateAdded: new Date().toISOString(),
-                                                    })}
-                                                    // Disable if mutation is pending
+                                                    size="sm"
+                                                    onClick={() => handleAddCustomer(debouncedSearchTerm)}
                                                     disabled={createCustomerMutation.isPending}
                                                 >
-                                                    {createCustomerMutation.isPending ? 'Adding...' : `Add "${debouncedSearchTerm}" as new customer`}
+                                                    {createCustomerMutation.isPending ? 'Adding...' : `+ Add "${debouncedSearchTerm}"`}
                                                 </Button>
                                             </div>
                                         )}
-                                        {searchResults.length === 0 && !debouncedSearchTerm && !isSearching && (
-                                            <p className="p-4 text-sm text-center text-muted">Type to search for customers.</p>
+                                        {/* Initial Prompt */}
+                                        {customerSearchResults.length === 0 && !debouncedSearchTerm && !isSearchingCustomers && (
+                                            <p className="p-4 text-sm text-center text-muted">Type to search existing customers or add a new one.</p>
                                         )}
                                     </>
                                 )}
                             </div>
                         </ScrollArea>
                     </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsCustomerModalOpen(false)}>Close</Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
 
-            {/* --- NEW: CUSTOM SALE DIALOG (MODAL) --- */}
+
+            {/* --- CUSTOM SALE DIALOG --- */}
             <Dialog open={isCustomSaleModalOpen} onOpenChange={setIsCustomSaleModalOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Add Custom Sale</DialogTitle>
+                        <DialogTitle>Add Custom Sale Item</DialogTitle>
                         <DialogCloseButton onClick={closeCustomSaleModal} />
                     </DialogHeader>
                     <form onSubmit={handleCustomSaleSubmit}>
                         <div className="p-4 space-y-4">
+                            {/* Product Selection */}
                             <div>
                                 <Label htmlFor="customProduct">Product</Label>
                                 <Select
                                     id="customProduct"
-                                    className="w-full"
+                                    className="w-full" // Use input class for styling consistency
                                     value={customSaleProduct}
                                     onChange={(e) => handleCustomProductChange(e.target.value)}
                                     required
                                 >
-                                    <option value="" disabled>Select a product...</option>
-                                    {/* Ensure products array is available */}
-                                    {products && products.map(p => (
+                                    <option value="" disabled>-- Select Product --</option>
+                                    {products.map(p => (
                                         <option key={p.id} value={p.id}>
-                                            {p.name}
+                                            {p.name} (₱{p.price?.toFixed(2)})
                                         </option>
                                     ))}
                                 </Select>
                             </div>
+                            {/* Price Input */}
                             <div>
                                 <Label htmlFor="customPrice">Custom Price (₱)</Label>
                                 <Input
@@ -467,8 +540,10 @@ export default function POSPage() {
                                     onChange={e => setCustomSalePrice(e.target.value)}
                                     required
                                     className="w-full"
+                                    placeholder="Enter price per item"
                                 />
                             </div>
+                            {/* Quantity Input */}
                             <div>
                                 <Label htmlFor="customQuantity">Quantity</Label>
                                 <Input
@@ -485,11 +560,81 @@ export default function POSPage() {
                         </div>
                         <DialogFooter>
                             <Button variant="outline" type="button" onClick={closeCustomSaleModal}>Cancel</Button>
-                            <Button type="submit">Add to Cart</Button>
+                            <Button type="submit" variant="primary">Add to Order</Button>
                         </DialogFooter>
                     </form>
                 </DialogContent>
             </Dialog>
+
+            {/* --- PAYMENT DIALOG (MODAL) --- */}
+            <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
+                <DialogContent className="sm:max-w-sm">
+                    <DialogHeader>
+                        <DialogTitle>Complete Sale</DialogTitle>
+                        <DialogCloseButton onClick={closePaymentModal} />
+                    </DialogHeader>
+                    <div className="p-4 space-y-4">
+                        <div className="text-center mb-4">
+                            <p className="text-sm text-muted">Total Amount Due</p>
+                            <p className="text-3xl font-bold">₱{subtotal.toFixed(2)}</p>
+                        </div>
+
+                        <div>
+                            <Label htmlFor="paymentMethod">Payment Method</Label>
+                            {/* Use Select component from ui.js */}
+                            <Select
+                                id="paymentMethod"
+                                value={paymentMethod}
+                                onChange={(e) => setPaymentMethod(e.target.value)}
+                                className="w-full"
+                            >
+                                <option value="Cash">Cash</option>
+                                <option value="Card">Card</option>
+                                <option value="GCash">GCash</option>
+                                <option value="Other">Other</option>
+                            </Select>
+                        </div>
+
+                        {/* Only show Amount Received and Change for Cash */}
+                        {paymentMethod === 'Cash' && (
+                            <>
+                                <div>
+                                    <Label htmlFor="amountReceived">Amount Received (₱)</Label>
+                                    <Input
+                                        id="amountReceived"
+                                        type="number"
+                                        step="0.01"
+                                        min={subtotal.toFixed(2)} // Minimum amount is the total
+                                        value={amountReceived}
+                                        onChange={e => setAmountReceived(e.target.value)}
+                                        required
+                                        className="w-full"
+                                        placeholder="Enter amount customer paid"
+                                        autoFocus
+                                    />
+                                </div>
+                                <div className="text-center mt-2">
+                                    <p className="text-sm text-muted">Change Due</p>
+                                    <p className="text-xl font-semibold">₱{changeDue.toFixed(2)}</p>
+                                </div>
+                            </>
+                        )}
+                        {/* You might add fields for Card/GCash reference numbers here if needed */}
+
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={closePaymentModal}>Cancel</Button>
+                        <Button
+                            variant="success" // Use success variant
+                            onClick={handleFinalizeSale}
+                            disabled={createSaleMutation.isPending || (paymentMethod === 'Cash' && parseFloat(amountReceived || 0) < subtotal)}
+                        >
+                            {createSaleMutation.isPending ? 'Saving...' : 'Confirm Sale'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
 
         </div> // End of wrapper div
     );

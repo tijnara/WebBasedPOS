@@ -8,13 +8,12 @@
     "start": "next start"
   },
   "dependencies": {
-    "@directus/sdk": "^20.1.0",
+    "@supabase/supabase-js": "^2.44.4",
     "@tanstack/react-query": "^5.90.5",
     "@tanstack/react-query-devtools": "^5.90.2",
-    "@tanstack/react-query-persist-client": "^5.90.7",
     "axios": "^1.12.2",
     "clsx": "^2.1.1",
-    "idb-keyval": "^6.2.2",
+    "dotenv": "^17.2.3",
     "next": "^16.0.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",

@@ -1,49 +1,21 @@
 import '../styles/globals.css';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useStore } from '../src/store/useStore';
 import { useRouter } from 'next/router';
 import Sidebar from '../src/components/Sidebar';
 import { Button } from '../src/components/ui';
-
-// --- NEW IMPORTS for Offline-First ---
-import { QueryClient } from '@tanstack/react-query';
-import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
-import { get, set, del } from 'idb-keyval';
-// --- DEVTOOLS IMPORT ---
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'; // Changed import
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-// ----------------------
+import { supabase } from '../src/lib/supabaseClient'; // Import supabase client
 
-// --- Custom IndexedDB Persister for TanStack Query ---
-const persister = {
-    persistClient: async (client) => {
-        await set('tanstack-query-client', JSON.stringify(client));
-    },
-    restoreClient: async () => {
-        const client = await get('tanstack-query-client');
-        return client ? JSON.parse(client) : undefined;
-    },
-    removeClient: async () => {
-        await del('tanstack-query-client');
-    },
-};
-// ------------------------------------------
-
-// --- Create the QueryClient (remains the same) ---
+// --- Create the QueryClient (removed mutation retry) ---
 const queryClient = new QueryClient({
     defaultOptions: {
         queries: {
             // Keep cached data for 7 days
             gcTime: 1000 * 60 * 60 * 24 * 7,
-        },
-        mutations: {
-            // Configure mutations to retry 3 times if they fail (e.g., offline)
-            retry: (failureCount, error) => {
-                // Don't retry auth errors
-                // Note: Directus SDK might throw errors without a status property
-                // You might need more robust error checking here based on error types
-                if (error && error.status === 401) return false;
-                return failureCount < 3;
-            },
+            staleTime: 1000 * 60 * 5, // Consider data stale after 5 minutes
+            refetchOnWindowFocus: true, // Refetch on window focus
         },
     },
 });
@@ -51,68 +23,81 @@ const queryClient = new QueryClient({
 
 
 function AuthGate({ children }) {
-    const token = useStore(s => s.token);
+    // Get user and session loading state from store
+    const { user, sessionLoaded, checkSession } = useStore(s => ({
+        user: s.user,
+        sessionLoaded: s.sessionLoaded,
+        checkSession: s.checkSession
+    }));
     const router = useRouter();
-    const [isHydrated, setIsHydrated] = useState(false);
 
-    React.useEffect(() => {
-        setIsHydrated(true);
-        // We need to run the check *after* hydration is complete
-        // to ensure we have the correct token state from localStorage
-    }, []); // Run only once on mount to set hydration flag
+    // Check session on initial load
+    useEffect(() => {
+        checkSession(); // Check Supabase session on mount
 
-    React.useEffect(() => {
-        if (isHydrated) { // Only run auth checks after hydration
-            if (!token && router.pathname !== '/login') {
-                router.push('/login');
+        // Listen for Supabase auth changes (e.g., token refresh, logout in another tab)
+        const { data: authListener } = supabase.auth.onAuthStateChange(
+            (event, session) => {
+                console.log("Auth state changed:", event, session);
+                checkSession(); // Re-check session on auth state change
             }
-            if (token && router.pathname === '/login') {
+        );
+
+        // Cleanup listener on unmount
+        return () => {
+            authListener?.subscription?.unsubscribe();
+        };
+
+    }, [checkSession]);
+
+    // Redirect logic based on session state
+    useEffect(() => {
+        // Only redirect once the session has been checked
+        if (sessionLoaded) {
+            const isLoggedIn = !!user;
+            const isLoginPage = router.pathname === '/login';
+
+            if (!isLoggedIn && !isLoginPage) {
+                console.log("AuthGate: Not logged in, redirecting to login");
+                router.push('/login');
+            } else if (isLoggedIn && isLoginPage) {
+                console.log("AuthGate: Logged in, redirecting from login to home");
                 router.push('/');
             }
         }
-    }, [token, router, isHydrated]); // Depend on isHydrated
+    }, [user, sessionLoaded, router]);
 
-    if (!isHydrated) {
-        // Render nothing or a loading spinner until hydration is complete
-        // This prevents content flashing or incorrect redirects
-        return <div>Loading...</div>;
+    // Show loading indicator until session is checked
+    if (!sessionLoaded) {
+        // You can replace this with a more sophisticated loading spinner component
+        return <div className="flex items-center justify-center min-h-screen">Loading Authentication...</div>;
     }
 
-    // Allow rendering login page or any page if token exists (after hydration)
-    if (router.pathname === '/login' || token) {
+    // Allow rendering if session is loaded and conditions are met
+    // Render login page OR if user is logged in
+    if (router.pathname === '/login' || user) {
         return children;
     }
 
-    // If not hydrated, or no token and not on login, render nothing yet
-    // AuthGate will redirect shortly after hydration if needed
+    // Fallback: If session is loaded, user is not logged in, and not on login page
+    // (This case should be handled by the redirect effect, but acts as a safeguard)
     return null;
 }
 
+
 export default function App({ Component, pageProps }) {
-    // We only get toast functions from the store here
     const { toasts, dismissToast } = useStore();
     const router = useRouter();
     const isLoginPage = router.pathname === '/login';
 
-    // The old `loadAll` function and its useEffect are no longer needed.
-    // TanStack Query will now fetch data on a per-component basis via hooks.
-
     return (
-        // --- NEW: Wrap your app in the provider ---
-        <PersistQueryClientProvider
-            client={queryClient}
-            persistOptions={{ persister }}
-            // Optional: Show loading indicator while cache is restored
-            // onRestore={() => console.log('Attempting to restore cache...')}
-            // onSuccess={() => console.log('Cache restored successfully!')}
-        >
+        <QueryClientProvider client={queryClient}>
             <AuthGate>
                 <div className="app">
                     {!isLoginPage && <Sidebar />}
                     <main className="main">
                         <div className="container">
-                            {/* We pass a new 'reload' prop that invalidates all queries */}
-                            <Component {...pageProps} reload={() => queryClient.invalidateQueries()} />
+                            <Component {...pageProps} />
                         </div>
                     </main>
                     <div className="toasts" aria-live="polite">
@@ -120,14 +105,13 @@ export default function App({ Component, pageProps }) {
                             <div key={t.id} className="toast">
                                 <div className="toast__title">{t.title}</div>
                                 <div className="toast__desc">{t.description}</div>
-                                {t.action && ( // Render action button if provided
+                                {t.action && (
                                     <div className="toast__actions">
                                         <Button variant="ghost" size="sm" onClick={t.action.onClick}>
                                             {t.action.label}
                                         </Button>
                                     </div>
                                 )}
-                                {/* Always show dismiss button */}
                                 <div className="toast__actions">
                                     <Button variant="ghost" size="sm" onClick={() => dismissToast(t.id)}>Dismiss</Button>
                                 </div>
@@ -137,8 +121,7 @@ export default function App({ Component, pageProps }) {
                 </div>
             </AuthGate>
             {/* --- ADD DEVTOOLS --- */}
-            <ReactQueryDevtools initialIsOpen={false} />
-            {/* -------------------- */}
-        </PersistQueryClientProvider> // --- End provider wrap ---
+            <ReactQueryDevtools initialIsOpen={false} position="bottom" />
+        </QueryClientProvider>
     );
 }

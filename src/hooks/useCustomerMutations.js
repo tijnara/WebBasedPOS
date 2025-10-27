@@ -1,39 +1,46 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'; // Ensure useQuery is imported
-import directus from '../lib/directus';
-// Removed: import { useCreateCustomer } from './useCreateCustomer'; // Not needed in this file
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '../lib/supabaseClient';
 
 const customersKey = ['customers'];
 
 // --- Hook for GETTING Customers ---
 export function useCustomers() {
-    return useQuery({ // Wrap in useQuery
+    return useQuery({
         queryKey: customersKey,
         queryFn: async () => {
-            console.log('useCustomers: Fetching...'); // Log start
+            console.log('useCustomers: Fetching...');
             try {
-                const response = await directus.items('customers').readByQuery({ limit: -1 });
-                console.log('useCustomers: API Response:', response); // Log response
+                // Fetch all customers from Supabase, order by name
+                const { data, error } = await supabase
+                    .from('customers')
+                    .select('*')
+                    .order('name', { ascending: true });
 
-                if (!response.data || !Array.isArray(response.data)) {
-                    console.error('useCustomers: Invalid response data structure:', response);
-                    return []; // Return empty array on invalid data
+                if (error) throw error;
+
+                const responseData = data;
+                console.log('useCustomers: API Response:', responseData);
+
+                if (!responseData || !Array.isArray(responseData)) {
+                    console.error('useCustomers: Invalid response data structure:', responseData);
+                    return [];
                 }
 
                 // Map data
-                const mappedData = response.data.map(c => ({
+                const mappedData = responseData.map(c => ({
                     id: c.id,
                     name: c.name || 'Unnamed Customer',
                     email: c.email || 'N/A',
                     phone: c.phone || 'N/A',
-                    // Check if dateAdded exists before creating Date object
-                    dateAdded: c.dateAdded ? new Date(c.dateAdded) : null
+                    // Use created_at (Supabase default) if dateAdded doesn't exist
+                    dateAdded: c.dateAdded ? new Date(c.dateAdded) : (c.created_at ? new Date(c.created_at) : null)
                 }));
-                console.log('useCustomers: Mapped Data:', mappedData); // Log mapped data
+                console.log('useCustomers: Mapped Data:', mappedData);
                 return mappedData;
 
             } catch(error) {
                 console.error('useCustomers: Error fetching data:', error);
-                throw error; // Re-throw error
+                throw error;
             }
         },
     });
@@ -45,20 +52,49 @@ export function useUpdateCustomer() {
     return useMutation({
         mutationFn: async (customer) => {
             const { id, ...payload } = customer;
-            return await directus.items('customers').updateOne(id, payload);
+            // Ensure dateAdded is not sent back if it's a Date object from mapping
+            const updatePayload = { ...payload };
+            if (updatePayload.dateAdded instanceof Date) {
+                delete updatePayload.dateAdded; // Let Supabase handle created_at/updated_at
+            }
+
+            console.log('useUpdateCustomer: Updating ID', id, 'with payload:', updatePayload);
+            const { data, error } = await supabase
+                .from('customers')
+                .update(updatePayload)
+                .eq('id', id)
+                .select() // Select the updated row
+                .single(); // Expect one row
+
+            if (error) {
+                console.error('useUpdateCustomer: Supabase error:', error);
+                throw error;
+            }
+            console.log('useUpdateCustomer: Update successful:', data);
+            return data;
         },
+        // Optimistic Updates (Optional but improves UI responsiveness)
         onMutate: async (updatedCustomer) => {
             await queryClient.cancelQueries({ queryKey: customersKey });
             const previousCustomers = queryClient.getQueryData(customersKey);
-            queryClient.setQueryData(customersKey, (old = []) => // Add default empty array
-                old.map((c) => (c.id === updatedCustomer.id ? updatedCustomer : c))
+            // Ensure the updated data matches the expected structure
+            const optimisticUpdateData = {
+                ...updatedCustomer,
+                dateAdded: updatedCustomer.dateAdded instanceof Date ? updatedCustomer.dateAdded : (updatedCustomer.created_at ? new Date(updatedCustomer.created_at) : null) // Remap date if needed
+            };
+            queryClient.setQueryData(customersKey, (old = []) =>
+                old.map((c) => (c.id === updatedCustomer.id ? optimisticUpdateData : c))
             );
+            console.log('useUpdateCustomer: Optimistic update applied for ID:', updatedCustomer.id);
             return { previousCustomers };
         },
         onError: (err, updatedCustomer, context) => {
+            console.error('useUpdateCustomer: Mutation error, rolling back optimistic update for ID:', updatedCustomer.id, err);
             queryClient.setQueryData(customersKey, context.previousCustomers);
         },
-        onSettled: () => {
+        // Always refetch after error or success to ensure consistency
+        onSettled: (data, error, updatedCustomer) => {
+            console.log('useUpdateCustomer: Mutation settled for ID:', updatedCustomer.id, 'Refetching customers.');
             queryClient.invalidateQueries({ queryKey: customersKey });
         },
     });
@@ -69,20 +105,35 @@ export function useDeleteCustomer() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async (customerId) => {
-            return await directus.items('customers').deleteOne(customerId);
+            console.log('useDeleteCustomer: Deleting ID:', customerId);
+            const { error } = await supabase
+                .from('customers')
+                .delete()
+                .eq('id', customerId);
+
+            if (error) {
+                console.error('useDeleteCustomer: Supabase error:', error);
+                throw error;
+            }
+            console.log('useDeleteCustomer: Delete successful for ID:', customerId);
+            return customerId; // Return the ID for optimistic updates
         },
+        // Optimistic Updates
         onMutate: async (customerId) => {
             await queryClient.cancelQueries({ queryKey: customersKey });
             const previousCustomers = queryClient.getQueryData(customersKey);
-            queryClient.setQueryData(customersKey, (old = []) => // Add default empty array
+            queryClient.setQueryData(customersKey, (old = []) =>
                 old.filter((c) => c.id !== customerId)
             );
+            console.log('useDeleteCustomer: Optimistic removal applied for ID:', customerId);
             return { previousCustomers };
         },
         onError: (err, customerId, context) => {
+            console.error('useDeleteCustomer: Mutation error, rolling back optimistic removal for ID:', customerId, err);
             queryClient.setQueryData(customersKey, context.previousCustomers);
         },
-        onSettled: () => {
+        onSettled: (data, error, customerId) => {
+            console.log('useDeleteCustomer: Mutation settled for ID:', customerId, 'Refetching customers.');
             queryClient.invalidateQueries({ queryKey: customersKey });
         },
     });
