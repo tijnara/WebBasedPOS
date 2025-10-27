@@ -8,21 +8,26 @@ import { Button } from '../src/components/ui';
 // --- NEW IMPORTS for Offline-First ---
 import { QueryClient } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
-import { createSyncStoragePersister } from '@tanstack/react-query-persist-client';
+// --- CORRECTED IMPORT ---
 import { get, set, del } from 'idb-keyval';
 // -------------------------------------
 
-// --- NEW: Setup for IndexedDB Persister ---
-// Uses idb-keyval for simple async storage
-const storage = {
-    setItem: async (key, value) => { await set(key, value); },
-    getItem: async (key) => { return await get(key); },
-    removeItem: async (key) => { await del(key); },
+// --- Custom IndexedDB Persister for TanStack Query ---
+const persister = {
+    persistClient: async (client) => {
+        await set('tanstack-query-client', JSON.stringify(client));
+    },
+    restoreClient: async () => {
+        const client = await get('tanstack-query-client');
+        return client ? JSON.parse(client) : undefined;
+    },
+    removeClient: async () => {
+        await del('tanstack-query-client');
+    },
 };
-const persister = createSyncStoragePersister({ storage: storage });
 // ------------------------------------------
 
-// --- NEW: Create the QueryClient ---
+// --- Create the QueryClient (remains the same) ---
 const queryClient = new QueryClient({
     defaultOptions: {
         queries: {
@@ -33,7 +38,9 @@ const queryClient = new QueryClient({
             // Configure mutations to retry 3 times if they fail (e.g., offline)
             retry: (failureCount, error) => {
                 // Don't retry auth errors
-                if (error.status === 401) return false;
+                // Note: Directus SDK might throw errors without a status property
+                // You might need more robust error checking here based on error types
+                if (error && error.status === 401) return false;
                 return failureCount < 3;
             },
         },
@@ -49,7 +56,12 @@ function AuthGate({ children }) {
 
     React.useEffect(() => {
         setIsHydrated(true);
-        if (isHydrated) {
+        // We need to run the check *after* hydration is complete
+        // to ensure we have the correct token state from localStorage
+    }, []); // Run only once on mount to set hydration flag
+
+    React.useEffect(() => {
+        if (isHydrated) { // Only run auth checks after hydration
             if (!token && router.pathname !== '/login') {
                 router.push('/login');
             }
@@ -57,34 +69,41 @@ function AuthGate({ children }) {
                 router.push('/');
             }
         }
-    }, [token, router, isHydrated]);
+    }, [token, router, isHydrated]); // Depend on isHydrated
 
     if (!isHydrated) {
-        return <div>Loading...</div>; // Prevent mismatched rendering during hydration
+        // Render nothing or a loading spinner until hydration is complete
+        // This prevents content flashing or incorrect redirects
+        return <div>Loading...</div>;
     }
 
+    // Allow rendering login page or any page if token exists (after hydration)
     if (router.pathname === '/login' || token) {
         return children;
     }
 
+    // If not hydrated, or no token and not on login, render nothing yet
+    // AuthGate will redirect shortly after hydration if needed
     return null;
 }
 
 export default function App({ Component, pageProps }) {
     // We only get toast functions from the store here
-    // products, customers, sales are no longer loaded globally
     const { toasts, dismissToast } = useStore();
     const router = useRouter();
     const isLoginPage = router.pathname === '/login';
 
     // The old `loadAll` function and its useEffect are no longer needed.
-    // TanStack Query will now fetch data on a per-component basis.
+    // TanStack Query will now fetch data on a per-component basis via hooks.
 
     return (
         // --- NEW: Wrap your app in the provider ---
         <PersistQueryClientProvider
             client={queryClient}
             persistOptions={{ persister }}
+            // Optional: Show loading indicator while cache is restored
+            // onRestore={() => console.log('Attempting to restore cache...')}
+            // onSuccess={() => console.log('Cache restored successfully!')}
         >
             <AuthGate>
                 <div className="app">
@@ -100,6 +119,14 @@ export default function App({ Component, pageProps }) {
                             <div key={t.id} className="toast">
                                 <div className="toast__title">{t.title}</div>
                                 <div className="toast__desc">{t.description}</div>
+                                {t.action && ( // Render action button if provided
+                                    <div className="toast__actions">
+                                        <Button variant="ghost" size="sm" onClick={t.action.onClick}>
+                                            {t.action.label}
+                                        </Button>
+                                    </div>
+                                )}
+                                {/* Always show dismiss button */}
                                 <div className="toast__actions">
                                     <Button variant="ghost" size="sm" onClick={() => dismissToast(t.id)}>Dismiss</Button>
                                 </div>

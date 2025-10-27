@@ -13,13 +13,18 @@ export function useProducts() {
                 limit: -1, // Get all products
             });
 
-            // Map data just like you did in _app.js
+            if (!response.data || !Array.isArray(response.data)) {
+                console.error('Invalid response data:', response);
+                return [];
+            }
+
+            // Map data with safeguards
             return response.data.map(p => ({
                 id: p.id,
                 name: p.name,
-                price: parseFloat(p.price) || 0,
+                price: parseFloat(p.price).toFixed(2), // Ensure price is formatted
                 category: p.category || 'N/A',
-                stock: parseInt(p.stock, 10) || 0
+                stock: parseInt(p.stock, 10) || 0,
             }));
         },
     });
