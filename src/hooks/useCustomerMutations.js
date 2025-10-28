@@ -13,7 +13,7 @@ export function useCustomers() {
                 // Fetch all customers from Supabase, order by name
                 const { data, error } = await supabase
                     .from('customers')
-                    .select('*')
+                    .select('id, name, email, phone, created_at') // Select the correct date column
                     .order('name', { ascending: true });
 
                 if (error) throw error;
@@ -32,7 +32,8 @@ export function useCustomers() {
                     name: c.name || 'Unnamed Customer',
                     email: c.email || 'N/A',
                     phone: c.phone || 'N/A',
-                    createdAt: c.created_at ? new Date(c.created_at) : null, // Use created_at instead of date_added
+                    // FIX: Map created_at to dateAdded
+                    dateAdded: c.created_at ? new Date(c.created_at) : null,
                 }));
                 console.log('useCustomers: Mapped Data:', mappedData);
                 return mappedData;
@@ -50,48 +51,42 @@ export function useUpdateCustomer() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async (customer) => {
-            const { id, ...payload } = customer;
-            // Ensure dateAdded is not sent back if it's a Date object from mapping
-            const updatePayload = { ...payload };
-            if (updatePayload.dateAdded instanceof Date) {
-                delete updatePayload.dateAdded; // Let Supabase handle created_at/updated_at
-            }
+            // Exclude the mapped 'dateAdded' from the update payload
+            const { id, dateAdded, ...payload } = customer;
 
-            console.log('useUpdateCustomer: Updating ID', id, 'with payload:', updatePayload);
+            console.log('useUpdateCustomer: Updating ID', id, 'with payload:', payload);
             const { data, error } = await supabase
                 .from('customers')
-                .update(updatePayload)
+                .update(payload)
                 .eq('id', id)
-                .select() // Select the updated row
-                .single(); // Expect one row
+                .select('id, name, email, phone, created_at') // Select created_at
+                .single();
 
             if (error) {
                 console.error('useUpdateCustomer: Supabase error:', error);
                 throw error;
             }
             console.log('useUpdateCustomer: Update successful:', data);
-            return data;
+            // Map created_at to dateAdded in the response
+            return { ...data, dateAdded: data.created_at ? new Date(data.created_at) : null };
         },
-        // Optimistic Updates (Optional but improves UI responsiveness)
+        // Optimistic Updates
         onMutate: async (updatedCustomer) => {
             await queryClient.cancelQueries({ queryKey: customersKey });
             const previousCustomers = queryClient.getQueryData(customersKey);
-            // Ensure the updated data matches the expected structure
-            const optimisticUpdateData = {
-                ...updatedCustomer,
-                dateAdded: updatedCustomer.dateAdded instanceof Date ? updatedCustomer.dateAdded : (updatedCustomer.created_at ? new Date(updatedCustomer.created_at) : null) // Remap date if needed
-            };
+
             queryClient.setQueryData(customersKey, (old = []) =>
-                old.map((c) => (c.id === updatedCustomer.id ? optimisticUpdateData : c))
+                old.map((c) => (c.id === updatedCustomer.id ? { ...c, ...updatedCustomer } : c)) // Optimistically update
             );
             console.log('useUpdateCustomer: Optimistic update applied for ID:', updatedCustomer.id);
             return { previousCustomers };
         },
         onError: (err, updatedCustomer, context) => {
             console.error('useUpdateCustomer: Mutation error, rolling back optimistic update for ID:', updatedCustomer.id, err);
-            queryClient.setQueryData(customersKey, context.previousCustomers);
+            if (context?.previousCustomers) {
+                queryClient.setQueryData(customersKey, context.previousCustomers);
+            }
         },
-        // Always refetch after error or success to ensure consistency
         onSettled: (data, error, updatedCustomer) => {
             console.log('useUpdateCustomer: Mutation settled for ID:', updatedCustomer.id, 'Refetching customers.');
             queryClient.invalidateQueries({ queryKey: customersKey });
@@ -104,6 +99,7 @@ export function useDeleteCustomer() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async (customerId) => {
+            // ... (delete logic remains the same) ...
             console.log('useDeleteCustomer: Deleting ID:', customerId);
             const { error } = await supabase
                 .from('customers')
@@ -115,10 +111,11 @@ export function useDeleteCustomer() {
                 throw error;
             }
             console.log('useDeleteCustomer: Delete successful for ID:', customerId);
-            return customerId; // Return the ID for optimistic updates
+            return customerId;
         },
         // Optimistic Updates
         onMutate: async (customerId) => {
+            // ... (optimistic mutate logic remains the same) ...
             await queryClient.cancelQueries({ queryKey: customersKey });
             const previousCustomers = queryClient.getQueryData(customersKey);
             queryClient.setQueryData(customersKey, (old = []) =>
@@ -128,10 +125,14 @@ export function useDeleteCustomer() {
             return { previousCustomers };
         },
         onError: (err, customerId, context) => {
+            // ... (optimistic error logic remains the same) ...
             console.error('useDeleteCustomer: Mutation error, rolling back optimistic removal for ID:', customerId, err);
-            queryClient.setQueryData(customersKey, context.previousCustomers);
+            if (context?.previousCustomers) {
+                queryClient.setQueryData(customersKey, context.previousCustomers);
+            }
         },
         onSettled: (data, error, customerId) => {
+            // ... (optimistic settled logic remains the same) ...
             console.log('useDeleteCustomer: Mutation settled for ID:', customerId, 'Refetching customers.');
             queryClient.invalidateQueries({ queryKey: customersKey });
         },

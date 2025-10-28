@@ -1,19 +1,18 @@
 import React, { useState } from 'react';
 import { useStore } from '../../store/useStore';
-// Removed: import * as api from '../../lib/api';
 import {
     Button, Card, CardContent, Table, TableHeader, TableBody, TableRow,
     TableHead, TableCell, ScrollArea, Input, Label, Dialog, DialogContent,
     DialogHeader, DialogTitle, DialogFooter, DialogCloseButton
 } from '../ui';
 
-// --- NEW: Import all the hooks ---
-import { useCreateCustomer } from '../../hooks/useCreateCustomer'; // From POSPage
+// --- Import Customer Hooks ---
+import { useCreateCustomer } from '../../hooks/useCreateCustomer';
 import {
     useCustomers,
     useUpdateCustomer,
     useDeleteCustomer
-} from '../../hooks/useCustomerMutations'; // Assuming you created this file
+} from '../../hooks/useCustomerMutations';
 
 // Simple SVG Icon for Edit
 const EditIcon = () => (
@@ -31,11 +30,9 @@ const DeleteIcon = () => (
 );
 
 export default function CustomerManagementPage() {
-    // --- REFACTORED: Get data from useCustomers hook ---
     const { data: customers = [], isLoading } = useCustomers();
     const addToast = useStore(s => s.addToast);
 
-    // --- NEW: Initialize mutations ---
     const createCustomer = useCreateCustomer();
     const updateCustomer = useUpdateCustomer();
     const deleteCustomer = useDeleteCustomer();
@@ -44,10 +41,9 @@ export default function CustomerManagementPage() {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [phone, setPhone] = useState('');
-    const [address, setAddress] = useState(''); // --- NEW: State for address ---
+    const [address, setAddress] = useState(''); // State for address
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    // --- Modal control functions remain the same ---
     const openModal = () => {
         resetForm();
         setIsModalOpen(true);
@@ -61,9 +57,9 @@ export default function CustomerManagementPage() {
     const startEdit = (c) => {
         setEditing(c);
         setName(c?.name || '');
-        setEmail(c?.email || '');
-        setPhone(c?.phone || '');
-        setAddress(c?.address || ''); // --- NEW: Set address for editing ---
+        setEmail(c?.email === 'N/A' ? '' : c?.email || ''); // Handle 'N/A'
+        setPhone(c?.phone === 'N/A' ? '' : c?.phone || ''); // Handle 'N/A'
+        setAddress(c?.address || ''); // Set address for editing
         setIsModalOpen(true);
     };
 
@@ -72,33 +68,38 @@ export default function CustomerManagementPage() {
         setName('');
         setEmail('');
         setPhone('');
-        setAddress(''); // --- NEW: Reset address field ---
+        setAddress(''); // Reset address field
     };
-    // --- End modal control functions ---
 
     const save = async (e) => {
         e.preventDefault();
-        if (!name) { // Email and Phone are optional based on hook
-            addToast({ title: 'Error', description: 'Customer Name is required.' });
+        if (!name || !name.trim()) {
+            addToast({ title: 'Error', description: 'Customer Name is required.', variant: 'destructive' });
             return;
         }
 
-        const payload = { name, email, phone, address, date_added: editing ? editing.date_added : new Date().toISOString() }; // --- UPDATED: Include address in payload ---
+        const payload = {
+            name: name.trim(),
+            email: email.trim() || null,
+            phone: phone.trim() || null,
+            address: address.trim() || null, // Include address
+            // 'dateAdded' is no longer sent; hook uses 'created_at' from Supabase
+        };
 
         try {
             if (editing) {
-                await updateCustomer.mutateAsync({ ...payload, id: editing.id });
-                addToast({ title: 'Updated', description: `Customer ${name} updated` });
+                // Pass the existing dateAdded from the 'editing' object if needed
+                await updateCustomer.mutateAsync({ ...payload, id: editing.id, dateAdded: editing.dateAdded });
+                addToast({ title: 'Updated', description: `Customer ${name} updated`, variant: 'success' });
             } else {
-                // Ensure dateAdded is included for creation if your hook requires it
-                await createCustomer.mutateAsync({ ...payload, dateAdded: new Date().toISOString() });
-                addToast({ title: 'Created', description: `Customer ${name} created` });
+                // dateAdded/created_at is handled by Supabase/hook
+                await createCustomer.mutateAsync(payload);
+                addToast({ title: 'Created', description: `Customer ${name} created`, variant: 'success' });
             }
             closeModal();
-            // No reload() needed, hooks handle invalidation
         } catch (e) {
             console.error(e);
-            addToast({ title: 'Error', description: e.message || 'Failed to save customer' });
+            addToast({ title: 'Error', description: e.message || 'Failed to save customer', variant: 'destructive' });
         }
     };
 
@@ -106,67 +107,70 @@ export default function CustomerManagementPage() {
         if (!confirm(`Delete ${c.name}? This cannot be undone.`)) return;
         try {
             await deleteCustomer.mutateAsync(c.id);
-            addToast({ title: 'Deleted', description: `${c.name} deleted` });
-            // No reload() needed
+            addToast({ title: 'Deleted', description: `${c.name} deleted`, variant: 'success' });
         } catch (e) {
             console.error(e);
-            addToast({ title: 'Error', description: e.message || 'Failed to delete customer' });
+            addToast({ title: 'Error', description: e.message || 'Failed to delete customer', variant: 'destructive' });
         }
     };
 
+    // Combined mutation loading state
     const isMutating = createCustomer.isPending || updateCustomer.isPending || deleteCustomer.isPending;
 
     return (
         <div>
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-2">
                 <div>
                     <h1 className="text-2xl font-semibold">Customer Management</h1>
-                    <p className="text-muted">Manage your customer records</p>
+                    <p className="text-muted mt-1">Manage your customer records</p>
                 </div>
-                <Button onClick={openModal}>Add Customer</Button>
+                <Button onClick={openModal} variant="primary">Add Customer</Button>
             </div>
 
             <div className="mb-4">
-                <Input placeholder="Search customers..." className="w-full" />
+                <Input placeholder="Search customers..." className="w-full max-w-lg" />
             </div>
 
             <Card className="mb-4">
-                <CardContent>
-                    <ScrollArea className="max-h-96"> {/* Adjust max height */}
+                <CardContent className="p-0">
+                    <ScrollArea className="max-h-[calc(100vh-280px)]">
                         <Table>
-                            <TableHeader>
+                            <TableHeader className="sticky top-0 bg-gray-50 z-10">
                                 <TableRow>
                                     <TableHead>Customer Name</TableHead>
                                     <TableHead>Email</TableHead>
                                     <TableHead>Contact Number</TableHead>
                                     <TableHead>Date Added</TableHead>
-                                    <TableHead>Actions</TableHead>
+                                    <TableHead className="text-right">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {/* --- REFACTORED: Show loading state --- */}
                                 {isLoading ? (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="text-center text-muted">Loading customers...</TableCell>
+                                        <TableCell colSpan={5} className="text-center text-muted py-8">Loading customers...</TableCell>
                                     </TableRow>
                                 ) : customers.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="text-center text-muted">No customers found.</TableCell>
+                                        <TableCell colSpan={5} className="text-center text-muted py-8">No customers found.</TableCell>
                                     </TableRow>
                                 ) : (
                                     customers.map(c => (
-                                        <TableRow key={c.id}>
-                                            <TableCell>{c.name}</TableCell>
-                                            <TableCell>{c.email || 'N/A'}</TableCell>
-                                            <TableCell>{c.phone || 'N/A'}</TableCell>
-                                            {/* Ensure dateAdded is a Date object */}
-                                            <TableCell>{c.createdAt ? c.createdAt.toISOString().split('T')[0] : 'N/A'}</TableCell>
+                                        <TableRow key={c.id} className="hover:bg-gray-50">
+                                            <TableCell className="font-medium">{c.name}</TableCell>
+                                            <TableCell>{c.email}</TableCell>
+                                            <TableCell>{c.phone}</TableCell>
+                                            {/* FIX: Use dateAdded from the mapped hook data */}
                                             <TableCell>
-                                                <div className="flex space-x-1"> {/* Reduced space */}
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEdit(c)}> {/* Smaller icons */}
+                                                {c.dateAdded instanceof Date && !isNaN(c.dateAdded)
+                                                    ? c.dateAdded.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+                                                    : 'N/A'}
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                <div className="flex justify-end space-x-1">
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:bg-blue-100" onClick={() => startEdit(c)} title="Edit Customer">
                                                         <EditIcon />
                                                     </Button>
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(c)}>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-red-600 hover:bg-red-100" onClick={() => remove(c)} title="Delete Customer">
                                                         <DeleteIcon />
                                                     </Button>
                                                 </div>
@@ -181,54 +185,62 @@ export default function CustomerManagementPage() {
             </Card>
 
             {/* --- MODAL: Customer Form --- */}
-            <Dialog open={isModalOpen} onOpenChange={closeModal}>
+            <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>{editing ? 'Edit Customer' : 'Add Customer'}</DialogTitle>
+                        <DialogTitle>{editing ? 'Edit Customer' : 'Add New Customer'}</DialogTitle>
                         <DialogCloseButton onClick={closeModal} />
                     </DialogHeader>
-                    <form onSubmit={(e) => save(e)}> {/* Ensure the save function is explicitly bound */}
+                    <form onSubmit={save}>
                         <div className="p-4 space-y-4">
+                            {/* Form grid layout */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                    <Label htmlFor="name">Name</Label>
+                                <div className="sm:col-span-2">
+                                    <Label htmlFor="name">Customer Name <span className="text-red-500">*</span></Label>
                                     <Input
                                         id="name"
                                         value={name}
                                         onChange={(e) => setName(e.target.value)}
                                         required
+                                        placeholder="Enter full name"
+                                        autoFocus
                                     />
                                 </div>
                                 <div>
-                                    <Label htmlFor="email">Email</Label>
+                                    <Label htmlFor="email">Email (Optional)</Label>
                                     <Input
                                         id="email"
                                         type="email"
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
+                                        placeholder="customer@example.com"
                                     />
                                 </div>
                                 <div>
-                                    <Label htmlFor="phone">Phone</Label>
+                                    <Label htmlFor="phone">Phone (Optional)</Label>
                                     <Input
                                         id="phone"
                                         value={phone}
                                         onChange={(e) => setPhone(e.target.value)}
+                                        placeholder="e.g., 09171234567"
                                     />
                                 </div>
-                                <div>
-                                    <Label htmlFor="address">Address</Label>
+                                <div className="sm:col-span-2">
+                                    <Label htmlFor="address">Address (Optional)</Label>
                                     <Input
                                         id="address"
                                         value={address}
                                         onChange={(e) => setAddress(e.target.value)}
+                                        placeholder="123 Main St, City"
                                     />
                                 </div>
                             </div>
                         </div>
                         <DialogFooter>
-                            <Button variant="outline" type="button" onClick={closeModal}>Cancel</Button>
-                            <Button type="submit">Save</Button>
+                            <Button variant="outline" type="button" onClick={closeModal} disabled={isMutating}>Cancel</Button>
+                            <Button type="submit" variant="primary" disabled={isMutating}>
+                                {isMutating ? 'Saving...' : (editing ? 'Update Customer' : 'Create Customer')}
+                            </Button>
                         </DialogFooter>
                     </form>
                 </DialogContent>

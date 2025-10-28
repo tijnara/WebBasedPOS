@@ -1,23 +1,29 @@
 import React from 'react';
-import { Card, CardHeader, CardContent, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Input } from '../ui';
+import { Card, CardHeader, CardContent, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Input, ScrollArea } from '../ui'; // Added ScrollArea
+import { useSales } from '../../hooks/useSales'; // Import the useSales hook
 
 export default function HistoryPage() {
-    const sales = []; // Replace with your new data source
-    const isLoading = false; // Replace with your new loading state
+    // --- REFACTORED: Get data from useSales hook ---
+    const { data: sales = [], isLoading } = useSales(); // Use the hook
 
+    // --- Calculation logic remains the same ---
     const totalRevenue = sales.reduce((sum, sale) => sum + Number(sale.totalAmount || 0), 0);
     const transactionsCount = sales.length;
     const avgTransaction = transactionsCount > 0 ? (totalRevenue / transactionsCount).toFixed(2) : '0.00';
 
+    // Calculation for today's sales (no change)
     const todaySales = sales.filter(sale => {
         const saleDate = new Date(sale.saleTimestamp);
         const today = new Date();
         return saleDate.toDateString() === today.toDateString();
     }).reduce((sum, sale) => sum + Number(sale.totalAmount || 0), 0).toFixed(2);
+    // --- End Calculation logic ---
 
     return (
         <div className="history-page">
             <h1 className="text-2xl font-semibold mb-4">Sales History</h1>
+
+            {/* Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                 <Card>
                     <CardHeader><h3 className="font-semibold">Total Revenue</h3></CardHeader>
@@ -42,52 +48,60 @@ export default function HistoryPage() {
                 </Card>
             </div>
 
+            {/* Search Input */}
             <div className="mb-4">
-                <Input placeholder="Search by customer or transaction ID" className="w-full" />
+                <Input placeholder="Search by customer or transaction ID..." className="w-full max-w-lg" />
             </div>
 
+            {/* Sales Table */}
             <Card>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Transaction ID</TableHead>
-                                <TableHead>Date & Time</TableHead>
-                                <TableHead>Customer</TableHead>
-                                <TableHead>Items</TableHead>
-                                <TableHead>Payment Method</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Total</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {isLoading ? (
+                <CardContent className="p-0"> {/* Remove padding for full-width table */}
+                    <ScrollArea className="max-h-[calc(100vh-340px)]"> {/* Make table scrollable */}
+                        <Table>
+                            <TableHeader className="sticky top-0 bg-gray-50 z-10">
                                 <TableRow>
-                                    <TableCell colSpan={7} className="text-center text-muted">Loading history...</TableCell>
+                                    <TableHead>Transaction ID</TableHead>
+                                    <TableHead>Date & Time</TableHead>
+                                    <TableHead>Customer</TableHead>
+                                    <TableHead>Items</TableHead>
+                                    <TableHead>Payment Method</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead className="text-right">Total</TableHead> {/* Aligned right */}
                                 </TableRow>
-                            ) : sales.length === 0 ? (
-                                <TableRow>
-                                    <TableCell colSpan={7} className="text-center text-muted">No sales found.</TableCell>
-                                </TableRow>
-                            ) : (
-                                sales.map(sale => (
-                                    <TableRow key={sale.id}>
-                                        <TableCell>{sale.id.toString().slice(-6)}</TableCell>
-                                        <TableCell>{new Date(sale.saleTimestamp).toLocaleString()}</TableCell>
-                                        <TableCell>{sale.customerName || 'N/A'}</TableCell>
-                                        <TableCell>{sale.items ? sale.items.length : 0} items</TableCell>
-                                        <TableCell>{sale.paymentMethod || 'N/A'}</TableCell>
-                                        <TableCell>
-                                            <span className={`status-badge ${sale.status === 'Completed' ? 'status-completed' : 'status-refunded'}`}>
-                                              {sale.status || 'Completed'}
-                                            </span>
-                                        </TableCell>
-                                        <TableCell>₱{Number(sale.totalAmount || 0).toFixed(2)}</TableCell>
+                            </TableHeader>
+                            <TableBody>
+                                {/* --- REFACTORED: Show loading state --- */}
+                                {isLoading ? (
+                                    <TableRow>
+                                        <TableCell colSpan={7} className="text-center text-muted py-8">Loading history...</TableCell>
                                     </TableRow>
-                                ))
-                            )}
-                        </TableBody>
-                    </Table>
+                                ) : sales.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={7} className="text-center text-muted py-8">No sales found.</TableCell>
+                                    </TableRow>
+                                ) : (
+                                    sales.map(sale => (
+                                        <TableRow key={sale.id} className="hover:bg-gray-50">
+                                            {/* Use a smaller part of the ID, or the full ID if preferred */}
+                                            <TableCell className="font-medium">...{String(sale.id).slice(-6)}</TableCell>
+                                            <TableCell>{sale.saleTimestamp.toLocaleString()}</TableCell>
+                                            <TableCell>{sale.customerName || 'N/A'}</TableCell>
+                                            <TableCell>{sale.items ? sale.items.length : 0} items</TableCell>
+                                            <TableCell>{sale.paymentMethod || 'N/A'}</TableCell>
+                                            <TableCell>
+                                                <span className={`status-badge ${
+                                                    sale.status === 'Completed' ? 'status-completed' : 'status-refunded'
+                                                }`}>
+                                                {sale.status || 'Completed'}
+                                                </span>
+                                            </TableCell>
+                                            <TableCell className="text-right font-semibold">₱{Number(sale.totalAmount || 0).toFixed(2)}</TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
+                            </TableBody>
+                        </Table>
+                    </ScrollArea>
                 </CardContent>
             </Card>
         </div>
