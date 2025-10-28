@@ -31,6 +31,8 @@ function AuthGate({ children }) {
     // Ensure this runs only on the client after mount
     useEffect(() => {
         setIsClient(true);
+        // Call hydrate from store to ensure sessionLoaded is true client-side
+        useStore.getState().hydrate();
     }, []);
 
     // Redirect logic based purely on Zustand state
@@ -45,15 +47,20 @@ function AuthGate({ children }) {
                 router.push('/login');
             } else if (isLoggedIn && isLoginPage) {
                 console.log("AuthGate: Logged in (custom auth), redirecting from login to home");
-                router.push('/');
+                // Use replace instead of push to avoid adding login to history
+                router.replace('/');
             }
         }
     }, [user, sessionLoaded, router, isClient]); // Depend on client-side flag too
 
     // Show loading indicator until mounted on client (prevents hydration mismatch/flashing)
     if (!isClient || !sessionLoaded) {
-        // You could replace this with a more sophisticated loading spinner
-        return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+        // You could replace this with a more sophisticated loading spinner component
+        return (
+            <div className="flex items-center justify-center min-h-screen bg-gray-100 text-gray-600">
+                Loading application...
+            </div>
+        );
     }
 
     // Allow rendering if conditions met (on login page OR user exists)
@@ -62,7 +69,12 @@ function AuthGate({ children }) {
     }
 
     // Fallback while redirecting or if state is unexpected
-    return null;
+    // This state shouldn't normally be reached if redirection works correctly
+    return (
+        <div className="flex items-center justify-center min-h-screen bg-gray-100 text-gray-600">
+            Checking authentication...
+        </div>
+    );
 }
 
 
@@ -74,40 +86,43 @@ export default function App({ Component, pageProps }) {
     return (
         <QueryClientProvider client={queryClient}>
             <AuthGate>
-                <div className="app">
-                    {!isLoginPage && <Sidebar />}
-                    <main className="main">
-                        <div className="container">
+                {/* Apply flex layout to the main app container */}
+                <div className="app flex flex-col md:flex-row h-screen overflow-hidden bg-gray-100"> {/* Added bg color */}
+                    {!isLoginPage && <Sidebar />} {/* Render sidebar if not on login page */}
+                    {/* Main content area takes remaining space and allows vertical scroll */}
+                    <main className="main flex-1 overflow-y-auto">
+                        {/* Container adds padding and max-width */}
+                        <div className="container mx-auto px-4 py-6 md:px-6 lg:px-8">
                             <Component {...pageProps} />
                         </div>
                     </main>
                     {/* Toast Container */}
-                    <div className="toasts fixed bottom-4 right-4 z-50 flex flex-col gap-2" aria-live="polite">
+                    <div className="toasts fixed bottom-4 right-4 z-50 flex flex-col items-end gap-3" aria-live="polite"> {/* Adjusted gap and alignment */}
                         {toasts.map(t => (
-                            <div key={t.id} className={`toast bg-white border border-gray-200 p-3 rounded-md shadow-lg w-80 max-w-[calc(100vw-2rem)] ${
+                            <div key={t.id} className={`toast bg-white border border-gray-200 p-4 rounded-lg shadow-xl w-80 max-w-[calc(100vw-2rem)] flex items-start gap-3 ${
                                 t.variant === 'destructive' ? 'border-l-4 border-red-500' :
                                     t.variant === 'success' ? 'border-l-4 border-green-500' :
-                                        t.variant === 'warning' ? 'border-l-4 border-yellow-500' : ''
+                                        t.variant === 'warning' ? 'border-l-4 border-yellow-500' : 'border-l-4 border-blue-500' // Default style
                             }`}>
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <div className="toast__title font-semibold">{t.title}</div>
-                                        {t.description && <div className="toast__desc text-sm text-gray-600 mt-1">{t.description}</div>}
-                                    </div>
-                                    <Button variant="ghost" size="sm" className="p-1 -mr-1 -mt-1 h-auto" onClick={() => dismissToast(t.id)}>
-                                        {/* Simple X icon */}
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                                            <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
-                                        </svg>
-                                    </Button>
+                                {/* Optional Icon based on variant */}
+                                {/* <div className="flex-shrink-0"> ... Icon SVG ... </div> */}
+                                <div className="flex-1">
+                                    <div className="toast__title font-semibold text-gray-800">{t.title}</div>
+                                    {t.description && <div className="toast__desc text-sm text-gray-600 mt-1">{t.description}</div>}
+                                    {t.action && (
+                                        <div className="toast__actions mt-2">
+                                            <Button variant="ghost" size="sm" onClick={t.action.onClick} className="text-blue-600 hover:bg-blue-50 px-2 py-1">
+                                                {t.action.label}
+                                            </Button>
+                                        </div>
+                                    )}
                                 </div>
-                                {t.action && (
-                                    <div className="toast__actions mt-2 text-right">
-                                        <Button variant="ghost" size="sm" onClick={t.action.onClick}>
-                                            {t.action.label}
-                                        </Button>
-                                    </div>
-                                )}
+                                <Button variant="ghost" size="sm" className="p-1 -mr-2 -mt-2 h-auto text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full" onClick={() => dismissToast(t.id)} aria-label="Dismiss toast">
+                                    {/* Simple X icon */}
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                        <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+                                    </svg>
+                                </Button>
                             </div>
                         ))}
                     </div> {/* End Toast Container */}

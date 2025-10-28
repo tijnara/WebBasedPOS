@@ -1,35 +1,50 @@
 // src/store/useStore.js
 import { create } from 'zustand';
-import api from '../lib/api';
+import api from '../lib/api'; // Ensure this points to your updated api.js
 
-// Optional: Basic persistence for the custom user object (not secure like a session)
+// Persistence for the custom user object (using localStorage)
 const persistUserToStorage = (user) => {
+    // Ensure running on client-side
     if (typeof window !== 'undefined') {
-        if (user) {
-            // Only store necessary, non-sensitive user info
-            const userToStore = {
-                id: user.id,
-                name: user.name,
-                email: user.email,
-                // Add other relevant fields like 'role' if applicable, but NOT password
-            };
-            localStorage.setItem('pos_custom_user', JSON.stringify(userToStore));
-            console.log("Store: Persisted user to localStorage", userToStore);
-        } else {
-            localStorage.removeItem('pos_custom_user');
-            console.log("Store: Removed user from localStorage");
+        try {
+            if (user) {
+                // Only store non-sensitive, necessary user info
+                const userToStore = {
+                    id: user.id,
+                    name: user.name,
+                    email: user.email,
+                    phone: user.phone, // Include if needed by UI
+                    dateadded: user.dateadded, // Include if needed by UI
+                    // Add other relevant fields like 'role' if applicable, but NEVER password
+                };
+                localStorage.setItem('pos_custom_user', JSON.stringify(userToStore));
+                console.log("Store: Persisted user to localStorage", userToStore);
+            } else {
+                localStorage.removeItem('pos_custom_user');
+                console.log("Store: Removed user from localStorage");
+            }
+        } catch (error) {
+            console.error("Store: Error persisting user to localStorage", error);
         }
     }
 };
 
 const getUserFromStorage = () => {
+    // Ensure running on client-side
     if (typeof window !== 'undefined') {
         const userJson = localStorage.getItem('pos_custom_user');
         if (!userJson) return null;
         try {
             const user = JSON.parse(userJson);
             console.log("Store: Loaded user from localStorage", user);
-            return user;
+            // Basic validation of stored data
+            if (user && user.id && user.email) {
+                return user;
+            } else {
+                console.warn("Store: Invalid user data found in localStorage, clearing.");
+                localStorage.removeItem('pos_custom_user');
+                return null;
+            }
         } catch (e) {
             console.error("Store: Failed to parse user from localStorage", e);
             localStorage.removeItem('pos_custom_user'); // Clear invalid data
@@ -39,15 +54,15 @@ const getUserFromStorage = () => {
     return null;
 };
 
+// Initialize state attempt (will run client-side on first render/hydration)
+const initialUser = getUserFromStorage();
 
 export const useStore = create((set, get) => ({
     // --- Auth State (Updated for Custom User Object) ---
-    user: getUserFromStorage(), // Load initial user from storage if persisted
-    // profile: null, // Removed - assuming user object from 'users' table has all needed info
-    // session: null, // Removed - No Supabase session
-    // Set to true immediately - no async session check needed, but check if user exists from storage
-    sessionLoaded: true, // Renamed from sessionLoaded for clarity, indicates initial state is ready
-
+    user: initialUser, // Load initial user from storage
+    // session: null, // Removed - No Supabase session concept here
+    // Use `sessionLoaded` to indicate if initial state (from storage) is ready client-side
+    sessionLoaded: typeof window !== 'undefined' ? true : false,
 
     // --- UI / Cart State (Keep) ---
     currentSale: {},
@@ -63,16 +78,16 @@ export const useStore = create((set, get) => ({
                 console.error("Invalid price for product:", product);
                 return {};
             }
-            const key = `${product.id}__${price.toFixed(2)}`;
+            const key = `${product.id}__${price.toFixed(2)}`; // Unique key per product & price combo
             const existing = state.currentSale[key];
             const currentQty = existing ? existing.quantity : 0;
-            const newQty = Math.max(0, currentQty + quantity);
+            const newQty = Math.max(0, currentQty + quantity); // Don't allow negative quantity
             if (newQty <= 0) {
                 const { [key]: _, ...rest } = state.currentSale;
-                console.log(`Removing item ${key} from sale.`);
+                console.log(`Store: Removing item ${key} from sale.`);
                 return { currentSale: rest };
             }
-            console.log(`Adding/Updating item ${key} to quantity ${newQty}.`);
+            console.log(`Store: Adding/Updating item ${key} to quantity ${newQty}.`);
             return {
                 currentSale: {
                     ...state.currentSale,
@@ -81,19 +96,19 @@ export const useStore = create((set, get) => ({
             };
         }),
     removeItemFromSale: (key) => set((state) => {
-        console.log(`Removing item ${key} explicitly.`);
+        console.log(`Store: Removing item ${key} explicitly.`);
         const { [key]: _, ...rest } = state.currentSale;
         return { currentSale: rest };
     }),
     clearSale: () => {
-        console.log("Clearing current sale and customer.");
+        console.log("Store: Clearing current sale and customer.");
         set({ currentSale: {}, currentCustomer: null });
     },
     getTotalAmount: () => {
         const sale = get().currentSale;
         return Object.values(sale).reduce((total, item) => total + (item.price * item.quantity), 0);
     },
-    addToast: (t) => set((s) => ({ toasts: [...s.toasts, { ...t, id: Date.now() }] })),
+    addToast: (t) => set((s) => ({ toasts: [...s.toasts, { ...t, id: Date.now() + Math.random() }] })), // Added random for better key uniqueness
     dismissToast: (id) => set((s) => ({ toasts: s.toasts.filter(x => x.id !== id) })),
 
     // --- Auth (Updated for Custom Login) ---
@@ -101,27 +116,48 @@ export const useStore = create((set, get) => ({
     setAuth: (user) => {
         console.log("Store: Setting custom user state", user);
         persistUserToStorage(user); // Persist user to localStorage
-        // No session to set, just the user object from your 'users' table
-        set({ user, sessionLoaded: true }); // Ensure sessionLoaded remains true
+        // Set user and ensure sessionLoaded is true
+        set({ user, sessionLoaded: true });
     },
 
-    // checkSession is no longer needed as there's no external session to check
-    // checkSession: async () => { ... REMOVED ... },
+    // checkSession is not needed for this custom auth approach
+    // checkSession: async () => { /* REMOVED */ },
 
     // Logs the user out (client-side state clearing only)
-    logout: async () => {
+    logout: () => { // Made synchronous as api.logout is now sync
         try {
-            // Call the simplified api.logout (which does nothing async)
-            await api.logout();
+            api.logout(); // Call the simplified api.logout
             console.log("Store: Logout successful, clearing custom user state.");
             persistUserToStorage(null); // Remove user from localStorage
             set({ user: null }); // Clear user state
         } catch (error) {
-            // Should not happen with the simplified logout, but keep for safety
             console.error("Store: Logout failed:", error);
-            get().addToast({ title: 'Logout Error', description: error.message, variant: 'destructive' });
+            get().addToast({ title: 'Logout Error', description: error.message || 'Logout failed.', variant: 'destructive' });
         }
     },
+    // Function to ensure sessionLoaded is true after initial client-side hydration
+    hydrate: () => {
+        // This function now primarily ensures the store knows it's running client-side
+        // and has attempted to load the initial user state from localStorage.
+        if (!get().sessionLoaded && typeof window !== 'undefined') {
+            console.log("Store: Hydrating sessionLoaded state on client.");
+            // Try loading from storage again in case initialUser was null server-side
+            const userFromStorage = getUserFromStorage();
+            set({ sessionLoaded: true, user: userFromStorage });
+        } else if (get().sessionLoaded && typeof window !== 'undefined' && get().user === null && localStorage.getItem('pos_custom_user')) {
+            // Handle edge case where initial state might be null but localStorage has data later
+            console.warn("Store: Re-hydrating user state from localStorage.");
+            const userFromStorage = getUserFromStorage();
+            set({ user: userFromStorage });
+        }
+    }
 }));
+
+// Trigger hydrate on the client-side after initial load
+if (typeof window !== 'undefined') {
+    // Timeout helps ensure React hydration is complete before Zustand hydration check
+    setTimeout(() => useStore.getState().hydrate(), 1);
+}
+
 
 export default useStore;

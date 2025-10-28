@@ -44,6 +44,7 @@ export default function CustomerManagementPage() {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [phone, setPhone] = useState('');
+    const [address, setAddress] = useState(''); // --- NEW: State for address ---
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     // --- Modal control functions remain the same ---
@@ -62,6 +63,7 @@ export default function CustomerManagementPage() {
         setName(c?.name || '');
         setEmail(c?.email || '');
         setPhone(c?.phone || '');
+        setAddress(c?.address || ''); // --- NEW: Set address for editing ---
         setIsModalOpen(true);
     };
 
@@ -70,6 +72,7 @@ export default function CustomerManagementPage() {
         setName('');
         setEmail('');
         setPhone('');
+        setAddress(''); // --- NEW: Reset address field ---
     };
     // --- End modal control functions ---
 
@@ -80,7 +83,7 @@ export default function CustomerManagementPage() {
             return;
         }
 
-        const payload = { name, email, phone, date_added: editing ? editing.date_added : new Date().toISOString() }; // Ensure date_added is set
+        const payload = { name, email, phone, address, date_added: editing ? editing.date_added : new Date().toISOString() }; // --- UPDATED: Include address in payload ---
 
         try {
             if (editing) {
@@ -157,7 +160,7 @@ export default function CustomerManagementPage() {
                                             <TableCell>{c.email || 'N/A'}</TableCell>
                                             <TableCell>{c.phone || 'N/A'}</TableCell>
                                             {/* Ensure dateAdded is a Date object */}
-                                            <TableCell>{c.date_added ? new Date(c.date_added).toISOString().split('T')[0] : 'N/A'}</TableCell>
+                                            <TableCell>{c.createdAt ? c.createdAt.toISOString().split('T')[0] : 'N/A'}</TableCell>
                                             <TableCell>
                                                 <div className="flex space-x-1"> {/* Reduced space */}
                                                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEdit(c)}> {/* Smaller icons */}
@@ -181,44 +184,52 @@ export default function CustomerManagementPage() {
             <Dialog open={isModalOpen} onOpenChange={closeModal}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>{editing ? 'Edit' : 'Add'} Customer</DialogTitle>
-                        <DialogCloseButton />
+                        <DialogTitle>{editing ? 'Edit Customer' : 'Add Customer'}</DialogTitle>
+                        <DialogCloseButton onClick={closeModal} />
                     </DialogHeader>
                     <form onSubmit={(e) => save(e)}> {/* Ensure the save function is explicitly bound */}
-                        <div className="grid gap-4">
-                            <div>
-                                <Label htmlFor="name">Customer Name</Label>
-                                <Input
-                                    id="name"
-                                    value={name}
-                                    onChange={(e) => setName(e.target.value)}
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <Label htmlFor="email">Email (optional)</Label>
-                                <Input
-                                    id="email"
-                                    type="email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                />
-                            </div>
-                            <div>
-                                <Label htmlFor="phone">Phone (optional)</Label>
-                                <Input
-                                    id="phone"
-                                    value={phone}
-                                    onChange={(e) => setPhone(e.target.value)}
-                                />
+                        <div className="p-4 space-y-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <Label htmlFor="name">Name</Label>
+                                    <Input
+                                        id="name"
+                                        value={name}
+                                        onChange={(e) => setName(e.target.value)}
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <Label htmlFor="email">Email</Label>
+                                    <Input
+                                        id="email"
+                                        type="email"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                    />
+                                </div>
+                                <div>
+                                    <Label htmlFor="phone">Phone</Label>
+                                    <Input
+                                        id="phone"
+                                        value={phone}
+                                        onChange={(e) => setPhone(e.target.value)}
+                                    />
+                                </div>
+                                <div>
+                                    <Label htmlFor="address">Address</Label>
+                                    <Input
+                                        id="address"
+                                        value={address}
+                                        onChange={(e) => setAddress(e.target.value)}
+                                    />
+                                </div>
                             </div>
                         </div>
-                        <div className="mt-4 flex justify-end gap-2">
-                            <Button variant="outline" onClick={closeModal}>Cancel</Button>
-                            <Button type="submit" disabled={isMutating}> {/* Fixed non-boolean attribute issue */}
-                                {isMutating ? 'Saving...' : 'Save Customer'}
-                            </Button>
-                        </div>
+                        <DialogFooter>
+                            <Button variant="outline" type="button" onClick={closeModal}>Cancel</Button>
+                            <Button type="submit">Save</Button>
+                        </DialogFooter>
                     </form>
                 </DialogContent>
             </Dialog>

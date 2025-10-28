@@ -1,87 +1,72 @@
 // src/lib/api.js
 import { supabase } from './supabaseClient'; // Import the Supabase client
 
-// Logs in the user using Supabase email/password auth
+// --- INSECURE LOGIN - FOR DEMONSTRATION ONLY ---
+// Assumes passwords in the 'users' table are NOT hashed securely.
+// ** DO NOT USE IN PRODUCTION without server-side hashing **
 export async function login({ email, password }) {
-    console.log('Attempting custom login with:', { email });
+    console.log('Attempting custom table login with:', { email }); // Don't log password in real apps
 
-    const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('email', email)
-        .single();
-
-    if (error) {
-        console.error('Login error:', error);
-        throw new Error('Invalid email or password.');
+    if (!email || !password) {
+        throw new Error('Email and password are required.');
     }
 
-    if (data.password !== password) {
-        console.error('Password mismatch for user:', email);
-        throw new Error('Invalid email or password.');
-    }
+    // Ensure the email is trimmed and converted to lowercase for case-insensitive matching
+    const normalizedEmail = email.trim().toLowerCase();
 
-    console.log('Login successful for user:', data);
-    return data;
-}
+    try {
+        // Query the 'users' table for a matching email
+        const { data: user, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('email', normalizedEmail)
+            .single();
 
-// Logs out the user from Supabase
-export async function logout() {
-    console.log('Attempting Supabase logout');
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-        console.error('Supabase Logout error:', error);
-        throw new Error(error.message || 'Logout failed.');
-    }
-    console.log('Supabase Logout successful');
-}
-
-// Fetches the current user session from Supabase
-// This gets the session from Supabase's internal storage (e.g., localStorage)
-export async function getCurrentSession() {
-    // console.log("api.js: Getting current session..."); // Can be noisy, enable if needed
-    const { data, error } = await supabase.auth.getSession();
-    if (error) {
-        console.error('Error fetching session in api.js:', error);
-        return { session: null, user: null };
-    }
-    // console.log("api.js: Session data received:", data.session); // Can be noisy
-    return { session: data.session, user: data.session?.user ?? null };
-}
-
-// Optional: Get user profile data from your 'profiles' table
-// Assumes you have a 'profiles' table with a column 'id' that matches auth.users.id
-export async function getUserProfile(userId) {
-    if (!userId) {
-        console.log("getUserProfile: No userId provided.");
-        return null;
-    }
-    console.log("getUserProfile: Fetching profile for user ID:", userId);
-    const { data, error } = await supabase
-        .from('profiles') // Adjust if your table name is different
-        .select('*')      // Select specific columns like 'id, full_name, role' for efficiency
-        .eq('id', userId)
-        .single();        // Use .single() if 'id' is unique
-
-    if (error) {
-        // It's common for a profile to not exist initially after signup
-        if (error.code === 'PGRST116') { // code for "requested range not satisfiable" -> no rows found
-            console.log("getUserProfile: No profile found for user ID:", userId);
-            return null;
+        // Handle errors during the query
+        if (error) {
+            if (error.code === 'PGRST116') {
+                console.error(`No user found with email: ${normalizedEmail}`);
+                throw new Error('Invalid email or password.');
+            } else {
+                console.error('Supabase query error during login:', error);
+                throw new Error(error.message || 'Database query failed during login.');
+            }
         }
-        console.error('Error fetching user profile:', error);
-        // Depending on your app logic, you might want to throw the error or return null
-        // throw error;
-        return null;
+
+        // Check if user exists and if the password matches
+        if (user && user.password === password) {
+            console.log(`Login successful for email: ${normalizedEmail}`);
+            const { password: _, ...userData } = user;
+
+            if (!userData.id || !userData.email || !userData.name) {
+                console.error("User data fetched is missing essential fields (id, email, name):", userData);
+                throw new Error('Login succeeded but user data is incomplete.');
+            }
+            return userData;
+        } else {
+            console.log(`Login failed for email: ${normalizedEmail} - ${user ? 'Password incorrect.' : 'User not found.'}`);
+            throw new Error('Invalid email or password.');
+        }
+    } catch (err) {
+        console.error('Custom login function error:', err);
+        throw err;
     }
-    console.log("getUserProfile: Profile data found:", data);
-    return data;
 }
 
+// --- Logout (Simplified - Synchronous) ---
+// Since we are not using Supabase Auth sessions, logout just clears client state.
+export function logout() {
+    console.log('Performing client-side logout (clearing state via store).');
+    // Actual state clearing happens in useStore.logout() which calls this.
+    // No Supabase call needed.
+}
+
+
+// --- No Session Management ---
+// getCurrentSession and getUserProfile related to Supabase Auth are removed
+// as we are bypassing that system.
 
 export default {
     login,
     logout,
-    getCurrentSession,
-    getUserProfile // Export if you use it
 };

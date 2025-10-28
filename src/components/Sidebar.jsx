@@ -40,17 +40,20 @@ const Sidebar = () => {
         { name: 'Customers', path: '/customer-management' },
         { name: 'History', path: '/history' },
         // Conditionally show Users link based on role if needed
+        // Assuming your 'users' table might have a 'role' column
         // { name: 'Users', path: '/user-management', roles: ['admin'] },
-        { name: 'Users', path: '/user-management' }, // Simpler version
+        { name: 'Users', path: '/user-management' }, // Simpler version for now
     ];
 
-    // Filter links (keep simple for now)
-    const visibleLinks = links;
+    // Filter links based on user role (Example)
+    // const userRole = user?.role || 'cashier'; // Get role from user object (adjust field name)
+    // const visibleLinks = links.filter(link => !link.roles || link.roles.includes(userRole));
+    const visibleLinks = links; // Keep simple for now
 
     const handleLogout = async () => {
         // Use the store's simplified logout
         await logout();
-        // Redirect handled by AuthGate, but explicit push is fine
+        // Redirect handled by AuthGate, but explicit push ensures quick redirect
         router.push('/login');
     };
 
@@ -79,7 +82,7 @@ const Sidebar = () => {
         <div className="sidebar flex flex-col bg-white border-b md:border-b-0 md:border-r border-gray-200 md:w-64 flex-shrink-0 relative md:h-screen">
 
             {/* Brand header */}
-            <div className="brand p-4 font-bold text-lg text-primary flex justify-between items-center h-16 border-b border-gray-200">
+            <div className="brand p-4 font-bold text-lg text-primary flex justify-between items-center h-16 border-b border-gray-200 flex-shrink-0"> {/* Added flex-shrink-0 */}
                 <span>SEASIDE POS</span>
                 <HamburgerButton onClick={() => setIsMobileMenuOpen(s => !s)} />
             </div>
@@ -87,8 +90,8 @@ const Sidebar = () => {
             {/* Mobile menu wrapper: Absolute position below header on mobile, static on desktop */}
             <div className={cn(
                 'absolute md:static top-16 left-0 right-0 md:top-auto md:left-auto md:right-auto', // Positioning
-                'bg-white border-r border-l border-b md:border-none', // Borders
-                'flex-1 flex flex-col overflow-y-auto md:overflow-visible', // Layout & Overflow
+                'bg-white border-r border-l border-b md:border-none shadow-md md:shadow-none', // Borders & Shadow
+                'flex-1 flex flex-col overflow-y-auto md:overflow-visible z-40', // Layout & Overflow, added z-index
                 { 'hidden': !isMobileMenuOpen }, // Hide on mobile if closed
                 'md:flex' // Always display flex on medium+ screens
             )}>
@@ -100,9 +103,9 @@ const Sidebar = () => {
                             key={link.path}
                             variant="ghost" // Use ghost variant for base style
                             className={cn(
-                                'w-full justify-start text-left h-auto py-2 px-3 text-gray-600 hover:bg-gray-100 hover:text-gray-900', // Base styles
+                                'w-full justify-start text-left h-auto py-2 px-3 text-gray-600 hover:bg-gray-100 hover:text-gray-900 rounded-md', // Base styles + rounded
                                 { // Active state using primary colors
-                                    'bg-blue-50 text-primary font-semibold': router.pathname === link.path,
+                                    'bg-blue-100 text-primary font-semibold': router.pathname === link.path,
                                 }
                             )}
                             onClick={() => router.push(link.path)}
@@ -116,8 +119,8 @@ const Sidebar = () => {
                 <div className="meta p-4 border-t border-gray-200 mt-auto">
                     <div className="text-sm mb-2 text-gray-700">
                         Logged in as: <br />
-                        <span className="font-medium text-gray-900 block truncate">{getDisplayName()}</span><br />
-                        <span className="text-xs text-gray-500 block truncate">{user?.email}</span>
+                        <span className="font-medium text-gray-900 block truncate" title={getDisplayName()}>{getDisplayName()}</span><br />
+                        <span className="text-xs text-gray-500 block truncate" title={user?.email}>{user?.email}</span>
                         {/* Optional: Display role if available in user object */}
                         {/* {user?.role && <span className="text-xs text-blue-600 block capitalize mt-1">Role: {user.role}</span>} */}
                     </div>

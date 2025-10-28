@@ -45,8 +45,6 @@ export default function ProductManagementPage() {
     const [editing, setEditing] = useState(null);
     const [name, setName] = useState('');
     const [price, setPrice] = useState('');
-    const [category, setCategory] = useState('Default'); // Default category
-    const [stock, setStock] = useState('0');       // Default stock
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     // --- Modal control functions remain the same ---
@@ -54,8 +52,6 @@ export default function ProductManagementPage() {
         setEditing(p);
         setName(p?.name || '');
         setPrice(p?.price != null ? String(p.price) : '');
-        setCategory(p?.category || 'Default');
-        setStock(p?.stock != null ? String(p.stock) : '0');
         setIsModalOpen(true);
     };
 
@@ -73,8 +69,6 @@ export default function ProductManagementPage() {
         setEditing(null);
         setName('');
         setPrice('');
-        setCategory('Default');
-        setStock('0');
     };
     // --- End modal control functions ---
 
@@ -82,9 +76,8 @@ export default function ProductManagementPage() {
         e.preventDefault();
 
         const parsedPrice = parseFloat(price);
-        const parsedStock = parseInt(stock, 10);
 
-        if (!name || !price || !category || stock === '') { // Check stock is not empty string
+        if (!name || !price) { // Removed category and stock checks
             addToast({ title: 'Error', description: 'All fields are required.' });
             return;
         }
@@ -92,16 +85,10 @@ export default function ProductManagementPage() {
             addToast({ title: 'Error', description: 'Price must be a valid non-negative number.' });
             return;
         }
-        if (isNaN(parsedStock) || parsedStock < 0) {
-            addToast({ title: 'Error', description: 'Stock must be a valid non-negative integer.' });
-            return;
-        }
 
         const payload = {
             name,
-            price: parsedPrice,
-            category,
-            stock: parsedStock
+            price: parsedPrice
         };
 
         try {
@@ -157,9 +144,7 @@ export default function ProductManagementPage() {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Product Name</TableHead>
-                                    <TableHead>Category</TableHead>
                                     <TableHead>Price</TableHead>
-                                    <TableHead>Stock</TableHead>
                                     <TableHead>Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -167,25 +152,23 @@ export default function ProductManagementPage() {
                                 {/* --- REFACTORED: Show loading state --- */}
                                 {isLoading ? (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="text-center text-muted">Loading products...</TableCell>
+                                        <TableCell colSpan={3} className="text-center text-muted">Loading products...</TableCell>
                                     </TableRow>
                                 ) : products.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="text-center text-muted">No products found.</TableCell>
+                                        <TableCell colSpan={3} className="text-center text-muted">No products found.</TableCell>
                                     </TableRow>
                                 ) : (
                                     products.map(p => (
                                         <TableRow key={p.id}>
                                             <TableCell>{p.name}</TableCell>
-                                            <TableCell>{p.category}</TableCell>
-                                            <TableCell>₱{Number(p.price||0).toFixed(2)}</TableCell>
-                                            <TableCell>{p.stock}</TableCell>
+                                            <TableCell>₱{Number(p.price || 0).toFixed(2)}</TableCell>
                                             <TableCell>
-                                                <div className="flex space-x-1"> {/* Reduced space */}
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEdit(p)}> {/* Smaller icons */}
+                                                <div className="flex space-x-1">
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEdit(p)}>
                                                         <EditIcon />
                                                     </Button>
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(p)}> {/* Smaller icons */}
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(p)}>
                                                         <DeleteIcon />
                                                     </Button>
                                                 </div>
@@ -213,16 +196,8 @@ export default function ProductManagementPage() {
                                     <Input id="productName" value={name} onChange={e => setName(e.target.value)} required />
                                 </div>
                                 <div>
-                                    <Label htmlFor="category">Category</Label>
-                                    <Input id="category" value={category} onChange={e => setCategory(e.target.value)} required />
-                                </div>
-                                <div>
                                     <Label htmlFor="pprice">Price (₱)</Label>
                                     <Input id="pprice" type="number" step="0.01" min="0" value={price} onChange={e => setPrice(e.target.value)} required />
-                                </div>
-                                <div>
-                                    <Label htmlFor="stock">Stock</Label>
-                                    <Input id="stock" type="number" step="1" min="0" value={stock} onChange={e => setStock(e.target.value)} required />
                                 </div>
                             </div>
                         </div>

@@ -72,7 +72,7 @@ export function useCreateUser() {
                 email: userData.email,
                 phone: userData.phone || null,
                 password: userData.password, // <-- Storing plain text password - BAD PRACTICE
-                // dateadded is likely handled by Supabase default value or trigger
+                dateadded: new Date().toISOString() // Set dateadded on creation
             };
             const { data, error } = await supabase
                 .from('users')
@@ -112,7 +112,8 @@ export function useUpdateUser() {
 
     return useMutation({
         mutationFn: async (userData) => {
-            const { id, ...payload } = userData; // userData from form { id, name, email, phone, password? }
+            // Exclude dateAdded from payload sent for update
+            const { id, dateAdded, ...payload } = userData; // userData from form { id, name, email, phone, password?, dateAdded? }
             if (!id) throw new Error("User ID is required for update.");
 
             const updateData = {
@@ -150,19 +151,43 @@ export function useUpdateUser() {
                 throw error;
             }
             console.log('useUpdateUser: Update successful:', data);
-            return data;
+            // Map dateAdded back for consistency in optimistic update if needed
+            return { ...data, dateAdded: data.dateadded ? new Date(data.dateadded) : null };
         },
         // Optional: Add optimistic updates like in other hooks if desired
+        onMutate: async (updatedUser) => {
+            await queryClient.cancelQueries({ queryKey: usersTableKey });
+            const previousUsers = queryClient.getQueryData(usersTableKey);
+            // Ensure dateAdded is handled correctly in optimistic update
+            const optimisticUserData = {
+                ...updatedUser,
+                // Use the dateAdded from the input form data if available, otherwise parse from the existing cache
+                dateAdded: updatedUser.dateAdded instanceof Date
+                    ? updatedUser.dateAdded
+                    : (previousUsers?.find(u => u.id === updatedUser.id)?.dateAdded || null)
+            };
+            queryClient.setQueryData(usersTableKey, (old = []) =>
+                old.map((u) => (u.id === updatedUser.id ? optimisticUserData : u))
+            );
+            return { previousUsers };
+        },
         onSuccess: (data) => {
-            console.log('useUpdateUser: Success! Invalidating users table query.', data);
-            queryClient.invalidateQueries({ queryKey: usersTableKey });
+            console.log('useUpdateUser: Success!', data);
+            // Invalidation happens in onSettled now
             addToast({ title: 'User Updated', description: `User ${data.email} updated.`, variant: 'success' });
         },
-        onError: (error, variables) => { // variables contains the input userData
+        onError: (error, variables, context) => { // variables contains the input userData
             console.error('useUpdateUser: Mutation failed for ID:', variables.id, error);
+            if (context?.previousUsers) {
+                queryClient.setQueryData(usersTableKey, context.previousUsers); // Rollback optimistic update
+            }
             addToast({ title: 'Update Failed', description: error.message, variant: 'destructive' });
         },
-        // onSettled: () => { queryClient.invalidateQueries({ queryKey: usersTableKey }); } // Can simplify if no optimistic updates
+        onSettled: (data, error, updatedUser) => {
+            // Always refetch after error or success to ensure data consistency
+            console.log('useUpdateUser: Mutation settled for ID:', updatedUser.id, 'Refetching users table data.');
+            queryClient.invalidateQueries({ queryKey: usersTableKey });
+        }
     });
 }
 
@@ -178,8 +203,6 @@ export function useDeleteUser() {
 
             // ** IMPORTANT: This ONLY deletes the row from your `users` table. **
             // It does NOT delete the user from Supabase Auth if they exist there.
-            // If using Supabase Auth alongside this, you need separate logic (likely an Edge Function)
-            // to delete the corresponding auth.users record using admin privileges.
 
             const { error } = await supabase
                 .from('users')
@@ -204,9 +227,8 @@ export function useDeleteUser() {
             return { previousUsers };
         },
         onSuccess: (userId) => {
-            console.log('useDeleteUser: Success! Invalidating users table query for ID:', userId);
-            // Invalidation might be redundant if optimistic update is reliable
-            // queryClient.invalidateQueries({ queryKey: usersTableKey });
+            console.log('useDeleteUser: Success for ID:', userId);
+            // Invalidation happens in onSettled
             addToast({ title: 'User Deleted', description: `User deleted successfully.`, variant: 'success' });
         },
         onError: (error, userId, context) => {
