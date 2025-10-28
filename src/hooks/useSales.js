@@ -29,12 +29,13 @@ export function useSales() {
                 return data.map(s => ({
                     id: s.id,
                     saleTimestamp: new Date(s.saleTimestamp || s.created_at),
-                    totalAmount: parseFloat(s.totalAmount) || 0,
+                    totalAmount: parseFloat(s.totalamount) || 0,     // <-- Read from lowercase
+                    amountReceived: parseFloat(s.amountreceived) || 0, // <-- Added this
                     customerId: s.customerId,
-                    customerName: s.customerName || 'N/A',
+                    customerName: s.customername || 'N/A',     // <-- Read from lowercase
                     // The 'sale_items' array is now directly available from the join
                     items: s.sale_items || [],
-                    paymentMethod: s.paymentMethod || 'N/A',
+                    paymentMethod: s.paymentmethod || 'N/A', // <-- Read from lowercase
                     status: s.status || 'Completed'
                 }));
 

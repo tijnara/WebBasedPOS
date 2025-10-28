@@ -7,10 +7,9 @@ export default function HistoryPage() {
     const { data: sales = [], isLoading } = useSales(); // Use the hook
 
     // --- Calculation logic ---
-    const totalRevenue = sales.reduce((sum, sale) => sum + Number(sale.totalAmount || 0), 0);
+    const totalRevenue = sales.reduce((sum, sale) => sum + Number(sale.amountReceived || 0), 0);
     const transactionsCount = sales.length;
     const avgTransaction = transactionsCount > 0 ? (totalRevenue / transactionsCount).toFixed(2) : '0.00';
-
     // Calculation for today's sales
     const todaySales = sales.filter(sale => {
         const saleDate = new Date(sale.saleTimestamp);
@@ -97,7 +96,7 @@ export default function HistoryPage() {
                                                 {sale.status || 'Completed'}
                                                 </span>
                                             </TableCell>
-                                            <TableCell className="text-right font-semibold">₱{Number(sale.totalAmount || 0).toFixed(2)}</TableCell>
+                                            <TableCell className="text-right font-semibold">₱{Number(sale.amountReceived || 0).toFixed(2)}</TableCell>
                                         </TableRow>
                                     ))
                                 )}

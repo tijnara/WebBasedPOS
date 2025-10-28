@@ -12,13 +12,13 @@ export function useCreateSale() {
             // Step 1: Prepare and insert the main sale data into the 'sales' table
             // This object contains all the summary fields
             const saleDataToInsert = {
-                saleTimestamp: salePayload.saleTimestamp,
-                totalAmount: salePayload.totalAmount,
-                customerId: salePayload.customerId,
-                customerName: salePayload.customerName,
-                paymentMethod: salePayload.paymentMethod,
-                amountReceived: salePayload.amountReceived,
-                changeGiven: salePayload.changeGiven,
+                saletimestamp: salePayload.saleTimestamp,
+                totalamount: salePayload.totalAmount,
+                customerid: salePayload.customerId,
+                customername: salePayload.customerName,
+                paymentmethod: salePayload.paymentMethod,
+                amountreceived: salePayload.amountReceived, // <-- Renamed this key to all lowercase
+                changegiven: salePayload.changeGiven,
                 status: salePayload.status,
             };
 
