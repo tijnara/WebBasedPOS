@@ -41,7 +41,7 @@ export default function CustomerManagementPage() {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [phone, setPhone] = useState('');
-    const [address, setAddress] = useState(''); // State for address
+    const [address, setAddress] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     const openModal = () => {
@@ -57,9 +57,9 @@ export default function CustomerManagementPage() {
     const startEdit = (c) => {
         setEditing(c);
         setName(c?.name || '');
-        setEmail(c?.email === 'N/A' ? '' : c?.email || ''); // Handle 'N/A'
-        setPhone(c?.phone === 'N/A' ? '' : c?.phone || ''); // Handle 'N/A'
-        setAddress(c?.address || ''); // Set address for editing
+        setEmail(c?.email === 'N/A' ? '' : c?.email || '');
+        setPhone(c?.phone === 'N/A' ? '' : c?.phone || '');
+        setAddress(c?.address || '');
         setIsModalOpen(true);
     };
 
@@ -68,7 +68,7 @@ export default function CustomerManagementPage() {
         setName('');
         setEmail('');
         setPhone('');
-        setAddress(''); // Reset address field
+        setAddress('');
     };
 
     const save = async (e) => {
@@ -82,17 +82,14 @@ export default function CustomerManagementPage() {
             name: name.trim(),
             email: email.trim() || null,
             phone: phone.trim() || null,
-            address: address.trim() || null, // Include address
-            // 'dateAdded' is no longer sent; hook uses 'created_at' from Supabase
+            address: address.trim() || null,
         };
 
         try {
             if (editing) {
-                // Pass the existing dateAdded from the 'editing' object if needed
                 await updateCustomer.mutateAsync({ ...payload, id: editing.id, dateAdded: editing.dateAdded });
                 addToast({ title: 'Updated', description: `Customer ${name} updated`, variant: 'success' });
             } else {
-                // dateAdded/created_at is handled by Supabase/hook
                 await createCustomer.mutateAsync(payload);
                 addToast({ title: 'Created', description: `Customer ${name} created`, variant: 'success' });
             }
@@ -114,7 +111,6 @@ export default function CustomerManagementPage() {
         }
     };
 
-    // Combined mutation loading state
     const isMutating = createCustomer.isPending || updateCustomer.isPending || deleteCustomer.isPending;
 
     return (
@@ -131,7 +127,8 @@ export default function CustomerManagementPage() {
                 <Input placeholder="Search customers..." className="w-full max-w-lg" />
             </div>
 
-            <Card className="mb-4">
+            {/* --- DESKTOP TABLE (Hidden on mobile) --- */}
+            <Card className="mb-4 hidden md:block">
                 <CardContent className="p-0">
                     <ScrollArea className="max-h-[calc(100vh-280px)]">
                         <Table>
@@ -159,7 +156,6 @@ export default function CustomerManagementPage() {
                                             <TableCell className="font-medium">{c.name}</TableCell>
                                             <TableCell>{c.email}</TableCell>
                                             <TableCell>{c.phone}</TableCell>
-                                            {/* FIX: Use dateAdded from the mapped hook data */}
                                             <TableCell>
                                                 {c.dateAdded instanceof Date && !isNaN(c.dateAdded)
                                                     ? c.dateAdded.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
@@ -184,7 +180,46 @@ export default function CustomerManagementPage() {
                 </CardContent>
             </Card>
 
-            {/* --- MODAL: Customer Form --- */}
+            {/* --- MOBILE CARD LIST (Show on mobile, hide on md+) --- */}
+            <div className="block md:hidden space-y-3">
+                {isLoading ? (
+                    <div className="text-center text-muted py-8">Loading customers...</div>
+                ) : customers.length === 0 ? (
+                    <div className="text-center text-muted py-8">No customers found.</div>
+                ) : (
+                    customers.map(c => (
+                        <Card key={c.id}>
+                            <CardContent className="p-4">
+                                <div className="flex justify-between items-start">
+                                    {/* Customer Info */}
+                                    <div className="pr-2">
+                                        <h3 className="font-semibold text-lg">{c.name}</h3>
+                                        <p className="text-sm text-muted truncate">{c.email}</p>
+                                        <p className="text-sm text-muted">{c.phone}</p>
+                                    </div>
+                                    {/* Action Buttons */}
+                                    <div className="flex flex-col space-y-1 flex-shrink-0">
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600" onClick={() => startEdit(c)} title="Edit Customer">
+                                            <EditIcon />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-red-600" onClick={() => remove(c)} title="Delete Customer">
+                                            <DeleteIcon />
+                                        </Button>
+                                    </div>
+                                </div>
+                                {/* Date Added */}
+                                <div className="text-xs text-gray-500 mt-3 pt-3 border-t">
+                                    Added: {c.dateAdded instanceof Date && !isNaN(c.dateAdded)
+                                    ? c.dateAdded.toLocaleDateString()
+                                    : 'N/A'}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))
+                )}
+            </div>
+
+            {/* --- MODAL: Customer Form (No change needed) --- */}
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
                 <DialogContent>
                     <DialogHeader>
@@ -193,7 +228,6 @@ export default function CustomerManagementPage() {
                     </DialogHeader>
                     <form onSubmit={save}>
                         <div className="p-4 space-y-4">
-                            {/* Form grid layout */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="sm:col-span-2">
                                     <Label htmlFor="name">Customer Name <span className="text-red-500">*</span></Label>
@@ -245,7 +279,6 @@ export default function CustomerManagementPage() {
                     </form>
                 </DialogContent>
             </Dialog>
-            {/* --- END MODAL --- */}
         </div>
     );
 }

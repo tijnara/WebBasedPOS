@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useStore } from '../../store/useStore';
-// Removed: import * as api from '../../lib/api';
 import {
     Button, Card, CardContent, Table, TableHeader, TableBody, TableRow,
     TableHead, TableCell, ScrollArea, Input, Label, Dialog, DialogContent,
@@ -13,7 +12,7 @@ import {
     useCreateProduct,
     useUpdateProduct,
     useDeleteProduct
-} from '../../hooks/useProductMutations'; // Assuming you created this file
+} from '../../hooks/useProductMutations';
 
 // Simple SVG Icon for Edit
 const EditIcon = () => (
@@ -32,22 +31,18 @@ const DeleteIcon = () => (
 
 
 export default function ProductManagementPage() {
-    // --- REFACTORED: Get data from useProducts hook ---
     const { data: products = [], isLoading } = useProducts();
     const addToast = useStore(s => s.addToast);
 
-    // --- NEW: Initialize mutations ---
     const createProduct = useCreateProduct();
     const updateProduct = useUpdateProduct();
     const deleteProduct = useDeleteProduct();
 
-    // State for the modal
     const [editing, setEditing] = useState(null);
     const [name, setName] = useState('');
     const [price, setPrice] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    // --- Modal control functions remain the same ---
     const startEdit = (p) => {
         setEditing(p);
         setName(p?.name || '');
@@ -70,14 +65,12 @@ export default function ProductManagementPage() {
         setName('');
         setPrice('');
     };
-    // --- End modal control functions ---
 
     const save = async (e) => {
         e.preventDefault();
-
         const parsedPrice = parseFloat(price);
 
-        if (!name || !price) { // Removed category and stock checks
+        if (!name || !price) {
             addToast({ title: 'Error', description: 'All fields are required.' });
             return;
         }
@@ -96,13 +89,10 @@ export default function ProductManagementPage() {
                 await updateProduct.mutateAsync({ ...payload, id: editing.id });
                 addToast({ title: 'Updated', description: `Product ${name} updated` });
             } else {
-                // The hook now handles ID generation implicitly via Directus
                 await createProduct.mutateAsync(payload);
                 addToast({ title: 'Created', description: `Product ${name} created` });
             }
-
             closeModal();
-            // No reload() needed, hooks invalidate query
         } catch (e) {
             console.error(e);
             addToast({ title: 'Error', description: e.message });
@@ -114,7 +104,6 @@ export default function ProductManagementPage() {
         try {
             await deleteProduct.mutateAsync(p.id);
             addToast({ title: 'Deleted', description: `${p.name} deleted` });
-            // No reload() needed
         } catch (e) {
             console.error(e);
             addToast({ title: 'Error', description: e.message });
@@ -137,9 +126,10 @@ export default function ProductManagementPage() {
                 <Input placeholder="Search products..." className="w-full" />
             </div>
 
-            <Card>
+            {/* --- DESKTOP TABLE (Hidden on mobile) --- */}
+            <Card className="hidden md:block">
                 <CardContent>
-                    <ScrollArea className="max-h-96"> {/* Adjust max height as needed */}
+                    <ScrollArea className="max-h-96">
                         <Table>
                             <TableHeader>
                                 <TableRow>
@@ -149,7 +139,6 @@ export default function ProductManagementPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {/* --- REFACTORED: Show loading state --- */}
                                 {isLoading ? (
                                     <TableRow>
                                         <TableCell colSpan={3} className="text-center text-muted">Loading products...</TableCell>
@@ -182,6 +171,36 @@ export default function ProductManagementPage() {
                 </CardContent>
             </Card>
 
+            {/* --- MOBILE CARD LIST (Show on mobile, hide on md+) --- */}
+            <div className="block md:hidden space-y-3">
+                {isLoading ? (
+                    <div className="text-center text-muted py-8">Loading products...</div>
+                ) : products.length === 0 ? (
+                    <div className="text-center text-muted py-8">No products found.</div>
+                ) : (
+                    products.map(p => (
+                        <Card key={p.id}>
+                            <CardContent className="p-4 flex justify-between items-center">
+                                <div>
+                                    <h3 className="font-semibold">{p.name}</h3>
+                                    <p className="text-sm text-muted">₱{Number(p.price || 0).toFixed(2)}</p>
+                                </div>
+                                <div className="flex space-x-1 flex-shrink-0">
+                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEdit(p)}>
+                                        <EditIcon />
+                                    </Button>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(p)}>
+                                        <DeleteIcon />
+                                    </Button>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))
+                )}
+            </div>
+
+
+            {/* --- MODAL: Product Form (No change needed) --- */}
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
                 <DialogContent>
                     <DialogHeader>
