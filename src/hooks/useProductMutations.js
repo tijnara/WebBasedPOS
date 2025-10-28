@@ -16,7 +16,7 @@ export function useCreateProduct() {
                 name: newProduct.name,
                 price: newProduct.price,
                 category: newProduct.category,
-                stock: newProduct.stock,
+                // Removed stock field
             };
 
             const { data, error } = await supabase

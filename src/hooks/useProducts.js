@@ -32,7 +32,7 @@ export function useProducts() {
                     name: p.name || 'Unnamed Product',
                     price: parseFloat(p.price) || 0,
                     category: p.category || 'N/A',
-                    stock: parseInt(p.stock, 10) ?? 0, // Use nullish coalescing for default 0
+                    // Removed stock field
                 }));
                 console.log('useProducts: Mapped Data:', mappedData);
                 return mappedData;

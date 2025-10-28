@@ -86,7 +86,7 @@ export function useCreateSale() {
         // 2. After the mutation succeeds
         onSuccess: (data) => {
             console.log('useCreateSale: Sale created! Invalidating queries.', data);
-            // Invalidate both 'sales' and 'products' (for stock updates if you add them)
+            // Invalidate both 'sales' and 'products'
             queryClient.invalidateQueries({ queryKey: ['sales'] });
             queryClient.invalidateQueries({ queryKey: ['products'] });
         },

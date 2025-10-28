@@ -402,21 +402,18 @@ export default function POSPage() {
                                 .map(p => (
                                     <button
                                         key={p.id}
-                                        className="product-card p-3 text-center border rounded-md shadow-sm hover:border-primary hover:shadow-md transition-all duration-150 bg-white flex flex-col items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="product-card p-3 text-center border rounded-md shadow-sm hover:border-primary hover:shadow-md transition-all duration-150 bg-white flex flex-col items-center"
                                         onClick={() => handleAdd(p)}
-                                        disabled={p.stock <= 0} // Disable if out of stock
-                                        title={p.stock <= 0 ? `${p.name} - Out of Stock` : p.name}
+                                        title={p.name}
                                     >
                                         {/* Placeholder Image */}
                                         <div className="product-card-image h-16 w-16 mb-2 flex items-center justify-center text-4xl bg-gray-100 rounded">
                                             {/* You can replace this emoji based on category or use a placeholder image component */}
-                                            <span>{p.category?.startsWith('Drink') ? '🥤' : '🍔'}</span>
+                                            <span>{p.category?.startsWith('Drink') ? '\ud83e\udd64' : '\ud83c\udf54'}</span>
                                         </div>
                                         <div className="font-medium text-sm leading-tight mb-1 line-clamp-2">{p.name}</div>
-                                        <div className="text-xs text-muted font-semibold">₱{Number(p.price || 0).toFixed(2)}</div>
-                                        {/* Stock Indicator */}
-                                        <div className={`text-xs mt-1 ${p.stock <= 0 ? 'text-destructive font-semibold' : 'text-gray-500'}`}>
-                                            {p.stock <= 0 ? 'Out of Stock' : `${p.stock} in stock`}
+                                        <div className="text-xs text-muted font-semibold">
+                                            ₱{Number(p.price || 0).toFixed(2)}
                                         </div>
                                     </button>
                                 ))}
