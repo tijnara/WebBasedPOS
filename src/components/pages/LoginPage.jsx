@@ -3,68 +3,86 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/router';
 import { useStore } from '../../store/useStore';
 import api from '../../lib/api';
-import { Button, Card, CardHeader, CardContent, Input, Label, Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogCloseButton } from '../ui';
+import {
+    Button, Card, CardHeader, CardContent, Input, Label,
+    Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogCloseButton,
+    LoadingSpinner // Import the spinner
+} from '../ui';
 
 export default function LoginPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [error, setError] = useState(null);
+    // We'll use the modal state instead of the simple text error
+    // const [error, setError] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
-    const [modal, setModal] = useState({ isOpen: false, title: '', description: '', variant: '' });
+
+    // NEW: State to manage the error modal
+    const [modal, setModal] = useState({ isOpen: false, title: '', description: '' });
+
     const { setAuth, addToast } = useStore(s => ({ setAuth: s.setAuth, addToast: s.addToast }));
     const router = useRouter();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError(null);
+        // setError(null); // No longer needed
         setIsLoading(true);
 
         // Basic client-side validation
         if (typeof email !== 'string' || !email.trim() || typeof password !== 'string' || !password.trim()) {
-            setError('Email and password are required.');
             setIsLoading(false);
+            // Use the modal to show this error
+            setModal({
+                isOpen: true,
+                title: 'Login Error',
+                description: 'Email and password are required.'
+            });
             return;
         }
 
+        console.log('LoginPage: Attempting custom login with:', { email }); // Don't log password
+
         try {
-            // Call the modified custom table login function from api.js
-            const user = await api.login({ email, password }); // Assign directly
+            // Call the modified custom table login function
+            // **FIX:** Assign the returned object directly, DO NOT destructure { user }
+            const user = await api.login({ email, password });
 
             // Log the user object for debugging
             console.log('Debug: User object returned from API:', user);
 
-            // Adjust validation logic to match the actual structure of the user object
-            // Check if user object is valid (has an id and email at minimum)
+            // Check if user object is valid
             if (!user || typeof user !== 'object' || !user.id || !user.email) {
-                // Keep the existing error message for consistency
                 throw new Error('Login failed. User data is invalid or incomplete.');
             }
 
-            // Update the Zustand store with the user object from your 'users' table
+            // Update the Zustand store
             setAuth(user);
 
-            // Use the name from the user object for the welcome message
+            // Show a success toast
             addToast({ title: 'Login Successful', description: `Welcome back, ${user.name || user.email.split('@')[0]}!`, variant: 'success' });
 
-            // Redirect is handled by AuthGate, but immediate push can improve UX
-            // Use replace to prevent user going back to login page via browser back button
+            // Redirect
             router.replace('/');
 
         } catch (err) {
             console.error('Login page error:', err);
             const errorMessage = err.message || 'Failed to login. Please check your credentials.';
-            setError(errorMessage);
 
-            // Display error modal for invalid credentials
+            // --- MODIFICATION: Show modal on error ---
             setModal({
-                title: 'Login Failed',
-                description: errorMessage,
-                variant: 'destructive',
                 isOpen: true,
+                title: 'Login Failed',
+                description: errorMessage
             });
+            // --- End modification ---
+
         } finally {
             setIsLoading(false);
         }
+    };
+
+    // Function to close the modal
+    const closeModal = () => {
+        setModal({ isOpen: false, title: '', description: '' });
     };
 
     return (
@@ -104,11 +122,7 @@ export default function LoginPage() {
                             />
                         </div>
 
-                        {error && (
-                            <div className="text-sm text-red-700 bg-red-100 p-3 rounded border border-red-300">
-                                {error}
-                            </div>
-                        )}
+                        {/* Error message removed from here, now handled by modal */}
 
                         <Button
                             type="submit"
@@ -116,12 +130,11 @@ export default function LoginPage() {
                             className="w-full h-10 flex items-center justify-center text-base mt-2"
                             disabled={isLoading}
                         >
+                            {/* --- Use LoadingSpinner component --- */}
                             {isLoading ? (
                                 <>
-                                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
+                                    {/* The spinner's animation is defined in globals.css */}
+                                    <LoadingSpinner className="mr-3 h-5 w-5 text-white" />
                                     Authenticating...
                                 </>
                             ) : 'Login'}
@@ -130,20 +143,29 @@ export default function LoginPage() {
                 </CardContent>
             </Card>
 
-            {modal.isOpen && (
-                <Dialog open={modal.isOpen} onOpenChange={() => setModal({ ...modal, isOpen: false })}>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>{modal.title}</DialogTitle>
-                            <DialogCloseButton onClick={() => setModal({ ...modal, isOpen: false })} />
-                        </DialogHeader>
+            {/* --- NEW: Error Modal --- */}
+            <Dialog open={modal.isOpen} onOpenChange={(open) => !open && closeModal()}>
+                <DialogContent className="sm:max-w-xs"> {/* Smaller modal for alerts */}
+                    <DialogHeader>
+                        {/* Red X Icon */}
+                        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
+                            <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </div>
+                        <DialogTitle className="text-center mt-3">{modal.title}</DialogTitle>
+                    </DialogHeader>
+                    <div className="p-4 text-center text-sm text-gray-600">
                         <p>{modal.description}</p>
-                        <DialogFooter>
-                            <Button variant="outline" onClick={() => setModal({ ...modal, isOpen: false })}>Close</Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
-            )}
+                    </div>
+                    <DialogFooter className="justify-center"> {/* Center the button */}
+                        <Button variant="primary" onClick={closeModal} className="w-full">
+                            OK
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+            {/* --- End New Modal --- */}
         </div>
     );
 }

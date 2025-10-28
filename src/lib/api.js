@@ -11,45 +11,56 @@ export async function login({ email, password }) {
         throw new Error('Email and password are required.');
     }
 
-    // Ensure the email is trimmed and converted to lowercase for case-insensitive matching
+    // --- FIX: Normalize email to match database lookup ---
     const normalizedEmail = email.trim().toLowerCase();
 
     try {
         // Query the 'users' table for a matching email
         const { data: user, error } = await supabase
-            .from('users')
-            .select('*')
-            .eq('email', normalizedEmail)
-            .single();
+            .from('users') // Your custom users table name
+            .select('*') // Select columns needed for the app state
+            .eq('email', normalizedEmail) // Use the normalized email
+            .single(); // Expect only one user with this email
 
         // Handle errors during the query
         if (error) {
+            // PGRST116 means no rows were found, which we treat as invalid credentials
             if (error.code === 'PGRST116') {
                 console.error(`No user found with email: ${normalizedEmail}`);
                 throw new Error('Invalid email or password.');
             } else {
+                // Other database errors
                 console.error('Supabase query error during login:', error);
                 throw new Error(error.message || 'Database query failed during login.');
             }
         }
 
         // Check if user exists and if the password matches
+        // --- THIS IS THE INSECURE PART if passwords are plain text ---
         if (user && user.password === password) {
-            console.log(`Login successful for email: ${normalizedEmail}`);
+            console.log('Custom table login successful for:', email);
+            // Return the user data fetched from the table
+            // Exclude the password field from being returned to the client/store
             const { password: _, ...userData } = user;
 
+            // Basic validation of essential returned data
             if (!userData.id || !userData.email || !userData.name) {
                 console.error("User data fetched is missing essential fields (id, email, name):", userData);
                 throw new Error('Login succeeded but user data is incomplete.');
             }
-            return userData;
+            return userData; // Return the user data object directly
         } else {
-            console.log(`Login failed for email: ${normalizedEmail} - ${user ? 'Password incorrect.' : 'User not found.'}`);
-            throw new Error('Invalid email or password.');
+            // Log specifically if user was found but password didn't match
+            if(user && user.password !== password) {
+                console.log(`Custom table login failed for: ${normalizedEmail} - Password incorrect.`);
+            }
+            throw new Error('Invalid email or password.'); // Generic error for security
         }
     } catch (err) {
+        // Catch errors from the query or the password check
         console.error('Custom login function error:', err);
-        throw err;
+        // Rethrow the specific error message if available, otherwise generic
+        throw new Error(err.message || 'Login failed. Please check credentials.');
     }
 }
 

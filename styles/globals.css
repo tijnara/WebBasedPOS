@@ -601,3 +601,25 @@ button:disabled {
     .lg\:flex-row-reverse { flex-direction: row-reverse; }
     .lg\:flex-col { flex-direction: column; }
 }
+
+/* --- NEW: Added animation keyframes and class for spinner --- */
+/* --- NEW: Added animation keyframes and class for spinner --- */
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+
+/* Utility classes for spacing used in spinner */
+.-ml-1 { margin-left: -0.25rem; }
+.mr-3 { margin-right: 0.75rem; }
+.h-5 { height: 1.25rem; }
+.w-5 { width: 1.25rem; }
+.text-white { color: #fff; }
