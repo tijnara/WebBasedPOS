@@ -14,7 +14,7 @@ export function useCreateCustomer() {
                 name: customerPayload.name,
                 email: customerPayload.email || null, // Use null for empty optional fields
                 phone: customerPayload.phone || null,
-                date_added: customerPayload.date_added || new Date().toISOString(), // Explicitly set date_added
+                created_at: customerPayload.created_at || new Date().toISOString(), // Explicitly set created_at
             };
 
             const { data, error } = await supabase

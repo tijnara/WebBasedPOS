@@ -108,7 +108,15 @@ export const useStore = create((set, get) => ({
         const sale = get().currentSale;
         return Object.values(sale).reduce((total, item) => total + (item.price * item.quantity), 0);
     },
-    addToast: (t) => set((s) => ({ toasts: [...s.toasts, { ...t, id: Date.now() + Math.random() }] })), // Added random for better key uniqueness
+    addToast: (t) => {
+        const id = Date.now() + Math.random(); // Unique ID for the toast
+        set((s) => ({ toasts: [...s.toasts, { ...t, id }] }));
+
+        // Automatically dismiss the toast after 2 seconds
+        setTimeout(() => {
+            get().dismissToast(id);
+        }, 2000);
+    },
     dismissToast: (id) => set((s) => ({ toasts: s.toasts.filter(x => x.id !== id) })),
 
     // --- Auth (Updated for Custom Login) ---
@@ -161,3 +169,4 @@ if (typeof window !== 'undefined') {
 
 
 export default useStore;
+

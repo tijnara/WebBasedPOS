@@ -57,10 +57,10 @@ export async function login({ email, password }) {
             throw new Error('Invalid email or password.'); // Generic error for security
         }
     } catch (err) {
-        // Catch errors from the query or the password check
-        console.error('Custom login function error:', err);
-        // Rethrow the specific error message if available, otherwise generic
-        throw new Error(err.message || 'Login failed. Please check credentials.');
+            // Use the handleError function to process the error
+            const errorMessage = handleError(err);
+            console.error('Custom login function error:', errorMessage);
+            throw new Error(errorMessage);
     }
 }
 
@@ -76,6 +76,31 @@ export function logout() {
 // --- No Session Management ---
 // getCurrentSession and getUserProfile related to Supabase Auth are removed
 // as we are bypassing that system.
+
+export function handleError(error) {
+    if (!error) return 'An unknown error occurred.';
+
+    // Check for Supabase-specific errors
+    if (error.code) {
+        switch (error.code) {
+            case 'PGRST116':
+                return 'No matching record found.';
+            case 'PGRST204':
+                return "The specified column doesn't exist in the database schema.";
+            case '406':
+                return 'Invalid request. Please check your query or payload.';
+            default:
+                return error.message || 'An unexpected database error occurred.';
+        }
+    }
+
+    // Generic error handling
+    if (error.message === 'Invalid email or password.') {
+        return 'The email or password you entered is incorrect. Please try again.';
+    }
+
+    return error.message || 'An unexpected error occurred.';
+}
 
 export default {
     login,
