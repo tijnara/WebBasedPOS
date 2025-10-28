@@ -103,7 +103,7 @@ const Sidebar = () => {
                             key={link.path}
                             variant="ghost" // Use ghost variant for base style
                             className={cn(
-                                'w-full justify-start text-left h-auto py-2 px-3 text-gray-600 hover:bg-gray-100 hover:text-gray-900 rounded-md', // Base styles + rounded
+                                'flex w-full justify-start text-left h-auto py-2 px-3 text-gray-600 hover:bg-gray-100 hover:text-gray-900 rounded-md', // Added 'flex'
                                 { // Active state using primary colors
                                     'bg-blue-100 text-primary font-semibold': router.pathname === link.path,
                                 }
