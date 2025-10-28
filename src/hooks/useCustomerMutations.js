@@ -33,7 +33,7 @@ export function useCustomers() {
                     email: c.email || 'N/A',
                     phone: c.phone || 'N/A',
                     // Use created_at (Supabase default) if dateAdded doesn't exist
-                    dateAdded: c.dateAdded ? new Date(c.dateAdded) : (c.created_at ? new Date(c.created_at) : null)
+                    dateAdded: c.date_added ? new Date(c.date_added) : (c.created_at ? new Date(c.created_at) : null), // Ensure date_added is mapped correctly
                 }));
                 console.log('useCustomers: Mapped Data:', mappedData);
                 return mappedData;

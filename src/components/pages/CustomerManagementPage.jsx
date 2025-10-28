@@ -80,7 +80,7 @@ export default function CustomerManagementPage() {
             return;
         }
 
-        const payload = { name, email, phone };
+        const payload = { name, email, phone, date_added: editing ? editing.date_added : new Date().toISOString() }; // Ensure date_added is set
 
         try {
             if (editing) {
@@ -157,13 +157,13 @@ export default function CustomerManagementPage() {
                                             <TableCell>{c.email || 'N/A'}</TableCell>
                                             <TableCell>{c.phone || 'N/A'}</TableCell>
                                             {/* Ensure dateAdded is a Date object */}
-                                            <TableCell>{c.dateAdded instanceof Date ? c.dateAdded.toLocaleDateString() : 'N/A'}</TableCell>
+                                            <TableCell>{c.date_added ? new Date(c.date_added).toISOString().split('T')[0] : 'N/A'}</TableCell>
                                             <TableCell>
                                                 <div className="flex space-x-1"> {/* Reduced space */}
                                                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEdit(c)}> {/* Smaller icons */}
                                                         <EditIcon />
                                                     </Button>
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(c)}> {/* Smaller icons */}
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(c)}>
                                                         <DeleteIcon />
                                                     </Button>
                                                 </div>
@@ -177,38 +177,52 @@ export default function CustomerManagementPage() {
                 </CardContent>
             </Card>
 
-            <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+            {/* --- MODAL: Customer Form --- */}
+            <Dialog open={isModalOpen} onOpenChange={closeModal}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>{editing ? 'Edit Customer' : 'Add Customer'}</DialogTitle>
-                        <DialogCloseButton onClick={closeModal} />
+                        <DialogTitle>{editing ? 'Edit' : 'Add'} Customer</DialogTitle>
+                        <DialogCloseButton />
                     </DialogHeader>
-                    <form onSubmit={save}>
-                        <div className="p-4 space-y-4">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div className="sm:col-span-2">
-                                    <Label htmlFor="customerName">Customer Name</Label>
-                                    <Input id="customerName" value={name} onChange={e => setName(e.target.value)} required />
-                                </div>
-                                <div>
-                                    <Label htmlFor="email">Email (Optional)</Label>
-                                    <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} />
-                                </div>
-                                <div>
-                                    <Label htmlFor="contactNumber">Contact Number (Optional)</Label>
-                                    <Input id="contactNumber" value={phone} onChange={e => setPhone(e.target.value)} />
-                                </div>
+                    <form onSubmit={(e) => save(e)}> {/* Ensure the save function is explicitly bound */}
+                        <div className="grid gap-4">
+                            <div>
+                                <Label htmlFor="name">Customer Name</Label>
+                                <Input
+                                    id="name"
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <Label htmlFor="email">Email (optional)</Label>
+                                <Input
+                                    id="email"
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                />
+                            </div>
+                            <div>
+                                <Label htmlFor="phone">Phone (optional)</Label>
+                                <Input
+                                    id="phone"
+                                    value={phone}
+                                    onChange={(e) => setPhone(e.target.value)}
+                                />
                             </div>
                         </div>
-                        <DialogFooter>
-                            <Button variant="outline" type="button" onClick={closeModal} disabled={isMutating}>Cancel</Button>
-                            <Button type="submit" disabled={isMutating}>
+                        <div className="mt-4 flex justify-end gap-2">
+                            <Button variant="outline" onClick={closeModal}>Cancel</Button>
+                            <Button type="submit" disabled={isMutating}> {/* Fixed non-boolean attribute issue */}
                                 {isMutating ? 'Saving...' : 'Save Customer'}
                             </Button>
-                        </DialogFooter>
+                        </div>
                     </form>
                 </DialogContent>
             </Dialog>
+            {/* --- END MODAL --- */}
         </div>
     );
 }
