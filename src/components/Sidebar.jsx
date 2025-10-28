@@ -72,40 +72,21 @@ const HamburgerButton = ({ onClick }) => (
 
 const Sidebar = () => {
     const router = useRouter();
-    const { logout, user } = useStore(s => ({
-        logout: s.logout,
-        user: s.user
+    const { user, logout } = useStore(s => ({ // <-- ADDED 'logout'
+        user: s.user,
+        logout: s.logout // <-- ADDED 'logout'
     }));
-    const { data: sales = [] } = useSales();
-
-    // Calculate today's sales
-    const todaySales = sales.filter(sale => {
-        const saleDate = new Date(sale.saleTimestamp);
-        const today = new Date();
-        return saleDate.toDateString() === today.toDateString();
-    }).reduce((sum, sale) => sum + Number(sale.totalAmount || 0), 0);
 
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-    // --- Links matching the screenshot ---
     const links = [
         { name: 'POS', path: '/', icon: <CartIcon className="h-5 w-5" /> },
         { name: 'Products', path: '/product-management', icon: <PackageIcon className="h-5 w-5" /> },
-        { name: 'Customer', path: '/customer-management', icon: <UserIcon className="h-5 w-5" /> }, // Singular
-        { name: 'Sale History', path: '/history', icon: <ChartIcon className="h-5 w-5" /> }, // Renamed
+        { name: 'Customer', path: '/customer-management', icon: <UserIcon className="h-5 w-5" /> },
+        { name: 'Sale History', path: '/history', icon: <ChartIcon className="h-5 w-5" /> },
         { name: 'Users', path: '/user-management', icon: <UsersIcon className="h-5 w-5" /> },
     ];
 
-    // Settings link for desktop only (as per screenshot)
-    const settingsLink = { name: 'Settings', path: '/settings', icon: <SettingsIcon className="h-5 w-5" /> };
-
-
-    const handleLogout = async () => {
-        await logout();
-        router.push('/login');
-    };
-
-    // Close mobile menu on route change
     useEffect(() => {
         const handleRouteChange = () => {
             setIsMobileMenuOpen(false);
@@ -122,9 +103,13 @@ const Sidebar = () => {
         return 'User';
     };
 
+    // --- ADDED HANDLER ---
+    const handleLogout = () => {
+        logout();
+        router.push('/login'); // Or your login route
+    };
 
     return (
-        // --- Updated Sidebar Layout ---
         <div className="sidebar flex flex-col bg-gray-800 text-white w-[300px] h-full flex-shrink-0 relative">
             {/* Brand header */}
             <div className="brand p-4 flex justify-center items-center h-16 border-b border-gray-700">
@@ -138,28 +123,34 @@ const Sidebar = () => {
                         key={link.path}
                         variant="ghost"
                         className={cn(
-                            'flex items-center gap-4 p-3 rounded-md hover:bg-gray-700',
+                            'flex items-center gap-4 p-3 rounded-md hover:bg-gray-700 w-full justify-start', // Added w-full and justify-start
                             { 'bg-gray-700': router.pathname === link.path }
                         )}
                         onClick={() => router.push(link.path)}
                     >
-                        <span className="w-6 h-6">{link.icon}</span>
+                        <span className="w-6 h-6 flex-shrink-0">{link.icon}</span>
                         <span>{link.name}</span>
                     </Button>
                 ))}
             </nav>
 
-            {/* Logout Button */}
-            <div className="p-4 border-t border-gray-700 mt-auto flex-shrink-0 bg-gray-900 z-10 relative">
+            {/* --- ADDED LOGOUT BUTTON --- */}
+            <div className="p-4 border-t border-gray-700">
                 <Button
                     variant="ghost"
-                    className="w-full flex items-center gap-4 p-3 rounded-md bg-red-500 text-white hover:bg-red-600 shadow-lg transition-all duration-200"
+                    className={cn(
+                        'flex items-center gap-4 p-3 rounded-md hover:bg-gray-700 w-full justify-start'
+                    )}
                     onClick={handleLogout}
                 >
-                    <LogoutIcon className="w-6 h-6" />
-                    <span className="font-semibold">Logout</span>
+                    <span className="w-6 h-6 flex-shrink-0">
+                        <LogoutIcon className="h-5 w-5" />
+                    </span>
+                    <span>Logout</span>
                 </Button>
             </div>
+            {/* --- END LOGOUT BUTTON --- */}
+
         </div>
     );
 };
