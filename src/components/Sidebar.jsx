@@ -2,22 +2,69 @@ import React, { useEffect, useState } from 'react';
 import { Button, cn } from './ui';
 import { useRouter } from 'next/router';
 import { useStore } from '../store/useStore';
+import { useSales } from '../hooks/useSales'; // Keep this import
 
-// Hamburger Icon SVG
+// --- SVG ICONS (Updated with valid SVG content) ---
 const HamburgerIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
-        <path fillRule="evenodd" d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5z"/>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
+        <path fillRule="evenodd" d="M4.5 5.25a.75.75 0 000 1.5h15a.75.75 0 000-1.5h-15zM4.5 12a.75.75 0 000 1.5h15a.75.75 0 000-1.5h-15zM4.5 18.75a.75.75 0 000 1.5h15a.75.75 0 000-1.5h-15z" clipRule="evenodd" />
     </svg>
 );
+const HomeIcon = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={cn("w-6 h-6", className)}>
+        <path d="M3 12l9-9 9 9-9 9-9-9z" />
+    </svg>
+);
+const CartIcon = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={cn("w-6 h-6", className)}>
+        <path d="M3 3h2l.4 2M7 13h10l4-8H5.4" />
+        <circle cx="9" cy="20" r="2" />
+        <circle cx="15" cy="20" r="2" />
+    </svg>
+);
+const PackageIcon = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={cn("w-6 h-6", className)}>
+        <path d="M3 3h18v18H3V3zm2 2v14h14V5H5z" />
+        <path d="M7 7h10v10H7z" />
+    </svg>
+);
+const UserIcon = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={cn("w-6 h-6", className)}>
+        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-3.31 0-10 1.67-10 5v3h20v-3c0-3.33-6.69-5-10-5z" />
+    </svg>
+);
+const ChartIcon = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={cn("w-6 h-6", className)}>
+        <path d="M3 3h18v18H3V3zm2 2v14h14V5H5z" />
+        <path d="M7 7h2v10H7zM11 10h2v7h-2zM15 5h2v12h-2z" />
+    </svg>
+);
+const UsersIcon = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={cn("w-6 h-6", className)}>
+        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-3.31 0-10 1.67-10 5v3h20v-3c0-3.33-6.69-5-10-5z" />
+        <circle cx="6" cy="8" r="2" />
+        <circle cx="18" cy="8" r="2" />
+    </svg>
+);
+const SettingsIcon = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={cn("w-6 h-6", className)}>
+        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-3.31 0-10 1.67-10 5v3h20v-3c0-3.33-6.69-5-10-5z" />
+    </svg>
+);
+const LogoutIcon = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={cn("w-6 h-6", className)}>
+        <path d="M10 17l5 5 5-5H10zm0-10l5-5 5 5H10zM3 3h2v18H3V3zm18 0h2v18h-2V3z" />
+    </svg>
+);
+// --- END SVG ICONS ---
 
-// Hamburger Button Component
 const HamburgerButton = ({ onClick }) => (
     <Button
         variant="ghost"
         size="icon"
-        className="md:hidden" // Only show on small screens
+        className="md:hidden"
         onClick={onClick}
-        aria-label="Toggle menu" // Accessibility
+        aria-label="Toggle menu"
     >
         <HamburgerIcon />
     </Button>
@@ -25,35 +72,36 @@ const HamburgerButton = ({ onClick }) => (
 
 const Sidebar = () => {
     const router = useRouter();
-    // Get logout function and the custom user object from store
     const { logout, user } = useStore(s => ({
         logout: s.logout,
-        user: s.user // This is now the object from your 'users' table
+        user: s.user
     }));
+    const { data: sales = [] } = useSales();
+
+    // Calculate today's sales
+    const todaySales = sales.filter(sale => {
+        const saleDate = new Date(sale.saleTimestamp);
+        const today = new Date();
+        return saleDate.toDateString() === today.toDateString();
+    }).reduce((sum, sale) => sum + Number(sale.totalAmount || 0), 0);
 
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-    // Define links
+    // --- Links matching the screenshot ---
     const links = [
-        { name: 'Point of Sale', path: '/' },
-        { name: 'Products', path: '/product-management' },
-        { name: 'Customers', path: '/customer-management' },
-        { name: 'History', path: '/history' },
-        // Conditionally show Users link based on role if needed
-        // Assuming your 'users' table might have a 'role' column
-        // { name: 'Users', path: '/user-management', roles: ['admin'] },
-        { name: 'Users', path: '/user-management' }, // Simpler version for now
+        { name: 'POS', path: '/', icon: <CartIcon className="h-5 w-5" /> },
+        { name: 'Products', path: '/product-management', icon: <PackageIcon className="h-5 w-5" /> },
+        { name: 'Customer', path: '/customer-management', icon: <UserIcon className="h-5 w-5" /> }, // Singular
+        { name: 'Sale History', path: '/history', icon: <ChartIcon className="h-5 w-5" /> }, // Renamed
+        { name: 'Users', path: '/user-management', icon: <UsersIcon className="h-5 w-5" /> },
     ];
 
-    // Filter links based on user role (Example)
-    // const userRole = user?.role || 'cashier'; // Get role from user object (adjust field name)
-    // const visibleLinks = links.filter(link => !link.roles || link.roles.includes(userRole));
-    const visibleLinks = links; // Keep simple for now
+    // Settings link for desktop only (as per screenshot)
+    const settingsLink = { name: 'Settings', path: '/settings', icon: <SettingsIcon className="h-5 w-5" /> };
+
 
     const handleLogout = async () => {
-        // Use the store's simplified logout
         await logout();
-        // Redirect handled by AuthGate, but explicit push ensures quick redirect
         router.push('/login');
     };
 
@@ -63,75 +111,54 @@ const Sidebar = () => {
             setIsMobileMenuOpen(false);
         };
         router.events.on('routeChangeComplete', handleRouteChange);
-        // Clean up the event listener on component unmount
         return () => {
             router.events.off('routeChangeComplete', handleRouteChange);
         };
     }, [router.events]);
 
-    // Determine the display name from the custom user object
     const getDisplayName = () => {
-        if (user?.name) return user.name; // Use the 'name' field from your 'users' table
-        if (user?.email) return user.email.split('@')[0]; // Fallback to part of email
-        return 'User'; // Default fallback
+        if (user?.name) return user.name;
+        if (user?.email) return user.email.split('@')[0];
+        return 'User';
     };
 
 
     return (
-        // Sidebar container: Column layout, fixed width on desktop, full width on mobile
-        <div className="sidebar flex flex-col bg-white border-b md:border-b-0 md:border-r border-gray-200 md:w-64 flex-shrink-0 relative md:h-screen">
-
+        // --- Updated Sidebar Layout ---
+        <div className="sidebar flex flex-col bg-gray-800 text-white w-[300px] h-full flex-shrink-0 relative">
             {/* Brand header */}
-            <div className="brand p-4 font-bold text-lg text-primary flex justify-between items-center h-16 border-b border-gray-200 flex-shrink-0"> {/* Added flex-shrink-0 */}
-                <span>SEASIDE POS</span>
-                <HamburgerButton onClick={() => setIsMobileMenuOpen(s => !s)} />
+            <div className="brand p-4 flex justify-center items-center h-16 border-b border-gray-700">
+                <span className="font-bold text-lg">Seaside</span>
             </div>
 
-            {/* Mobile menu wrapper: Absolute position below header on mobile, static on desktop */}
-            <div className={cn(
-                'absolute md:static top-16 left-0 right-0 md:top-auto md:left-auto md:right-auto', // Positioning
-                'bg-white border-r border-l border-b md:border-none shadow-md md:shadow-none', // Borders & Shadow
-                'flex-1 flex flex-col overflow-y-auto md:overflow-visible z-40', // Layout & Overflow, added z-index
-                { 'hidden': !isMobileMenuOpen }, // Hide on mobile if closed
-                'md:flex' // Always display flex on medium+ screens
-            )}>
-
-                {/* Navigation Links */}
-                <nav className="flex-1 p-4 space-y-2">
-                    {visibleLinks.map(link => (
-                        <Button
-                            key={link.path}
-                            variant="ghost" // Use ghost variant for base style
-                            className={cn(
-                                'flex w-full justify-start text-left h-auto py-2 px-3 text-gray-600 hover:bg-gray-100 hover:text-gray-900 rounded-md', // Added 'flex'
-                                { // Active state using primary colors
-                                    'bg-blue-100 text-primary font-semibold': router.pathname === link.path,
-                                }
-                            )}
-                            onClick={() => router.push(link.path)}
-                        >
-                            {link.name}
-                        </Button>
-                    ))}
-                </nav>
-
-                {/* Meta/User section: Pushed to bottom */}
-                <div className="meta p-4 border-t border-gray-200 mt-auto">
-                    <div className="text-sm mb-2 text-gray-700">
-                        Logged in as: <br />
-                        <span className="font-medium text-gray-900 block truncate" title={getDisplayName()}>{getDisplayName()}</span><br />
-                        <span className="text-xs text-gray-500 block truncate" title={user?.email}>{user?.email}</span>
-                        {/* Optional: Display role if available in user object */}
-                        {/* {user?.role && <span className="text-xs text-blue-600 block capitalize mt-1">Role: {user.role}</span>} */}
-                    </div>
+            {/* Navigation Links */}
+            <nav className="flex-1 p-4 space-y-4">
+                {links.map(link => (
                     <Button
-                        variant="destructive" // Use destructive variant for logout
-                        className="w-full"
-                        onClick={handleLogout}
+                        key={link.path}
+                        variant="ghost"
+                        className={cn(
+                            'flex items-center gap-4 p-3 rounded-md hover:bg-gray-700',
+                            { 'bg-gray-700': router.pathname === link.path }
+                        )}
+                        onClick={() => router.push(link.path)}
                     >
-                        Logout
+                        <span className="w-6 h-6">{link.icon}</span>
+                        <span>{link.name}</span>
                     </Button>
-                </div>
+                ))}
+            </nav>
+
+            {/* Logout Button */}
+            <div className="p-4 border-t border-gray-700 mt-auto flex-shrink-0 bg-gray-900 z-10 relative">
+                <Button
+                    variant="ghost"
+                    className="w-full flex items-center gap-4 p-3 rounded-md bg-red-500 text-white hover:bg-red-600 shadow-lg transition-all duration-200"
+                    onClick={handleLogout}
+                >
+                    <LogoutIcon className="w-6 h-6" />
+                    <span className="font-semibold">Logout</span>
+                </Button>
             </div>
         </div>
     );
