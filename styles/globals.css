@@ -559,6 +559,26 @@ button:disabled {
 .table { border-collapse: collapse; }
 .table__td, .table__th { vertical-align: middle; }
 
+/* Responsive Table Styles */
+@media (max-width: 768px) {
+    table {
+        display: block;
+        width: 100%;
+        overflow-x: auto;
+        border-collapse: collapse;
+    }
+    th, td {
+        display: block;
+        text-align: left;
+        padding: 0.5rem;
+        border-bottom: 1px solid var(--border);
+    }
+    th {
+        font-weight: bold;
+        background-color: var(--background);
+    }
+}
+
 
 /* --- REMOVED Sidebar Specific Desktop Overrides --- */
 /*

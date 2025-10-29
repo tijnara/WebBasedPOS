@@ -70,7 +70,6 @@ const Navbar = () => {
     const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
 
     return (
-        // Use the 'navbar' class defined in globals.css
         <div className="navbar">
             {/* Brand Logo and Name */}
             <div className="brand">
@@ -80,18 +79,18 @@ const Navbar = () => {
                     width={32}
                     height={32}
                 />
-                <span className="font-bold text-lg text-primary hidden md:inline">Seaside</span> {/* Hide text on small screens */}
+                <span className="font-bold text-lg text-primary hidden md:inline">Seaside</span>
             </div>
 
-            {/* Navigation Links (Hidden on small screens, shown on md+) */}
-            <nav className="hidden md:flex"> {/* Use md:flex to show on medium screens and up */}
+            {/* Navigation Links */}
+            <nav className="hidden md:flex">
                 {links.map(link => {
                     const isActive = router.pathname === link.path;
                     return (
                         <Button
                             key={link.path}
-                            variant="ghost" // Use ghost variant for styling from CSS
-                            className={cn('btn', { 'active': isActive })} // Apply 'active' class conditionally
+                            variant="ghost"
+                            className={cn('btn', { 'active': isActive })}
                             onClick={() => handleNavLinkClick(link.path)}
                         >
                             <span className="flex-shrink-0">{link.icon}</span>
@@ -101,17 +100,16 @@ const Navbar = () => {
                 })}
             </nav>
 
-            {/* User Info & Logout (Meta Container) */}
+            {/* User Info & Logout */}
             <div className="meta-container">
                 {clientUser && (
                     <div className="user-info-text">
                         Logged in as: <strong>{clientUser.name || clientUser.email}</strong>
                     </div>
                 )}
-                {/* Logout Button (with user initial) */}
                 <Button
                     variant="ghost"
-                    className="btn logout-button" // Add a specific class if needed
+                    className="btn"
                     onClick={handleLogout}
                     title="Logout"
                 >
@@ -120,25 +118,24 @@ const Navbar = () => {
                             {userInitial}
                         </span>
                     ) : (
-                        <span className="w-6 h-6 flex-shrink-0">?</span> // Fallback if no user
+                        <span className="w-6 h-6 flex-shrink-0">?</span>
                     )}
-                    {/* MODIFICATION: Removed responsive classes */}
-                    <span className="ml-2">Logout</span>
+                    <span className="hidden md:inline ml-2">Logout</span>
                 </Button>
             </div>
 
-            {/* Hamburger Button (Shown on small screens, hidden on md+) */}
+            {/* Hamburger Button */}
             <Button
                 variant="ghost"
                 size="icon"
-                className="hamburger-button md:hidden ml-2" // Show only on small screens
+                className="hamburger-button md:hidden ml-2"
                 onClick={toggleMobileMenu}
                 aria-label="Toggle menu"
             >
                 <HamburgerIcon />
             </Button>
 
-            {/* Mobile Dropdown Menu (Basic Example) */}
+            {/* Mobile Dropdown Menu */}
             {isMobileMenuOpen && (
                 <div className="absolute top-full left-0 w-full bg-white border-b border-gray-200 shadow-md md:hidden z-40">
                     <nav className="flex flex-col p-2">
@@ -150,7 +147,7 @@ const Navbar = () => {
                                     variant="ghost"
                                     className={cn(
                                         'flex items-center gap-4 p-3 rounded-md hover:bg-gray-100 w-full justify-start text-gray-900 btn',
-                                        { 'bg-violet-100 text-primary font-semibold': isActive } // Slightly different active style for mobile
+                                        { 'bg-violet-100 text-primary font-semibold': isActive }
                                     )}
                                     onClick={() => handleNavLinkClick(link.path)}
                                 >
@@ -159,8 +156,6 @@ const Navbar = () => {
                                 </Button>
                             );
                         })}
-                        {/* Optional: Add logout to mobile menu */}
-                        {/* <Button variant="ghost" className="..." onClick={handleLogout}>Logout</Button> */}
                     </nav>
                 </div>
             )}
@@ -169,4 +164,3 @@ const Navbar = () => {
 };
 
 export default Navbar;
-
