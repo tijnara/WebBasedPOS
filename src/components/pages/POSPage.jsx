@@ -5,17 +5,15 @@ import { useStore } from '../../store/useStore';
 import { useProducts } from '../../hooks/useProducts';
 import { useCreateSale } from '../../hooks/useCreateSale';
 import { useCreateCustomer } from '../../hooks/useCreateCustomer';
-// useCustomers is needed if you want to pre-load or offer a dropdown
-// import { useCustomers } from '../../hooks/useCustomerMutations';
-import { supabase } from '../../lib/supabaseClient'; // Import supabase for direct search query
+import { supabase } from '../../lib/supabaseClient';
 
 import {
     Button, Card, CardHeader, CardContent, CardFooter, Table, TableBody, TableRow, TableCell,
     ScrollArea, Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogCloseButton,
-    Input, Label, Select // Assuming Select is correctly exported from ui.js
+    Input, Label, Select
 } from '../ui';
 
-// Empty cart icon (keep as is)
+// --- Icons (Assuming EmptyCartIcon, TrashIcon exist as before) ---
 const EmptyCartIcon = () => (
     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-muted">
         <path d="M7.5 7.625C7.5 4.7625 9.7625 2.5 12.625 2.5C15.4875 2.5 17.75 4.7625 17.75 7.625" stroke="#6b7280" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
@@ -23,15 +21,12 @@ const EmptyCartIcon = () => (
         <path d="M15.5 13H10.5" stroke="#6b7280" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
 );
-
-// Trash icon (keep as is)
 const TrashIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
         <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
         <path fillRule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
     </svg>
 );
-
 
 export default function POSPage() {
     // --- Fetch products using the Supabase hook ---
@@ -40,7 +35,7 @@ export default function POSPage() {
     // --- Zustand state for UI (Cart, Customer, Toasts) ---
     const {
         currentSale, addItemToSale, removeItemFromSale, clearSale, getTotalAmount, addToast,
-        currentCustomer, setCurrentCustomer // Get customer state management
+        currentCustomer, setCurrentCustomer
     } = useStore();
 
     // --- Initialize mutation hooks ---
@@ -65,6 +60,9 @@ export default function POSPage() {
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState('Cash'); // Default payment method
     const [amountReceived, setAmountReceived] = useState('');
+
+    // State for product search
+    const [productSearchTerm, setProductSearchTerm] = useState('');
 
 
     // Sync local selectedCustomer with global store state
@@ -274,30 +272,36 @@ export default function POSPage() {
     // ----------------------------------------
 
 
+    // Filter products based on the search term
+    const filteredProducts = products.filter(p =>
+        p.name.toLowerCase().includes(productSearchTerm.toLowerCase())
+    );
+
+
     return (
         <div>
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
                 <h1 className="text-2xl font-bold">Point of Sale</h1>
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                     <Input
                         placeholder="Search products..."
                         className="w-full sm:w-64"
-                        // Add onChange handler for product search if needed
+                        value={productSearchTerm} // Controlled input
+                        onChange={(e) => setProductSearchTerm(e.target.value)} // Update search term state
                     />
-                    <Button variant="outline" onClick={openCustomSaleModal}>
+                    <Button variant="outline" onClick={openCustomSaleModal} className="w-full sm:w-auto">
                         Custom Sale
                     </Button>
                 </div>
             </div>
 
             {/* Main Layout: Product Grid | Order Sidebar */}
-            <div className="flex flex-col lg:flex-row-reverse gap-4" style={{ height: 'calc(100vh - 150px)' }}> {/* Adjust height calculation based on your header/footer */}
+            <div className="flex flex-col md:flex-row-reverse gap-4">
 
                 {/* --- Current Order Sidebar --- */}
-                <div className="w-full lg:w-1/3 xl:w-1/4 flex-shrink-0">
-                    <Card className="flex flex-col h-full">
-                        {/* Card Header */}
+                <div className="w-full md:w-2/5 lg:w-1/3 xl:w-1/4 flex-shrink-0">
+                    <Card className="flex flex-col h-full max-h-[calc(100vh-120px)] md:max-h-[calc(100vh-100px)]">
                         <CardHeader>
                             <div className="flex justify-between items-center">
                                 <h3 className="font-semibold text-lg">Current Order</h3>
@@ -306,32 +310,31 @@ export default function POSPage() {
                         </CardHeader>
 
                         {/* Cart Items */}
-                        <CardContent className="flex-1 overflow-auto p-0">
+                        <CardContent className="flex-1 overflow-y-auto p-0">
                             {!Object.keys(currentSale).length ? (
                                 <div className="flex flex-col items-center justify-center h-full text-center p-4 text-gray-500">
                                     <EmptyCartIcon />
                                     <p className="mt-2">Cart is empty</p>
                                 </div>
                             ) : (
-                                // Use ScrollArea for consistent styling if needed, or just rely on overflow-auto
                                 <ScrollArea className="h-full px-2 py-1">
                                     <Table>
                                         <TableBody>
                                             {Object.entries(currentSale).map(([key, item]) => (
                                                 <TableRow key={key}>
-                                                    <TableCell className="font-medium pr-1 py-2"> {/* Reduced padding */}
+                                                    <TableCell className="font-medium pr-1 py-2">
                                                         {item.name}
                                                         <br/>
                                                         <span className="text-xs text-muted">₱{item.price.toFixed(2)}</span>
                                                     </TableCell>
-                                                    <TableCell className="text-center px-0 py-2"> {/* Reduced padding */}
+                                                    <TableCell className="text-center px-0 py-2">
                                                         <div className="flex items-center justify-center space-x-1">
                                                             <Button variant="ghost" size="sm" className="p-1 h-6 w-6" onClick={() => handleDecreaseQuantity(key)}>-</Button>
                                                             <span className="w-4 text-center">{item.quantity}</span>
                                                             <Button variant="ghost" size="sm" className="p-1 h-6 w-6" onClick={() => handleIncreaseQuantity(key)}>+</Button>
                                                         </div>
                                                     </TableCell>
-                                                    <TableCell className="text-right pl-1 py-2"> {/* Reduced padding */}
+                                                    <TableCell className="text-right pl-1 py-2">
                                                         <span className="font-semibold mr-1">₱{(item.price * item.quantity).toFixed(2)}</span>
                                                         <Button variant="ghost" size="icon" className="text-destructive h-6 w-6 p-0" onClick={() => handleRemoveItem(key)} title="Remove Item">
                                                             <TrashIcon />
@@ -345,12 +348,11 @@ export default function POSPage() {
                             )}
                         </CardContent>
 
-                        {/* Customer Section */}
-                        <div className="p-3 border-t space-y-1">
+                        <div className="p-3 border-t space-y-1 flex-shrink-0">
                             <Label className="text-sm font-medium">Customer</Label>
                             <Button
                                 variant="outline"
-                                className="w-full justify-between h-9 px-3 py-2" // Adjusted size
+                                className="w-full justify-between h-9 px-3 py-2"
                                 onClick={() => setIsCustomerModalOpen(true)}
                             >
                                 <span className="truncate">{selectedCustomer?.name || 'Walk-in Customer'}</span>
@@ -358,24 +360,11 @@ export default function POSPage() {
                             </Button>
                         </div>
 
-                        {/* Totals & Checkout Button */}
-                        <CardFooter className="p-3">
+                        <CardFooter className="p-3 flex-shrink-0">
                             <div className="w-full">
-                                <div className="flex justify-between mb-1 text-sm">
-                                    <span>Subtotal</span>
-                                    <span>₱{subtotal.toFixed(2)}</span>
-                                </div>
-                                {/* Add Taxes/Discounts here if needed */}
-                                <div className="flex justify-between mb-3 font-bold text-lg border-t pt-2 mt-2">
-                                    <span>Total</span>
-                                    <span className="text-success">₱{subtotal.toFixed(2)}</span>
-                                </div>
-                                <Button
-                                    variant="primary"
-                                    className="w-full h-12 text-lg" // Larger checkout button
-                                    onClick={openPaymentModal}
-                                    disabled={Object.keys(currentSale).length === 0 || createSaleMutation.isPending}
-                                >
+                                <div className="flex justify-between mb-1 text-sm"><span>Subtotal</span><span>₱{subtotal.toFixed(2)}</span></div>
+                                <div className="flex justify-between mb-3 font-bold text-lg border-t pt-2 mt-2"><span>Total</span><span className="text-success">₱{subtotal.toFixed(2)}</span></div>
+                                <Button variant="primary" className="w-full h-12 text-lg" onClick={openPaymentModal} disabled={Object.keys(currentSale).length === 0 || createSaleMutation.isPending}>
                                     {createSaleMutation.isPending ? 'Processing...' : 'Proceed to Payment'}
                                 </Button>
                             </div>
@@ -383,48 +372,39 @@ export default function POSPage() {
                     </Card>
                 </div>
 
-
                 {/* --- Main Product Grid --- */}
-                <div className="flex-1 overflow-auto pr-2"> {/* Added padding-right */}
-                    {/* Product Search Input (Moved to Header) */}
-                    {/* <div className="mb-4">
-                        <Input placeholder="Search products..." className="w-full" />
-                    </div> */}
+                <div className="flex-1 overflow-y-auto pr-2 max-h-[calc(100vh-120px)] md:max-h-[calc(100vh-100px)]">
                     {isLoadingProducts ? (
                         <div className="p-10 text-center text-muted">Loading products...</div>
-                    ) : !products.length ? (
-                        <div className="p-10 text-center text-muted">No products available. Add products in Management.</div>
+                    ) : !filteredProducts.length ? (
+                        <div className="p-10 text-center text-muted">
+                            {productSearchTerm ? 'No products match your search.' : 'No products available.'}
+                        </div>
                     ) : (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3"> {/* Adjusted gaps */}
-                            {products
-                                // Optional: Filter products based on search term state if you implement it
-                                // .filter(p => p.name.toLowerCase().includes(productSearchTerm.toLowerCase()))
-                                .map(p => (
-                                    <button
-                                        key={p.id}
-                                        className="product-card p-3 text-center border rounded-md shadow-sm hover:border-primary hover:shadow-md transition-all duration-150 bg-white flex flex-col items-center"
-                                        onClick={() => handleAdd(p)}
-                                        title={p.name}
-                                    >
-                                        {/* Placeholder Image */}
-                                        <div className="product-card-image h-16 w-16 mb-2 flex items-center justify-center text-4xl bg-gray-100 rounded">
-                                            {/* You can replace this emoji based on category or use a placeholder image component */}
-                                            <span>{p.category?.startsWith('Drink') ? '\ud83e\udd64' : '\ud83c\udf54'}</span>
-                                        </div>
-                                        <div className="font-medium text-sm leading-tight mb-1 line-clamp-2">{p.name}</div>
-                                        <div className="text-xs text-muted font-semibold">
-                                            ₱{Number(p.price || 0).toFixed(2)}
-                                        </div>
-                                    </button>
-                                ))}
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                            {filteredProducts.map(p => (
+                                <button
+                                    key={p.id}
+                                    className="product-card p-3 text-center border rounded-md shadow-sm hover:border-primary hover:shadow-md transition-all duration-150 bg-white flex flex-col items-center"
+                                    onClick={() => handleAdd(p)}
+                                    title={p.name}
+                                >
+                                    <div className="product-card-image h-16 w-16 mb-2 flex items-center justify-center text-4xl bg-gray-100 rounded">
+                                        <span>{p.category?.startsWith('Drink') ? '\ud83e\udd64' : '\ud83c\udf54'}</span>
+                                    </div>
+                                    <div className="font-medium text-sm leading-tight mb-1 line-clamp-2">{p.name}</div>
+                                    <div className="text-xs text-muted font-semibold">
+                                        ₱{Number(p.price || 0).toFixed(2)}
+                                    </div>
+                                </button>
+                            ))}
                         </div>
                     )}
                 </div>
 
-            </div> {/* End Main Layout Flex */}
+            </div>
 
-
-            {/* --- CUSTOMER SELECTION DIALOG --- */}
+            {/* --- DIALOGS (Customer, Custom Sale, Payment) --- */}
             <Dialog open={isCustomerModalOpen} onOpenChange={setIsCustomerModalOpen}>
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>

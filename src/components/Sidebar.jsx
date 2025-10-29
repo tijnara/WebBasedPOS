@@ -2,10 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { Button, cn } from './ui';
 import { useRouter } from 'next/router';
 import { useStore } from '../store/useStore';
-import { useSales } from '../hooks/useSales'; // Keep this import
-// import { create } from 'zustand'; // No longer needed
+import { useSales } from '../hooks/useSales';
 
-// --- SVG ICONS (Full, valid SVG content) ---
+// --- SVG ICONS (Full, valid SVG content - Assuming they exist as before) ---
 const HamburgerIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
         <path fillRule="evenodd" d="M4.5 5.25a.75.75 0 000 1.5h15a.75.75 0 000-1.5h-15zM4.5 12a.75.75 0 000 1.5h15a.75.75 0 000-1.5h-15zM4.5 18.75a.75.75 0 000 1.5h15a.75.75 0 000-1.5h-15z" clipRule="evenodd" />
@@ -63,7 +62,7 @@ const HamburgerButton = ({ onClick }) => (
     <Button
         variant="ghost"
         size="icon"
-        className="md:hidden"
+        className="md:hidden" // Only show on mobile
         onClick={onClick}
         aria-label="Toggle menu"
     >
@@ -73,16 +72,13 @@ const HamburgerButton = ({ onClick }) => (
 
 const Sidebar = () => {
     const router = useRouter();
-    // Get user and logout from the main store
     const { user, logout } = useStore(s => ({
         user: s.user,
         logout: s.logout
     }));
 
     const { data: sales = [], isLoading: isLoadingSales } = useSales();
-    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-    // --- FIX: Client-side state to safely handle hydration ---
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // State to control mobile menu
     const [clientUser, setClientUser] = useState(null);
 
     const links = [
@@ -93,11 +89,11 @@ const Sidebar = () => {
         { name: 'Users', path: '/user-management', icon: <UsersIcon className="h-5 w-5" /> },
     ];
 
-    // --- FIX: This useEffect safely syncs the store's user to client state ---
     useEffect(() => {
         setClientUser(user);
-    }, [user]); // Dependency array ensures this runs when 'user' changes
+    }, [user]);
 
+    // Close mobile menu on route change
     useEffect(() => {
         const handleRouteChange = () => {
             setIsMobileMenuOpen(false);
@@ -109,8 +105,14 @@ const Sidebar = () => {
     }, [router.events]);
 
     const handleLogout = () => {
+        setIsMobileMenuOpen(false); // Close menu on logout
         logout();
-        router.push('/login'); // Or your login route
+        router.push('/login');
+    };
+
+    const handleNavLinkClick = (path) => {
+        setIsMobileMenuOpen(false); // Close menu when a link is clicked
+        router.push(path);
     };
 
     const todaySales = sales.filter(sale => {
@@ -120,15 +122,21 @@ const Sidebar = () => {
     }).reduce((sum, sale) => sum + Number(sale.totalAmount || 0), 0);
 
     return (
-        // --- STYLES UPDATED FOR LIGHT THEME ---
-        <div className="sidebar flex flex-col bg-white text-gray-900 w-[300px] h-screen flex-shrink-0 relative border-r border-gray-200">
-            {/* Brand header */}
-            <div className="brand p-4 flex justify-center items-center h-16 border-b border-gray-200">
+        // Adjusted width for desktop, full width implicit on mobile
+        <div className="sidebar flex flex-col bg-white text-gray-900 md:w-[250px] w-full h-auto md:h-screen flex-shrink-0 relative border-b md:border-b-0 md:border-r border-gray-200">
+            {/* Brand header with Hamburger */}
+            <div className="brand p-4 flex justify-between items-center h-16 border-b border-gray-200">
                 <span className="font-bold text-lg">Seaside</span>
+                {/* Hamburger Button Added Here */}
+                <HamburgerButton onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} />
             </div>
 
-            {/* Navigation Links */}
-            <nav className="flex-1 p-4 space-y-4">
+            {/* Navigation Links - Conditionally Rendered/Styled */}
+            {/* Hidden on mobile unless isMobileMenuOpen is true, always block on md+ */}
+            <nav className={cn(
+                "flex-col p-4 space-y-2 md:space-y-4 md:flex flex-1 overflow-y-auto", // Base styles + desktop flex
+                isMobileMenuOpen ? 'flex' : 'hidden' // Mobile toggle
+            )}>
                 {links.map(link => (
                     <Button
                         key={link.path}
@@ -137,7 +145,8 @@ const Sidebar = () => {
                             'flex items-center gap-4 p-3 rounded-md hover:bg-gray-100 w-full justify-start text-gray-900',
                             { 'bg-gray-200': router.pathname === link.path }
                         )}
-                        onClick={() => router.push(link.path)}
+                        // Use specific handler to close menu on click
+                        onClick={() => handleNavLinkClick(link.path)}
                     >
                         <span className="w-6 h-6 flex-shrink-0">{link.icon}</span>
                         <span>{link.name}</span>
@@ -145,10 +154,13 @@ const Sidebar = () => {
                 ))}
             </nav>
 
-            {/* User Info & Logout Button */}
-            <div className="p-4 border-t border-gray-200 text-gray-900">
+            {/* User Info & Logout Button - Always visible below nav */}
+            {/* Hidden on mobile unless menu is open, always block on md+ */}
+            <div className={cn(
+                "p-4 border-t border-gray-200 text-gray-900 md:block", // Base styles + desktop block
+                isMobileMenuOpen ? 'block' : 'hidden' // Mobile toggle
+                )}>
 
-                {/* --- Logged In As display --- */}
                 {clientUser && (
                     <div className="mb-4 p-3 bg-gray-100 rounded-md">
                         <p className="text-sm font-medium text-gray-600">Logged in as:</p>
@@ -156,7 +168,6 @@ const Sidebar = () => {
                     </div>
                 )}
 
-                {/* --- NEW: Sales Today display (replicates style above) --- */}
                 <div className="mb-4 p-3 bg-gray-100 rounded-md">
                     <p className="text-sm font-medium text-gray-600">Sales Today:</p>
                     <p className="text-lg font-semibold text-gray-900 truncate">
@@ -164,7 +175,6 @@ const Sidebar = () => {
                     </p>
                 </div>
 
-                {/* Logout Button */}
                 <Button
                     variant="ghost"
                     className={cn(
