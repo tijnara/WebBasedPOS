@@ -118,8 +118,7 @@ export default function ProductManagementPage() {
                 <div>
                     <h1 className="text-2xl font-semibold">Products</h1>
                     <p className="text-muted">Manage your product inventory</p>
-                </div>
-                <Button onClick={openModal}>Add Product</Button>
+                </div><Button variant="primary" onClick={openModal}>Add Product</Button>
             </div>
 
             <div className="mb-4">

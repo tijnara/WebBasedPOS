@@ -3,8 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import * as https from "node:https";
 
 if (typeof window === 'undefined') {
-    const dotenv = await import('dotenv');
-    dotenv.config();
+    require('dotenv').config();
 }
 
 // Ensure these environment variables are set in your .env.local file

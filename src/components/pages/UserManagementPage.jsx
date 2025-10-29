@@ -134,8 +134,7 @@ export default function UserManagementPage() {
                 <div>
                     <h1 className="text-2xl font-semibold">User Management</h1>
                     <p className="text-muted">Manage your staff accounts</p>
-                </div>
-                <Button onClick={openModal}>Add User</Button>
+                </div><Button variant="primary" onClick={openModal}>Add User</Button>
             </div>
 
             <div className="mb-4">
