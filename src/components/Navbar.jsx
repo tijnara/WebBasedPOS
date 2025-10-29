@@ -42,6 +42,11 @@ const Navbar = () => {
         setClientUser(user);
     }, [user]);
 
+    // Debugging log to check clientUser value
+    useEffect(() => {
+        console.log('Client User:', clientUser);
+    }, [clientUser]);
+
     // Close mobile menu on route change
     useEffect(() => {
         const handleRouteChange = () => {
@@ -102,26 +107,25 @@ const Navbar = () => {
 
             {/* User Info & Logout */}
             <div className="meta-container">
-                {clientUser && (
+                {clientUser ? (
+                    <>
+                        <div className="user-info-text">
+                            Logged in as: <strong>{clientUser.name || clientUser.email}</strong>
+                        </div>
+                        <Button
+                            variant="ghost"
+                            className="btn"
+                            onClick={handleLogout}
+                            title="Logout"
+                        >
+                            Logout
+                        </Button>
+                    </>
+                ) : (
                     <div className="user-info-text">
-                        Logged in as: <strong>{clientUser.name || clientUser.email}</strong>
+                        Loading user information...
                     </div>
                 )}
-                <Button
-                    variant="ghost"
-                    className="btn"
-                    onClick={handleLogout}
-                    title="Logout"
-                >
-                    {clientUser ? (
-                        <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gray-700 text-white flex items-center justify-center text-xs font-bold" title={clientUser.name || clientUser.email}>
-                            {userInitial}
-                        </span>
-                    ) : (
-                        <span className="w-6 h-6 flex-shrink-0">?</span>
-                    )}
-                    <span className="hidden md:inline ml-2">Logout</span>
-                </Button>
             </div>
 
             {/* Hamburger Button */}
