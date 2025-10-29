@@ -35,11 +35,18 @@ const AppMain = () => {
 
   return (
     <div className="flex flex-row h-screen w-screen bg-gray-50">
-      {/* Add left margin for sidebar on desktop */}
-      <Sidebar />
-      <main className="flex-1 px-8 py-6 md:ml-[250px] flex items-start justify-center min-h-screen">
+      {/* Sidebar with reduced width */}
+      <Sidebar className="w-[200px] flex-shrink-0" />
+
+      {/* Main Content */}
+      <main className="flex-1 px-8 py-6 flex items-start justify-center min-h-screen">
         {MainContent}
       </main>
+
+      {/* Additional Section */}
+      <aside className="w-[300px] flex-shrink-0 bg-gray-100 border-l border-gray-200">
+        <div className="p-4">Additional Content</div>
+      </aside>
     </div>
   );
 };
