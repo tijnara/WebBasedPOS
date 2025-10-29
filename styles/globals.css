@@ -1,8 +1,11 @@
 /* Modernized global styles */
 
 :root {
-    --primary: #2563eb; /* Blue-600 */
-    --primary-hover: #1d4ed8; /* Blue-700 */
+    /* --- THEME COLOR UPDATED --- */
+    --primary: #7F00FF; /* Vibrant Violet */
+    --primary-hover: #6a00d9; /* Darker Violet */
+    /* --- End Theme Color Update --- */
+
     --secondary: #6b7280; /* Gray-500 */
     --secondary-hover: #4b5563; /* Gray-600 */
     --success: #16a34a; /* Green-600 */
@@ -11,13 +14,13 @@
     --warning-hover: #d97706; /* Amber-600 */
     --danger: #dc2626; /* Red-600 */
     --danger-hover: #b91c1c; /* Red-700 */
-    --muted: #6b7280; /* Gray-500 - Adjusted from Muted Gray for better contrast sometimes */
+    --muted: #6b7280; /* Gray-500 */
     --border: #e5e7eb; /* Gray-200 */
     --background: #f9fafb; /* Gray-50 */
     --surface: #ffffff; /* White */
     --text: #1f2937; /* Gray-800 */
     --text-muted: #6b7280; /* Gray-500 */
-    --radius: 6px; /* Slightly smaller radius */
+    --radius: 6px;
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
     --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
     --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
@@ -34,13 +37,13 @@ body {
     -moz-osx-font-smoothing: grayscale;
 }
 
-button, input {
+button, input, select { /* Added select */
     font-family: inherit;
 }
 
 button {
     cursor: pointer;
-    transition: all 0.2s ease; /* Faster transition */
+    transition: all 0.2s ease;
 }
 button:disabled {
     opacity: 0.5;
@@ -56,55 +59,40 @@ button:disabled {
 }
 
 .card__header {
-    padding: 0.75rem 1rem; /* Slightly reduced padding */
+    padding: 0.75rem 1rem;
     border-bottom: 1px solid var(--border);
-    font-weight: 600; /* Semibold */
-    background-color: #f9fafb; /* Subtle header background */
+    font-weight: 600;
+    background-color: #f9fafb;
 }
 
 .card__content {
     padding: 1rem;
 }
-.card__content.p-0 { /* Utility to remove padding */
-    padding: 0;
-}
+.card__content.p-0 { padding: 0; }
 
 .card__footer {
     padding: 0.75rem 1rem;
     border-top: 1px solid var(--border);
-    background-color: #f9fafb; /* Subtle footer background */
+    background-color: #f9fafb;
 }
 
-
-/* --- Button Styles --- */
+/* --- Button Styles (Updated Primary/Ghost/Active) --- */
 .btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 0.5rem 1rem; /* Base padding */
+    padding: 0.5rem 1rem;
     border-radius: var(--radius);
     font-weight: 500;
     text-align: center;
-    border: 1px solid transparent; /* Base border */
+    border: 1px solid transparent;
     white-space: nowrap;
 }
-/* Sizes */
-.btn--sm {
-    padding: 0.25rem 0.5rem; /* Smaller padding */
-    font-size: 0.875rem; /* Smaller text */
-}
-.btn--lg {
-    padding: 0.75rem 1.5rem;
-    font-size: 1.125rem;
-}
-.btn--icon {
-    padding: 0.5rem; /* Square padding for icons */
-    width: 2.25rem; /* Adjust width/height as needed */
-    height: 2.25rem;
-}
+.btn--sm { padding: 0.25rem 0.5rem; font-size: 0.875rem; }
+.btn--lg { padding: 0.75rem 1.5rem; font-size: 1.125rem; }
+.btn--icon { padding: 0.5rem; width: 2.25rem; height: 2.25rem; }
 
-
-/* Variants */
+/* Primary uses new theme color */
 .btn--primary {
     background-color: var(--primary);
     color: #fff;
@@ -115,93 +103,60 @@ button:disabled {
     border-color: var(--primary-hover);
 }
 
-.btn--secondary {
-    background-color: var(--secondary);
-    color: #fff;
-    border-color: var(--secondary);
-}
-.btn--secondary:hover {
-    background-color: var(--secondary-hover);
-    border-color: var(--secondary-hover);
-}
+.btn--secondary { background-color: var(--secondary); color: #fff; border-color: var(--secondary); }
+.btn--secondary:hover { background-color: var(--secondary-hover); border-color: var(--secondary-hover); }
 
-.btn--success {
-    background-color: var(--success);
-    color: #fff;
-    border-color: var(--success);
-}
-.btn--success:hover {
-    background-color: var(--success-hover);
-    border-color: var(--success-hover);
-}
+.btn--success { background-color: var(--success); color: #fff; border-color: var(--success); }
+.btn--success:hover { background-color: var(--success-hover); border-color: var(--success-hover); }
 
-.btn--warning {
-    background-color: var(--warning);
-    color: var(--text); /* Better contrast on yellow */
-    border-color: var(--warning);
-}
-.btn--warning:hover {
-    background-color: var(--warning-hover);
-    border-color: var(--warning-hover);
-}
+.btn--warning { background-color: var(--warning); color: var(--text); border-color: var(--warning); }
+.btn--warning:hover { background-color: var(--warning-hover); border-color: var(--warning-hover); }
 
-.btn--danger, .btn--destructive { /* Alias */
-    background-color: var(--danger);
-    color: #fff;
-    border-color: var(--danger);
-}
-.btn--danger:hover, .btn--destructive:hover {
-    background-color: var(--danger-hover);
-    border-color: var(--danger-hover);
-}
+.btn--danger, .btn--destructive { background-color: var(--danger); color: #fff; border-color: var(--danger); }
+.btn--danger:hover, .btn--destructive:hover { background-color: var(--danger-hover); border-color: var(--danger-hover); }
 
+/* Ghost uses new theme color */
 .btn--ghost {
     background-color: transparent;
-    color: var(--primary);
+    color: var(--primary); /* Text color is primary */
     border-color: transparent;
 }
 .btn--ghost:hover {
-    background-color: rgba(37, 99, 235, 0.1);
+    background-color: rgba(127, 0, 255, 0.1); /* Lighter violet background */
 }
 /* Ghost Destructive */
-.btn--ghost.text-destructive {
-    color: var(--danger);
-}
-.btn--ghost.text-destructive:hover {
-    background-color: rgba(220, 38, 38, 0.1);
-}
+.btn--ghost.text-destructive { color: var(--danger); }
+.btn--ghost.text-destructive:hover { background-color: rgba(220, 38, 38, 0.1); }
 
+.btn--outline { background-color: transparent; color: var(--text); border-color: var(--border); }
+.btn--outline:hover { background-color: var(--background); }
 
-.btn--outline {
-    background-color: transparent;
-    color: var(--text);
-    border-color: var(--border);
-}
-.btn--outline:hover {
-    background-color: var(--background);
-}
-
-
-/* --- Input Styles --- */
-.input {
+/* --- Input & Select Styles (Updated Focus) --- */
+.input, select.input {
     width: 100%;
-    padding: 0.5rem 0.75rem; /* Adjusted padding */
+    padding: 0.5rem 0.75rem;
     border: 1px solid var(--border);
     border-radius: var(--radius);
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
     background-color: var(--surface);
     color: var(--text);
-    box-sizing: border-box; /* <-- ADDED THIS LINE TO FIX OVERFLOW */
+    box-sizing: border-box;
+    /* Basic appearance reset for select */
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.5rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+    padding-right: 2.5rem; /* Make space for arrow */
 }
-.input:focus {
+/* Style focus ring with new primary color */
+.input:focus, select.input:focus {
     border-color: var(--primary);
     outline: none;
-    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2); /* Focus ring */
+    box-shadow: 0 0 0 2px rgba(127, 0, 255, 0.2); /* Violet focus ring */
 }
 
-
 /* --- Layout Styles --- */
-/* MOBILE-FIRST LAYOUT */
 .app {
     display: flex;
     flex-direction: column; /* Mobile-first: stack vertically */
@@ -285,7 +240,7 @@ button:disabled {
 }
 
 
-/* --- Toasts Styling --- */
+/* --- Toasts Styling (Updated default border) --- */
 .toasts {
     position: fixed;
     right: 16px;
@@ -316,11 +271,69 @@ button:disabled {
     margin-top: 8px;
     text-align: right;
 }
+/* Default border uses new primary color */
+.toast.border-l-4:not(.border-red-500):not(.border-green-500):not(.border-yellow-500) {
+    border-left-color: var(--primary);
+}
 
-/* --- Text Utilities --- */
+/* --- Dialog Styles (Updated focus ring) --- */
+.dialog-backdrop {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+}
+/* Added to ensure dialog content has a good default size */
+.dialog-content {
+    max-width: 32rem; /* 512px */
+    width: 100%;
+    margin: 1rem; /* Add margin for small screens */
+}
+.dialog-header {
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid var(--border);
+    background-color: #f9fafb;
+}
+.dialog-title {
+    font-weight: 600;
+    margin: 0;
+}
+.dialog-footer {
+    padding: 0.5rem 1rem;
+    border-top: 1px solid var(--border);
+    background-color: #f9fafb;
+}
+.dialog-close-button {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 9999px;
+    transition: background 0.2s ease;
+}
+.dialog-close-button:hover {
+    background: rgba(0, 0, 0, 0.1);
+}
+.dialog-close-button:focus {
+     outline: none;
+     box-shadow: 0 0 0 2px rgba(127, 0, 255, 0.2); /* Violet focus ring */
+}
+
+/* --- Text & Utility Classes --- */
+/* Add primary text color utility */
+.text-primary { color: var(--primary); }
+.text-primary-hover { color: var(--primary-hover); }
+/* For hover states on links */
 .text-muted { color: var(--text-muted); }
 .text-destructive { color: var(--danger); }
 .text-success { color: var(--success); }
+.focus\:ring-primary:focus { /* Utility for checkbox/radio focus */
+     --tw-ring-color: var(--primary);
+     box-shadow: 0 0 0 2px var(--tw-ring-color);
+}
 
 /* --- Sizing & Spacing --- */
 .w-full { width: 100%; }
@@ -499,7 +512,7 @@ button:disabled {
     font-size: 1.25rem;
     font-weight: 700;
     padding: 1rem;
-    color: var(--primary);
+    color: var(--primary); /* Brand uses theme color */
     flex-shrink: 0;
     display: flex;
     justify-content: space-between;
@@ -560,94 +573,324 @@ button:disabled {
     width: 100%;
     margin: 1rem; /* Add margin for small screens */
 }
-
-/* Hide scrollbar for Current Order and Product Grid */
-.scroll-area::-webkit-scrollbar {
-    display: none;
+.dialog-header {
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid var(--border);
+    background-color: #f9fafb;
 }
-.scroll-area {
-    -ms-overflow-style: none; /* IE and Edge */
-    scrollbar-width: none; /* Firefox */
+.dialog-title {
+    font-weight: 600;
+    margin: 0;
 }
-
-.overflow-auto::-webkit-scrollbar {
-    display: none;
+.dialog-footer {
+    padding: 0.5rem 1rem;
+    border-top: 1px solid var(--border);
+    background-color: #f9fafb;
 }
-.overflow-auto {
-    -ms-overflow-style: none; /* IE and Edge */
-    scrollbar-width: none; /* Firefox */
+.dialog-close-button {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 9999px;
+    transition: background 0.2s ease;
 }
-
-
-/* --- Responsive Utilities (sm, md, lg) --- */
-@media (min-width: 640px) { /* sm */
-    .sm\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .sm\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-    .sm\:col-span-2 { grid-column: span 2 / span 2; }
-    .sm\:flex-row { flex-direction: row; }
-    .sm\:items-center { align-items: center; }
-    .sm\:w-auto { width: auto; }
+.dialog-close-button:hover {
+    background: rgba(0, 0, 0, 0.1);
 }
-
-@media (min-width: 768px) { /* md (Desktop Sidebar Breakpoint) */
-    /* --- Sidebar Desktop Overrides --- */
-    .sidebar {
-        width: 250px; /* Restore fixed width */
-        height: 100vh; /* Full height */
-        border-right: 1px solid var(--border);
-        border-bottom: none; /* Remove bottom border */
-        position: relative; /* Resets from absolute */
-        z-index: 0;
-    }
-    .sidebar .brand {
-        border-bottom: 1px solid var(--border); /* Ensure consistent border */
-     }
-    .sidebar nav {
-        display: flex !important; /* Ensure nav is always visible */
-        flex-direction: column; /* Stack links vertically */
-        overflow-x: hidden;
-        overflow-y: auto;
-        padding: 1rem; /* Restore vertical padding */
-        position: static; /* Ensure reset */
-        border: none; /* Remove mobile borders */
-        flex: 1; /* Let nav take available space */
-    }
-    .sidebar nav .btn {
-        width: 100%; /* Full width buttons */
-        margin-bottom: 0.5rem; /* Restore space */
-    }
-    /* Meta section (user info, sales, logout) needs to be shown */
-    .sidebar .meta-container { /* Assuming you wrap the bottom section in this */
-        display: block !important; /* Ensure always visible */
-        /* margin-top: auto; */ /* Let flexbox handle positioning */
-    }
-    /* --- End Sidebar Desktop --- */
-
-    /* Other md utilities */
-    .md\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .md\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-    .md\:col-span-2 { grid-column: span 2 / span 2; }
-    .md\:flex { display: flex; }
-    .md\:block { display: block; }
-    .md\:hidden { display: none; }
-    .md\:flex-row { flex-direction: row; }
-    .md\:flex-col { flex-direction: column; }
-    .md\:w-auto { width: auto; }
-    .md\:w-64 { width: 16rem; }
-    .md\:h-auto { height: auto; }
-    .md\:h-full { height: 100%; }
-    .md\:h-screen { height: 100vh; }
+.dialog-close-button:focus {
+     outline: none;
+     box-shadow: 0 0 0 2px rgba(127, 0, 255, 0.2); /* Violet focus ring */
 }
 
-@media (min-width: 1024px) { /* lg */
-    .lg\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-    .lg\:flex-row { flex-direction: row; }
-    .lg\:flex-row-reverse { flex-direction: row-reverse; }
-    .lg\:flex-col { flex-direction: column; }
+/* --- Text & Utility Classes --- */
+/* Add primary text color utility */
+.text-primary { color: var(--primary); }
+.text-primary-hover { color: var(--primary-hover); }
+/* For hover states on links */
+.text-muted { color: var(--text-muted); }
+.text-destructive { color: var(--danger); }
+.text-success { color: var(--success); }
+.focus\:ring-primary:focus { /* Utility for checkbox/radio focus */
+     --tw-ring-color: var(--primary);
+     box-shadow: 0 0 0 2px var(--tw-ring-color);
 }
 
-/* --- NEW: Added animation keyframes and class for spinner --- */
-/* --- NEW: Added animation keyframes and class for spinner --- */
+/* --- Sizing & Spacing --- */
+.w-full { width: 100%; }
+.mb-2 { margin-bottom: 0.5rem; }
+.mb-4 { margin-bottom: 1rem; }
+.mt-2 { margin-top: 0.5rem; }
+.mt-4 { margin-top: 1rem; }
+.p-0 { padding: 0; }
+.p-1 { padding: 0.25rem; }
+.p-4 { padding: 1rem; }
+.pt-2 { padding-top: 0.5rem; }
+.space-x-1 > :not([hidden]) ~ :not([hidden]) { margin-left: 0.25rem; }
+.space-x-2 > :not([hidden]) ~ :not([hidden]) { margin-left: 0.5rem; }
+
+
+/* --- Flex & Grid --- */
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.flex-col-reverse { flex-direction: column-reverse; } /* NEW */
+.flex-row { flex-direction: row; }
+.flex-row-reverse { flex-direction: row-reverse; }
+.flex-1 { flex: 1 1 0%; }
+.flex-shrink-0 { flex-shrink: 0; }
+.items-start { align-items: flex-start; } /* NEW */
+.items-center { align-items: center; }
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+.justify-start { justify-content: flex-start; }
+.justify-end { justify-content: flex-end; }
+.gap-4 { gap: 1rem; }
+
+.grid { display: grid; }
+.grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+.grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.sm\:col-span-2 { grid-column: span 2 / span 2; } /* NEW */
+
+
+/* --- Sizing & Layout --- */
+.h-full { height: 100%; }
+.h-auto { height: auto; }
+.h-screen { height: 100vh; }
+.max-w-sm { max-width: 24rem; }
+.max-w-md { max-width: 28rem; } /* NEW */
+.max-w-lg { max-width: 32rem; } /* Added for larger modals */
+
+/* --- Overflow & Positioning --- */
+.overflow-auto { overflow: auto; }
+.overflow-x-auto { overflow-x: auto; } /* NEW */
+.overflow-x-hidden { overflow-x: hidden; } /* NEW */
+.fixed { position: fixed; }
+.absolute { position: absolute; }
+.relative { position: relative; }
+.inset-0 { top: 0; right: 0; bottom: 0; left: 0; }
+.top-2 { top: 0.5rem; }
+.right-2 { right: 0.5rem; }
+.z-50 { z-index: 50; }
+.hidden { display: none; } /* NEW */
+
+
+/* --- Effects --- */
+.shadow-sm { box-shadow: var(--shadow-sm); }
+.shadow { box-shadow: var(--shadow); }
+.shadow-md { box-shadow: var(--shadow-md); }
+.shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1); }
+
+
+/* --- Typography --- */
+.text-xs { font-size: 0.75rem; }
+.text-sm { font-size: 0.875rem; }
+.text-lg { font-size: 1.125rem; }
+.text-2xl { font-size: 1.5rem; line-height: 2rem; }
+.font-medium { font-weight: 500; }
+.font-semibold { font-weight: 600; }
+.font-bold { font-weight: 700; }
+.text-left { text-align: left; }
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+.uppercase { text-transform: uppercase; }
+.tracking-wider { letter-spacing: 0.05em; }
+.leading-none { line-height: 1; }
+
+/* --- Borders --- */
+.border { border-width: 1px; }
+.border-b { border-bottom-width: 1px; }
+.border-t { border-top-width: 1px; }
+.border-gray-200 { border-color: var(--border); }
+.border-gray-700 { border-color: #374151; } /* Darker border for sidebar */
+.rounded-lg { border-radius: 0.5rem; } /* Larger radius for dialog */
+.rounded-full { border-radius: 9999px; }
+
+
+/* --- Backgrounds --- */
+.bg-white { background-color: var(--surface); }
+.bg-black { background-color: #000; }
+.bg-opacity-50 { opacity: 0.5; } /* Check browser support if needed */
+
+
+/* --- Specific Component Styles --- */
+
+/* Product Cards */
+.product-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
+    text-align: center; /* Center align content */
+    background: var(--surface);
+    transition: all 0.2s ease;
+    box-shadow: var(--shadow-sm);
+    display: flex; /* Flex layout for card content */
+    flex-direction: column;
+    align-items: center;
+}
+.product-card:hover {
+    border-color: var(--primary);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px); /* Slight lift on hover */
+}
+.product-card-image {
+    height: 80px; /* Or adjust as needed */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.75rem; /* More space below image */
+}
+.product-card .font-medium { /* Target name */
+    margin-bottom: 0.25rem;
+}
+
+/* Stock Badge */
+.stock-badge {
+    background-color: var(--secondary); /* Use secondary color */
+    color: white;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+/* Status Badge */
+.status-badge {
+    padding: 4px 10px;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: capitalize; /* Nicer display */
+}
+.status-completed {
+    background-color: #dcfce7; /* green-100 */
+    color: #15803d; /* green-700 */
+}
+.status-refunded { /* Example */
+    background-color: #fee2e2; /* red-100 */
+    color: #b91c1c; /* red-700 */
+}
+
+/* Table specific overrides */
+.table { border-collapse: collapse; } /* Ensure borders work */
+.table__td, .table__th { vertical-align: middle; } /* Align content vertically */
+
+/* --- Sidebar Styles (Mobile-First) --- */
+.sidebar {
+    width: 100%; /* Full width on mobile */
+    height: auto; /* Auto height */
+    background-color: var(--surface);
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    border-bottom: 1px solid var(--border); /* Border at bottom for mobile */
+    flex-shrink: 0;
+    position: relative; /* Keep relative for potential absolute elements inside if needed */
+    z-index: 40; /* Keep z-index for potential overlaps */
+}
+.sidebar .brand {
+    font-size: 1.25rem;
+    font-weight: 700;
+    padding: 1rem;
+    color: var(--primary); /* Brand uses theme color */
+    flex-shrink: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 4rem; /* Match h-16 */
+    border-bottom: 1px solid var(--border); /* Consistent border */
+}
+
+/* --- SIMPLIFIED Sidebar Nav for Mobile --- */
+/* Base styles for nav - hidden by default via component logic */
+.sidebar nav {
+    /* display: flex; */ /* Set by component logic */
+    flex-direction: column;
+    /* Removed absolute positioning */
+    /* background-color: var(--surface); */ /* Handled by sidebar bg */
+    border-top: 1px solid var(--border); /* Separator when open */
+    padding: 1rem; /* Padding when visible */
+    overflow-y: auto; /* Allow scroll if many links */
+    flex: 1; /* Allow nav to grow if needed */
+}
+/* Styles for nav links (remain largely the same) */
+.sidebar nav .btn {
+    width: 100%;
+    margin-bottom: 0.5rem;
+    flex-shrink: 0;
+    color: var(--text-muted);
+    background: transparent;
+    border: none;
+    justify-content: flex-start; /* Align text left */
+    gap: 1rem; /* Match component gap */
+    padding: 0.75rem; /* Match component padding */
+}
+.sidebar nav .btn:hover {
+    background-color: var(--background);
+    color: var(--text);
+}
+.sidebar nav .btn.active { /* Use the class applied by component logic */
+    background-color: var(--primary);
+    color: white;
+    font-weight: 600;
+}
+.sidebar nav .btn.active:hover { /* Override hover for active */
+     background-color: var(--primary);
+     color: white;
+}
+/* --- End Sidebar Nav Simplification --- */
+
+/* --- Dialog styles --- */
+.dialog-backdrop {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+}
+/* Added to ensure dialog content has a good default size */
+.dialog-content {
+    max-width: 32rem; /* 512px */
+    width: 100%;
+    margin: 1rem; /* Add margin for small screens */
+}
+.dialog-header {
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid var(--border);
+    background-color: #f9fafb;
+}
+.dialog-title {
+    font-weight: 600;
+    margin: 0;
+}
+.dialog-footer {
+    padding: 0.5rem 1rem;
+    border-top: 1px solid var(--border);
+    background-color: #f9fafb;
+}
+.dialog-close-button {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 9999px;
+    transition: background 0.2s ease;
+}
+.dialog-close-button:hover {
+    background: rgba(0, 0, 0, 0.1);
+}
+.dialog-close-button:focus {
+     outline: none;
+     box-shadow: 0 0 0 2px rgba(127, 0, 255, 0.2); /* Violet focus ring */
+}
+
+/* --- Spinner Animation --- */
 @keyframes spin {
     from {
         transform: rotate(0deg);
@@ -667,3 +910,4 @@ button:disabled {
 .h-5 { height: 1.25rem; }
 .w-5 { width: 1.25rem; }
 .text-white { color: #fff; }
+
