@@ -3,6 +3,7 @@ import { Button, cn } from './ui';
 import { useRouter } from 'next/router';
 import { useStore } from '../store/useStore';
 import { useSales } from '../hooks/useSales';
+import Image from 'next/image'; // <-- ADDED: Import Image component
 
 // --- SVG ICONS (Full, valid SVG content - Assuming they exist as before) ---
 const HamburgerIcon = () => (
@@ -124,7 +125,20 @@ const Sidebar = () => {
     return (
         <div className="sidebar flex flex-col bg-white text-gray-900 md:w-[250px] w-full h-auto md:h-screen flex-shrink-0 relative border-b md:border-b-0 md:border-r border-gray-200">
             <div className="brand p-4 flex justify-between items-center h-16 border-b border-gray-200">
-                <span className="font-bold text-lg text-primary">Seaside</span>
+
+                {/* --- MODIFICATION START --- */}
+                {/* Replaced span with a flex container for logo + text */}
+                <div className="flex items-center gap-2">
+                    <Image
+                        src="/seaside.png"
+                        alt="Seaside Logo"
+                        width={32}
+                        height={32}
+                    />
+                    <span className="font-bold text-lg text-primary">Seaside</span>
+                </div>
+                {/* --- MODIFICATION END --- */}
+
                 <HamburgerButton onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} />
             </div>
 
@@ -155,7 +169,7 @@ const Sidebar = () => {
             <div className={cn(
                 "p-4 border-t border-gray-200 text-gray-900 md:block meta-container",
                 isMobileMenuOpen ? 'block' : 'hidden'
-                )}>
+            )}>
                 {clientUser && (
                     <div className="mb-4 p-3 bg-gray-100 rounded-md">
                         <p className="text-sm font-medium text-gray-600">Logged in as:</p>
@@ -182,4 +196,3 @@ const Sidebar = () => {
 };
 
 export default Sidebar;
-

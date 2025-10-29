@@ -201,7 +201,7 @@ button:disabled {
 
     .sidebar .brand {
         border-bottom: 1px solid var(--border); /* Ensure consistent border */
-     }
+    }
     .sidebar nav {
         display: flex !important; /* Ensure nav is always visible */
         flex-direction: column; /* Stack links vertically */
@@ -318,8 +318,8 @@ button:disabled {
     background: rgba(0, 0, 0, 0.1);
 }
 .dialog-close-button:focus {
-     outline: none;
-     box-shadow: 0 0 0 2px rgba(127, 0, 255, 0.2); /* Violet focus ring */
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(127, 0, 255, 0.2); /* Violet focus ring */
 }
 
 /* --- Text & Utility Classes --- */
@@ -331,8 +331,8 @@ button:disabled {
 .text-destructive { color: var(--danger); }
 .text-success { color: var(--success); }
 .focus\:ring-primary:focus { /* Utility for checkbox/radio focus */
-     --tw-ring-color: var(--primary);
-     box-shadow: 0 0 0 2px var(--tw-ring-color);
+    --tw-ring-color: var(--primary);
+    box-shadow: 0 0 0 2px var(--tw-ring-color);
 }
 
 /* --- Sizing & Spacing --- */
@@ -549,16 +549,19 @@ button:disabled {
     background-color: var(--background);
     color: var(--text);
 }
+
+/* --- MODIFICATION START --- */
 .sidebar nav .btn.active { /* Use the class applied by component logic */
-    background-color: var(--primary);
-    color: white;
+    background-color: rgba(127, 0, 255, 0.1); /* Light violet background */
+    color: var(--primary); /* Violet text */
     font-weight: 600;
 }
 .sidebar nav .btn.active:hover { /* Override hover for active */
-    background-color: var(--primary); /* Keep active color on hover */
-    color: white;
+    background-color: rgba(127, 0, 255, 0.15); /* Slightly darker light violet */
+    color: var(--primary); /* Keep violet text */
 }
-/* --- End Sidebar Nav Simplification --- */
+/* --- MODIFICATION END --- */
+
 
 /* --- Dialog styles --- */
 .dialog-backdrop {
@@ -602,8 +605,8 @@ button:disabled {
     background: rgba(0, 0, 0, 0.1);
 }
 .dialog-close-button:focus {
-     outline: none;
-     box-shadow: 0 0 0 2px rgba(127, 0, 255, 0.2); /* Violet focus ring */
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(127, 0, 255, 0.2); /* Violet focus ring */
 }
 
 /* --- Spinner Animation --- */
