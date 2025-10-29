@@ -3,8 +3,9 @@ import { Button, cn } from './ui';
 import { useRouter } from 'next/router';
 import { useStore } from '../store/useStore';
 import { useSales } from '../hooks/useSales'; // Keep this import
+// import { create } from 'zustand'; // No longer needed
 
-// --- SVG ICONS (Updated with valid SVG content) ---
+// --- SVG ICONS (Full, valid SVG content) ---
 const HamburgerIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
         <path fillRule="evenodd" d="M4.5 5.25a.75.75 0 000 1.5h15a.75.75 0 000-1.5h-15zM4.5 12a.75.75 0 000 1.5h15a.75.75 0 000-1.5h-15zM4.5 18.75a.75.75 0 000 1.5h15a.75.75 0 000-1.5h-15z" clipRule="evenodd" />
@@ -72,12 +73,17 @@ const HamburgerButton = ({ onClick }) => (
 
 const Sidebar = () => {
     const router = useRouter();
-    const { user, logout } = useStore(s => ({ // <-- ADDED 'logout'
+    // Get user and logout from the main store
+    const { user, logout } = useStore(s => ({
         user: s.user,
-        logout: s.logout // <-- ADDED 'logout'
+        logout: s.logout
     }));
 
+    const { data: sales = [], isLoading: isLoadingSales } = useSales();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+    // --- FIX: Client-side state to safely handle hydration ---
+    const [clientUser, setClientUser] = useState(null);
 
     const links = [
         { name: 'POS', path: '/', icon: <CartIcon className="h-5 w-5" /> },
@@ -86,6 +92,11 @@ const Sidebar = () => {
         { name: 'Sale History', path: '/history', icon: <ChartIcon className="h-5 w-5" /> },
         { name: 'Users', path: '/user-management', icon: <UsersIcon className="h-5 w-5" /> },
     ];
+
+    // --- FIX: This useEffect safely syncs the store's user to client state ---
+    useEffect(() => {
+        setClientUser(user);
+    }, [user]); // Dependency array ensures this runs when 'user' changes
 
     useEffect(() => {
         const handleRouteChange = () => {
@@ -97,22 +108,22 @@ const Sidebar = () => {
         };
     }, [router.events]);
 
-    const getDisplayName = () => {
-        if (user?.name) return user.name;
-        if (user?.email) return user.email.split('@')[0];
-        return 'User';
-    };
-
-    // --- ADDED HANDLER ---
     const handleLogout = () => {
         logout();
         router.push('/login'); // Or your login route
     };
 
+    const todaySales = sales.filter(sale => {
+        const saleDate = new Date(sale.saleTimestamp);
+        const today = new Date();
+        return saleDate.toDateString() === today.toDateString();
+    }).reduce((sum, sale) => sum + Number(sale.totalAmount || 0), 0);
+
     return (
-        <div className="sidebar flex flex-col bg-gray-800 text-white w-[300px] h-full flex-shrink-0 relative">
+        // --- STYLES UPDATED FOR LIGHT THEME ---
+        <div className="sidebar flex flex-col bg-white text-gray-900 w-[300px] h-screen flex-shrink-0 relative border-r border-gray-200">
             {/* Brand header */}
-            <div className="brand p-4 flex justify-center items-center h-16 border-b border-gray-700">
+            <div className="brand p-4 flex justify-center items-center h-16 border-b border-gray-200">
                 <span className="font-bold text-lg">Seaside</span>
             </div>
 
@@ -123,8 +134,8 @@ const Sidebar = () => {
                         key={link.path}
                         variant="ghost"
                         className={cn(
-                            'flex items-center gap-4 p-3 rounded-md hover:bg-gray-700 w-full justify-start', // Added w-full and justify-start
-                            { 'bg-gray-700': router.pathname === link.path }
+                            'flex items-center gap-4 p-3 rounded-md hover:bg-gray-100 w-full justify-start text-gray-900',
+                            { 'bg-gray-200': router.pathname === link.path }
                         )}
                         onClick={() => router.push(link.path)}
                     >
@@ -134,12 +145,30 @@ const Sidebar = () => {
                 ))}
             </nav>
 
-            {/* --- ADDED LOGOUT BUTTON --- */}
-            <div className="p-4 border-t border-gray-700">
+            {/* User Info & Logout Button */}
+            <div className="p-4 border-t border-gray-200 text-gray-900">
+
+                {/* --- Logged In As display --- */}
+                {clientUser && (
+                    <div className="mb-4 p-3 bg-gray-100 rounded-md">
+                        <p className="text-sm font-medium text-gray-600">Logged in as:</p>
+                        <p className="text-lg font-semibold text-gray-900 truncate">{clientUser.name || clientUser.email}</p>
+                    </div>
+                )}
+
+                {/* --- NEW: Sales Today display (replicates style above) --- */}
+                <div className="mb-4 p-3 bg-gray-100 rounded-md">
+                    <p className="text-sm font-medium text-gray-600">Sales Today:</p>
+                    <p className="text-lg font-semibold text-gray-900 truncate">
+                        {isLoadingSales ? 'Loading...' : `₱${todaySales.toFixed(2)}`}
+                    </p>
+                </div>
+
+                {/* Logout Button */}
                 <Button
                     variant="ghost"
                     className={cn(
-                        'flex items-center gap-4 p-3 rounded-md hover:bg-gray-700 w-full justify-start'
+                        'flex items-center gap-4 p-3 rounded-md hover:bg-gray-100 w-full justify-start text-gray-900'
                     )}
                     onClick={handleLogout}
                 >
@@ -149,7 +178,6 @@ const Sidebar = () => {
                     <span>Logout</span>
                 </Button>
             </div>
-            {/* --- END LOGOUT BUTTON --- */}
 
         </div>
     );
