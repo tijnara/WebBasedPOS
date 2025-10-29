@@ -78,7 +78,7 @@ const Sidebar = () => {
     }));
 
     const { data: sales = [], isLoading: isLoadingSales } = useSales();
-    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // State to control mobile menu
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [clientUser, setClientUser] = useState(null);
 
     const links = [
@@ -105,13 +105,13 @@ const Sidebar = () => {
     }, [router.events]);
 
     const handleLogout = () => {
-        setIsMobileMenuOpen(false); // Close menu on logout
+        setIsMobileMenuOpen(false);
         logout();
         router.push('/login');
     };
 
     const handleNavLinkClick = (path) => {
-        setIsMobileMenuOpen(false); // Close menu when a link is clicked
+        setIsMobileMenuOpen(false);
         router.push(path);
     };
 
@@ -122,75 +122,64 @@ const Sidebar = () => {
     }).reduce((sum, sale) => sum + Number(sale.totalAmount || 0), 0);
 
     return (
-        // Adjusted width for desktop, full width implicit on mobile
         <div className="sidebar flex flex-col bg-white text-gray-900 md:w-[250px] w-full h-auto md:h-screen flex-shrink-0 relative border-b md:border-b-0 md:border-r border-gray-200">
-            {/* Brand header with Hamburger */}
             <div className="brand p-4 flex justify-between items-center h-16 border-b border-gray-200">
-                <span className="font-bold text-lg">Seaside</span>
-                {/* Hamburger Button Added Here */}
+                <span className="font-bold text-lg text-primary">Seaside</span>
                 <HamburgerButton onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} />
             </div>
 
-            {/* Navigation Links - Conditionally Rendered/Styled */}
-            {/* Hidden on mobile unless isMobileMenuOpen is true, always block on md+ */}
             <nav className={cn(
-                "flex-col p-4 space-y-2 md:space-y-4 md:flex flex-1 overflow-y-auto", // Base styles + desktop flex
-                isMobileMenuOpen ? 'flex' : 'hidden' // Mobile toggle
+                "flex-col p-4 space-y-2 md:space-y-4 md:flex flex-1 overflow-y-auto",
+                isMobileMenuOpen ? 'flex' : 'hidden'
             )}>
-                {links.map(link => (
-                    <Button
-                        key={link.path}
-                        variant="ghost"
-                        className={cn(
-                            'flex items-center gap-4 p-3 rounded-md hover:bg-gray-100 w-full justify-start text-gray-900',
-                            { 'bg-gray-200': router.pathname === link.path }
-                        )}
-                        // Use specific handler to close menu on click
-                        onClick={() => handleNavLinkClick(link.path)}
-                    >
-                        <span className="w-6 h-6 flex-shrink-0">{link.icon}</span>
-                        <span>{link.name}</span>
-                    </Button>
-                ))}
+                {links.map(link => {
+                    const isActive = router.pathname === link.path;
+                    return (
+                        <Button
+                            key={link.path}
+                            variant="ghost"
+                            className={cn(
+                                'flex items-center gap-4 p-3 rounded-md hover:bg-gray-100 w-full justify-start text-gray-900 btn',
+                                { 'active': isActive }
+                            )}
+                            onClick={() => handleNavLinkClick(link.path)}
+                        >
+                            <span className="w-6 h-6 flex-shrink-0">{link.icon}</span>
+                            <span>{link.name}</span>
+                        </Button>
+                    );
+                })}
             </nav>
 
-            {/* User Info & Logout Button - Always visible below nav */}
-            {/* Hidden on mobile unless menu is open, always block on md+ */}
+            {/* User Info & Logout (Meta Container) */}
             <div className={cn(
-                "p-4 border-t border-gray-200 text-gray-900 md:block", // Base styles + desktop block
-                isMobileMenuOpen ? 'block' : 'hidden' // Mobile toggle
+                "p-4 border-t border-gray-200 text-gray-900 md:block meta-container",
+                isMobileMenuOpen ? 'block' : 'hidden'
                 )}>
-
                 {clientUser && (
                     <div className="mb-4 p-3 bg-gray-100 rounded-md">
                         <p className="text-sm font-medium text-gray-600">Logged in as:</p>
                         <p className="text-lg font-semibold text-gray-900 truncate">{clientUser.name || clientUser.email}</p>
                     </div>
                 )}
-
                 <div className="mb-4 p-3 bg-gray-100 rounded-md">
                     <p className="text-sm font-medium text-gray-600">Sales Today:</p>
                     <p className="text-lg font-semibold text-gray-900 truncate">
                         {isLoadingSales ? 'Loading...' : `₱${todaySales.toFixed(2)}`}
                     </p>
                 </div>
-
                 <Button
                     variant="ghost"
-                    className={cn(
-                        'flex items-center gap-4 p-3 rounded-md hover:bg-gray-100 w-full justify-start text-gray-900'
-                    )}
+                    className={cn( 'flex items-center gap-4 p-3 rounded-md hover:bg-gray-100 w-full justify-start text-gray-900' )}
                     onClick={handleLogout}
                 >
-                    <span className="w-6 h-6 flex-shrink-0">
-                        <LogoutIcon className="h-5 w-5" />
-                    </span>
+                    <span className="w-6 h-6 flex-shrink-0"> <LogoutIcon className="h-5 w-5" /> </span>
                     <span>Logout</span>
                 </Button>
             </div>
-
         </div>
     );
 };
 
 export default Sidebar;
+
