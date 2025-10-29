@@ -10,7 +10,8 @@ import { supabase } from '../../lib/supabaseClient';
 import {
     Button, Card, CardHeader, CardContent, CardFooter, Table, TableBody, TableRow, TableCell,
     ScrollArea, Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogCloseButton,
-    Input, Label, Select
+    Input, Label, Select,
+    cn
 } from '../ui';
 
 // --- Icons (Assuming EmptyCartIcon, TrashIcon exist as before) ---
@@ -27,6 +28,15 @@ const TrashIcon = () => (
         <path fillRule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
     </svg>
 );
+
+// --- ADD THE PACKAGE ICON (Copied from Sidebar.jsx) ---
+const PackageIcon = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={cn("w-6 h-6", className)}>
+        <path d="M3 3h18v18H3V3zm2 2v14h14V5H5z" />
+        <path d="M7 7h10v10H7z" />
+    </svg>
+);
+// --- END OF ICON ADDITION ---
 
 export default function POSPage() {
     // --- Fetch products using the Supabase hook ---
@@ -389,9 +399,13 @@ export default function POSPage() {
                                     onClick={() => handleAdd(p)}
                                     title={p.name}
                                 >
+                                    {/* --- 3. REPLACE EMOJI SPAN WITH ICON --- */}
                                     <div className="product-card-image h-16 w-16 mb-2 flex items-center justify-center text-4xl bg-gray-100 rounded">
-                                        <span>{p.category?.startsWith('Drink') ? '\ud83e\udd64' : '\ud83c\udf54'}</span>
+                                        {/* OLD: <span>{p.category?.startsWith('Drink') ? '\ud83e\udd64' : '\ud83c\udf54'}</span> */}
+                                        {/* NEW: */}
+                                        <PackageIcon className="w-10 h-10 text-muted" />
                                     </div>
+                                    {/* --- END OF ICON REPLACEMENT --- */}
                                     <div className="font-medium text-sm leading-tight mb-1 line-clamp-2">{p.name}</div>
                                     <div className="text-xs text-muted font-semibold">
                                         ₱{Number(p.price || 0).toFixed(2)}

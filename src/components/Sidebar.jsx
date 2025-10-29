@@ -122,8 +122,12 @@ const Sidebar = () => {
         return saleDate.toDateString() === today.toDateString();
     }).reduce((sum, sale) => sum + Number(sale.totalAmount || 0), 0);
 
+    // --- 1. ADD LOGIC TO GET USER INITIAL ---
+    const userInitial = clientUser?.name ? clientUser.name.charAt(0).toUpperCase() : (clientUser?.email ? clientUser.email.charAt(0).toUpperCase() : '?');
+
     return (
-        <div className="sidebar flex flex-col bg-white text-gray-900 md:w-[200px] w-full h-auto md:h-screen flex-shrink-0 relative border-b md:border-b-0 md:border-r border-gray-200">
+        /* MODIFICATION: Removed layout classes: "flex", "flex-col", "md:w-[200px]", "w-full", "h-auto", "md:h-screen", "flex-shrink-0", "relative", "border-b", "md:border-b-0", "md:border-r". The ".sidebar" class from globals.css already handles all of this. */
+        <div className="sidebar bg-white text-gray-900 border-gray-200">
             <div className="brand p-4 flex justify-between items-center h-16 border-b border-gray-200">
 
                 {/* --- MODIFICATION START --- */}
@@ -182,12 +186,19 @@ const Sidebar = () => {
                         {isLoadingSales ? 'Loading...' : `₱${todaySales.toFixed(2)}`}
                     </p>
                 </div>
+                {/* Logout Button (with user initial) */}
                 <Button
                     variant="ghost"
-                    className={cn( 'flex items-center gap-4 p-3 rounded-md hover:bg-gray-100 w-full justify-start text-gray-900' )}
+                    className={cn('flex items-center gap-4 p-3 rounded-md hover:bg-gray-100 w-full justify-start text-gray-900')}
                     onClick={handleLogout}
                 >
-                    <span className="w-6 h-6 flex-shrink-0"> <LogoutIcon className="h-5 w-5" /> </span>
+                    {clientUser ? (
+                        <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gray-700 text-white flex items-center justify-center text-xs font-bold" title={clientUser.name || clientUser.email}>
+                            {userInitial}
+                        </span>
+                    ) : (
+                        <span className="w-6 h-6 flex-shrink-0"> <LogoutIcon className="h-5 w-5" /> </span>
+                    )}
                     <span>Logout</span>
                 </Button>
             </div>
@@ -196,3 +207,4 @@ const Sidebar = () => {
 };
 
 export default Sidebar;
+
