@@ -176,6 +176,9 @@ button:disabled {
     margin: 0 auto;
 }
 
+/* --- FIX: Moved .hidden rule here to fix responsive visibility --- */
+.hidden { display: none; } /* NEW */
+
 /* DESKTOP (md) LAYOUT */
 @media (min-width: 768px) {
     .app {
@@ -392,7 +395,7 @@ button:disabled {
 .top-2 { top: 0.5rem; }
 .right-2 { right: 0.5rem; }
 .z-50 { z-index: 50; }
-.hidden { display: none; } /* NEW */
+/* .hidden { display: none; } --- MOVED TO TOP --- */
 
 
 /* --- Effects --- */
