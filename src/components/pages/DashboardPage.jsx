@@ -86,116 +86,112 @@ export default function DashboardPage() {
     const todayTopProductQuantities = todayTopProducts.map(([, qty]) => qty);
 
     return (
-        <div className="dashboard-page compact-dashboard" style={{ padding: '1rem', maxWidth: 1200, margin: '0 auto' }}>
+        <div className="dashboard-page modern-dashboard" style={{ padding: '2rem', maxWidth: 1200, margin: '0 auto', background: '#f9fafb', borderRadius: '1rem', boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}>
             <img src="/seaside.png" alt="Seaside Logo" className="brand-logo-top" width={32} height={32} />
             <MobileLogoutButton />
-            <h1 className="text-xl font-bold mb-2">Dashboard</h1>
-            {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-3">
-                <Card style={{ padding: '0.5rem' }}>
-                    <CardHeader style={{ paddingBottom: 0 }}><h3 className="font-semibold text-sm">Revenue</h3></CardHeader>
-                    <CardContent><div className="text-lg font-bold">₱{totalRevenue.toFixed(2)}</div></CardContent>
-                </Card>
-                <Card style={{ padding: '0.5rem' }}>
-                    <CardHeader style={{ paddingBottom: 0 }}><h3 className="font-semibold text-sm">Transactions</h3></CardHeader>
-                    <CardContent><div className="text-lg font-bold">{transactionsCount}</div></CardContent>
-                </Card>
-                <Card style={{ padding: '0.5rem' }}>
-                    <CardHeader style={{ paddingBottom: 0 }}><h3 className="font-semibold text-sm">New Customers</h3></CardHeader>
-                    <CardContent><div className="text-lg font-bold">{newCustomersCount}</div></CardContent>
-                </Card>
-                <Card style={{ padding: '0.5rem' }}>
-                    <CardHeader style={{ paddingBottom: 0 }}><h3 className="font-semibold text-sm">Sales Today</h3></CardHeader>
-                    <CardContent><div className="text-lg font-bold">₱{salesTodayRevenue.toFixed(2)}</div></CardContent>
-                </Card>
+            <h1 className="text-4xl font-bold mb-6 text-primary tracking-tight" style={{marginBottom: 0}}>Dashboard</h1>
+            {/* Summary Cards - Replicate Screenshot, horizontal layout */}
+            <div className="flex flex-row w-full mb-6" style={{marginTop: '1rem'}}>
+                <div className="rounded-t-xl rounded-l-xl border border-gray-200 bg-white flex-1" style={{borderRight: 'none'}}>
+                    <div className="p-4 pb-2 text-lg font-semibold text-gray-800 text-center">Revenue</div>
+                    <div className="p-4 pt-2 text-2xl font-bold text-primary text-center" style={{letterSpacing: '0.5px'}}>₱{totalRevenue.toFixed(2)}</div>
+                </div>
+                <div className="border border-gray-200 bg-white flex-1" style={{borderRight: 'none'}}>
+                    <div className="p-4 pb-2 text-lg font-semibold text-gray-800 text-center">Transactions</div>
+                    <div className="p-4 pt-2 text-2xl font-bold text-primary text-center">{transactionsCount}</div>
+                </div>
+                <div className="border border-gray-200 bg-white flex-1" style={{borderRight: 'none'}}>
+                    <div className="p-4 pb-2 text-lg font-semibold text-gray-800 text-center">New Customers</div>
+                    <div className="p-4 pt-2 text-2xl font-bold text-primary text-center">{newCustomersCount}</div>
+                </div>
+                <div className="rounded-b-xl rounded-r-xl border border-gray-200 bg-white flex-1">
+                    <div className="p-4 pb-2 text-lg font-semibold text-gray-800 text-center">Sales Today</div>
+                    <div className="p-4 pt-2 text-2xl font-bold text-success text-center" style={{letterSpacing: '0.5px'}}>₱{salesTodayRevenue.toFixed(2)}</div>
+                </div>
             </div>
-            {/* Charts */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                <Card style={{ padding: '0.5rem' }}>
-                    <CardHeader style={{ paddingBottom: 0 }}><h3 className="font-semibold text-sm">Sales Over Time</h3></CardHeader>
-                    <CardContent style={{ padding: 0 }}>
-                        <Line
-                            data={{
-                                labels: salesDates,
-                                datasets: [{
-                                    label: 'Sales (₱)',
-                                    data: salesAmounts,
-                                    borderColor: '#3b82f6',
-                                    backgroundColor: 'rgba(59,130,246,0.15)',
-                                    fill: true,
-                                    pointRadius: 2,
-                                }],
-                            }}
-                            options={{ responsive: true, plugins: { legend: { display: false } }, maintainAspectRatio: false, aspectRatio: 2 }}
-                        />
-                    </CardContent>
-                </Card>
-                <Card style={{ padding: '0.5rem' }}>
-                    <CardHeader style={{ paddingBottom: 0 }}><h3 className="font-semibold text-sm">Top-Selling Products</h3></CardHeader>
-                    <CardContent style={{ padding: 0 }}>
-                        <Bar
-                            data={{
-                                labels: topProductNames,
-                                datasets: [{
-                                    label: 'Units Sold',
-                                    data: topProductQuantities,
-                                    backgroundColor: '#10b981',
-                                }],
-                            }}
-                            options={{ responsive: true, plugins: { legend: { display: false } }, maintainAspectRatio: false, aspectRatio: 2 }}
-                        />
-                    </CardContent>
-                </Card>
-                <Card style={{ padding: '0.5rem' }}>
-                    <CardHeader style={{ paddingBottom: 0 }}><h3 className="font-semibold text-sm">New Customers Over Time</h3></CardHeader>
-                    <CardContent style={{ padding: 0 }}>
-                        <Line
-                            data={{
-                                labels: customerDates,
-                                datasets: [{
-                                    label: 'New Customers',
-                                    data: customerCounts,
-                                    borderColor: '#f59e42',
-                                    backgroundColor: 'rgba(245,158,66,0.15)',
-                                    fill: true,
-                                    pointRadius: 2,
-                                }],
-                            }}
-                            options={{ responsive: true, plugins: { legend: { display: false } }, maintainAspectRatio: false, aspectRatio: 2 }}
-                        />
-                    </CardContent>
-                </Card>
-                <Card style={{ padding: '0.5rem' }}>
-                    <CardHeader style={{ paddingBottom: 0 }}><h3 className="font-semibold text-sm">Top-Selling Products (Today)</h3></CardHeader>
-                    <CardContent style={{ padding: 0 }}>
-                        <Bar
-                            data={{
-                                labels: todayTopProductNames,
-                                datasets: [{
-                                    label: 'Units Sold',
-                                    data: todayTopProductQuantities,
-                                    backgroundColor: '#10b981',
-                                }],
-                            }}
-                            options={{ responsive: true, plugins: { legend: { display: false } }, maintainAspectRatio: false, aspectRatio: 2 }}
-                        />
-                    </CardContent>
-                </Card>
-                <Card style={{ padding: '0.5rem' }}>
-                    <CardHeader style={{ paddingBottom: 0 }}><h3 className="font-semibold text-sm">Top Products (Pie, Today)</h3></CardHeader>
-                    <CardContent style={{ padding: 0 }}>
-                        <Pie
-                            data={{
-                                labels: todayTopProductNames,
-                                datasets: [{
-                                    data: todayTopProductQuantities,
-                                    backgroundColor: ['#3b82f6', '#10b981', '#f59e42', '#ef4444', '#6366f1'],
-                                }],
-                            }}
-                            options={{ responsive: true, plugins: { legend: { position: 'bottom', labels: { font: { size: 10 } } } }, maintainAspectRatio: false, aspectRatio: 2 }}
-                        />
-                    </CardContent>
-                </Card>
+            {/* Charts - Sales Over Time and New Customers Over Time side by side */}
+            <div className="flex flex-row gap-4 mb-6">
+                <div className="flex-1">
+                    <Card className="rounded-xl shadow bg-white border border-gray-200">
+                        <CardHeader className="pb-0"><h3 className="font-semibold text-lg text-gray-600">Sales Over Time</h3></CardHeader>
+                        <CardContent style={{ padding: 0 }}>
+                            <Line
+                                data={{
+                                    labels: salesDates,
+                                    datasets: [{
+                                        label: 'Sales (₱)',
+                                        data: salesAmounts,
+                                        borderColor: '#7F00FF',
+                                        backgroundColor: 'rgba(127,0,255,0.10)',
+                                        fill: true,
+                                        pointRadius: 2,
+                                    }],
+                                }}
+                                options={{ responsive: true, plugins: { legend: { display: false } }, maintainAspectRatio: false, aspectRatio: 2 }}
+                            />
+                        </CardContent>
+                    </Card>
+                </div>
+                <div className="flex-1">
+                    <Card className="rounded-xl shadow bg-white border border-gray-200">
+                        <CardHeader className="pb-0"><h3 className="font-semibold text-lg text-gray-600">New Customers Over Time</h3></CardHeader>
+                        <CardContent style={{ padding: 0 }}>
+                            <Line
+                                data={{
+                                    labels: customerDates,
+                                    datasets: [{
+                                        label: 'New Customers',
+                                        data: customerCounts,
+                                        borderColor: '#f59e42',
+                                        backgroundColor: 'rgba(245,158,66,0.10)',
+                                        fill: true,
+                                        pointRadius: 2,
+                                    }],
+                                }}
+                                options={{ responsive: true, plugins: { legend: { display: false } }, maintainAspectRatio: false, aspectRatio: 2 }}
+                            />
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+            {/* Top-Selling Products and Top-Selling Products (Today) side by side */}
+            <div className="flex flex-row gap-4">
+                <div className="flex-1">
+                    <Card className="rounded-xl shadow bg-white border border-gray-200">
+                        <CardHeader className="pb-0"><h3 className="font-semibold text-lg text-gray-600">Top-Selling Products</h3></CardHeader>
+                        <CardContent style={{ padding: 0 }}>
+                            <Bar
+                                data={{
+                                    labels: topProductNames,
+                                    datasets: [{
+                                        label: 'Units Sold',
+                                        data: topProductQuantities,
+                                        backgroundColor: '#10b981',
+                                    }],
+                                }}
+                                options={{ responsive: true, plugins: { legend: { display: false } }, maintainAspectRatio: false, aspectRatio: 2 }}
+                            />
+                        </CardContent>
+                    </Card>
+                </div>
+                <div className="flex-1">
+                    <Card className="rounded-xl shadow bg-white border border-gray-200">
+                        <CardHeader className="pb-0"><h3 className="font-semibold text-lg text-gray-600">Top-Selling Products (Today)</h3></CardHeader>
+                        <CardContent style={{ padding: 0 }}>
+                            <Bar
+                                data={{
+                                    labels: todayTopProductNames,
+                                    datasets: [{
+                                        label: 'Units Sold',
+                                        data: todayTopProductQuantities,
+                                        backgroundColor: '#10b981',
+                                    }],
+                                }}
+                                options={{ responsive: true, plugins: { legend: { display: false } }, maintainAspectRatio: false, aspectRatio: 2 }}
+                            />
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
         </div>
     );

@@ -98,16 +98,21 @@ const Navbar = () => {
 
             {/* Navigation Links for Desktop */}
             <nav className="nav-links hidden md:flex">
-                {links.map(link => (
-                    <Button
-                        key={link.name}
-                        className="nav-item"
-                        onClick={() => router.push(link.path)}
-                    >
-                        {link.icon}
-                        <span>{link.name}</span>
-                    </Button>
-                ))}
+                {links.map(link => {
+                    const isActive = router.pathname === link.path || (link.path === '/' && router.pathname === '/');
+                    return (
+                        <Button
+                            key={link.name}
+                            className={
+                                `nav-item${isActive ? ' active text-primary font-bold border-b-2 border-primary' : ''}`
+                            }
+                            onClick={() => router.push(link.path)}
+                        >
+                            {link.icon}
+                            <span>{link.name}</span>
+                        </Button>
+                    );
+                })}
             </nav>
 
             {/* User Info & Logout */}
