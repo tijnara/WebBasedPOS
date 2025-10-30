@@ -570,7 +570,6 @@ button:disabled {
 /* Responsive Table Styles */
 
 
-
 /* --- Spinner Animation --- */
 @keyframes spin {
     from {
@@ -672,5 +671,48 @@ button:disabled {
     .main {
         /* 1.25rem is the original padding */
         padding-bottom: 1.25rem !important;
+    }
+}
+
+/* --- Mobile Logout Button Styles --- */
+.mobile-logout-btn {
+    position: fixed;
+    top: 0;
+    right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+    background: transparent;
+    color: var(--primary);
+    border: none;
+    box-shadow: none;
+}
+@media (min-width: 768px) {
+    .mobile-logout-btn {
+        display: none;
+    }
+}
+.product-page,
+.customer-page,
+.user-page {
+    position: relative;
+}
+
+/* --- Brand Logo Top Styles --- */
+.brand-logo-top {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 101;
+    width: 32px;
+    height: 32px;
+    margin: 0.5rem;
+    background: transparent;
+}
+@media (min-width: 768px) {
+    .brand-logo-top {
+        display: none;
     }
 }

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Card, CardHeader, CardContent, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Input, ScrollArea, cn } from '../ui'; // Added cn
 import { useSales } from '../../hooks/useSales'; // Import the useSales hook
+import MobileLogoutButton from '../MobileLogoutButton';
 
 export default function HistoryPage() {
     // --- REFACTORED: Get data from useSales hook ---
@@ -10,16 +11,14 @@ export default function HistoryPage() {
     const totalRevenue = sales.reduce((sum, sale) => sum + Number(sale.amountReceived || 0), 0);
     const transactionsCount = sales.length;
     const avgTransaction = transactionsCount > 0 ? (totalRevenue / transactionsCount).toFixed(2) : '0.00';
-    // Calculation for today's sales
-    const todaySales = sales.filter(sale => {
-        const saleDate = new Date(sale.saleTimestamp);
-        const today = new Date();
-        return saleDate.toDateString() === today.toDateString();
-    }).reduce((sum, sale) => sum + Number(sale.totalAmount || 0), 0).toFixed(2);
+    // Calculation for today's sales (removed unused todaySales)
     // --- End Calculation logic ---
 
     return (
         <div className="history-page">
+            {/* --- Brand Logo at the very top left --- */}
+            <img src="/seaside.png" alt="Seaside Logo" className="brand-logo-top" width={32} height={32} />
+            <MobileLogoutButton />
             <h1 className="text-2xl font-semibold mb-4">Sales History</h1>
 
             {/* Summary Cards */}

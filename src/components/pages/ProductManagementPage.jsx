@@ -14,6 +14,8 @@ import {
     useDeleteProduct
 } from '../../hooks/useProductMutations';
 
+import MobileLogoutButton from '../MobileLogoutButton';
+
 // Simple SVG Icon for Edit
 const EditIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
@@ -113,121 +115,126 @@ export default function ProductManagementPage() {
     const isMutating = createProduct.isPending || updateProduct.isPending || deleteProduct.isPending;
 
     return (
-        <div>
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
-                <div>
-                    <h1 className="text-2xl font-semibold">Products</h1>
-                    <p className="text-muted">Manage your product inventory</p>
-                </div><Button variant="primary" onClick={openModal}>Add Product</Button>
-            </div>
+        <div className="product-page">
+            {/* --- Brand Logo at the very top left --- */}
+            <img src="/seaside.png" alt="Seaside Logo" className="brand-logo-top" width={32} height={32} />
+            <MobileLogoutButton />
+            <div>
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
+                    <div>
+                        <h1 className="text-2xl font-semibold">Products</h1>
+                        <p className="text-muted">Manage your product inventory</p>
+                    </div><Button variant="primary" onClick={openModal}>Add Product</Button>
+                </div>
 
-            <div className="mb-4">
-                <Input placeholder="Search products..." className="w-full" />
-            </div>
+                <div className="mb-4">
+                    <Input placeholder="Search products..." className="w-full" />
+                </div>
 
-            {/* --- DESKTOP TABLE (Hidden on mobile) --- */}
-            <Card className="hidden md:block">
-                <CardContent>
-                    <ScrollArea className="max-h-96">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Product Name</TableHead>
-                                    <TableHead>Price</TableHead>
-                                    <TableHead>Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {isLoading ? (
+                {/* --- DESKTOP TABLE (Hidden on mobile) --- */}
+                <Card className="hidden md:block">
+                    <CardContent>
+                        <ScrollArea className="max-h-96">
+                            <Table>
+                                <TableHeader>
                                     <TableRow>
-                                        <TableCell colSpan={3} className="text-center text-muted">Loading products...</TableCell>
+                                        <TableHead>Product Name</TableHead>
+                                        <TableHead>Price</TableHead>
+                                        <TableHead>Actions</TableHead>
                                     </TableRow>
-                                ) : products.length === 0 ? (
-                                    <TableRow>
-                                        <TableCell colSpan={3} className="text-center text-muted">No products found.</TableCell>
-                                    </TableRow>
-                                ) : (
-                                    products.map(p => (
-                                        <TableRow key={p.id}>
-                                            <TableCell>{p.name}</TableCell>
-                                            <TableCell>₱{Number(p.price || 0).toFixed(2)}</TableCell>
-                                            <TableCell>
-                                                <div className="flex space-x-1">
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEdit(p)}>
-                                                        <EditIcon />
-                                                    </Button>
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(p)}>
-                                                        <DeleteIcon />
-                                                    </Button>
-                                                </div>
-                                            </TableCell>
+                                </TableHeader>
+                                <TableBody>
+                                    {isLoading ? (
+                                        <TableRow>
+                                            <TableCell colSpan={3} className="text-center text-muted">Loading products...</TableCell>
                                         </TableRow>
-                                    ))
-                                )}
-                            </TableBody>
-                        </Table>
-                    </ScrollArea>
-                </CardContent>
-            </Card>
+                                    ) : products.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={3} className="text-center text-muted">No products found.</TableCell>
+                                        </TableRow>
+                                    ) : (
+                                        products.map(p => (
+                                            <TableRow key={p.id}>
+                                                <TableCell>{p.name}</TableCell>
+                                                <TableCell>₱{Number(p.price || 0).toFixed(2)}</TableCell>
+                                                <TableCell>
+                                                    <div className="flex space-x-1">
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEdit(p)}>
+                                                            <EditIcon />
+                                                        </Button>
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(p)}>
+                                                            <DeleteIcon />
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </ScrollArea>
+                    </CardContent>
+                </Card>
 
-            {/* --- MOBILE CARD LIST (Show on mobile, hide on md+) --- */}
-            <div className="block md:hidden space-y-3">
-                {isLoading ? (
-                    <div className="text-center text-muted py-8">Loading products...</div>
-                ) : products.length === 0 ? (
-                    <div className="text-center text-muted py-8">No products found.</div>
-                ) : (
-                    products.map(p => (
-                        <Card key={p.id}>
-                            <CardContent className="p-4 flex justify-between items-center">
-                                <div>
-                                    <h3 className="font-semibold">{p.name}</h3>
-                                    <p className="text-sm text-muted">₱{Number(p.price || 0).toFixed(2)}</p>
-                                </div>
-                                <div className="flex space-x-1 flex-shrink-0">
-                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEdit(p)}>
-                                        <EditIcon />
-                                    </Button>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(p)}>
-                                        <DeleteIcon />
-                                    </Button>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))
-                )}
-            </div>
+                {/* --- MOBILE CARD LIST (Show on mobile, hide on md+) --- */}
+                <div className="block md:hidden space-y-3">
+                    {isLoading ? (
+                        <div className="text-center text-muted py-8">Loading products...</div>
+                    ) : products.length === 0 ? (
+                        <div className="text-center text-muted py-8">No products found.</div>
+                    ) : (
+                        products.map(p => (
+                            <Card key={p.id}>
+                                <CardContent className="p-4 flex justify-between items-center">
+                                    <div>
+                                        <h3 className="font-semibold">{p.name}</h3>
+                                        <p className="text-sm text-muted">₱{Number(p.price || 0).toFixed(2)}</p>
+                                    </div>
+                                    <div className="flex space-x-1 flex-shrink-0">
+                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEdit(p)}>
+                                            <EditIcon />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(p)}>
+                                            <DeleteIcon />
+                                        </Button>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ))
+                    )}
+                </div>
 
 
-            {/* --- MODAL: Product Form (No change needed) --- */}
-            <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>{editing ? 'Edit Product' : 'Add Product'}</DialogTitle>
-                        <DialogCloseButton onClick={closeModal} />
-                    </DialogHeader>
-                    <form onSubmit={save}>
-                        <div className="p-4 space-y-4">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div className="sm:col-span-2">
-                                    <Label htmlFor="productName">Product Name</Label>
-                                    <Input id="productName" value={name} onChange={e => setName(e.target.value)} required />
-                                </div>
-                                <div>
-                                    <Label htmlFor="pprice">Price (₱)</Label>
-                                    <Input id="pprice" type="number" step="0.01" min="0" value={price} onChange={e => setPrice(e.target.value)} required />
+                {/* --- MODAL: Product Form (No change needed) --- */}
+                <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>{editing ? 'Edit Product' : 'Add Product'}</DialogTitle>
+                            <DialogCloseButton onClick={closeModal} />
+                        </DialogHeader>
+                        <form onSubmit={save}>
+                            <div className="p-4 space-y-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="sm:col-span-2">
+                                        <Label htmlFor="productName">Product Name</Label>
+                                        <Input id="productName" value={name} onChange={e => setName(e.target.value)} required />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="pprice">Price (₱)</Label>
+                                        <Input id="pprice" type="number" step="0.01" min="0" value={price} onChange={e => setPrice(e.target.value)} required />
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <DialogFooter>
-                            <Button variant="outline" type="button" onClick={closeModal} disabled={isMutating}>Cancel</Button>
-                            <Button type="submit" disabled={isMutating}>
-                                {isMutating ? 'Saving...' : 'Save Product'}
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
+                            <DialogFooter>
+                                <Button variant="outline" type="button" onClick={closeModal} disabled={isMutating}>Cancel</Button>
+                                <Button type="submit" disabled={isMutating}>
+                                    {isMutating ? 'Saving...' : 'Save Product'}
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    </DialogContent>
+                </Dialog>
+            </div>
         </div>
     );
 }

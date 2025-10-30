@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../../store/useStore';
+import MobileLogoutButton from '../MobileLogoutButton';
 
 // --- Import Supabase hooks ---
 import { useProducts } from '../../hooks/useProducts';
@@ -14,7 +15,6 @@ import {
     cn
 } from '../ui';
 import TabBar from '../TabBar';
-
 // --- Icons (Assuming EmptyCartIcon, TrashIcon exist as before) ---
 const EmptyCartIcon = () => (
     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-muted">
@@ -290,23 +290,23 @@ export default function POSPage() {
 
 
     return (
-        <div>
+        <div className="pos-page">
+            {/* --- Brand Logo at the very top left --- */}
+            <img src="/seaside.png" alt="Seaside Logo" className="brand-logo-top" width={32} height={32} />
+            <MobileLogoutButton />
             {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
-                <h1 className="text-2xl font-bold">Point of Sale</h1>
-                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                    <Input
-                        placeholder="Search products..."
-                        className="w-full sm:w-64"
-                        value={productSearchTerm} // Controlled input
-                        onChange={(e) => setProductSearchTerm(e.target.value)} // Update search term state
-                    />
-                    <Button variant="outline" onClick={openCustomSaleModal} className="w-full sm:w-auto">
-                        Custom Sale
-                    </Button>
-                </div>
+            <h1 className="text-2xl font-bold">Point of Sale</h1>
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                <Input
+                    placeholder="Search products..."
+                    className="w-full sm:w-64"
+                    value={productSearchTerm}
+                    onChange={(e) => setProductSearchTerm(e.target.value)}
+                />
+                <Button variant="outline" onClick={openCustomSaleModal} className="w-full sm:w-auto">
+                    Custom Sale
+                </Button>
             </div>
-
             {/* Main Layout: Product Grid | Order Sidebar */}
             <div className="flex flex-col md:flex-row-reverse gap-4">
 
@@ -628,6 +628,6 @@ export default function POSPage() {
             </Dialog>
 
             <TabBar />
-        </div> // End of wrapper div
+        </div>
     );
 }

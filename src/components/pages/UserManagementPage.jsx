@@ -4,7 +4,7 @@ import { useStore } from '../../store/useStore';
 import {
     Button, Card, CardContent, Table, TableHeader, TableBody, TableRow,
     TableHead, TableCell, ScrollArea, Input, Label, Dialog, DialogContent,
-    DialogHeader, DialogTitle, DialogFooter, DialogCloseButton, cn
+    DialogHeader, DialogTitle, DialogFooter, DialogCloseButton
 } from '../ui';
 
 import {
@@ -13,6 +13,7 @@ import {
     useUpdateUser,
     useDeleteUser
 } from '../../hooks/useUserMutations';
+import MobileLogoutButton from '../MobileLogoutButton';
 
 const EditIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
@@ -111,129 +112,134 @@ export default function UserManagementPage() {
     const isMutating = createUser.isPending || updateUser.isPending || deleteUser.isPending;
 
     return (
-        <div>
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
-                <div>
-                    <h1 className="text-2xl font-semibold">User Management</h1>
-                    <p className="text-muted">Manage your staff accounts</p>
+        <div className="user-page">
+            {/* --- Brand Logo at the very top left --- */}
+            <img src="/seaside.png" alt="Seaside Logo" className="brand-logo-top" width={32} height={32} />
+            <MobileLogoutButton />
+            <div>
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
+                    <div>
+                        <h1 className="text-2xl font-semibold">User Management</h1>
+                        <p className="text-muted">Manage your staff accounts</p>
+                    </div>
+                    <Button variant="primary" onClick={openModal}>Add User</Button>
                 </div>
-                <Button variant="primary" onClick={openModal}>Add User</Button>
-            </div>
 
-            <div className="mb-4">
-                <Input placeholder="Search users..." className="w-full" />
-            </div>
+                <div className="mb-4">
+                    <Input placeholder="Search users..." className="w-full" />
+                </div>
 
-            <Card className="mb-4 hidden md:block">
-                <CardContent>
-                    <ScrollArea className="max-h-96">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Fullname</TableHead>
-                                    <TableHead>Email</TableHead>
-                                    <TableHead>Contact Number</TableHead>
-                                    <TableHead>Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {isLoading ? (
+                <Card className="mb-4 hidden md:block">
+                    <CardContent>
+                        <ScrollArea className="max-h-96">
+                            <Table>
+                                <TableHeader>
                                     <TableRow>
-                                        <TableCell colSpan={4} className="text-center text-muted">Loading users...</TableCell>
+                                        <TableHead>Fullname</TableHead>
+                                        <TableHead>Email</TableHead>
+                                        <TableHead>Contact Number</TableHead>
+                                        <TableHead>Actions</TableHead>
                                     </TableRow>
-                                ) : users.length === 0 ? (
-                                    <TableRow>
-                                        <TableCell colSpan={4} className="text-center text-muted">No users found.</TableCell>
-                                    </TableRow>
-                                ) : (
-                                    users.map(u => (
-                                        <TableRow key={u.id}>
-                                            <TableCell>{u.name}</TableCell>
-                                            <TableCell>{u.email}</TableCell>
-                                            <TableCell>{u.phone || 'N/A'}</TableCell>
-                                            <TableCell>
-                                                <div className="flex space-x-1">
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEdit(u)}>
-                                                        <EditIcon />
-                                                    </Button>
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(u)}>
-                                                        <DeleteIcon />
-                                                    </Button>
-                                                </div>
-                                            </TableCell>
+                                </TableHeader>
+                                <TableBody>
+                                    {isLoading ? (
+                                        <TableRow>
+                                            <TableCell colSpan={4} className="text-center text-muted">Loading users...</TableCell>
                                         </TableRow>
-                                    ))
-                                )}
-                            </TableBody>
-                        </Table>
-                    </ScrollArea>
-                </CardContent>
-            </Card>
+                                    ) : users.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={4} className="text-center text-muted">No users found.</TableCell>
+                                        </TableRow>
+                                    ) : (
+                                        users.map(u => (
+                                            <TableRow key={u.id}>
+                                                <TableCell>{u.name}</TableCell>
+                                                <TableCell>{u.email}</TableCell>
+                                                <TableCell>{u.phone || 'N/A'}</TableCell>
+                                                <TableCell>
+                                                    <div className="flex space-x-1">
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEdit(u)}>
+                                                            <EditIcon />
+                                                        </Button>
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(u)}>
+                                                            <DeleteIcon />
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </ScrollArea>
+                    </CardContent>
+                </Card>
 
-            <div className="block md:hidden space-y-3">
-                {isLoading ? (
-                    <div className="text-center text-muted py-8">Loading users...</div>
-                ) : users.length === 0 ? (
-                    <div className="text-center text-muted py-8">No users found.</div>
-                ) : (
-                    users.map(u => (
-                        <Card key={u.id}>
-                            <CardContent className="p-4 flex justify-between items-center">
-                                <div>
-                                    <h3 className="font-semibold">{u.name}</h3>
-                                    <p className="text-sm text-muted">{u.email}</p>
-                                    <p className="text-sm text-muted">{u.phone || 'N/A'}</p>
-                                </div>
-                                <div className="flex space-x-1 flex-shrink-0">
-                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEdit(u)}>
-                                        <EditIcon />
-                                    </Button>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(u)}>
-                                        <DeleteIcon />
-                                    </Button>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))
-                )}
-            </div>
+                <div className="block md:hidden space-y-3">
+                    {isLoading ? (
+                        <div className="text-center text-muted py-8">Loading users...</div>
+                    ) : users.length === 0 ? (
+                        <div className="text-center text-muted py-8">No users found.</div>
+                    ) : (
+                        users.map(u => (
+                            <Card key={u.id}>
+                                <CardContent className="p-4 flex justify-between items-center">
+                                    <div>
+                                        <h3 className="font-semibold">{u.name}</h3>
+                                        <p className="text-sm text-muted">{u.email}</p>
+                                        <p className="text-sm text-muted">{u.phone || 'N/A'}</p>
+                                    </div>
+                                    <div className="flex space-x-1 flex-shrink-0">
+                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEdit(u)}>
+                                            <EditIcon />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(u)}>
+                                            <DeleteIcon />
+                                        </Button>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ))
+                    )}
+                </div>
 
-            <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>{editing ? 'Edit User' : 'Add User'}</DialogTitle>
-                        <DialogCloseButton onClick={closeModal} />
-                    </DialogHeader>
-                    <form onSubmit={save}>
-                        <div className="p-4 space-y-4">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                    <Label htmlFor="fullname">Fullname</Label>
-                                    <Input id="fullname" value={fullName} onChange={e => setFullName(e.target.value)} required />
-                                </div>
-                                <div>
-                                    <Label htmlFor="email">Email</Label>
-                                    <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
-                                </div>
-                                <div>
-                                    <Label htmlFor="password">Password</Label>
-                                    <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder={editing ? "Leave blank to keep current" : ""} required={!editing} />
-                                </div>
-                                <div>
-                                    <Label htmlFor="contactNumber">Contact Number (Optional)</Label>
-                                    <Input id="contactNumber" value={contactNumber} onChange={e => setContactNumber(e.target.value)} />
+                <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>{editing ? 'Edit User' : 'Add User'}</DialogTitle>
+                            <DialogCloseButton onClick={closeModal} />
+                        </DialogHeader>
+                        <form onSubmit={save}>
+                            <div className="p-4 space-y-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <Label htmlFor="fullname">Fullname</Label>
+                                        <Input id="fullname" value={fullName} onChange={e => setFullName(e.target.value)} required />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="email">Email</Label>
+                                        <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="password">Password</Label>
+                                        <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder={editing ? "Leave blank to keep current" : ""} required={!editing} />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="contactNumber">Contact Number (Optional)</Label>
+                                        <Input id="contactNumber" value={contactNumber} onChange={e => setContactNumber(e.target.value)} />
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <DialogFooter>
-                            <Button variant="outline" type="button" onClick={closeModal} disabled={isMutating}>Cancel</Button>
-                            <Button type="submit" disabled={isMutating}>
-                                {isMutating ? 'Saving...' : 'Save User'}
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
+                            <DialogFooter>
+                                <Button variant="outline" type="button" onClick={closeModal} disabled={isMutating}>Cancel</Button>
+                                <Button type="submit" disabled={isMutating}>
+                                    {isMutating ? 'Saving...' : 'Save User'}
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    </DialogContent>
+                </Dialog>
+            </div>
         </div>
     );
 }

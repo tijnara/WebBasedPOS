@@ -5,6 +5,7 @@ import {
     TableHead, TableCell, ScrollArea, Input, Label, Dialog, DialogContent,
     DialogHeader, DialogTitle, DialogFooter, DialogCloseButton
 } from '../ui';
+import MobileLogoutButton from '../MobileLogoutButton';
 
 // --- Import Customer Hooks ---
 import { useCreateCustomer } from '../../hooks/useCreateCustomer';
@@ -114,171 +115,176 @@ export default function CustomerManagementPage() {
     const isMutating = createCustomer.isPending || updateCustomer.isPending || deleteCustomer.isPending;
 
     return (
-        <div>
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-2">
-                <div>
-                    <h1 className="text-2xl font-semibold">Customer Management</h1>
-                    <p className="text-muted mt-1">Manage your customer records</p>
+        <div className="customer-page">
+            {/* --- Brand Logo at the very top left --- */}
+            <img src="/seaside.png" alt="Seaside Logo" className="brand-logo-top" width={32} height={32} />
+            <MobileLogoutButton />
+            <div>
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-2">
+                    <div>
+                        <h1 className="text-2xl font-semibold">Customer Management</h1>
+                        <p className="text-muted mt-1">Manage your customer records</p>
+                    </div>
+                    <Button onClick={openModal} variant="primary">Add Customer</Button>
                 </div>
-                <Button onClick={openModal} variant="primary">Add Customer</Button>
-            </div>
 
-            <div className="mb-4">
-                <Input placeholder="Search customers..." className="w-full max-w-lg" />
-            </div>
+                <div className="mb-4">
+                    <Input placeholder="Search customers..." className="w-full max-w-lg" />
+                </div>
 
-            {/* --- DESKTOP TABLE (Hidden on mobile) --- */}
-            <Card className="mb-4 hidden md:block">
-                <CardContent className="p-0">
-                    <ScrollArea className="max-h-[calc(100vh-280px)]">
-                        <Table>
-                            <TableHeader className="sticky top-0 bg-gray-50 z-10">
-                                <TableRow>
-                                    <TableHead>Customer Name</TableHead>
-                                    <TableHead>Email</TableHead>
-                                    <TableHead>Contact Number</TableHead>
-                                    <TableHead>Date Added</TableHead>
-                                    <TableHead className="text-right">Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {isLoading ? (
+                {/* --- DESKTOP TABLE (Hidden on mobile) --- */}
+                <Card className="mb-4 hidden md:block">
+                    <CardContent className="p-0">
+                        <ScrollArea className="max-h-[calc(100vh-280px)]">
+                            <Table>
+                                <TableHeader className="sticky top-0 bg-gray-50 z-10">
                                     <TableRow>
-                                        <TableCell colSpan={5} className="text-center text-muted py-8">Loading customers...</TableCell>
+                                        <TableHead>Customer Name</TableHead>
+                                        <TableHead>Email</TableHead>
+                                        <TableHead>Contact Number</TableHead>
+                                        <TableHead>Date Added</TableHead>
+                                        <TableHead className="text-right">Actions</TableHead>
                                     </TableRow>
-                                ) : customers.length === 0 ? (
-                                    <TableRow>
-                                        <TableCell colSpan={5} className="text-center text-muted py-8">No customers found.</TableCell>
-                                    </TableRow>
-                                ) : (
-                                    customers.map(c => (
-                                        <TableRow key={c.id} className="hover:bg-gray-50">
-                                            <TableCell className="font-medium">{c.name}</TableCell>
-                                            <TableCell>{c.email}</TableCell>
-                                            <TableCell>{c.phone}</TableCell>
-                                            <TableCell>
-                                                {c.dateAdded instanceof Date && !isNaN(c.dateAdded)
-                                                    ? c.dateAdded.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
-                                                    : 'N/A'}
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <div className="flex justify-end space-x-1">
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:bg-blue-100" onClick={() => startEdit(c)} title="Edit Customer">
-                                                        <EditIcon />
-                                                    </Button>
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-red-600 hover:bg-red-100" onClick={() => remove(c)} title="Delete Customer">
-                                                        <DeleteIcon />
-                                                    </Button>
-                                                </div>
-                                            </TableCell>
+                                </TableHeader>
+                                <TableBody>
+                                    {isLoading ? (
+                                        <TableRow>
+                                            <TableCell colSpan={5} className="text-center text-muted py-8">Loading customers...</TableCell>
                                         </TableRow>
-                                    ))
-                                )}
-                            </TableBody>
-                        </Table>
-                    </ScrollArea>
-                </CardContent>
-            </Card>
+                                    ) : customers.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={5} className="text-center text-muted py-8">No customers found.</TableCell>
+                                        </TableRow>
+                                    ) : (
+                                        customers.map(c => (
+                                            <TableRow key={c.id} className="hover:bg-gray-50">
+                                                <TableCell className="font-medium">{c.name}</TableCell>
+                                                <TableCell>{c.email}</TableCell>
+                                                <TableCell>{c.phone}</TableCell>
+                                                <TableCell>
+                                                    {c.dateAdded instanceof Date && !isNaN(c.dateAdded)
+                                                        ? c.dateAdded.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+                                                        : 'N/A'}
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <div className="flex justify-end space-x-1">
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:bg-blue-100" onClick={() => startEdit(c)} title="Edit Customer">
+                                                            <EditIcon />
+                                                        </Button>
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-red-600 hover:bg-red-100" onClick={() => remove(c)} title="Delete Customer">
+                                                            <DeleteIcon />
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </ScrollArea>
+                    </CardContent>
+                </Card>
 
-            {/* --- MOBILE CARD LIST (Show on mobile, hide on md+) --- */}
-            <div className="block md:hidden space-y-3">
-                {isLoading ? (
-                    <div className="text-center text-muted py-8">Loading customers...</div>
-                ) : customers.length === 0 ? (
-                    <div className="text-center text-muted py-8">No customers found.</div>
-                ) : (
-                    customers.map(c => (
-                        <Card key={c.id}>
-                            <CardContent className="p-4">
-                                <div className="flex justify-between items-start">
-                                    {/* Customer Info */}
-                                    <div className="pr-2">
-                                        <h3 className="font-semibold text-lg">{c.name}</h3>
-                                        <p className="text-sm text-muted truncate">{c.email}</p>
-                                        <p className="text-sm text-muted">{c.phone}</p>
+                {/* --- MOBILE CARD LIST (Show on mobile, hide on md+) --- */}
+                <div className="block md:hidden space-y-3">
+                    {isLoading ? (
+                        <div className="text-center text-muted py-8">Loading customers...</div>
+                    ) : customers.length === 0 ? (
+                        <div className="text-center text-muted py-8">No customers found.</div>
+                    ) : (
+                        customers.map(c => (
+                            <Card key={c.id}>
+                                <CardContent className="p-4">
+                                    <div className="flex justify-between items-start">
+                                        {/* Customer Info */}
+                                        <div className="pr-2">
+                                            <h3 className="font-semibold text-lg">{c.name}</h3>
+                                            <p className="text-sm text-muted truncate">{c.email}</p>
+                                            <p className="text-sm text-muted">{c.phone}</p>
+                                        </div>
+                                        {/* Action Buttons */}
+                                        <div className="flex flex-col space-y-1 flex-shrink-0">
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600" onClick={() => startEdit(c)} title="Edit Customer">
+                                                <EditIcon />
+                                            </Button>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-red-600" onClick={() => remove(c)} title="Delete Customer">
+                                                <DeleteIcon />
+                                            </Button>
+                                        </div>
                                     </div>
-                                    {/* Action Buttons */}
-                                    <div className="flex flex-col space-y-1 flex-shrink-0">
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600" onClick={() => startEdit(c)} title="Edit Customer">
-                                            <EditIcon />
-                                        </Button>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-red-600" onClick={() => remove(c)} title="Delete Customer">
-                                            <DeleteIcon />
-                                        </Button>
+                                    {/* Date Added */}
+                                    <div className="text-xs text-gray-500 mt-3 pt-3 border-t">
+                                        Added: {c.dateAdded instanceof Date && !isNaN(c.dateAdded)
+                                        ? c.dateAdded.toLocaleDateString()
+                                        : 'N/A'}
                                     </div>
-                                </div>
-                                {/* Date Added */}
-                                <div className="text-xs text-gray-500 mt-3 pt-3 border-t">
-                                    Added: {c.dateAdded instanceof Date && !isNaN(c.dateAdded)
-                                    ? c.dateAdded.toLocaleDateString()
-                                    : 'N/A'}
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))
-                )}
-            </div>
+                                </CardContent>
+                            </Card>
+                        ))
+                    )}
+                </div>
 
-            {/* --- MODAL: Customer Form (No change needed) --- */}
-            <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>{editing ? 'Edit Customer' : 'Add New Customer'}</DialogTitle>
-                        <DialogCloseButton onClick={closeModal} />
-                    </DialogHeader>
-                    <form onSubmit={save}>
-                        <div className="p-4 space-y-4">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div className="sm:col-span-2">
-                                    <Label htmlFor="name">Customer Name <span className="text-red-500">*</span></Label>
-                                    <Input
-                                        id="name"
-                                        value={name}
-                                        onChange={(e) => setName(e.target.value)}
-                                        required
-                                        placeholder="Enter full name"
-                                        autoFocus
-                                    />
-                                </div>
-                                <div>
-                                    <Label htmlFor="email">Email (Optional)</Label>
-                                    <Input
-                                        id="email"
-                                        type="email"
-                                        value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
-                                        placeholder="customer@example.com"
-                                    />
-                                </div>
-                                <div>
-                                    <Label htmlFor="phone">Phone (Optional)</Label>
-                                    <Input
-                                        id="phone"
-                                        value={phone}
-                                        onChange={(e) => setPhone(e.target.value)}
-                                        placeholder="e.g., 09171234567"
-                                    />
-                                </div>
-                                <div className="sm:col-span-2">
-                                    <Label htmlFor="address">Address (Optional)</Label>
-                                    <Input
-                                        id="address"
-                                        value={address}
-                                        onChange={(e) => setAddress(e.target.value)}
-                                        placeholder="123 Main St, City"
-                                    />
+                {/* --- MODAL: Customer Form (No change needed) --- */}
+                <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>{editing ? 'Edit Customer' : 'Add New Customer'}</DialogTitle>
+                            <DialogCloseButton onClick={closeModal} />
+                        </DialogHeader>
+                        <form onSubmit={save}>
+                            <div className="p-4 space-y-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="sm:col-span-2">
+                                        <Label htmlFor="name">Customer Name <span className="text-red-500">*</span></Label>
+                                        <Input
+                                            id="name"
+                                            value={name}
+                                            onChange={(e) => setName(e.target.value)}
+                                            required
+                                            placeholder="Enter full name"
+                                            autoFocus
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="email">Email (Optional)</Label>
+                                        <Input
+                                            id="email"
+                                            type="email"
+                                            value={email}
+                                            onChange={(e) => setEmail(e.target.value)}
+                                            placeholder="customer@example.com"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="phone">Phone (Optional)</Label>
+                                        <Input
+                                            id="phone"
+                                            value={phone}
+                                            onChange={(e) => setPhone(e.target.value)}
+                                            placeholder="e.g., 09171234567"
+                                        />
+                                    </div>
+                                    <div className="sm:col-span-2">
+                                        <Label htmlFor="address">Address (Optional)</Label>
+                                        <Input
+                                            id="address"
+                                            value={address}
+                                            onChange={(e) => setAddress(e.target.value)}
+                                            placeholder="123 Main St, City"
+                                        />
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <DialogFooter>
-                            <Button variant="outline" type="button" onClick={closeModal} disabled={isMutating}>Cancel</Button>
-                            <Button type="submit" variant="primary" disabled={isMutating}>
-                                {isMutating ? 'Saving...' : (editing ? 'Update Customer' : 'Create Customer')}
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
+                            <DialogFooter>
+                                <Button variant="outline" type="button" onClick={closeModal} disabled={isMutating}>Cancel</Button>
+                                <Button type="submit" variant="primary" disabled={isMutating}>
+                                    {isMutating ? 'Saving...' : (editing ? 'Update Customer' : 'Create Customer')}
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    </DialogContent>
+                </Dialog>
+            </div>
         </div>
     );
 }
