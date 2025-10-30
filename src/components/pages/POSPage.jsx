@@ -13,6 +13,7 @@ import {
     Input, Label, Select,
     cn
 } from '../ui';
+import TabBar from '../TabBar';
 
 // --- Icons (Assuming EmptyCartIcon, TrashIcon exist as before) ---
 const EmptyCartIcon = () => (
@@ -626,7 +627,7 @@ export default function POSPage() {
                 </DialogContent>
             </Dialog>
 
-
+            <TabBar />
         </div> // End of wrapper div
     );
 }

@@ -3,7 +3,8 @@ import '../styles/globals.css';
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../src/store/useStore';
 import { useRouter } from 'next/router';
-import Navbar from '../src/components/Navbar'; // IMPORT NEW NAVBAR
+import Navbar from '../src/components/Navbar';
+import TabBar from '../src/components/TabBar'; // --- IMPORT TAB BAR AGAIN ---
 import { Button } from '../src/components/ui';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
@@ -85,10 +86,12 @@ export default function App({ Component, pageProps }) {
     return (
         <QueryClientProvider client={queryClient}>
             <AuthGate>
-                {/* Use the .app class which now defines flex-direction: column */}
                 <div className="app bg-gray-100">
-                    {/* Render Navbar if not on login page */}
-                    {!isLoginPage && <Navbar />} {/* USE NAVBAR */}
+                    {/* Render Navbar. It handles its own visibility. */}
+                    {!isLoginPage && <Navbar />}
+
+                    {/* --- RENDER TAB BAR (it hides itself on desktop via CSS) --- */}
+                    {!isLoginPage && <TabBar />}
 
                     {/* Main content area */}
                     <main className="main">

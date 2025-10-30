@@ -1,28 +1,24 @@
+// src/components/pages/UserManagementPage.jsx
 import React, { useState } from 'react';
 import { useStore } from '../../store/useStore';
-// Removed: import * as api from '../../lib/api';
 import {
     Button, Card, CardContent, Table, TableHeader, TableBody, TableRow,
     TableHead, TableCell, ScrollArea, Input, Label, Dialog, DialogContent,
-    DialogHeader, DialogTitle, DialogFooter, DialogCloseButton
+    DialogHeader, DialogTitle, DialogFooter, DialogCloseButton, cn
 } from '../ui';
 
-// --- NEW: Import all the hooks ---
 import {
     useUsers,
     useCreateUser,
     useUpdateUser,
     useDeleteUser
-} from '../../hooks/useUserMutations'; // Assuming you created this file
+} from '../../hooks/useUserMutations';
 
-// Simple SVG Icon for Edit
 const EditIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
         <path d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708l-3-3zm.646 6.061L9.793 2.5 3.293 9H3.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.207l6.5-6.5zm-7.468 7.468A.5.5 0 0 1 6 13.5V13h-.5a.5.5 0 0 1-.5-.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.5-.5V10h-.5a.499.499 0 0 1-.175-.032l-.179.178a.5.5 0 0 0-.11.168l-2 5a.5.5 0 0 0 .65.65l5-2a.5.5 0 0 0 .168-.11l.178-.178z"/>
     </svg>
 );
-
-// Simple SVG Icon for Delete
 const DeleteIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
         <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
@@ -30,19 +26,12 @@ const DeleteIcon = () => (
     </svg>
 );
 
-
 export default function UserManagementPage() {
     const addToast = useStore(s => s.addToast);
-
-    // --- REFACTORED: Get data from useUsers hook ---
     const { data: users = [], isLoading } = useUsers();
-
-    // --- NEW: Initialize mutations ---
     const createUser = useCreateUser();
     const updateUser = useUpdateUser();
     const deleteUser = useDeleteUser();
-
-    // State for the modal
     const [editing, setEditing] = useState(null);
     const [fullName, setFullName] = useState('');
     const [email, setEmail] = useState('');
@@ -50,14 +39,12 @@ export default function UserManagementPage() {
     const [contactNumber, setContactNumber] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    // Removed: loadData and useEffect
-
     const startEdit = (u) => {
         setEditing(u);
         setFullName(u?.name || '');
         setEmail(u?.email || '');
         setContactNumber(u?.phone || '');
-        setPassword(''); // Always clear password for edit form
+        setPassword('');
         setIsModalOpen(true);
     };
 
@@ -71,7 +58,7 @@ export default function UserManagementPage() {
 
     const closeModal = () => {
         setIsModalOpen(false);
-        setTimeout(resetForm, 200); // Delay reset to allow modal animation
+        setTimeout(resetForm, 200);
     };
 
     const openModal = () => {
@@ -81,8 +68,7 @@ export default function UserManagementPage() {
 
     const save = async (e) => {
         e.preventDefault();
-
-        if (!fullName || !email) { // Contact number is optional based on User hook
+        if (!fullName || !email) {
             addToast({ title: 'Error', description: 'Fullname and Email are required.', variant: 'destructive' });
             return;
         }
@@ -90,14 +76,12 @@ export default function UserManagementPage() {
             addToast({ title: 'Error', description: 'Password is required for new users.', variant: 'destructive' });
             return;
         }
-
         const payload = {
-            name: fullName, // Mapped to first_name in the hook
+            name: fullName,
             email,
             phone: contactNumber,
             ...(password && { password }),
         };
-
         try {
             if (editing) {
                 await updateUser.mutateAsync({ ...payload, id: editing.id });
@@ -107,7 +91,6 @@ export default function UserManagementPage() {
                 addToast({ title: 'Created', description: `User ${email} created`, variant: 'success' });
             }
             closeModal();
-            // No loadData() needed, hooks invalidate the query
         } catch (e) {
             console.error(e);
             addToast({ title: 'Error', description: e.message || 'Failed to save user', variant: 'destructive' });
@@ -119,7 +102,6 @@ export default function UserManagementPage() {
         try {
             await deleteUser.mutateAsync(u.id);
             addToast({ title: 'Deleted', description: `${u.email} deleted`, variant: 'success' });
-            // No loadData() needed
         } catch (e) {
             console.error(e);
             addToast({ title: 'Error', description: e.message || 'Failed to delete user', variant: 'destructive' });
@@ -130,32 +112,31 @@ export default function UserManagementPage() {
 
     return (
         <div>
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
                 <div>
                     <h1 className="text-2xl font-semibold">User Management</h1>
                     <p className="text-muted">Manage your staff accounts</p>
-                </div><Button variant="primary" onClick={openModal}>Add User</Button>
+                </div>
+                <Button variant="primary" onClick={openModal}>Add User</Button>
             </div>
 
             <div className="mb-4">
                 <Input placeholder="Search users..." className="w-full" />
             </div>
 
-            <Card className="mb-4">
+            <Card className="mb-4 hidden md:block">
                 <CardContent>
-                    <ScrollArea className="max-h-96"> {/* Adjust max height */}
+                    <ScrollArea className="max-h-96">
                         <Table>
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Fullname</TableHead>
                                     <TableHead>Email</TableHead>
                                     <TableHead>Contact Number</TableHead>
-                                    {/* <TableHead>Role</TableHead> Optionally add role */}
                                     <TableHead>Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {/* --- REFACTORED: Show loading state --- */}
                                 {isLoading ? (
                                     <TableRow>
                                         <TableCell colSpan={4} className="text-center text-muted">Loading users...</TableCell>
@@ -170,13 +151,12 @@ export default function UserManagementPage() {
                                             <TableCell>{u.name}</TableCell>
                                             <TableCell>{u.email}</TableCell>
                                             <TableCell>{u.phone || 'N/A'}</TableCell>
-                                            {/* <TableCell>{u.role?.name || 'N/A'}</TableCell> Optionally add role */}
                                             <TableCell>
-                                                <div className="flex space-x-1"> {/* Reduced space */}
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEdit(u)}> {/* Smaller icons */}
+                                                <div className="flex space-x-1">
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEdit(u)}>
                                                         <EditIcon />
                                                     </Button>
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(u)}> {/* Smaller icons */}
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(u)}>
                                                         <DeleteIcon />
                                                     </Button>
                                                 </div>
@@ -189,6 +169,34 @@ export default function UserManagementPage() {
                     </ScrollArea>
                 </CardContent>
             </Card>
+
+            <div className="block md:hidden space-y-3">
+                {isLoading ? (
+                    <div className="text-center text-muted py-8">Loading users...</div>
+                ) : users.length === 0 ? (
+                    <div className="text-center text-muted py-8">No users found.</div>
+                ) : (
+                    users.map(u => (
+                        <Card key={u.id}>
+                            <CardContent className="p-4 flex justify-between items-center">
+                                <div>
+                                    <h3 className="font-semibold">{u.name}</h3>
+                                    <p className="text-sm text-muted">{u.email}</p>
+                                    <p className="text-sm text-muted">{u.phone || 'N/A'}</p>
+                                </div>
+                                <div className="flex space-x-1 flex-shrink-0">
+                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEdit(u)}>
+                                        <EditIcon />
+                                    </Button>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(u)}>
+                                        <DeleteIcon />
+                                    </Button>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))
+                )}
+            </div>
 
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
                 <DialogContent>
@@ -212,10 +220,9 @@ export default function UserManagementPage() {
                                     <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder={editing ? "Leave blank to keep current" : ""} required={!editing} />
                                 </div>
                                 <div>
-                                    <Label htmlFor="contactNumber">Contact Number (Optional)</Label> {/* Changed from required */}
+                                    <Label htmlFor="contactNumber">Contact Number (Optional)</Label>
                                     <Input id="contactNumber" value={contactNumber} onChange={e => setContactNumber(e.target.value)} />
                                 </div>
-                                {/* Add Role Selection Here if needed */}
                             </div>
                         </div>
                         <DialogFooter>
