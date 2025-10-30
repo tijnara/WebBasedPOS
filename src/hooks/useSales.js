@@ -28,7 +28,7 @@ export function useSales() {
                 // Map the data to the format your HistoryPage expects
                 return data.map(s => ({
                     id: s.id,
-                    saleTimestamp: new Date(s.saleTimestamp || s.created_at),
+                    saleTimestamp: s.saletimestamp ? new Date(s.saletimestamp) : new Date(s.created_at),
                     totalAmount: parseFloat(s.totalamount) || 0,
                     amountReceived: parseFloat(s.amountreceived) || 0,
                     customerId: s.customerId,

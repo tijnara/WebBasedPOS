@@ -76,6 +76,22 @@ export default function POSPage() {
     // State for product search
     const [productSearchTerm, setProductSearchTerm] = useState('');
 
+    // Add lastCustomer state, initialize from localStorage
+    const [lastCustomer, setLastCustomer] = useState(() => {
+        try {
+            const stored = localStorage.getItem('lastCustomer');
+            return stored ? JSON.parse(stored) : null;
+        } catch {
+            return null;
+        }
+    });
+
+    // Add state for sale date, default to today
+    const [saleDate, setSaleDate] = useState(() => {
+        const today = new Date();
+        return today.toISOString().slice(0, 10); // 'YYYY-MM-DD'
+    });
+
 
     // Sync local selectedCustomer with global store state
     useEffect(() => {
@@ -102,8 +118,8 @@ export default function POSPage() {
 
     // Customer Search Effect
     useEffect(() => {
-        // Only search if the modal is open and the debounced term is not empty
-        if (!isCustomerModalOpen || !debouncedSearchTerm) {
+        // Only search if a customer modal OR payment modal is open and the debounced term is not empty
+        if (!(isCustomerModalOpen || isPaymentModalOpen) || !debouncedSearchTerm) {
             setCustomerSearchResults([]);
             setIsSearchingCustomers(false);
             return;
@@ -136,7 +152,7 @@ export default function POSPage() {
             }
         };
         searchCustomers();
-    }, [debouncedSearchTerm, isCustomerModalOpen, addToast]);
+    }, [debouncedSearchTerm, isCustomerModalOpen, isPaymentModalOpen, addToast]);
 
 
     // --- Cart handling functions ---
@@ -192,45 +208,40 @@ export default function POSPage() {
     }
 
     const handleFinalizeSale = async () => {
+        if (!selectedCustomer) {
+            addToast({ title: 'Customer Required', description: 'Please select a customer before confirming the sale.', variant: 'warning' });
+            return;
+        }
         const items = Object.values(currentSale).map(i => ({
             productId: i.productId,
-            productName: i.name, // Store name at time of sale
+            productName: i.name,
             quantity: i.quantity,
-            priceAtSale: i.price, // Store price at time of sale
+            priceAtSale: i.price,
             subtotal: i.price * i.quantity
         }));
-
-        // Basic validation in modal ensures amountReceived is likely valid number
         const received = parseFloat(amountReceived || 0);
-
         try {
+            const saleTimestamp = saleDate ? new Date(saleDate).toISOString() : new Date().toISOString();
             const payload = {
-                // Supabase handles 'id' and 'created_at'
-                saleTimestamp: new Date().toISOString(),
+                saleTimestamp,
                 totalAmount: subtotal,
                 customerId: selectedCustomer?.id || null,
-                // Store selected customer name or 'Walk-in' at time of sale
                 customerName: selectedCustomer?.name || 'Walk-in',
-                items: items, // Should be acceptable by Supabase if column type is jsonb
-                status: 'Completed', // Default status
+                items,
+                status: 'Completed',
                 paymentMethod: paymentMethod,
                 amountReceived: received,
-                changeGiven: Math.max(0, received - subtotal), // Calculate change given
-                // subtotal: subtotal, // totalAmount usually serves this purpose
+                changeGiven: Math.max(0, received - subtotal),
             };
-
             const created = await createSaleMutation.mutateAsync(payload);
-
             addToast({ title: 'Sale Completed', description: `Sale #${created.id.toString().slice(-6)} recorded.`, variant: 'success' });
             clearSale();
-            handleSetSelectedCustomer(null); // Clear selected customer via store
-            closePaymentModal(); // Close the payment modal
-
+            handleSetSelectedCustomer(null);
+            setLastCustomer(selectedCustomer);
+            localStorage.setItem('lastCustomer', JSON.stringify(selectedCustomer));
+            closePaymentModal();
         } catch (e) {
-            console.error('Error finalizing sale:', e);
             addToast({ title: 'Checkout Error', description: e.message, variant: 'destructive' });
-            // Keep payment modal open on error? Or close? Closing might be less confusing.
-            // closePaymentModal();
         }
     };
 
@@ -419,15 +430,7 @@ export default function POSPage() {
                             )}
                         </CardContent>
                         <div className="p-3 border-t space-y-1 flex-shrink-0 bg-gray-50">
-                            <Label className="text-sm font-medium">Customer</Label>
-                            <Button
-                                variant="outline"
-                                className="w-full justify-between h-9 px-3 py-2 rounded-lg border-gray-300"
-                                onClick={() => setIsCustomerModalOpen(true)}
-                            >
-                                <span className="truncate">{selectedCustomer?.name || 'Walk-in Customer'}</span>
-                                <span className="text-xs text-muted-foreground ml-2">Change</span>
-                            </Button>
+                            {/* Removed Customer section as per the change request */}
                         </div>
                         <CardFooter className="p-3 flex-shrink-0 bg-gray-50 rounded-b-xl">
                             <div className="w-full">
@@ -624,6 +627,71 @@ export default function POSPage() {
                             <p className="text-3xl font-bold">₱{subtotal.toFixed(2)}</p>
                         </div>
 
+                        {/* --- Customer Searchable Dropdown --- */}
+                        <div>
+                            <Label htmlFor="customer-search-payment">
+                                Customer {lastCustomer ? `(last used: ${lastCustomer.name || 'Walk-in'})` : ''}
+                            </Label>
+                            <Input
+                                id="customer-search-payment"
+                                type="text"
+                                placeholder="Search by name..."
+                                value={searchTerm}
+                                onChange={e => setSearchTerm(e.target.value)}
+                                className="w-full mb-2"
+                            />
+                            <ScrollArea className="h-[150px] border rounded-md mb-2">
+                                <div className="p-2 space-y-1">
+                                    {/* Walk-in Option */}
+                                    <Button
+                                        variant={selectedCustomer === null ? "secondary" : "ghost"}
+                                        className="w-full justify-start text-left h-auto py-2 px-3"
+                                        onClick={() => handleSetSelectedCustomer(null)}
+                                    >
+                                        Walk-in Customer
+                                    </Button>
+                                    <hr className="my-1 border-border" />
+                                    {/* Search Results / Loading / Add New */}
+                                    {isSearchingCustomers ? (
+                                        <p className="p-2 text-sm text-center text-muted">Searching...</p>
+                                    ) : (
+                                        <>
+                                            {customerSearchResults.map(customer => (
+                                                <Button
+                                                    key={customer.id}
+                                                    variant={selectedCustomer?.id === customer.id ? "secondary" : "ghost"}
+                                                    className="w-full justify-start text-left h-auto py-2 px-3"
+                                                    onClick={() => handleSetSelectedCustomer(customer)}
+                                                >
+                                                    {customer.name} {customer.phone && `(${customer.phone})`}
+                                                </Button>
+                                            ))}
+                                            {/* Option to Add New Customer */}
+                                            {customerSearchResults.length === 0 && searchTerm && (
+                                                <div className="p-2 text-center">
+                                                    <p className="text-sm text-muted mb-2">No existing customer found.</p>
+                                                    <Button
+                                                        variant="primary"
+                                                        size="sm"
+                                                        onClick={() => handleAddCustomer(searchTerm)}
+                                                        disabled={createCustomerMutation.isPending}
+                                                    >
+                                                        {createCustomerMutation.isPending ? 'Adding...' : `+ Add "${searchTerm}"`}
+                                                    </Button>
+                                                </div>
+                                            )}
+                                            {/* Initial Prompt */}
+                                            {customerSearchResults.length === 0 && !searchTerm && !isSearchingCustomers && (
+                                                <p className="p-2 text-sm text-center text-muted">Type to search existing customers or add a new one.</p>
+                                            )}
+                                        </>
+                                    )}
+                                </div>
+                            </ScrollArea>
+                            {/* Show selected customer below search */}
+                            <div className="text-xs text-muted mt-1">Selected: <span className="font-semibold">{selectedCustomer?.name || 'Walk-in Customer'}</span></div>
+                        </div>
+
                         <div>
                             <Label htmlFor="paymentMethod">Payment Method</Label>
                             {/* Use Select component from ui.js */}
@@ -666,13 +734,25 @@ export default function POSPage() {
                         )}
                         {/* You might add fields for Card/GCash reference numbers here if needed */}
 
+                        {/* --- Date Picker --- */}
+                        <div className="mb-2">
+                            <Label htmlFor="sale-date">Date</Label>
+                            <Input
+                                id="sale-date"
+                                type="date"
+                                value={saleDate}
+                                onChange={e => setSaleDate(e.target.value)}
+                                className="w-full"
+                                max={new Date().toISOString().slice(0, 10)}
+                            />
+                        </div>
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={closePaymentModal}>Cancel</Button>
                         <Button
                             variant="success" // Use success variant
                             onClick={handleFinalizeSale}
-                            disabled={createSaleMutation.isPending || (paymentMethod === 'Cash' && parseFloat(amountReceived || 0) < subtotal)}
+                            disabled={createSaleMutation.isPending || (paymentMethod === 'Cash' && parseFloat(amountReceived || 0) < subtotal) || !selectedCustomer}
                         >
                             {createSaleMutation.isPending ? 'Saving...' : 'Confirm Sale'}
                         </Button>
@@ -684,4 +764,3 @@ export default function POSPage() {
         </div>
     );
 }
-

@@ -146,7 +146,7 @@ export default function HistoryPage() {
                         <Table>
                             <TableHeader className="sticky top-0 bg-gray-50 z-10">
                                 <TableRow>
-                                    <TableHead>Transaction ID</TableHead>
+                                    {/* Transaction ID column removed */}
                                     <TableHead>Date & Time</TableHead>
                                     <TableHead>Customer</TableHead>
                                     <TableHead>Quantity</TableHead>
@@ -160,17 +160,17 @@ export default function HistoryPage() {
                             <TableBody>
                                 {isLoading ? (
                                     <TableRow>
-                                        <TableCell colSpan={9} className="text-center text-muted py-8">Loading history...</TableCell>
+                                        <TableCell colSpan={8} className="text-center text-muted py-8">Loading history...</TableCell>
                                     </TableRow>
                                 ) : sales.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={9} className="text-center text-muted py-8">No sales found.</TableCell>
+                                        <TableCell colSpan={8} className="text-center text-muted py-8">No sales found.</TableCell>
                                     </TableRow>
                                 ) : (
                                     sales.map(sale => (
                                         <TableRow key={sale.id} className="hover:bg-gray-50">
-                                            <TableCell className="font-medium">...{String(sale.id).slice(-6)}</TableCell>
-                                            <TableCell>{sale.saleTimestamp.toLocaleString()}</TableCell>
+                                            {/* Transaction ID cell removed */}
+                                            <TableCell>{sale.saleTimestamp ? new Date(sale.saleTimestamp).toLocaleString() : ''}</TableCell>
                                             <TableCell>{sale.customerName || 'N/A'}</TableCell>
                                             <TableCell>{Array.isArray(sale.sale_items) ? sale.sale_items.reduce((sum, item) => sum + (item.quantity || 0), 0) : 0}</TableCell>
                                             <TableCell>{sale.paymentMethod || 'N/A'}</TableCell>
@@ -228,7 +228,7 @@ export default function HistoryPage() {
 
                                 {/* Timestamp */}
                                 <div className="text-xs text-gray-500 mt-3 pt-3 border-t">
-                                    {sale.saleTimestamp.toLocaleString()}
+                                    {sale.saleTimestamp ? new Date(sale.saleTimestamp).toLocaleString() : ''}
                                 </div>
                             </CardContent>
                         </Card>
