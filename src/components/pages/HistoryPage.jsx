@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, CardHeader, CardContent, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Input, ScrollArea } from '../ui'; // Added ScrollArea
+import { Card, CardHeader, CardContent, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Input, ScrollArea, cn } from '../ui'; // Added cn
 import { useSales } from '../../hooks/useSales'; // Import the useSales hook
 
 export default function HistoryPage() {
@@ -52,8 +52,8 @@ export default function HistoryPage() {
                 <Input placeholder="Search by customer or transaction ID..." className="w-full max-w-lg" />
             </div>
 
-            {/* Sales Table */}
-            <Card>
+            {/* --- MODIFIED: DESKTOP TABLE (Hidden on mobile) --- */}
+            <Card className="hidden md:block">
                 <CardContent className="p-0"> {/* Remove padding for full-width table */}
                     {/* Adjust max-height based on your layout */}
                     <ScrollArea className="max-h-[calc(100vh-340px)]">
@@ -105,6 +105,60 @@ export default function HistoryPage() {
                     </ScrollArea>
                 </CardContent>
             </Card>
+
+            {/* --- NEW: MOBILE CARD LIST (Show on mobile, hide on md+) --- */}
+            <div className="block md:hidden space-y-3">
+                {isLoading ? (
+                    <div className="text-center text-muted py-8">Loading history...</div>
+                ) : sales.length === 0 ? (
+                    <div className="text-center text-muted py-8">No sales found.</div>
+                ) : (
+                    sales.map(sale => (
+                        <Card key={sale.id}>
+                            <CardContent className="p-4">
+                                {/* Top row: ID and Total */}
+                                <div className="flex justify-between items-start mb-2 pb-2 border-b">
+                                    <div>
+                                        <p className="text-xs text-muted">Transaction ID</p>
+                                        <h3 className="font-semibold">...{String(sale.id).slice(-6)}</h3>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-xs text-muted">Total</p>
+                                        <h3 className="font-bold text-lg text-primary">₱{Number(sale.amountReceived || 0).toFixed(2)}</h3>
+                                    </div>
+                                </div>
+
+                                {/* Details */}
+                                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                                    <span className="text-muted">Customer:</span>
+                                    <span>{sale.customerName || 'N/A'}</span>
+
+                                    <span className="text-muted">Items:</span>
+                                    <span>{sale.items ? sale.items.length : 0} items</span>
+
+                                    <span className="text-muted">Payment:</span>
+                                    <span>{sale.paymentMethod || 'N/A'}</span>
+
+                                    <span className="text-muted">Status:</span>
+                                    <span>
+                                        <span className={cn(
+                                            'status-badge',
+                                            sale.status === 'Completed' ? 'status-completed' : 'status-refunded'
+                                        )}>
+                                            {sale.status || 'Completed'}
+                                        </span>
+                                    </span>
+                                </div>
+
+                                {/* Timestamp */}
+                                <div className="text-xs text-gray-500 mt-3 pt-3 border-t">
+                                    {sale.saleTimestamp.toLocaleString()}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))
+                )}
+            </div>
         </div>
     );
 }
