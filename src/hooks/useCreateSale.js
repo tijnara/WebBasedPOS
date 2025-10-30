@@ -40,11 +40,11 @@ export function useCreateSale() {
             // Step 2: Prepare the 'sale_items' records
             // This maps over the cart items from the payload
             const itemsToInsert = salePayload.items.map(item => ({
-                saleid: newSaleId, // Use the ID from Step 1
-                productid: item.productId,
-                productname: item.productName,
+                saleId: newSaleId, // Use the ID from Step 1
+                productId: item.productId,
+                productName: item.productName,
                 quantity: item.quantity,
-                priceatsale: item.priceAtSale,
+                priceAtSale: item.priceAtSale,
                 subtotal: item.subtotal
             }));
 

@@ -32,7 +32,7 @@ export const Button = React.forwardRef(({ className, variant = 'default', size =
 Button.displayName = 'Button';
 
 export const Input = React.forwardRef(({ className, ...props }, ref) => (
-    <input ref={ref} className={cn('input', className)} {...props} />
+    <input ref={ref} className={cn('input', className)} autoComplete="off" {...props} />
 ));
 Input.displayName = 'Input';
 

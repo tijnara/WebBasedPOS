@@ -14,9 +14,7 @@ export function useCreateProduct() {
             // Ensure payload matches table columns (e.g., name, price, category, stock)
             const payload = {
                 name: newProduct.name,
-                price: newProduct.price,
-                category: newProduct.category,
-                // Removed stock field
+                price: newProduct.price
             };
 
             const { data, error } = await supabase
