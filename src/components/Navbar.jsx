@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Button, cn } from './ui';
 import { useRouter } from 'next/router';
 import { useStore } from '../store/useStore';
-// Removed useSales import, sales info is not shown in navbar
+import debounce from 'lodash/debounce';
 import Image from 'next/image';
 
 // --- SVG ICONS (Keep necessary ones) ---
@@ -25,11 +25,9 @@ const Navbar = () => {
         logout: s.logout
     }));
 
-    // State for mobile menu visibility
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [clientUser, setClientUser] = useState(null);
 
-    // Links remain the same
     const links = [
         { name: 'POS', path: '/', icon: <CartIcon className="h-5 w-5" /> },
         { name: 'Products', path: '/product-management', icon: <PackageIcon className="h-5 w-5" /> },
@@ -42,37 +40,57 @@ const Navbar = () => {
         setClientUser(user);
     }, [user]);
 
-    // Debugging log to check clientUser value
     useEffect(() => {
-        console.log('Client User:', clientUser);
-    }, [clientUser]);
+        const logoutAfterInactivity = () => {
+            let timeout;
 
-    // Close mobile menu on route change
-    useEffect(() => {
-        const handleRouteChange = () => {
-            setIsMobileMenuOpen(false);
+            const startTimeout = () => {
+                timeout = setTimeout(() => {
+                    logout();
+                    router.push('/login');
+                }, 15 * 60 * 1000); // 15 minutes inactivity for mobile
+            };
+
+            const resetTimeout = debounce(() => {
+                clearTimeout(timeout);
+                startTimeout();
+            }, 500); // Debounce reset timeout by 500ms
+
+            const handleVisibilityChange = () => {
+                if (document.visibilityState === 'hidden') {
+                    clearTimeout(timeout); // Pause timer when tab is hidden
+                } else if (document.visibilityState === 'visible') {
+                    resetTimeout(); // Resume or reset timer when tab is visible
+                }
+            };
+
+            const handleWindowBlur = () => {
+                clearTimeout(timeout); // Pause timer when browser loses focus
+            };
+
+            const handleWindowFocus = () => {
+                resetTimeout(); // Resume or reset timer when browser gains focus
+            };
+
+            startTimeout();
+            window.addEventListener('mousemove', resetTimeout);
+            window.addEventListener('keydown', resetTimeout);
+            document.addEventListener('visibilitychange', handleVisibilityChange);
+            window.addEventListener('blur', handleWindowBlur);
+            window.addEventListener('focus', handleWindowFocus);
+
+            return () => {
+                clearTimeout(timeout);
+                window.removeEventListener('mousemove', resetTimeout);
+                window.removeEventListener('keydown', resetTimeout);
+                document.removeEventListener('visibilitychange', handleVisibilityChange);
+                window.removeEventListener('blur', handleWindowBlur);
+                window.removeEventListener('focus', handleWindowFocus);
+            };
         };
-        router.events.on('routeChangeComplete', handleRouteChange);
-        return () => {
-            router.events.off('routeChangeComplete', handleRouteChange);
-        };
-    }, [router.events]);
 
-    const handleLogout = () => {
-        setIsMobileMenuOpen(false); // Close menu if open
-        logout();
-        router.push('/login');
-    };
-
-    const handleNavLinkClick = (path) => {
-        setIsMobileMenuOpen(false); // Close menu if open
-        router.push(path);
-    };
-
-    const userInitial = clientUser?.name ? clientUser.name.charAt(0).toUpperCase() : (clientUser?.email ? clientUser.email.charAt(0).toUpperCase() : '?');
-
-    // Basic toggle for mobile menu (can be expanded later for dropdown)
-    const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
+        logoutAfterInactivity();
+    }, [logout, router]);
 
     return (
         <div className="navbar">
@@ -87,23 +105,51 @@ const Navbar = () => {
                 <span className="font-bold text-lg text-primary hidden md:inline">Seaside</span>
             </div>
 
-            {/* Navigation Links */}
-            <nav className="hidden md:flex">
-                {links.map(link => {
-                    const isActive = router.pathname === link.path;
-                    return (
-                        <Button
-                            key={link.path}
-                            variant="ghost"
-                            className={cn('btn', { 'active': isActive })}
-                            onClick={() => handleNavLinkClick(link.path)}
-                        >
-                            <span className="flex-shrink-0">{link.icon}</span>
-                            <span>{link.name}</span>
-                        </Button>
-                    );
-                })}
+            {/* Hamburger Menu for Mobile */}
+            <button
+                className="hamburger-button md:hidden"
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                aria-label="Open menu"
+                aria-expanded={isMobileMenuOpen}
+                aria-controls="mobile-menu"
+            >
+                <HamburgerIcon />
+            </button>
+
+            {/* Navigation Links for Desktop */}
+            <nav className="nav-links hidden md:flex">
+                {links.map(link => (
+                    <Button
+                        key={link.name}
+                        className="nav-item"
+                        onClick={() => router.push(link.path)}
+                    >
+                        {link.icon}
+                        <span>{link.name}</span>
+                    </Button>
+                ))}
             </nav>
+
+            {/* Mobile Dropdown Menu */}
+            {isMobileMenuOpen && (
+                <div className="fixed top-16 left-0 w-full bg-white shadow-lg z-50 md:hidden">
+                    <nav className="flex flex-col p-4 gap-2">
+                        {links.map(link => (
+                            <Button
+                                key={link.name}
+                                className="w-full text-left py-3 px-4 border-b border-gray-200 nav-item"
+                                onClick={() => {
+                                    setIsMobileMenuOpen(false);
+                                    router.push(link.path);
+                                }}
+                            >
+                                {link.icon}
+                                <span className="ml-2">{link.name}</span>
+                            </Button>
+                        ))}
+                    </nav>
+                </div>
+            )}
 
             {/* User Info & Logout */}
             <div className="meta-container">
@@ -115,7 +161,7 @@ const Navbar = () => {
                         <Button
                             variant="ghost"
                             className="btn"
-                            onClick={handleLogout}
+                            onClick={logout}
                             title="Logout"
                         >
                             Logout
@@ -127,42 +173,6 @@ const Navbar = () => {
                     </div>
                 )}
             </div>
-
-            {/* Hamburger Button */}
-            <Button
-                variant="ghost"
-                size="icon"
-                className="hamburger-button md:hidden ml-2"
-                onClick={toggleMobileMenu}
-                aria-label="Toggle menu"
-            >
-                <HamburgerIcon />
-            </Button>
-
-            {/* Mobile Dropdown Menu */}
-            {isMobileMenuOpen && (
-                <div className="absolute top-full left-0 w-full bg-white border-b border-gray-200 shadow-md md:hidden z-40">
-                    <nav className="flex flex-col p-2">
-                        {links.map(link => {
-                            const isActive = router.pathname === link.path;
-                            return (
-                                <Button
-                                    key={link.path}
-                                    variant="ghost"
-                                    className={cn(
-                                        'flex items-center gap-4 p-3 rounded-md hover:bg-gray-100 w-full justify-start text-gray-900 btn',
-                                        { 'bg-violet-100 text-primary font-semibold': isActive }
-                                    )}
-                                    onClick={() => handleNavLinkClick(link.path)}
-                                >
-                                    <span className="w-6 h-6 flex-shrink-0">{link.icon}</span>
-                                    <span>{link.name}</span>
-                                </Button>
-                            );
-                        })}
-                    </nav>
-                </div>
-            )}
         </div>
     );
 };
