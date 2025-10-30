@@ -9,6 +9,7 @@ const links = [
     { name: 'POS', path: '/', icon: <CartIcon className="h-6 w-6" /> },
     { name: 'Products', path: '/product-management', icon: <PackageIcon className="h-6 w-6" /> },
     { name: 'Customer', path: '/customer-management', icon: <UserIcon className="h-6 w-6" /> },
+    { name: 'Dashboard', path: '/dashboard', icon: <ChartIcon className="h-6 w-6" /> },
     { name: 'Sale History', path: '/history', icon: <ChartIcon className="h-6 w-6" /> },
     { name: 'Users', path: '/user-management', icon: <UsersIcon className="h-6 w-6" /> },
 ];

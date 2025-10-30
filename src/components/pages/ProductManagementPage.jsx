@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../../store/useStore';
 import {
     Button, Card, CardContent, Table, TableHeader, TableBody, TableRow,
@@ -44,6 +44,21 @@ export default function ProductManagementPage() {
     const [name, setName] = useState('');
     const [price, setPrice] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const searchInputRef = useRef(null);
+
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            const activeTag = document.activeElement.tagName;
+            if (activeTag === 'INPUT' || activeTag === 'TEXTAREA') return;
+            if ((e.ctrlKey && e.key === 'f') || e.key === '/') {
+                if (searchInputRef.current) searchInputRef.current.focus();
+                e.preventDefault();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []);
 
     const startEdit = (p) => {
         setEditing(p);
@@ -128,7 +143,13 @@ export default function ProductManagementPage() {
                 </div>
 
                 <div className="mb-4">
-                    <Input placeholder="Search products..." className="w-full" />
+                    <Input
+                        ref={searchInputRef}
+                        placeholder="Search products..."
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                        className="w-full max-w-xs mb-2"
+                    />
                 </div>
 
                 {/* --- DESKTOP TABLE (Hidden on mobile) --- */}

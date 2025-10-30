@@ -67,8 +67,9 @@ export function useCreateUser() {
             //    body: userData,
             // });
             // For DEMO ONLY - inserting plain text password:
+            const capitalizeFirst = str => str ? str.charAt(0).toUpperCase() + str.slice(1) : '';
             const payload = {
-                name: userData.name,
+                name: capitalizeFirst(userData.name),
                 email: userData.email,
                 phone: userData.phone || null,
                 password: userData.password, // <-- Storing plain text password - BAD PRACTICE

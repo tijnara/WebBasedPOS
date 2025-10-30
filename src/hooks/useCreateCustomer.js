@@ -10,8 +10,9 @@ export function useCreateCustomer() {
             console.log('useCreateCustomer: Creating customer with payload:', customerPayload);
             // Ensure payload matches Supabase table structure
             // Supabase typically handles 'id' and 'created_at' automatically
+            const capitalizeFirst = str => str ? str.charAt(0).toUpperCase() + str.slice(1) : '';
             const payload = {
-                name: customerPayload.name,
+                name: capitalizeFirst(customerPayload.name),
                 email: customerPayload.email || null, // Use null for empty optional fields
                 phone: customerPayload.phone || null,
                 created_at: customerPayload.created_at || new Date().toISOString(), // Explicitly set created_at

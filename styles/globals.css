@@ -568,7 +568,19 @@ button:disabled {
 .table__td, .table__th { vertical-align: middle; }
 
 /* Responsive Table Styles */
-
+.table-wrap { width: 100%; overflow-x: auto; }
+.table { border-collapse: collapse; width: 100%; background: #fff; }
+.table__head th { background: #f3f4f6; border-bottom: 2px solid #e5e7eb; }
+.table__row { border-bottom: 1px solid #e5e7eb; }
+.table__th, .table__td { padding: 0.5rem 0.75rem; text-align: left; font-size: 0.95rem; }
+.table__th { font-weight: 600; color: #6b7280; text-transform: uppercase; }
+.table__td { color: #1f2937; }
+.table__td.text-right { text-align: right; }
+.table__td.text-center { text-align: center; }
+.table__row:hover { background: #f9fafb; }
+@media (max-width: 767px) {
+  .table-wrap { display: none; }
+}
 
 /* --- Spinner Animation --- */
 @keyframes spin {
@@ -672,6 +684,15 @@ button:disabled {
         /* 1.25rem is the original padding */
         padding-bottom: 1.25rem !important;
     }
+
+    /* --- ADD THESE RULES --- */
+    .md\:block {
+        display: block;
+    }
+    .md\:hidden {
+        display: none;
+    }
+    /* --- END OF ADDITION --- */
 }
 
 /* --- Mobile Logout Button Styles --- */

@@ -26,6 +26,7 @@ const Navbar = () => {
     const [clientUser, setClientUser] = useState(null);
 
     const links = [
+        { name: 'Dashboard', path: '/dashboard', icon: <ChartIcon className="h-5 w-5" /> },
         { name: 'POS', path: '/', icon: <CartIcon className="h-5 w-5" /> },
         { name: 'Products', path: '/product-management', icon: <PackageIcon className="h-5 w-5" /> },
         { name: 'Customer', path: '/customer-management', icon: <UserIcon className="h-5 w-5" /> },

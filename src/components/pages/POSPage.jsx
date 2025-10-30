@@ -293,6 +293,58 @@ export default function POSPage() {
     );
 
 
+    // --- Keyboard Shortcuts ---
+    const [selectedProductIndex, setSelectedProductIndex] = useState(0);
+    const productGridRef = React.useRef(null);
+    // Focus search input with Ctrl+F or '/'
+    const searchInputRef = React.useRef(null);
+
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            // Ignore shortcuts if a modal is open or if focus is in an input/textarea
+            const activeTag = document.activeElement.tagName;
+            if (isCustomSaleModalOpen || isPaymentModalOpen || isCustomerModalOpen) return;
+            if (activeTag === 'INPUT' || activeTag === 'TEXTAREA') return;
+
+            // Product grid navigation
+            if (filteredProducts.length > 0) {
+                if (['ArrowRight', 'ArrowDown'].includes(e.key)) {
+                    setSelectedProductIndex(i => Math.min(i + 1, filteredProducts.length - 1));
+                    e.preventDefault();
+                } else if (['ArrowLeft', 'ArrowUp'].includes(e.key)) {
+                    setSelectedProductIndex(i => Math.max(i - 1, 0));
+                    e.preventDefault();
+                } else if (e.key === 'Enter') {
+                    handleAdd(filteredProducts[selectedProductIndex]);
+                    e.preventDefault();
+                }
+            }
+            // F1: Custom Sale
+            if (e.key === 'F1') {
+                openCustomSaleModal();
+                e.preventDefault();
+            }
+            // F2: Proceed to Payment
+            if (e.key === 'F2') {
+                openPaymentModal();
+                e.preventDefault();
+            }
+            // Ctrl+F or '/': Focus search input
+            if ((e.ctrlKey && e.key === 'f') || e.key === '/') {
+                if (searchInputRef.current) searchInputRef.current.focus();
+                e.preventDefault();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [filteredProducts, selectedProductIndex, isCustomSaleModalOpen, isPaymentModalOpen, isCustomerModalOpen]);
+
+    // Reset selected index if product list changes
+    useEffect(() => {
+        setSelectedProductIndex(0);
+    }, [filteredProducts.length]);
+
+
     return (
         <div className="pos-page">
             {/* --- Brand Logo at the very top left --- */}
@@ -302,6 +354,7 @@ export default function POSPage() {
             <h1 className="text-2xl font-bold">Point of Sale</h1>
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                 <Input
+                    ref={searchInputRef}
                     placeholder="Search products..."
                     className="w-full sm:w-64"
                     value={productSearchTerm}
@@ -396,13 +449,14 @@ export default function POSPage() {
                             {productSearchTerm ? 'No products match your search.' : 'No products available.'}
                         </div>
                     ) : (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                            {filteredProducts.map(p => (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3" ref={productGridRef}>
+                            {filteredProducts.map((p, idx) => (
                                 <button
                                     key={p.id}
-                                    className="product-card p-3 text-center border rounded-md shadow-sm hover:border-primary hover:shadow-md transition-all duration-150 bg-white flex flex-col items-center"
+                                    className={`product-card p-3 text-center border rounded-md shadow-sm hover:border-primary hover:shadow-md transition-all duration-150 bg-white flex flex-col items-center${selectedProductIndex === idx ? ' ring-2 ring-primary' : ''}`}
                                     onClick={() => handleAdd(p)}
                                     title={p.name}
+                                    tabIndex={-1}
                                 >
                                     {/* --- 3. REPLACE EMOJI SPAN WITH ICON --- */}
                                     <div className="product-card-image h-16 w-16 mb-2 flex items-center justify-center text-4xl bg-gray-100 rounded">

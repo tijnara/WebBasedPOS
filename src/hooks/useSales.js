@@ -13,7 +13,7 @@ export function useSales() {
                     .from('sales')
                     .select(`
                         *,
-                        sale_items ( * )
+                        sale_items ( *, product:products ( name, price ) )
                     `) // This fetches the sale and ALL its related items
                     .order('created_at', { ascending: false }); // Order by the new created_at column
 
@@ -29,13 +29,17 @@ export function useSales() {
                 return data.map(s => ({
                     id: s.id,
                     saleTimestamp: new Date(s.saleTimestamp || s.created_at),
-                    totalAmount: parseFloat(s.totalamount) || 0,     // <-- Read from lowercase
-                    amountReceived: parseFloat(s.amountreceived) || 0, // <-- Added this
+                    totalAmount: parseFloat(s.totalamount) || 0,
+                    amountReceived: parseFloat(s.amountreceived) || 0,
                     customerId: s.customerId,
-                    customerName: s.customername || 'N/A',     // <-- Read from lowercase
-                    // The 'sale_items' array is now directly available from the join
-                    items: s.sale_items || [],
-                    paymentMethod: s.paymentmethod || 'N/A', // <-- Read from lowercase
+                    customerName: s.customername || 'N/A',
+                    sale_items: Array.isArray(s.sale_items) ? s.sale_items.map(item => ({
+                        ...item,
+                        productName: item.product?.name || '',
+                        productPrice: item.product?.price || 0
+                    })) : [], // Always provide sale_items array
+                    items: Array.isArray(s.sale_items) ? s.sale_items : [], // For backward compatibility
+                    paymentMethod: s.paymentmethod || 'N/A',
                     status: s.status || 'Completed'
                 }));
 
