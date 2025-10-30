@@ -1,11 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '../lib/supabaseClient'; // Use Supabase client
+import { supabase } from '../lib/supabaseClient';
 
 export function useProducts() {
     return useQuery({
-        queryKey: ['products'], // Unique key for this query
+        queryKey: ['products'],
         queryFn: async () => {
-            console.log('useProducts: Fetching...');
             try {
                 // Fetch all products from Supabase 'products' table
                 const { data, error } = await supabase
@@ -14,31 +13,24 @@ export function useProducts() {
                     .order('name', { ascending: true }); // Optional: Order by name
 
                 if (error) {
-                    console.error('useProducts: Supabase query error:', error);
-                    throw error; // Throw error to be caught by React Query
+                    // Intentionally rethrow for React Query error handling
+                    throw error;
                 }
 
-                const response = data; // Assign data to response variable for mapping
-                console.log('useProducts: API Response:', response);
-
+                const response = data;
                 if (!response || !Array.isArray(response)) {
-                    console.error('useProducts: Invalid response data structure:', response);
-                    return []; // Return empty array if data is not as expected
+                    return [];
                 }
 
-                // Map data with safeguards
-                const mappedData = response.map(p => ({
+                // Return mapped data directly
+                return response.map(p => ({
                     id: p.id,
                     name: p.name || 'Unnamed Product',
                     price: parseFloat(p.price) || 0,
                     category: p.category || 'N/A',
-                    // Removed stock field
                 }));
-                console.log('useProducts: Mapped Data:', mappedData);
-                return mappedData;
             } catch (error) {
-                console.error('useProducts: Error fetching data:', error);
-                // Re-throw the error so React Query can handle the error state
+                // Intentionally rethrow for React Query error handling
                 throw error;
             }
         },

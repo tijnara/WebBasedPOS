@@ -5,7 +5,6 @@ export function useSales() {
     return useQuery({
         queryKey: ['sales'],
         queryFn: async () => {
-            console.log('useSales: Fetching sales and related items...');
             try {
                 // Fetch sales and join all related sale_items
                 // This is the Supabase way of doing a JOIN
@@ -18,11 +17,10 @@ export function useSales() {
                     .order('saletimestamp', { ascending: false }); // Order by the new created_at column
 
                 if (error) {
-                    console.error('useSales: Supabase query error:', error);
+                    // Intentionally rethrow for React Query error handling
                     throw error;
                 }
 
-                console.log('useSales: API Response:', data);
                 if (!data || !Array.isArray(data)) return [];
 
                 // Map the data to the format your HistoryPage expects
@@ -44,7 +42,7 @@ export function useSales() {
                 }));
 
             } catch (error) {
-                console.error('useSales: Error fetching data:', error);
+                // Intentionally rethrow for React Query error handling
                 throw error;
             }
         },
