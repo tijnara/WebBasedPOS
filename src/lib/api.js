@@ -5,7 +5,8 @@ import { supabase } from './supabaseClient'; // Import the Supabase client
 // Assumes passwords in the 'users' table are NOT hashed securely.
 // ** DO NOT USE IN PRODUCTION without server-side hashing **
 export async function login({ email, password }) {
-    console.log('Attempting custom table login with:', { email }); // Don't log password in real apps
+    // REMOVE CONFIDENTIAL LOGS
+    // console.log('Attempting custom table login with:', { email }); // Don't log password in real apps
 
     if (!email || !password) {
         throw new Error('Email and password are required.');
@@ -38,7 +39,7 @@ export async function login({ email, password }) {
         // Check if user exists and if the password matches
         // --- THIS IS THE INSECURE PART if passwords are plain text ---
         if (user && user.password === password) {
-            console.log('Custom table login successful for:', email);
+            // console.log('Custom table login successful for:', email);
             // Return the user data fetched from the table
             // Exclude the password field from being returned to the client/store
             const { password: _, ...userData } = user;
@@ -52,7 +53,7 @@ export async function login({ email, password }) {
         } else {
             // Log specifically if user was found but password didn't match
             if(user && user.password !== password) {
-                console.log(`Custom table login failed for: ${normalizedEmail} - Password incorrect.`);
+                // console.log(`Custom table login failed for: ${normalizedEmail} - Password incorrect.`);
             }
             throw new Error('Invalid email or password.'); // Generic error for security
         }
@@ -67,7 +68,7 @@ export async function login({ email, password }) {
 // --- Logout (Simplified - Synchronous) ---
 // Since we are not using Supabase Auth sessions, logout just clears client state.
 export function logout() {
-    console.log('Performing client-side logout (clearing state via store).');
+    // console.log('Performing client-side logout (clearing state via store).');
     // Actual state clearing happens in useStore.logout() which calls this.
     // No Supabase call needed.
 }

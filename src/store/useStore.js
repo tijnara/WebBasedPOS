@@ -18,10 +18,12 @@ const persistUserToStorage = (user) => {
                     // Add other relevant fields like 'role' if applicable, but NEVER password
                 };
                 localStorage.setItem('pos_custom_user', JSON.stringify(userToStore));
-                console.log("Store: Persisted user to localStorage", userToStore);
+                // REMOVE CONFIDENTIAL LOGS
+                // console.log("Store: Persisted user to localStorage", userToStore);
             } else {
                 localStorage.removeItem('pos_custom_user');
-                console.log("Store: Removed user from localStorage");
+                // REMOVE CONFIDENTIAL LOGS
+                // console.log("Store: Removed user from localStorage");
             }
         } catch (error) {
             console.error("Store: Error persisting user to localStorage", error);
@@ -36,7 +38,8 @@ const getUserFromStorage = () => {
         if (!userJson) return null;
         try {
             const user = JSON.parse(userJson);
-            console.log("Store: Loaded user from localStorage", user);
+            // REMOVE CONFIDENTIAL LOGS
+            // console.log("Store: Loaded user from localStorage", user);
             // Basic validation of stored data
             if (user && user.id && user.email) {
                 return user;
@@ -62,7 +65,7 @@ export const useStore = create((set, get) => ({
     user: initialUser, // Load initial user from storage
     // session: null, // Removed - No Supabase session concept here
     // Use `sessionLoaded` to indicate if initial state (from storage) is ready client-side
-    sessionLoaded: typeof window !== 'undefined' ? true : false,
+    sessionLoaded: typeof window !== 'undefined',
 
     // --- UI / Cart State (Keep) ---
     currentSale: {},
@@ -122,7 +125,8 @@ export const useStore = create((set, get) => ({
     // --- Auth (Updated for Custom Login) ---
     // Called after successful custom table login
     setAuth: (user) => {
-        console.log("Store: Setting custom user state", user);
+        // REMOVE CONFIDENTIAL LOGS
+        // console.log("Store: Setting custom user state", user);
         persistUserToStorage(user); // Persist user to localStorage
         // Set user and ensure sessionLoaded is true
         set({ user, sessionLoaded: true });
@@ -148,7 +152,8 @@ export const useStore = create((set, get) => ({
         // This function now primarily ensures the store knows it's running client-side
         // and has attempted to load the initial user state from localStorage.
         if (!get().sessionLoaded && typeof window !== 'undefined') {
-            console.log("Store: Hydrating sessionLoaded state on client.");
+            // REMOVE CONFIDENTIAL LOGS
+            // console.log("Store: Hydrating sessionLoaded state on client.");
             // Try loading from storage again in case initialUser was null server-side
             const userFromStorage = getUserFromStorage();
             set({ sessionLoaded: true, user: userFromStorage });
@@ -169,4 +174,3 @@ if (typeof window !== 'undefined') {
 
 
 export default useStore;
-

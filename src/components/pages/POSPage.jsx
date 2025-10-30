@@ -117,7 +117,13 @@ export default function POSPage() {
                     .ilike('name', `%${debouncedSearchTerm}%`) // Case-insensitive search
                     .limit(10); // Limit results
 
-                if (error) throw error;
+                if (error) {
+                    // Optionally log error for debugging, but do not throw to avoid console output
+                    // console.error('Failed to search customers:', error);
+                    setCustomerSearchResults([]);
+                    addToast({ title: 'Search Error', description: error.message, variant: 'destructive' });
+                    return;
+                }
 
                 setCustomerSearchResults(data || []);
             } catch (error) {
@@ -212,9 +218,7 @@ export default function POSPage() {
                 // subtotal: subtotal, // totalAmount usually serves this purpose
             };
 
-            console.log('Finalizing Sale - Payload:', payload);
             const created = await createSaleMutation.mutateAsync(payload);
-            console.log('Finalizing Sale - Success:', created);
 
             addToast({ title: 'Sale Completed', description: `Sale #${created.id.toString().slice(-6)} recorded.`, variant: 'success' });
             clearSale();
