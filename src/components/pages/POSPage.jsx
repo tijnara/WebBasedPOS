@@ -1,3 +1,4 @@
+// src/components/pages/POSPage.jsx
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../../store/useStore';
 import MobileLogoutButton from '../MobileLogoutButton';
@@ -350,34 +351,33 @@ export default function POSPage() {
             {/* --- Brand Logo at the very top left --- */}
             <img src="/seaside.png" alt="Seaside Logo" className="brand-logo-top" width={32} height={32} />
             <MobileLogoutButton />
-            {/* Header */}
-            <h1 className="text-2xl font-bold">Point of Sale</h1>
-            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                <Input
-                    ref={searchInputRef}
-                    placeholder="Search products..."
-                    className="w-full sm:w-64"
-                    value={productSearchTerm}
-                    onChange={(e) => setProductSearchTerm(e.target.value)}
-                />
-                <Button variant="outline" onClick={openCustomSaleModal} className="w-full sm:w-auto">
-                    Custom Sale
-                </Button>
+            {/* --- Header --- */}
+            <div className="flex items-center justify-between mb-4">
+                <h1 className="text-3xl font-bold text-primary tracking-tight">Point of Sale</h1>
+                <div className="flex gap-2">
+                    <Input
+                        ref={searchInputRef}
+                        placeholder="Search products..."
+                        className="w-64 rounded-lg border border-gray-300 shadow-sm focus:ring-primary"
+                        value={productSearchTerm}
+                        onChange={(e) => setProductSearchTerm(e.target.value)}
+                    />
+                    <Button variant="primary" onClick={openCustomSaleModal} className="rounded-lg shadow-md font-semibold">
+                        + Custom Sale
+                    </Button>
+                </div>
             </div>
-            {/* Main Layout: Product Grid | Order Sidebar */}
-            <div className="flex flex-col md:flex-row-reverse gap-4">
-
+            {/* --- Main Layout: Product Grid | Order Sidebar --- */}
+            <div className="flex flex-col md:flex-row-reverse gap-4 w-full">
                 {/* --- Current Order Sidebar --- */}
-                <div className="w-full md:w-2/5 lg:w-1/3 xl:w-1/4 flex-shrink-0">
-                    <Card className="flex flex-col h-full max-h-[calc(100vh-120px)] md:max-h-[calc(100vh-100px)]">
-                        <CardHeader>
+                <div className="w-full md:w-1/3 xl:w-1/4 flex-shrink-0">
+                    <Card className="flex flex-col h-full max-h-[calc(100vh-120px)] md:max-h-[calc(100vh-100px)] shadow-lg border border-gray-200 rounded-xl bg-white">
+                        <CardHeader className="bg-gray-50 border-b border-gray-200 rounded-t-xl">
                             <div className="flex justify-between items-center">
-                                <h3 className="font-semibold text-lg">Current Order</h3>
+                                <h3 className="font-semibold text-lg text-primary">Current Order</h3>
                                 <Button variant="ghost" size="sm" className="p-1 h-auto text-destructive" onClick={clearSale} title="Clear Sale">✖ Clear</Button>
                             </div>
                         </CardHeader>
-
-                        {/* Cart Items */}
                         <CardContent className="flex-1 overflow-y-auto p-0">
                             {!Object.keys(currentSale).length ? (
                                 <div className="flex flex-col items-center justify-center h-full text-center p-4 text-gray-500">
@@ -390,19 +390,22 @@ export default function POSPage() {
                                         <TableBody>
                                             {Object.entries(currentSale).map(([key, item]) => (
                                                 <TableRow key={key}>
-                                                    <TableCell className="font-medium pr-1 py-2">
+                                                    {/* --- COMPACT ---: Changed py-2 to py-1 */}
+                                                    <TableCell className="font-medium pr-1 py-1">
                                                         {item.name}
                                                         <br/>
                                                         <span className="text-xs text-muted">₱{item.price.toFixed(2)}</span>
                                                     </TableCell>
-                                                    <TableCell className="text-center px-0 py-2">
+                                                    {/* --- COMPACT ---: Changed py-2 to py-1 */}
+                                                    <TableCell className="text-center px-0 py-1">
                                                         <div className="flex items-center justify-center space-x-1">
                                                             <Button variant="ghost" size="sm" className="p-1 h-6 w-6" onClick={() => handleDecreaseQuantity(key)}>-</Button>
                                                             <span className="w-4 text-center">{item.quantity}</span>
                                                             <Button variant="ghost" size="sm" className="p-1 h-6 w-6" onClick={() => handleIncreaseQuantity(key)}>+</Button>
                                                         </div>
                                                     </TableCell>
-                                                    <TableCell className="text-right pl-1 py-2">
+                                                    {/* --- COMPACT ---: Changed py-2 to py-1 */}
+                                                    <TableCell className="text-right pl-1 py-1">
                                                         <span className="font-semibold mr-1">₱{(item.price * item.quantity).toFixed(2)}</span>
                                                         <Button variant="ghost" size="icon" className="text-destructive h-6 w-6 p-0" onClick={() => handleRemoveItem(key)} title="Remove Item">
                                                             <TrashIcon />
@@ -415,31 +418,28 @@ export default function POSPage() {
                                 </ScrollArea>
                             )}
                         </CardContent>
-
-                        <div className="p-3 border-t space-y-1 flex-shrink-0">
+                        <div className="p-3 border-t space-y-1 flex-shrink-0 bg-gray-50">
                             <Label className="text-sm font-medium">Customer</Label>
                             <Button
                                 variant="outline"
-                                className="w-full justify-between h-9 px-3 py-2"
+                                className="w-full justify-between h-9 px-3 py-2 rounded-lg border-gray-300"
                                 onClick={() => setIsCustomerModalOpen(true)}
                             >
                                 <span className="truncate">{selectedCustomer?.name || 'Walk-in Customer'}</span>
                                 <span className="text-xs text-muted-foreground ml-2">Change</span>
                             </Button>
                         </div>
-
-                        <CardFooter className="p-3 flex-shrink-0">
+                        <CardFooter className="p-3 flex-shrink-0 bg-gray-50 rounded-b-xl">
                             <div className="w-full">
                                 <div className="flex justify-between mb-1 text-sm"><span>Subtotal</span><span>₱{subtotal.toFixed(2)}</span></div>
                                 <div className="flex justify-between mb-3 font-bold text-lg border-t pt-2 mt-2"><span>Total</span><span className="text-success">₱{subtotal.toFixed(2)}</span></div>
-                                <Button variant="primary" className="w-full h-12 text-lg" onClick={openPaymentModal} disabled={Object.keys(currentSale).length === 0 || createSaleMutation.isPending}>
+                                <Button variant="primary" className="w-full h-12 text-lg rounded-lg shadow-md font-semibold" onClick={openPaymentModal} disabled={Object.keys(currentSale).length === 0 || createSaleMutation.isPending}>
                                     {createSaleMutation.isPending ? 'Processing...' : 'Proceed to Payment'}
                                 </Button>
                             </div>
                         </CardFooter>
                     </Card>
                 </div>
-
                 {/* --- Main Product Grid --- */}
                 <div className="flex-1 overflow-y-auto pr-2 max-h-[calc(100vh-120px)] md:max-h-[calc(100vh-100px)]">
                     {isLoadingProducts ? (
@@ -449,24 +449,20 @@ export default function POSPage() {
                             {productSearchTerm ? 'No products match your search.' : 'No products available.'}
                         </div>
                     ) : (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3" ref={productGridRef}>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4" ref={productGridRef}>
                             {filteredProducts.map((p, idx) => (
                                 <button
                                     key={p.id}
-                                    className={`product-card p-3 text-center border rounded-md shadow-sm hover:border-primary hover:shadow-md transition-all duration-150 bg-white flex flex-col items-center${selectedProductIndex === idx ? ' ring-2 ring-primary' : ''}`}
+                                    className={`product-card p-4 text-center border rounded-xl shadow-md hover:border-primary hover:shadow-lg transition-all duration-150 bg-white flex flex-col items-center${selectedProductIndex === idx ? ' ring-2 ring-primary' : ''}`}
                                     onClick={() => handleAdd(p)}
                                     title={p.name}
                                     tabIndex={-1}
                                 >
-                                    {/* --- 3. REPLACE EMOJI SPAN WITH ICON --- */}
-                                    <div className="product-card-image h-16 w-16 mb-2 flex items-center justify-center text-4xl bg-gray-100 rounded">
-                                        {/* OLD: <span>{p.category?.startsWith('Drink') ? '\ud83e\udd64' : '\ud83c\udf54'}</span> */}
-                                        {/* NEW: */}
+                                    <div className="product-card-image h-16 w-16 mb-2 flex items-center justify-center text-4xl bg-gray-100 rounded-xl">
                                         <PackageIcon className="w-10 h-10 text-muted" />
                                     </div>
-                                    {/* --- END OF ICON REPLACEMENT --- */}
-                                    <div className="font-medium text-sm leading-tight mb-1 line-clamp-2">{p.name}</div>
-                                    <div className="text-xs text-muted font-semibold">
+                                    <div className="font-semibold text-sm leading-tight mb-1 line-clamp-2 text-gray-800">{p.name}</div>
+                                    <div className="text-xs text-primary font-bold">
                                         ₱{Number(p.price || 0).toFixed(2)}
                                     </div>
                                 </button>
@@ -474,7 +470,6 @@ export default function POSPage() {
                         </div>
                     )}
                 </div>
-
             </div>
 
             {/* --- DIALOGS (Customer, Custom Sale, Payment) --- */}
@@ -490,7 +485,7 @@ export default function POSPage() {
                             type="text"
                             placeholder="Search by name..."
                             value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onChange={(e) => setSearchTerm(e.g.target.value)}
                             className="w-full"
                             autoFocus
                         />
@@ -689,3 +684,4 @@ export default function POSPage() {
         </div>
     );
 }
+
