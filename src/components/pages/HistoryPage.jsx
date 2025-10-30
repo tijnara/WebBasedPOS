@@ -1,5 +1,5 @@
-import React, { useRef, useEffect } from 'react';
-import { Card, CardHeader, CardContent, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Input, ScrollArea, cn } from '../ui'; // Added cn
+import React, { useRef, useEffect, useState } from 'react';
+import { Card, CardHeader, CardContent, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Input, ScrollArea, cn, Button } from '../ui'; // Added cn
 import { useSales } from '../../hooks/useSales'; // Import the useSales hook
 import MobileLogoutButton from '../MobileLogoutButton';
 
@@ -15,6 +15,11 @@ export default function HistoryPage() {
     // --- End Calculation logic ---
 
     const searchInputRef = useRef(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
+    const totalPages = Math.ceil(sales.length / itemsPerPage);
+    const paginatedSales = sales.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
     useEffect(() => {
         const handleKeyDown = (e) => {
             const activeTag = document.activeElement.tagName;
@@ -149,12 +154,12 @@ export default function HistoryPage() {
                                     {/* Transaction ID column removed */}
                                     <TableHead>Date & Time</TableHead>
                                     <TableHead>Customer</TableHead>
-                                    <TableHead>Quantity</TableHead>
-                                    <TableHead>Payment Method</TableHead>
-                                    <TableHead>Status</TableHead>
                                     <TableHead>Item</TableHead>
                                     <TableHead>Price</TableHead>
+                                    <TableHead>Quantity</TableHead>
+                                    <TableHead>Payment Method</TableHead>
                                     <TableHead className="text-right">Total</TableHead>
+                                    <TableHead>Status</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -167,19 +172,19 @@ export default function HistoryPage() {
                                         <TableCell colSpan={8} className="text-center text-muted py-8">No sales found.</TableCell>
                                     </TableRow>
                                 ) : (
-                                    sales.map(sale => (
+                                    paginatedSales.map(sale => (
                                         <TableRow key={sale.id} className="hover:bg-gray-50">
                                             {/* Transaction ID cell removed */}
                                             <TableCell>{sale.saleTimestamp ? new Date(sale.saleTimestamp).toLocaleString() : ''}</TableCell>
                                             <TableCell>{sale.customerName || 'N/A'}</TableCell>
+                                            <TableCell>{Array.isArray(sale.sale_items) && sale.sale_items.length > 0 ? sale.sale_items.map(item => item.productName).join(', ') : ''}</TableCell>
+                                            <TableCell>{Array.isArray(sale.sale_items) && sale.sale_items.length > 0 ? sale.sale_items.map(item => `₱${item.productPrice}`).join(', ') : ''}</TableCell>
                                             <TableCell>{Array.isArray(sale.sale_items) ? sale.sale_items.reduce((sum, item) => sum + (item.quantity || 0), 0) : 0}</TableCell>
                                             <TableCell>{sale.paymentMethod || 'N/A'}</TableCell>
+                                            <TableCell className="text-right font-semibold">₱{Number(sale.amountReceived || 0).toFixed(2)}</TableCell>
                                             <TableCell>
                                                 <span className={`status-badge ${sale.status === 'Completed' ? 'status-completed' : 'status-refunded'}`}>{sale.status || 'Completed'}</span>
                                             </TableCell>
-                                            <TableCell>{Array.isArray(sale.sale_items) && sale.sale_items.length > 0 ? sale.sale_items.map(item => item.productName).join(', ') : ''}</TableCell>
-                                            <TableCell>{Array.isArray(sale.sale_items) && sale.sale_items.length > 0 ? sale.sale_items.map(item => `₱${item.productPrice}`).join(', ') : ''}</TableCell>
-                                            <TableCell className="text-right font-semibold">₱{Number(sale.amountReceived || 0).toFixed(2)}</TableCell>
                                         </TableRow>
                                     ))
                                 )}
@@ -235,6 +240,17 @@ export default function HistoryPage() {
                     ))
                 )}
             </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+                <div className="flex justify-center items-center gap-2 my-4">
+                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>Prev</Button>
+                    {Array.from({ length: totalPages }, (_, i) => (
+                        <Button key={i + 1} variant={currentPage === i + 1 ? 'primary' : 'outline'} size="sm" onClick={() => setCurrentPage(i + 1)}>{i + 1}</Button>
+                    ))}
+                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>Next</Button>
+                </div>
+            )}
         </div>
     );
 }

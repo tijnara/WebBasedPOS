@@ -45,6 +45,8 @@ export default function CustomerManagementPage() {
     const [address, setAddress] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
     const searchInputRef = useRef(null);
 
     useEffect(() => {
@@ -129,6 +131,9 @@ export default function CustomerManagementPage() {
 
     const isMutating = createCustomer.isPending || updateCustomer.isPending || deleteCustomer.isPending;
 
+    const totalPages = Math.ceil(customers.length / itemsPerPage);
+    const paginatedCustomers = customers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
     return (
         <div className="customer-page">
             {/* --- Brand Logo at the very top left --- */}
@@ -170,15 +175,15 @@ export default function CustomerManagementPage() {
                                 <TableBody>
                                     {isLoading ? (
                                         <TableRow>
-                                            <TableCell colSpan={5} className="text-center text-muted py-8">Loading customers...</TableCell>
+                                            <TableCell colSpan={6} className="text-center text-muted py-8">Loading customers...</TableCell>
                                         </TableRow>
                                     ) : customers.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={5} className="text-center text-muted py-8">No customers found.</TableCell>
+                                            <TableCell colSpan={6} className="text-center text-muted py-8">No customers found.</TableCell>
                                         </TableRow>
                                     ) : (
-                                        customers.map(c => (
-                                            <TableRow key={c.id} className="hover:bg-gray-50">
+                                        paginatedCustomers.map(c => (
+                                            <TableRow key={c.id}>
                                                 <TableCell className="font-medium">{c.name}</TableCell>
                                                 <TableCell>{c.email}</TableCell>
                                                 <TableCell>{c.phone}</TableCell>
@@ -244,6 +249,17 @@ export default function CustomerManagementPage() {
                         ))
                     )}
                 </div>
+
+                {/* --- Pagination Controls --- */}
+                {totalPages > 1 && (
+                    <div className="flex justify-center items-center gap-2 my-4">
+                        <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>Prev</Button>
+                        {Array.from({ length: totalPages }, (_, i) => (
+                            <Button key={i + 1} variant={currentPage === i + 1 ? 'primary' : 'outline'} size="sm" onClick={() => setCurrentPage(i + 1)}>{i + 1}</Button>
+                        ))}
+                        <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>Next</Button>
+                    </div>
+                )}
 
                 {/* --- MODAL: Customer Form (No change needed) --- */}
                 <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>

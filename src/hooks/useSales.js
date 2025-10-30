@@ -15,7 +15,7 @@ export function useSales() {
                         *,
                         sale_items ( *, product:products ( name, price ) )
                     `) // This fetches the sale and ALL its related items
-                    .order('created_at', { ascending: false }); // Order by the new created_at column
+                    .order('saletimestamp', { ascending: false }); // Order by the new created_at column
 
                 if (error) {
                     console.error('useSales: Supabase query error:', error);
