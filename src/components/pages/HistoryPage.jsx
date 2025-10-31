@@ -16,9 +16,20 @@ export default function HistoryPage() {
 
     const searchInputRef = useRef(null);
     const [currentPage, setCurrentPage] = useState(1);
+    const [searchTerm, setSearchTerm] = useState('');
     const itemsPerPage = 10;
     const totalPages = Math.ceil(sales.length / itemsPerPage);
     const paginatedSales = sales.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+    // Filter sales by searchTerm (case-insensitive, customerName or id)
+    const filteredSales = sales.filter(sale => {
+        const term = searchTerm.trim().toLowerCase();
+        if (!term) return true;
+        return (
+            (sale.customerName && sale.customerName.toLowerCase().includes(term)) ||
+            (sale.id && String(sale.id).toLowerCase().includes(term))
+        );
+    });
 
     useEffect(() => {
         const handleKeyDown = (e) => {
@@ -141,6 +152,7 @@ export default function HistoryPage() {
                     ref={searchInputRef}
                     placeholder="Search by customer or transaction ID..."
                     className="w-full max-w-lg"
+                    onChange={(e) => setSearchTerm(e.target.value)} // Update searchTerm on input change
                 />
             </div>
 
@@ -163,31 +175,21 @@ export default function HistoryPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {isLoading ? (
-                                    <TableRow>
-                                        <TableCell colSpan={8} className="text-center text-muted py-8">Loading history...</TableCell>
+                                {filteredSales.map(sale => (
+                                    <TableRow key={sale.id} className="hover:bg-gray-50">
+                                        {/* Transaction ID cell removed */}
+                                        <TableCell>{sale.saleTimestamp ? new Date(sale.saleTimestamp).toLocaleString() : ''}</TableCell>
+                                        <TableCell>{sale.customerName || 'N/A'}</TableCell>
+                                        <TableCell>{Array.isArray(sale.sale_items) && sale.sale_items.length > 0 ? sale.sale_items.map(item => item.productName).join(', ') : ''}</TableCell>
+                                        <TableCell>{Array.isArray(sale.sale_items) && sale.sale_items.length > 0 ? sale.sale_items.map(item => `₱${item.productPrice}`).join(', ') : ''}</TableCell>
+                                        <TableCell>{Array.isArray(sale.sale_items) ? sale.sale_items.reduce((sum, item) => sum + (item.quantity || 0), 0) : 0}</TableCell>
+                                        <TableCell>{sale.paymentMethod || 'N/A'}</TableCell>
+                                        <TableCell className="text-right font-semibold">₱{Number(sale.amountReceived || 0).toFixed(2)}</TableCell>
+                                        <TableCell>
+                                            <span className={`status-badge ${sale.status === 'Completed' ? 'status-completed' : 'status-refunded'}`}>{sale.status || 'Completed'}</span>
+                                        </TableCell>
                                     </TableRow>
-                                ) : sales.length === 0 ? (
-                                    <TableRow>
-                                        <TableCell colSpan={8} className="text-center text-muted py-8">No sales found.</TableCell>
-                                    </TableRow>
-                                ) : (
-                                    paginatedSales.map(sale => (
-                                        <TableRow key={sale.id} className="hover:bg-gray-50">
-                                            {/* Transaction ID cell removed */}
-                                            <TableCell>{sale.saleTimestamp ? new Date(sale.saleTimestamp).toLocaleString() : ''}</TableCell>
-                                            <TableCell>{sale.customerName || 'N/A'}</TableCell>
-                                            <TableCell>{Array.isArray(sale.sale_items) && sale.sale_items.length > 0 ? sale.sale_items.map(item => item.productName).join(', ') : ''}</TableCell>
-                                            <TableCell>{Array.isArray(sale.sale_items) && sale.sale_items.length > 0 ? sale.sale_items.map(item => `₱${item.productPrice}`).join(', ') : ''}</TableCell>
-                                            <TableCell>{Array.isArray(sale.sale_items) ? sale.sale_items.reduce((sum, item) => sum + (item.quantity || 0), 0) : 0}</TableCell>
-                                            <TableCell>{sale.paymentMethod || 'N/A'}</TableCell>
-                                            <TableCell className="text-right font-semibold">₱{Number(sale.amountReceived || 0).toFixed(2)}</TableCell>
-                                            <TableCell>
-                                                <span className={`status-badge ${sale.status === 'Completed' ? 'status-completed' : 'status-refunded'}`}>{sale.status || 'Completed'}</span>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
-                                )}
+                                ))}
                             </TableBody>
                         </Table>
                     </ScrollArea>

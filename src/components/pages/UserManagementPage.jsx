@@ -126,6 +126,17 @@ export default function UserManagementPage() {
 
     const isMutating = createUser.isPending || updateUser.isPending || deleteUser.isPending;
 
+    // Filter users by searchTerm (case-insensitive, name, email, or phone)
+    const filteredUsers = users.filter(u => {
+        const term = searchTerm.trim().toLowerCase();
+        if (!term) return true;
+        return (
+            (u.name && u.name.toLowerCase().includes(term)) ||
+            (u.email && u.email.toLowerCase().includes(term)) ||
+            (u.phone && u.phone.toLowerCase().includes(term))
+        );
+    });
+
     return (
         <div className="user-page">
             {/* --- Brand Logo at the very top left --- */}
@@ -167,12 +178,12 @@ export default function UserManagementPage() {
                                         <TableRow>
                                             <TableCell colSpan={4} className="text-center text-muted">Loading users...</TableCell>
                                         </TableRow>
-                                    ) : users.length === 0 ? (
+                                    ) : filteredUsers.length === 0 ? (
                                         <TableRow>
                                             <TableCell colSpan={4} className="text-center text-muted">No users found.</TableCell>
                                         </TableRow>
                                     ) : (
-                                        users.map(u => (
+                                        filteredUsers.map(u => (
                                             <TableRow key={u.id}>
                                                 <TableCell>{u.name}</TableCell>
                                                 <TableCell>{u.email}</TableCell>
@@ -199,10 +210,10 @@ export default function UserManagementPage() {
                 <div className="block md:hidden space-y-3">
                     {isLoading ? (
                         <div className="text-center text-muted py-8">Loading users...</div>
-                    ) : users.length === 0 ? (
+                    ) : filteredUsers.length === 0 ? (
                         <div className="text-center text-muted py-8">No users found.</div>
                     ) : (
-                        users.map(u => (
+                        filteredUsers.map(u => (
                             <Card key={u.id}>
                                 <CardContent className="p-4 flex justify-between items-center">
                                     <div>

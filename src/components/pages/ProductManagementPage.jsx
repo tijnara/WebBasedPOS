@@ -129,6 +129,16 @@ export default function ProductManagementPage() {
 
     const isMutating = createProduct.isPending || updateProduct.isPending || deleteProduct.isPending;
 
+    // Filter products by searchTerm (case-insensitive, name or category)
+    const filteredProducts = products.filter(p => {
+        const term = searchTerm.trim().toLowerCase();
+        if (!term) return true;
+        return (
+            (p.name && p.name.toLowerCase().includes(term)) ||
+            (p.category && p.category.toLowerCase().includes(term))
+        );
+    });
+
     return (
         <div className="product-page">
             {/* --- Brand Logo at the very top left --- */}
@@ -169,12 +179,12 @@ export default function ProductManagementPage() {
                                         <TableRow>
                                             <TableCell colSpan={3} className="text-center text-muted">Loading products...</TableCell>
                                         </TableRow>
-                                    ) : products.length === 0 ? (
+                                    ) : filteredProducts.length === 0 ? (
                                         <TableRow>
                                             <TableCell colSpan={3} className="text-center text-muted">No products found.</TableCell>
                                         </TableRow>
                                     ) : (
-                                        products.map(p => (
+                                        filteredProducts.map(p => (
                                             <TableRow key={p.id}>
                                                 <TableCell>{p.name}</TableCell>
                                                 <TableCell>₱{Number(p.price || 0).toFixed(2)}</TableCell>
@@ -201,10 +211,10 @@ export default function ProductManagementPage() {
                 <div className="block md:hidden space-y-3">
                     {isLoading ? (
                         <div className="text-center text-muted py-8">Loading products...</div>
-                    ) : products.length === 0 ? (
+                    ) : filteredProducts.length === 0 ? (
                         <div className="text-center text-muted py-8">No products found.</div>
                     ) : (
-                        products.map(p => (
+                        filteredProducts.map(p => (
                             <Card key={p.id}>
                                 <CardContent className="p-4 flex justify-between items-center">
                                     <div>

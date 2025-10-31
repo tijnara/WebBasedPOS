@@ -134,6 +134,17 @@ export default function CustomerManagementPage() {
     const totalPages = Math.ceil(customers.length / itemsPerPage);
     const paginatedCustomers = customers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
+    // Filter customers by searchTerm (case-insensitive, name, email, or phone)
+    const filteredCustomers = customers.filter(c => {
+        const term = searchTerm.trim().toLowerCase();
+        if (!term) return true;
+        return (
+            (c.name && c.name.toLowerCase().includes(term)) ||
+            (c.email && c.email.toLowerCase().includes(term)) ||
+            (c.phone && c.phone.toLowerCase().includes(term))
+        );
+    });
+
     return (
         <div className="customer-page">
             {/* --- Brand Logo at the very top left --- */}
@@ -182,7 +193,7 @@ export default function CustomerManagementPage() {
                                             <TableCell colSpan={6} className="text-center text-muted py-8">No customers found.</TableCell>
                                         </TableRow>
                                     ) : (
-                                        paginatedCustomers.map(c => (
+                                        filteredCustomers.map(c => (
                                             <TableRow key={c.id}>
                                                 <TableCell className="font-medium">{c.name}</TableCell>
                                                 <TableCell>{c.email}</TableCell>
@@ -218,7 +229,7 @@ export default function CustomerManagementPage() {
                     ) : customers.length === 0 ? (
                         <div className="text-center text-muted py-8">No customers found.</div>
                     ) : (
-                        customers.map(c => (
+                        filteredCustomers.map(c => (
                             <Card key={c.id}>
                                 <CardContent className="p-4">
                                     <div className="flex justify-between items-start">
