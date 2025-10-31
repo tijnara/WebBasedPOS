@@ -106,7 +106,6 @@ export default function POSPage() {
 
 
     const subtotal = getTotalAmount();
-    const changeDue = Math.max(0, parseFloat(amountReceived || 0) - subtotal);
 
     // Debounce effect for customer search
     useEffect(() => {
@@ -239,7 +238,18 @@ export default function POSPage() {
             handleSetSelectedCustomer(null);
             setLastCustomer(selectedCustomer);
             localStorage.setItem('lastCustomer', JSON.stringify(selectedCustomer));
-            closePaymentModal();
+            // Auto-clear all modal fields
+            setAmountReceived('');
+            setPaymentMethod('Cash');
+            setSaleDate(() => {
+                const today = new Date();
+                return today.toISOString().slice(0, 10);
+            });
+            setSearchTerm('');
+            setDebouncedSearchTerm('');
+            setCustomerSearchResults([]);
+            setIsSearchingCustomers(false);
+            setIsPaymentModalOpen(false);
         } catch (e) {
             addToast({ title: 'Checkout Error', description: e.message, variant: 'destructive' });
         }
@@ -380,8 +390,9 @@ export default function POSPage() {
             </div>
             {/* --- Main Layout: Product Grid | Order Sidebar --- */}
             <div className="flex flex-col md:flex-row-reverse gap-4 w-full">
-                {/* --- Current Order Sidebar --- */}
+                {/* --- Sidebar: Current Order --- */}
                 <div className="w-full md:w-1/3 xl:w-1/4 flex-shrink-0">
+                    {/* Current Order Card */}
                     <Card className="flex flex-col h-full max-h-[calc(100vh-120px)] md:max-h-[calc(100vh-100px)] shadow-lg border border-gray-200 rounded-xl bg-white">
                         <CardHeader className="bg-gray-50 border-b border-gray-200 rounded-t-xl">
                             <div className="flex justify-between items-center">
@@ -442,6 +453,10 @@ export default function POSPage() {
                             </div>
                         </CardFooter>
                     </Card>
+                    {/* Last Customer label below the card, left-aligned, larger font */}
+                    <div className="mt-2 flex justify-start">
+                        <span className="text-lg text-gray-800 font-semibold">Last Customer Used: <span className="font-bold">{lastCustomer ? lastCustomer.name : 'none'}</span></span>
+                    </div>
                 </div>
                 {/* --- Main Product Grid --- */}
                 <div className="flex-1 overflow-y-auto pr-2 max-h-[calc(100vh-120px)] md:max-h-[calc(100vh-100px)]">
@@ -622,11 +637,6 @@ export default function POSPage() {
                         <DialogCloseButton onClick={closePaymentModal} />
                     </DialogHeader>
                     <div className="p-4 space-y-4">
-                        <div className="text-center mb-4">
-                            <p className="text-sm text-muted">Total Amount Due</p>
-                            <p className="text-3xl font-bold">₱{subtotal.toFixed(2)}</p>
-                        </div>
-
                         {/* --- Customer Searchable Dropdown --- */}
                         <div>
                             <Label htmlFor="customer-search-payment">
@@ -717,7 +727,7 @@ export default function POSPage() {
                                         id="amountReceived"
                                         type="number"
                                         step="0.01"
-                                        min={subtotal.toFixed(2)} // Minimum amount is the total
+                                        min={subtotal.toFixed(2)}
                                         value={amountReceived}
                                         onChange={e => setAmountReceived(e.target.value)}
                                         required
@@ -726,9 +736,12 @@ export default function POSPage() {
                                         autoFocus
                                     />
                                 </div>
-                                <div className="text-center mt-2">
-                                    <p className="text-sm text-muted">Change Due</p>
-                                    <p className="text-xl font-semibold">₱{changeDue.toFixed(2)}</p>
+                                {/* Summary Section: Only Total Amount Due */}
+                                <div className="flex flex-col gap-2 mt-2">
+                                    <div className="text-center">
+                                        <p className="text-sm text-muted">Total Amount Due</p>
+                                        <p className="text-xl font-semibold">₱{subtotal.toFixed(2)}</p>
+                                    </div>
                                 </div>
                             </>
                         )}

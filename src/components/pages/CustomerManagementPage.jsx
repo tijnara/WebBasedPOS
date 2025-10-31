@@ -131,9 +131,6 @@ export default function CustomerManagementPage() {
 
     const isMutating = createCustomer.isPending || updateCustomer.isPending || deleteCustomer.isPending;
 
-    const totalPages = Math.ceil(customers.length / itemsPerPage);
-    const paginatedCustomers = customers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-
     // Filter customers by searchTerm (case-insensitive, name, email, or phone)
     const filteredCustomers = customers.filter(c => {
         const term = searchTerm.trim().toLowerCase();
@@ -144,6 +141,8 @@ export default function CustomerManagementPage() {
             (c.phone && c.phone.toLowerCase().includes(term))
         );
     });
+    const totalPages = Math.ceil(filteredCustomers.length / itemsPerPage);
+    const paginatedCustomers = filteredCustomers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
     return (
         <div className="customer-page">
@@ -188,12 +187,12 @@ export default function CustomerManagementPage() {
                                         <TableRow>
                                             <TableCell colSpan={6} className="text-center text-muted py-8">Loading customers...</TableCell>
                                         </TableRow>
-                                    ) : customers.length === 0 ? (
+                                    ) : paginatedCustomers.length === 0 ? (
                                         <TableRow>
                                             <TableCell colSpan={6} className="text-center text-muted py-8">No customers found.</TableCell>
                                         </TableRow>
                                     ) : (
-                                        filteredCustomers.map(c => (
+                                        paginatedCustomers.map(c => (
                                             <TableRow key={c.id}>
                                                 <TableCell className="font-medium">{c.name}</TableCell>
                                                 <TableCell>{c.email}</TableCell>
@@ -219,6 +218,12 @@ export default function CustomerManagementPage() {
                                 </TableBody>
                             </Table>
                         </ScrollArea>
+                        {/* Pagination Controls */}
+                        <div className="flex justify-center items-center gap-2 py-2">
+                            <Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => setCurrentPage(currentPage - 1)}>Prev</Button>
+                            <span className="text-sm">Page {currentPage} of {totalPages}</span>
+                            <Button variant="outline" size="sm" disabled={currentPage === totalPages || totalPages === 0} onClick={() => setCurrentPage(currentPage + 1)}>Next</Button>
+                        </div>
                     </CardContent>
                 </Card>
 
@@ -226,10 +231,10 @@ export default function CustomerManagementPage() {
                 <div className="block md:hidden space-y-3">
                     {isLoading ? (
                         <div className="text-center text-muted py-8">Loading customers...</div>
-                    ) : customers.length === 0 ? (
+                    ) : paginatedCustomers.length === 0 ? (
                         <div className="text-center text-muted py-8">No customers found.</div>
                     ) : (
-                        filteredCustomers.map(c => (
+                        paginatedCustomers.map(c => (
                             <Card key={c.id}>
                                 <CardContent className="p-4">
                                     <div className="flex justify-between items-start">
@@ -249,28 +254,17 @@ export default function CustomerManagementPage() {
                                             </Button>
                                         </div>
                                     </div>
-                                    {/* Date Added */}
-                                    <div className="text-xs text-gray-500 mt-3 pt-3 border-t">
-                                        Added: {c.dateAdded instanceof Date && !isNaN(c.dateAdded)
-                                        ? c.dateAdded.toLocaleDateString()
-                                        : 'N/A'}
-                                    </div>
                                 </CardContent>
                             </Card>
                         ))
                     )}
-                </div>
-
-                {/* --- Pagination Controls --- */}
-                {totalPages > 1 && (
-                    <div className="flex justify-center items-center gap-2 my-4">
-                        <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>Prev</Button>
-                        {Array.from({ length: totalPages }, (_, i) => (
-                            <Button key={i + 1} variant={currentPage === i + 1 ? 'primary' : 'outline'} size="sm" onClick={() => setCurrentPage(i + 1)}>{i + 1}</Button>
-                        ))}
-                        <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>Next</Button>
+                    {/* Pagination Controls for mobile */}
+                    <div className="flex justify-center items-center gap-2 py-2">
+                        <Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => setCurrentPage(currentPage - 1)}>Prev</Button>
+                        <span className="text-sm">Page {currentPage} of {totalPages}</span>
+                        <Button variant="outline" size="sm" disabled={currentPage === totalPages || totalPages === 0} onClick={() => setCurrentPage(currentPage + 1)}>Next</Button>
                     </div>
-                )}
+                </div>
 
                 {/* --- MODAL: Customer Form (No change needed) --- */}
                 <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>

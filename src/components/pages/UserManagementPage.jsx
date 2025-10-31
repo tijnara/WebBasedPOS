@@ -40,6 +40,8 @@ export default function UserManagementPage() {
     const [contactNumber, setContactNumber] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
     const searchInputRef = useRef(null);
 
     useEffect(() => {
@@ -136,6 +138,8 @@ export default function UserManagementPage() {
             (u.phone && u.phone.toLowerCase().includes(term))
         );
     });
+    const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+    const paginatedUsers = filteredUsers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
     return (
         <div className="user-page">
@@ -178,12 +182,12 @@ export default function UserManagementPage() {
                                         <TableRow>
                                             <TableCell colSpan={4} className="text-center text-muted">Loading users...</TableCell>
                                         </TableRow>
-                                    ) : filteredUsers.length === 0 ? (
+                                    ) : paginatedUsers.length === 0 ? (
                                         <TableRow>
                                             <TableCell colSpan={4} className="text-center text-muted">No users found.</TableCell>
                                         </TableRow>
                                     ) : (
-                                        filteredUsers.map(u => (
+                                        paginatedUsers.map(u => (
                                             <TableRow key={u.id}>
                                                 <TableCell>{u.name}</TableCell>
                                                 <TableCell>{u.email}</TableCell>
@@ -205,15 +209,21 @@ export default function UserManagementPage() {
                             </Table>
                         </ScrollArea>
                     </CardContent>
+                    {/* Pagination Controls */}
+                    <div className="flex justify-center items-center gap-2 py-2">
+                        <Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => setCurrentPage(currentPage - 1)}>Prev</Button>
+                        <span className="text-sm">Page {currentPage} of {totalPages}</span>
+                        <Button variant="outline" size="sm" disabled={currentPage === totalPages || totalPages === 0} onClick={() => setCurrentPage(currentPage + 1)}>Next</Button>
+                    </div>
                 </Card>
 
                 <div className="block md:hidden space-y-3">
                     {isLoading ? (
                         <div className="text-center text-muted py-8">Loading users...</div>
-                    ) : filteredUsers.length === 0 ? (
+                    ) : paginatedUsers.length === 0 ? (
                         <div className="text-center text-muted py-8">No users found.</div>
                     ) : (
-                        filteredUsers.map(u => (
+                        paginatedUsers.map(u => (
                             <Card key={u.id}>
                                 <CardContent className="p-4 flex justify-between items-center">
                                     <div>
@@ -233,6 +243,12 @@ export default function UserManagementPage() {
                             </Card>
                         ))
                     )}
+                    {/* Pagination Controls for mobile */}
+                    <div className="flex justify-center items-center gap-2 py-2">
+                        <Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => setCurrentPage(currentPage - 1)}>Prev</Button>
+                        <span className="text-sm">Page {currentPage} of {totalPages}</span>
+                        <Button variant="outline" size="sm" disabled={currentPage === totalPages || totalPages === 0} onClick={() => setCurrentPage(currentPage + 1)}>Next</Button>
+                    </div>
                 </div>
 
                 <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>

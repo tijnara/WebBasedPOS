@@ -138,6 +138,10 @@ export default function ProductManagementPage() {
             (p.category && p.category.toLowerCase().includes(term))
         );
     });
+    const itemsPerPage = 10;
+    const [currentPage, setCurrentPage] = useState(1);
+    const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+    const paginatedProducts = filteredProducts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
     return (
         <div className="product-page">
@@ -179,12 +183,12 @@ export default function ProductManagementPage() {
                                         <TableRow>
                                             <TableCell colSpan={3} className="text-center text-muted">Loading products...</TableCell>
                                         </TableRow>
-                                    ) : filteredProducts.length === 0 ? (
+                                    ) : paginatedProducts.length === 0 ? (
                                         <TableRow>
                                             <TableCell colSpan={3} className="text-center text-muted">No products found.</TableCell>
                                         </TableRow>
                                     ) : (
-                                        filteredProducts.map(p => (
+                                        paginatedProducts.map(p => (
                                             <TableRow key={p.id}>
                                                 <TableCell>{p.name}</TableCell>
                                                 <TableCell>₱{Number(p.price || 0).toFixed(2)}</TableCell>
@@ -204,6 +208,12 @@ export default function ProductManagementPage() {
                                 </TableBody>
                             </Table>
                         </ScrollArea>
+                        {/* Pagination Controls */}
+                        <div className="flex justify-center items-center gap-2 py-2">
+                            <Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => setCurrentPage(currentPage - 1)}>Prev</Button>
+                            <span className="text-sm">Page {currentPage} of {totalPages}</span>
+                            <Button variant="outline" size="sm" disabled={currentPage === totalPages || totalPages === 0} onClick={() => setCurrentPage(currentPage + 1)}>Next</Button>
+                        </div>
                     </CardContent>
                 </Card>
 
@@ -211,10 +221,10 @@ export default function ProductManagementPage() {
                 <div className="block md:hidden space-y-3">
                     {isLoading ? (
                         <div className="text-center text-muted py-8">Loading products...</div>
-                    ) : filteredProducts.length === 0 ? (
+                    ) : paginatedProducts.length === 0 ? (
                         <div className="text-center text-muted py-8">No products found.</div>
                     ) : (
-                        filteredProducts.map(p => (
+                        paginatedProducts.map(p => (
                             <Card key={p.id}>
                                 <CardContent className="p-4 flex justify-between items-center">
                                     <div>
@@ -233,6 +243,12 @@ export default function ProductManagementPage() {
                             </Card>
                         ))
                     )}
+                    {/* Pagination Controls for mobile */}
+                    <div className="flex justify-center items-center gap-2 py-2">
+                        <Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => setCurrentPage(currentPage - 1)}>Prev</Button>
+                        <span className="text-sm">Page {currentPage} of {totalPages}</span>
+                        <Button variant="outline" size="sm" disabled={currentPage === totalPages || totalPages === 0} onClick={() => setCurrentPage(currentPage + 1)}>Next</Button>
+                    </div>
                 </div>
 
 

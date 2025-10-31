@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import Sidebar from './Sidebar';
 import { useRouter } from 'next/router';
 
@@ -32,6 +32,37 @@ const AppMain = () => {
     default:
       MainContent = <POSPage />;
   }
+
+  useEffect(() => {
+    let timer;
+    const logout = () => {
+      // Clear auth/session (customize as needed)
+      localStorage.removeItem('authToken');
+      window.location.href = '/login';
+    };
+    const resetTimer = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(logout, 5 * 60 * 1000); // 5 minutes
+    };
+    // Reset timer on user activity
+    window.addEventListener('mousemove', resetTimer);
+    window.addEventListener('keydown', resetTimer);
+    window.addEventListener('focus', resetTimer);
+    window.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        resetTimer();
+      }
+    });
+    // Start timer on mount
+    resetTimer();
+    return () => {
+      if (timer) clearTimeout(timer);
+      window.removeEventListener('mousemove', resetTimer);
+      window.removeEventListener('keydown', resetTimer);
+      window.removeEventListener('focus', resetTimer);
+      window.removeEventListener('visibilitychange', resetTimer);
+    };
+  }, []);
 
   return (
     <div className="flex flex-row h-screen w-screen bg-gray-50">
