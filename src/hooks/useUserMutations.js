@@ -2,8 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient';
 import useStore from '../store/useStore';
-import bcrypt from 'bcryptjs';
-import { v4 as uuidv4 } from 'uuid';
+// import bcrypt from 'bcryptjs'; // <-- REMOVED PASSWORD HASHING
 
 // Key for the custom users table query
 const usersTableKey = ['usersTableData']; // Changed key to avoid confusion with auth
@@ -54,20 +53,29 @@ export function useCreateUser() {
 
             const capitalizeFirst = str => str ? str.charAt(0).toUpperCase() + str.slice(1) : '';
 
-            // Generate a unique ID if not provided
-            const userId = userData.id || uuidv4();
+            // Check if the email already exists
+            const { data: existingUser, error: checkError } = await supabase
+                .from('users')
+                .select('id')
+                .eq('email', userData.email)
+                .single();
 
-            // Hash the password before storing it
-            const hashedPassword = await bcrypt.hash(userData.password, 10);
+            if (checkError && checkError.code !== 'PGRST116') { // Ignore "No rows found" error
+                throw new Error("Failed to check for existing email.");
+            }
+
+            if (existingUser) {
+                throw new Error(`Email ${userData.email} already exists.`);
+            }
 
             const payload = {
-                id: userId, // Ensure `id` is included in the payload
                 name: capitalizeFirst(userData.name),
                 email: userData.email,
                 phone: userData.phone || null,
-                password: hashedPassword, // Store hashed password
+                password: userData.password, // Store plain text password
                 dateadded: new Date().toISOString() // Set dateadded on creation
             };
+
             const { data, error } = await supabase
                 .from('users')
                 .insert([payload])
