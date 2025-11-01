@@ -1,4 +1,3 @@
-// src/components/pages/LoginPage.jsx
 import React, { useState } from 'react';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
@@ -6,10 +5,6 @@ import { useStore } from '../../store/useStore';
 import api from '../../lib/api'; // Import your custom API
 import {
     Button,
-    Card,
-    CardHeader,
-    CardContent,
-    CardFooter,
     Input,
     Label,
     Dialog,
@@ -27,8 +22,18 @@ const LoadingSpinner = () => (
     </svg>
 );
 
+// Your new WaterDropIcon
+const WaterDropIcon = () => (
+    <span className="inline-flex items-center justify-center w-10 h-10 bg-success rounded-lg mr-3">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2C12 2 6 9.5 6 13.5C6 17.09 8.91 20 12.5 20C16.09 20 19 17.09 19 13.5C19 9.5 12 2 12 2Z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <circle cx="12" cy="15" r="2" fill="white"/>
+        </svg>
+    </span>
+);
+
 const LoginPage = () => {
-    const [email, setEmail] = useState('');
+    const [email, setEmail] =useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const { setAuth, addToast } = useStore(s => ({ setAuth: s.setAuth, addToast: s.addToast }));
@@ -67,95 +72,107 @@ const LoginPage = () => {
                 title: 'Login Failed',
                 description: err.message || 'An unexpected error occurred. Please try again.'
             });
-            // Or optionally use a toast for a less intrusive error
-            // addToast({ title: 'Login Failed', description: err.message, variant: 'destructive' });
         } finally {
             setIsLoading(false);
         }
     };
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-4">
-            {/* Logo */}
-            <div className="mb-6">
+        // [FIXED] You've set the background to white
+        <div className="flex min-h-screen w-full bg-white">
+
+            {/* Left Column (Form) */}
+            {/* [FIXED] This column is also white */}
+            <div className="flex w-1/2 justify-center items-center min-h-screen bg-white">
+                <div className="max-w-md w-full bg-white rounded-xl shadow-xl border border-gray-200 flex flex-col">
+                    <div className="p-8 sm:p-10">
+                        {/* Logo and Title - Using your new WaterDropIcon */}
+                        <div className="flex items-center gap-3 mb-6">
+                            <WaterDropIcon />
+                            <span className="text-2xl font-bold text-black">SEASIDE POS</span>
+                        </div>
+                        <h1 className="text-3xl font-bold mb-2">Login</h1>
+                        <p className="text-sm text-muted mb-6">
+                            Don't have an account?{' '}
+                            <a href="#" className="font-medium text-success hover:text-success-hover">Get Started Now</a>
+                        </p>
+                        <form onSubmit={handleLogin} className="space-y-4">
+                            <div>
+                                <Label htmlFor="email" className="font-medium text-muted">Email Address</Label>
+                                <Input
+                                    id="email"
+                                    type="email"
+                                    placeholder="user@example.com"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    required
+                                    disabled={isLoading}
+                                    className="bg-gray-50 border-gray-200 focus:bg-white rounded-lg"
+                                />
+                            </div>
+                            <div>
+                                <Label htmlFor="password" className="font-medium text-muted">Password</Label>
+                                <Input
+                                    id="password"
+                                    type="password"
+                                    placeholder="••••••••"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    required
+                                    disabled={isLoading}
+                                    className="bg-gray-50 border-gray-200 focus:bg-white rounded-lg"
+                                />
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <input id="remember-me" type="checkbox" className="h-4 w-4 text-success border-gray-200 rounded focus:ring-success" />
+                                <Label htmlFor="remember-me" className="mb-0 text-muted">Remember Me</Label>
+                            </div>
+                            <div className="pt-2">
+                                <Button
+                                    type="submit"
+                                    variant="success"
+                                    size="lg"
+                                    className="w-full shadow-md hover:shadow-lg hover:opacity-90 transition-all rounded-lg text-base font-semibold"
+                                    disabled={isLoading}
+                                >
+                                    {isLoading ? (<><LoadingSpinner /> Logging in...</>) : 'Log In'}
+                                </Button>
+                            </div>
+                        </form>
+                        <div className="text-center mt-6">
+                            <a href="#" className="text-sm font-medium text-success hover:text-success-hover">Forgot Your Password?</a>
+                        </div>
+                    </div>
+                    {/* [FIXED] Footer is also white */}
+                    <footer className="mt-auto p-6 text-center text-xs text-gray-500 bg-white border-t border-gray-100 rounded-b-xl">
+                        <p>Copyright &copy; 2025 Seaside POS. SEASIDE&trade; is a trademark of Seaside, LLC.</p>
+                        <div className="mt-1 space-x-2">
+                            <a href="#" className="hover:text-gray-700">Terms of Service</a>
+                            <span>|</span>
+                            <a href="#" className="hover:text-gray-700">Privacy Policy</a>
+                        </div>
+                    </footer>
+                </div>
+            </div>
+
+            {/* Right Column (Image) */}
+            {/* [FIXED] This column is also white */}
+            <div className="flex w-1/2 justify-center items-center min-h-screen bg-white">
                 <Image
-                    src="/seaside.png" // Assumes the logo is in the public folder
-                    alt="Seaside POS Logo"
-                    width={80}
-                    height={80}
-                    priority // Prioritize loading the logo
+                    src="/seasideHD_.png"
+                    alt="Seaside Purified Water Refilling Station"
+                    width={600}
+                    height={600}
+                    style={{ objectFit: 'contain' }}
+                    priority
+                    className=""
                 />
             </div>
 
-            <Card className="w-full max-w-sm shadow-md">
-                <CardHeader>
-                    <h1 className="text-2xl font-bold text-center text-primary">Seaside POS Login</h1>
-                </CardHeader>
-                <form onSubmit={handleLogin}>
-                    <CardContent className="space-y-4">
-                        <div>
-                            <Label htmlFor="email">Email</Label>
-                            <Input
-                                id="email"
-                                type="email"
-                                placeholder="user@example.com"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                required
-                                disabled={isLoading}
-                            />
-                        </div>
-                        <div>
-                            <Label htmlFor="password">Password</Label>
-                            <Input
-                                id="password"
-                                type="password"
-                                placeholder="••••••••"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                required
-                                disabled={isLoading}
-                            />
-                        </div>
-                    </CardContent>
-                    <CardFooter className="flex flex-col gap-4">
-                        <Button type="submit" variant="primary" className="w-full" disabled={isLoading}>
-                            {isLoading ? (
-                                <>
-                                    <LoadingSpinner />
-                                    Logging in...
-                                </>
-                            ) : (
-                                'Login'
-                            )}
-                        </Button>
-                        <p className="text-xs text-gray-500 text-center">
-                            Need an account?{' '}
-                            <a href="#" className="font-medium text-primary hover:text-primary-hover">
-                                Contact admin
-                            </a>
-                        </p>
-                    </CardFooter>
-                </form>
-            </Card>
-
-            {/* Footer */}
-            <footer className="mt-8 text-center text-xs text-gray-500">
-                <p>&copy; 2025 SEASIDE POS. All rights reserved.</p>
-                <div className="mt-2 space-x-4">
-                    <a href="#" className="hover:text-gray-700">Privacy</a>
-                    <span>&bull;</span>
-                    <a href="#" className="hover:text-gray-700">Terms</a>
-                    <span>&bull;</span>
-                    <a href="#" className="hover:text-gray-700">Support</a>
-                </div>
-            </footer>
-
             {/* Error Modal */}
             <Dialog open={modal.isOpen} onOpenChange={(open) => !open && closeModal()}>
-                <DialogContent className="sm:max-w-xs"> {/* Smaller modal for alerts */}
+                <DialogContent className="sm:max-w-xs">
                     <DialogHeader>
-                        {/* Red X Icon */}
                         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
                             <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -166,10 +183,8 @@ const LoginPage = () => {
                     <div className="p-4 text-center text-sm text-gray-600">
                         <p>{modal.description}</p>
                     </div>
-                    <DialogFooter className="justify-center"> {/* Center the button */}
-                        <Button variant="primary" onClick={closeModal} className="w-full">
-                            OK
-                        </Button>
+                    <DialogFooter className="justify-center">
+                        <Button variant="primary" onClick={closeModal} className="w-full">OK</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
