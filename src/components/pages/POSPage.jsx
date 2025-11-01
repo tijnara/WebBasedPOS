@@ -458,6 +458,7 @@ export default function POSPage() {
                         <span className="text-lg text-gray-800 font-semibold">Last Customer Used: <span className="font-bold">{lastCustomer ? lastCustomer.name : 'none'}</span></span>
                     </div>
                 </div>
+
                 {/* --- Main Product Grid --- */}
                 <div className="flex-1 overflow-y-auto pr-2 max-h-[calc(100vh-120px)] md:max-h-[calc(100vh-100px)]">
                     {isLoadingProducts ? (
@@ -467,25 +468,50 @@ export default function POSPage() {
                             {productSearchTerm ? 'No products match your search.' : 'No products available.'}
                         </div>
                     ) : (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4" ref={productGridRef}>
-                            {filteredProducts.map((p, idx) => (
-                                <button
-                                    key={p.id}
-                                    className={`product-card p-4 text-center border rounded-xl shadow-md hover:border-primary hover:shadow-lg transition-all duration-150 bg-white flex flex-col items-center${selectedProductIndex === idx ? ' ring-2 ring-primary' : ''}`}
-                                    onClick={() => handleAdd(p)}
-                                    title={p.name}
-                                    tabIndex={-1}
-                                >
-                                    <div className="product-card-image h-16 w-16 mb-2 flex items-center justify-center text-4xl bg-gray-100 rounded-xl">
-                                        <PackageIcon className="w-10 h-10 text-muted" />
-                                    </div>
-                                    <div className="font-semibold text-sm leading-tight mb-1 line-clamp-2 text-gray-800">{p.name}</div>
-                                    <div className="text-xs text-primary font-bold">
-                                        ₱{Number(p.price || 0).toFixed(2)}
-                                    </div>
-                                </button>
-                            ))}
-                        </div>
+                        <>
+                            {/* --- Desktop Grid Layout (Hidden on Mobile) --- */}
+                            <div className="hidden md:grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4" ref={productGridRef}>
+                                {filteredProducts.map((p, idx) => (
+                                    <button
+                                        key={p.id}
+                                        className={`product-card p-4 text-center border rounded-xl shadow-md hover:border-primary hover:shadow-lg transition-all duration-150 bg-white flex flex-col items-center${selectedProductIndex === idx ? ' ring-2 ring-primary' : ''}`}
+                                        onClick={() => handleAdd(p)}
+                                        title={p.name}
+                                        tabIndex={-1}
+                                    >
+                                        <div className="product-card-image h-16 w-16 mb-2 flex items-center justify-center text-4xl bg-gray-100 rounded-xl">
+                                            <PackageIcon className="w-10 h-10 text-muted" />
+                                        </div>
+                                        <div className="font-semibold text-sm leading-tight mb-1 line-clamp-2 text-gray-800">{p.name}</div>
+                                        <div className="text-xs text-primary font-bold">
+                                            ₱{Number(p.price || 0).toFixed(2)}
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* --- Mobile List Layout (Hidden on Desktop) --- */}
+                            <div className="block md:hidden space-y-2">
+                                {filteredProducts.map((p, idx) => (
+                                    <button
+                                        key={p.id}
+                                        className={`w-full p-3 border rounded-lg shadow-sm bg-white flex justify-between items-center text-left ${selectedProductIndex === idx ? ' ring-2 ring-primary' : ''}`}
+                                        onClick={() => handleAdd(p)}
+                                        tabIndex={-1}
+                                    >
+                                        {/* Product Info */}
+                                        <div>
+                                            <div className="font-semibold text-gray-800">{p.name}</div>
+                                            <div className="text-sm text-primary font-bold">
+                                                ₱{Number(p.price || 0).toFixed(2)}
+                                            </div>
+                                        </div>
+                                        {/* Add Icon */}
+                                        <div className="text-2xl text-muted">+</div>
+                                    </button>
+                                ))}
+                            </div>
+                        </>
                     )}
                 </div>
             </div>

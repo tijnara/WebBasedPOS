@@ -692,11 +692,12 @@ button:disabled {
     .md\:hidden {
         display: none;
     }
-    /* --- THIS IS THE FIX --- */
+    .md\:grid {
+        display: grid;
+    }
     .md\:flex-row {
         flex-direction: row;
     }
-    /* --- END OF FIX --- */
     .md\:flex-row-reverse {
         flex-direction: row-reverse;
     }
