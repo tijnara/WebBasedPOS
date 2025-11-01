@@ -78,73 +78,82 @@ const LoginPage = () => {
     };
 
     return (
-        // [FIXED] You've set the background to white
-        <div className="flex min-h-screen w-full bg-white">
-
+        <div className="flex min-h-screen w-full bg-white flex-row gap-16 items-center justify-center">
             {/* Left Column (Form) */}
-            {/* [FIXED] This column is also white */}
             <div className="flex w-1/2 justify-center items-center min-h-screen bg-white">
-                <div className="max-w-md w-full bg-white rounded-xl shadow-xl border border-gray-200 flex flex-col">
-                    <div className="p-8 sm:p-10">
-                        {/* Logo and Title - Using your new WaterDropIcon */}
-                        <div className="flex items-center gap-3 mb-6">
+                <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl border border-gray-100 flex flex-col px-8 py-12 transition-all duration-300">
+                    <div className="mb-10">
+                        {/* Logo and Title - Elegant */}
+                        <div className="flex items-center gap-4 mb-8">
                             <WaterDropIcon />
-                            <span className="text-2xl font-bold text-black">SEASIDE POS</span>
+                            <span className="text-3xl font-extrabold text-black tracking-tight"></span>
                         </div>
-                        <h1 className="text-3xl font-bold mb-2">Login</h1>
-                        <p className="text-sm text-muted mb-6">
-                            Don't have an account?{' '}
-                            <a href="#" className="font-medium text-success hover:text-success-hover">Get Started Now</a>
-                        </p>
-                        <form onSubmit={handleLogin} className="space-y-4">
-                            <div>
-                                <Label htmlFor="email" className="font-medium text-muted">Email Address</Label>
+                        <h1 className="text-4xl font-bold mb-2 text-gray-900">Login</h1>
+
+                    </div>
+                    <form onSubmit={handleLogin} className="space-y-6" autoComplete="off">
+                        <div>
+                            <Label htmlFor="no_autofill_email" className="font-semibold text-gray-700 mb-1">Email Address</Label>
+                            <Input
+                                id="no_autofill_email"
+                                name="no_autofill_email"
+                                type="email"
+                                autoComplete="nope"
+                                inputMode="none"
+                                spellCheck={false}
+                                readOnly
+                                onFocus={e => e.target.removeAttribute('readOnly')}
+                                placeholder="user@example.com"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                required
+                                disabled={isLoading}
+                                className="bg-gray-50 border border-gray-200 focus:bg-white focus:border-success focus:ring-2 focus:ring-success/30 rounded-xl px-4 py-3 text-base transition-all"
+                            />
+                        </div>
+                        <div>
+                            <Label htmlFor="no_autofill_password" className="font-semibold text-gray-700 mb-1">Password</Label>
+                            <div className="relative">
                                 <Input
-                                    id="email"
-                                    type="email"
-                                    placeholder="user@example.com"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    required
-                                    disabled={isLoading}
-                                    className="bg-gray-50 border-gray-200 focus:bg-white rounded-lg"
-                                />
-                            </div>
-                            <div>
-                                <Label htmlFor="password" className="font-medium text-muted">Password</Label>
-                                <Input
-                                    id="password"
+                                    id="no_autofill_password"
+                                    name="no_autofill_password"
                                     type="password"
+                                    autoComplete="nope"
+                                    inputMode="none"
+                                    spellCheck={false}
+                                    readOnly
+                                    onFocus={e => e.target.removeAttribute('readOnly')}
                                     placeholder="••••••••"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     required
                                     disabled={isLoading}
-                                    className="bg-gray-50 border-gray-200 focus:bg-white rounded-lg"
+                                    className="bg-gray-50 border border-gray-200 focus:bg-white focus:border-success focus:ring-2 focus:ring-success/30 rounded-xl px-4 py-3 text-base transition-all pr-10"
                                 />
+                                {/* Eye icon for password visibility (static for now) */}
+                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                                    <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+                                </span>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <input id="remember-me" type="checkbox" className="h-4 w-4 text-success border-gray-200 rounded focus:ring-success" />
-                                <Label htmlFor="remember-me" className="mb-0 text-muted">Remember Me</Label>
-                            </div>
-                            <div className="pt-2">
-                                <Button
-                                    type="submit"
-                                    variant="success"
-                                    size="lg"
-                                    className="w-full shadow-md hover:shadow-lg hover:opacity-90 transition-all rounded-lg text-base font-semibold"
-                                    disabled={isLoading}
-                                >
-                                    {isLoading ? (<><LoadingSpinner /> Logging in...</>) : 'Log In'}
-                                </Button>
-                            </div>
-                        </form>
-                        <div className="text-center mt-6">
-                            <a href="#" className="text-sm font-medium text-success hover:text-success-hover">Forgot Your Password?</a>
                         </div>
+                        <div className="flex items-center gap-2">
+                            <input id="remember-me" type="checkbox" className="h-4 w-4 text-success border-gray-200 rounded focus:ring-success" />
+                            <Label htmlFor="remember-me" className="mb-0 text-muted">Remember Me</Label>
+                        </div>
+                        <Button
+                            type="submit"
+                            variant="success"
+                            size="lg"
+                            className="w-full shadow-lg hover:shadow-xl hover:opacity-95 transition-all rounded-2xl text-lg font-semibold py-3 flex items-center justify-center gap-2 bg-gradient-to-r from-success to-green-500"
+                            disabled={isLoading}
+                        >
+                            {isLoading ? (<><LoadingSpinner /> Logging in...</>) : 'Log In'}
+                        </Button>
+                    </form>
+                    <div className="text-center mt-8">
+                        <a href="#" className="text-sm font-semibold text-success hover:underline transition-colors">demo</a>
                     </div>
-                    {/* [FIXED] Footer is also white */}
-                    <footer className="mt-auto p-6 text-center text-xs text-gray-500 bg-white border-t border-gray-100 rounded-b-xl">
+                    <footer className="mt-12 p-4 text-center text-xs text-gray-400 bg-white border-t border-gray-100 rounded-b-3xl">
                         <p>Copyright &copy; 2025 Seaside POS. SEASIDE&trade; is a trademark of Seaside, LLC.</p>
                         <div className="mt-1 space-x-2">
                             <a href="#" className="hover:text-gray-700">Terms of Service</a>
@@ -154,37 +163,40 @@ const LoginPage = () => {
                     </footer>
                 </div>
             </div>
-
+            {/* Divider for elegance */}
+            <div className="hidden md:block h-[70%] w-px bg-gray-100 mx-2 rounded-full"></div>
             {/* Right Column (Image) */}
-            {/* [FIXED] This column is also white */}
             <div className="flex w-1/2 justify-center items-center min-h-screen bg-white">
-                <Image
-                    src="/seasideHD_.png"
-                    alt="Seaside Purified Water Refilling Station"
-                    width={600}
-                    height={600}
-                    style={{ objectFit: 'contain' }}
-                    priority
-                    className=""
-                />
+                <div className="flex flex-col items-center justify-center">
+                    <Image
+                        src="/seasideHD_.png"
+                        alt="Seaside Purified Water Refilling Station"
+                        width={600}
+                        height={600}
+                        style={{ objectFit: 'contain' }}
+                        priority
+                        className="rounded-2xl shadow-xl"
+                    />
+                </div>
             </div>
-
             {/* Error Modal */}
             <Dialog open={modal.isOpen} onOpenChange={(open) => !open && closeModal()}>
                 <DialogContent className="sm:max-w-xs">
                     <DialogHeader>
-                        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
+                        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100 animate-pulse">
                             <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
                             </svg>
                         </div>
-                        <DialogTitle className="text-center mt-3">{modal.title}</DialogTitle>
+                        <DialogTitle className="text-center mt-3 text-lg font-bold text-red-600">{modal.title}</DialogTitle>
                     </DialogHeader>
                     <div className="p-4 text-center text-sm text-gray-600">
                         <p>{modal.description}</p>
                     </div>
                     <DialogFooter className="justify-center">
-                        <Button variant="primary" onClick={closeModal} className="w-full">OK</Button>
+                        <Button variant="primary" onClick={closeModal} className="w-full rounded-lg">
+                            OK
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
