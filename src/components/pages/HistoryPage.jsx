@@ -271,7 +271,7 @@ export default function HistoryPage() {
             </div>
 
             {/* --- Pagination Controls --- */}
-            <div className="flex justify-center items-center gap-2 py-2">
+            <div className="flex justify-center items-center gap-2 py-4 px-4 rounded-lg bg-white">
                 <Button
                     variant="outline"
                     size="sm"

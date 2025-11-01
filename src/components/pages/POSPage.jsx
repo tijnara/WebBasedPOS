@@ -375,7 +375,7 @@ export default function POSPage() {
             {/* --- Header --- */}
             <div className="flex items-center justify-between mb-4">
                 <h1 className="text-3xl font-bold text-primary tracking-tight">Point of Sale</h1>
-                <div className="flex gap-2">
+                <div className="flex gap-4">
                     <Input
                         ref={searchInputRef}
                         placeholder="Search products..."

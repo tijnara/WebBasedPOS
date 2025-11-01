@@ -150,15 +150,15 @@ export default function CustomerManagementPage() {
             <img src="/seaside.png" alt="Seaside Logo" className="brand-logo-top" width={32} height={32} />
             <MobileLogoutButton />
             <div>
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-2">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                     <div>
                         <h1 className="text-2xl font-semibold">Customer Management</h1>
                         <p className="text-muted mt-1">Manage your customer records</p>
                     </div>
                     <Button onClick={openModal} variant="primary">Add Customer</Button>
                 </div>
-
-                <div className="mb-4">
+<br/>
+                <div className="mb-4 mt-6">
                     <Input
                         ref={searchInputRef}
                         placeholder="Search by name, email, or phone..."
@@ -219,7 +219,7 @@ export default function CustomerManagementPage() {
                             </Table>
                         </ScrollArea>
                         {/* Pagination Controls */}
-                        <div className="flex justify-center items-center gap-2 py-2">
+                        <div className="flex justify-center items-center gap-2 py-4 px-4 rounded-lg bg-white">
                             <Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => setCurrentPage(currentPage - 1)}>Prev</Button>
                             <span className="text-sm">Page {currentPage} of {totalPages}</span>
                             <Button variant="outline" size="sm" disabled={currentPage === totalPages || totalPages === 0} onClick={() => setCurrentPage(currentPage + 1)}>Next</Button>
@@ -259,7 +259,7 @@ export default function CustomerManagementPage() {
                         ))
                     )}
                     {/* Pagination Controls for mobile */}
-                    <div className="flex justify-center items-center gap-2 py-2">
+                    <div className="flex justify-center items-center gap-2 py-4 px-4 rounded-lg bg-white">
                         <Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => setCurrentPage(currentPage - 1)}>Prev</Button>
                         <span className="text-sm">Page {currentPage} of {totalPages}</span>
                         <Button variant="outline" size="sm" disabled={currentPage === totalPages || totalPages === 0} onClick={() => setCurrentPage(currentPage + 1)}>Next</Button>
