@@ -81,10 +81,21 @@ export const useStore = create((set, get) => ({
     setCurrentCustomer: (cust) => set({ currentCustomer: cust }),
     addItemToSale: (product, quantity = 1, overridePrice = null) =>
         set((state) => {
-            const price = parseFloat(overridePrice !== null ? overridePrice : product.price || 0);
+
+            // --- START OF FIX ---
+            // Original code:
+            // const price = parseFloat(overridePrice !== null ? overridePrice : product.price || 0);
+
+            // Robust Fix:
+            // 1. Determine the price to use. Use ?? to default null/undefined to 0.
+            const priceToParse = overridePrice !== null ? overridePrice : (product.price ?? 0);
+            // 2. Convert to a number. This handles numbers, strings, null, etc. safely.
+            const price = Number(priceToParse);
+            // --- END OF FIX ---
+
             if (isNaN(price)) {
-                console.error("Invalid price for product:", product);
-                return {};
+                console.error("Invalid price for product:", product, "Price to parse:", priceToParse);
+                return {}; // Silently fail without updating state
             }
             const key = `${product.id}__${price.toFixed(2)}`; // Unique key per product & price combo
             const existing = state.currentSale[key];
