@@ -579,7 +579,7 @@ button:disabled {
 .table__td.text-center { text-align: center; }
 .table__row:hover { background: #f9fafb; }
 @media (max-width: 767px) {
-  .table-wrap { display: none; }
+    .table-wrap { display: none; }
 }
 
 /* --- Spinner Animation --- */
@@ -692,6 +692,11 @@ button:disabled {
     .md\:hidden {
         display: none;
     }
+    /* --- THIS IS THE FIX --- */
+    .md\:flex-row {
+        flex-direction: row;
+    }
+    /* --- END OF FIX --- */
     .md\:flex-row-reverse {
         flex-direction: row-reverse;
     }
