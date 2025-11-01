@@ -50,13 +50,13 @@ export const CardFooter = ({ children, className }) => (
 );
 
 // --- Dialog Components ---
-export const Dialog = ({ open, children, className, onOpenChange }) => (
+export const Dialog = ({ open, children, className, onOpenChange, closeOnBackdropClick = true }) => (
     open ? (
         <div
-            className={cn('dialog-backdrop fixed inset-0 flex items-center justify-center z-50 p-4', className)} // Added padding
+            className={cn('dialog-backdrop fixed inset-0 flex items-center justify-center z-50 p-4', className)}
             style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
             onClick={(e) => {
-                if (e.target === e.currentTarget && onOpenChange) {
+                if (closeOnBackdropClick && e.target === e.currentTarget && onOpenChange) {
                     onOpenChange(false);
                 }
             }}
