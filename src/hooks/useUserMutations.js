@@ -2,6 +2,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient';
 import useStore from '../store/useStore';
+import bcrypt from 'bcryptjs';
+import { v4 as uuidv4 } from 'uuid';
 
 // Key for the custom users table query
 const usersTableKey = ['usersTableData']; // Changed key to avoid confusion with auth
@@ -15,31 +17,25 @@ export function useUsers() {
             try {
                 const { data, error } = await supabase
                     .from('users')
-                    .select('id, name, email, phone, dateadded'); // Adjust columns as per your schema
+                    .select('id, name, email, phone, dateadded'); // Ensure sensitive fields like `password` are excluded
 
                 if (error) {
-                    // Intentionally rethrow for React Query error handling
                     throw error;
                 }
 
                 if (!data || !Array.isArray(data)) return [];
 
-                // Map data from your 'users' table
                 return data.map(u => ({
                     id: u.id,
                     name: u.name || 'Unnamed User',
                     email: u.email,
                     phone: u.phone || 'N/A',
-                    // Adjust 'dateadded' based on your actual column name
-                    dateAdded: u.dateadded ? new Date(u.dateadded) : (u.created_at ? new Date(u.created_at) : null)
+                    dateAdded: u.dateadded ? new Date(u.dateadded) : null
                 }));
             } catch (error) {
-                // Intentionally rethrow for React Query error handling
                 throw error;
             }
         },
-        // Consider enabling only for specific roles/pages if needed
-        // enabled: userHasAdminRole,
     });
 }
 
@@ -57,11 +53,19 @@ export function useCreateUser() {
             }
 
             const capitalizeFirst = str => str ? str.charAt(0).toUpperCase() + str.slice(1) : '';
+
+            // Generate a unique ID if not provided
+            const userId = userData.id || uuidv4();
+
+            // Hash the password before storing it
+            const hashedPassword = await bcrypt.hash(userData.password, 10);
+
             const payload = {
+                id: userId, // Ensure `id` is included in the payload
                 name: capitalizeFirst(userData.name),
                 email: userData.email,
                 phone: userData.phone || null,
-                password: userData.password, // <-- Storing plain text password - BAD PRACTICE
+                password: hashedPassword, // Store hashed password
                 dateadded: new Date().toISOString() // Set dateadded on creation
             };
             const { data, error } = await supabase
@@ -74,7 +78,6 @@ export function useCreateUser() {
                 if (error.code === '23505') { // Postgres unique violation code
                     throw new Error(`Email ${userData.email} already exists.`);
                 }
-                // Intentionally rethrow for React Query error handling
                 throw error;
             }
             return data;

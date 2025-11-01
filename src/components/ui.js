@@ -18,7 +18,7 @@ export const Button = React.forwardRef(({ className, variant = 'default', size =
         secondary: 'btn--secondary',
         success: 'btn--success', // Added
         warning: 'btn--warning', // Added
-        danger: 'btn--danger',   // Added (can be alias for destructive)
+        danger: 'btn--danger',   // Added (alias for destructive)
     };
     const sizes = {
         default: '',
@@ -50,7 +50,7 @@ export const CardFooter = ({ children, className }) => (
 );
 
 // --- Dialog Components ---
-export const Dialog = ({ open, children, className, onOpenChange, closeOnBackdropClick = true }) => (
+export const Dialog = ({ open, children, className, onOpenChange, closeOnBackdropClick = false }) => (
     open ? (
         <div
             className={cn('dialog-backdrop fixed inset-0 flex items-center justify-center z-50 p-4', className)}
