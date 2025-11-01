@@ -2,7 +2,7 @@
 import { create } from 'zustand';
 import api from '../lib/api'; // Ensure this points to your updated api.js
 
-// Persistence for the custom user object (using localStorage)
+// Persistence for the custom user object (using sessionStorage)
 const persistUserToStorage = (user) => {
     // Ensure running on client-side
     if (typeof window !== 'undefined') {
@@ -17,16 +17,18 @@ const persistUserToStorage = (user) => {
                     dateadded: user.dateadded, // Include if needed by UI
                     // Add other relevant fields like 'role' if applicable, but NEVER password
                 };
-                localStorage.setItem('pos_custom_user', JSON.stringify(userToStore));
+                // --- CHANGED to sessionStorage ---
+                sessionStorage.setItem('pos_custom_user', JSON.stringify(userToStore));
                 // REMOVE CONFIDENTIAL LOGS
-                // console.log("Store: Persisted user to localStorage", userToStore);
+                // console.log("Store: Persisted user to sessionStorage", userToStore);
             } else {
-                localStorage.removeItem('pos_custom_user');
+                // --- CHANGED to sessionStorage ---
+                sessionStorage.removeItem('pos_custom_user');
                 // REMOVE CONFIDENTIAL LOGS
-                // console.log("Store: Removed user from localStorage");
+                // console.log("Store: Removed user from sessionStorage");
             }
         } catch (error) {
-            console.error("Store: Error persisting user to localStorage", error);
+            console.error("Store: Error persisting user to sessionStorage", error);
         }
     }
 };
@@ -34,23 +36,26 @@ const persistUserToStorage = (user) => {
 const getUserFromStorage = () => {
     // Ensure running on client-side
     if (typeof window !== 'undefined') {
-        const userJson = localStorage.getItem('pos_custom_user');
+        // --- CHANGED to sessionStorage ---
+        const userJson = sessionStorage.getItem('pos_custom_user');
         if (!userJson) return null;
         try {
             const user = JSON.parse(userJson);
             // REMOVE CONFIDENTIAL LOGS
-            // console.log("Store: Loaded user from localStorage", user);
+            // console.log("Store: Loaded user from sessionStorage", user);
             // Basic validation of stored data
             if (user && user.id && user.email) {
                 return user;
             } else {
-                console.warn("Store: Invalid user data found in localStorage, clearing.");
-                localStorage.removeItem('pos_custom_user');
+                console.warn("Store: Invalid user data found in sessionStorage, clearing.");
+                // --- CHANGED to sessionStorage ---
+                sessionStorage.removeItem('pos_custom_user');
                 return null;
             }
         } catch (e) {
-            console.error("Store: Failed to parse user from localStorage", e);
-            localStorage.removeItem('pos_custom_user'); // Clear invalid data
+            console.error("Store: Failed to parse user from sessionStorage", e);
+            // --- CHANGED to sessionStorage ---
+            sessionStorage.removeItem('pos_custom_user'); // Clear invalid data
             return null;
         }
     }
@@ -127,7 +132,7 @@ export const useStore = create((set, get) => ({
     setAuth: (user) => {
         // REMOVE CONFIDENTIAL LOGS
         // console.log("Store: Setting custom user state", user);
-        persistUserToStorage(user); // Persist user to localStorage
+        persistUserToStorage(user); // Persist user to sessionStorage
         // Set user and ensure sessionLoaded is true
         set({ user, sessionLoaded: true });
     },
@@ -140,7 +145,7 @@ export const useStore = create((set, get) => ({
         try {
             api.logout(); // Call the simplified api.logout
             console.log("Store: Logout successful, clearing custom user state.");
-            persistUserToStorage(null); // Remove user from localStorage
+            persistUserToStorage(null); // Remove user from sessionStorage
             set({ user: null }); // Clear user state
         } catch (error) {
             console.error("Store: Logout failed:", error);
@@ -150,16 +155,16 @@ export const useStore = create((set, get) => ({
     // Function to ensure sessionLoaded is true after initial client-side hydration
     hydrate: () => {
         // This function now primarily ensures the store knows it's running client-side
-        // and has attempted to load the initial user state from localStorage.
+        // and has attempted to load the initial user state from sessionStorage.
         if (!get().sessionLoaded && typeof window !== 'undefined') {
             // REMOVE CONFIDENTIAL LOGS
             // console.log("Store: Hydrating sessionLoaded state on client.");
             // Try loading from storage again in case initialUser was null server-side
             const userFromStorage = getUserFromStorage();
             set({ sessionLoaded: true, user: userFromStorage });
-        } else if (get().sessionLoaded && typeof window !== 'undefined' && get().user === null && localStorage.getItem('pos_custom_user')) {
-            // Handle edge case where initial state might be null but localStorage has data later
-            console.warn("Store: Re-hydrating user state from localStorage.");
+        } else if (get().sessionLoaded && typeof window !== 'undefined' && get().user === null && sessionStorage.getItem('pos_custom_user')) { // --- CHANGED to sessionStorage ---
+            // Handle edge case where initial state might be null but sessionStorage has data later
+            console.warn("Store: Re-hydrating user state from sessionStorage.");
             const userFromStorage = getUserFromStorage();
             set({ user: userFromStorage });
         }

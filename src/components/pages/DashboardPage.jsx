@@ -9,6 +9,16 @@ import MobileLogoutButton from '../MobileLogoutButton';
 
 Chart.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Tooltip, Legend);
 
+// New Summary Card Component for responsiveness
+const SummaryCard = ({ title, value, isSuccess = false }) => (
+    <div className="border border-gray-200 bg-white rounded-lg shadow-sm flex-1">
+        <div className="p-3 pb-1 text-sm md:text-lg font-semibold text-gray-800 text-center">{title}</div>
+        <div className={`p-3 pt-1 text-xl md:text-2xl font-bold text-center ${isSuccess ? 'text-success' : 'text-primary'}`} style={{ letterSpacing: '0.5px' }}>
+            {value}
+        </div>
+    </div>
+);
+
 export default function DashboardPage() {
     // Fetch data
     const { data: sales = [] } = useSales();
@@ -31,7 +41,7 @@ export default function DashboardPage() {
     const productSales = useMemo(() => {
         const map = {};
         sales.forEach(sale => {
-            (sale.items || []).forEach(item => {
+            (sale.sale_items || []).forEach(item => { // Use sale_items
                 map[item.productName] = (map[item.productName] || 0) + item.quantity;
             });
         });
@@ -61,19 +71,23 @@ export default function DashboardPage() {
     const newCustomersCount = customers.length;
 
     // Get today's date string (local time)
-    const todayDateString = new Date(2025, 9, 30).toLocaleDateString(); // October is month 9 (0-based)
+    // FIX: Use current date, not a hardcoded one
+    const todayDateString = new Date().toLocaleDateString();
+
     // Filter sales for today
     const todaySales = sales.filter(sale => {
         const saleDate = new Date(sale.saleTimestamp).toLocaleDateString();
         return saleDate === todayDateString;
     });
+
     // Sales Today Revenue
     const salesTodayRevenue = todaySales.reduce((sum, sale) => sum + Number(sale.totalAmount || 0), 0);
+
     // Top-Selling Products Today
     const todayProductSales = (() => {
         const map = {};
         todaySales.forEach(sale => {
-            (sale.items || []).forEach(item => {
+            (sale.sale_items || []).forEach(item => { // use sale_items
                 map[item.productName] = (map[item.productName] || 0) + item.quantity;
             });
         });
@@ -85,36 +99,46 @@ export default function DashboardPage() {
     const todayTopProductNames = todayTopProducts.map(([name]) => name);
     const todayTopProductQuantities = todayTopProducts.map(([, qty]) => qty);
 
+    // Chart options for responsiveness
+    const chartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false }
+        },
+        aspectRatio: 2, // Default aspect ratio
+    };
+
+    const mobileChartOptions = {
+        ...chartOptions,
+        aspectRatio: 1.5 // Taller aspect ratio for mobile
+    };
+
     return (
-        <div className="dashboard-page modern-dashboard" style={{ padding: '2rem', maxWidth: 1200, margin: '0 auto', background: '#f9fafb', borderRadius: '1rem', boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}>
+        // Removed fixed width and padding, added responsive padding
+        <div className="dashboard-page w-full p-0 md:p-4">
             <img src="/seaside.png" alt="Seaside Logo" className="brand-logo-top" width={32} height={32} />
             <MobileLogoutButton />
-            <h1 className="text-4xl font-bold mb-6 text-primary tracking-tight" style={{marginBottom: 0}}>Dashboard</h1>
-            {/* Summary Cards - Replicate Screenshot, horizontal layout */}
-            <div className="flex flex-row w-full mb-6" style={{marginTop: '1rem'}}>
-                <div className="rounded-t-xl rounded-l-xl border border-gray-200 bg-white flex-1" style={{borderRight: 'none'}}>
-                    <div className="p-4 pb-2 text-lg font-semibold text-gray-800 text-center">Revenue</div>
-                    <div className="p-4 pt-2 text-2xl font-bold text-primary text-center" style={{letterSpacing: '0.5px'}}>₱{totalRevenue.toFixed(2)}</div>
-                </div>
-                <div className="border border-gray-200 bg-white flex-1" style={{borderRight: 'none'}}>
-                    <div className="p-4 pb-2 text-lg font-semibold text-gray-800 text-center">Transactions</div>
-                    <div className="p-4 pt-2 text-2xl font-bold text-primary text-center">{transactionsCount}</div>
-                </div>
-                <div className="border border-gray-200 bg-white flex-1" style={{borderRight: 'none'}}>
-                    <div className="p-4 pb-2 text-lg font-semibold text-gray-800 text-center">New Customers</div>
-                    <div className="p-4 pt-2 text-2xl font-bold text-primary text-center">{newCustomersCount}</div>
-                </div>
-                <div className="rounded-b-xl rounded-r-xl border border-gray-200 bg-white flex-1">
-                    <div className="p-4 pb-2 text-lg font-semibold text-gray-800 text-center">Sales Today</div>
-                    <div className="p-4 pt-2 text-2xl font-bold text-success text-center" style={{letterSpacing: '0.5px'}}>₱{salesTodayRevenue.toFixed(2)}</div>
-                </div>
+
+            {/* Responsive Header */}
+            <h1 className="text-3xl md:text-4xl font-bold mb-4 md:mb-6 text-primary tracking-tight">Dashboard</h1>
+
+            {/* Summary Cards - Use Grid for responsiveness */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 mb-4 md:mb-6">
+                <SummaryCard title="Revenue" value={`₱${totalRevenue.toFixed(2)}`} />
+                <SummaryCard title="Transactions" value={transactionsCount} />
+                <SummaryCard title="New Customers" value={newCustomersCount} />
+                <SummaryCard title="Sales Today" value={`₱${salesTodayRevenue.toFixed(2)}`} isSuccess={true} />
             </div>
-            {/* Charts - Sales Over Time and New Customers Over Time side by side */}
-            <div className="flex flex-row gap-4 mb-6">
+
+            {/* Charts - Stack vertically on mobile, row on desktop */}
+            <div className="flex flex-col md:flex-row gap-4 mb-6">
                 <div className="flex-1">
-                    <Card className="rounded-xl shadow bg-white border border-gray-200">
-                        <CardHeader className="pb-0"><h3 className="font-semibold text-lg text-gray-600">Sales Over Time</h3></CardHeader>
-                        <CardContent style={{ padding: 0 }}>
+                    <Card className="rounded-xl shadow bg-white border border-gray-200 h-[300px] md:h-[400px]">
+                        <CardHeader className="pb-2">
+                            <h3 className="font-semibold text-lg text-gray-600">Sales Over Time</h3>
+                        </CardHeader>
+                        <CardContent className="p-2 h-[calc(100%-4rem)]">
                             <Line
                                 data={{
                                     labels: salesDates,
@@ -133,9 +157,11 @@ export default function DashboardPage() {
                     </Card>
                 </div>
                 <div className="flex-1">
-                    <Card className="rounded-xl shadow bg-white border border-gray-200">
-                        <CardHeader className="pb-0"><h3 className="font-semibold text-lg text-gray-600">New Customers Over Time</h3></CardHeader>
-                        <CardContent style={{ padding: 0 }}>
+                    <Card className="rounded-xl shadow bg-white border border-gray-200 h-[300px] md:h-[400px]">
+                        <CardHeader className="pb-2">
+                            <h3 className="font-semibold text-lg text-gray-600">New Customers Over Time</h3>
+                        </CardHeader>
+                        <CardContent className="p-2 h-[calc(100%-4rem)]">
                             <Line
                                 data={{
                                     labels: customerDates,
@@ -154,12 +180,13 @@ export default function DashboardPage() {
                     </Card>
                 </div>
             </div>
-            {/* Top-Selling Products and Top-Selling Products (Today) side by side */}
-            <div className="flex flex-row gap-4">
+            <div className="flex flex-col md:flex-row gap-4">
                 <div className="flex-1">
-                    <Card className="rounded-xl shadow bg-white border border-gray-200">
-                        <CardHeader className="pb-0"><h3 className="font-semibold text-lg text-gray-600">Top-Selling Products</h3></CardHeader>
-                        <CardContent style={{ padding: 0 }}>
+                    <Card className="rounded-xl shadow bg-white border border-gray-200 h-[300px] md:h-[400px]">
+                        <CardHeader className="pb-2">
+                            <h3 className="font-semibold text-lg text-gray-600">Top-Selling Products</h3>
+                        </CardHeader>
+                        <CardContent className="p-2 h-[calc(100%-4rem)]">
                             <Bar
                                 data={{
                                     labels: topProductNames,
@@ -175,9 +202,11 @@ export default function DashboardPage() {
                     </Card>
                 </div>
                 <div className="flex-1">
-                    <Card className="rounded-xl shadow bg-white border border-gray-200">
-                        <CardHeader className="pb-0"><h3 className="font-semibold text-lg text-gray-600">Top-Selling Products (Today)</h3></CardHeader>
-                        <CardContent style={{ padding: 0 }}>
+                    <Card className="rounded-xl shadow bg-white border border-gray-200 h-[300px] md:h-[400px]">
+                        <CardHeader className="pb-2">
+                            <h3 className="font-semibold text-lg text-gray-600">Top-Selling Products (Today)</h3>
+                        </CardHeader>
+                        <CardContent className="p-2 h-[calc(100%-4rem)]">
                             <Bar
                                 data={{
                                     labels: todayTopProductNames,
