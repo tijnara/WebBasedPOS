@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/router';
-import Image from 'next/image'; // Make sure Image is imported
+import Image from 'next/image';
 import { useStore } from '../../store/useStore';
-import api from '../../lib/api'; // Import your custom API
+import api from '../../lib/api';
 import {
     Button,
     Input,
@@ -14,6 +14,7 @@ import {
     DialogFooter
 } from '../ui';
 
+// ... (LoadingSpinner, EyeIcon, EyeOffIcon, UserIcon components remain the same) ...
 // Simple SVG Icon for loading
 const LoadingSpinner = () => (
     <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -46,6 +47,7 @@ const UserIcon = () => (
 
 
 const LoginPage = () => {
+    // ... (state and handlers remain the same) ...
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [rememberMe, setRememberMe] = useState(false);
@@ -95,24 +97,37 @@ const LoginPage = () => {
     };
 
     return (
-        <div className="flex min-h-screen w-full items-center justify-center p-4">
+        /* UPDATED: Assuming page background is bg-gray-100 from _app.js */
+        <div className="flex h-screen w-full items-center justify-center p-2 md:p-4 overflow-hidden bg-gray-100">
+            {/* UPDATED: Removed bg-white, rounded-3xl, shadow-2xl and prefixed them with md: */}
+            <div className="md:bg-white md:rounded-3xl md:shadow-2xl overflow-hidden max-w-5xl w-full flex flex-col md:flex-row h-full md:h-auto items-center md:items-stretch">
 
-            <div className="bg-white rounded-3xl shadow-2xl overflow-hidden max-w-5xl w-full flex flex-col md:flex-row">
+                {/* Image Column */}
+                {/* UPDATED: Added padding back for mobile */ }
+                <div className="w-full md:w-1/2 flex items-center justify-center h-full p-4 pb-0 md:p-12 order-1 md:order-1">
+                    <Image
+                        src="/seasideHD_.png"
+                        alt="Seaside Purified Water Refilling Station"
+                        priority
+                        style={{ objectFit: 'contain' }}
+                        /* UPDATED: Removed border and rounded for mobile */
+                        className="md:rounded-2xl md:border md:border-slate-200 w-full h-full max-w-[150px] max-h-[150px] md:max-w-[600px] md:max-h-[600px]"
+                        width={600}
+                        height={600}
+                    />
+                </div>
 
                 {/* Form Column */}
-                <div className="w-full md:w-1/2 p-8 md:p-12 order-2 md:order-1 flex flex-col">
-
-                    <div className="flex-grow">
-                        <div className="mb-10">
-                            {/* Logo removed as requested */}
-                            <span className="block text-2xl md:text-3xl font-bold tracking-tight font-sans drop-shadow-lg px-4 py-2 mb-2 text-center" style={{ color: '#8ED957' }}>
-                                Seaside WRS
-                            </span>
-                            <h1 className="text-4xl font-bold mb-2 text-gray-900">Welcome Back</h1>
-                            <p className="text-base text-gray-500">Please log in to continue to your station.</p>
+                {/* UPDATED: Added px-4 for mobile spacing */ }
+                <div className="w-full md:w-1/2 flex flex-col justify-center h-full px-4 pt-0 md:p-12 order-2 md:order-2 overflow-y-auto md:overflow-hidden">
+                    <div className="">
+                        <div className="mb-4 md:mb-10">
+                            <h1 className="text-2xl md:text-4xl font-bold mb-1 md:mb-2 text-gray-900">Welcome Back</h1>
+                            <p className="text-sm md:text-base text-gray-500">Please log in to your station.</p>
                         </div>
 
-                        <form onSubmit={handleLogin} className="space-y-5" autoComplete="off">
+                        <form onSubmit={handleLogin} className="space-y-3 md:space-y-5" autoComplete="off">
+                            {/* ... (form content remains the same) ... */}
                             <div>
                                 <Label htmlFor="no_autofill_email" className="text-sm font-medium text-gray-700 mb-1">Email Address</Label>
                                 <Input
@@ -181,19 +196,20 @@ const LoginPage = () => {
                                 type="submit"
                                 variant="success"
                                 size="lg"
-                                className="w-full shadow-lg hover:shadow-xl hover:opacity-95 transition-all rounded-xl text-lg font-bold py-4 flex items-center justify-center gap-2 bg-gradient-to-r from-success to-green-500"
+                                className="w-full shadow-lg hover:shadow-xl hover:opacity-95 transition-all rounded-xl text-lg font-bold py-3 md:py-4 flex items-center justify-center gap-2 bg-gradient-to-r from-success to-green-500"
                                 disabled={isLoading}
                             >
                                 {isLoading ? (<><LoadingSpinner /> Logging in...</>) : 'Log In'}
                             </Button>
                         </form>
 
-                        <div className="relative my-8">
+                        <div className="relative my-4 md:my-8">
                             <div className="absolute inset-0 flex items-center" aria-hidden="true">
                                 <div className="w-full border-t border-gray-200" />
                             </div>
                             <div className="relative flex justify-center">
-                                <span className="bg-white px-4 text-sm font-medium text-gray-500">
+                                {/* UPDATED: Changed bg-white to bg-gray-100 (page bg) on mobile */}
+                                <span className="bg-gray-100 md:bg-white px-4 text-sm font-medium text-gray-500">
                                     Or
                                 </span>
                             </div>
@@ -213,7 +229,7 @@ const LoginPage = () => {
                         </div>
                     </div>
 
-                    <footer className="mt-auto pt-12 p-4 text-center text-xs text-gray-500 border-t border-gray-100">
+                    <footer className="mt-4 pt-4 p-2 md:p-4 text-center text-xs text-gray-500 border-t border-gray-100 hidden md:block">
                         <p>Copyright &copy; 2025 Seaside POS. SEASIDE&trade; is a trademark of Seaside, LLC.</p>
                         <div className="mt-1 space-x-2">
                             <a href="#" className="hover:text-gray-700">Terms of Service</a>
@@ -223,22 +239,9 @@ const LoginPage = () => {
                     </footer>
                 </div>
 
-                {/* Image Column */}
-                <div className="w-full md:w-1/2 flex items-center justify-center p-12 order-1 md:order-2">
-                    <Image
-                        src="/seasideHD_.png"
-                        alt="Seaside Purified Water Refilling Station"
-                        width={600}
-                        height={600}
-                        style={{ objectFit: 'contain' }}
-                        priority
-                        className="rounded-2xl w-full max-w-lg border border-slate-200"
-                    />
-                </div>
-
             </div>
 
-            {/* Error Modal (Unchanged) */}
+            {/* ... (Error Modal remains the same) ... */}
             <Dialog open={modal.isOpen} onOpenChange={(open) => !open && closeModal()}>
                 <DialogContent className="sm:max-w-xs">
                     <DialogHeader>
