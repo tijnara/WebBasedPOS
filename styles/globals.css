@@ -226,8 +226,11 @@ input[type="checkbox"]:focus {
     flex-shrink: 0; /* Prevent navbar from shrinking */
     position: sticky; /* Keep navbar visible on scroll */
     top: 0;
-    z-index: 50; /* Ensure navbar is above content */
+    z-index: 1000; /* Higher z-index to ensure navbar is always above content */
     box-sizing: border-box;
+    backdrop-filter: blur(8px); /* Add backdrop blur for better visibility */
+    -webkit-backdrop-filter: blur(8px); /* Safari support */
+    transition: all 0.3s ease; /* Smooth transition for any changes */
 }
 
 .navbar .brand {
