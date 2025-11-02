@@ -480,6 +480,8 @@ input[type="checkbox"]:focus {
 .max-w-sm { max-width: 24rem; }
 .max-w-md { max-width: 28rem; }
 .max-w-lg { max-width: 32rem; }
+.max-w-5xl { max-width: 64rem; } /* --- ADDED THIS CLASS --- */
+
 
 /* --- Overflow & Positioning --- */
 .overflow-auto { overflow: auto; }
@@ -499,6 +501,7 @@ input[type="checkbox"]:focus {
 .shadow { box-shadow: var(--shadow); }
 .shadow-md { box-shadow: var(--shadow-md); }
 .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1); }
+.shadow-2xl { box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); } /* --- ADDED THIS CLASS --- */
 
 
 /* --- Typography --- */
@@ -506,30 +509,46 @@ input[type="checkbox"]:focus {
 .text-sm { font-size: 0.875rem; }
 .text-lg { font-size: 1.125rem; }
 .text-2xl { font-size: 1.5rem; line-height: 2rem; }
+.text-4xl { font-size: 2.25rem; line-height: 2.5rem; } /* --- ADDED THIS CLASS --- */
 .font-medium { font-weight: 500; }
 .font-semibold { font-weight: 600; }
 .font-bold { font-weight: 700; }
+.font-extrabold { font-weight: 800; } /* --- ADDED THIS CLASS --- */
 .text-left { text-align: left; }
 .text-center { text-align: center; }
 .text-right { text-align: right; }
 .uppercase { text-transform: uppercase; }
 .tracking-wider { letter-spacing: 0.05em; }
+.tracking-tight { letter-spacing: -0.025em; } /* --- ADDED THIS CLASS --- */
 .leading-none { line-height: 1; }
 
 /* --- Borders --- */
 .border { border-width: 1px; }
 .border-b { border-bottom-width: 1px; }
 .border-t { border-top-width: 1px; }
+.border-gray-100 { border-color: #f3f4f6; } /* --- ADDED THIS CLASS --- */
 .border-gray-200 { border-color: var(--border); }
+.border-gray-300 { border-color: #d1d5db; } /* --- ADDED THIS CLASS --- */
 .border-gray-700 { border-color: #374151; }
+.border-slate-200 { border-color: #e2e8f0; } /* --- ADDED THIS CLASS --- */
 .rounded-lg { border-radius: 0.5rem; }
+.rounded-xl { border-radius: 0.75rem; } /* --- ADDED THIS CLASS --- */
+.rounded-2xl { border-radius: 1rem; } /* --- ADDED THIS CLASS --- */
+.rounded-3xl { border-radius: 1.5rem; } /* --- ADDED THIS CLASS --- */
 .rounded-full { border-radius: 9999px; }
 
 
 /* --- Backgrounds --- */
 .bg-white { background-color: var(--surface); }
 .bg-black { background-color: #000; }
+.bg-gray-50 { background-color: var(--background); } /* --- ADDED THIS CLASS --- */
+.bg-slate-50 { background-color: #f8fafc; } /* --- ADDED THIS CLASS --- */
+.bg-slate-100 { background-color: #f1f5f9; } /* --- ADDED THIS CLASS --- */
+.bg-red-100 { background-color: #fee2e2; } /* --- ADDED THIS CLASS --- */
 .bg-opacity-50 { opacity: 0.5; }
+.bg-gradient-to-r { background-image: linear-gradient(to right, var(--tw-gradient-stops)); } /* --- ADDED THIS CLASS --- */
+.from-success { --tw-gradient-from: var(--success); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(22, 163, 74, 0)); } /* --- ADDED THIS CLASS --- */
+.to-green-500 { --tw-gradient-to: #22c55e; } /* --- ADDED THIS CLASS --- */
 
 
 /* --- Specific Component Styles --- */
@@ -618,17 +637,40 @@ input[type="checkbox"]:focus {
         transform: rotate(360deg);
     }
 }
+@keyframes pulse { /* --- ADDED THIS KEYFRAME --- */
+    50% {
+        opacity: .5;
+    }
+}
 
 .animate-spin {
     animation: spin 1s linear infinite;
+}
+.animate-pulse { /* --- ADDED THIS CLASS --- */
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 /* Utility classes for spacing used in spinner */
 .-ml-1 { margin-left: -0.25rem; }
 .mr-3 { margin-right: 0.75rem; }
+.mr-2 { margin-right: 0.5rem; } /* --- ADDED THIS CLASS --- */
 .h-5 { height: 1.25rem; }
 .w-5 { width: 1.25rem; }
+.h-6 { height: 1.5rem; } /* --- ADDED THIS CLASS --- */
+.w-6 { width: 1.5rem; } /* --- ADDED THIS CLASS --- */
+.h-10 { height: 2.5rem; } /* --- ADDED THIS CLASS --- */
+.w-10 { width: 2.5rem; } /* --- ADDED THIS CLASS --- */
+.h-12 { height: 3rem; } /* --- ADDED THIS CLASS --- */
+.w-12 { width: 3rem; } /* --- ADDED THIS CLASS --- */
 .text-white { color: #fff; }
+.text-gray-400 { color: #9ca3af; } /* --- ADDED THIS CLASS --- */
+.text-gray-500 { color: #6b7280; } /* --- ADDED THIS CLASS --- */
+.text-gray-600 { color: #4b5563; } /* --- ADDED THIS CLASS --- */
+.text-gray-700 { color: #374151; } /* --- ADDED THIS CLASS --- */
+.text-gray-800 { color: #1f2937; } /* --- ADDED THIS CLASS --- */
+.text-gray-900 { color: #111827; } /* --- ADDED THIS CLASS --- */
+.text-red-600 { color: #dc2626; } /* --- ADDED THIS CLASS --- */
+
 
 /* Responsive Design */
 
@@ -722,6 +764,42 @@ input[type="checkbox"]:focus {
     .md\:grid {
         display: grid;
     }
+    .md\:flex {
+        display: flex;
+    }
+    .md\:w-1\/2 {
+        width: 50%;
+    }
+    .md\:gap-16 {
+        gap: 4rem; /* 16 * 0.25rem */
+    }
+    .md\:justify-center {
+        justify-content: center;
+    }
+    .md\:rounded-3xl {
+        border-radius: 1.5rem; /* 24px */
+    }
+    .md\:shadow-2xl {
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    }
+    .md\:border {
+        border-width: 1px;
+    }
+    .md\:border-gray-100 {
+        border-color: #f3f4f6; /* Gray-100 */
+    }
+    .md\:border-t {
+        border-top-width: 1px;
+    }
+    .md\:rounded-b-3xl {
+        border-bottom-left-radius: 1.5rem;
+        border-bottom-right-radius: 1.5rem;
+    }
+    .md\:px-8 {
+        padding-left: 2rem;
+        padding-right: 2rem;
+    }
+    .md\:p-12 { padding: 3rem; } /* --- ADDED THIS CLASS --- */
     .md\:flex-row {
         flex-direction: row;
     }
@@ -737,8 +815,18 @@ input[type="checkbox"]:focus {
     .md\:max-h-\[calc\(100vh-100px\)\] {
         max-height: calc(100vh - 100px);
     }
+    .md\:order-1 { order: 1; } /* --- ADDED THIS CLASS --- */
+    .md\:order-2 { order: 2; } /* --- ADDED THIS CLASS --- */
     /* --- END OF ADDITION --- */
 }
+
+/* New breakpoint for 'sm' (640px) */
+@media (min-width: 640px) { /* sm breakpoint */
+    .sm\:max-w-xs {
+        max-width: 20rem; /* 320px */
+    }
+}
+
 
 /* --- Mobile Logout Button Styles --- */
 .mobile-logout-btn {
@@ -787,6 +875,11 @@ input[type="checkbox"]:focus {
 .hover\:text-success-hover:hover {
     color: var(--success-hover);
 }
+.hover\:text-gray-600:hover { color: #4b5563; } /* --- ADDED THIS CLASS --- */
+.hover\:text-gray-700:hover { color: #374151; } /* --- ADDED THIS CLASS --- */
+.hover\:bg-gray-50:hover { background-color: #f9fafb; } /* --- ADDED THIS CLASS --- */
+.hover\:opacity-95:hover { opacity: 0.95; } /* --- ADDED THIS CLASS --- */
+
 .focus\:ring-success:focus {
     --tw-ring-color: var(--success);
     /* A simple ring shadow */
@@ -794,7 +887,34 @@ input[type="checkbox"]:focus {
     border-color: var(--success);
     outline: none;
 }
-.bg-gray-50 {
-    background-color: #f9fafb;
-}
+.focus\:border-success:focus { border-color: var(--success); } /* --- ADDED THIS CLASS --- */
+.focus\:ring-2:focus { --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color); --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color); box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000); } /* --- ADDED THIS CLASS --- */
+.focus\:ring-success\/20:focus { --tw-ring-color: rgba(22, 163, 74, 0.2); } /* --- ADDED THIS CLASS --- */
+
+
+/* --- Other utility classes used in the file --- */
+.p-12 { padding: 3rem; }
+.pt-12 { padding-top: 3rem; }
+.pr-12 { padding-right: 3rem; }
+.space-y-5 > :not([hidden]) ~ :not([hidden]) { margin-top: 1.25rem; }
+.my-8 { margin-top: 2rem; margin-bottom: 2rem; }
+.py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+.py-4 { padding-top: 1rem; padding-bottom: 1rem; }
+.px-4 { padding-left: 1rem; padding-right: 1rem; }
+.mb-1 { margin-bottom: 0.25rem; }
+.mb-8 { margin-bottom: 2rem; }
+.mb-10 { margin-bottom: 2.5rem; }
+.mt-1 { margin-top: 0.25rem; }
+.mt-3 { margin-top: 0.75rem; }
+.mt-auto { margin-top: auto; }
+.mx-auto { margin-left: auto; margin-right: auto; }
+.-translate-y-1\/2 { transform: translateY(-50%); }
+.top-1\/2 { top: 50%; }
+.right-4 { right: 1rem; }
+.flex-grow { flex-grow: 1; }
+.transition-all { transition-property: all; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms; }
+.transition-colors { transition-property: color, background-color, border-color, text-decoration-color, fill, stroke; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms; }
+.text-base { font-size: 1rem; line-height: 1.5rem; }
+.order-1 { order: 1; }
+.order-2 { order: 2; }
 /* --- END OF ADDITIONS --- */
