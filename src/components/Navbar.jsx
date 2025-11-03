@@ -32,6 +32,7 @@ const Navbar = () => {
         { name: 'Customer', path: '/customer-management', icon: <UserIcon className="h-5 w-5" /> },
         { name: 'Sale History', path: '/history', icon: <ChartIcon className="h-5 w-5" /> },
         { name: 'Users', path: '/user-management', icon: <UsersIcon className="h-5 w-5" /> },
+        { name: 'Report', path: '/report', icon: <ChartIcon className="h-5 w-5" /> }, // New Report tab
     ];
 
     useEffect(() => {
