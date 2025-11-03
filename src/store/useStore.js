@@ -15,7 +15,7 @@ const persistUserToStorage = (user) => {
                     email: user.email,
                     phone: user.phone, // Include if needed by UI
                     dateadded: user.dateadded, // Include if needed by UI
-                    // Add other relevant fields like 'role' if applicable, but NEVER password
+                    isDemo: user.isDemo || false // <-- ADDED: Store the demo flag
                 };
                 // --- CHANGED to sessionStorage ---
                 sessionStorage.setItem('pos_custom_user', JSON.stringify(userToStore));
@@ -172,4 +172,3 @@ if (typeof window !== 'undefined') {
 
 
 export default useStore;
-

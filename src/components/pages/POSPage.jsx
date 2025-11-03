@@ -206,6 +206,8 @@ export default function POSPage() {
         setAmountReceived(''); // Clear amount received
     }
 
+    const user = useStore(s => s.user); // Get current logged-in user
+
     const handleFinalizeSale = async () => {
         if (!selectedCustomer) {
             addToast({ title: 'Customer Required', description: 'Please select a customer before confirming the sale.', variant: 'warning' });
@@ -231,6 +233,7 @@ export default function POSPage() {
                 paymentMethod: paymentMethod,
                 amountReceived: received,
                 changeGiven: Math.max(0, received - subtotal),
+                created_by: user?.id || null // <-- Add this line
             };
             const created = await createSaleMutation.mutateAsync(payload);
             addToast({ title: 'Sale Completed', description: `Sale #${created.id.toString().slice(-6)} recorded.`, variant: 'success' });

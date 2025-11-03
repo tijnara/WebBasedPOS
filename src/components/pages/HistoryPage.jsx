@@ -184,6 +184,7 @@ export default function HistoryPage() {
                                     <TableHead>Price</TableHead>
                                     <TableHead>Quantity</TableHead>
                                     <TableHead>Payment Method</TableHead>
+                                    <TableHead>Staff</TableHead> {/* Added Staff column */}
                                     <TableHead className="text-right">Total</TableHead>
                                     <TableHead>Status</TableHead>
                                 </TableRow>
@@ -191,11 +192,11 @@ export default function HistoryPage() {
                             <TableBody>
                                 {isLoading ? (
                                     <TableRow>
-                                        <TableCell colSpan={8} className="text-center text-muted py-8">Loading sales...</TableCell>
+                                        <TableCell colSpan={9} className="text-center text-muted py-8">Loading sales...</TableCell>
                                     </TableRow>
                                 ) : paginatedSales.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={8} className="text-center text-muted py-8">No sales found.</TableCell>
+                                        <TableCell colSpan={9} className="text-center text-muted py-8">No sales found.</TableCell>
                                     </TableRow>
                                 ) : (
                                     paginatedSales.map(sale => (
@@ -206,6 +207,7 @@ export default function HistoryPage() {
                                             <TableCell>{Array.isArray(sale.sale_items) && sale.sale_items.length > 0 ? sale.sale_items.map(item => `₱${Number(item.productPrice || 0).toFixed(2)}`).join(', ') : 'N/A'}</TableCell>
                                             <TableCell>{Array.isArray(sale.sale_items) ? sale.sale_items.reduce((sum, item) => sum + (item.quantity || 0), 0) : 0}</TableCell>
                                             <TableCell>{sale.paymentMethod || 'N/A'}</TableCell>
+                                            <TableCell>{sale.createdBy || 'N/A'}</TableCell> {/* Show Staff value */}
                                             <TableCell className="text-right font-semibold">₱{Number(sale.amountReceived || 0).toFixed(2)}</TableCell>
                                             <TableCell>
                                                 <span className={cn(

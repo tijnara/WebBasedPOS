@@ -91,9 +91,20 @@ const LoginPage = () => {
 
     const handleDemoLogin = (e) => {
         e.preventDefault();
-        setEmail('demo@seaside.com');
-        setPassword('demopassword123');
-        setRememberMe(true);
+        // 1. Create a mock demo user object
+        const demoUser = {
+            id: 'demo-user-id-01',
+            name: 'Demo User',
+            email: 'demo@seaside.com',
+            phone: '09123456789',
+            dateadded: new Date().toISOString(),
+            isDemo: true // <-- This is the crucial flag
+        };
+        // 2. Use setAuth to store this user in state & sessionStorage
+        setAuth(demoUser);
+        // 3. Show a toast and redirect
+        addToast({ title: 'Demo Mode Activated', description: `Welcome, ${demoUser.name}!`, variant: 'success' });
+        router.push('/');
     };
 
     return (

@@ -1,13 +1,25 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient';
+import { useStore } from '../store/useStore';
 
 const customersKey = ['customers'];
 
+const MOCK_CUSTOMERS = [
+    { id: 'mock-c-1', name: 'Demo Customer A', email: 'demo.customer.a@seaside.com', phone: '09110000001', dateAdded: new Date('2025-11-01T08:00:00') },
+    { id: 'mock-c-2', name: 'Demo Customer B', email: 'demo.customer.b@seaside.com', phone: '09110000002', dateAdded: new Date('2025-11-02T09:00:00') },
+    { id: 'mock-c-3', name: 'Demo Customer C', email: 'demo.customer.c@seaside.com', phone: '09110000003', dateAdded: new Date('2025-11-03T10:00:00') },
+];
+
 // --- Hook for GETTING Customers ---
 export function useCustomers() {
+    const isDemo = useStore(s => s.user?.isDemo);
     return useQuery({
-        queryKey: customersKey,
+        queryKey: customersKey.concat([isDemo]),
         queryFn: async () => {
+            if (isDemo) {
+                await new Promise(resolve => setTimeout(resolve, 400));
+                return MOCK_CUSTOMERS;
+            }
             try {
                 // Fetch all customers from Supabase, order by name
                 const { data, error } = await supabase

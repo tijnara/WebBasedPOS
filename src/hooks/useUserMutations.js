@@ -10,9 +10,19 @@ const usersTableKey = ['usersTableData']; // Changed key to avoid confusion with
 // --- Hook for GETTING Data from 'users' Table ---
 // NOTE: Ensure RLS allows this fetch (e.g., only for admins or specific roles)
 export function useUsers() {
+    const isDemo = useStore(s => s.user?.isDemo);
+    const MOCK_USERS = [
+        { id: 'mock-u-1', name: 'Demo Admin', email: 'demo.admin@seaside.com', phone: '09110000010', dateAdded: new Date('2025-11-01T08:00:00') },
+        { id: 'mock-u-2', name: 'Demo Staff', email: 'demo.staff@seaside.com', phone: '09110000011', dateAdded: new Date('2025-11-02T09:00:00') },
+        { id: 'mock-u-3', name: 'Demo Viewer', email: 'demo.viewer@seaside.com', phone: '09110000012', dateAdded: new Date('2025-11-03T10:00:00') },
+    ];
     return useQuery({
-        queryKey: usersTableKey,
+        queryKey: usersTableKey.concat([isDemo]),
         queryFn: async () => {
+            if (isDemo) {
+                await new Promise(resolve => setTimeout(resolve, 400));
+                return MOCK_USERS;
+            }
             try {
                 const { data, error } = await supabase
                     .from('users')
