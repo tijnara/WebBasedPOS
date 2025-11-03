@@ -459,7 +459,7 @@ export default function POSPage() {
             {/* --- Main Layout: Product Grid | Order Sidebar --- */}
             <div className="flex flex-col md:flex-row-reverse gap-4 w-full">
                 {/* --- Sidebar: Current Order --- */}
-                <div className="w-full md:w-1/3 xl:w-1/4 flex-shrink-0 flex flex-col max-h-[calc(100vh-120px)] md:max-h-[calc(100vh-100px)]">
+                <div className="w-full md:w-1/3 xl:w-1/4 flex-shrink-0 flex flex-col" style={{height: '500px'}}>
                     {/* Current Order Card */}
                     <Card className="flex flex-col flex-1 shadow-lg border border-gray-200 rounded-xl bg-white overflow-hidden">
                         <CardHeader className="bg-gray-50 border-b border-gray-200 rounded-t-xl">
