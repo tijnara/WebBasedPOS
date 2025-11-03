@@ -45,22 +45,28 @@ const ProductImage = ({ product }) => {
     let altText = product.name;
     const lowerName = (product.name || '').toLowerCase();
     const lowerCategory = (product.category || '').toLowerCase();
-    // Show container image if category or name contains 'container' or 'bottle'
-    if (lowerCategory.includes('container') || lowerName.includes('container') || lowerName.includes('bottle')) {
-        imageUrl = '/container1.png';
-    }
-    // Show petbottles image ONLY if category or name is exactly 'pet bottles'
-    else if (lowerCategory === 'pet bottles' || lowerName === 'pet bottles') {
-        imageUrl = '/petbottles.png';
-    }
-    // Show icecubes image ONLY if category or name is exactly 'ice tubes/cubes'
-    else if (lowerCategory === 'ice tubes/cubes' || lowerName === 'ice tubes/cubes') {
+
+    // 1. Check for Ice (Most Specific)
+    // Catches "Ice Tubes/Cubes (20)"
+    if (lowerName.includes('ice tubes/cubes')) {
         imageUrl = '/icecubes.png';
     }
-    // Show refill image for water/refill/alkaline/purified
+    // 2. Check for Pet Bottles (Specific)
+    // Catches "Pet Bottles"
+    else if (lowerName.includes('pet bottles')) {
+        imageUrl = '/petbottles.png';
+    }
+    // 3. Check for Containers (General)
+    // Catches "Container", "Empty Bottle (Slim)", or "Container" category
+    else if (lowerCategory.includes('container') || lowerName.includes('empty bottle') || lowerName.includes('container')) {
+        imageUrl = '/container1.png';
+    }
+    // 4. Check for Water/Refills (Broad)
+    // Catches "Refill (25)", "Alkaline", etc.
     else if (lowerCategory === 'water' || lowerName.includes('refill') || lowerName.includes('alkaline') || lowerName.includes('purified')) {
         imageUrl = '/refill.png';
     }
+
     if (imageUrl) {
         return (
             <img
@@ -79,6 +85,7 @@ const ProductImage = ({ product }) => {
             />
         );
     }
+    // Fallback icon
     return <PackageIcon className="w-10 h-10 text-muted" />;
 };
 
