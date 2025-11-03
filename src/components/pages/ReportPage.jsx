@@ -44,6 +44,7 @@ const SalesReportDisplay = ({ title, totalSales, salesList }) => {
                         <tr>
                             <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">Date & Time</th>
                             <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">Customer</th>
+                            <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">Staff</th>
                             <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">Item(s)</th>
                             <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">Price(s)</th>
                             <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">Quantity</th>
@@ -56,7 +57,7 @@ const SalesReportDisplay = ({ title, totalSales, salesList }) => {
                         <tbody className="divide-y divide-gray-200">
                         {salesList.length === 0 ? (
                             <tr>
-                                <td colSpan="8" className="text-center p-4 text-gray-500">
+                                <td colSpan="9" className="text-center p-4 text-gray-500">
                                     No sales found for this period.
                                 </td>
                             </tr>
@@ -69,19 +70,21 @@ const SalesReportDisplay = ({ title, totalSales, salesList }) => {
                                     </td>
                                     {/* 2. Customer */}
                                     <td className="px-4 py-2 whitespace-nowrap">{sale.customerName}</td>
-                                    {/* 3. Item(s) */}
+                                    {/* 3. Staff */}
+                                    <td className="px-4 py-2 whitespace-nowrap">{sale.staffName || 'N/A'}</td>
+                                    {/* 4. Item(s) */}
                                     <td className="px-4 py-2 whitespace-nowrap">{sale.productName}</td>
-                                    {/* 4. Price(s) */}
+                                    {/* 5. Price(s) */}
                                     <td className="px-4 py-2 whitespace-nowrap">{sale.price}</td>
-                                    {/* 5. Quantity */}
+                                    {/* 6. Quantity */}
                                     <td className="px-4 py-2 whitespace-nowrap">{sale.quantity}</td>
-                                    {/* 6. Total Amount */}
+                                    {/* 7. Total Amount */}
                                     <td className="px-4 py-2 text-right whitespace-nowrap">
                                         {formatCurrency(sale.totalAmount)}
                                     </td>
-                                    {/* 7. Payment Method */}
+                                    {/* 8. Payment Method */}
                                     <td className="px-4 py-2 whitespace-nowrap">{sale.paymentMethod}</td>
-                                    {/* 8. Status */}
+                                    {/* 9. Status */}
                                     <td className="px-4 py-2 whitespace-nowrap">{sale.status}</td>
                                 </tr>
                             ))
@@ -147,23 +150,20 @@ const ReportPage = () => {
         // Process sales data for display
         const processedSales = salesInPeriod.map(sale => {
             let productName = 'N/A', price = 'N/A', quantity = 0;
-
             if (Array.isArray(sale.sale_items) && sale.sale_items.length > 0) {
                 productName = sale.sale_items.map(item => item.productName || 'N/A').join(', ');
-                // --- FIXED PRICE FIELD ---
-                // Use 'productPrice' from useSales hook and format it
                 price = sale.sale_items
                     .map(item => formatCurrency(item.productPrice || 0))
                     .join(', ');
                 quantity = sale.sale_items.reduce((sum, item) => sum + (item.quantity || 0), 0);
             }
-
             return {
                 ...sale,
                 productName,
                 price,
                 quantity,
-                status: sale.status || 'Unknown', // Ensure status is set
+                staffName: sale.createdBy || 'N/A', // Use createdBy from useSales hook
+                status: sale.status || 'Unknown',
             };
         });
 
@@ -234,3 +234,4 @@ const ReportPage = () => {
 };
 
 export default ReportPage;
+
