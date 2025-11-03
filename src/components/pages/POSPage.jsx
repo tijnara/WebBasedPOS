@@ -477,7 +477,6 @@ export default function POSPage() {
                             ) : (
                                 <ScrollArea className="absolute h-full w-full px-2 py-1">
                                     <Table>
-                                    <Table>
                                         <TableBody>
                                             {Object.entries(currentSale).map(([key, item]) => (
                                                 <TableRow key={key}>
@@ -488,12 +487,10 @@ export default function POSPage() {
                                                         <span className="text-xs text-muted">₱{item.price.toFixed(2)}</span>
                                                     </TableCell>
                                                     {/* --- COMPACT ---: Changed py-2 to py-1 */}
-                                                    <TableCell className="text-center px-0 py-1">
-                                                        <div className="flex items-center justify-center space-x-1">
-                                                            <Button variant="ghost" size="sm" className="p-1 h-6 w-6" onClick={() => handleDecreaseQuantity(key)}>-</Button>
-                                                            <span className="w-4 text-center">{item.quantity}</span>
-                                                            <Button variant="ghost" size="sm" className="p-1 h-6 w-6" onClick={() => handleIncreaseQuantity(key)}>+</Button>
-                                                        </div>
+                                                    <TableCell className="text-center px-0 py-1 flex items-center justify-center space-x-1">
+                                                        <Button variant="ghost" size="sm" className="p-1 h-6 w-6" onClick={() => handleDecreaseQuantity(key)}>-</Button>
+                                                        <span className="w-4 text-center">{item.quantity}</span>
+                                                        <Button variant="ghost" size="sm" className="p-1 h-6 w-6" onClick={() => handleIncreaseQuantity(key)}>+</Button>
                                                     </TableCell>
                                                     {/* --- COMPACT ---: Changed py-2 to py-1 */}
                                                     <TableCell className="text-right pl-1 py-1">
@@ -505,7 +502,6 @@ export default function POSPage() {
                                                 </TableRow>
                                             ))}
                                         </TableBody>
-                                    </Table>
                                     </Table>
                                 </ScrollArea>
 
