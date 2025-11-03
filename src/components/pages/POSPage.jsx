@@ -38,7 +38,49 @@ const PackageIcon = ({ className }) => (
         <path d="M7 7h10v10H7z" />
     </svg>
 );
-// --- END OF ICON ADDITION ---
+
+// --- ProductImage helper component ---
+const ProductImage = ({ product }) => {
+    let imageUrl = '';
+    let altText = product.name;
+    const lowerName = (product.name || '').toLowerCase();
+    const lowerCategory = (product.category || '').toLowerCase();
+    // Show container image if category or name contains 'container' or 'bottle'
+    if (lowerCategory.includes('container') || lowerName.includes('container') || lowerName.includes('bottle')) {
+        imageUrl = '/container1.png';
+    }
+    // Show petbottles image ONLY if category or name is exactly 'pet bottles'
+    else if (lowerCategory === 'pet bottles' || lowerName === 'pet bottles') {
+        imageUrl = '/petbottles.png';
+    }
+    // Show icecubes image ONLY if category or name is exactly 'ice tubes/cubes'
+    else if (lowerCategory === 'ice tubes/cubes' || lowerName === 'ice tubes/cubes') {
+        imageUrl = '/icecubes.png';
+    }
+    // Show refill image for water/refill/alkaline/purified
+    else if (lowerCategory === 'water' || lowerName.includes('refill') || lowerName.includes('alkaline') || lowerName.includes('purified')) {
+        imageUrl = '/refill.png';
+    }
+    if (imageUrl) {
+        return (
+            <img
+                src={imageUrl}
+                alt={altText}
+                style={{
+                    maxWidth: '70px',
+                    maxHeight: '70px',
+                    width: 'auto',
+                    height: 'auto',
+                    padding: '4px',
+                    display: 'block',
+                    margin: '0 auto',
+                    objectFit: 'contain',
+                }}
+            />
+        );
+    }
+    return <PackageIcon className="w-10 h-10 text-muted" />;
+};
 
 export default function POSPage() {
     // --- Fetch products using the Supabase hook ---
@@ -488,7 +530,7 @@ export default function POSPage() {
                         </div>
                     ) : (
                         <>
-                            {/* --- Desktop Grid Layout (Hidden on Mobile) --- */}
+                            {/* --- Desktop Grid Layout --- */}
                             <div className="hidden md:grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4" ref={productGridRef}>
                                 {filteredProducts.map((p, idx) => (
                                     <button
@@ -498,8 +540,9 @@ export default function POSPage() {
                                         title={p.name}
                                         tabIndex={-1}
                                     >
-                                        <div className="product-card-image h-16 w-16 mb-2 flex items-center justify-center text-4xl bg-gray-100 rounded-xl">
-                                            <PackageIcon className="w-10 h-10 text-muted" />
+                                        {/* --- Product Image --- */}
+                                        <div className="product-card-image h-20 w-full mb-2 flex items-center justify-center overflow-hidden rounded-lg bg-gray-50 p-1">
+                                            <ProductImage product={p} />
                                         </div>
                                         <div className="font-semibold text-sm leading-tight mb-1 line-clamp-2 text-gray-800">{p.name}</div>
                                         <div className="text-xs text-primary font-bold">
@@ -508,25 +551,26 @@ export default function POSPage() {
                                     </button>
                                 ))}
                             </div>
-
-                            {/* --- Mobile List Layout (Hidden on Desktop) --- */}
+                            {/* --- Mobile List Layout --- */}
                             <div className="block md:hidden space-y-2">
                                 {filteredProducts.map((p, idx) => (
                                     <button
                                         key={p.id}
-                                        className={`w-full p-3 border rounded-lg shadow-sm bg-white flex justify-between items-center text-left ${selectedProductIndex === idx ? ' ring-2 ring-primary' : ''}`}
+                                        className={`w-full p-3 border rounded-lg shadow-sm bg-white flex items-center text-left ${selectedProductIndex === idx ? ' ring-2 ring-primary' : ''}`}
                                         onClick={() => handleAdd(p)}
                                         tabIndex={-1}
                                     >
-                                        {/* Product Info */}
-                                        <div>
+                                        {/* --- Product Image --- */}
+                                        <div className="h-12 w-12 mr-3 flex-shrink-0 flex items-center justify-center overflow-hidden rounded-lg bg-gray-50 p-1">
+                                            <ProductImage product={p} />
+                                        </div>
+                                        <div className="flex-1">
                                             <div className="font-semibold text-gray-800">{p.name}</div>
                                             <div className="text-sm text-primary font-bold">
                                                 ₱{Number(p.price || 0).toFixed(2)}
                                             </div>
                                         </div>
-                                        {/* Add Icon */}
-                                        <div className="text-2xl text-muted">+</div>
+                                        <div className="text-2xl text-muted ml-2">+</div>
                                     </button>
                                 ))}
                             </div>
@@ -834,4 +878,3 @@ export default function POSPage() {
         </div>
     );
 }
-
