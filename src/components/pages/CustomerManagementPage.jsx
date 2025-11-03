@@ -33,6 +33,7 @@ const DeleteIcon = () => (
 export default function CustomerManagementPage() {
     const { data: customers = [], isLoading } = useCustomers();
     const addToast = useStore(s => s.addToast);
+    const isDemo = useStore(s => s.user?.isDemo); // <-- FIX: define isDemo
 
     const createCustomer = useCreateCustomer();
     const updateCustomer = useUpdateCustomer();
@@ -138,7 +139,8 @@ export default function CustomerManagementPage() {
         return (
             (c.name && c.name.toLowerCase().includes(term)) ||
             (c.email && c.email.toLowerCase().includes(term)) ||
-            (c.phone && c.phone.toLowerCase().includes(term))
+            (c.phone && c.phone.toLowerCase().includes(term)) ||
+            (c.users?.name && c.users.name.toLowerCase().includes(term)) // --- ADDED: Filter by staff name ---
         );
     });
     const totalPages = Math.ceil(filteredCustomers.length / itemsPerPage);
@@ -179,7 +181,7 @@ export default function CustomerManagementPage() {
                                         <TableHead>Email</TableHead>
                                         <TableHead>Contact Number</TableHead>
                                         <TableHead>Date Added</TableHead>
-                                        <TableHead>Staff</TableHead> {/* <-- ADDED COLUMN */}
+                                        <TableHead>Staff</TableHead> {/* --- ADDED --- */}
                                         <TableHead className="text-right">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -203,13 +205,19 @@ export default function CustomerManagementPage() {
                                                         ? c.dateAdded.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
                                                         : 'N/A'}
                                                 </TableCell>
-                                                <TableCell>{c.createdBy || 'N/A'}</TableCell> {/* <-- ADDED CELL */}
+                                                <TableCell>
+                                                    {c.users?.name
+                                                        ? c.users.name
+                                                        : c.created_by === 99999
+                                                            ? 'Demo User'
+                                                            : 'N/A'}
+                                                </TableCell> {/* --- Staff name cell --- */}
                                                 <TableCell className="text-right">
                                                     <div className="flex justify-end space-x-1">
-                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:bg-blue-100" onClick={() => startEdit(c)} title="Edit Customer">
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:bg-blue-100" onClick={() => startEdit(c)} title="Edit Customer" disabled={isDemo}>
                                                             <EditIcon />
                                                         </Button>
-                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-red-600 hover:bg-red-100" onClick={() => remove(c)} title="Delete Customer">
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-red-600 hover:bg-red-100" onClick={() => remove(c)} title="Delete Customer" disabled={isDemo}>
                                                             <DeleteIcon />
                                                         </Button>
                                                     </div>
@@ -241,18 +249,18 @@ export default function CustomerManagementPage() {
                                 <CardContent className="p-4">
                                     <div className="flex justify-between items-start">
                                         {/* Customer Info */}
-                                        <div className="pr-2 space-y-0.5">
+                                        <div className="pr-2">
                                             <h3 className="font-semibold text-lg">{c.name}</h3>
                                             <p className="text-sm text-muted truncate">{c.email}</p>
                                             <p className="text-sm text-muted">{c.phone}</p>
-                                            <p className="text-sm text-muted">Staff: {c.createdBy || 'N/A'}</p> {/* <-- ADDED STAFF */}
+                                            <p className="text-sm text-muted">Staff: {c.users?.name || 'N/A'}</p> {/* --- ADDED: Staff name for mobile --- */}
                                         </div>
                                         {/* Action Buttons */}
                                         <div className="flex flex-col space-y-1 flex-shrink-0">
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600" onClick={() => startEdit(c)} title="Edit Customer">
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600" onClick={() => startEdit(c)} title="Edit Customer" disabled={isDemo}>
                                                 <EditIcon />
                                             </Button>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-red-600" onClick={() => remove(c)} title="Delete Customer">
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-red-600" onClick={() => remove(c)} title="Delete Customer" disabled={isDemo}>
                                                 <DeleteIcon />
                                             </Button>
                                         </div>

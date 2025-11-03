@@ -93,7 +93,7 @@ const LoginPage = () => {
         e.preventDefault();
         // 1. Create a mock demo user object
         const demoUser = {
-            id: 'demo-user-id-01',
+            id: 99999, // Use a number (bigint) instead of string to match the users table ID type
             name: 'Demo User',
             email: 'demo@seaside.com',
             phone: '09123456789',
