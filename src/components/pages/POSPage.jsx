@@ -459,23 +459,24 @@ export default function POSPage() {
             {/* --- Main Layout: Product Grid | Order Sidebar --- */}
             <div className="flex flex-col md:flex-row-reverse gap-4 w-full">
                 {/* --- Sidebar: Current Order --- */}
-                <div className="w-full md:w-1/3 xl:w-1/4 flex-shrink-0">
+                <div className="w-full md:w-1/3 xl:w-1/4 flex-shrink-0 flex flex-col max-h-[calc(100vh-120px)] md:max-h-[calc(100vh-100px)]">
                     {/* Current Order Card */}
-                    <Card className="flex flex-col h-full max-h-[calc(100vh-120px)] md:max-h-[calc(100vh-100px)] shadow-lg border border-gray-200 rounded-xl bg-white">
+                    <Card className="flex flex-col flex-1 shadow-lg border border-gray-200 rounded-xl bg-white overflow-hidden">
                         <CardHeader className="bg-gray-50 border-b border-gray-200 rounded-t-xl">
                             <div className="flex justify-between items-center">
                                 <h3 className="font-semibold text-lg text-primary">Current Order</h3>
                                 <Button variant="ghost" size="sm" className="p-1 h-auto text-destructive" onClick={clearSale} title="Clear Sale">✖ Clear</Button>
                             </div>
                         </CardHeader>
-                        <CardContent className="flex-1 overflow-y-auto p-0">
+                        <CardContent className="flex-1 p-0 relative">
                             {!Object.keys(currentSale).length ? (
                                 <div className="flex flex-col items-center justify-center h-full text-center p-4 text-gray-500">
                                     <EmptyCartIcon />
                                     <p className="mt-2">Cart is empty</p>
                                 </div>
                             ) : (
-                                <ScrollArea className="h-full px-2 py-1">
+                                <ScrollArea className="absolute h-full w-full px-2 py-1">
+                                    <Table>
                                     <Table>
                                         <TableBody>
                                             {Object.entries(currentSale).map(([key, item]) => (
@@ -505,7 +506,9 @@ export default function POSPage() {
                                             ))}
                                         </TableBody>
                                     </Table>
+                                    </Table>
                                 </ScrollArea>
+
                             )}
                         </CardContent>
                         <div className="p-3 border-t space-y-1 flex-shrink-0 bg-gray-50">
@@ -522,7 +525,7 @@ export default function POSPage() {
                         </CardFooter>
                     </Card>
                     {/* Last Customer label below the card, left-aligned, larger font */}
-                    <div className="mt-2 flex justify-start">
+                    <div className="mt-2 flex justify-start flex-shrink-0">
                         <span className="text-lg text-gray-800 font-semibold">Last Customer Used: <span className="font-bold">{lastCustomer ? lastCustomer.name : 'none'}</span></span>
                     </div>
                 </div>
