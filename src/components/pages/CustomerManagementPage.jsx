@@ -149,7 +149,7 @@ export default function CustomerManagementPage() {
     return (
         <div className="customer-page">
             {/* --- Brand Logo at the very top left --- */}
-            <img src="/seaside.png" alt="Seaside Logo" className="brand-logo-top" width={32} height={32} />
+            <img src="/seaside.png" alt="Seaside Logo" className="brand-logo-top" width={32} height={32} loading="lazy" />
             <MobileLogoutButton />
             <div>
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">

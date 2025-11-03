@@ -54,7 +54,7 @@ export default function HistoryPage() {
     return (
         <div className="history-page">
             {/* --- Brand Logo at the very top left --- */}
-            <img src="/seaside.png" alt="Seaside Logo" className="brand-logo-top" width={32} height={32} />
+            <img src="/seaside.png" alt="Seaside Logo" className="brand-logo-top" width={32} height={32} loading="lazy" />
             <MobileLogoutButton />
             <h1 className="text-2xl font-semibold mb-4">Sales History</h1>
 

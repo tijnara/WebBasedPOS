@@ -117,7 +117,7 @@ export default function DashboardPage() {
     return (
         // Removed fixed width and padding, added responsive padding
         <div className="dashboard-page w-full p-0 md:p-4">
-            <img src="/seaside.png" alt="Seaside Logo" className="brand-logo-top" width={32} height={32} />
+            <img src="/seaside.png" alt="Seaside Logo" className="brand-logo-top" width={32} height={32} loading="lazy" />
             <MobileLogoutButton />
 
             {/* Responsive Header */}

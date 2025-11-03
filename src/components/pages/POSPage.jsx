@@ -438,7 +438,7 @@ export default function POSPage() {
     return (
         <div className="pos-page">
             {/* --- Brand Logo at the very top left --- */}
-            <img src="/seaside.png" alt="Seaside Logo" className="brand-logo-top" width={32} height={32} />
+            <img src="/seaside.png" alt="Seaside Logo" className="brand-logo-top" width={32} height={32} loading="lazy" />
             <MobileLogoutButton />
             {/* --- Header --- */}
             <div className="flex items-center justify-between mb-4">
