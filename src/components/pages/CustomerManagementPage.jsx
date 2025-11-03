@@ -179,6 +179,7 @@ export default function CustomerManagementPage() {
                                         <TableHead>Email</TableHead>
                                         <TableHead>Contact Number</TableHead>
                                         <TableHead>Date Added</TableHead>
+                                        <TableHead>Staff</TableHead> {/* <-- ADDED COLUMN */}
                                         <TableHead className="text-right">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -202,6 +203,7 @@ export default function CustomerManagementPage() {
                                                         ? c.dateAdded.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
                                                         : 'N/A'}
                                                 </TableCell>
+                                                <TableCell>{c.createdBy || 'N/A'}</TableCell> {/* <-- ADDED CELL */}
                                                 <TableCell className="text-right">
                                                     <div className="flex justify-end space-x-1">
                                                         <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:bg-blue-100" onClick={() => startEdit(c)} title="Edit Customer">
@@ -239,10 +241,11 @@ export default function CustomerManagementPage() {
                                 <CardContent className="p-4">
                                     <div className="flex justify-between items-start">
                                         {/* Customer Info */}
-                                        <div className="pr-2">
+                                        <div className="pr-2 space-y-0.5">
                                             <h3 className="font-semibold text-lg">{c.name}</h3>
                                             <p className="text-sm text-muted truncate">{c.email}</p>
                                             <p className="text-sm text-muted">{c.phone}</p>
+                                            <p className="text-sm text-muted">Staff: {c.createdBy || 'N/A'}</p> {/* <-- ADDED STAFF */}
                                         </div>
                                         {/* Action Buttons */}
                                         <div className="flex flex-col space-y-1 flex-shrink-0">
