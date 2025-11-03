@@ -162,7 +162,7 @@ export default function HistoryPage() {
             <div className="mb-4">
                 <Input
                     ref={searchInputRef}
-                    placeholder="Search by customer or transaction ID..."
+                    placeholder="Search by customer..."
                     className="w-full max-w-lg"
                     onChange={(e) => {
                         setSearchTerm(e.target.value);
@@ -184,9 +184,9 @@ export default function HistoryPage() {
                                     <TableHead>Price</TableHead>
                                     <TableHead>Quantity</TableHead>
                                     <TableHead>Payment Method</TableHead>
-                                    <TableHead>Staff</TableHead> {/* Added Staff column */}
                                     <TableHead className="text-right">Total</TableHead>
                                     <TableHead>Status</TableHead>
+                                    <TableHead>Staff</TableHead> {/* Moved Staff column after Status */}
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -207,7 +207,6 @@ export default function HistoryPage() {
                                             <TableCell>{Array.isArray(sale.sale_items) && sale.sale_items.length > 0 ? sale.sale_items.map(item => `₱${Number(item.productPrice || 0).toFixed(2)}`).join(', ') : 'N/A'}</TableCell>
                                             <TableCell>{Array.isArray(sale.sale_items) ? sale.sale_items.reduce((sum, item) => sum + (item.quantity || 0), 0) : 0}</TableCell>
                                             <TableCell>{sale.paymentMethod || 'N/A'}</TableCell>
-                                            <TableCell>{sale.createdBy || 'N/A'}</TableCell> {/* Show Staff value */}
                                             <TableCell className="text-right font-semibold">₱{Number(sale.amountReceived || 0).toFixed(2)}</TableCell>
                                             <TableCell>
                                                 <span className={cn(
@@ -217,6 +216,7 @@ export default function HistoryPage() {
                                                     {sale.status || 'Completed'}
                                                 </span>
                                             </TableCell>
+                                            <TableCell>{sale.createdBy || 'N/A'}</TableCell> {/* Moved Staff value after Status */}
                                         </TableRow>
                                     ))
                                 )}

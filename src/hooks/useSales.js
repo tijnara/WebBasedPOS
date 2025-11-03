@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient';
 import { useStore } from '../store/useStore';
 
+// --- MODIFIED MOCK DATA ---
 const MOCK_SALES = [
     {
         id: 'mock-s-1',
@@ -19,7 +20,8 @@ const MOCK_SALES = [
             { productName: 'Mock Purified (5 Gal)', productPrice: 25.00, quantity: 1 }
         ],
         paymentMethod: 'Cash',
-        status: 'Completed'
+        status: 'Completed',
+        createdBy: 'Demo Staff A' // <-- ADDED
     },
     {
         id: 'mock-s-2',
@@ -35,9 +37,11 @@ const MOCK_SALES = [
             { productName: 'Mock Product B', productPrice: 99.00, quantity: 1 }
         ],
         paymentMethod: 'GCash',
-        status: 'Completed'
+        status: 'Completed',
+        createdBy: 'Demo Staff B' // <-- ADDED
     }
 ];
+// --- END MODIFICATION ---
 
 export function useSales() {
     const isDemo = useStore(s => s.user?.isDemo);
@@ -49,24 +53,27 @@ export function useSales() {
                 return MOCK_SALES;
             }
             try {
-                // Fetch sales and join all related sale_items
-                // This is the Supabase way of doing a JOIN
+                // --- MODIFIED QUERY ---
+                // This assumes your 'sales' table 'created_by' column
+                // is a foreign key to the 'users' table 'id' column.
                 const { data, error } = await supabase
                     .from('sales')
                     .select(`
                         *,
-                        sale_items ( *, product:products ( name, price ) )
-                    `) // This fetches the sale and ALL its related items
-                    .order('saletimestamp', { ascending: false }); // Order by the new created_at column
+                        sale_items ( *, product:products ( name, price ) ),
+                        users:created_by ( name )
+                    `) // <-- This line joins the users table
+                    .order('saletimestamp', { ascending: false });
 
                 if (error) {
-                    // Intentionally rethrow for React Query error handling
+                    console.error("useSales Error:", error); // <-- Better logging
                     throw error;
                 }
+                // --- END MODIFICATION ---
 
                 if (!data || !Array.isArray(data)) return [];
 
-                // Map the data to the format your HistoryPage expects
+                // --- MODIFIED MAPPING ---
                 return data.map(s => ({
                     id: s.id,
                     saleTimestamp: s.saletimestamp ? new Date(s.saletimestamp) : new Date(s.created_at),
@@ -74,16 +81,18 @@ export function useSales() {
                     amountReceived: parseFloat(s.amountreceived) || 0,
                     customerId: s.customerId,
                     customerName: s.customername || 'N/A',
-                    createdBy: s.created_by || 'N/A', // <-- Add this line
+                    // Use the fetched user's name. Fallback to ID if not found.
+                    createdBy: s.users?.name || s.created_by || 'N/A', // <-- UPDATED
                     sale_items: Array.isArray(s.sale_items) ? s.sale_items.map(item => ({
                         ...item,
                         productName: item.product?.name || '',
                         productPrice: item.product?.price || 0
-                    })) : [], // Always provide sale_items array
-                    items: Array.isArray(s.sale_items) ? s.sale_items : [], // For backward compatibility
+                    })) : [],
+                    items: Array.isArray(s.sale_items) ? s.sale_items : [],
                     paymentMethod: s.paymentmethod || 'N/A',
                     status: s.status || 'Completed'
                 }));
+                // --- END MODIFICATION ---
 
             } catch (error) {
                 // Intentionally rethrow for React Query error handling

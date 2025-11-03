@@ -92,6 +92,12 @@ export default function POSPage() {
         return today.toISOString().slice(0, 10); // 'YYYY-MM-DD'
     });
 
+    // Add state for sale time, default to now
+    const [saleTime, setSaleTime] = useState(() => {
+        const now = new Date();
+        return now.toTimeString().slice(0,5); // 'HH:MM'
+    });
+
 
     // Sync local selectedCustomer with global store state
     useEffect(() => {
@@ -198,6 +204,9 @@ export default function POSPage() {
         }
         setAmountReceived(subtotal.toFixed(2)); // Pre-fill with exact amount
         setPaymentMethod('Cash'); // Reset to default
+        // Set default time to now when opening modal
+        const now = new Date();
+        setSaleTime(now.toTimeString().slice(0,5));
         setIsPaymentModalOpen(true);
     };
 
@@ -222,7 +231,10 @@ export default function POSPage() {
         }));
         const received = parseFloat(amountReceived || 0);
         try {
-            const saleTimestamp = saleDate ? new Date(saleDate).toISOString() : new Date().toISOString();
+            // Combine date and time for saleTimestamp
+            const saleTimestamp = saleDate && saleTime
+                ? new Date(`${saleDate}T${saleTime}:00`).toISOString()
+                : new Date().toISOString();
             const payload = {
                 saleTimestamp,
                 totalAmount: subtotal,
@@ -247,6 +259,10 @@ export default function POSPage() {
             setSaleDate(() => {
                 const today = new Date();
                 return today.toISOString().slice(0, 10);
+            });
+            setSaleTime(() => {
+                const now = new Date();
+                return now.toTimeString().slice(0,5);
             });
             setSearchTerm('');
             setDebouncedSearchTerm('');
@@ -777,16 +793,28 @@ export default function POSPage() {
                         {/* You might add fields for Card/GCash reference numbers here if needed */}
 
                         {/* --- Date Picker --- */}
-                        <div className="mb-2">
-                            <Label htmlFor="sale-date">Date</Label>
-                            <Input
-                                id="sale-date"
-                                type="date"
-                                value={saleDate}
-                                onChange={e => setSaleDate(e.target.value)}
-                                className="w-full"
-                                max={new Date().toISOString().slice(0, 10)}
-                            />
+                        <div className="mb-2 flex gap-2">
+                            <div style={{ flex: 1 }}>
+                                <Label htmlFor="sale-date">Date</Label>
+                                <Input
+                                    id="sale-date"
+                                    type="date"
+                                    value={saleDate}
+                                    onChange={e => setSaleDate(e.target.value)}
+                                    className="w-full"
+                                    max={new Date().toISOString().slice(0, 10)}
+                                />
+                            </div>
+                            <div style={{ flex: 1 }}>
+                                <Label htmlFor="sale-time">Time</Label>
+                                <Input
+                                    id="sale-time"
+                                    type="time"
+                                    value={saleTime}
+                                    onChange={e => setSaleTime(e.target.value)}
+                                    className="w-full"
+                                />
+                            </div>
                         </div>
                     </div>
                     <DialogFooter>
@@ -806,3 +834,4 @@ export default function POSPage() {
         </div>
     );
 }
+

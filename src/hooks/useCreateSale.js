@@ -1,14 +1,17 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient';
+import { useStore } from '../store/useStore'; // <-- 1. Import useStore
 
 export function useCreateSale() {
     const queryClient = useQueryClient();
+    const user = useStore(s => s.user); // <-- 2. Get the current user from the store
 
     return useMutation({
         // 1. The function that performs the API call
         mutationFn: async (salePayload) => {
             console.log('useCreateSale: Starting sale transaction with payload:', salePayload);
 
+            // --- MODIFIED SECTION ---
             // Step 1: Prepare and insert the main sale data into the 'sales' table
             // This object contains all the summary fields
             const saleDataToInsert = {
@@ -20,7 +23,9 @@ export function useCreateSale() {
                 amountreceived: salePayload.amountReceived, // <-- Renamed this key to all lowercase
                 changegiven: salePayload.changeGiven,
                 status: salePayload.status,
+                created_by: user?.id || null, // <-- 3. Add the logged-in user's ID
             };
+            // --- END OF MODIFICATION ---
 
             // Insert into 'sales' and get the new 'id' back
             const { data: saleData, error: saleError } = await supabase
