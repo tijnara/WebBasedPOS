@@ -107,7 +107,11 @@ const Navbar = () => {
                             className={
                                 `nav-item${isActive ? ' active text-primary font-bold border-b-2 border-primary' : ''}`
                             }
-                            onClick={() => router.push(link.path)}
+                            onClick={() => {
+                                if (router.pathname !== link.path) {
+                                    router.push(link.path);
+                                }
+                            }}
                         >
                             {link.icon}
                             <span>{link.name}</span>
