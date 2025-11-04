@@ -7,16 +7,24 @@ import { useCreateCustomer } from '../../hooks/useCreateCustomer';
 import {
     Button, Card, CardContent, CardHeader, ScrollArea, Input,
     Dialog, DialogContent, DialogCloseButton, Select, Label, CardFooter, DialogHeader, DialogTitle,
-    DialogFooter
+    // --- FIX: Added missing components ---
+    DialogFooter, Table, TableBody, TableRow, TableCell
 } from '../ui';
 import MobileLogoutButton from '../MobileLogoutButton';
-// --- FIX: Removed unused EmptyCartIcon import and definition ---
+// --- FIX: Added missing imports ---
 import TabBar from '../TabBar';
 import { supabase } from '../../lib/supabaseClient';
 // --- (REMOVED) CartDrawer is no longer used ---
 // import CartDrawer from '../CartDrawer';
 
-// --- Icons (Assuming TrashIcon exist as before) ---
+// --- Icons (Assuming EmptyCartIcon, TrashIcon exist as before) ---
+const EmptyCartIcon = () => (
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-muted">
+        <path d="M7.5 7.625C7.5 4.7625 9.7625 2.5 12.625 2.5C15.4875 2.5 17.75 4.7625 17.75 7.625" stroke="#6b7280" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M16.3375 21.5H8.9125C5.9375 21.5 5.075 19.5875 4.075 16.1L2.8 12.1875C2.2625 10.375 3.0125 9 4.9625 9H20.2875C22.2375 9 22.9875 10.375 22.45 12.1875L20.5 18.5" stroke="#6b7280" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M15.5 13H10.5" stroke="#6b7280" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+);
 const TrashIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
         <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
@@ -40,19 +48,22 @@ const ProductImage = ({ product }) => {
     const lowerName = (product.name || '').toLowerCase();
     const lowerCategory = (product.category || '').toLowerCase();
 
-    // 1. Check for Ice Tubes, Ice Cubes, or Ice (more robust)
-    if (lowerName.includes('ice tubes') || lowerName.includes('ice cubes') || lowerName.includes('ice')) {
+    // 1. Check for Ice Tubes/Cubes (more robust)
+    if (lowerName.includes('ice tube') || lowerName.includes('ice cubes') || lowerName.includes('ice cube') || lowerName.includes('ice tubes/cubes')) {
         imageUrl = '/icecubes.png';
     }
-    // 2. Check for Pet Bottles (Specific)
+        // 2. Check for Pet Bottles (Specific)
+    // Catches "Pet Bottles"
     else if (lowerName.includes('pet bottles')) {
         imageUrl = '/petbottles.png';
     }
-    // 3. Check for Containers (General)
+        // 3. Check for Containers (General)
+    // Catches "Container", "Empty Bottle (Slim)", or "Container" category
     else if (lowerCategory.includes('container') || lowerName.includes('empty bottle') || lowerName.includes('container')) {
         imageUrl = '/container1.png';
     }
-    // 4. Check for Water/Refills (Broad)
+        // 4. Check for Water/Refills (Broad)
+    // Catches "Refill (25)", "Alkaline", etc.
     else if (lowerCategory === 'water' || lowerName.includes('refill') || lowerName.includes('alkaline') || lowerName.includes('purified')) {
         imageUrl = '/refill.png';
     }
@@ -447,13 +458,7 @@ export default function POSPage() {
             <div className="flex items-center justify-between mb-4">
                 <h1 className="text-3xl font-bold text-primary tracking-tight">Point of Sale</h1>
                 <div className="flex gap-4">
-                    <Input
-                        ref={searchInputRef}
-                        placeholder="Search products..."
-                        className="w-64 rounded-lg border border-gray-300 shadow-sm focus:ring-primary"
-                        value={productSearchTerm}
-                        onChange={(e) => setProductSearchTerm(e.target.value)}
-                    />
+                    {/* Removed product search field */}
                     <Button variant="primary" onClick={openCustomSaleModal} className="rounded-lg shadow-md font-semibold">
                         + Custom Sale
                     </Button>
@@ -534,7 +539,7 @@ export default function POSPage() {
                         </CardFooter>
                     </Card>
                     {/* Last Customer label below the card, left-aligned, larger font */}
-                    <div className="mt-2 flex justify-start flex-shrink-0 last-customer-label-mobile">
+                    <div className="mt-2 flex justify-start flex-shrink-0">
                         <span className="text-lg text-gray-800 font-semibold">Last Customer Used: <span className="font-bold">{lastCustomer ? lastCustomer.name : 'none'}</span></span>
                     </div>
                 </div>
@@ -572,7 +577,7 @@ export default function POSPage() {
                                 ))}
                             </div>
                             {/* --- Mobile List Layout --- */}
-                            <div className="mobile-product-list-grid block md:hidden" style={{paddingBottom: '80px'}}>
+                            <div className="mobile-product-list-grid block md:hidden" style={{paddingBottom: '16px'}}>
                                 {filteredProducts.map((p, idx) => (
                                     <button
                                         key={p.id}
@@ -596,12 +601,6 @@ export default function POSPage() {
                     )}
                 </div>
             </div>
-
-            {/* --- (REMOVED) Floating Cart Button and CartDrawer for Mobile Only --- */}
-            {/* <div className="md:hidden">
-                ... (button and CartDrawer removed) ...
-            </div>
-            */}
 
             {/* --- DIALOGS (Customer, Custom Sale, Payment) --- */}
             <Dialog open={isCustomerModalOpen} onOpenChange={setIsCustomerModalOpen}>
@@ -899,7 +898,10 @@ export default function POSPage() {
                 </DialogContent>
             </Dialog>
 
-            {/* --- (NEW) Sticky Mobile CTA Bar --- */}
+
+            <TabBar />
+
+            {/* --- Restore sticky mobile CTA bar at the bottom --- */}
             <div className="md:hidden fixed bottom-0 left-0 right-0 p-3 bg-white border-t border-gray-200 shadow-[0_-2px_6px_rgba(0,0,0,0.05)] z-40">
                 <Button
                     variant="primary"
@@ -917,9 +919,6 @@ export default function POSPage() {
                     }
                 </Button>
             </div>
-
-            <TabBar />
         </div>
     );
 }
-
