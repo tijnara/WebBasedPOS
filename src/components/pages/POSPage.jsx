@@ -14,6 +14,7 @@ import MobileLogoutButton from '../MobileLogoutButton';
 // --- FIX: Added missing imports ---
 import TabBar from '../TabBar';
 import { supabase } from '../../lib/supabaseClient';
+import CartDrawer from '../CartDrawer';
 
 // --- Icons (Assuming EmptyCartIcon, TrashIcon exist as before) ---
 const EmptyCartIcon = () => (
@@ -147,6 +148,16 @@ export default function POSPage() {
         return now.toTimeString().slice(0,5); // 'HH:MM'
     });
 
+    // --- CartDrawer state for mobile ---
+    const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
+    // Helper to get cart items as array
+    const cartItems = Object.entries(currentSale).map(([key, item]) => ({
+        key,
+        id: item.productId,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity
+    }));
 
     // Sync local selectedCustomer with global store state
     useEffect(() => {
@@ -459,7 +470,7 @@ export default function POSPage() {
             {/* --- Main Layout: Product Grid | Order Sidebar --- */}
             <div className="flex flex-col md:flex-row-reverse gap-4 w-full">
                 {/* --- Sidebar: Current Order --- */}
-                <div className="w-full md:w-1/3 xl:w-1/4 flex-shrink-0 flex flex-col" style={{height: '500px'}}>
+                <div className={`w-full md:w-1/3 xl:w-1/4 flex-shrink-0 flex flex-col${isCartDrawerOpen ? ' hidden md:flex' : ''}`} style={{height: '500px'}}>
                     {/* Current Order Card */}
                     <Card className="flex flex-col flex-1 shadow-lg border border-gray-200 rounded-xl bg-white overflow-hidden">
                         <CardHeader className="bg-gray-50 border-b border-gray-200 rounded-t-xl">
@@ -558,25 +569,23 @@ export default function POSPage() {
                                 ))}
                             </div>
                             {/* --- Mobile List Layout --- */}
-                            <div className="block md:hidden space-y-2">
+                            <div className="mobile-product-list-grid block md:hidden">
                                 {filteredProducts.map((p, idx) => (
                                     <button
                                         key={p.id}
-                                        className={`w-full p-3 border rounded-lg shadow-sm bg-white flex items-center text-left ${selectedProductIndex === idx ? ' ring-2 ring-primary' : ''}`}
+                                        className={`mobile-product-box p-2 border rounded-xl shadow-md bg-white flex flex-col items-center justify-center text-center transition-all duration-150 ${selectedProductIndex === idx ? ' ring-2 ring-primary' : ''}`}
                                         onClick={() => handleAdd(p)}
                                         tabIndex={-1}
+                                        style={{ aspectRatio: '1 / 1', width: '100%' }}
                                     >
                                         {/* --- Product Image --- */}
-                                        <div className="h-12 w-12 mr-3 flex-shrink-0 flex items-center justify-center overflow-hidden rounded-lg bg-gray-50 p-1">
+                                        <div className="h-16 w-16 mb-2 flex items-center justify-center overflow-hidden rounded-lg bg-gray-50 p-2">
                                             <ProductImage product={p} />
                                         </div>
-                                        <div className="flex-1">
-                                            <div className="font-semibold text-gray-800">{p.name}</div>
-                                            <div className="text-sm text-primary font-bold">
-                                                ₱{Number(p.price || 0).toFixed(2)}
-                                            </div>
+                                        <div className="font-semibold text-sm leading-tight mb-1 line-clamp-2 text-gray-800">{p.name}</div>
+                                        <div className="text-xs text-primary font-bold">
+                                            ₱{Number(p.price || 0).toFixed(2)}
                                         </div>
-                                        <div className="text-2xl text-muted ml-2">+</div>
                                     </button>
                                 ))}
                             </div>
@@ -584,7 +593,24 @@ export default function POSPage() {
                     )}
                 </div>
             </div>
-
+            {/* --- Floating Cart Button and CartDrawer for Mobile Only --- */}
+            <div className="md:hidden">
+                <button
+                    className="fixed bottom-4 right-4 bg-primary text-white rounded-full shadow-lg p-4 z-50 flex items-center"
+                    style={{ fontSize: '1.5rem' }}
+                    onClick={() => setIsCartDrawerOpen(true)}
+                >
+                    🛒 <span style={{ marginLeft: 8, fontWeight: 'bold' }}>{cartItems.reduce((sum, item) => sum + item.quantity, 0)}</span>
+                </button>
+                <CartDrawer
+                    cartItems={cartItems}
+                    onRemove={key => {
+                        handleRemoveItem(key);
+                    }}
+                    onClose={() => setIsCartDrawerOpen(false)}
+                    visible={isCartDrawerOpen}
+                />
+            </div>
             {/* --- DIALOGS (Customer, Custom Sale, Payment) --- */}
             <Dialog open={isCustomerModalOpen} onOpenChange={setIsCustomerModalOpen}>
                 <DialogContent className="sm:max-w-md">
@@ -885,3 +911,4 @@ export default function POSPage() {
         </div>
     );
 }
+
