@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { useSales } from '../../hooks/useSales';
 import {
     format,
@@ -9,8 +9,24 @@ import {
     isWithinInterval,
 } from 'date-fns';
 import { DayPicker } from 'react-day-picker';
-import { Button } from '../ui';
+import { Button } from '../ui'; // Assuming Button from ui.js is available
 
+// Helper hook for detecting clicks outside an element
+const useOutsideClick = (ref, callback) => {
+    React.useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (ref.current && !ref.current.contains(event.target)) {
+                callback();
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [ref, callback]);
+};
+
+// Utility to format currency
 const formatCurrency = (amount) => {
     const numericAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
     if (isNaN(numericAmount)) {
@@ -22,78 +38,155 @@ const formatCurrency = (amount) => {
     }).format(numericAmount);
 };
 
-const SalesReportDisplay = ({ title, totalSales, salesList, currentPage, totalPages, onPageChange }) => (
-    <div className="flex-grow">
-        <div className="flex flex-col gap-2 mb-2">
-            <h2 className="text-base font-semibold leading-tight">{title}</h2>
-            <div className="bg-gray-50 p-2 rounded border text-xs flex items-center justify-between">
-                <span>Total Sales:</span>
-                <span className="font-bold text-base">{formatCurrency(totalSales)}</span>
-            </div>
-            <span className="text-xs text-gray-500">Sales in Period ({salesList.length})</span>
+// --- Calendar Icon (Simple SVG) ---
+const CalendarIcon = (props) => (
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 20 20"
+        fill="currentColor"
+        className="w-4 h-4"
+        {...props}
+    >
+        <path
+            fillRule="evenodd"
+            d="M5.75 3a.75.75 0 01.75.75v.25h7V3.75a.75.75 0 011.5 0V4h.25A2.75 2.75 0 0118 6.75v8.5A2.75 2.75 0 0115.25 18H4.75A2.75 2.75 0 012 15.25v-8.5A2.75 2.75 0 014.75 4H5v-.25A.75.75 0 015.75 3zM4.5 10.75a.75.75 0 01.75-.75h10a.75.75 0 010 1.5H5.25a.75.75 0 01-.75-.75zM4 6.75A1.25 1.25 0 015.25 5.5h9.5A1.25 1.25 0 0116 6.75v1.5H4v-1.5z"
+            clipRule="evenodd"
+        />
+    </svg>
+);
+
+// --- Pagination Component ---
+const Pagination = ({ currentPage, totalPages, onPageChange }) => {
+    if (totalPages <= 1) return null;
+
+    const pageNumbers = [...Array(totalPages)].map((_, idx) => idx + 1);
+
+    return (
+        <div className="flex justify-center items-center gap-2 py-3 text-xs font-medium">
+            <Button
+                onClick={() => onPageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="px-3 py-1.5 flex items-center gap-1 rounded-md"
+            >
+                <span className="w-4 h-4">{'<'}</span> Prev
+            </Button>
+
+            {pageNumbers.map(number => (
+                <Button
+                    key={number}
+                    onClick={() => onPageChange(number)}
+                    className={`px-3 py-1.5 rounded-md ${
+                        currentPage === number
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-gray-200 hover:bg-gray-300'
+                    }`}
+                >
+                    {number}
+                </Button>
+            ))}
+
+            <Button
+                onClick={() => onPageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1.5 flex items-center gap-1 rounded-md"
+            >
+                Next <span className="w-4 h-4">{'>'}</span>
+            </Button>
         </div>
-        <div className="bg-white rounded border shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-                <table className="min-w-full text-xs">
-                    <thead className="bg-gray-100">
-                        <tr>
-                            <th className="px-2 py-1 text-left font-medium text-gray-600">Date & Time</th>
-                            <th className="px-2 py-1 text-left font-medium text-gray-600">Customer</th>
-                            <th className="px-2 py-1 text-left font-medium text-gray-600">Item(s)</th>
-                            <th className="px-2 py-1 text-left font-medium text-gray-600">Price(s)</th>
-                            <th className="px-2 py-1 text-left font-medium text-gray-600">Qty</th>
-                            <th className="px-2 py-1 text-right font-medium text-gray-600">Total</th>
-                            <th className="px-2 py-1 text-left font-medium text-gray-600">Payment</th>
-                            <th className="px-2 py-1 text-left font-medium text-gray-600">Status</th>
-                            <th className="px-2 py-1 text-left font-medium text-gray-600">Staff</th>
+    );
+};
+
+
+// --- Sales Report Table ---
+const SalesReportDisplay = ({ salesList, currentPage, totalPages, onPageChange }) => (
+    <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+            <table className="min-w-full text-base">
+                <thead className="bg-gray-100">
+                <tr>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Date & Time</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Customer</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Item(s)</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Price(s)</th>
+                    <th className="px-4 py-3 text-center font-semibold text-gray-700">Qty</th>
+                    <th className="px-4 py-3 text-right font-semibold text-gray-700">Total</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Payment</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Status</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Staff</th>
+                </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                {salesList.length === 0 ? (
+                    <tr>
+                        <td colSpan="9" className="text-center p-6 text-gray-500 text-lg">
+                            No sales found for this period.
+                        </td>
+                    </tr>
+                ) : (
+                    salesList.map(sale => (
+                        <tr key={sale.id} className="hover:bg-gray-50">
+                            <td className="px-4 py-3 whitespace-nowrap align-top">{format(new Date(sale.saleTimestamp), 'MMM d, yyyy h:mm a')}</td>
+                            <td className="px-4 py-3 whitespace-nowrap align-top">{sale.customerName}</td>
+                            <td className="px-4 py-3 align-top">
+                                <div className="flex flex-col gap-1">
+                                    {(sale.sale_items || []).map((item, idx) => (
+                                        <span key={idx} className="block truncate" title={item.productName}>
+                                            {item.productName || 'N/A'}
+                                        </span>
+                                    ))}
+                                </div>
+                            </td>
+                            <td className="px-4 py-3 align-top">
+                                <div className="flex flex-col gap-1">
+                                    {(sale.sale_items || []).map((item, idx) => (
+                                        <span key={idx} className="block whitespace-nowrap">
+                                            {formatCurrency(item.productPrice || 0)}
+                                        </span>
+                                    ))}
+                                </div>
+                            </td>
+                            <td className="px-4 py-3 align-top text-center">
+                                <div className="flex flex-col gap-1">
+                                    {(sale.sale_items || []).map((item, idx) => (
+                                        <span key={idx} className="block">
+                                            {item.quantity || 0}
+                                        </span>
+                                    ))}
+                                </div>
+                            </td>
+                            <td className="px-4 py-3 text-right whitespace-nowrap align-top font-semibold">
+                                {formatCurrency(sale.totalAmount)}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap align-top">{sale.paymentMethod}</td>
+                            <td className="px-4 py-3 whitespace-nowrap align-top">{sale.status}</td>
+                            <td className="px-4 py-3 whitespace-nowrap align-top">{sale.staffName || 'N/A'}</td>
                         </tr>
-                    </thead>
-                    <tbody>
-                        {salesList.length === 0 ? (
-                            <tr>
-                                <td colSpan="9" className="text-center p-4 text-gray-400">No sales found for this period.</td>
-                            </tr>
-                        ) : (
-                            salesList.map(sale => (
-                                <tr key={sale.id} className="border-b last:border-b-0">
-                                    <td className="px-2 py-1 whitespace-nowrap">{format(new Date(sale.saleTimestamp), 'MMM d, yyyy h:mm a')}</td>
-                                    <td className="px-2 py-1 whitespace-nowrap">{sale.customerName}</td>
-                                    <td className="px-2 py-1 whitespace-nowrap">{sale.productName}</td>
-                                    <td className="px-2 py-1 whitespace-nowrap">{sale.price}</td>
-                                    <td className="px-2 py-1 whitespace-nowrap">{sale.quantity}</td>
-                                    <td className="px-2 py-1 text-right whitespace-nowrap">{formatCurrency(sale.totalAmount)}</td>
-                                    <td className="px-2 py-1 whitespace-nowrap">{sale.paymentMethod}</td>
-                                    <td className="px-2 py-1 whitespace-nowrap">{sale.status}</td>
-                                    <td className="px-2 py-1 whitespace-nowrap">{sale.staffName || 'N/A'}</td>
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
-            </div>
-            {totalPages > 1 && (
-                <div className="flex justify-center items-center gap-1 py-2 text-xs">
-                    <Button onClick={() => onPageChange(currentPage - 1)} disabled={currentPage === 1} className="px-2 py-1">Prev</Button>
-                    {[...Array(totalPages)].map((_, idx) => (
-                        <Button
-                            key={idx + 1}
-                            onClick={() => onPageChange(idx + 1)}
-                            className={`px-2 py-1 ${currentPage === idx + 1 ? 'bg-primary text-primary-foreground' : 'bg-gray-200'}`}
-                        >{idx + 1}</Button>
-                    ))}
-                    <Button onClick={() => onPageChange(currentPage + 1)} disabled={currentPage === totalPages} className="px-2 py-1">Next</Button>
-                </div>
-            )}
+                    ))
+                )}
+                </tbody>
+            </table>
         </div>
+
+        {/* --- Pagination --- */}
+        <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={onPageChange}
+        />
     </div>
 );
 
+// --- Main Report Page Component ---
 const ReportPage = () => {
     const { data: salesData, isLoading, error } = useSales();
     const [reportType, setReportType] = useState('weekly');
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [currentPage, setCurrentPage] = useState(1);
+    const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+    const popoverRef = useRef(null);
     const ITEMS_PER_PAGE = 10;
+
+    useOutsideClick(popoverRef, () => setIsCalendarOpen(false));
 
     const reportData = useMemo(() => {
         if (!salesData) {
@@ -105,6 +198,7 @@ const ReportPage = () => {
         const date = selectedDate || new Date();
         const dayStart = new Date(date.setHours(0, 0, 0, 0));
 
+        // Determine date range based on report type
         if (reportType === 'daily') {
             const end = new Date(date.setHours(23, 59, 59, 999));
             interval = { start: dayStart, end };
@@ -114,68 +208,69 @@ const ReportPage = () => {
             const end = endOfWeek(dayStart, { weekStartsOn: 1 });
             interval = { start, end };
             title = `Weekly Report: ${format(start, 'MMM d')} - ${format(end, 'MMM d, yyyy')}`;
-        } else {
+        } else { // monthly
             const start = startOfMonth(dayStart);
             const end = endOfMonth(dayStart);
             interval = { start, end };
             title = `Monthly Report: ${format(start, 'MMMM yyyy')}`;
         }
 
+        // Filter sales within the determined interval
         const salesInPeriod = salesData.filter(sale => {
             const saleTime = new Date(sale.saleTimestamp);
             return isWithinInterval(saleTime, interval);
         });
 
+        // Calculate total sales
         const total = salesInPeriod.reduce((acc, sale) => acc + (sale.totalAmount || 0), 0);
 
+        // --- MODIFIED: Process sales but keep sale_items intact ---
         const processedSales = salesInPeriod.map(sale => {
-            let productName = 'N/A', price = 'N/A', quantity = 0;
-            if (Array.isArray(sale.sale_items) && sale.sale_items.length > 0) {
-                productName = sale.sale_items.map(item => item.productName || 'N/A').join(', ');
-                price = sale.sale_items
-                    .map(item => formatCurrency(item.productPrice || 0))
-                    .join(', ');
-                quantity = sale.sale_items.reduce((sum, item) => sum + (item.quantity || 0), 0);
-            }
             return {
                 ...sale,
-                productName,
-                price,
-                quantity,
-                staffName: sale.createdBy || 'N/A',
+                staffName: sale.createdBy || 'N/A', //
                 status: sale.status || 'Unknown',
+                // sale_items is already processed by useSales hook
             };
         });
 
+        // Sort by most recent sale
         processedSales.sort((a, b) => new Date(b.saleTimestamp) - new Date(a.saleTimestamp));
 
         return {
             reportTitle: title,
             totalSales: total,
             filteredSales: processedSales,
+            salesCount: processedSales.length,
         };
     }, [salesData, selectedDate, reportType]);
 
+    // Memoized pagination logic
     const paginatedSales = useMemo(() => {
         const allSales = reportData.filteredSales || [];
         const totalPages = Math.max(1, Math.ceil(allSales.length / ITEMS_PER_PAGE));
+
         const validCurrentPage = Math.max(1, Math.min(currentPage, totalPages));
-        if (currentPage !== validCurrentPage) {
+        if (currentPage !== validCurrentPage && allSales.length > 0) {
             setCurrentPage(validCurrentPage);
         }
+
         const startIdx = (validCurrentPage - 1) * ITEMS_PER_PAGE;
         const endIdx = startIdx + ITEMS_PER_PAGE;
+
         return {
             sales: allSales.slice(startIdx, endIdx),
             totalPages,
         };
     }, [reportData.filteredSales, currentPage]);
 
-    const handleDateClick = (date) => {
+    // --- Event Handlers ---
+    const handleDateSelect = (date) => {
         if (date) {
             setSelectedDate(date);
-            setReportType('daily');
+            setReportType('daily'); // Switch to daily report on date click
             setCurrentPage(1);
+            setIsCalendarOpen(false); // Close popover
         }
     };
 
@@ -184,27 +279,105 @@ const ReportPage = () => {
         setCurrentPage(1);
     };
 
+    const getSelectedDateDisplay = () => {
+        if (reportType === 'daily') return format(selectedDate, 'MMM d, yyyy');
+        if (reportType === 'weekly') {
+            const start = startOfWeek(selectedDate, { weekStartsOn: 1 });
+            const end = endOfWeek(selectedDate, { weekStartsOn: 1 });
+            return `${format(start, 'MMM d')} - ${format(end, 'MMM d')}`;
+        }
+        if (reportType === 'monthly') {
+            return format(selectedDate, 'MMMM yyyy');
+        }
+        return format(selectedDate, 'MMM d, yyyy');
+    }
+
+    // --- Render JSX ---
     return (
-        <div className="report-page max-w-4xl mx-auto p-2 md:p-4">
-            <h1 className="text-lg font-bold mb-2">Sales Report</h1>
-            <div className="flex flex-col gap-2 mb-2">
-                <div className="flex flex-wrap gap-2 items-center bg-gray-50 p-2 rounded border">
-                    <span className="font-medium text-xs">Report Type:</span>
-                    <select value={reportType} onChange={handleReportTypeChange} className="text-xs px-2 py-1 rounded border">
-                        <option value="daily">Daily</option>
-                        <option value="weekly">Weekly</option>
-                        <option value="monthly">Monthly</option>
-                    </select>
-                    <span className="font-medium text-xs ml-4">Select Date:</span>
-                    <div className="inline-block"><DayPicker mode="single" selected={selectedDate} onSelect={handleDateClick} className="p-0 text-xs" /></div>
+        <div className="report-page max-w-7xl mx-auto p-2 md:p-4 space-y-4">
+
+            <h1 className="text-2xl font-bold mb-4">Sales Report</h1>
+
+            {/* --- Controls & Totals Card --- */}
+            <div className="bg-white rounded-lg border shadow-sm p-4 space-y-4">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+
+                    {/* --- Report Filters --- */}
+                    <div className="flex flex-wrap items-center gap-3">
+                        {/* Report Type Select */}
+                        <div>
+                            <label htmlFor="reportType" className="block text-xs font-medium text-gray-500 mb-1">
+                                Report Type
+                            </label>
+                            <select
+                                id="reportType"
+                                value={reportType}
+                                onChange={handleReportTypeChange}
+                                className="text-sm px-3 py-1.5 rounded-md border bg-white shadow-sm"
+                            >
+                                <option value="daily">Daily</option>
+                                <option value="weekly">Weekly</option>
+                                <option value="monthly">Monthly</option>
+                            </select>
+                        </div>
+
+                        {/* Date Picker Popover */}
+                        <div className="relative" ref={popoverRef}>
+                            <label htmlFor="datePicker" className="block text-xs font-medium text-gray-500 mb-1">
+                                Select Date
+                            </label>
+                            <Button
+                                id="datePicker"
+                                onClick={() => setIsCalendarOpen(!isCalendarOpen)}
+                                className="px-3 py-1.5 text-sm flex items-center gap-2 rounded-md border bg-white shadow-sm"
+                            >
+                                <CalendarIcon />
+                                <span>{getSelectedDateDisplay()}</span>
+                            </Button>
+
+                            {isCalendarOpen && (
+                                <div className="absolute top-full left-0 mt-2 z-10 bg-white border rounded-lg shadow-lg">
+                                    <DayPicker
+                                        mode="single"
+                                        selected={selectedDate}
+                                        onSelect={handleDateSelect}
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* --- Total Sales Display --- */}
+                    <div className="bg-gray-50 p-4 rounded-lg border w-full md:w-auto md:min-w-[240px]">
+                        <div className="text-xs font-medium text-gray-600 mb-1">
+                            Total Sales for Period
+                        </div>
+                        <div className="text-2xl font-bold text-gray-900">
+                            {isLoading ? '...' : formatCurrency(reportData.totalSales)}
+                        </div>
+                    </div>
                 </div>
             </div>
-            {isLoading && <div className="text-xs text-gray-500">Loading sales data...</div>}
-            {error && (<div className="text-xs text-red-500">Error loading sales: {error.message}</div>)}
+
+            {/* --- Report Title --- */}
+            <div className="px-1">
+                <h2 className="text-lg font-semibold leading-tight">{reportData.reportTitle}</h2>
+                <span className="text-sm text-gray-500">
+                    {reportData.salesCount} sales found
+                </span>
+            </div>
+
+            {/* --- Loading / Error / Report Display --- */}
+            {isLoading && <div className="text-sm text-gray-500 p-4 text-center">Loading sales data...</div>}
+
+            {error && (
+                <div className="text-sm text-red-600 bg-red-50 p-4 rounded-lg border border-red-200">
+                    Error loading sales: {error.message}
+                </div>
+            )}
+
             {!isLoading && !error && (
                 <SalesReportDisplay
-                    title={reportData.reportTitle}
-                    totalSales={reportData.totalSales}
                     salesList={paginatedSales.sales}
                     currentPage={currentPage}
                     totalPages={paginatedSales.totalPages}

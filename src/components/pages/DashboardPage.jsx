@@ -68,7 +68,26 @@ export default function DashboardPage() {
     // --- Summary Stats ---
     const totalRevenue = sales.reduce((sum, sale) => sum + Number(sale.totalAmount || 0), 0);
     const transactionsCount = sales.length;
-    const newCustomersCount = customers.length;
+
+    // Helper function to check if a date is in the current week
+    function isDateInCurrentWeek(dateString) {
+        if (!dateString) return false;
+        const now = new Date();
+        const inputDate = new Date(dateString);
+        // Get the first day of the week (Sunday)
+        const firstDayOfWeek = new Date(now);
+        firstDayOfWeek.setDate(now.getDate() - now.getDay());
+        firstDayOfWeek.setHours(0, 0, 0, 0);
+        // Get the last day of the week (Saturday)
+        const lastDayOfWeek = new Date(firstDayOfWeek);
+        lastDayOfWeek.setDate(firstDayOfWeek.getDate() + 6);
+        lastDayOfWeek.setHours(23, 59, 59, 999);
+        return inputDate >= firstDayOfWeek && inputDate <= lastDayOfWeek;
+    }
+
+    // Filter customers added this week
+    const customersThisWeek = customers.filter(cust => isDateInCurrentWeek(cust.dateAdded));
+    const newCustomersCount = customersThisWeek.length;
 
     // Get today's date string (local time)
     // FIX: Use current date, not a hardcoded one
