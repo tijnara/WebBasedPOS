@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from 'react';
 import { useSales } from '../../hooks/useSales';
-import { DayPicker } from 'react-day-picker';
 import {
     format,
     startOfWeek,
@@ -9,110 +8,92 @@ import {
     endOfMonth,
     isWithinInterval,
 } from 'date-fns';
+import { DayPicker } from 'react-day-picker';
 import { Button } from '../ui';
 
-const SalesReportDisplay = ({ title, totalSales, salesList }) => {
-    const formatCurrency = (amount) => {
-        // Handle non-numeric values that might come through
-        const numericAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
-        if (isNaN(numericAmount)) {
-            return amount; // Return 'N/A' or other strings as-is
-        }
-        return new Intl.NumberFormat('en-PH', {
-            style: 'currency',
-            currency: 'PHP'
-        }).format(numericAmount);
-    };
+const formatCurrency = (amount) => {
+    const numericAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+    if (isNaN(numericAmount)) {
+        return 'N/A';
+    }
+    return new Intl.NumberFormat('en-PH', {
+        style: 'currency',
+        currency: 'PHP',
+    }).format(numericAmount);
+};
 
-    return (
-        <div className="flex-grow">
-            <h2 className="text-xl font-semibold mb-3">{title}</h2>
-            <div className="bg-white p-4 rounded-lg shadow-md mb-4 border">
-                <p className="text-sm text-gray-600">Total Sales for Period</p>
-                <p className="text-3xl font-bold">
-                    {formatCurrency(totalSales)}
-                </p>
+const SalesReportDisplay = ({ title, totalSales, salesList, currentPage, totalPages, onPageChange }) => (
+    <div className="flex-grow">
+        <div className="flex flex-col gap-2 mb-2">
+            <h2 className="text-base font-semibold leading-tight">{title}</h2>
+            <div className="bg-gray-50 p-2 rounded border text-xs flex items-center justify-between">
+                <span>Total Sales:</span>
+                <span className="font-bold text-base">{formatCurrency(totalSales)}</span>
             </div>
-            <h3 className="text-lg font-semibold mb-2">
-                Sales in Period ({salesList.length})
-            </h3>
-            <div className="bg-white rounded-lg shadow-md border overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        {/* --- HEADERS --- */}
-                        <thead className="bg-gray-50">
+            <span className="text-xs text-gray-500">Sales in Period ({salesList.length})</span>
+        </div>
+        <div className="bg-white rounded border shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+                <table className="min-w-full text-xs">
+                    <thead className="bg-gray-100">
                         <tr>
-                            <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">Date & Time</th>
-                            <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">Customer</th>
-                            <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">Staff</th>
-                            <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">Item(s)</th>
-                            <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">Price(s)</th>
-                            <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">Quantity</th>
-                            <th className="px-4 py-2 text-right text-sm font-medium text-gray-500">Total Amount</th>
-                            <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">Payment Method</th>
-                            <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">Status</th>
+                            <th className="px-2 py-1 text-left font-medium text-gray-600">Date & Time</th>
+                            <th className="px-2 py-1 text-left font-medium text-gray-600">Customer</th>
+                            <th className="px-2 py-1 text-left font-medium text-gray-600">Item(s)</th>
+                            <th className="px-2 py-1 text-left font-medium text-gray-600">Price(s)</th>
+                            <th className="px-2 py-1 text-left font-medium text-gray-600">Qty</th>
+                            <th className="px-2 py-1 text-right font-medium text-gray-600">Total</th>
+                            <th className="px-2 py-1 text-left font-medium text-gray-600">Payment</th>
+                            <th className="px-2 py-1 text-left font-medium text-gray-600">Status</th>
+                            <th className="px-2 py-1 text-left font-medium text-gray-600">Staff</th>
                         </tr>
-                        </thead>
-                        {/* --- FIXED DATA ORDER --- */}
-                        <tbody className="divide-y divide-gray-200">
+                    </thead>
+                    <tbody>
                         {salesList.length === 0 ? (
                             <tr>
-                                <td colSpan="9" className="text-center p-4 text-gray-500">
-                                    No sales found for this period.
-                                </td>
+                                <td colSpan="9" className="text-center p-4 text-gray-400">No sales found for this period.</td>
                             </tr>
                         ) : (
                             salesList.map(sale => (
-                                <tr key={sale.id}>
-                                    {/* 1. Date & Time */}
-                                    <td className="px-4 py-2 whitespace-nowrap">
-                                        {format(new Date(sale.saleTimestamp), 'MMM d, yyyy h:mm a')}
-                                    </td>
-                                    {/* 2. Customer */}
-                                    <td className="px-4 py-2 whitespace-nowrap">{sale.customerName}</td>
-                                    {/* 3. Staff */}
-                                    <td className="px-4 py-2 whitespace-nowrap">{sale.staffName || 'N/A'}</td>
-                                    {/* 4. Item(s) */}
-                                    <td className="px-4 py-2 whitespace-nowrap">{sale.productName}</td>
-                                    {/* 5. Price(s) */}
-                                    <td className="px-4 py-2 whitespace-nowrap">{sale.price}</td>
-                                    {/* 6. Quantity */}
-                                    <td className="px-4 py-2 whitespace-nowrap">{sale.quantity}</td>
-                                    {/* 7. Total Amount */}
-                                    <td className="px-4 py-2 text-right whitespace-nowrap">
-                                        {formatCurrency(sale.totalAmount)}
-                                    </td>
-                                    {/* 8. Payment Method */}
-                                    <td className="px-4 py-2 whitespace-nowrap">{sale.paymentMethod}</td>
-                                    {/* 9. Status */}
-                                    <td className="px-4 py-2 whitespace-nowrap">{sale.status}</td>
+                                <tr key={sale.id} className="border-b last:border-b-0">
+                                    <td className="px-2 py-1 whitespace-nowrap">{format(new Date(sale.saleTimestamp), 'MMM d, yyyy h:mm a')}</td>
+                                    <td className="px-2 py-1 whitespace-nowrap">{sale.customerName}</td>
+                                    <td className="px-2 py-1 whitespace-nowrap">{sale.productName}</td>
+                                    <td className="px-2 py-1 whitespace-nowrap">{sale.price}</td>
+                                    <td className="px-2 py-1 whitespace-nowrap">{sale.quantity}</td>
+                                    <td className="px-2 py-1 text-right whitespace-nowrap">{formatCurrency(sale.totalAmount)}</td>
+                                    <td className="px-2 py-1 whitespace-nowrap">{sale.paymentMethod}</td>
+                                    <td className="px-2 py-1 whitespace-nowrap">{sale.status}</td>
+                                    <td className="px-2 py-1 whitespace-nowrap">{sale.staffName || 'N/A'}</td>
                                 </tr>
                             ))
                         )}
-                        </tbody>
-                    </table>
-                </div>
+                    </tbody>
+                </table>
             </div>
+            {totalPages > 1 && (
+                <div className="flex justify-center items-center gap-1 py-2 text-xs">
+                    <Button onClick={() => onPageChange(currentPage - 1)} disabled={currentPage === 1} className="px-2 py-1">Prev</Button>
+                    {[...Array(totalPages)].map((_, idx) => (
+                        <Button
+                            key={idx + 1}
+                            onClick={() => onPageChange(idx + 1)}
+                            className={`px-2 py-1 ${currentPage === idx + 1 ? 'bg-primary text-primary-foreground' : 'bg-gray-200'}`}
+                        >{idx + 1}</Button>
+                    ))}
+                    <Button onClick={() => onPageChange(currentPage + 1)} disabled={currentPage === totalPages} className="px-2 py-1">Next</Button>
+                </div>
+            )}
         </div>
-    );
-};
+    </div>
+);
 
 const ReportPage = () => {
     const { data: salesData, isLoading, error } = useSales();
     const [reportType, setReportType] = useState('weekly');
     const [selectedDate, setSelectedDate] = useState(new Date());
-
-    // Helper function for currency formatting, to be used in useMemo
-    const formatCurrency = (amount) => {
-        const numericAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
-        if (isNaN(numericAmount)) {
-            return amount;
-        }
-        return new Intl.NumberFormat('en-PH', {
-            style: 'currency',
-            currency: 'PHP'
-        }).format(numericAmount);
-    };
+    const [currentPage, setCurrentPage] = useState(1);
+    const ITEMS_PER_PAGE = 10;
 
     const reportData = useMemo(() => {
         if (!salesData) {
@@ -122,20 +103,20 @@ const ReportPage = () => {
         let interval;
         let title;
         const date = selectedDate || new Date();
+        const dayStart = new Date(date.setHours(0, 0, 0, 0));
 
         if (reportType === 'daily') {
-            const start = new Date(date.setHours(0, 0, 0, 0));
             const end = new Date(date.setHours(23, 59, 59, 999));
-            interval = { start, end };
-            title = `Sales Report: ${format(start, 'MMM d, yyyy')}`;
+            interval = { start: dayStart, end };
+            title = `Daily Report: ${format(dayStart, 'MMM d, yyyy')}`;
         } else if (reportType === 'weekly') {
-            const start = startOfWeek(date, { weekStartsOn: 1 }); // Ensure week starts on Monday
-            const end = endOfWeek(date, { weekStartsOn: 1 }); // Ensure week ends on Sunday
+            const start = startOfWeek(dayStart, { weekStartsOn: 1 });
+            const end = endOfWeek(dayStart, { weekStartsOn: 1 });
             interval = { start, end };
-            title = `Weekly Report: ${format(start, 'MMM d, yyyy')} - ${format(end, 'MMM d, yyyy')}`;
+            title = `Weekly Report: ${format(start, 'MMM d')} - ${format(end, 'MMM d, yyyy')}`;
         } else {
-            const start = startOfMonth(date);
-            const end = endOfMonth(date);
+            const start = startOfMonth(dayStart);
+            const end = endOfMonth(dayStart);
             interval = { start, end };
             title = `Monthly Report: ${format(start, 'MMMM yyyy')}`;
         }
@@ -145,9 +126,8 @@ const ReportPage = () => {
             return isWithinInterval(saleTime, interval);
         });
 
-        const total = salesInPeriod.reduce((acc, sale) => acc + sale.totalAmount, 0);
+        const total = salesInPeriod.reduce((acc, sale) => acc + (sale.totalAmount || 0), 0);
 
-        // Process sales data for display
         const processedSales = salesInPeriod.map(sale => {
             let productName = 'N/A', price = 'N/A', quantity = 0;
             if (Array.isArray(sale.sale_items) && sale.sale_items.length > 0) {
@@ -162,12 +142,11 @@ const ReportPage = () => {
                 productName,
                 price,
                 quantity,
-                staffName: sale.createdBy || 'N/A', // Use createdBy from useSales hook
+                staffName: sale.createdBy || 'N/A',
                 status: sale.status || 'Unknown',
             };
         });
 
-        // Sort by most recent first
         processedSales.sort((a, b) => new Date(b.saleTimestamp) - new Date(a.saleTimestamp));
 
         return {
@@ -177,58 +156,61 @@ const ReportPage = () => {
         };
     }, [salesData, selectedDate, reportType]);
 
+    const paginatedSales = useMemo(() => {
+        const allSales = reportData.filteredSales || [];
+        const totalPages = Math.max(1, Math.ceil(allSales.length / ITEMS_PER_PAGE));
+        const validCurrentPage = Math.max(1, Math.min(currentPage, totalPages));
+        if (currentPage !== validCurrentPage) {
+            setCurrentPage(validCurrentPage);
+        }
+        const startIdx = (validCurrentPage - 1) * ITEMS_PER_PAGE;
+        const endIdx = startIdx + ITEMS_PER_PAGE;
+        return {
+            sales: allSales.slice(startIdx, endIdx),
+            totalPages,
+        };
+    }, [reportData.filteredSales, currentPage]);
+
     const handleDateClick = (date) => {
-        setSelectedDate(date);
-        setReportType('daily'); // Switch to daily report when a date is clicked
+        if (date) {
+            setSelectedDate(date);
+            setReportType('daily');
+            setCurrentPage(1);
+        }
+    };
+
+    const handleReportTypeChange = (e) => {
+        setReportType(e.target.value);
+        setCurrentPage(1);
     };
 
     return (
-        <div className="report-page p-4 md:p-6 max-w-7xl mx-auto">
-            <h1 className="text-2xl font-bold mb-4">Sales Report</h1>
-            <div className="flex flex-col md:flex-row gap-6">
-                <div className="flex-shrink-0 md:w-80">
-                    <h2 className="text-lg font-semibold mb-2">Report Controls</h2>
-                    <div className="mb-4 bg-white p-3 rounded-lg border">
-                        <p className="font-medium mb-2 text-sm">Report Type</p>
-                        <div className="flex gap-2">
-                            <Button
-                                onClick={() => setReportType('weekly')}
-                                className={`w-full ${reportType === 'weekly' ? 'bg-primary text-primary-foreground' : 'bg-gray-200'}`}
-                            >
-                                Weekly
-                            </Button>
-                            <Button
-                                onClick={() => setReportType('monthly')}
-                                className={`w-full ${reportType === 'monthly' ? 'bg-primary text-primary-foreground' : 'bg-gray-200'}`}
-                            >
-                                Monthly
-                            </Button>
-                        </div>
-                    </div>
-                    <div className="bg-white p-3 rounded-lg border">
-                        <p className="font-medium mb-2 text-sm">Select Date</p>
-                        <DayPicker
-                            mode="single"
-                            selected={selectedDate}
-                            onSelect={handleDateClick}
-                            className="p-0"
-                        />
-                    </div>
+        <div className="report-page max-w-4xl mx-auto p-2 md:p-4">
+            <h1 className="text-lg font-bold mb-2">Sales Report</h1>
+            <div className="flex flex-col gap-2 mb-2">
+                <div className="flex flex-wrap gap-2 items-center bg-gray-50 p-2 rounded border">
+                    <span className="font-medium text-xs">Report Type:</span>
+                    <select value={reportType} onChange={handleReportTypeChange} className="text-xs px-2 py-1 rounded border">
+                        <option value="daily">Daily</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="monthly">Monthly</option>
+                    </select>
+                    <span className="font-medium text-xs ml-4">Select Date:</span>
+                    <div className="inline-block"><DayPicker mode="single" selected={selectedDate} onSelect={handleDateClick} className="p-0 text-xs" /></div>
                 </div>
-                {isLoading && <div className="flex-grow">Loading sales data...</div>}
-                {error && (
-                    <div className="flex-grow text-red-500">
-                        Error loading sales: {error.message}
-                    </div>
-                )}
-                {!isLoading && !error && (
-                    <SalesReportDisplay
-                        title={reportData.reportTitle}
-                        totalSales={reportData.totalSales}
-                        salesList={reportData.filteredSales}
-                    />
-                )}
             </div>
+            {isLoading && <div className="text-xs text-gray-500">Loading sales data...</div>}
+            {error && (<div className="text-xs text-red-500">Error loading sales: {error.message}</div>)}
+            {!isLoading && !error && (
+                <SalesReportDisplay
+                    title={reportData.reportTitle}
+                    totalSales={reportData.totalSales}
+                    salesList={paginatedSales.sales}
+                    currentPage={currentPage}
+                    totalPages={paginatedSales.totalPages}
+                    onPageChange={page => setCurrentPage(page)}
+                />
+            )}
         </div>
     );
 };
