@@ -1,49 +1,172 @@
-import React, { useRef, useEffect, useState } from 'react';
-import { Card, CardContent, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Input, ScrollArea, cn, Button } from '../ui';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useSales } from '../../hooks/useSales';
+import {
+    Button, Card, CardContent, Table, TableHeader, TableBody, TableRow,
+    TableHead, TableCell, ScrollArea, Input, Dialog, DialogContent,
+    DialogHeader, DialogTitle, DialogFooter, DialogCloseButton
+} from '../ui';
 import MobileLogoutButton from '../MobileLogoutButton';
+import { format } from 'date-fns';
 
+// --- Helper Functions ---
+const formatCurrency = (amount) => {
+    const numericAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+    if (isNaN(numericAmount)) {
+        return 'N/A';
+    }
+    return new Intl.NumberFormat('en-PH', {
+        style: 'currency',
+        currency: 'PHP',
+    }).format(numericAmount);
+};
+
+const formatDate = (dateString) => {
+    try {
+        return format(new Date(dateString), 'MMM d, yyyy h:mm a');
+    } catch (e) {
+        return 'Invalid Date';
+    }
+}
+
+// --- Modern Icons ---
+
+// View Icon (Eye)
+const ViewIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="currentColor">
+        <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+        <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.022 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+    </svg>
+);
+
+// Receipt Icon (for Modal Button)
+const ReceiptIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+        <path fillRule="evenodd" d="M5 2a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V4a2 2 0 00-2-2H5zm3 4a1 1 0 000 2h4a1 1 0 100-2H8zm0 3a1 1 0 100 2h4a1 1 0 100-2H8zm-1 3a1 1 0 102 0v1a1 1 0 102 0v-1a1 1 0 102 0v1a1 1 0 102 0v-1h.5a1 1 0 100-2H7v1z" clipRule="evenodd" />
+    </svg>
+);
+
+// Receipt Icon (for List Item)
+const ListReceiptIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="currentColor" className="text-gray-500">
+        <path fillRule="evenodd" d="M5 2a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V4a2 2 0 00-2-2H5zm3 4a1 1 0 000 2h4a1 1 0 100-2H8zm0 3a1 1 0 100 2h4a1 1 0 100-2H8zm-1 3a1 1 0 102 0v1a1 1 0 102 0v-1a1 1 0 102 0v1a1 1 0 102 0v-1h.5a1 1 0 100-2H7v1z" clipRule="evenodd" />
+    </svg>
+);
+
+// --- Status Badge Component ---
+const StatusBadge = ({ status }) => {
+    let className = 'px-2 py-0.5 rounded-full text-xs font-medium ';
+    switch (status) {
+        case 'Completed':
+            className += 'bg-green-100 text-green-800';
+            break;
+        case 'Pending':
+            className += 'bg-yellow-100 text-yellow-800';
+            break;
+        case 'Cancelled':
+            className += 'bg-red-100 text-red-800';
+            break;
+        default:
+            className += 'bg-gray-100 text-gray-800';
+    }
+    return <span className={className}>{status}</span>;
+};
+
+
+// --- Sale Details Modal ---
+const SaleDetailsModal = ({ sale, isOpen, onClose }) => {
+    if (!sale) return null;
+
+    // Note: This function would be for a future "Print" feature
+    const handlePrintReceipt = () => {
+        alert("Printing receipt... (feature not implemented)");
+    };
+
+    return (
+        <Dialog open={isOpen} onOpenChange={onClose}>
+            <DialogContent className="max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Sale Details</DialogTitle>
+                    <DialogCloseButton onClick={onClose} />
+                </DialogHeader>
+
+                <div className="p-4 space-y-4">
+                    <div className="text-center">
+                        <img src="/seaside.png" alt="Logo" className="mx-auto h-12 w-12" />
+                        <h3 className="font-semibold text-lg">Seaside Water Refilling Station</h3>
+                        <p className="text-sm text-muted">Transaction Receipt</p>
+                    </div>
+
+                    <div className="border-t border-dashed pt-2 space-y-1">
+                        <div className="flex justify-between text-sm">
+                            <span className="text-muted">Date:</span>
+                            <span className="font-medium">{formatDate(sale.saleTimestamp)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                            <span className="text-muted">Customer:</span>
+                            <span className="font-medium">{sale.customerName}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                            <span className="text-muted">Staff:</span>
+                            <span className="font-medium">{sale.createdBy || sale.staffName || 'N/A'}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                            <span className="text-muted">Status:</span>
+                            <StatusBadge status={sale.status} />
+                        </div>
+                        <div className="flex justify-between text-sm">
+                            <span className="text-muted">Payment:</span>
+                            <span className="font-medium">{sale.paymentMethod}</span>
+                        </div>
+                    </div>
+
+                    <div className="border-t border-dashed pt-2">
+                        <h4 className="font-semibold mb-2">Items Purchased</h4>
+                        <div className="space-y-1">
+                            {(sale.sale_items || []).map((item, idx) => (
+                                <div key={idx} className="flex justify-between text-sm">
+                                    <span>{item.productName} (x{item.quantity})</span>
+                                    <span>{formatCurrency(item.productPrice * item.quantity)}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="border-t border-dashed pt-2 space-y-1">
+                        <div className="flex justify-between text-base font-semibold">
+                            <span>Total Amount:</span>
+                            <span>{formatCurrency(sale.totalAmount)}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <DialogFooter>
+                    <Button variant="outline" onClick={handlePrintReceipt} disabled>
+                        <ReceiptIcon /> <span className="ml-2">Print Receipt</span>
+                    </Button>
+                    <Button variant="primary" onClick={onClose}>Close</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
+
+// --- Main History Page Component ---
 export default function HistoryPage() {
-    // --- Get data from useSales hook ---
     const { data: sales = [], isLoading } = useSales();
-
-    // --- Calculation logic ---
-    const totalRevenue = sales.reduce((sum, sale) => sum + Number(sale.amountReceived || 0), 0);
-    const transactionsCount = sales.length;
-    const avgTransaction = transactionsCount > 0 ? (totalRevenue / transactionsCount).toFixed(2) : '0.00';
-
-    // --- State and Refs for Search/Pagination ---
+    const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
+    const [selectedSale, setSelectedSale] = useState(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
     const searchInputRef = useRef(null);
     const itemsPerPage = 10;
-    const [searchTerm, setSearchTerm] = useState('');
 
-    // --- Filtering Logic ---
-    const filteredSales = sales.filter(sale => {
-        const term = searchTerm.trim().toLowerCase();
-        if (!term) return true;
-        return (
-            (sale.customerName && sale.customerName.toLowerCase().includes(term)) ||
-            (sale.id && String(sale.id).toLowerCase().includes(term))
-        );
-    });
-
-    // --- Pagination Logic (This was missing from your last paste) ---
-    const totalPages = Math.ceil(filteredSales.length / itemsPerPage);
-    const paginatedSales = filteredSales.slice(
-        (currentPage - 1) * itemsPerPage,
-        currentPage * itemsPerPage
-    );
-
-    // --- Keyboard Shortcut Effect (Ctrl+F or /) ---
     useEffect(() => {
         const handleKeyDown = (e) => {
             const activeTag = document.activeElement.tagName;
             if (activeTag === 'INPUT' || activeTag === 'TEXTAREA') return;
             if ((e.ctrlKey && e.key === 'f') || e.key === '/') {
-                if (searchInputRef.current) {
-                    searchInputRef.current.focus();
-                }
+                if (searchInputRef.current) searchInputRef.current.focus();
                 e.preventDefault();
             }
         };
@@ -51,246 +174,186 @@ export default function HistoryPage() {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, []);
 
+    const openModal = (sale) => {
+        setSelectedSale(sale);
+        setIsModalOpen(true);
+    };
+
+    const closeModal = () => {
+        setIsModalOpen(false);
+        setTimeout(() => setSelectedSale(null), 300); // Delay for animation
+    };
+
+    // Memoized filtering and pagination
+    const paginatedSales = useMemo(() => {
+        const filteredSales = sales.filter(s => {
+            const term = searchTerm.trim().toLowerCase();
+            if (!term) return true;
+            return (
+                (s.customerName && s.customerName.toLowerCase().includes(term)) ||
+                (s.staffName && s.staffName.toLowerCase().includes(term)) ||
+                (s.status && s.status.toLowerCase().includes(term)) ||
+                (s.paymentMethod && s.paymentMethod.toLowerCase().includes(term))
+            );
+        }).sort((a, b) => new Date(b.saleTimestamp) - new Date(a.saleTimestamp)); // Sort by most recent
+
+        const totalPages = Math.max(1, Math.ceil(filteredSales.length / itemsPerPage));
+        const validCurrentPage = Math.max(1, Math.min(currentPage, totalPages));
+
+        if (currentPage !== validCurrentPage) {
+            setCurrentPage(validCurrentPage);
+        }
+
+        const startIdx = (validCurrentPage - 1) * itemsPerPage;
+        const endIdx = startIdx + itemsPerPage;
+
+        return {
+            sales: filteredSales.slice(startIdx, endIdx),
+            totalPages,
+        };
+    }, [sales, searchTerm, currentPage]);
+
+
     return (
         <div className="history-page">
-            {/* --- Brand Logo at the very top left --- */}
             <img src="/seaside.png" alt="Seaside Logo" className="brand-logo-top" width={32} height={32} loading="lazy" />
             <MobileLogoutButton />
-            <h1 className="text-2xl font-semibold mb-4">Sales History</h1>
-
-            {/* --- Summary Cards - Responsive compact layout --- */}
-            <div
-                className="history-summary-row"
-                style={{
-                    display: 'flex',
-                    gap: '0.5rem',
-                    marginBottom: '1rem',
-                    flexDirection: 'row',
-                }}
-            >
-                {/* Total Revenue Card */}
-                <div
-                    className="history-summary-card"
-                    style={{
-                        flex: 1,
-                        background: '#f9fafb',
-                        border: '1px solid #e5e7eb',
-                        borderRadius: '6px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'center',
-                        alignItems: 'flex-start',
-                        minWidth: 0,
-                        padding: 0,
-                        boxSizing: 'border-box',
-                        maxWidth: '100%',
-                    }}
-                >
-                    <div style={{ padding: '0.75rem', borderBottom: '1px solid #e5e7eb', width: '100%', fontSize: '1rem' }}><span style={{ fontWeight: 600, color: '#1f2937' }}>Total Revenue</span></div>
-                    <div style={{ padding: '0.75rem', fontWeight: 700, fontSize: '1.25rem', color: '#1f2937', wordBreak: 'break-word' }}>₱{totalRevenue.toFixed(2)}</div>
+            <div>
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                    <div>
+                        <h1 className="text-2xl font-semibold">Sales History</h1>
+                        <p className="text-muted mt-1">View all completed transactions</p>
+                    </div>
                 </div>
-                {/* Transactions Card */}
-                <div
-                    className="history-summary-card"
-                    style={{
-                        flex: 1,
-                        background: '#f9fafb',
-                        border: '1px solid #e5e7eb',
-                        borderRadius: '6px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'center',
-                        alignItems: 'flex-start',
-                        minWidth: 0,
-                        padding: 0,
-                        boxSizing: 'border-box',
-                        maxWidth: '100%',
-                    }}
-                >
-                    <div style={{ padding: '0.75rem', borderBottom: '1px solid #e5e7eb', width: '100%', fontSize: '1rem' }}><span style={{ fontWeight: 600, color: '#1f2937' }}>Transactions</span></div>
-                    <div style={{ padding: '0.75rem', fontWeight: 700, fontSize: '1.25rem', color: '#1f2937', wordBreak: 'break-word' }}>{transactionsCount}</div>
+
+                <div className="mb-4">
+                    <Input
+                        ref={searchInputRef}
+                        placeholder="Search by customer, staff, status..."
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                        className="w-full max-w-xs mb-2"
+                    />
                 </div>
-                {/* Avg. Transaction Card */}
-                <div
-                    className="history-summary-card"
-                    style={{
-                        flex: 1,
-                        background: '#f9fafb',
-                        border: '1px solid #e5e7eb',
-                        borderRadius: '6px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'center',
-                        alignItems: 'flex-start',
-                        minWidth: 0,
-                        padding: 0,
-                        boxSizing: 'border-box',
-                        maxWidth: '100%',
-                    }}
-                >
-                    <div style={{ padding: '0.75rem', borderBottom: '1px solid #e5e7eb', width: '100%', fontSize: '1rem' }}><span style={{ fontWeight: 600, color: '#1f2937' }}>Avg. Transaction</span></div>
-                    <div style={{ padding: '0.75rem', fontWeight: 700, fontSize: '1.25rem', color: '#1f2937', wordBreak: 'break-word' }}>₱{avgTransaction}</div>
-                    <div style={{ padding: '0 0.75rem 0.75rem 0.75rem', color: '#6b7280', fontSize: '0.85rem', wordBreak: 'break-word' }}>Per transaction</div>
-                </div>
-            </div>
 
-            {/* --- Inline Styles for Card Responsiveness --- */}
-            <style>{`
-                @media (max-width: 767px) {
-                    .history-summary-row {
-                        flex-direction: column !important;
-                        gap: 0.5rem !important;
-                    }
-                    .history-summary-card {
-                        font-size: 0.95rem !important;
-                        padding: 0 !important;
-                        min-width: 0 !important;
-                        max-width: 100% !important;
-                    }
-                    .history-summary-card > div {
-                        padding: 0.5rem !important;
-                        font-size: 1rem !important;
-                    }
-                    .history-summary-card > div:last-child {
-                        font-size: 0.8rem !important;
-                        padding-bottom: 0.5rem !important;
-                    }
-                }
-            `}</style>
-
-            {/* --- Search Input --- */}
-            <div className="mb-4">
-                <Input
-                    ref={searchInputRef}
-                    placeholder="Search by customer..."
-                    className="w-full max-w-lg"
-                    onChange={(e) => {
-                        setSearchTerm(e.target.value);
-                        setCurrentPage(1); // Reset to first page on new search
-                    }}
-                />
-            </div>
-
-            {/* --- DESKTOP TABLE (Hidden on mobile) --- */}
-            <Card className="hidden md:block">
-                <CardContent className="p-0">
-                    <ScrollArea className="max-h-[calc(100vh-340px)]">
-                        <Table>
-                            <TableHeader className="sticky top-0 bg-gray-50 z-10">
-                                <TableRow>
-                                    <TableHead>Date & Time</TableHead>
-                                    <TableHead>Customer</TableHead>
-                                    <TableHead>Item</TableHead>
-                                    <TableHead>Price</TableHead>
-                                    <TableHead>Quantity</TableHead>
-                                    <TableHead>Payment Method</TableHead>
-                                    <TableHead className="text-right">Total</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead>Staff</TableHead> {/* Moved Staff column after Status */}
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {isLoading ? (
+                {/* --- DESKTOP TABLE (Hidden on mobile) --- */}
+                <Card className="mb-4 hidden md:block">
+                    <CardContent className="p-0">
+                        <ScrollArea className="max-h-[calc(100vh-280px)]">
+                            <Table>
+                                <TableHeader className="sticky top-0 bg-gray-50 z-10">
                                     <TableRow>
-                                        <TableCell colSpan={9} className="text-center text-muted py-8">Loading sales...</TableCell>
+                                        <TableHead>Date & Time</TableHead>
+                                        <TableHead>Customer</TableHead>
+                                        <TableHead>Staff</TableHead>
+                                        <TableHead>Status</TableHead>
+                                        <TableHead>Payment</TableHead>
+                                        <TableHead>Total</TableHead>
+                                        <TableHead className="text-right">Actions</TableHead>
                                     </TableRow>
-                                ) : paginatedSales.length === 0 ? (
-                                    <TableRow>
-                                        <TableCell colSpan={9} className="text-center text-muted py-8">No sales found.</TableCell>
-                                    </TableRow>
-                                ) : (
-                                    paginatedSales.map(sale => (
-                                        <TableRow key={sale.id} className="hover:bg-gray-50">
-                                            <TableCell>{sale.saleTimestamp ? new Date(sale.saleTimestamp).toLocaleString() : 'N/A'}</TableCell>
-                                            <TableCell>{sale.customerName || 'N/A'}</TableCell>
-                                            <TableCell>{Array.isArray(sale.sale_items) && sale.sale_items.length > 0 ? sale.sale_items.map(item => item.productName).join(', ') : 'N/A'}</TableCell>
-                                            <TableCell>{Array.isArray(sale.sale_items) && sale.sale_items.length > 0 ? sale.sale_items.map(item => `₱${Number(item.productPrice || 0).toFixed(2)}`).join(', ') : 'N/A'}</TableCell>
-                                            <TableCell>{Array.isArray(sale.sale_items) ? sale.sale_items.reduce((sum, item) => sum + (item.quantity || 0), 0) : 0}</TableCell>
-                                            <TableCell>{sale.paymentMethod || 'N/A'}</TableCell>
-                                            <TableCell className="text-right font-semibold">₱{Number(sale.amountReceived || 0).toFixed(2)}</TableCell>
-                                            <TableCell>
-                                                <span className={cn(
-                                                    'status-badge',
-                                                    sale.status === 'Completed' ? 'status-completed' : 'status-refunded'
-                                                )}>
-                                                    {sale.status || 'Completed'}
-                                                </span>
-                                            </TableCell>
-                                            <TableCell>{sale.createdBy || 'N/A'}</TableCell> {/* Moved Staff value after Status */}
+                                </TableHeader>
+                                <TableBody>
+                                    {isLoading ? (
+                                        <TableRow>
+                                            <TableCell colSpan={7} className="text-center text-muted py-8">Loading sales...</TableCell>
                                         </TableRow>
-                                    ))
-                                )}
-                            </TableBody>
-                        </Table>
-                    </ScrollArea>
-                </CardContent>
-            </Card>
+                                    ) : paginatedSales.sales.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={7} className="text-center text-muted py-8">No sales found.</TableCell>
+                                        </TableRow>
+                                    ) : (
+                                        paginatedSales.sales.map(s => (
+                                            <TableRow key={s.id}>
+                                                <TableCell className="font-medium">{formatDate(s.saleTimestamp)}</TableCell>
+                                                <TableCell>{s.customerName}</TableCell>
+                                                <TableCell>{s.createdBy || s.staffName || 'N/A'}</TableCell>
+                                                <TableCell><StatusBadge status={s.status} /></TableCell>
+                                                <TableCell>{s.paymentMethod}</TableCell>
+                                                <TableCell>{formatCurrency(s.totalAmount)}</TableCell>
+                                                <TableCell className="text-right">
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:bg-blue-100" onClick={() => openModal(s)} title="View Details">
+                                                        <ViewIcon />
+                                                    </Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </ScrollArea>
 
-            {/* --- MOBILE CARD LIST (Show on mobile, hide on md+) --- */}
-            <div className="block md:hidden space-y-3">
-                {isLoading ? (
-                    <div className="text-center text-muted py-8">Loading history...</div>
-                ) : paginatedSales.length === 0 ? (
-                    <div className="text-center text-muted py-8">No sales found.</div>
-                ) : (
-                    paginatedSales.map(sale => (
-                        <Card key={sale.id} className="md:hidden">
-                            <CardContent className="p-4">
-                                {/* Top row: ID and Total */}
-                                <div className="flex justify-between items-start mb-2 pb-2 border-b">
-                                    <div>
-                                        <p className="text-xs text-muted">Transaction ID</p>
-                                        <h3 className="font-semibold">...{String(sale.id).slice(-6)}</h3>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="text-xs text-muted">Total</p>
-                                        <h3 className="font-bold text-lg text-primary">₱{Number(sale.amountReceived || 0).toFixed(2)}</h3>
-                                    </div>
-                                </div>
-                                {/* Details */}
-                                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-                                    <span className="text-muted">Customer:</span>
-                                    <span>{sale.customerName || 'N/A'}</span>
-                                    <span className="text-muted">Items:</span>
-                                    <span>{Array.isArray(sale.sale_items) ? sale.sale_items.reduce((sum, item) => sum + (item.quantity || 0), 0) : 0} items</span>
-                                    <span className="text-muted">Payment:</span>
-                                    <span>{sale.paymentMethod || 'N/A'}</span>
-                                    <span className="text-muted">Status:</span>
-                                    <span>
-                                        <span className={cn('status-badge', sale.status === 'Completed' ? 'status-completed' : 'status-refunded')}>
-                                            {sale.status || 'Completed'}
-                                        </span>
-                                    </span>
-                                </div>
-                                {/* Timestamp */}
-                                <div className="text-xs text-gray-500 mt-3 pt-3 border-t">
-                                    {sale.saleTimestamp ? new Date(sale.saleTimestamp).toLocaleString() : 'N/A'}
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))
-                )}
-            </div>
+                        {/* Pagination Controls */}
+                        <div className="flex justify-center items-center gap-2 py-4 px-4 rounded-lg bg-white">
+                            <Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => setCurrentPage(currentPage - 1)}>Prev</Button>
+                            <span className="text-sm">Page {currentPage} of {paginatedSales.totalPages}</span>
+                            <Button variant="outline" size="sm" disabled={currentPage === paginatedSales.totalPages || paginatedSales.totalPages === 0} onClick={() => setCurrentPage(currentPage + 1)}>Next</Button>
+                        </div>
+                    </CardContent>
+                </Card>
 
-            {/* --- Pagination Controls --- */}
-            <div className="flex justify-center items-center gap-2 py-4 px-4 rounded-lg bg-white">
-                <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={currentPage === 1}
-                    onClick={() => setCurrentPage(currentPage - 1)}
-                >
-                    Prev
-                </Button>
-                <span className="text-sm">Page {currentPage} of {totalPages > 0 ? totalPages : 1}</span>
-                <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={currentPage === totalPages || totalPages === 0}
-                    onClick={() => setCurrentPage(currentPage + 1)}
-                >
-                    Next
-                </Button>
+                {/* --- (MODIFIED) MOBILE CARD LIST (Show on mobile, hide on md+) --- */}
+                <div className="block md:hidden">
+                    <Card>
+                        <CardContent className="p-0">
+                            {isLoading ? (
+                                <div className="text-center text-muted p-6">Loading sales...</div>
+                            ) : paginatedSales.sales.length === 0 ? (
+                                <div className="text-center text-muted p-6">No sales found.</div>
+                            ) : (
+                                <div className="divide-y divide-gray-100">
+                                    {paginatedSales.sales.map(s => (
+                                        <div key={s.id} className="p-4 flex items-center space-x-3">
+                                            {/* Icon */}
+                                            <div className="flex-shrink-0">
+                                                <span className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                                                    <ListReceiptIcon />
+                                                </span>
+                                            </div>
+
+                                            {/* Sale Info */}
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex justify-between items-center">
+                                                    <span className="font-medium text-gray-900 truncate">{s.customerName}</span>
+                                                    <span className="font-semibold text-gray-900 ml-2">{formatCurrency(s.totalAmount)}</span>
+                                                </div>
+                                                <div className="text-sm text-gray-500">
+                                                    {formatDate(s.saleTimestamp)}
+                                                </div>
+                                                <div className="flex justify-between items-center mt-1">
+                                                    <span className="text-xs text-gray-500">
+                                                        Staff: {s.createdBy || s.staffName || 'N/A'}
+                                                    </span>
+                                                    <StatusBadge status={s.status} />
+                                                </div>
+                                            </div>
+
+                                            {/* Action Button */}
+                                            <div className="flex-shrink-0">
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600" onClick={() => openModal(s)} title="View Details">
+                                                    <ViewIcon />
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    {/* Pagination Controls for mobile */}
+                    <div className="flex justify-center items-center gap-2 py-3">
+                        <Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => setCurrentPage(currentPage - 1)}>Prev</Button>
+                        <span className="text-sm">Page {currentPage} of {paginatedSales.totalPages}</span>
+                        <Button variant="outline" size="sm" disabled={currentPage === paginatedSales.totalPages || paginatedSales.totalPages === 0} onClick={() => setCurrentPage(currentPage + 1)}>Next</Button>
+                    </div>
+                </div>
+
+                {/* --- Sale Details Modal --- */}
+                <SaleDetailsModal
+                    sale={selectedSale}
+                    isOpen={isModalOpen}
+                    onClose={closeModal}
+                />
             </div>
         </div>
     );

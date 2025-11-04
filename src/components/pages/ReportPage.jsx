@@ -62,7 +62,7 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
     const pageNumbers = [...Array(totalPages)].map((_, idx) => idx + 1);
 
     return (
-        <div className="flex justify-center items-center gap-2 py-3 text-xs font-medium">
+        <div className="flex justify-center items-center flex-wrap gap-2 py-3 text-xs font-medium">
             <Button
                 onClick={() => onPageChange(currentPage - 1)}
                 disabled={currentPage === 1}
@@ -96,11 +96,62 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
     );
 };
 
-
-// --- Sales Report Table ---
-const SalesReportDisplay = ({ salesList, currentPage, totalPages, onPageChange }) => (
+// --- Mobile Sale Card ---
+const SaleCard = ({ sale }) => (
     <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="p-4 space-y-3">
+            {/* Header: Date and Total */}
+            <div className="flex justify-between items-start">
+                <div>
+                    <div className="text-sm font-semibold text-gray-800">
+                        {format(new Date(sale.saleTimestamp), 'MMM d, yyyy h:mm a')}
+                    </div>
+                    <div className="text-xs text-gray-500">{sale.customerName}</div>
+                </div>
+                <div className="text-right flex-shrink-0 ml-2">
+                    <div className="text-lg font-bold text-gray-900">
+                        {formatCurrency(sale.totalAmount)}
+                    </div>
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                        sale.status === 'Completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                    }`}>
+                        {sale.status || 'Unknown'}
+                    </span>
+                </div>
+            </div>
+
+            {/* Items List */}
+            <div className="space-y-2 pt-2 border-t">
+                <h4 className="text-xs font-medium text-gray-500">Items</h4>
+                {(sale.sale_items || []).map((item, idx) => (
+                    <div key={idx} className="flex justify-between items-center text-sm">
+                        <div className="flex-1 truncate pr-2">
+                            <span className="font-medium text-gray-800">{item.productName || 'N/A'}</span>
+                            <span className="text-gray-500 ml-2">x{item.quantity || 0}</span>
+                        </div>
+                        <div className="text-gray-700 whitespace-nowrap">
+                            {formatCurrency(item.productPrice || 0)}
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {/* Footer: Staff & Payment */}
+            <div className="flex justify-between items-center text-xs text-gray-500 pt-3 border-t">
+                <span>Staff: <span className="font-medium text-gray-700">{sale.staffName || 'N/A'}</span></span>
+                <span>Payment: <span className="font-medium text-gray-700">{sale.paymentMethod}</span></span>
+            </div>
+        </div>
+    </div>
+);
+
+
+// --- Sales Report Table / Cards ---
+const SalesReportDisplay = ({ salesList, currentPage, totalPages, onPageChange }) => (
+    <div className="bg-white rounded-lg border shadow-sm md:overflow-hidden">
+
+        {/* --- Desktop Table --- */}
+        <div className="overflow-x-auto hidden md:block">
             <table className="min-w-full text-base">
                 <thead className="bg-gray-100">
                 <tr>
@@ -167,7 +218,21 @@ const SalesReportDisplay = ({ salesList, currentPage, totalPages, onPageChange }
             </table>
         </div>
 
-        {/* --- Pagination --- */}
+        {/* --- Mobile Cards --- */}
+        <div className="md:hidden p-2 space-y-3 bg-gray-50">
+            {salesList.length === 0 ? (
+                <div className="text-center p-6 text-gray-500">
+                    No sales found for this period.
+                </div>
+            ) : (
+                salesList.map(sale => (
+                    <SaleCard key={sale.id} sale={sale} />
+                ))
+            )}
+        </div>
+
+
+        {/* --- Pagination (Common) --- */}
         <Pagination
             currentPage={currentPage}
             totalPages={totalPages}
@@ -296,7 +361,7 @@ const ReportPage = () => {
     return (
         <div className="report-page max-w-7xl mx-auto p-2 md:p-4 space-y-4">
 
-            <h1 className="text-2xl font-bold mb-4">Sales Report</h1>
+            <h1 className="text-2xl font-bold">Sales Report</h1>
 
             {/* --- Controls & Totals Card --- */}
             <div className="bg-white rounded-lg border shadow-sm p-4 space-y-4">
@@ -336,7 +401,7 @@ const ReportPage = () => {
                             </Button>
 
                             {isCalendarOpen && (
-                                <div className="absolute top-full left-0 mt-2 z-10 bg-white border rounded-lg shadow-lg">
+                                <div className="absolute top-full mt-2 z-10 bg-white border rounded-lg shadow-lg left-1/2 md:left-0 transform -translate-x-1/2 md:translate-x-0">
                                     <DayPicker
                                         mode="single"
                                         selected={selectedDate}
@@ -389,4 +454,3 @@ const ReportPage = () => {
 };
 
 export default ReportPage;
-

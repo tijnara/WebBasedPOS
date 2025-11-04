@@ -15,6 +15,13 @@ import {
     useDeleteCustomer
 } from '../../hooks/useCustomerMutations';
 
+// --- NEW: Simple SVG Icon for Customer (User Circle) ---
+const UserIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="currentColor" className="text-gray-500">
+        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zM8 11a4 4 0 00-4 4v.5a.5.5 0 00.5.5h11a.5.5 0 00.5-.5V15a4 4 0 00-4-4H8z" clipRule="evenodd" />
+    </svg>
+);
+
 // Simple SVG Icon for Edit
 const EditIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
@@ -159,7 +166,7 @@ export default function CustomerManagementPage() {
                     </div>
                     <Button onClick={openModal} variant="primary">Add Customer</Button>
                 </div>
-<br/>
+                <br/>
                 <div className="mb-4 mt-6">
                     <Input
                         ref={searchInputRef}
@@ -237,40 +244,52 @@ export default function CustomerManagementPage() {
                     </CardContent>
                 </Card>
 
-                {/* --- MOBILE CARD LIST (Show on mobile, hide on md+) --- */}
-                <div className="block md:hidden space-y-3">
-                    {isLoading ? (
-                        <div className="text-center text-muted py-8">Loading customers...</div>
-                    ) : paginatedCustomers.length === 0 ? (
-                        <div className="text-center text-muted py-8">No customers found.</div>
-                    ) : (
-                        paginatedCustomers.map(c => (
-                            <Card key={c.id}>
-                                <CardContent className="p-4">
-                                    <div className="flex justify-between items-start">
-                                        {/* Customer Info */}
-                                        <div className="pr-2">
-                                            <h3 className="font-semibold text-lg">{c.name}</h3>
-                                            <p className="text-sm text-muted truncate">{c.email}</p>
-                                            <p className="text-sm text-muted">{c.phone}</p>
-                                            <p className="text-sm text-muted">Staff: {c.users?.name || 'N/A'}</p> {/* --- ADDED: Staff name for mobile --- */}
+                {/* --- (MODIFIED) MOBILE CARD LIST (Show on mobile, hide on md+) --- */}
+                <div className="block md:hidden">
+                    <Card>
+                        <CardContent className="p-0">
+                            {isLoading ? (
+                                <div className="text-center text-muted p-6">Loading customers...</div>
+                            ) : paginatedCustomers.length === 0 ? (
+                                <div className="text-center text-muted p-6">No customers found.</div>
+                            ) : (
+                                <div className="divide-y divide-gray-100">
+                                    {paginatedCustomers.map(c => (
+                                        <div key={c.id} className="p-4 flex items-center space-x-3">
+                                            {/* Icon */}
+                                            <div className="flex-shrink-0">
+                                                <span className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                                                    <UserIcon />
+                                                </span>
+                                            </div>
+
+                                            {/* Customer Info */}
+                                            <div className="flex-1 min-w-0">
+                                                <div className="font-medium text-gray-900 truncate">{c.name}</div>
+                                                <div className="text-sm text-gray-500 truncate">{c.email || 'No email'}</div>
+                                                <div className="text-xs text-gray-400 truncate">
+                                                    Staff: {c.users?.name || (c.created_by === 99999 ? 'Demo User' : 'N/A')}
+                                                </div>
+                                            </div>
+
+                                            {/* Action Buttons */}
+                                            <div className="flex-shrink-0 flex items-center space-x-0">
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600" onClick={() => startEdit(c)} title="Edit Customer" disabled={isDemo}>
+                                                    <EditIcon />
+                                                </Button>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-red-600" onClick={() => remove(c)} title="Delete Customer" disabled={isDemo}>
+                                                    <DeleteIcon />
+                                                </Button>
+                                            </div>
                                         </div>
-                                        {/* Action Buttons */}
-                                        <div className="flex flex-col space-y-1 flex-shrink-0">
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600" onClick={() => startEdit(c)} title="Edit Customer" disabled={isDemo}>
-                                                <EditIcon />
-                                            </Button>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-red-600" onClick={() => remove(c)} title="Delete Customer" disabled={isDemo}>
-                                                <DeleteIcon />
-                                            </Button>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        ))
-                    )}
+                                    ))}
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+
                     {/* Pagination Controls for mobile */}
-                    <div className="flex justify-center items-center gap-2 py-4 px-4 rounded-lg bg-white">
+                    <div className="flex justify-center items-center gap-2 py-3">
                         <Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => setCurrentPage(currentPage - 1)}>Prev</Button>
                         <span className="text-sm">Page {currentPage} of {totalPages}</span>
                         <Button variant="outline" size="sm" disabled={currentPage === totalPages || totalPages === 0} onClick={() => setCurrentPage(currentPage + 1)}>Next</Button>

@@ -16,18 +16,27 @@ import {
 
 import MobileLogoutButton from '../MobileLogoutButton';
 
-// Simple SVG Icon for Edit
+// --- UPDATED ICONS (Modern & Consistent) ---
+
+// Simple SVG Icon for Edit (Pencil)
 const EditIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-        <path d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708l-3-3zm.646 6.061L9.793 2.5 3.293 9H3.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.207l6.5-6.5zm-7.468 7.468A.5.5 0 0 1 6 13.5V13h-.5a.5.5 0 0 1-.5-.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.5-.5V10h-.5a.499.499 0 0 1-.175-.032l-.179.178a.5.5 0 0 0-.11.168l-2 5a.5.5 0 0 0 .65.65l5-2a.5.5 0 0 0 .168-.11l.178-.178z"/>
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="currentColor">
+        <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" />
+        <path fillRule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clipRule="evenodd" />
     </svg>
 );
 
-// Simple SVG Icon for Delete
+// Simple SVG Icon for Delete (Trash)
 const DeleteIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-        <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
-        <path fillRule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="currentColor">
+        <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+    </svg>
+);
+
+// NEW: Simple SVG Icon for Product (Shopping Bag)
+const BagIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="currentColor" className="text-gray-500">
+        <path fillRule="evenodd" d="M10 2a2 2 0 00-2 2v2H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V8a2 2 0 00-2-2h-4V4a2 2 0 00-2-2h-2zM9 4V3a1 1 0 011-1h.01a1 1 0 011 1v1H9zM4 8h12v10H4V8z" clipRule="evenodd" />
     </svg>
 );
 
@@ -217,34 +226,51 @@ export default function ProductManagementPage() {
                     </CardContent>
                 </Card>
 
-                {/* --- MOBILE CARD LIST (Show on mobile, hide on md+) --- */}
-                <div className="block md:hidden space-y-3">
-                    {isLoading ? (
-                        <div className="text-center text-muted py-8">Loading products...</div>
-                    ) : paginatedProducts.length === 0 ? (
-                        <div className="text-center text-muted py-8">No products found.</div>
-                    ) : (
-                        paginatedProducts.map(p => (
-                            <Card key={p.id}>
-                                <CardContent className="p-4 flex justify-between items-center">
-                                    <div>
-                                        <h3 className="font-semibold">{p.name}</h3>
-                                        <p className="text-sm text-muted">₱{Number(p.price || 0).toFixed(2)}</p>
-                                    </div>
-                                    <div className="flex space-x-1 flex-shrink-0">
-                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEdit(p)}>
-                                            <EditIcon />
-                                        </Button>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(p)}>
-                                            <DeleteIcon />
-                                        </Button>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        ))
-                    )}
+                {/* --- MOBILE LIST VIEW (Show on mobile, hide on md+) --- */}
+                <div className="block md:hidden">
+                    <Card>
+                        <CardContent className="p-0"> {/* Remove padding from content to allow list to go edge-to-edge */}
+                            {isLoading ? (
+                                <div className="text-center text-muted p-6">Loading products...</div>
+                            ) : paginatedProducts.length === 0 ? (
+                                <div className="text-center text-muted p-6">No products found.</div>
+                            ) : (
+                                <div className="divide-y divide-gray-100"> {/* Lighter divider */}
+                                    {paginatedProducts.map(p => (
+                                        <div key={p.id} className="p-4 flex items-center space-x-3">
+                                            {/* Icon */}
+                                            <div className="flex-shrink-0">
+                                                <span className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                                                    <BagIcon />
+                                                </span>
+                                            </div>
+
+                                            {/* Product Info */}
+                                            <div className="flex-1 min-w-0">
+                                                <div className="font-medium text-gray-900 truncate">{p.name}</div>
+                                                <div className="text-sm text-gray-500">
+                                                    ₱{Number(p.price || 0).toFixed(2)}
+                                                </div>
+                                            </div>
+
+                                            {/* Actions */}
+                                            <div className="flex-shrink-0 flex items-center space-x-0">
+                                                <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => startEdit(p)}>
+                                                    <EditIcon />
+                                                </Button>
+                                                <Button variant="ghost" size="icon" className="h-9 w-9 text-destructive" onClick={() => remove(p)}>
+                                                    <DeleteIcon />
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+
                     {/* Pagination Controls for mobile */}
-                    <div className="flex justify-center items-center gap-2 py-2">
+                    <div className="flex justify-center items-center gap-2 py-3">
                         <Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => setCurrentPage(currentPage - 1)}>Prev</Button>
                         <span className="text-sm">Page {currentPage} of {totalPages}</span>
                         <Button variant="outline" size="sm" disabled={currentPage === totalPages || totalPages === 0} onClick={() => setCurrentPage(currentPage + 1)}>Next</Button>
