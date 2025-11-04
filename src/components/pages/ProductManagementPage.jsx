@@ -104,6 +104,22 @@ export default function ProductManagementPage() {
             addToast({ title: 'Error', description: 'Price must be a valid non-negative number.' });
             return;
         }
+        // --- Check for duplicate product name (case-insensitive) ---
+        if (!editing) {
+            const nameLower = name.trim().toLowerCase();
+            const exists = products.some(p => p.name.trim().toLowerCase() === nameLower);
+            if (exists) {
+                addToast({ title: 'Warning', description: `Product "${name}" already exists.`, variant: 'warning' });
+                return;
+            }
+        } else {
+            const nameLower = name.trim().toLowerCase();
+            const exists = products.some(p => p.name.trim().toLowerCase() === nameLower && p.id !== editing.id);
+            if (exists) {
+                addToast({ title: 'Warning', description: `Another product with the name "${name}" already exists.`, variant: 'warning' });
+                return;
+            }
+        }
 
         const payload = {
             name,

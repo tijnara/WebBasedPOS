@@ -7,23 +7,16 @@ import { useCreateCustomer } from '../../hooks/useCreateCustomer';
 import {
     Button, Card, CardContent, CardHeader, ScrollArea, Input,
     Dialog, DialogContent, DialogCloseButton, Select, Label, CardFooter, DialogHeader, DialogTitle,
-    // --- FIX: Added missing components ---
-    DialogFooter, Table, TableBody, TableRow, TableCell
+    DialogFooter
 } from '../ui';
 import MobileLogoutButton from '../MobileLogoutButton';
-// --- FIX: Added missing imports ---
+// --- FIX: Removed unused EmptyCartIcon import and definition ---
 import TabBar from '../TabBar';
 import { supabase } from '../../lib/supabaseClient';
-import CartDrawer from '../CartDrawer';
+// --- (REMOVED) CartDrawer is no longer used ---
+// import CartDrawer from '../CartDrawer';
 
-// --- Icons (Assuming EmptyCartIcon, TrashIcon exist as before) ---
-const EmptyCartIcon = () => (
-    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-muted">
-        <path d="M7.5 7.625C7.5 4.7625 9.7625 2.5 12.625 2.5C15.4875 2.5 17.75 4.7625 17.75 7.625" stroke="#6b7280" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
-        <path d="M16.3375 21.5H8.9125C5.9375 21.5 5.075 19.5875 4.075 16.1L2.8 12.1875C2.2625 10.375 3.0125 9 4.9625 9H20.2875C22.2375 9 22.9875 10.375 22.45 12.1875L20.5 18.5" stroke="#6b7280" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
-        <path d="M15.5 13H10.5" stroke="#6b7280" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-);
+// --- Icons (Assuming TrashIcon exist as before) ---
 const TrashIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
         <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
@@ -47,23 +40,19 @@ const ProductImage = ({ product }) => {
     const lowerName = (product.name || '').toLowerCase();
     const lowerCategory = (product.category || '').toLowerCase();
 
-    // 1. Check for Ice (Most Specific)
-    // Catches "Ice Tubes/Cubes (20)"
-    if (lowerName.includes('ice tubes/cubes')) {
+    // 1. Check for Ice Tubes, Ice Cubes, or Ice (more robust)
+    if (lowerName.includes('ice tubes') || lowerName.includes('ice cubes') || lowerName.includes('ice')) {
         imageUrl = '/icecubes.png';
     }
-        // 2. Check for Pet Bottles (Specific)
-    // Catches "Pet Bottles"
+    // 2. Check for Pet Bottles (Specific)
     else if (lowerName.includes('pet bottles')) {
         imageUrl = '/petbottles.png';
     }
-        // 3. Check for Containers (General)
-    // Catches "Container", "Empty Bottle (Slim)", or "Container" category
+    // 3. Check for Containers (General)
     else if (lowerCategory.includes('container') || lowerName.includes('empty bottle') || lowerName.includes('container')) {
         imageUrl = '/container1.png';
     }
-        // 4. Check for Water/Refills (Broad)
-    // Catches "Refill (25)", "Alkaline", etc.
+    // 4. Check for Water/Refills (Broad)
     else if (lowerCategory === 'water' || lowerName.includes('refill') || lowerName.includes('alkaline') || lowerName.includes('purified')) {
         imageUrl = '/refill.png';
     }
@@ -148,9 +137,11 @@ export default function POSPage() {
         return now.toTimeString().slice(0,5); // 'HH:MM'
     });
 
-    // --- CartDrawer state for mobile ---
-    const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
-    // Helper to get cart items as array
+    // --- (REMOVED) CartDrawer state ---
+    // const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
+
+    // (REMOVED) Helper to get cart items as array
+    /*
     const cartItems = Object.entries(currentSale).map(([key, item]) => ({
         key,
         id: item.productId,
@@ -158,6 +149,7 @@ export default function POSPage() {
         price: item.price,
         quantity: item.quantity
     }));
+    */
 
     // Sync local selectedCustomer with global store state
     useEffect(() => {
@@ -468,52 +460,61 @@ export default function POSPage() {
                 </div>
             </div>
             {/* --- Main Layout: Product Grid | Order Sidebar --- */}
+            {/* --- (MODIFIED) --- */}
             <div className="flex flex-col md:flex-row-reverse gap-4 w-full">
                 {/* --- Sidebar: Current Order --- */}
-                <div className={`w-full md:w-1/3 xl:w-1/4 flex-shrink-0 flex flex-col${isCartDrawerOpen ? ' hidden md:flex' : ''}`} style={{height: '500px'}}>
+                {/* --- (MODIFIED) Removed hidden logic, fixed height, and added order-1 --- */}
+                <div className="w-full md:w-1/3 xl:w-1/4 flex-shrink-0 flex flex-col order-1 md:order-none" style={{height: 'auto'}}>
                     {/* Current Order Card */}
-                    <Card className="flex flex-col flex-1 shadow-lg border border-gray-200 rounded-xl bg-white overflow-hidden">
+                    {/* --- (MODIFIED) Removed flex-1 --- */}
+                    <Card className="flex flex-col shadow-lg border border-gray-200 rounded-xl bg-white overflow-hidden">
                         <CardHeader className="bg-gray-50 border-b border-gray-200 rounded-t-xl">
                             <div className="flex justify-between items-center">
                                 <h3 className="font-semibold text-lg text-primary">Current Order</h3>
                                 <Button variant="ghost" size="sm" className="p-1 h-auto text-destructive" onClick={clearSale} title="Clear Sale">✖ Clear</Button>
                             </div>
                         </CardHeader>
-                        <CardContent className="flex-1 p-0 relative">
+                        {/* --- (MODIFIED) Removed flex-1 --- */}
+                        <CardContent className="p-0 relative">
                             {!Object.keys(currentSale).length ? (
-                                <div className="flex flex-col items-center justify-center h-full text-center p-4 text-gray-500">
-                                    <EmptyCartIcon />
-                                    <p className="mt-2">Cart is empty</p>
+                                // --- (MODIFIED) Compact Empty State ---
+                                <div className="flex items-center justify-center text-center p-3 text-sm text-gray-500 bg-gray-50 border-b md:p-4" style={{ minHeight: '60px' }}>
+                                    Cart is empty — Start order
                                 </div>
                             ) : (
-                                <ScrollArea className="absolute h-full w-full px-2 py-1 current-order-scroll-area">
-                                    <Table>
-                                        <TableBody>
-                                            {Object.entries(currentSale).map(([key, item]) => (
-                                                <TableRow key={key}>
-                                                    {/* --- COMPACT ---: Changed py-2 to py-1 */}
-                                                    <TableCell className="font-medium pr-1 py-1">
-                                                        {item.name}
-                                                        <br/>
-                                                        <span className="text-xs text-muted">₱{item.price.toFixed(2)}</span>
-                                                    </TableCell>
-                                                    {/* --- COMPACT ---: Changed py-2 to py-1 */}
-                                                    <TableCell className="text-center px-0 py-1 flex items-center justify-center space-x-1">
-                                                        <Button variant="ghost" size="sm" className="p-1 h-6 w-6" onClick={() => handleDecreaseQuantity(key)}>-</Button>
-                                                        <span className="w-4 text-center">{item.quantity}</span>
-                                                        <Button variant="ghost" size="sm" className="p-1 h-6 w-6" onClick={() => handleIncreaseQuantity(key)}>+</Button>
-                                                    </TableCell>
-                                                    {/* --- COMPACT ---: Changed py-2 to py-1 */}
-                                                    <TableCell className="text-right pl-1 py-1">
-                                                        <span className="font-semibold mr-1">₱{(item.price * item.quantity).toFixed(2)}</span>
-                                                        <Button variant="ghost" size="icon" className="text-destructive h-6 w-6 p-0" onClick={() => handleRemoveItem(key)} title="Remove Item">
-                                                            <TrashIcon />
-                                                        </Button>
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
+                                // --- (MODIFIED) Use Flexbox instead of Table ---
+                                <ScrollArea className="relative w-full current-order-scroll-area">
+                                    <div className="flex flex-col divide-y divide-gray-100 p-2">
+                                        {Object.entries(currentSale).map(([key, item]) => (
+                                            <div key={key} className="flex items-center gap-2 py-2" style={{ minHeight: '60px' }}> {/* Item Row */}
+                                                {/* 1. Thumbnail */}
+                                                <div className="flex-shrink-0 w-12 h-12 rounded-md bg-gray-50 flex items-center justify-center overflow-hidden border">
+                                                    <ProductImage product={{ name: item.name, category: '' }} />
+                                                </div>
+
+                                                {/* 2. Name & Unit Price */}
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="font-medium text-sm truncate">{item.name}</div>
+                                                    <div className="text-xs text-muted">@ ₱{item.price.toFixed(2)}</div>
+                                                </div>
+
+                                                {/* 3. Quantity Controls (min 44px height) */}
+                                                <div className="flex items-center justify-center space-x-0" style={{ minHeight: '44px' }}>
+                                                    <Button variant="ghost" size="sm" className="p-1 h-9 w-9 rounded-full" onClick={() => handleDecreaseQuantity(key)}>-</Button>
+                                                    <span className="w-6 text-center font-medium text-sm">{item.quantity}</span>
+                                                    <Button variant="ghost" size="sm" className="p-1 h-9 w-9 rounded-full" onClick={() => handleIncreaseQuantity(key)}>+</Button>
+                                                </div>
+
+                                                {/* 4. Line Total & Remove */}
+                                                <div className="text-right flex flex-col items-end" style={{ minWidth: '70px' }}>
+                                                    <span className="font-semibold text-sm">₱{(item.price * item.quantity).toFixed(2)}</span>
+                                                    <Button variant="ghost" size="icon" className="text-destructive h-7 w-7 p-0" onClick={() => handleRemoveItem(key)} title="Remove Item">
+                                                        <TrashIcon />
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </ScrollArea>
 
                             )}
@@ -525,20 +526,22 @@ export default function POSPage() {
                             <div className="w-full">
                                 <div className="flex justify-between mb-1 text-sm"><span>Subtotal</span><span>₱{subtotal.toFixed(2)}</span></div>
                                 <div className="flex justify-between mb-3 font-bold text-lg border-t pt-2 mt-2"><span>Total</span><span className="text-success">₱{subtotal.toFixed(2)}</span></div>
-                                <Button variant="primary" className="w-full h-12 text-lg rounded-lg shadow-md font-semibold" onClick={openPaymentModal} disabled={Object.keys(currentSale).length === 0 || createSaleMutation.isPending}>
+                                {/* --- (MODIFIED) Hide button on mobile, show on desktop --- */}
+                                <Button variant="primary" className="w-full h-12 text-lg rounded-lg shadow-md font-semibold hidden md:flex" onClick={openPaymentModal} disabled={Object.keys(currentSale).length === 0 || createSaleMutation.isPending}>
                                     {createSaleMutation.isPending ? 'Processing...' : 'Proceed to Payment'}
                                 </Button>
                             </div>
                         </CardFooter>
                     </Card>
                     {/* Last Customer label below the card, left-aligned, larger font */}
-                    <div className="mt-2 flex justify-start flex-shrink-0">
+                    <div className="mt-2 flex justify-start flex-shrink-0 last-customer-label-mobile">
                         <span className="text-lg text-gray-800 font-semibold">Last Customer Used: <span className="font-bold">{lastCustomer ? lastCustomer.name : 'none'}</span></span>
                     </div>
                 </div>
 
                 {/* --- Main Product Grid --- */}
-                <div className="flex-1 overflow-y-auto pr-2 max-h-[calc(100vh-120px)] md:max-h-[calc(100vh-100px)]">
+                {/* --- (MODIFIED) Added order-2 --- */}
+                <div className="flex-1 overflow-y-auto pr-2 max-h-[calc(100vh-120px)] md:max-h-[calc(100vh-100px)] order-2">
                     {isLoadingProducts ? (
                         <div className="p-10 text-center text-muted">Loading products...</div>
                     ) : !filteredProducts.length ? (
@@ -569,7 +572,7 @@ export default function POSPage() {
                                 ))}
                             </div>
                             {/* --- Mobile List Layout --- */}
-                            <div className="mobile-product-list-grid block md:hidden">
+                            <div className="mobile-product-list-grid block md:hidden" style={{paddingBottom: '80px'}}>
                                 {filteredProducts.map((p, idx) => (
                                     <button
                                         key={p.id}
@@ -593,24 +596,13 @@ export default function POSPage() {
                     )}
                 </div>
             </div>
-            {/* --- Floating Cart Button and CartDrawer for Mobile Only --- */}
-            <div className="md:hidden">
-                <button
-                    className="fixed bottom-4 right-4 bg-primary text-white rounded-full shadow-lg p-4 z-50 flex items-center"
-                    style={{ fontSize: '1.5rem' }}
-                    onClick={() => setIsCartDrawerOpen(true)}
-                >
-                    🛒 <span style={{ marginLeft: 8, fontWeight: 'bold' }}>{cartItems.reduce((sum, item) => sum + item.quantity, 0)}</span>
-                </button>
-                <CartDrawer
-                    cartItems={cartItems}
-                    onRemove={key => {
-                        handleRemoveItem(key);
-                    }}
-                    onClose={() => setIsCartDrawerOpen(false)}
-                    visible={isCartDrawerOpen}
-                />
+
+            {/* --- (REMOVED) Floating Cart Button and CartDrawer for Mobile Only --- */}
+            {/* <div className="md:hidden">
+                ... (button and CartDrawer removed) ...
             </div>
+            */}
+
             {/* --- DIALOGS (Customer, Custom Sale, Payment) --- */}
             <Dialog open={isCustomerModalOpen} onOpenChange={setIsCustomerModalOpen}>
                 <DialogContent className="sm:max-w-md">
@@ -906,6 +898,25 @@ export default function POSPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* --- (NEW) Sticky Mobile CTA Bar --- */}
+            <div className="md:hidden fixed bottom-0 left-0 right-0 p-3 bg-white border-t border-gray-200 shadow-[0_-2px_6px_rgba(0,0,0,0.05)] z-40">
+                <Button
+                    variant="primary"
+                    className="w-full h-12 text-base rounded-lg shadow-md font-semibold"
+                    onClick={openPaymentModal}
+                    disabled={Object.keys(currentSale).length === 0 || createSaleMutation.isPending}
+                    style={{ height: '48px' }}
+                >
+                    {createSaleMutation.isPending
+                        ? 'Processing...'
+                        : (Object.keys(currentSale).length === 0
+                                ? 'Proceed to Payment'
+                                : `Proceed to Payment (₱${subtotal.toFixed(2)})`
+                        )
+                    }
+                </Button>
+            </div>
 
             <TabBar />
         </div>

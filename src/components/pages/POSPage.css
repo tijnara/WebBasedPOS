@@ -2,19 +2,29 @@
 
 /* Hide scrollbar for Current Order and Product Grid */
 .scroll-area::-webkit-scrollbar {
-  display: none;
+    display: none;
 }
 .scroll-area {
-  -ms-overflow-style: none; /* IE and Edge */
-  scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
 }
 
 .overflow-auto::-webkit-scrollbar {
-  display: none;
+    display: none;
 }
 .overflow-auto {
-  -ms-overflow-style: none; /* IE and Edge */
-  scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+}
+
+/* --- (NEW) Mobile scroll height for Current Order --- */
+.current-order-scroll-area {
+    max-height: 200px; /* Max height for mobile */
+    overflow-y: auto;
+    scrollbar-width: none; /* Hide scrollbar on mobile */
+}
+.current-order-scroll-area::-webkit-scrollbar {
+    display: none; /* Hide scrollbar on mobile */
 }
 
 /* --- (NEW) Styles for Mobile POS --- */
@@ -58,70 +68,75 @@
 
 /* Mobile product grid and box styles */
 @media (max-width: 767px) {
-  .mobile-product-list-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 90px);
-    gap: 8px;
-    justify-content: center;
-    align-items: center;
-    margin-left: auto;
-    margin-right: auto;
-    max-width: 280px;
-  }
-  .mobile-product-box {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    aspect-ratio: 1 / 1;
-    width: 100%;
-    min-width: 0;
-    min-height: 0;
-    box-sizing: border-box;
-    padding: 0;
-    background: #fff;
-    border-radius: 0.05rem;
-    border: 2px solid #d1d5db; /* Tailwind gray-300 */
-    box-shadow: 0 4px 12px rgba(60,64,67,0.10), 0 1.5px 4px rgba(60,64,67,0.08); /* Enhanced shadow */
-    transition: box-shadow 0.2s, border-color 0.2s;
-    max-width: 90px;
-    max-height: 90px;
-  }
-  .mobile-product-box:active,
-  .mobile-product-box:focus {
-    border-color: #6b7280; /* Tailwind gray-500 for focus/active */
-    box-shadow: 0 8px 24px rgba(60,64,67,0.18), 0 2px 8px rgba(60,64,67,0.12);
-  }
-  .mobile-product-box .h-16.w-16 {
-    height: 40px;
-    width: 40px;
-    margin-bottom: 2px;
-    padding: 0;
-  }
-  .mobile-product-box .font-semibold {
-    font-size: 0.85rem;
-    margin-bottom: 2px;
-  }
-  .mobile-product-box .text-xs {
-    font-size: 0.8rem;
-    margin-bottom: 0;
-  }
+    .mobile-product-list-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 90px);
+        gap: 8px;
+        justify-content: center;
+        align-items: center;
+        margin-left: auto;
+        margin-right: auto;
+        max-width: 280px;
+        margin-bottom: 3.5rem; /* Add extra space below product list for readability and sticky button */
+    }
+    .mobile-product-box {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        aspect-ratio: 1 / 1;
+        width: 100%;
+        min-width: 0;
+        min-height: 0;
+        box-sizing: border-box;
+        padding: 0;
+        background: #fff;
+        border-radius: 0.05rem;
+        border: 2px solid #d1d5db; /* Tailwind gray-300 */
+        box-shadow: 0 4px 12px rgba(60,64,67,0.10), 0 1.5px 4px rgba(60,64,67,0.08); /* Enhanced shadow */
+        transition: box-shadow 0.2s, border-color 0.2s;
+        max-width: 90px;
+        max-height: 90px;
+    }
+    .mobile-product-box:active,
+    .mobile-product-box:focus {
+        border-color: #6b7280; /* Tailwind gray-500 for focus/active */
+        box-shadow: 0 8px 24px rgba(60,64,67,0.18), 0 2px 8px rgba(60,64,67,0.12);
+    }
+    .mobile-product-box .h-16.w-16 {
+        height: 40px;
+        width: 40px;
+        margin-bottom: 2px;
+        padding: 0;
+    }
+    .mobile-product-box .font-semibold {
+        font-size: 0.85rem;
+        margin-bottom: 2px;
+    }
+    .mobile-product-box .text-xs {
+        font-size: 0.8rem;
+        margin-bottom: 0;
+    }
+    .last-customer-label-mobile {
+        margin-bottom: 1.5rem;
+        display: block;
+    }
 }
 
 /* Desktop styles for Current Order section */
 @media (min-width: 768px) {
-  .current-order-scroll-area {
-    max-height: 320px;
-    overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: #d1d5db #f3f4f6;
-  }
-  .current-order-scroll-area::-webkit-scrollbar {
-    width: 8px;
-    background: #f3f4f6;
-  }
-  .current-order-scroll-area::-webkit-scrollbar-thumb {
-    background: #d1d5db;
-    border-radius: 4px;
-  }
+    .current-order-scroll-area {
+        max-height: 320px;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: #d1d5db #f3f4f6;
+    }
+    .current-order-scroll-area::-webkit-scrollbar {
+        width: 8px;
+        background: #f3f4f6;
+    }
+    .current-order-scroll-area::-webkit-scrollbar-thumb {
+        background: #d1d5db;
+        border-radius: 4px;
+    }
 }
