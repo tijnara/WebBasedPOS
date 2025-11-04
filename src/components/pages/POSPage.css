@@ -107,3 +107,21 @@
     margin-bottom: 0;
   }
 }
+
+/* Desktop styles for Current Order section */
+@media (min-width: 768px) {
+  .current-order-scroll-area {
+    max-height: 320px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #d1d5db #f3f4f6;
+  }
+  .current-order-scroll-area::-webkit-scrollbar {
+    width: 8px;
+    background: #f3f4f6;
+  }
+  .current-order-scroll-area::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 4px;
+  }
+}

@@ -486,7 +486,7 @@ export default function POSPage() {
                                     <p className="mt-2">Cart is empty</p>
                                 </div>
                             ) : (
-                                <ScrollArea className="absolute h-full w-full px-2 py-1">
+                                <ScrollArea className="absolute h-full w-full px-2 py-1 current-order-scroll-area">
                                     <Table>
                                         <TableBody>
                                             {Object.entries(currentSale).map(([key, item]) => (
