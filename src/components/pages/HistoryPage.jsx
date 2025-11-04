@@ -29,7 +29,6 @@ const formatDate = (dateString) => {
 }
 
 // --- Modern Icons ---
-
 // View Icon (Eye)
 const ViewIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="currentColor">
@@ -71,7 +70,6 @@ const StatusBadge = ({ status }) => {
     return <span className={className}>{status}</span>;
 };
 
-
 // --- Sale Details Modal ---
 const SaleDetailsModal = ({ sale, isOpen, onClose }) => {
     if (!sale) return null;
@@ -107,7 +105,7 @@ const SaleDetailsModal = ({ sale, isOpen, onClose }) => {
                         </div>
                         <div className="flex justify-between text-sm">
                             <span className="text-muted">Staff:</span>
-                            <span className="font-medium">{sale.createdBy || sale.staffName || 'N/A'}</span>
+                            <span className="font-medium">{sale.staffName || 'N/A'}</span>
                         </div>
                         <div className="flex justify-between text-sm">
                             <span className="text-muted">Status:</span>
@@ -149,7 +147,6 @@ const SaleDetailsModal = ({ sale, isOpen, onClose }) => {
         </Dialog>
     );
 };
-
 
 // --- Main History Page Component ---
 export default function HistoryPage() {
@@ -213,7 +210,6 @@ export default function HistoryPage() {
         };
     }, [sales, searchTerm, currentPage]);
 
-
     return (
         <div className="history-page">
             <img src="/seaside.png" alt="Seaside Logo" className="brand-logo-top" width={32} height={32} loading="lazy" />
@@ -266,7 +262,7 @@ export default function HistoryPage() {
                                             <TableRow key={s.id}>
                                                 <TableCell className="font-medium">{formatDate(s.saleTimestamp)}</TableCell>
                                                 <TableCell>{s.customerName}</TableCell>
-                                                <TableCell>{s.createdBy || s.staffName || 'N/A'}</TableCell>
+                                                <TableCell>{s.staffName || 'N/A'}</TableCell>
                                                 <TableCell><StatusBadge status={s.status} /></TableCell>
                                                 <TableCell>{s.paymentMethod}</TableCell>
                                                 <TableCell>{formatCurrency(s.totalAmount)}</TableCell>
@@ -321,7 +317,7 @@ export default function HistoryPage() {
                                                 </div>
                                                 <div className="flex justify-between items-center mt-1">
                                                     <span className="text-xs text-gray-500">
-                                                        Staff: {s.createdBy || s.staffName || 'N/A'}
+                                                        Staff: {s.staffName || 'N/A'}
                                                     </span>
                                                     <StatusBadge status={s.status} />
                                                 </div>

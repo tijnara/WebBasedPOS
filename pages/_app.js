@@ -1,6 +1,7 @@
 // pages/_app.js
 import '../styles/globals.css';
 import 'react-day-picker/dist/style.css'; // Moved global CSS import for react-day-picker here
+import '../src/components/pages/POSPage.css'; // Corrected path for POSPage.css import
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../src/store/useStore';
 import { useRouter } from 'next/router';
