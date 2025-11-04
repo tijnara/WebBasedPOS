@@ -6,9 +6,14 @@ import { useCreateSale } from '../../hooks/useCreateSale';
 import { useCreateCustomer } from '../../hooks/useCreateCustomer';
 import {
     Button, Card, CardContent, CardHeader, ScrollArea, Input,
-    Dialog, DialogContent, DialogCloseButton, Select, Label, CardFooter, DialogHeader, DialogTitle
+    Dialog, DialogContent, DialogCloseButton, Select, Label, CardFooter, DialogHeader, DialogTitle,
+    // --- FIX: Added missing components ---
+    DialogFooter, Table, TableBody, TableRow, TableCell
 } from '../ui';
 import MobileLogoutButton from '../MobileLogoutButton';
+// --- FIX: Added missing imports ---
+import TabBar from '../TabBar';
+import { supabase } from '../../lib/supabaseClient';
 
 // --- Icons (Assuming EmptyCartIcon, TrashIcon exist as before) ---
 const EmptyCartIcon = () => (
@@ -24,6 +29,15 @@ const TrashIcon = () => (
         <path fillRule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
     </svg>
 );
+// --- FIX: Added placeholder for missing PackageIcon ---
+const PackageIcon = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+        <line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line>
+        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+        <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+        <line x1="12" y1="22.08" x2="12" y2="12"></line>
+    </svg>
+);
 
 // --- ProductImage helper component ---
 const ProductImage = ({ product }) => {
@@ -37,17 +51,17 @@ const ProductImage = ({ product }) => {
     if (lowerName.includes('ice tubes/cubes')) {
         imageUrl = '/icecubes.png';
     }
-    // 2. Check for Pet Bottles (Specific)
+        // 2. Check for Pet Bottles (Specific)
     // Catches "Pet Bottles"
     else if (lowerName.includes('pet bottles')) {
         imageUrl = '/petbottles.png';
     }
-    // 3. Check for Containers (General)
+        // 3. Check for Containers (General)
     // Catches "Container", "Empty Bottle (Slim)", or "Container" category
     else if (lowerCategory.includes('container') || lowerName.includes('empty bottle') || lowerName.includes('container')) {
         imageUrl = '/container1.png';
     }
-    // 4. Check for Water/Refills (Broad)
+        // 4. Check for Water/Refills (Broad)
     // Catches "Refill (25)", "Alkaline", etc.
     else if (lowerCategory === 'water' || lowerName.includes('refill') || lowerName.includes('alkaline') || lowerName.includes('purified')) {
         imageUrl = '/refill.png';
@@ -584,7 +598,8 @@ export default function POSPage() {
                             type="text"
                             placeholder="Search by name..."
                             value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.g.target.value)}
+                            // --- FIX: Corrected typo e.g.target.value ---
+                            onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full"
                             autoFocus
                         />
