@@ -7,8 +7,7 @@ import { useCreateCustomer } from '../../hooks/useCreateCustomer';
 import {
     Button, Card, CardContent, CardHeader, ScrollArea, Input,
     Dialog, DialogContent, DialogCloseButton, Select, Label, CardFooter, DialogHeader, DialogTitle,
-    // --- FIX: Added missing components ---
-    DialogFooter, Table, TableBody, TableRow, TableCell
+    DialogFooter
 } from '../ui';
 import MobileLogoutButton from '../MobileLogoutButton';
 // --- FIX: Added missing imports ---
@@ -17,14 +16,8 @@ import { supabase } from '../../lib/supabaseClient';
 // --- (REMOVED) CartDrawer is no longer used ---
 // import CartDrawer from '../CartDrawer';
 
-// --- Icons (Assuming EmptyCartIcon, TrashIcon exist as before) ---
-const EmptyCartIcon = () => (
-    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-muted">
-        <path d="M7.5 7.625C7.5 4.7625 9.7625 2.5 12.625 2.5C15.4875 2.5 17.75 4.7625 17.75 7.625" stroke="#6b7280" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
-        <path d="M16.3375 21.5H8.9125C5.9375 21.5 5.075 19.5875 4.075 16.1L2.8 12.1875C2.2625 10.375 3.0125 9 4.9625 9H20.2875C22.2375 9 22.9875 10.375 22.45 12.1875L20.5 18.5" stroke="#6b7280" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
-        <path d="M15.5 13H10.5" stroke="#6b7280" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-);
+// --- Icons (Assuming TrashIcon exist as before) ---
+// Removed EmptyCartIcon (unused)
 const TrashIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
         <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
@@ -122,9 +115,6 @@ export default function POSPage() {
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState('Cash'); // Default payment method
     const [amountReceived, setAmountReceived] = useState('');
-
-    // State for product search
-    const [productSearchTerm, setProductSearchTerm] = useState('');
 
     // Add lastCustomer state, initialize from localStorage
     const [lastCustomer, setLastCustomer] = useState(() => {
@@ -778,6 +768,11 @@ export default function POSPage() {
                                 value={searchTerm}
                                 onChange={e => setSearchTerm(e.target.value)}
                                 className="w-full mb-2"
+                                // Add ref for auto-focus on mobile
+                                ref={customerPaymentInputRef}
+                                inputMode="text"
+                                pattern=".*"
+                                autoComplete="off"
                             />
                             <ScrollArea className="h-[150px] border rounded-md mb-2">
                                 <div className="p-2 space-y-1">
