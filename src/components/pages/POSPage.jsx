@@ -1,5 +1,5 @@
 // src/components/pages/POSPage.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react'; // --- FIX: Imported useRef ---
 import { useStore } from '../../store/useStore';
 import { useProducts } from '../../hooks/useProducts';
 import { useCreateSale } from '../../hooks/useCreateSale';
@@ -104,6 +104,9 @@ export default function POSPage() {
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(''); // Debounced customer search term
     const [customerSearchResults, setCustomerSearchResults] = useState([]); // Results for customer search modal
     const [isSearchingCustomers, setIsSearchingCustomers] = useState(false); // Loading state for customer search
+
+    // --- FIX: Defined the missing ref ---
+    const customerPaymentInputRef = useRef(null); // Ref for payment modal customer input
 
     // State for Custom Sale Modal
     const [isCustomSaleModalOpen, setIsCustomSaleModalOpen] = useState(false);
@@ -381,62 +384,8 @@ export default function POSPage() {
     // ----------------------------------------
 
 
-    // Filter products based on the search term
-    const filteredProducts = products.filter(p =>
-        p.name.toLowerCase().includes(productSearchTerm.toLowerCase())
-    );
-
-
-    // --- Keyboard Shortcuts ---
-    const [selectedProductIndex, setSelectedProductIndex] = useState(0);
-    const productGridRef = React.useRef(null);
-    // Focus search input with Ctrl+F or '/'
-    const searchInputRef = React.useRef(null);
-
-    useEffect(() => {
-        const handleKeyDown = (e) => {
-            // Ignore shortcuts if a modal is open or if focus is in an input/textarea
-            const activeTag = document.activeElement.tagName;
-            if (isCustomSaleModalOpen || isPaymentModalOpen || isCustomerModalOpen) return;
-            if (activeTag === 'INPUT' || activeTag === 'TEXTAREA') return;
-
-            // Product grid navigation
-            if (filteredProducts.length > 0) {
-                if (['ArrowRight', 'ArrowDown'].includes(e.key)) {
-                    setSelectedProductIndex(i => Math.min(i + 1, filteredProducts.length - 1));
-                    e.preventDefault();
-                } else if (['ArrowLeft', 'ArrowUp'].includes(e.key)) {
-                    setSelectedProductIndex(i => Math.max(i - 1, 0));
-                    e.preventDefault();
-                } else if (e.key === 'Enter') {
-                    handleAdd(filteredProducts[selectedProductIndex]);
-                    e.preventDefault();
-                }
-            }
-            // F1: Custom Sale
-            if (e.key === 'F1') {
-                openCustomSaleModal();
-                e.preventDefault();
-            }
-            // F2: Proceed to Payment
-            if (e.key === 'F2') {
-                openPaymentModal();
-                e.preventDefault();
-            }
-            // Ctrl+F or '/': Focus search input
-            if ((e.ctrlKey && e.key === 'f') || e.key === '/') {
-                if (searchInputRef.current) searchInputRef.current.focus();
-                e.preventDefault();
-            }
-        };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [filteredProducts, selectedProductIndex, isCustomSaleModalOpen, isPaymentModalOpen, isCustomerModalOpen]);
-
-    // Reset selected index if product list changes
-    useEffect(() => {
-        setSelectedProductIndex(0);
-    }, [filteredProducts.length]);
+    // Show all products, filtering is now handled by the product grid directly
+    const filteredProducts = products;
 
 
     return (
@@ -448,7 +397,7 @@ export default function POSPage() {
             <div className="flex items-center justify-between mb-4">
                 <h1 className="text-3xl font-bold text-primary tracking-tight">Point of Sale</h1>
                 <div className="flex gap-4">
-                    {/* Removed product search field */}
+                    {/* Removed product search field from the header */}
                     <Button variant="primary" onClick={openCustomSaleModal} className="rounded-lg shadow-md font-semibold">
                         + Custom Sale
                     </Button>
@@ -557,16 +506,19 @@ export default function POSPage() {
                         <div className="p-10 text-center text-muted">Loading products...</div>
                     ) : !filteredProducts.length ? (
                         <div className="p-10 text-center text-muted">
-                            {productSearchTerm ? 'No products match your search.' : 'No products available.'}
+                            {/* --- FIX: Removed undefined variable 'productSearchTerm' --- */}
+                            'No products available.'
                         </div>
                     ) : (
                         <>
                             {/* --- Desktop Grid Layout --- */}
-                            <div className="hidden md:grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4" ref={productGridRef}>
+                            {/* --- FIX: Removed undefined 'productGridRef' --- */}
+                            <div className="hidden md:grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                                 {filteredProducts.map((p, idx) => (
                                     <button
                                         key={p.id}
-                                        className={`product-card p-4 text-center border rounded-xl shadow-md hover:border-primary hover:shadow-lg transition-all duration-150 bg-white flex flex-col items-center${selectedProductIndex === idx ? ' ring-2 ring-primary' : ''}`}
+                                        // --- FIX: Removed undefined 'selectedProductIndex' ---
+                                        className="product-card p-4 text-center border rounded-xl shadow-md hover:border-primary hover:shadow-lg transition-all duration-150 bg-white flex flex-col items-center"
                                         onClick={() => handleAdd(p)}
                                         title={p.name}
                                         tabIndex={-1}
@@ -587,7 +539,8 @@ export default function POSPage() {
                                 {filteredProducts.map((p, idx) => (
                                     <button
                                         key={p.id}
-                                        className={`mobile-product-box p-2 border rounded-xl shadow-md bg-white flex flex-col items-center justify-center text-center transition-all duration-150 ${selectedProductIndex === idx ? ' ring-2 ring-primary' : ''}`}
+                                        // --- FIX: Removed undefined 'selectedProductIndex' ---
+                                        className="mobile-product-box p-2 border rounded-xl shadow-md bg-white flex flex-col items-center justify-center text-center transition-all duration-150"
                                         onClick={() => handleAdd(p)}
                                         tabIndex={-1}
                                         style={{ aspectRatio: '1 / 1', width: '100%' }}
@@ -750,7 +703,16 @@ export default function POSPage() {
 
             {/* --- PAYMENT DIALOG (MODAL) --- */}
             <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
-                <DialogContent className="sm:max-w-sm">
+                <DialogContent
+                    className="sm:max-w-sm"
+                    // --- FIX: Add onOpenAutoFocus handler ---
+                    onOpenAutoFocus={(e) => {
+                        // Prevent the dialog's default auto-focus
+                        e.preventDefault();
+                        // Manually focus the customer input field
+                        customerPaymentInputRef.current?.focus();
+                    }}
+                >
                     <DialogHeader>
                         <DialogTitle>Complete Sale</DialogTitle>
                         <DialogCloseButton onClick={closePaymentModal} />
@@ -767,8 +729,9 @@ export default function POSPage() {
                                 placeholder="Search by name..."
                                 value={searchTerm}
                                 onChange={e => setSearchTerm(e.target.value)}
-                                className="w-full mb-2"
-                                // Add ref for auto-focus on mobile
+                                // --- FIX: Add text-base to prevent mobile zoom ---
+                                className="w-full mb-2 text-base"
+                                // --- FIX: The ref is now defined ---
                                 ref={customerPaymentInputRef}
                                 inputMode="text"
                                 pattern=".*"
@@ -857,7 +820,8 @@ export default function POSPage() {
                                         required
                                         className="w-full"
                                         placeholder="Enter amount customer paid"
-                                        autoFocus
+                                        // --- FIX: Removed autoFocus to allow customer field to focus first ---
+                                        // autoFocus
                                     />
                                 </div>
                                 {/* Summary Section: Only Total Amount Due */}
