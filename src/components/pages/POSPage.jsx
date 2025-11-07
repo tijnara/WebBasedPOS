@@ -535,6 +535,22 @@ export default function POSPage() {
                                 <Button variant="primary" className="w-full h-12 text-lg rounded-lg shadow-md font-semibold hidden md:flex" onClick={openPaymentModal} disabled={Object.keys(currentSale).length === 0 || createSaleMutation.isPending}>
                                     {createSaleMutation.isPending ? 'Processing...' : 'Proceed to Payment'}
                                 </Button>
+                                {/* --- (NEW) Show button on mobile, hide on desktop --- */}
+                                <Button
+                                    variant="primary"
+                                    className="w-full h-12 text-base rounded-lg shadow-md font-semibold md:hidden mt-2"
+                                    onClick={openPaymentModal}
+                                    disabled={Object.keys(currentSale).length === 0 || createSaleMutation.isPending}
+                                    style={{ height: '48px' }}
+                                >
+                                    {createSaleMutation.isPending
+                                        ? 'Processing...'
+                                        : (Object.keys(currentSale).length === 0
+                                                ? 'Proceed to Payment'
+                                                : `Proceed to Payment (₱${subtotal.toFixed(2)})`
+                                        )
+                                    }
+                                </Button>
                             </div>
                         </CardFooter>
                     </Card>
@@ -901,7 +917,8 @@ export default function POSPage() {
 
             <TabBar />
 
-            {/* --- Restore sticky mobile CTA bar at the bottom --- */}
+            {/* --- Remove sticky mobile CTA bar at the bottom --- */}
+            {/*
             <div className="md:hidden fixed bottom-0 left-0 right-0 p-3 bg-white border-t border-gray-200 shadow-[0_-2px_6px_rgba(0,0,0,0.05)] z-40">
                 <Button
                     variant="primary"
@@ -919,6 +936,7 @@ export default function POSPage() {
                     }
                 </Button>
             </div>
+            */}
         </div>
     );
 }
