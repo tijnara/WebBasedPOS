@@ -11,6 +11,7 @@ import TabBar from '../src/components/TabBar'; // --- IMPORT TAB BAR AGAIN ---
 import { Button } from '../src/components/ui';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import Head from 'next/head';
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -80,7 +81,6 @@ function AuthGate({ children }) {
     );
 }
 
-
 export default function App({ Component, pageProps }) {
     const { toasts, dismissToast } = useStore();
     const router = useRouter();
@@ -90,6 +90,11 @@ export default function App({ Component, pageProps }) {
         <QueryClientProvider client={queryClient}>
             <AuthGate>
                 <div className="app bg-gray-100">
+                    {/* Prevent mobile zoom on input focus */}
+                    <Head>
+                        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+                    </Head>
+
                     {/* Render Navbar. It handles its own visibility. */}
                     {!isLoginPage && <Navbar />}
 
