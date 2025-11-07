@@ -70,13 +70,13 @@
 @media (max-width: 767px) {
     .mobile-product-list-grid {
         display: grid;
-        grid-template-columns: repeat(3, 90px);
-        gap: 8px;
+        grid-template-columns: repeat(3, 1fr); /* CHANGED: Was repeat(3, 90px) */
+        gap: 12px; /* CHANGED: Increased gap from 8px */
         justify-content: center;
         align-items: center;
         margin-left: auto;
         margin-right: auto;
-        max-width: 280px;
+        /* max-width: 280px; */ /* REMOVED: This was too restrictive */
     }
     .mobile-product-box {
         display: flex;
@@ -88,33 +88,31 @@
         min-width: 0;
         min-height: 0;
         box-sizing: border-box;
-        padding: 0;
+        padding: 0.5rem; /* CHANGED: Was 0, now matches JSX p-2 */
         background: #fff;
         border-radius: 0.05rem;
         border: 2px solid #d1d5db; /* Tailwind gray-300 */
         box-shadow: 0 4px 12px rgba(60,64,67,0.10), 0 1.5px 4px rgba(60,64,67,0.08); /* Enhanced shadow */
         transition: box-shadow 0.2s, border-color 0.2s;
-        max-width: 90px;
-        max-height: 90px;
-    }
-    .mobile-product-box:active,
-    .mobile-product-box:focus {
-        border-color: #6b7280; /* Tailwind gray-500 for focus/active */
-        box-shadow: 0 8px 24px rgba(60,64,67,0.18), 0 2px 8px rgba(60,64,67,0.12);
+        position: relative; /* NEW: for stacking image/text */
+        overflow: hidden; /* NEW: ensure image doesn't overflow */
     }
     .mobile-product-box .h-16.w-16 {
-        height: 40px;
-        width: 40px;
-        margin-bottom: 2px;
+        position: absolute;
+        inset: 0;
+        margin: auto;
+        z-index: 0;
+        opacity: 0.50; /* increased from 0.18 */
+        pointer-events: none;
+        height: 60%;
+        width: 60%;
         padding: 0;
+        display: block;
     }
-    .mobile-product-box .font-semibold {
-        font-size: 0.85rem;
-        margin-bottom: 2px;
-    }
+    .mobile-product-box .font-semibold,
     .mobile-product-box .text-xs {
-        font-size: 0.8rem;
-        margin-bottom: 0;
+        position: relative;
+        z-index: 1;
     }
 }
 
