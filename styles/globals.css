@@ -921,3 +921,35 @@ input[type="checkbox"]:focus {
 .order-1 { order: 1; }
 .order-2 { order: 2; }
 /* --- END OF ADDITIONS --- */
+
+/* --- Mobile Specific Styles --- */
+@media (max-width: 767px) {
+  .mobile-product-box {
+    min-height: 250px;
+    min-width: 250px;
+    aspect-ratio: 1 / 1;
+    width: 100%;
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+    background: var(--surface);
+  }
+  .mobile-product-image {
+    width: 150px;
+    height: 150px;
+    max-width: 90%;
+    max-height: 90%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+    background: #f3f4f6;
+    border-radius: 0.75rem;
+    padding: 0.5rem;
+  }
+}
