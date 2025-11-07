@@ -107,7 +107,7 @@
         height: 60%;
         width: 60%;
         padding: 0;
-        display: block;
+        display: flex; /* <-- This is the fix */
     }
     .mobile-product-box .font-semibold,
     .mobile-product-box .text-xs {
