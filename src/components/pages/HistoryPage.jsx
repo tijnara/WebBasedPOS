@@ -105,7 +105,7 @@ const SaleDetailsModal = ({ sale, isOpen, onClose }) => {
                         </div>
                         <div className="flex justify-between text-sm">
                             <span className="text-muted">Staff:</span>
-                            <span className="font-medium">{sale.staffName || 'N/A'}</span>
+                            <span className="font-medium">{sale.createdBy || 'N/A'}</span>
                         </div>
                         <div className="flex justify-between text-sm">
                             <span className="text-muted">Status:</span>
@@ -188,7 +188,7 @@ export default function HistoryPage() {
             if (!term) return true;
             return (
                 (s.customerName && s.customerName.toLowerCase().includes(term)) ||
-                (s.staffName && s.staffName.toLowerCase().includes(term)) ||
+                (s.createdBy && s.createdBy.toLowerCase().includes(term)) ||
                 (s.status && s.status.toLowerCase().includes(term)) ||
                 (s.paymentMethod && s.paymentMethod.toLowerCase().includes(term))
             );
@@ -262,7 +262,7 @@ export default function HistoryPage() {
                                             <TableRow key={s.id}>
                                                 <TableCell className="font-medium">{formatDate(s.saleTimestamp)}</TableCell>
                                                 <TableCell>{s.customerName}</TableCell>
-                                                <TableCell>{s.staffName || 'N/A'}</TableCell>
+                                                <TableCell>{s.createdBy || 'N/A'}</TableCell>
                                                 <TableCell><StatusBadge status={s.status} /></TableCell>
                                                 <TableCell>{s.paymentMethod}</TableCell>
                                                 <TableCell>{formatCurrency(s.totalAmount)}</TableCell>
@@ -317,7 +317,7 @@ export default function HistoryPage() {
                                                 </div>
                                                 <div className="flex justify-between items-center mt-1">
                                                     <span className="text-xs text-gray-500">
-                                                        Staff: {s.staffName || 'N/A'}
+                                                        Staff: {s.createdBy || 'N/A'}
                                                     </span>
                                                     <StatusBadge status={s.status} />
                                                 </div>
