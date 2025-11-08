@@ -88,6 +88,9 @@ export default function App({ Component, pageProps }) {
 
     return (
         <QueryClientProvider client={queryClient}>
+            <Head>
+                <title>SEASIDE</title>
+            </Head>
             <AuthGate>
                 <div className="app bg-gray-100">
                     {/* Prevent mobile zoom on input focus */}
