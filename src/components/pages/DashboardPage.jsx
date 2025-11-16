@@ -1,16 +1,18 @@
 import React, { useMemo } from 'react';
 import { Card, CardHeader, CardContent } from '../ui';
-import { Line, Bar, Pie } from 'react-chartjs-2';
+import { Line, Bar } from 'react-chartjs-2';
 import { Chart, CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Tooltip, Legend, Filler } from 'chart.js';
 import { useSales } from '../../hooks/useSales';
 import { useProducts } from '../../hooks/useProducts';
 import { useCustomers } from '../../hooks/useCustomers';
-import { useSalesSummary } from '../../hooks/useSalesSummary';
 import MobileLogoutButton from '../MobileLogoutButton';
+import { useSalesSummary } from '../../hooks/useSalesSummary';
+import { useTopProductsSummary } from '../../hooks/useTopProductsSummary';
+import { useSalesByDateSummary } from '../../hooks/useSalesByDateSummary';
+import { useNewCustomersByDateSummary } from '../../hooks/useNewCustomersByDateSummary';
 
 Chart.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Tooltip, Legend, Filler);
 
-// New Summary Card Component for responsiveness
 const SummaryCard = ({ title, value, isSuccess = false }) => (
     <div className="border border-gray-200 bg-white rounded-lg shadow-sm flex-1">
         <div className="p-3 pb-1 text-sm md:text-lg font-semibold text-gray-800 text-center">{title}</div>
@@ -21,65 +23,32 @@ const SummaryCard = ({ title, value, isSuccess = false }) => (
 );
 
 export default function DashboardPage() {
-    // --- FIX: Destructure the object returned by the hooks ---
-    // This call gets paginated sales for charts AND the totalCount for transactions
+    // Summary cards (unchanged)
     const { data: salesData } = useSales();
     const { data: productsData } = useProducts();
     const { data: customerData } = useCustomers ? useCustomers() : { data: undefined };
-
-    // --- ADD: Get total revenue for all sales
     const { data: summaryData } = useSalesSummary();
 
-    // Extract the arrays from the data objects (still needed for charts)
-    const sales = salesData?.sales || [];
-    const products = productsData?.products || [];
-    const customers = customerData?.customers || [];
-    // --- END OF FIX ---
+    // --- USE SUMMARY HOOKS FOR CHARTS ---
+    const { data: topProductsData = [] } = useTopProductsSummary(5);
+    const { data: salesByDateData = [] } = useSalesByDateSummary();
+    const { data: newCustomersByDateData = [] } = useNewCustomersByDateSummary();
 
-    // --- Sales Over Time ---
-    const salesByDate = useMemo(() => {
-        const map = {};
-        sales.forEach(sale => {
-            const date = new Date(sale.saleTimestamp).toLocaleDateString();
-            map[date] = (map[date] || 0) + Number(sale.totalAmount || 0);
-        });
-        return map;
-    }, [sales]);
-    const salesDates = Object.keys(salesByDate);
-    const salesAmounts = Object.values(salesByDate);
+    // --- CHART DATA ---
+    // Sales Over Time
+    const salesDates = salesByDateData.map(row => row.sale_date ? new Date(row.sale_date).toLocaleDateString() : 'Unknown');
+    const salesAmounts = salesByDateData.map(row => Number(row.total_sales || 0));
 
-    // --- Top-Selling Products ---
-    const productSales = useMemo(() => {
-        const map = {};
-        sales.forEach(sale => {
-            (sale.sale_items || []).forEach(item => {
-                map[item.productName] = (map[item.productName] || 0) + item.quantity;
-            });
-        });
-        return map;
-    }, [sales]);
-    const topProducts = Object.entries(productSales)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 5);
-    const topProductNames = topProducts.map(([name]) => name);
-    const topProductQuantities = topProducts.map(([, qty]) => qty);
+    // Top-Selling Products
+    const topProductNames = topProductsData.map(row => row.product_name);
+    const topProductQuantities = topProductsData.map(row => Number(row.total_quantity || 0));
 
-    // --- New Customers Over Time ---
-    const customersByDate = useMemo(() => {
-        const map = {};
-        customers.forEach(cust => {
-            const date = cust.dateAdded ? new Date(cust.dateAdded).toLocaleDateString() : 'Unknown';
-            map[date] = (map[date] || 0) + 1;
-        });
-        return map;
-    }, [customers]);
-    const customerDates = Object.keys(customersByDate);
-    const customerCounts = Object.values(customersByDate);
+    // New Customers Over Time
+    const customerDates = newCustomersByDateData.map(row => row.customer_date ? new Date(row.customer_date).toLocaleDateString() : 'Unknown');
+    const customerCounts = newCustomersByDateData.map(row => Number(row.total_customers || 0));
 
-    // --- Summary Stats (THE FIX) ---
-    // Get total revenue from the dedicated summary hook
+    // --- Summary Stats ---
     const totalRevenue = summaryData?.totalRevenue || 0;
-    // Get total transaction count from the `useSales` hook's count property
     const transactionsCount = salesData?.totalCount || 0;
 
     // Helper function to check if a date is in the current week
@@ -87,50 +56,27 @@ export default function DashboardPage() {
         if (!dateString) return false;
         const now = new Date();
         const inputDate = new Date(dateString);
-        // Get the first day of the week (Sunday)
         const firstDayOfWeek = new Date(now);
         firstDayOfWeek.setDate(now.getDate() - now.getDay());
         firstDayOfWeek.setHours(0, 0, 0, 0);
-        // Get the last day of the week (Saturday)
         const lastDayOfWeek = new Date(firstDayOfWeek);
         lastDayOfWeek.setDate(firstDayOfWeek.getDate() + 6);
         lastDayOfWeek.setHours(23, 59, 59, 999);
         return inputDate >= firstDayOfWeek && inputDate <= lastDayOfWeek;
     }
 
-    // Filter customers added this week
-    const customersThisWeek = customers.filter(cust => isDateInCurrentWeek(cust.dateAdded));
-    const newCustomersCount = customersThisWeek.length;
+    // New customers this week (from summary data)
+    const newCustomersCount = newCustomersByDateData
+        .filter(row => isDateInCurrentWeek(row.customer_date))
+        .reduce((sum, row) => sum + Number(row.total_customers || 0), 0);
 
-    // Get today's date string (local time)
+    // Sales today (from summary data)
     const todayDateString = new Date().toLocaleDateString();
+    const todaySalesAmount = salesByDateData
+        .filter(row => new Date(row.sale_date).toLocaleDateString() === todayDateString)
+        .reduce((sum, row) => sum + Number(row.total_sales || 0), 0);
 
-    // Filter sales for today (from the paginated list)
-    const todaySales = sales.filter(sale => {
-        const saleDate = new Date(sale.saleTimestamp).toLocaleDateString();
-        return saleDate === todayDateString;
-    });
-
-    // Sales Today Revenue
-    const salesTodayRevenue = todaySales.reduce((sum, sale) => sum + Number(sale.totalAmount || 0), 0);
-
-    // Top-Selling Products Today
-    const todayProductSales = (() => {
-        const map = {};
-        todaySales.forEach(sale => {
-            (sale.sale_items || []).forEach(item => {
-                map[item.productName] = (map[item.productName] || 0) + item.quantity;
-            });
-        });
-        return map;
-    })();
-    const todayTopProducts = Object.entries(todayProductSales)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 5);
-    const todayTopProductNames = todayTopProducts.map(([name]) => name);
-    const todayTopProductQuantities = todayTopProducts.map(([, qty]) => qty);
-
-    // Chart options for responsiveness
+    // Chart options
     const chartOptions = {
         responsive: true,
         maintainAspectRatio: false,
@@ -138,11 +84,6 @@ export default function DashboardPage() {
             legend: { display: false }
         },
         aspectRatio: 2,
-    };
-
-    const mobileChartOptions = {
-        ...chartOptions,
-        aspectRatio: 1.5
     };
 
     return (
@@ -154,7 +95,7 @@ export default function DashboardPage() {
                 <SummaryCard title="Revenue" value={`₱${totalRevenue.toFixed(2)}`} />
                 <SummaryCard title="Transactions" value={transactionsCount} />
                 <SummaryCard title="New Customers" value={newCustomersCount} />
-                <SummaryCard title="Sales Today" value={`₱${salesTodayRevenue.toFixed(2)}`} isSuccess={true} />
+                <SummaryCard title="Sales Today" value={`₱${todaySalesAmount.toFixed(2)}`} isSuccess={true} />
             </div>
             <div className="flex flex-col md:flex-row gap-4 mb-6">
                 <div className="flex-1">
@@ -175,7 +116,7 @@ export default function DashboardPage() {
                                         pointRadius: 2,
                                     }],
                                 }}
-                                options={{ responsive: true, plugins: { legend: { display: false } }, maintainAspectRatio: false, aspectRatio: 2 }}
+                                options={chartOptions}
                             />
                         </CardContent>
                     </Card>
@@ -198,7 +139,7 @@ export default function DashboardPage() {
                                         pointRadius: 2,
                                     }],
                                 }}
-                                options={{ responsive: true, plugins: { legend: { display: false } }, maintainAspectRatio: false, aspectRatio: 2 }}
+                                options={chartOptions}
                             />
                         </CardContent>
                     </Card>
@@ -220,31 +161,12 @@ export default function DashboardPage() {
                                         backgroundColor: '#10b981',
                                     }],
                                 }}
-                                options={{ responsive: true, plugins: { legend: { display: false } }, maintainAspectRatio: false, aspectRatio: 2 }}
+                                options={chartOptions}
                             />
                         </CardContent>
                     </Card>
                 </div>
-                <div className="flex-1">
-                    <Card className="rounded-xl shadow bg-white border border-gray-200 h-[300px] md:h-[400px]">
-                        <CardHeader className="pb-2">
-                            <h3 className="font-semibold text-lg text-gray-600">Top-Selling Products (Today)</h3>
-                        </CardHeader>
-                        <CardContent className="p-2 h-[calc(100%-4rem)]">
-                            <Bar
-                                data={{
-                                    labels: todayTopProductNames,
-                                    datasets: [{
-                                        label: 'Units Sold',
-                                        data: todayTopProductQuantities,
-                                        backgroundColor: '#10b981',
-                                    }],
-                                }}
-                                options={{ responsive: true, plugins: { legend: { display: false } }, maintainAspectRatio: false, aspectRatio: 2 }}
-                            />
-                        </CardContent>
-                    </Card>
-                </div>
+                {/* Top-Selling Products (Today) can be implemented with a new RPC if needed */}
             </div>
         </div>
     );
