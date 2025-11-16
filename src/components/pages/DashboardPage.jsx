@@ -4,7 +4,7 @@ import { Line, Bar, Pie } from 'react-chartjs-2';
 import { Chart, CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Tooltip, Legend, Filler } from 'chart.js';
 import { useSales } from '../../hooks/useSales';
 import { useProducts } from '../../hooks/useProducts';
-import { useCustomers } from '../../hooks/useCustomerMutations';
+import { useCustomers } from '../../hooks/useCustomers';
 import MobileLogoutButton from '../MobileLogoutButton';
 
 Chart.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Tooltip, Legend, Filler);
@@ -20,11 +20,16 @@ const SummaryCard = ({ title, value, isSuccess = false }) => (
 );
 
 export default function DashboardPage() {
-    // Fetch data
-    const { data: salesData = { sales: [], totalPages: 1 } } = useSales();
-    const sales = salesData.sales;
-    const { data: products = [] } = useProducts();
-    const { data: customers = [] } = useCustomers ? useCustomers() : { data: [] };
+    // --- FIX: Destructure the object returned by the hooks ---
+    const { data: salesData } = useSales();
+    const { data: productsData } = useProducts();
+    const { data: customerData } = useCustomers ? useCustomers() : { data: undefined };
+
+    // Extract the arrays from the data objects
+    const sales = salesData?.sales || [];
+    const products = productsData?.products || [];
+    const customers = customerData?.customers || [];
+    // --- END OF FIX ---
 
     // --- Sales Over Time ---
     const salesByDate = useMemo(() => {
@@ -42,7 +47,7 @@ export default function DashboardPage() {
     const productSales = useMemo(() => {
         const map = {};
         sales.forEach(sale => {
-            (sale.sale_items || []).forEach(item => { // Use sale_items
+            (sale.sale_items || []).forEach(item => {
                 map[item.productName] = (map[item.productName] || 0) + item.quantity;
             });
         });
@@ -91,7 +96,6 @@ export default function DashboardPage() {
     const newCustomersCount = customersThisWeek.length;
 
     // Get today's date string (local time)
-    // FIX: Use current date, not a hardcoded one
     const todayDateString = new Date().toLocaleDateString();
 
     // Filter sales for today
@@ -107,7 +111,7 @@ export default function DashboardPage() {
     const todayProductSales = (() => {
         const map = {};
         todaySales.forEach(sale => {
-            (sale.sale_items || []).forEach(item => { // use sale_items
+            (sale.sale_items || []).forEach(item => {
                 map[item.productName] = (map[item.productName] || 0) + item.quantity;
             });
         });
@@ -126,32 +130,25 @@ export default function DashboardPage() {
         plugins: {
             legend: { display: false }
         },
-        aspectRatio: 2, // Default aspect ratio
+        aspectRatio: 2,
     };
 
     const mobileChartOptions = {
         ...chartOptions,
-        aspectRatio: 1.5 // Taller aspect ratio for mobile
+        aspectRatio: 1.5
     };
 
     return (
-        // Removed fixed width and padding, added responsive padding
         <div className="dashboard-page w-full p-0 md:p-4">
             <img src="/seaside.png" alt="Seaside Logo" className="brand-logo-top" width={32} height={32} loading="lazy" />
             <MobileLogoutButton />
-
-            {/* Responsive Header */}
             <h1 className="text-3xl md:text-4xl font-bold mb-4 md:mb-6 text-primary tracking-tight">Dashboard</h1>
-
-            {/* Summary Cards - Use Grid for responsiveness */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 mb-4 md:mb-6">
                 <SummaryCard title="Revenue" value={`₱${totalRevenue.toFixed(2)}`} />
                 <SummaryCard title="Transactions" value={transactionsCount} />
                 <SummaryCard title="New Customers" value={newCustomersCount} />
                 <SummaryCard title="Sales Today" value={`₱${salesTodayRevenue.toFixed(2)}`} isSuccess={true} />
             </div>
-
-            {/* Charts - Stack vertically on mobile, row on desktop */}
             <div className="flex flex-col md:flex-row gap-4 mb-6">
                 <div className="flex-1">
                     <Card className="rounded-xl shadow bg-white border border-gray-200 h-[300px] md:h-[400px]">
@@ -166,7 +163,7 @@ export default function DashboardPage() {
                                         label: 'Sales (₱)',
                                         data: salesAmounts,
                                         borderColor: '#7F00FF',
-                                        backgroundColor: 'rgba(127,0,255,0.10)',
+                                        backgroundColor: 'rgba(127,0,256,0.10)',
                                         fill: true,
                                         pointRadius: 2,
                                     }],
