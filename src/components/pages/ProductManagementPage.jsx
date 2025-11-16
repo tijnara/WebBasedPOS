@@ -42,7 +42,11 @@ const BagIcon = () => (
 
 
 export default function ProductManagementPage() {
-    const { data: products = [], isLoading } = useProducts();
+    // --- MODIFICATION: Debounced search term ---
+    const [searchTerm, setSearchTerm] = useState('');
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+    // --- Pass debounced term to useProducts ---
+    const { data: products = [], isLoading } = useProducts(debouncedSearchTerm);
     const addToast = useStore(s => s.addToast);
 
     const createProduct = useCreateProduct();
@@ -53,8 +57,20 @@ export default function ProductManagementPage() {
     const [name, setName] = useState('');
     const [price, setPrice] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [searchTerm, setSearchTerm] = useState('');
+    // const [searchTerm, setSearchTerm] = useState(''); // Moved up
     const searchInputRef = useRef(null);
+
+    // --- MODIFICATION: Debounce search term ---
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedSearchTerm(searchTerm);
+        }, 300); // 300ms delay
+
+        return () => {
+            clearTimeout(handler);
+        };
+    }, [searchTerm]);
+    // --- END MODIFICATION ---
 
     useEffect(() => {
         const handleKeyDown = (e) => {
@@ -104,22 +120,28 @@ export default function ProductManagementPage() {
             addToast({ title: 'Error', description: 'Price must be a valid non-negative number.' });
             return;
         }
-        // --- Check for duplicate product name (case-insensitive) ---
+
+        // --- MODIFICATION: Simplify duplicate check.
+        // We refetch on mutation, but for a better UX, we can check the *currently loaded* products.
+        // This check is not foolproof (race condition) but is good enough.
+        // The database should have a UNIQUE constraint on the name.
+        const nameLower = name.trim().toLowerCase();
+        const existingProducts = products || []; // Use loaded products
+
         if (!editing) {
-            const nameLower = name.trim().toLowerCase();
-            const exists = products.some(p => p.name.trim().toLowerCase() === nameLower);
+            const exists = existingProducts.some(p => p.name.trim().toLowerCase() === nameLower);
             if (exists) {
                 addToast({ title: 'Warning', description: `Product "${name}" already exists.`, variant: 'warning' });
                 return;
             }
         } else {
-            const nameLower = name.trim().toLowerCase();
-            const exists = products.some(p => p.name.trim().toLowerCase() === nameLower && p.id !== editing.id);
+            const exists = existingProducts.some(p => p.name.trim().toLowerCase() === nameLower && p.id !== editing.id);
             if (exists) {
                 addToast({ title: 'Warning', description: `Another product with the name "${name}" already exists.`, variant: 'warning' });
                 return;
             }
         }
+        // --- END MODIFICATION ---
 
         const payload = {
             name,
@@ -154,15 +176,11 @@ export default function ProductManagementPage() {
 
     const isMutating = createProduct.isPending || updateProduct.isPending || deleteProduct.isPending;
 
-    // Filter products by searchTerm (case-insensitive, name or category)
-    const filteredProducts = products.filter(p => {
-        const term = searchTerm.trim().toLowerCase();
-        if (!term) return true;
-        return (
-            (p.name && p.name.toLowerCase().includes(term)) ||
-            (p.category && p.category.toLowerCase().includes(term))
-        );
-    });
+    // --- MODIFICATION: Remove client-side filtering ---
+    // const filteredProducts = products.filter(p => { ... });
+    const filteredProducts = products; // Data from useProducts is already filtered
+    // --- END MODIFICATION ---
+
     const itemsPerPage = 10;
     const [currentPage, setCurrentPage] = useState(1);
     const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
@@ -184,7 +202,7 @@ export default function ProductManagementPage() {
                 <div className="mb-4">
                     <Input
                         ref={searchInputRef}
-                        placeholder="Search products..."
+                        placeholder="Search products by name or category..." // Updated placeholder
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
                         className="w-full max-w-xs mb-2"
@@ -194,7 +212,8 @@ export default function ProductManagementPage() {
                 {/* --- DESKTOP TABLE (Hidden on mobile) --- */}
                 <Card className="hidden md:block">
                     <CardContent>
-                        <ScrollArea className="max-h-96">
+                        {/* --- MODIFICATION: Removed max-h-96, pagination handles length --- */}
+                        <ScrollArea>
                             <Table>
                                 <TableHeader>
                                     <TableRow>
@@ -206,11 +225,22 @@ export default function ProductManagementPage() {
                                 <TableBody>
                                     {isLoading ? (
                                         <TableRow>
-                                            <TableCell colSpan={3} className="text-center text-muted">Loading products...</TableCell>
+                                            {/* --- MODIFICATION: Added loading spinner --- */}
+                                            <TableCell colSpan={3} className="text-center text-muted py-8">
+                                                <div className="flex justify-center items-center">
+                                                    <svg className="animate-spin h-5 w-5 text-primary mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                    </svg>
+                                                    Loading products...
+                                                </div>
+                                            </TableCell>
                                         </TableRow>
                                     ) : paginatedProducts.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={3} className="text-center text-muted">No products found.</TableCell>
+                                            <TableCell colSpan={3} className="text-center text-muted py-8">
+                                                {debouncedSearchTerm ? `No products found for "${debouncedSearchTerm}".` : 'No products found.'}
+                                            </TableCell>
                                         </TableRow>
                                     ) : (
                                         paginatedProducts.map(p => (
@@ -249,7 +279,9 @@ export default function ProductManagementPage() {
                             {isLoading ? (
                                 <div className="text-center text-muted p-6">Loading products...</div>
                             ) : paginatedProducts.length === 0 ? (
-                                <div className="text-center text-muted p-6">No products found.</div>
+                                <div className="text-center text-muted p-6">
+                                    {debouncedSearchTerm ? `No products found for "${debouncedSearchTerm}".` : 'No products found.'}
+                                </div>
                             ) : (
                                 <div className="divide-y divide-gray-100"> {/* Lighter divider */}
                                     {paginatedProducts.map(p => (

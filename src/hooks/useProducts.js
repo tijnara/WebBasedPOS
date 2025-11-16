@@ -14,29 +14,51 @@ const MOCK_PRODUCTS = [
 ];
 // --- END MOCK DATA ---
 
-export function useProducts() {
+// --- MODIFICATION: Accept searchTerm ---
+export function useProducts(searchTerm = '') {
     // 3. Get the user state and check the isDemo flag
     const isDemo = useStore(s => s.user?.isDemo);
 
     return useQuery({
-        // 4. Add 'isDemo' to the queryKey
-        queryKey: ['products', isDemo],
+        // 4. Add 'isDemo' and 'searchTerm' to the queryKey
+        queryKey: ['products', isDemo, searchTerm],
         queryFn: async () => {
+            const term = searchTerm.trim().toLowerCase();
+
             // --- 5. DEMO MODE LOGIC ---
             if (isDemo) {
                 // Simulate a network delay for a realistic feel
                 await new Promise(resolve => setTimeout(resolve, 400));
-                return MOCK_PRODUCTS;
+                // Simulate client-side filtering for demo mode
+                if (!term) {
+                    return MOCK_PRODUCTS;
+                }
+                return MOCK_PRODUCTS.filter(p =>
+                    (p.name && p.name.toLowerCase().includes(term)) ||
+                    (p.category && p.category.toLowerCase().includes(term))
+                );
             }
             // --- END DEMO MODE LOGIC ---
 
             // --- ORIGINAL LOGIC (if not demo) ---
             try {
                 // Fetch all products from Supabase 'products' table
-                const { data, error } = await supabase
+                let query = supabase
                     .from('products')
                     .select('*') // Select all columns
                     .order('name', { ascending: true }); // Optional: Order by name
+
+                // --- MODIFICATION: Add server-side filtering ---
+                if (term) {
+                    // Use .or() to search in multiple columns
+                    // name.ilike.%term%,category.ilike.%term%
+                    query = query.or(
+                        `name.ilike.%${term}%,category.ilike.%${term}%`
+                    );
+                }
+                // --- END MODIFICATION ---
+
+                const { data, error } = await query;
 
                 if (error) {
                     // Intentionally rethrow for React Query error handling

@@ -9,11 +9,13 @@ import MobileLogoutButton from '../MobileLogoutButton';
 
 // --- Import Customer Hooks ---
 import { useCreateCustomer } from '../../hooks/useCreateCustomer';
+// --- MODIFICATION: Fixed imports ---
 import {
-    useCustomers,
     useUpdateCustomer,
     useDeleteCustomer
 } from '../../hooks/useCustomerMutations';
+import { useCustomers } from '../../hooks/useCustomers';
+// --- END MODIFICATION ---
 
 // --- NEW: Simple SVG Icon for Customer (User Circle) ---
 const UserIcon = () => (
@@ -38,7 +40,11 @@ const DeleteIcon = () => (
 );
 
 export default function CustomerManagementPage() {
-    const { data: customers = [], isLoading } = useCustomers();
+    // --- MODIFICATION: Debounced search term ---
+    const [searchTerm, setSearchTerm] = useState('');
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+    // --- Pass debounced term to useCustomers ---
+    const { data: customers = [], isLoading } = useCustomers(debouncedSearchTerm);
     const addToast = useStore(s => s.addToast);
     const isDemo = useStore(s => s.user?.isDemo); // <-- FIX: define isDemo
 
@@ -52,10 +58,22 @@ export default function CustomerManagementPage() {
     const [phone, setPhone] = useState('');
     const [address, setAddress] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [searchTerm, setSearchTerm] = useState('');
+    // const [searchTerm, setSearchTerm] = useState(''); // Moved up
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
     const searchInputRef = useRef(null);
+
+    // --- MODIFICATION: Debounce search term ---
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedSearchTerm(searchTerm);
+        }, 300); // 300ms delay
+
+        return () => {
+            clearTimeout(handler);
+        };
+    }, [searchTerm]);
+    // --- END MODIFICATION ---
 
     useEffect(() => {
         const handleKeyDown = (e) => {
@@ -139,17 +157,10 @@ export default function CustomerManagementPage() {
 
     const isMutating = createCustomer.isPending || updateCustomer.isPending || deleteCustomer.isPending;
 
-    // Filter customers by searchTerm (case-insensitive, name, email, or phone)
-    const filteredCustomers = customers.filter(c => {
-        const term = searchTerm.trim().toLowerCase();
-        if (!term) return true;
-        return (
-            (c.name && c.name.toLowerCase().includes(term)) ||
-            (c.email && c.email.toLowerCase().includes(term)) ||
-            (c.phone && c.phone.toLowerCase().includes(term)) ||
-            (c.users?.name && c.users.name.toLowerCase().includes(term)) // --- ADDED: Filter by staff name ---
-        );
-    });
+    // --- MODIFICATION: Remove client-side filtering ---
+    const filteredCustomers = customers; // Data from useCustomers is already filtered
+    // --- END MODIFICATION ---
+
     const totalPages = Math.ceil(filteredCustomers.length / itemsPerPage);
     const paginatedCustomers = filteredCustomers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
@@ -170,7 +181,7 @@ export default function CustomerManagementPage() {
                 <div className="mb-4 mt-6">
                     <Input
                         ref={searchInputRef}
-                        placeholder="Search by name, email, or phone..."
+                        placeholder="Search by name, email, phone, or staff..." // Updated placeholder
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
                         className="w-full max-w-xs mb-2"
@@ -180,7 +191,8 @@ export default function CustomerManagementPage() {
                 {/* --- DESKTOP TABLE (Hidden on mobile) --- */}
                 <Card className="mb-4 hidden md:block">
                     <CardContent className="p-0">
-                        <ScrollArea className="max-h-[calc(100vh-280px)]">
+                        {/* --- MODIFICATION: Removed max-h, pagination handles length --- */}
+                        <ScrollArea>
                             <Table>
                                 <TableHeader className="sticky top-0 bg-gray-50 z-10">
                                     <TableRow>
@@ -195,11 +207,22 @@ export default function CustomerManagementPage() {
                                 <TableBody>
                                     {isLoading ? (
                                         <TableRow>
-                                            <TableCell colSpan={6} className="text-center text-muted py-8">Loading customers...</TableCell>
+                                            {/* --- MODIFICATION: Added loading spinner --- */}
+                                            <TableCell colSpan={6} className="text-center text-muted py-8">
+                                                <div className="flex justify-center items-center">
+                                                    <svg className="animate-spin h-5 w-5 text-primary mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                    </svg>
+                                                    Loading customers...
+                                                </div>
+                                            </TableCell>
                                         </TableRow>
                                     ) : paginatedCustomers.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={6} className="text-center text-muted py-8">No customers found.</TableCell>
+                                            <TableCell colSpan={6} className="text-center text-muted py-8">
+                                                {debouncedSearchTerm ? `No customers found for "${debouncedSearchTerm}".` : 'No customers found.'}
+                                            </TableCell>
                                         </TableRow>
                                     ) : (
                                         paginatedCustomers.map(c => (
@@ -251,7 +274,9 @@ export default function CustomerManagementPage() {
                             {isLoading ? (
                                 <div className="text-center text-muted p-6">Loading customers...</div>
                             ) : paginatedCustomers.length === 0 ? (
-                                <div className="text-center text-muted p-6">No customers found.</div>
+                                <div className="text-center text-muted p-6">
+                                    {debouncedSearchTerm ? `No customers found for "${debouncedSearchTerm}".` : 'No customers found.'}
+                                </div>
                             ) : (
                                 <div className="divide-y divide-gray-100">
                                     {paginatedCustomers.map(c => (
