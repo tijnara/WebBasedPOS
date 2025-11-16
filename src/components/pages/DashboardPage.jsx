@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Card, CardHeader, CardContent, ScrollArea } from '../ui';
 import { Line, Bar } from 'react-chartjs-2';
 import { Chart, CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Tooltip, Legend, Filler } from 'chart.js';
@@ -12,6 +12,7 @@ import { useSalesByDateSummary } from '../../hooks/useSalesByDateSummary';
 import { useNewCustomersByDateSummary } from '../../hooks/useNewCustomersByDateSummary';
 import { useInactiveCustomers } from '../../hooks/useInactiveCustomers';
 import { startOfWeek } from 'date-fns';
+import { UserIcon } from '../Icons'; // <-- FIXED IMPORT
 
 Chart.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Tooltip, Legend, Filler);
 
@@ -56,6 +57,15 @@ export default function DashboardPage() {
     const { data: salesByDateData = [] } = useSalesByDateSummary();
     const { data: newCustomersByDateData = [] } = useNewCustomersByDateSummary();
     const { data: inactiveCustomers = [], isLoading: isLoadingInactive } = useInactiveCustomers(14);
+
+    // --- PAGINATION STATE FOR INACTIVE CUSTOMERS ---
+    const INACTIVE_PAGE_SIZE = 5;
+    const [inactivePage, setInactivePage] = useState(1);
+    const totalInactivePages = Math.max(1, Math.ceil(inactiveCustomers.length / INACTIVE_PAGE_SIZE));
+    const paginatedInactiveCustomers = useMemo(() => {
+        const start = (inactivePage - 1) * INACTIVE_PAGE_SIZE;
+        return inactiveCustomers.slice(start, start + INACTIVE_PAGE_SIZE);
+    }, [inactiveCustomers, inactivePage]);
 
     // --- CHART DATA ---
     // Sales Over Time
@@ -186,13 +196,15 @@ export default function DashboardPage() {
             <img src="/seaside.png" alt="Seaside Logo" className="brand-logo-top" width={32} height={32} loading="lazy" />
             <MobileLogoutButton />
             <h1 className="text-3xl md:text-4xl font-bold mb-4 md:mb-6 text-primary tracking-tight">Dashboard</h1>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 mb-4 md:mb-6">
+            {/* Add top margin to summary cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 mb-4 md:mb-6 mt-2 md:mt-6">
                 <SummaryCard title="Revenue" value={`₱${totalRevenue.toFixed(2)}`} />
                 <SummaryCard title="Transactions" value={transactionsCount} />
                 <SummaryCard title="New Customers" value={newCustomersCount} />
                 <SummaryCard title="Sales Today" value={`₱${todaySalesAmount.toFixed(2)}`} isSuccess={true} />
             </div>
-            <div className="flex flex-col md:flex-row gap-4 mb-6">
+            {/* Add space between chart rows */}
+            <div className="flex flex-col md:flex-row gap-4 mb-6 mt-2 md:mt-6">
                 <div className="flex-1">
                     <Card className="rounded-xl shadow bg-white border border-gray-200 h-[300px] md:h-[400px]">
                         <CardHeader className="pb-2">
@@ -240,7 +252,8 @@ export default function DashboardPage() {
                     </Card>
                 </div>
             </div>
-            <div className="flex flex-col md:flex-row gap-4">
+            {/* Add space between product and inactive customer cards */}
+            <div className="flex flex-col md:flex-row gap-4 mb-6 mt-2 md:mt-6">
                 <div className="flex-1">
                     <Card className="rounded-xl shadow bg-white border border-gray-200 h-[300px] md:h-[400px]">
                         <CardHeader className="pb-2">
@@ -282,9 +295,11 @@ export default function DashboardPage() {
                     </Card>
                 </div>
             </div>
-            <div className="flex flex-col md:flex-row gap-4">
-                <div className="flex-1">
-                    <Card className="rounded-xl shadow bg-white border border-gray-200 h-[300px] md:h-[400px] flex flex-col">
+            {/* Add space above inactive customers section */}
+            <div className="flex flex-col md:flex-row gap-4 mb-6 mt-2 md:mt-6">
+                {/* Inactive Customers Section */}
+                <div className="flex-1 md:max-w-full md:min-w-0 md:basis-1/2">
+                    <Card className="rounded-xl shadow bg-white border border-gray-200 h-[180px] md:h-[200px] flex flex-col">
                         <CardHeader className="pb-2">
                             <h3 className="font-semibold text-lg text-gray-600">Inactive Customers (14+ Days)</h3>
                             <div className="text-xs text-gray-500 mt-1">Customers who have not ordered in the last 14 days or never ordered.</div>
@@ -297,7 +312,7 @@ export default function DashboardPage() {
                                     <p className="p-4 text-center text-gray-500">No inactive customers found. Great!</p>
                                 ) : (
                                     <div className="w-full">
-                                        {/* Desktop Table */}
+                                        {/* --- Desktop Table --- */}
                                         <div className="hidden md:block">
                                             <table className="min-w-full text-sm">
                                                 <thead className="bg-gray-50">
@@ -309,29 +324,62 @@ export default function DashboardPage() {
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-gray-100">
-                                                    {inactiveCustomers.map(cust => (
-                                                        <tr key={cust.id}>
-                                                            <td className="px-4 py-2 text-gray-800 font-medium">{cust.name}</td>
-                                                            <td className="px-4 py-2 text-gray-600">{cust.phone || 'No phone'}</td>
-                                                            <td className="px-4 py-2">{formatLastOrderDate(cust.last_order_date)}</td>
-                                                            <td className="px-4 py-2">{getStatusBadge(cust.last_order_date)}</td>
+                                                    {paginatedInactiveCustomers.map(cust => (
+                                                        <tr key={cust.id} className="hover:bg-gray-50">
+                                                            <td className="px-4 py-3 text-gray-800 font-medium">{cust.name}</td>
+                                                            <td className="px-4 py-3 text-gray-600">{cust.phone || 'No phone'}</td>
+                                                            <td className="px-4 py-3">{formatLastOrderDate(cust.last_order_date)}</td>
+                                                            <td className="px-4 py-3">{getStatusBadge(cust.last_order_date)}</td>
                                                         </tr>
                                                     ))}
                                                 </tbody>
                                             </table>
                                         </div>
-                                        {/* Mobile Cards */}
-                                        <div className="md:hidden p-2 space-y-2">
-                                            {inactiveCustomers.map(cust => (
-                                                <div key={cust.id} className="bg-gray-50 rounded-lg border p-3 flex flex-col gap-1">
-                                                    <div className="flex justify-between items-center">
-                                                        <div className="font-medium text-gray-800">{cust.name}</div>
-                                                        {getStatusBadge(cust.last_order_date)}
+                                        {/* --- Mobile Cards --- */}
+                                        <div className="md:hidden divide-y divide-gray-100">
+                                            {paginatedInactiveCustomers.map(cust => (
+                                                <div key={cust.id} className="p-4 flex items-center space-x-3">
+                                                    {/* Icon */}
+                                                    <div className="flex-shrink-0">
+                                                        <span className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                                                            <UserIcon className="w-5 h-5 text-gray-500" />
+                                                        </span>
                                                     </div>
-                                                    <div className="text-xs text-gray-600">Phone: {cust.phone || 'No phone'}</div>
-                                                    <div className="text-xs text-gray-600">Last Order: {formatLastOrderDate(cust.last_order_date)}</div>
+                                                    {/* Customer Info */}
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex justify-between items-center">
+                                                            <div className="font-medium text-gray-900 truncate">{cust.name}</div>
+                                                            {getStatusBadge(cust.last_order_date)}
+                                                        </div>
+                                                        <div className="text-sm text-gray-500 truncate">
+                                                            {cust.phone || 'No phone'}
+                                                        </div>
+                                                        <div className="text-xs text-gray-500">
+                                                            Last Order: {formatLastOrderDate(cust.last_order_date)}
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             ))}
+                                        </div>
+                                        {/* --- Pagination Controls --- */}
+                                        <div className="flex justify-center items-center gap-2 py-3">
+                                            <button
+                                                className="px-3 py-1 rounded bg-gray-200 text-gray-700 disabled:opacity-50"
+                                                onClick={() => setInactivePage(p => Math.max(1, p - 1))}
+                                                disabled={inactivePage === 1}
+                                            >
+                                                Prev
+                                            </button>
+                                            <span className="px-2 text-sm font-medium text-gray-700">
+                                                Page {inactivePage} of {totalInactivePages}
+                                            </span>
+                                            <button
+                                                className="px-3 py-1 rounded bg-gray-200 text-gray-700 disabled:opacity-50"
+                                                onClick={() => setInactivePage(p => Math.min(totalInactivePages, p + 1))}
+                                                disabled={inactivePage === totalInactivePages}
+                                            >
+                                                Next
+                                            </button>
                                         </div>
                                     </div>
                                 )}
