@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useSales } from '../../hooks/useSales';
+import { useDebounce } from '../../hooks/useDebounce.js';
 import {
     Button, Card, CardContent, Table, TableHeader, TableBody, TableRow,
     TableHead, TableCell, ScrollArea, Input, Dialog, DialogContent,
@@ -150,8 +151,9 @@ const SaleDetailsModal = ({ sale, isOpen, onClose }) => {
 
 // --- Main History Page Component ---
 export default function HistoryPage() {
-    const { data: sales = [], isLoading } = useSales();
     const [searchTerm, setSearchTerm] = useState('');
+    const debouncedSearchTerm = useDebounce(searchTerm, 300);
+    const { data: sales = [], isLoading } = useSales({ searchTerm: debouncedSearchTerm });
     const [currentPage, setCurrentPage] = useState(1);
     const [selectedSale, setSelectedSale] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -181,34 +183,21 @@ export default function HistoryPage() {
         setTimeout(() => setSelectedSale(null), 300); // Delay for animation
     };
 
-    // Memoized filtering and pagination
+    // Remove client-side filtering in useMemo, only paginate and sort
     const paginatedSales = useMemo(() => {
-        const filteredSales = sales.filter(s => {
-            const term = searchTerm.trim().toLowerCase();
-            if (!term) return true;
-            return (
-                (s.customerName && s.customerName.toLowerCase().includes(term)) ||
-                (s.createdBy && s.createdBy.toLowerCase().includes(term)) ||
-                (s.status && s.status.toLowerCase().includes(term)) ||
-                (s.paymentMethod && s.paymentMethod.toLowerCase().includes(term))
-            );
-        }).sort((a, b) => new Date(b.saleTimestamp) - new Date(a.saleTimestamp)); // Sort by most recent
-
-        const totalPages = Math.max(1, Math.ceil(filteredSales.length / itemsPerPage));
+        const sortedSales = sales.sort((a, b) => new Date(b.saleTimestamp) - new Date(a.saleTimestamp));
+        const totalPages = Math.max(1, Math.ceil(sortedSales.length / itemsPerPage));
         const validCurrentPage = Math.max(1, Math.min(currentPage, totalPages));
-
         if (currentPage !== validCurrentPage) {
             setCurrentPage(validCurrentPage);
         }
-
         const startIdx = (validCurrentPage - 1) * itemsPerPage;
         const endIdx = startIdx + itemsPerPage;
-
         return {
-            sales: filteredSales.slice(startIdx, endIdx),
+            sales: sortedSales.slice(startIdx, endIdx),
             totalPages,
         };
-    }, [sales, searchTerm, currentPage]);
+    }, [sales, currentPage]);
 
     return (
         <div className="history-page">

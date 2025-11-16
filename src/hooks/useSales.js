@@ -43,37 +43,58 @@ const MOCK_SALES = [
 ];
 // --- END MODIFICATION ---
 
-export function useSales() {
+export function useSales({ searchTerm, startDate, endDate } = {}) {
     const isDemo = useStore(s => s.user?.isDemo);
     return useQuery({
-        queryKey: ['sales', isDemo],
+        queryKey: ['sales', isDemo, searchTerm, startDate, endDate],
         queryFn: async () => {
             if (isDemo) {
                 await new Promise(resolve => setTimeout(resolve, 400));
-                return MOCK_SALES;
+                let filtered = MOCK_SALES;
+                if (searchTerm) {
+                    const term = searchTerm.trim().toLowerCase();
+                    filtered = filtered.filter(s =>
+                        (s.customerName && s.customerName.toLowerCase().includes(term)) ||
+                        (s.status && s.status.toLowerCase().includes(term)) ||
+                        (s.paymentMethod && s.paymentMethod.toLowerCase().includes(term)) ||
+                        (s.createdBy && s.createdBy.toLowerCase().includes(term))
+                    );
+                }
+                if (startDate) {
+                    filtered = filtered.filter(s => s.saleTimestamp >= startDate);
+                }
+                if (endDate) {
+                    filtered = filtered.filter(s => s.saleTimestamp <= endDate);
+                }
+                return filtered;
             }
             try {
-                // --- MODIFIED QUERY ---
-                // This assumes your 'sales' table 'created_by' column
-                // is a foreign key to the 'users' table 'id' column.
-                const { data, error } = await supabase
+                let query = supabase
                     .from('sales')
                     .select(`
                         *,
                         sale_items ( *, product:products ( name, price ) ),
                         users:created_by ( name )
-                    `) // <-- This line joins the users table
+                    `)
                     .order('saletimestamp', { ascending: false });
-
+                if (searchTerm) {
+                    const term = searchTerm.trim().toLowerCase();
+                    query = query.or(
+                        `customername.ilike.%${term}%,status.ilike.%${term}%,paymentmethod.ilike.%${term}%`
+                    );
+                }
+                if (startDate) {
+                    query = query.gte('saletimestamp', startDate.toISOString());
+                }
+                if (endDate) {
+                    query = query.lte('saletimestamp', endDate.toISOString());
+                }
+                const { data, error } = await query;
                 if (error) {
-                    console.error("useSales Error:", error); // <-- Better logging
+                    console.error("useSales Error:", error);
                     throw error;
                 }
-                // --- END MODIFICATION ---
-
                 if (!data || !Array.isArray(data)) return [];
-
-                // --- MODIFIED MAPPING ---
                 return data.map(s => ({
                     id: s.id,
                     saleTimestamp: s.saletimestamp ? new Date(s.saletimestamp) : new Date(s.created_at),
@@ -81,8 +102,7 @@ export function useSales() {
                     amountReceived: parseFloat(s.amountreceived) || 0,
                     customerId: s.customerId,
                     customerName: s.customername || 'N/A',
-                    // Use the fetched user's name. Fallback to ID if not found.
-                    createdBy: s.users?.name || s.created_by || 'N/A', // <-- UPDATED
+                    createdBy: s.users?.name || s.created_by || 'N/A',
                     sale_items: Array.isArray(s.sale_items) ? s.sale_items.map(item => ({
                         ...item,
                         productName: item.product?.name || '',
@@ -92,13 +112,10 @@ export function useSales() {
                     paymentMethod: s.paymentmethod || 'N/A',
                     status: s.status || 'Completed'
                 }));
-                // --- END MODIFICATION ---
-
             } catch (error) {
-                // Intentionally rethrow for React Query error handling
                 throw error;
             }
         },
-        staleTime: 1000 * 60 * 3, // Cache data for 3 minutes
+        staleTime: 1000 * 60 * 3,
     });
 }
