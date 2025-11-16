@@ -10,6 +10,7 @@ import { useSalesSummary } from '../../hooks/useSalesSummary';
 import { useTopProductsSummary } from '../../hooks/useTopProductsSummary';
 import { useSalesByDateSummary } from '../../hooks/useSalesByDateSummary';
 import { useNewCustomersByDateSummary } from '../../hooks/useNewCustomersByDateSummary';
+import { startOfWeek } from 'date-fns';
 
 Chart.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Tooltip, Legend, Filler);
 
@@ -24,9 +25,9 @@ const SummaryCard = ({ title, value, isSuccess = false }) => (
 
 export default function DashboardPage() {
     // Summary cards (unchanged)
-    const { data: salesData } = useSales();
+    const { data: salesData } = useSales({ page: 1, itemsPerPage: 1000 });
     const { data: productsData } = useProducts();
-    const { data: customerData } = useCustomers ? useCustomers() : { data: undefined };
+    const { data: customerData } = useCustomers ? useCustomers({ page: 1, itemsPerPage: 1000 }) : { data: undefined };
     const { data: summaryData } = useSalesSummary();
 
     // --- USE SUMMARY HOOKS FOR CHARTS ---
@@ -36,16 +37,53 @@ export default function DashboardPage() {
 
     // --- CHART DATA ---
     // Sales Over Time
-    const salesDates = salesByDateData.map(row => row.sale_date ? new Date(row.sale_date).toLocaleDateString() : 'Unknown');
-    const salesAmounts = salesByDateData.map(row => Number(row.total_sales || 0));
-
-    // Top-Selling Products
-    const topProductNames = topProductsData.map(row => row.product_name);
-    const topProductQuantities = topProductsData.map(row => Number(row.total_quantity || 0));
+    const salesByWeek = useMemo(() => {
+        const map = {};
+        salesData?.sales.forEach(sale => {
+            if (!sale.saleTimestamp) return;
+            try {
+                const saleDate = new Date(sale.saleTimestamp);
+                const weekStart = startOfWeek(saleDate, { weekStartsOn: 1 });
+                const key = weekStart.toISOString().split('T')[0];
+                map[key] = (map[key] || 0) + Number(sale.totalAmount || 0);
+            } catch (e) {
+                console.error("Invalid sale date", sale.saleTimestamp);
+            }
+        });
+        const sortedData = Object.entries(map).sort((a, b) => new Date(a[0]) - new Date(b[0]));
+        const labels = sortedData.map(([dateKey]) =>
+            new Date(dateKey).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+        );
+        const data = sortedData.map(([, total]) => total);
+        return { labels, data };
+    }, [salesData]);
+    const salesDates = salesByWeek.labels;
+    const salesAmounts = salesByWeek.data;
 
     // New Customers Over Time
-    const customerDates = newCustomersByDateData.map(row => row.customer_date ? new Date(row.customer_date).toLocaleDateString() : 'Unknown');
-    const customerCounts = newCustomersByDateData.map(row => Number(row.total_customers || 0));
+    const customersByWeek = useMemo(() => {
+        const map = {};
+        customerData?.customers.forEach(cust => {
+            if (!cust.dateAdded) return;
+            try {
+                const addedDate = new Date(cust.dateAdded);
+                if (isNaN(addedDate.getTime())) return;
+                const weekStart = startOfWeek(addedDate, { weekStartsOn: 1 });
+                const key = weekStart.toISOString().split('T')[0];
+                map[key] = (map[key] || 0) + 1;
+            } catch (e) {
+                console.error("Invalid customer date", cust.dateAdded);
+            }
+        });
+        const sortedData = Object.entries(map).sort((a, b) => new Date(a[0]) - new Date(b[0]));
+        const labels = sortedData.map(([dateKey]) =>
+            new Date(dateKey).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+        );
+        const data = sortedData.map(([, total]) => total);
+        return { labels, data };
+    }, [customerData]);
+    const customerDates = customersByWeek.labels;
+    const customerCounts = customersByWeek.data;
 
     // --- Summary Stats ---
     const totalRevenue = summaryData?.totalRevenue || 0;
@@ -76,6 +114,41 @@ export default function DashboardPage() {
         .filter(row => new Date(row.sale_date).toLocaleDateString() === todayDateString)
         .reduce((sum, row) => sum + Number(row.total_sales || 0), 0);
 
+    // --- Top-Selling Products ---
+    const productSales = useMemo(() => {
+        const map = {};
+        salesData?.sales.forEach(sale => {
+            (sale.sale_items || []).forEach(item => {
+                map[item.productName] = (map[item.productName] || 0) + item.quantity;
+            });
+        });
+        return map;
+    }, [salesData]);
+    const topProducts = Object.entries(productSales)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
+    const topProductNames = topProducts.map(([name]) => name);
+    const topProductQuantities = topProducts.map(([, qty]) => qty);
+
+    // Today's top-selling products
+    const todayProductSales = (() => {
+        const map = {};
+        salesData?.sales.filter(sale => {
+            const saleDate = new Date(sale.saleTimestamp).toLocaleDateString();
+            return saleDate === todayDateString;
+        }).forEach(sale => {
+            (sale.sale_items || []).forEach(item => {
+                map[item.productName] = (map[item.productName] || 0) + item.quantity;
+            });
+        });
+        return map;
+    })();
+    const todayTopProducts = Object.entries(todayProductSales)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
+    const todayTopProductNames = todayTopProducts.map(([name]) => name);
+    const todayTopProductQuantities = todayTopProducts.map(([, qty]) => qty);
+
     // Chart options
     const chartOptions = {
         responsive: true,
@@ -101,7 +174,7 @@ export default function DashboardPage() {
                 <div className="flex-1">
                     <Card className="rounded-xl shadow bg-white border border-gray-200 h-[300px] md:h-[400px]">
                         <CardHeader className="pb-2">
-                            <h3 className="font-semibold text-lg text-gray-600">Sales Over Time</h3>
+                            <h3 className="font-semibold text-lg text-gray-600">Sales Over Time (Weekly)</h3>
                         </CardHeader>
                         <CardContent className="p-2 h-[calc(100%-4rem)]">
                             <Line
@@ -124,7 +197,7 @@ export default function DashboardPage() {
                 <div className="flex-1">
                     <Card className="rounded-xl shadow bg-white border border-gray-200 h-[300px] md:h-[400px]">
                         <CardHeader className="pb-2">
-                            <h3 className="font-semibold text-lg text-gray-600">New Customers Over Time</h3>
+                            <h3 className="font-semibold text-lg text-gray-600">New Customers Over Time (Weekly)</h3>
                         </CardHeader>
                         <CardContent className="p-2 h-[calc(100%-4rem)]">
                             <Line
@@ -166,7 +239,26 @@ export default function DashboardPage() {
                         </CardContent>
                     </Card>
                 </div>
-                {/* Top-Selling Products (Today) can be implemented with a new RPC if needed */}
+                <div className="flex-1">
+                    <Card className="rounded-xl shadow bg-white border border-gray-200 h-[300px] md:h-[400px]">
+                        <CardHeader className="pb-2">
+                            <h3 className="font-semibold text-lg text-gray-600">Top-Selling Products (Today)</h3>
+                        </CardHeader>
+                        <CardContent className="p-2 h-[calc(100%-4rem)]">
+                            <Bar
+                                data={{
+                                    labels: todayTopProductNames,
+                                    datasets: [{
+                                        label: 'Units Sold',
+                                        data: todayTopProductQuantities,
+                                        backgroundColor: '#10b981',
+                                    }],
+                                }}
+                                options={chartOptions}
+                            />
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
         </div>
     );
