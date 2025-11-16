@@ -42,3 +42,12 @@ export const HamburgerIcon = () => (
         <path fillRule="evenodd" d="M4.5 5.25a.75.75 0 000 1.5h15a.75.75 0 000-1.5h-15zM4.5 12a.75.75 0 000 1.5h15a.75.75 0 000-1.5h-15zM4.5 18.75a.75.75 0 000 1.5h15a.75.75 0 000-1.5h-15z" clipRule="evenodd" />
     </svg>
 );
+
+export const DocumentReportIcon = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={cn("w-6 h-6", className)}>
+        <rect x="4" y="4" width="16" height="16" rx="2" fill="currentColor" />
+        <rect x="7" y="8" width="10" height="2" rx="1" fill="#fff" />
+        <rect x="7" y="12" width="10" height="2" rx="1" fill="#fff" />
+        <rect x="7" y="16" width="6" height="2" rx="1" fill="#fff" />
+    </svg>
+);

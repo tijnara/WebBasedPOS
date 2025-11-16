@@ -1,8 +1,9 @@
 // src/components/TabBar.jsx
 import React from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { cn } from './ui';
-import { CartIcon, PackageIcon, UserIcon, ChartIcon, UsersIcon } from './Icons'; // Import icons
+import { CartIcon, PackageIcon, UserIcon, ChartIcon, UsersIcon, DocumentReportIcon } from './Icons'; // Import icons
 
 // Define the navigation links for the tab bar
 const links = [
@@ -12,10 +13,30 @@ const links = [
     { name: 'Dashboard', path: '/dashboard', icon: <ChartIcon className="h-6 w-6" /> },
     { name: 'Sale History', path: '/history', icon: <ChartIcon className="h-6 w-6" /> },
     { name: 'Users', path: '/user-management', icon: <UsersIcon className="h-6 w-6" /> },
+    { name: 'Report', path: '/report', icon: <DocumentReportIcon className="h-6 w-6" /> },
 ];
 
 export default function TabBar() {
     const router = useRouter();
+
+    // Don't show the tab bar on the login page or the main POS page
+    if (router.pathname === '/login' || router.pathname === '/') {
+        return null;
+    }
+
+    // A map to handle special active states
+    const activeStates = {
+        '/': '/',
+        '/history': '/history',
+        '/customer-management': '/customer-management',
+        '/product-management': '/product-management',
+        '/user-management': '/user-management',
+        '/report': '/report'
+    };
+
+    const currentActivePath = Object.keys(activeStates).find(key =>
+        router.pathname.startsWith(key)
+    );
 
     return (
         // This component uses the .tab-bar class defined in globals.css
