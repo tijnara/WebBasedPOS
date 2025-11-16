@@ -5,6 +5,7 @@ import { Chart, CategoryScale, LinearScale, PointElement, LineElement, BarElemen
 import { useSales } from '../../hooks/useSales';
 import { useProducts } from '../../hooks/useProducts';
 import { useCustomers } from '../../hooks/useCustomers';
+import { useSalesSummary } from '../../hooks/useSalesSummary';
 import MobileLogoutButton from '../MobileLogoutButton';
 
 Chart.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Tooltip, Legend, Filler);
@@ -21,11 +22,15 @@ const SummaryCard = ({ title, value, isSuccess = false }) => (
 
 export default function DashboardPage() {
     // --- FIX: Destructure the object returned by the hooks ---
+    // This call gets paginated sales for charts AND the totalCount for transactions
     const { data: salesData } = useSales();
     const { data: productsData } = useProducts();
     const { data: customerData } = useCustomers ? useCustomers() : { data: undefined };
 
-    // Extract the arrays from the data objects
+    // --- ADD: Get total revenue for all sales
+    const { data: summaryData } = useSalesSummary();
+
+    // Extract the arrays from the data objects (still needed for charts)
     const sales = salesData?.sales || [];
     const products = productsData?.products || [];
     const customers = customerData?.customers || [];
@@ -71,9 +76,11 @@ export default function DashboardPage() {
     const customerDates = Object.keys(customersByDate);
     const customerCounts = Object.values(customersByDate);
 
-    // --- Summary Stats ---
-    const totalRevenue = sales.reduce((sum, sale) => sum + Number(sale.totalAmount || 0), 0);
-    const transactionsCount = sales.length;
+    // --- Summary Stats (THE FIX) ---
+    // Get total revenue from the dedicated summary hook
+    const totalRevenue = summaryData?.totalRevenue || 0;
+    // Get total transaction count from the `useSales` hook's count property
+    const transactionsCount = salesData?.totalCount || 0;
 
     // Helper function to check if a date is in the current week
     function isDateInCurrentWeek(dateString) {
@@ -98,7 +105,7 @@ export default function DashboardPage() {
     // Get today's date string (local time)
     const todayDateString = new Date().toLocaleDateString();
 
-    // Filter sales for today
+    // Filter sales for today (from the paginated list)
     const todaySales = sales.filter(sale => {
         const saleDate = new Date(sale.saleTimestamp).toLocaleDateString();
         return saleDate === todayDateString;
