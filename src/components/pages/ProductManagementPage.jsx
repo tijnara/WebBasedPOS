@@ -42,11 +42,14 @@ const BagIcon = () => (
 
 
 export default function ProductManagementPage() {
-    // --- MODIFICATION: Debounced search term ---
     const [searchTerm, setSearchTerm] = useState('');
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
-    // --- Pass debounced term to useProducts ---
-    const { data: products = [], isLoading } = useProducts(debouncedSearchTerm);
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
+    // Pass page, itemsPerPage, and debouncedSearchTerm to useProducts
+    const { data: productsData = { products: [], totalPages: 1 }, isLoading } = useProducts({ page: currentPage, itemsPerPage, searchTerm: debouncedSearchTerm });
+    const products = productsData.products;
+    const totalPages = productsData.totalPages;
     const addToast = useStore(s => s.addToast);
 
     const createProduct = useCreateProduct();
@@ -176,16 +179,6 @@ export default function ProductManagementPage() {
 
     const isMutating = createProduct.isPending || updateProduct.isPending || deleteProduct.isPending;
 
-    // --- MODIFICATION: Remove client-side filtering ---
-    // const filteredProducts = products.filter(p => { ... });
-    const filteredProducts = products; // Data from useProducts is already filtered
-    // --- END MODIFICATION ---
-
-    const itemsPerPage = 10;
-    const [currentPage, setCurrentPage] = useState(1);
-    const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
-    const paginatedProducts = filteredProducts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-
     return (
         <div className="product-page">
             {/* --- Brand Logo at the very top left --- */}
@@ -236,14 +229,14 @@ export default function ProductManagementPage() {
                                                 </div>
                                             </TableCell>
                                         </TableRow>
-                                    ) : paginatedProducts.length === 0 ? (
+                                    ) : products.length === 0 ? (
                                         <TableRow>
                                             <TableCell colSpan={3} className="text-center text-muted py-8">
                                                 {debouncedSearchTerm ? `No products found for "${debouncedSearchTerm}".` : 'No products found.'}
                                             </TableCell>
                                         </TableRow>
                                     ) : (
-                                        paginatedProducts.map(p => (
+                                        products.map(p => (
                                             <TableRow key={p.id}>
                                                 <TableCell>{p.name}</TableCell>
                                                 <TableCell>₱{Number(p.price || 0).toFixed(2)}</TableCell>
@@ -278,13 +271,13 @@ export default function ProductManagementPage() {
                         <CardContent className="p-0"> {/* Remove padding from content to allow list to go edge-to-edge */}
                             {isLoading ? (
                                 <div className="text-center text-muted p-6">Loading products...</div>
-                            ) : paginatedProducts.length === 0 ? (
+                            ) : products.length === 0 ? (
                                 <div className="text-center text-muted p-6">
                                     {debouncedSearchTerm ? `No products found for "${debouncedSearchTerm}".` : 'No products found.'}
                                 </div>
                             ) : (
                                 <div className="divide-y divide-gray-100"> {/* Lighter divider */}
-                                    {paginatedProducts.map(p => (
+                                    {products.map(p => (
                                         <div key={p.id} className="p-4 flex items-center space-x-3">
                                             {/* Icon */}
                                             <div className="flex-shrink-0">

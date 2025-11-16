@@ -85,7 +85,8 @@ const ProductImage = ({ product }) => {
 
 export default function POSPage() {
     // --- Fetch products using the Supabase hook ---
-    const { data: products = [], isLoading: isLoadingProducts } = useProducts();
+    const { data: productsData = { products: [], totalPages: 1 }, isLoading: isLoadingProducts } = useProducts();
+    const products = productsData.products;
 
     // --- Zustand state for UI (Cart, Customer, Toasts) ---
     const {
@@ -899,3 +900,4 @@ export default function POSPage() {
         </div>
     );
 }
+

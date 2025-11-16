@@ -10,51 +10,49 @@ const MOCK_CUSTOMERS = [
 ];
 
 // --- MODIFICATION: Accept searchTerm ---
-export function useCustomers(searchTerm = '') {
+export function useCustomers({ searchTerm = '', page = 1, itemsPerPage = 10 } = {}) {
     const isDemo = useStore(s => s.user?.isDemo);
-
     return useQuery({
         // --- MODIFICATION: Add searchTerm to queryKey ---
-        queryKey: ['customers', isDemo, searchTerm],
+        queryKey: ['customers', isDemo, searchTerm, page, itemsPerPage],
         queryFn: async () => {
             const term = searchTerm.trim().toLowerCase();
-
             if (isDemo) {
                 await new Promise(resolve => setTimeout(resolve, 400));
-                // Simulate client-side filtering for demo mode
-                if (!term) {
-                    return MOCK_CUSTOMERS;
+                let filtered = MOCK_CUSTOMERS;
+                if (term) {
+                    filtered = filtered.filter(c =>
+                        (c.name && c.name.toLowerCase().includes(term)) ||
+                        (c.phone && c.phone.toLowerCase().includes(term)) ||
+                        (c.users?.name && c.users.name.toLowerCase().includes(term))
+                    );
                 }
-                return MOCK_CUSTOMERS.filter(c =>
-                    (c.name && c.name.toLowerCase().includes(term)) ||
-                    (c.phone && c.phone.toLowerCase().includes(term)) ||
-                    (c.users?.name && c.users.name.toLowerCase().includes(term))
-                );
+                const totalCount = filtered.length;
+                const totalPages = Math.max(1, Math.ceil(totalCount / itemsPerPage));
+                const startIdx = (page - 1) * itemsPerPage;
+                const endIdx = startIdx + itemsPerPage;
+                const paginated = filtered.slice(startIdx, endIdx);
+                return { customers: paginated, totalPages, totalCount };
             }
-
-            // --- MODIFICATION: Build dynamic query ---
             let query = supabase
                 .from('customers')
-                .select('*, users!created_by(id, name)')
+                .select('*, users!created_by(id, name)', { count: 'exact' })
                 .order('name', { ascending: true });
-
             if (term) {
-                // Only filter on base table fields in Supabase query
                 query = query.or(
                     `name.ilike.%${term}%,email.ilike.%${term}%,phone.ilike.%${term}%`
                 );
             }
-            // --- END MODIFICATION ---
-
-            const { data, error } = await query;
-
+            const startIndex = (page - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage - 1;
+            query = query.range(startIndex, endIndex);
+            const { data, error, count } = await query;
             if (error) {
-                console.error("useCustomers hook error:", error); // Added logging
+                console.error("useCustomers hook error:", error);
                 throw error;
             }
-
-            // --- Filter joined user name in JS ---
             let filteredData = data || [];
+            // JS filter for joined user name
             if (term) {
                 filteredData = filteredData.filter(
                     c =>
@@ -64,13 +62,17 @@ export function useCustomers(searchTerm = '') {
                         (c.users?.name && c.users.name.toLowerCase().includes(term))
                 );
             }
-
-            // --- Parse date strings into Date objects ---
-            return filteredData.map(c => ({
-                ...c,
-                dateAdded: c.created_at ? new Date(c.created_at) : null
-            }));
+            const totalCount = count || 0;
+            const totalPages = Math.max(1, Math.ceil(totalCount / itemsPerPage));
+            return {
+                customers: filteredData.map(c => ({
+                    ...c,
+                    dateAdded: c.created_at ? new Date(c.created_at) : null
+                })),
+                totalPages,
+                totalCount
+            };
         },
-        staleTime: 1000 * 60 * 5, // 5 minutes
+        staleTime: 1000 * 60 * 5,
     });
 }

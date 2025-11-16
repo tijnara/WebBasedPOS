@@ -21,7 +21,8 @@ const SummaryCard = ({ title, value, isSuccess = false }) => (
 
 export default function DashboardPage() {
     // Fetch data
-    const { data: sales = [] } = useSales();
+    const { data: salesData = { sales: [], totalPages: 1 } } = useSales();
+    const sales = salesData.sales;
     const { data: products = [] } = useProducts();
     const { data: customers = [] } = useCustomers ? useCustomers() : { data: [] };
 

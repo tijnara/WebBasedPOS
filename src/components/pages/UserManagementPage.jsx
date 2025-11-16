@@ -42,11 +42,9 @@ const USER_ROLES = {
     STAFF: 'Staff',
     ADMIN: 'Admin',
 };
-const itemsPerPage = 10;
 
 // --- Main Component ---
 export default function UserManagementPage() {
-    const { data: users = [], isLoading } = useUsers();
     const addToast = useStore(s => s.addToast);
     const { user: currentUser, isDemo } = useStore(s => ({
         user: s.user,
@@ -67,6 +65,10 @@ export default function UserManagementPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
+    const { data: usersData = { users: [], totalPages: 1 }, isLoading } = useUsers({ page: currentPage, itemsPerPage, searchTerm });
+    const users = usersData.users;
+    const totalPages = usersData.totalPages;
     const searchInputRef = useRef(null);
 
     // --- Effects ---
@@ -174,23 +176,6 @@ export default function UserManagementPage() {
         }
     };
 
-    // --- Memoized Filtering & Pagination ---
-    const { paginatedUsers, totalPages } = React.useMemo(() => {
-        const filteredUsers = users.filter(u => {
-            const term = searchTerm.trim().toLowerCase();
-            if (!term) return true;
-            return (
-                (u.name && u.name.toLowerCase().includes(term)) ||
-                (u.email && u.email.toLowerCase().includes(term)) ||
-                (u.role && u.role.toLowerCase().includes(term))
-            );
-        });
-
-        const total = Math.ceil(filteredUsers.length / itemsPerPage);
-        const paginated = filteredUsers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-        return { paginatedUsers: paginated, totalPages: total };
-    }, [users, searchTerm, currentPage]);
-
     const isMutating = createUser.isPending || updateUser.isPending || deleteUser.isPending;
 
     // --- Render ---
@@ -236,12 +221,12 @@ export default function UserManagementPage() {
                                         <TableRow>
                                             <TableCell colSpan={5} className="text-center text-muted py-8">Loading users...</TableCell>
                                         </TableRow>
-                                    ) : paginatedUsers.length === 0 ? (
+                                    ) : users.length === 0 ? (
                                         <TableRow>
                                             <TableCell colSpan={5} className="text-center text-muted py-8">No users found.</TableCell>
                                         </TableRow>
                                     ) : (
-                                        paginatedUsers.map(u => (
+                                        users.map(u => (
                                             <TableRow key={u.id}>
                                                 <TableCell className="font-medium">{u.name}</TableCell>
                                                 <TableCell>{u.email}</TableCell>
@@ -282,11 +267,11 @@ export default function UserManagementPage() {
                         <CardContent className="p-0">
                             {isLoading ? (
                                 <div className="text-center text-muted p-6">Loading users...</div>
-                            ) : paginatedUsers.length === 0 ? (
+                            ) : users.length === 0 ? (
                                 <div className="text-center text-muted p-6">No users found.</div>
                             ) : (
                                 <div className="divide-y divide-gray-100">
-                                    {paginatedUsers.map(u => (
+                                    {users.map(u => (
                                         <div key={u.id} className="p-4 flex items-center space-x-3">
                                             {/* Icon */}
                                             <div className="flex-shrink-0">

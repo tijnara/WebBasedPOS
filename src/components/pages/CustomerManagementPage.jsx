@@ -40,11 +40,14 @@ const DeleteIcon = () => (
 );
 
 export default function CustomerManagementPage() {
-    // --- MODIFICATION: Debounced search term ---
     const [searchTerm, setSearchTerm] = useState('');
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
-    // --- Pass debounced term to useCustomers ---
-    const { data: customers = [], isLoading } = useCustomers(debouncedSearchTerm);
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
+    // Pass page, itemsPerPage, and debouncedSearchTerm to useCustomers
+    const { data: customersData = { customers: [], totalPages: 1 }, isLoading } = useCustomers({ page: currentPage, itemsPerPage, searchTerm: debouncedSearchTerm });
+    const customers = customersData.customers;
+    const totalPages = customersData.totalPages;
     const addToast = useStore(s => s.addToast);
     const isDemo = useStore(s => s.user?.isDemo); // <-- FIX: define isDemo
 
@@ -59,8 +62,8 @@ export default function CustomerManagementPage() {
     const [address, setAddress] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     // const [searchTerm, setSearchTerm] = useState(''); // Moved up
-    const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 10;
+    // const [currentPage, setCurrentPage] = useState(1);
+    // const itemsPerPage = 10;
     const searchInputRef = useRef(null);
 
     // --- MODIFICATION: Debounce search term ---
@@ -158,11 +161,11 @@ export default function CustomerManagementPage() {
     const isMutating = createCustomer.isPending || updateCustomer.isPending || deleteCustomer.isPending;
 
     // --- MODIFICATION: Remove client-side filtering ---
-    const filteredCustomers = customers; // Data from useCustomers is already filtered
+    // const filteredCustomers = customers; // Data from useCustomers is already filtered
     // --- END MODIFICATION ---
 
-    const totalPages = Math.ceil(filteredCustomers.length / itemsPerPage);
-    const paginatedCustomers = filteredCustomers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+    // const totalPages = Math.ceil(filteredCustomers.length / itemsPerPage);
+    // const paginatedCustomers = filteredCustomers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
     return (
         <div className="customer-page">
@@ -218,14 +221,14 @@ export default function CustomerManagementPage() {
                                                 </div>
                                             </TableCell>
                                         </TableRow>
-                                    ) : paginatedCustomers.length === 0 ? (
+                                    ) : customers.length === 0 ? (
                                         <TableRow>
                                             <TableCell colSpan={6} className="text-center text-muted py-8">
                                                 {debouncedSearchTerm ? `No customers found for "${debouncedSearchTerm}".` : 'No customers found.'}
                                             </TableCell>
                                         </TableRow>
                                     ) : (
-                                        paginatedCustomers.map(c => (
+                                        customers.map(c => (
                                             <TableRow key={c.id}>
                                                 <TableCell className="font-medium">{c.name}</TableCell>
                                                 <TableCell>{c.email}</TableCell>
@@ -273,13 +276,13 @@ export default function CustomerManagementPage() {
                         <CardContent className="p-0">
                             {isLoading ? (
                                 <div className="text-center text-muted p-6">Loading customers...</div>
-                            ) : paginatedCustomers.length === 0 ? (
+                            ) : customers.length === 0 ? (
                                 <div className="text-center text-muted p-6">
                                     {debouncedSearchTerm ? `No customers found for "${debouncedSearchTerm}".` : 'No customers found.'}
                                 </div>
                             ) : (
                                 <div className="divide-y divide-gray-100">
-                                    {paginatedCustomers.map(c => (
+                                    {customers.map(c => (
                                         <div key={c.id} className="p-4 flex items-center space-x-3">
                                             {/* Icon */}
                                             <div className="flex-shrink-0">

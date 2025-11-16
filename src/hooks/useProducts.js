@@ -15,13 +15,13 @@ const MOCK_PRODUCTS = [
 // --- END MOCK DATA ---
 
 // --- MODIFICATION: Accept searchTerm ---
-export function useProducts(searchTerm = '') {
+export function useProducts({ searchTerm = '', page = 1, itemsPerPage = 10 } = {}) {
     // 3. Get the user state and check the isDemo flag
     const isDemo = useStore(s => s.user?.isDemo);
 
     return useQuery({
         // 4. Add 'isDemo' and 'searchTerm' to the queryKey
-        queryKey: ['products', isDemo, searchTerm],
+        queryKey: ['products', isDemo, searchTerm, page, itemsPerPage],
         queryFn: async () => {
             const term = searchTerm.trim().toLowerCase();
 
@@ -30,23 +30,32 @@ export function useProducts(searchTerm = '') {
                 // Simulate a network delay for a realistic feel
                 await new Promise(resolve => setTimeout(resolve, 400));
                 // Simulate client-side filtering for demo mode
-                if (!term) {
-                    return MOCK_PRODUCTS;
+                let filtered = MOCK_PRODUCTS;
+                if (term) {
+                    filtered = filtered.filter(p =>
+                        (p.name && p.name.toLowerCase().includes(term)) ||
+                        (p.category && p.category.toLowerCase().includes(term))
+                    );
                 }
-                return MOCK_PRODUCTS.filter(p =>
-                    (p.name && p.name.toLowerCase().includes(term)) ||
-                    (p.category && p.category.toLowerCase().includes(term))
-                );
+                const totalCount = filtered.length;
+                const totalPages = Math.max(1, Math.ceil(totalCount / itemsPerPage));
+                const startIdx = (page - 1) * itemsPerPage;
+                const endIdx = startIdx + itemsPerPage;
+                const paginated = filtered.slice(startIdx, endIdx);
+                return { products: paginated, totalPages, totalCount };
             }
             // --- END DEMO MODE LOGIC ---
 
             // --- ORIGINAL LOGIC (if not demo) ---
             try {
+                const startIndex = (page - 1) * itemsPerPage;
+                const endIndex = startIndex + itemsPerPage - 1;
                 // Fetch all products from Supabase 'products' table
                 let query = supabase
                     .from('products')
-                    .select('*') // Select all columns
-                    .order('name', { ascending: true }); // Optional: Order by name
+                    .select('*', { count: 'exact' }) // Select all columns
+                    .order('name', { ascending: true }) // Optional: Order by name
+                    .range(startIndex, endIndex); // <-- 6. Enable pagination
 
                 // --- MODIFICATION: Add server-side filtering ---
                 if (term) {
@@ -55,25 +64,31 @@ export function useProducts(searchTerm = '') {
                 }
                 // --- END MODIFICATION ---
 
-                const { data, error } = await query;
+                const { data, error, count } = await query;
 
                 if (error) {
                     // Intentionally rethrow for React Query error handling
                     throw error;
                 }
 
-                const response = data;
-                if (!response || !Array.isArray(response)) {
-                    return [];
+                const products = data;
+                if (!products || !Array.isArray(products)) {
+                    return { products: [], totalPages: 1, totalCount: 0 };
                 }
 
                 // Return mapped data directly
-                return response.map(p => ({
-                    id: p.id,
-                    name: p.name || 'Unnamed Product',
-                    price: parseFloat(p.price) || 0,
-                    category: p.category || 'N/A',
-                }));
+                const totalCount = count || 0;
+                const totalPages = Math.max(1, Math.ceil(totalCount / itemsPerPage));
+                return {
+                    products: products.map(p => ({
+                        id: p.id,
+                        name: p.name || 'Unnamed Product',
+                        price: parseFloat(p.price) || 0,
+                        category: p.category || 'N/A',
+                    })),
+                    totalPages,
+                    totalCount,
+                };
             } catch (error) {
                 // Intentionally rethrow for React Query error handling
                 throw error;

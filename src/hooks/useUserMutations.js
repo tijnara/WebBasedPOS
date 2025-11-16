@@ -9,7 +9,7 @@ const usersTableKey = ['usersTableData']; // Changed key to avoid confusion with
 
 // --- Hook for GETTING Data from 'users' Table ---
 // NOTE: Ensure RLS allows this fetch (e.g., only for admins or specific roles)
-export function useUsers() {
+export function useUsers({ page = 1, itemsPerPage = 10, searchTerm = '' } = {}) {
     const isDemo = useStore(s => s.user?.isDemo);
     const MOCK_USERS = [
         { id: 'mock-u-1', name: 'Demo Admin', email: 'demo.admin@seaside.com', phone: '09110000010', dateAdded: new Date('2025-11-01T08:00:00') },
@@ -17,30 +17,53 @@ export function useUsers() {
         { id: 'mock-u-3', name: 'Demo Viewer', email: 'demo.viewer@seaside.com', phone: '09110000012', dateAdded: new Date('2025-11-03T10:00:00') },
     ];
     return useQuery({
-        queryKey: usersTableKey.concat([isDemo]),
+        queryKey: usersTableKey.concat([isDemo, page, itemsPerPage, searchTerm]),
         queryFn: async () => {
             if (isDemo) {
                 await new Promise(resolve => setTimeout(resolve, 400));
-                return MOCK_USERS;
+                let filtered = MOCK_USERS;
+                if (searchTerm) {
+                    const term = searchTerm.trim().toLowerCase();
+                    filtered = filtered.filter(u =>
+                        (u.name && u.name.toLowerCase().includes(term)) ||
+                        (u.email && u.email.toLowerCase().includes(term)) ||
+                        (u.phone && u.phone.toLowerCase().includes(term))
+                    );
+                }
+                const totalCount = filtered.length;
+                const totalPages = Math.max(1, Math.ceil(totalCount / itemsPerPage));
+                const startIdx = (page - 1) * itemsPerPage;
+                const endIdx = startIdx + itemsPerPage;
+                const paginated = filtered.slice(startIdx, endIdx);
+                return { users: paginated, totalPages, totalCount };
             }
             try {
-                const { data, error } = await supabase
+                const startIndex = (page - 1) * itemsPerPage;
+                const endIndex = startIndex + itemsPerPage - 1;
+                let query = supabase
                     .from('users')
-                    .select('id, name, email, phone, dateadded'); // Ensure sensitive fields like `password` are excluded
-
-                if (error) {
-                    throw error;
+                    .select('id, name, email, phone, dateadded', { count: 'exact' })
+                    .order('name', { ascending: true })
+                    .range(startIndex, endIndex);
+                if (searchTerm) {
+                    const term = searchTerm.trim().toLowerCase();
+                    query = query.or(
+                        `name.ilike.%${term}%,email.ilike.%${term}%,phone.ilike.%${term}%`
+                    );
                 }
-
-                if (!data || !Array.isArray(data)) return [];
-
-                return data.map(u => ({
+                const { data, error, count } = await query;
+                if (error) throw error;
+                if (!data || !Array.isArray(data)) return { users: [], totalPages: 1, totalCount: 0 };
+                const users = data.map(u => ({
                     id: u.id,
                     name: u.name || 'Unnamed User',
                     email: u.email,
                     phone: u.phone || 'N/A',
                     dateAdded: u.dateadded ? new Date(u.dateadded) : null
                 }));
+                const totalCount = count || 0;
+                const totalPages = Math.max(1, Math.ceil(totalCount / itemsPerPage));
+                return { users, totalPages, totalCount };
             } catch (error) {
                 throw error;
             }
