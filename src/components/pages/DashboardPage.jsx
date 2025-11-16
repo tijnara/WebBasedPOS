@@ -1,13 +1,13 @@
 import React, { useMemo } from 'react';
 import { Card, CardHeader, CardContent } from '../ui';
 import { Line, Bar, Pie } from 'react-chartjs-2';
-import { Chart, CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Tooltip, Legend } from 'chart.js';
+import { Chart, CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Tooltip, Legend, Filler } from 'chart.js';
 import { useSales } from '../../hooks/useSales';
 import { useProducts } from '../../hooks/useProducts';
 import { useCustomers } from '../../hooks/useCustomerMutations';
 import MobileLogoutButton from '../MobileLogoutButton';
 
-Chart.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Tooltip, Legend);
+Chart.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Tooltip, Legend, Filler);
 
 // New Summary Card Component for responsiveness
 const SummaryCard = ({ title, value, isSuccess = false }) => (

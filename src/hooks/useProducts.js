@@ -50,11 +50,8 @@ export function useProducts(searchTerm = '') {
 
                 // --- MODIFICATION: Add server-side filtering ---
                 if (term) {
-                    // Use .or() to search in multiple columns
-                    // name.ilike.%term%,category.ilike.%term%
-                    query = query.or(
-                        `name.ilike.%${term}%,category.ilike.%${term}%`
-                    );
+                    // Use .ilike() to search the name column only
+                    query = query.ilike('name', `%${term}%`);
                 }
                 // --- END MODIFICATION ---
 
