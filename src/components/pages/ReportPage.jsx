@@ -267,7 +267,9 @@ const ReportPage = () => {
         interval = { start, end };
     }
     // Pass interval to useSales
-    const { data: salesData, isLoading, error } = useSales({ startDate: interval.start, endDate: interval.end });
+    const { data = { sales: [], totalPages: 1 }, isLoading, error } = useSales({ startDate: interval.start, endDate: interval.end, page: currentPage, itemsPerPage: ITEMS_PER_PAGE });
+    const salesData = data.sales;
+    const totalPages = data.totalPages;
 
     // Remove client-side date filtering in useMemo, only process and paginate
     const reportData = useMemo(() => {
@@ -297,25 +299,6 @@ const ReportPage = () => {
             salesCount: processedSales.length,
         };
     }, [salesData, reportType, interval]);
-
-    // Memoized pagination logic
-    const paginatedSales = useMemo(() => {
-        const allSales = reportData.filteredSales || [];
-        const totalPages = Math.max(1, Math.ceil(allSales.length / ITEMS_PER_PAGE));
-
-        const validCurrentPage = Math.max(1, Math.min(currentPage, totalPages));
-        if (currentPage !== validCurrentPage && allSales.length > 0) {
-            setCurrentPage(validCurrentPage);
-        }
-
-        const startIdx = (validCurrentPage - 1) * ITEMS_PER_PAGE;
-        const endIdx = startIdx + ITEMS_PER_PAGE;
-
-        return {
-            sales: allSales.slice(startIdx, endIdx),
-            totalPages,
-        };
-    }, [reportData.filteredSales, currentPage]);
 
     // --- Event Handlers ---
     const handleDateSelect = (date) => {
@@ -397,9 +380,9 @@ const ReportPage = () => {
                 </div>
             ) : (
                 <SalesReportDisplay
-                    salesList={paginatedSales.sales}
+                    salesList={salesData}
                     currentPage={currentPage}
-                    totalPages={paginatedSales.totalPages}
+                    totalPages={totalPages}
                     onPageChange={setCurrentPage}
                 />
             )}

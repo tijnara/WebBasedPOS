@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useSales } from '../../hooks/useSales';
 import { useDebounce } from '../../hooks/useDebounce.js';
 import {
@@ -153,12 +153,14 @@ const SaleDetailsModal = ({ sale, isOpen, onClose }) => {
 export default function HistoryPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const debouncedSearchTerm = useDebounce(searchTerm, 300);
-    const { data: sales = [], isLoading } = useSales({ searchTerm: debouncedSearchTerm });
     const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
+    const { data = { sales: [], totalPages: 1 }, isLoading } = useSales({ searchTerm: debouncedSearchTerm, page: currentPage, itemsPerPage });
+    const sales = data.sales;
+    const totalPages = data.totalPages;
     const [selectedSale, setSelectedSale] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const searchInputRef = useRef(null);
-    const itemsPerPage = 10;
 
     useEffect(() => {
         const handleKeyDown = (e) => {
@@ -183,21 +185,8 @@ export default function HistoryPage() {
         setTimeout(() => setSelectedSale(null), 300); // Delay for animation
     };
 
-    // Remove client-side filtering in useMemo, only paginate and sort
-    const paginatedSales = useMemo(() => {
-        const sortedSales = sales.sort((a, b) => new Date(b.saleTimestamp) - new Date(a.saleTimestamp));
-        const totalPages = Math.max(1, Math.ceil(sortedSales.length / itemsPerPage));
-        const validCurrentPage = Math.max(1, Math.min(currentPage, totalPages));
-        if (currentPage !== validCurrentPage) {
-            setCurrentPage(validCurrentPage);
-        }
-        const startIdx = (validCurrentPage - 1) * itemsPerPage;
-        const endIdx = startIdx + itemsPerPage;
-        return {
-            sales: sortedSales.slice(startIdx, endIdx),
-            totalPages,
-        };
-    }, [sales, currentPage]);
+    // Sort sales by date descending
+    const sortedSales = sales.sort((a, b) => new Date(b.saleTimestamp) - new Date(a.saleTimestamp));
 
     return (
         <div className="history-page">
@@ -242,12 +231,12 @@ export default function HistoryPage() {
                                         <TableRow>
                                             <TableCell colSpan={7} className="text-center text-muted py-8">Loading sales...</TableCell>
                                         </TableRow>
-                                    ) : paginatedSales.sales.length === 0 ? (
+                                    ) : sortedSales.length === 0 ? (
                                         <TableRow>
                                             <TableCell colSpan={7} className="text-center text-muted py-8">No sales found.</TableCell>
                                         </TableRow>
                                     ) : (
-                                        paginatedSales.sales.map(s => (
+                                        sortedSales.map(s => (
                                             <TableRow key={s.id}>
                                                 <TableCell className="font-medium">{formatDate(s.saleTimestamp)}</TableCell>
                                                 <TableCell>{s.customerName}</TableCell>
@@ -270,8 +259,8 @@ export default function HistoryPage() {
                         {/* Pagination Controls */}
                         <div className="flex justify-center items-center gap-2 py-4 px-4 rounded-lg bg-white">
                             <Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => setCurrentPage(currentPage - 1)}>Prev</Button>
-                            <span className="text-sm">Page {currentPage} of {paginatedSales.totalPages}</span>
-                            <Button variant="outline" size="sm" disabled={currentPage === paginatedSales.totalPages || paginatedSales.totalPages === 0} onClick={() => setCurrentPage(currentPage + 1)}>Next</Button>
+                            <span className="text-sm">Page {currentPage} of {totalPages}</span>
+                            <Button variant="outline" size="sm" disabled={currentPage === totalPages || totalPages === 0} onClick={() => setCurrentPage(currentPage + 1)}>Next</Button>
                         </div>
                     </CardContent>
                 </Card>
@@ -282,11 +271,11 @@ export default function HistoryPage() {
                         <CardContent className="p-0">
                             {isLoading ? (
                                 <div className="text-center text-muted p-6">Loading sales...</div>
-                            ) : paginatedSales.sales.length === 0 ? (
+                            ) : sortedSales.length === 0 ? (
                                 <div className="text-center text-muted p-6">No sales found.</div>
                             ) : (
                                 <div className="divide-y divide-gray-100">
-                                    {paginatedSales.sales.map(s => (
+                                    {sortedSales.map(s => (
                                         <div key={s.id} className="p-4 flex items-center space-x-3">
                                             {/* Icon */}
                                             <div className="flex-shrink-0">
@@ -328,8 +317,8 @@ export default function HistoryPage() {
                     {/* Pagination Controls for mobile */}
                     <div className="flex justify-center items-center gap-2 py-3">
                         <Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => setCurrentPage(currentPage - 1)}>Prev</Button>
-                        <span className="text-sm">Page {currentPage} of {paginatedSales.totalPages}</span>
-                        <Button variant="outline" size="sm" disabled={currentPage === paginatedSales.totalPages || paginatedSales.totalPages === 0} onClick={() => setCurrentPage(currentPage + 1)}>Next</Button>
+                        <span className="text-sm">Page {currentPage} of {totalPages}</span>
+                        <Button variant="outline" size="sm" disabled={currentPage === totalPages || totalPages === 0} onClick={() => setCurrentPage(currentPage + 1)}>Next</Button>
                     </div>
                 </div>
 

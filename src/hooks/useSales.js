@@ -43,10 +43,10 @@ const MOCK_SALES = [
 ];
 // --- END MODIFICATION ---
 
-export function useSales({ searchTerm, startDate, endDate } = {}) {
+export function useSales({ searchTerm, startDate, endDate, page = 1, itemsPerPage = 10 } = {}) {
     const isDemo = useStore(s => s.user?.isDemo);
     return useQuery({
-        queryKey: ['sales', isDemo, searchTerm, startDate, endDate],
+        queryKey: ['sales', isDemo, searchTerm, startDate, endDate, page, itemsPerPage],
         queryFn: async () => {
             if (isDemo) {
                 await new Promise(resolve => setTimeout(resolve, 400));
@@ -66,17 +66,26 @@ export function useSales({ searchTerm, startDate, endDate } = {}) {
                 if (endDate) {
                     filtered = filtered.filter(s => s.saleTimestamp <= endDate);
                 }
-                return filtered;
+                // Server-side pagination for demo
+                const totalCount = filtered.length;
+                const totalPages = Math.max(1, Math.ceil(totalCount / itemsPerPage));
+                const startIdx = (page - 1) * itemsPerPage;
+                const endIdx = startIdx + itemsPerPage;
+                const paginated = filtered.slice(startIdx, endIdx);
+                return { sales: paginated, totalPages, totalCount };
             }
             try {
+                const startIndex = (page - 1) * itemsPerPage;
+                const endIndex = startIndex + itemsPerPage - 1;
                 let query = supabase
                     .from('sales')
                     .select(`
                         *,
                         sale_items ( *, product:products ( name, price ) ),
                         users:created_by ( name )
-                    `)
-                    .order('saletimestamp', { ascending: false });
+                    `, { count: 'exact' })
+                    .order('saletimestamp', { ascending: false })
+                    .range(startIndex, endIndex);
                 if (searchTerm) {
                     const term = searchTerm.trim().toLowerCase();
                     query = query.or(
@@ -89,13 +98,13 @@ export function useSales({ searchTerm, startDate, endDate } = {}) {
                 if (endDate) {
                     query = query.lte('saletimestamp', endDate.toISOString());
                 }
-                const { data, error } = await query;
+                const { data, error, count } = await query;
                 if (error) {
                     console.error("useSales Error:", error);
                     throw error;
                 }
-                if (!data || !Array.isArray(data)) return [];
-                return data.map(s => ({
+                if (!data || !Array.isArray(data)) return { sales: [], totalPages: 1, totalCount: 0 };
+                const sales = data.map(s => ({
                     id: s.id,
                     saleTimestamp: s.saletimestamp ? new Date(s.saletimestamp) : new Date(s.created_at),
                     totalAmount: parseFloat(s.totalamount) || 0,
@@ -112,6 +121,9 @@ export function useSales({ searchTerm, startDate, endDate } = {}) {
                     paymentMethod: s.paymentmethod || 'N/A',
                     status: s.status || 'Completed'
                 }));
+                const totalCount = count || 0;
+                const totalPages = Math.max(1, Math.ceil(totalCount / itemsPerPage));
+                return { sales, totalPages, totalCount };
             } catch (error) {
                 throw error;
             }
