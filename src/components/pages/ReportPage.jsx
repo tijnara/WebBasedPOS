@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { useSales } from '../../hooks/useSales';
+import { useSalesSummary } from '../../hooks/useSalesSummary'; // <-- Correct import
 import {
     format,
     startOfWeek,
@@ -57,9 +58,7 @@ const CalendarIcon = (props) => (
 // --- Pagination Component ---
 const Pagination = ({ currentPage, totalPages, onPageChange }) => {
     if (totalPages <= 1) return null;
-
     const pageNumbers = [...Array(totalPages)].map((_, idx) => idx + 1);
-
     return (
         <div className="flex justify-center items-center flex-wrap gap-2 py-3 text-xs font-medium">
             <Button
@@ -69,7 +68,6 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
             >
                 <span className="w-4 h-4">{'<'}</span> Prev
             </Button>
-
             {pageNumbers.map(number => (
                 <Button
                     key={number}
@@ -83,7 +81,6 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
                     {number}
                 </Button>
             ))}
-
             <Button
                 onClick={() => onPageChange(currentPage + 1)}
                 disabled={currentPage === totalPages}
@@ -118,7 +115,6 @@ const SaleCard = ({ sale }) => (
                     </span>
                 </div>
             </div>
-
             {/* Items List */}
             <div className="space-y-2 pt-2 border-t">
                 <h4 className="text-xs font-medium text-gray-500">Items</h4>
@@ -134,7 +130,6 @@ const SaleCard = ({ sale }) => (
                     </div>
                 ))}
             </div>
-
             {/* Footer: Staff & Payment */}
             <div className="flex justify-between items-center text-xs text-gray-500 pt-3 border-t">
                 <span>Staff: <span className="font-medium text-gray-700">{sale.staffName || 'N/A'}</span></span>
@@ -144,11 +139,9 @@ const SaleCard = ({ sale }) => (
     </div>
 );
 
-
 // --- Sales Report Table / Cards ---
 const SalesReportDisplay = ({ salesList, currentPage, totalPages, onPageChange }) => (
     <div className="bg-white rounded-lg border shadow-sm md:overflow-hidden">
-
         {/* --- Desktop Table --- */}
         <div className="overflow-x-auto hidden md:block">
             <table className="min-w-full text-base">
@@ -216,7 +209,6 @@ const SalesReportDisplay = ({ salesList, currentPage, totalPages, onPageChange }
                 </tbody>
             </table>
         </div>
-
         {/* --- Mobile Cards --- */}
         <div className="md:hidden p-2 space-y-3 bg-gray-50">
             {salesList.length === 0 ? (
@@ -229,8 +221,6 @@ const SalesReportDisplay = ({ salesList, currentPage, totalPages, onPageChange }
                 ))
             )}
         </div>
-
-
         {/* --- Pagination (Common) --- */}
         <Pagination
             currentPage={currentPage}
@@ -249,145 +239,178 @@ const ReportPage = () => {
     const popoverRef = useRef(null);
     const ITEMS_PER_PAGE = 10;
     useOutsideClick(popoverRef, () => setIsCalendarOpen(false));
-
     // Calculate interval for report type
-    let interval;
-    const date = selectedDate || new Date();
-    const dayStart = new Date(date.setHours(0, 0, 0, 0));
-    if (reportType === 'daily') {
-        const end = new Date(date.setHours(23, 59, 59, 999));
-        interval = { start: dayStart, end };
-    } else if (reportType === 'weekly') {
-        const start = startOfWeek(dayStart, { weekStartsOn: 1 });
-        const end = endOfWeek(dayStart, { weekStartsOn: 1 });
-        interval = { start, end };
-    } else {
-        const start = startOfMonth(dayStart);
-        const end = endOfMonth(dayStart);
-        interval = { start, end };
-    }
-    // Pass interval to useSales
-    const { data = { sales: [], totalPages: 1 }, isLoading, error } = useSales({ startDate: interval.start, endDate: interval.end, page: currentPage, itemsPerPage: ITEMS_PER_PAGE });
-    const salesData = data.sales;
-    const totalPages = data.totalPages;
-
-    // Remove client-side date filtering in useMemo, only process and paginate
-    const reportData = useMemo(() => {
-        if (!salesData) {
-            return { reportTitle: 'Loading...', totalSales: 0, filteredSales: [] };
-        }
-        let title;
+    const interval = useMemo(() => {
+        const date = selectedDate || new Date();
+        const dayStart = new Date(date.setHours(0, 0, 0, 0));
         if (reportType === 'daily') {
-            title = `Daily Report: ${format(interval.start, 'MMM d, yyyy')}`;
+            const end = new Date(date.setHours(23, 59, 59, 999));
+            return { start: dayStart, end };
         } else if (reportType === 'weekly') {
-            title = `Weekly Report: ${format(interval.start, 'MMM d')} - ${format(interval.end, 'MMM d, yyyy')}`;
-        } else {
-            title = `Monthly Report: ${format(interval.start, 'MMMM yyyy')}`;
+            const start = startOfWeek(dayStart, { weekStartsOn: 1 });
+            const end = endOfWeek(dayStart, { weekStartsOn: 1 });
+            return { start, end };
+        } else { // monthly
+            const start = startOfMonth(dayStart);
+            const end = endOfMonth(dayStart);
+            return { start, end };
         }
-        // No need to filter salesData by date, already filtered by useSales
-        const processedSales = salesData.map(sale => ({
+    }, [selectedDate, reportType]);
+    // Pass interval AND pagination to useSales for the list
+    const {
+        data: salesPageData,
+        isLoading: isLoadingList,
+        error: listError
+    } = useSales({
+        startDate: interval.start,
+        endDate: interval.end,
+        page: currentPage,
+        itemsPerPage: ITEMS_PER_PAGE
+    });
+    // Call new hook for the total summary
+    const {
+        data: summaryData,
+        isLoading: isLoadingSummary,
+        error: summaryError
+    } = useSalesSummary({
+        startDate: interval.start,
+        endDate: interval.end
+    });
+    // Combine loading and error states
+    const isLoading = isLoadingList || isLoadingSummary;
+    const error = listError || summaryError;
+    // Get data from hooks with fallbacks
+    const salesData = salesPageData?.sales || [];
+    const totalPages = salesPageData?.totalPages || 1;
+    const totalSalesCount = salesPageData?.totalCount || 0;
+    const totalRevenue = summaryData?.totalRevenue || 0;
+    // Memoized title
+    const reportTitle = useMemo(() => {
+        if (reportType === 'daily') {
+            return `Daily Report: ${format(interval.start, 'MMM d, yyyy')}`;
+        } else if (reportType === 'weekly') {
+            return `Weekly Report: ${format(interval.start, 'MMM d')} - ${format(interval.end, 'MMM d, yyyy')}`;
+        } else { // monthly
+            return `Monthly Report: ${format(interval.start, 'MMMM yyyy')}`;
+        }
+    }, [reportType, interval]);
+    // Memoized processing for the *paginated* sales list
+    const processedSales = useMemo(() => {
+        return salesData.map(sale => ({
             ...sale,
             staffName: sale.createdBy || 'N/A',
             status: sale.status || 'Unknown',
-        }));
-        processedSales.sort((a, b) => new Date(b.saleTimestamp) - new Date(a.saleTimestamp));
-        const total = processedSales.reduce((acc, sale) => acc + (sale.totalAmount || 0), 0);
-        return {
-            reportTitle: title,
-            totalSales: total,
-            filteredSales: processedSales,
-            salesCount: processedSales.length,
-        };
-    }, [salesData, reportType, interval]);
-
+        })).sort((a, b) => new Date(b.saleTimestamp) - new Date(a.saleTimestamp));
+    }, [salesData]);
     // --- Event Handlers ---
     const handleDateSelect = (date) => {
         if (date) {
             setSelectedDate(date);
             setReportType('daily');
-            setCurrentPage(1);
+            setCurrentPage(1); // Reset to first page
             setIsCalendarOpen(false);
         }
     };
-
-    // Render JSX
+    const handleReportTypeChange = (e) => {
+        setReportType(e.target.value);
+        setCurrentPage(1); // Reset to first page
+    };
+    const getSelectedDateDisplay = () => {
+        if (reportType === 'daily') return format(selectedDate, 'MMM d, yyyy');
+        if (reportType === 'weekly') {
+            const start = startOfWeek(selectedDate, { weekStartsOn: 1 });
+            const end = endOfWeek(selectedDate, { weekStartsOn: 1 });
+            return `${format(start, 'MMM d')} - ${format(end, 'MMM d')}`;
+        }
+        if (reportType === 'monthly') {
+            return format(selectedDate, 'MMMM yyyy');
+        }
+        return format(selectedDate, 'MMM d, yyyy');
+    }
+    // --- Render JSX ---
     return (
-        <div className="p-4 sm:p-6 lg:p-8">
-            {/* --- Report Header --- */}
-            <div className="mb-4">
-                <h1 className="text-xl sm:text-2xl font-bold text-gray-800">
-                    Sales Report
-                </h1>
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-2">
-                    {/* Report Type & Date Range */}
-                    <div>
-                        <select
-                            value={reportType}
-                            onChange={(e) => setReportType(e.target.value)}
-                            className="text-sm border rounded-md p-2 mr-2"
-                        >
-                            <option value="daily">Daily</option>
-                            <option value="weekly">Weekly</option>
-                            <option value="monthly">Monthly</option>
-                        </select>
-                        <div className="text-sm text-gray-500">
-                            {reportData.reportTitle}
-                        </div>
-                    </div>
-
-                    {/* Date Picker (for Daily/Weekly reports) */}
-                    {reportType !== 'monthly' && (
-                        <div className="mt-2 sm:mt-0">
-                            <Button
-                                onClick={() => setIsCalendarOpen(!isCalendarOpen)}
-                                className="px-3 py-1.5 flex items-center gap-1 rounded-md"
+        <div className="report-page max-w-7xl mx-auto p-2 md:p-4 space-y-4">
+            <h1 className="text-2xl font-bold">Sales Report</h1>
+            {/* --- Controls & Totals Card --- */}
+            <div className="bg-white rounded-lg border shadow-sm p-4 space-y-4">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    {/* --- Report Filters --- */}
+                    <div className="flex flex-wrap items-center gap-3">
+                        {/* Report Type Select */}
+                        <div>
+                            <label htmlFor="reportType" className="block text-xs font-medium text-gray-500 mb-1">
+                                Report Type
+                            </label>
+                            <select
+                                id="reportType"
+                                value={reportType}
+                                onChange={handleReportTypeChange}
+                                className="text-sm px-3 py-1.5 rounded-md border bg-white shadow-sm"
                             >
-                                <CalendarIcon className="w-4 h-4" />
-                                {format(selectedDate, reportType === 'daily' ? 'MMM d, yyyy' : 'MMM d')}
+                                <option value="daily">Daily</option>
+                                <option value="weekly">Weekly</option>
+                                <option value="monthly">Monthly</option>
+                            </select>
+                        </div>
+                        {/* Date Picker Popover */}
+                        <div className="relative" ref={popoverRef}>
+                            <label htmlFor="datePicker" className="block text-xs font-medium text-gray-500 mb-1">
+                                Select Date
+                            </label>
+                            <Button
+                                id="datePicker"
+                                onClick={() => setIsCalendarOpen(!isCalendarOpen)}
+                                className="px-3 py-1.5 text-sm flex items-center gap-2 rounded-md border bg-white shadow-sm"
+                            >
+                                <CalendarIcon />
+                                <span>{getSelectedDateDisplay()}</span>
                             </Button>
                             {isCalendarOpen && (
-                                <div
-                                    ref={popoverRef}
-                                    className="absolute z-10 mt-2 p-4 bg-white rounded-lg shadow-lg border"
-                                >
+                                <div className="absolute top-full mt-2 z-10 bg-white border rounded-lg shadow-lg left-1/2 md:left-0 transform -translate-x-1/2 md:translate-x-0">
                                     <DayPicker
                                         mode="single"
                                         selected={selectedDate}
                                         onSelect={handleDateSelect}
-                                        footer={null}
-                                        modifiersStyles={{
-                                            today: {
-                                                backgroundColor: '#e0f7fa',
-                                                borderRadius: '0.375rem',
-                                            },
-                                        }}
                                     />
                                 </div>
                             )}
                         </div>
-                    )}
+                    </div>
+                    {/* --- Total Sales Display --- */}
+                    <div className="bg-gray-50 p-4 rounded-lg border w-full md:w-auto md:min-w-[240px]">
+                        <div className="text-xs font-medium text-gray-600 mb-1">
+                            Total Sales for Period
+                        </div>
+                        <div className="text-2xl font-bold text-gray-900">
+                            {isLoading ? '...' : formatCurrency(totalRevenue)}
+                        </div>
+                    </div>
                 </div>
             </div>
-
-            {/* --- Sales Report Content --- */}
-            {isLoading ? (
-                <div className="text-center py-6 text-gray-500">
-                    Loading sales data...
+            {/* --- Report Title --- */}
+            <div className="px-1">
+                <h2 className="text-lg font-semibold leading-tight">{reportTitle}</h2>
+                <span className="text-sm text-gray-500">
+                    {totalSalesCount} sales found
+                </span>
+            </div>
+            {/* --- Loading / Error / Report Display --- */}
+            {isLoading && <div className="text-sm text-gray-500 p-4 text-center">Loading sales data...</div>}
+            {error && (
+                <div className="text-sm text-red-600 bg-red-50 p-4 rounded-lg border border-red-200">
+                    Error loading sales: {error.message}
                 </div>
-            ) : error ? (
-                <div className="text-center py-6 text-red-500">
-                    Error loading sales data. Please try again later.
-                </div>
-            ) : (
+            )}
+            {!isLoading && !error && (
                 <SalesReportDisplay
-                    salesList={salesData}
+                    salesList={processedSales}
                     currentPage={currentPage}
                     totalPages={totalPages}
-                    onPageChange={setCurrentPage}
+                    onPageChange={page => setCurrentPage(page)}
                 />
             )}
         </div>
     );
-}
+};
 
 export default ReportPage;
