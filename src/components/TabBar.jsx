@@ -19,8 +19,8 @@ const links = [
 export default function TabBar() {
     const router = useRouter();
 
-    // Don't show the tab bar on the login page or the main POS page
-    if (router.pathname === '/login' || router.pathname === '/') {
+    // Don't show the tab bar on the login page
+    if (router.pathname === '/login') {
         return null;
     }
 

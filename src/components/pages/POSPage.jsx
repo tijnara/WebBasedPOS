@@ -217,8 +217,19 @@ export default function POSPage() {
     }, [debouncedSearchTerm, isCustomerModalOpen, isPaymentModalOpen, addToast]);
 
 
+    // --- Recently Used Products State ---
+    const [recentProducts, setRecentProducts] = useState([]);
+
     // --- Cart handling functions ---
-    const handleAdd = (p) => addItemToSale(p, 1);
+    const handleAdd = (p) => {
+        addItemToSale(p, 1);
+        setRecentProducts(prev => {
+            // Remove if already exists
+            const filtered = prev.filter(prod => prod.id !== p.id);
+            // Add to front, keep max 3
+            return [p, ...filtered].slice(0, 3);
+        });
+    };
     const handleIncreaseQuantity = (key) => {
         const item = currentSale[key];
         if (item) addItemToSale({ id: item.productId, name: item.name, price: item.price }, 1);
@@ -388,6 +399,8 @@ export default function POSPage() {
     // Show all products, filtering is now handled by the product grid directly
     const filteredProducts = products;
 
+    // --- Recently Used Products Section ---
+    const showRecent = recentProducts.length > 0;
 
     return (
         <div className="pos-page">
@@ -512,6 +525,30 @@ export default function POSPage() {
                         </div>
                     ) : (
                         <>
+                            {/* --- Recently Used Products (Desktop & Mobile) --- */}
+                            {recentProducts.length > 0 && (
+                                <div className="mb-4">
+                                    <h2 className="text-base font-semibold text-primary mb-2">Recently Used Products</h2>
+                                    <div className="flex gap-2">
+                                        {recentProducts.map(p => (
+                                            <button
+                                                key={p.id}
+                                                className="product-card p-2 border rounded-xl shadow bg-white flex flex-col items-center hover:border-primary transition-all duration-150"
+                                                onClick={() => handleAdd(p)}
+                                                title={p.name}
+                                                style={{ minWidth: '80px', maxWidth: '120px' }}
+                                            >
+                                                <div className="h-12 w-12 mb-1 flex items-center justify-center overflow-hidden rounded-lg bg-gray-50">
+                                                    <ProductImage product={p} />
+                                                </div>
+                                                <div className="font-medium text-xs text-gray-800 truncate mb-1">{p.name}</div>
+                                                <div className="text-xs text-primary font-bold">₱{Number(p.price || 0).toFixed(2)}</div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
                             {/* --- Desktop Grid Layout --- */}
                             {/* --- FIX: Removed undefined 'productGridRef' --- */}
                             <div className="hidden md:grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
