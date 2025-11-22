@@ -125,11 +125,12 @@ const Navbar = () => {
                 {clientUser ? (
                     <>
                         <div className="user-info-text">
-                            Logged in as: <strong>{clientUser.name || clientUser.email}</strong>
+                            <span className="text-gray-600">Logged in as:</span>{' '}
+                            <strong className="text-primary">{clientUser.name || clientUser.email}</strong>
                         </div>
                         <Button
                             variant="ghost"
-                            className="btn"
+                            className="text-destructive"
                             onClick={logout}
                             title="Logout"
                         >

@@ -75,7 +75,7 @@ const LoginPage = () => {
             const userData = await api.login({ email, password });
             setAuth(userData);
             addToast({ title: 'Login Successful', description: `Welcome back, ${userData.name}!`, variant: 'success' });
-            router.push('/');
+            router.push('/dashboard');
 
         } catch (err) {
             console.error('Login page error:', err);
@@ -104,7 +104,7 @@ const LoginPage = () => {
         setAuth(demoUser);
         // 3. Show a toast and redirect
         addToast({ title: 'Demo Mode Activated', description: `Welcome, ${demoUser.name}!`, variant: 'success' });
-        router.push('/');
+        router.push('/dashboard');
     };
 
     return (
