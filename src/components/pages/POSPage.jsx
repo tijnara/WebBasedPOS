@@ -247,6 +247,16 @@ export default function POSPage() {
         setIsCustomerModalOpen(false);
     };
 
+    // --- NEW: Payment modal customer selection helper (clears suggestions) ---
+    const handleSelectCustomerInPayment = (customer) => {
+        handleSetSelectedCustomer(customer);
+        // Clear search related state so suggestions disappear
+        setSearchTerm('');
+        setDebouncedSearchTerm('');
+        setCustomerSearchResults([]);
+        setIsSearchingCustomers(false);
+    };
+
     // --- Add New Customer ---
     const handleAddCustomer = async (newCustomerName) => {
         if (!newCustomerName || !newCustomerName.trim()) {
@@ -399,9 +409,6 @@ export default function POSPage() {
     // Show all products, filtering is now handled by the product grid directly
     const filteredProducts = products;
 
-    // --- Recently Used Products Section ---
-    const showRecent = recentProducts.length > 0;
-
     return (
         <div className="pos-page">
             {/* --- Brand Logo at the very top left --- */}
@@ -552,10 +559,9 @@ export default function POSPage() {
                             {/* --- Desktop Grid Layout --- */}
                             {/* --- FIX: Removed undefined 'productGridRef' --- */}
                             <div className="hidden md:grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                                {filteredProducts.map((p, idx) => (
+                                {filteredProducts.map((p) => (
                                     <button
                                         key={p.id}
-                                        // --- FIX: Removed undefined 'selectedProductIndex' ---
                                         className="product-card p-4 text-center border rounded-xl shadow-md hover:border-primary hover:shadow-lg transition-all duration-150 bg-white flex flex-col items-center"
                                         onClick={() => handleAdd(p)}
                                         title={p.name}
@@ -566,18 +572,15 @@ export default function POSPage() {
                                             <ProductImage product={p} />
                                         </div>
                                         <div className="font-semibold text-sm leading-tight mb-1 line-clamp-2 text-gray-800">{p.name}</div>
-                                        <div className="text-xs text-primary font-bold">
-                                            ₱{Number(p.price || 0).toFixed(2)}
-                                        </div>
+                                        <div className="text-xs text-primary font-bold">₱{Number(p.price || 0).toFixed(2)}</div>
                                     </button>
                                 ))}
                             </div>
                             {/* --- Mobile List Layout --- */}
                             <div className="mobile-product-list-grid block md:hidden" style={{paddingBottom: '16px'}}>
-                                {filteredProducts.map((p, idx) => (
+                                {filteredProducts.map((p) => (
                                     <button
                                         key={p.id}
-                                        // --- FIX: Removed undefined 'selectedProductIndex' ---
                                         className="mobile-product-box p-2 border rounded-xl shadow-md bg-white flex flex-col items-center justify-center text-center transition-all duration-150"
                                         onClick={() => handleAdd(p)}
                                         tabIndex={-1}
@@ -588,9 +591,7 @@ export default function POSPage() {
                                             <ProductImage product={p} />
                                         </div>
                                         <div className="font-semibold text-sm leading-tight mb-1 line-clamp-2 text-gray-800">{p.name}</div>
-                                        <div className="text-xs text-primary font-bold">
-                                            ₱{Number(p.price || 0).toFixed(2)}
-                                        </div>
+                                        <div className="text-xs text-primary font-bold">₱{Number(p.price || 0).toFixed(2)}</div>
                                     </button>
                                 ))}
                             </div>
@@ -781,7 +782,7 @@ export default function POSPage() {
                                     <Button
                                         variant={selectedCustomer === null ? "secondary" : "ghost"}
                                         className="w-full justify-start text-left h-auto py-2 px-3"
-                                        onClick={() => handleSetSelectedCustomer(null)}
+                                        onClick={() => handleSelectCustomerInPayment(null)}
                                     >
                                         Walk-in Customer
                                     </Button>
@@ -795,8 +796,13 @@ export default function POSPage() {
                                                 <Button
                                                     key={customer.id}
                                                     variant={selectedCustomer?.id === customer.id ? "secondary" : "ghost"}
-                                                    className="w-full justify-start text-left h-auto py-2 px-3"
-                                                    onClick={() => handleSetSelectedCustomer(customer)}
+                                                    className={`w-full justify-start text-left h-auto py-2 px-3 ${selectedCustomer?.id === customer.id ? 'opacity-50 cursor-default' : ''}`}
+                                                    onClick={() => {
+                                                        if (selectedCustomer?.id !== customer.id) {
+                                                            handleSelectCustomerInPayment(customer);
+                                                        }
+                                                    }}
+                                                    disabled={selectedCustomer?.id === customer.id}
                                                 >
                                                     {customer.name} {customer.phone && `(${customer.phone})`}
                                                 </Button>
@@ -823,8 +829,13 @@ export default function POSPage() {
                                     )}
                                 </div>
                             </ScrollArea>
-                            {/* Show selected customer below search */}
-                            <div className="text-xs text-muted mt-1">Selected: <span className="font-semibold">{selectedCustomer?.name || 'Walk-in Customer'}</span></div>
+                            {/* Show selected customer below search with highlighted badge */}
+                            <div className="mt-1 flex items-center gap-2">
+                                <span className="text-xs text-gray-500">Selected:</span>
+                                <span className="inline-flex items-center px-3 py-1.5 rounded-full shadow-sm border font-semibold whitespace-nowrap bg-[#E8F9E6] border-[#C6ECC2]">
+                                    <span style={{ fontSize: '16px', color: '#7F00FF', fontWeight: '600' }}>{selectedCustomer?.name || 'Walk-in Customer'}</span>
+                                </span>
+                            </div>
                         </div>
 
                         <div>
@@ -866,7 +877,7 @@ export default function POSPage() {
                                 <div className="flex flex-col gap-2 mt-2">
                                     <div className="text-center">
                                         <p className="text-sm text-muted">Total Amount Due</p>
-                                        <p className="text-xl font-semibold">₱{subtotal.toFixed(2)}</p>
+                                        <p className="text-xl font-semibold" style={{ color: '#7F00FF' }}>₱{subtotal.toFixed(2)}</p>
                                     </div>
                                 </div>
                             </>
@@ -901,9 +912,10 @@ export default function POSPage() {
                     <DialogFooter>
                         <Button variant="outline" onClick={closePaymentModal}>Cancel</Button>
                         <Button
-                            variant="success" // Use success variant
                             onClick={handleFinalizeSale}
                             disabled={createSaleMutation.isPending || (paymentMethod === 'Cash' && parseFloat(amountReceived || 0) < subtotal) || !selectedCustomer}
+                            style={{ backgroundColor: '#7F00FF', color: 'white' }}
+                            className="px-4 py-2 rounded-md font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
                         >
                             {createSaleMutation.isPending ? 'Saving...' : 'Confirm Sale'}
                         </Button>
