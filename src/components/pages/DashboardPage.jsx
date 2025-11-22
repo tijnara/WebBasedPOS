@@ -11,6 +11,7 @@ import { useNewCustomersByDateSummary } from '../../hooks/useNewCustomersByDateS
 import { useInactiveCustomers } from '../../hooks/useInactiveCustomers';
 import { startOfWeek } from 'date-fns';
 import { UserIcon } from '../Icons'; // <-- FIXED IMPORT
+// Removed Pagination import; using Prev/Next for unknown totals
 
 Chart.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Tooltip, Legend, Filler);
 
@@ -52,16 +53,19 @@ export default function DashboardPage() {
     // --- USE SUMMARY HOOKS FOR CHARTS ---
     const { data: salesByDateData = [] } = useSalesByDateSummary();
     const { data: newCustomersByDateData = [] } = useNewCustomersByDateSummary();
-    const { data: inactiveCustomers = [], isLoading: isLoadingInactive } = useInactiveCustomers(14);
 
     // --- PAGINATION STATE FOR INACTIVE CUSTOMERS ---
     const INACTIVE_PAGE_SIZE = 4;
     const [inactivePage, setInactivePage] = useState(1);
-    const totalInactivePages = Math.max(1, Math.ceil(inactiveCustomers.length / INACTIVE_PAGE_SIZE));
-    const paginatedInactiveCustomers = useMemo(() => {
-        const start = (inactivePage - 1) * INACTIVE_PAGE_SIZE;
-        return inactiveCustomers.slice(start, start + INACTIVE_PAGE_SIZE);
-    }, [inactiveCustomers, inactivePage]);
+
+    // Fetch paginated inactive customers
+    const {
+        data: inactiveResult,
+        isLoading: inactiveCustomersLoading
+    } = useInactiveCustomers(14, { page: inactivePage, itemsPerPage: INACTIVE_PAGE_SIZE });
+
+    const paginatedInactiveCustomers = inactiveResult?.customers || [];
+    const inactiveHasMore = !!inactiveResult?.hasMore;
 
     // --- CHART DATA ---
     // Sales Over Time
@@ -234,9 +238,9 @@ export default function DashboardPage() {
                         </CardHeader>
                         <CardContent className="p-0 flex-1 overflow-hidden">
                             <ScrollArea className="h-full">
-                                {isLoadingInactive ? (
+                                {inactiveCustomersLoading ? (
                                     <p className="p-4 text-center text-gray-500">Loading customers...</p>
-                                ) : inactiveCustomers.length === 0 ? (
+                                ) : paginatedInactiveCustomers.length === 0 ? (
                                     <p className="p-4 text-center text-gray-500">No inactive customers found. Great!</p>
                                 ) : (
                                     <div className="w-full h-full flex flex-col">
@@ -283,18 +287,18 @@ export default function DashboardPage() {
                                                 </div>
                                             ))}
                                         </div>
-                                        {/* Pagination Controls compact */}
-                                        <div className="flex justify-center items-center gap-1 py-2">
+                                        {/* Compact Prev/Next controls (unknown total) */}
+                                        <div className="flex justify-center items-center gap-2 py-2">
                                             <button
-                                                className="px-2 py-0.5 rounded bg-gray-200 text-gray-700 text-xs disabled:opacity-50 min-w-[36px]"
+                                                className="px-2 py-1 rounded bg-gray-200 text-gray-700 text-xs disabled:opacity-50"
                                                 onClick={() => setInactivePage(p => Math.max(1, p - 1))}
                                                 disabled={inactivePage === 1}
                                             >Prev</button>
-                                            <span className="px-1 text-[10px] font-normal text-gray-700 whitespace-nowrap">Page {inactivePage} of {totalInactivePages}</span>
+                                            <span className="text-xs text-gray-600">Page {inactivePage}</span>
                                             <button
-                                                className="px-2 py-0.5 rounded bg-gray-200 text-gray-700 text-xs disabled:opacity-50 min-w-[36px]"
-                                                onClick={() => setInactivePage(p => Math.min(totalInactivePages, p + 1))}
-                                                disabled={inactivePage === totalInactivePages}
+                                                className="px-2 py-1 rounded bg-gray-200 text-gray-700 text-xs disabled:opacity-50"
+                                                onClick={() => setInactivePage(p => (inactiveHasMore ? p + 1 : p))}
+                                                disabled={!inactiveHasMore}
                                             >Next</button>
                                         </div>
                                     </div>

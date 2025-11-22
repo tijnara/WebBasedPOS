@@ -6,6 +6,7 @@ import {
     DialogHeader, DialogTitle, DialogFooter, DialogCloseButton
 } from '../ui';
 import MobileLogoutButton from '../MobileLogoutButton';
+import Pagination from '../Pagination';
 
 // --- Import Customer Hooks ---
 import { useCreateCustomer } from '../../hooks/useCreateCustomer';
@@ -262,11 +263,7 @@ export default function CustomerManagementPage() {
                             </Table>
                         </ScrollArea>
                         {/* Pagination Controls */}
-                        <div className="flex justify-center items-center gap-2 py-4 px-4 rounded-lg bg-white">
-                            <Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => setCurrentPage(currentPage - 1)}>Prev</Button>
-                            <span className="text-sm">Page {currentPage} of {totalPages}</span>
-                            <Button variant="outline" size="sm" disabled={currentPage === totalPages || totalPages === 0} onClick={() => setCurrentPage(currentPage + 1)}>Next</Button>
-                        </div>
+                        <Pagination currentPage={currentPage} totalPages={totalPages || 1} onPageChange={page => setCurrentPage(page)} />
                     </CardContent>
                 </Card>
 
@@ -317,11 +314,7 @@ export default function CustomerManagementPage() {
                     </Card>
 
                     {/* Pagination Controls for mobile */}
-                    <div className="flex justify-center items-center gap-2 py-3">
-                        <Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => setCurrentPage(currentPage - 1)}>Prev</Button>
-                        <span className="text-sm">Page {currentPage} of {totalPages}</span>
-                        <Button variant="outline" size="sm" disabled={currentPage === totalPages || totalPages === 0} onClick={() => setCurrentPage(currentPage + 1)}>Next</Button>
-                    </div>
+                    <Pagination currentPage={currentPage} totalPages={totalPages || 1} onPageChange={page => setCurrentPage(page)} />
                 </div>
 
                 {/* --- MODAL: Customer Form (No change needed) --- */}
@@ -388,3 +381,4 @@ export default function CustomerManagementPage() {
         </div>
     );
 }
+

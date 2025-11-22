@@ -6,6 +6,7 @@ import {
     TableHead, TableCell, ScrollArea, Input, Dialog, DialogContent,
     DialogHeader, DialogTitle, DialogFooter, DialogCloseButton
 } from '../ui';
+import Pagination from '../Pagination';
 import MobileLogoutButton from '../MobileLogoutButton';
 import { format } from 'date-fns';
 
@@ -257,11 +258,7 @@ export default function HistoryPage() {
                         </ScrollArea>
 
                         {/* Pagination Controls */}
-                        <div className="flex justify-center items-center gap-2 py-4 px-4 rounded-lg bg-white">
-                            <Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => setCurrentPage(currentPage - 1)}>Prev</Button>
-                            <span className="text-sm">Page {currentPage} of {totalPages}</span>
-                            <Button variant="outline" size="sm" disabled={currentPage === totalPages || totalPages === 0} onClick={() => setCurrentPage(currentPage + 1)}>Next</Button>
-                        </div>
+                        <Pagination currentPage={currentPage} totalPages={totalPages || 1} onPageChange={page => setCurrentPage(page)} />
                     </CardContent>
                 </Card>
 
@@ -315,11 +312,7 @@ export default function HistoryPage() {
                     </Card>
 
                     {/* Pagination Controls for mobile */}
-                    <div className="flex justify-center items-center gap-2 py-3">
-                        <Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => setCurrentPage(currentPage - 1)}>Prev</Button>
-                        <span className="text-sm">Page {currentPage} of {totalPages}</span>
-                        <Button variant="outline" size="sm" disabled={currentPage === totalPages || totalPages === 0} onClick={() => setCurrentPage(currentPage + 1)}>Next</Button>
-                    </div>
+                    <Pagination currentPage={currentPage} totalPages={totalPages || 1} onPageChange={page => setCurrentPage(page)} />
                 </div>
 
                 {/* --- Sale Details Modal --- */}

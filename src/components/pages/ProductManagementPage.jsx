@@ -5,6 +5,7 @@ import {
     TableHead, TableCell, ScrollArea, Input, Label, Dialog, DialogContent,
     DialogHeader, DialogTitle, DialogFooter, DialogCloseButton
 } from '../ui';
+import Pagination from '../Pagination';
 
 // --- NEW: Import all the hooks ---
 import { useProducts } from '../../hooks/useProducts';
@@ -257,11 +258,7 @@ export default function ProductManagementPage() {
                             </Table>
                         </ScrollArea>
                         {/* Pagination Controls */}
-                        <div className="flex justify-center items-center gap-2 py-2">
-                            <Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => setCurrentPage(currentPage - 1)}>Prev</Button>
-                            <span className="text-sm">Page {currentPage} of {totalPages}</span>
-                            <Button variant="outline" size="sm" disabled={currentPage === totalPages || totalPages === 0} onClick={() => setCurrentPage(currentPage + 1)}>Next</Button>
-                        </div>
+                        <Pagination currentPage={currentPage} totalPages={totalPages || 1} onPageChange={page => setCurrentPage(page)} />
                     </CardContent>
                 </Card>
 
@@ -311,11 +308,7 @@ export default function ProductManagementPage() {
                     </Card>
 
                     {/* Pagination Controls for mobile */}
-                    <div className="flex justify-center items-center gap-2 py-3">
-                        <Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => setCurrentPage(currentPage - 1)}>Prev</Button>
-                        <span className="text-sm">Page {currentPage} of {totalPages}</span>
-                        <Button variant="outline" size="sm" disabled={currentPage === totalPages || totalPages === 0} onClick={() => setCurrentPage(currentPage + 1)}>Next</Button>
-                    </div>
+                    <Pagination currentPage={currentPage} totalPages={totalPages || 1} onPageChange={page => setCurrentPage(page)} />
                 </div>
 
 
