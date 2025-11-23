@@ -4,13 +4,13 @@ import { useStore } from '../store/useStore'; // <-- 1. Import the store
 
 // --- 2. DEFINE MOCK DATA ---
 const MOCK_PRODUCTS = [
-    { id: 'mock-p-1', name: 'Mock Alkaline (5 Gal)', price: 35.00, category: 'Water' },
-    { id: 'mock-p-2', name: 'Mock Purified (5 Gal)', price: 25.00, category: 'Water' },
-    { id: 'mock-p-3', name: 'Mock Mineral (1L)', price: 15.00, category: 'Retail' },
-    { id: 'mock-p-4', name: 'Empty Bottle (Slim)', price: 250.00, category: 'Container' },
-    { id: 'mock-p-5', name: 'Bottle Cap Seals (100pcs)', price: 50.00, category: 'Supplies' },
-    { id: 'mock-p-6', name: 'Mock Product A', price: 10.00, category: 'N/A' },
-    { id: 'mock-p-7', name: 'Mock Product B', price: 99.00, category: 'N/A' },
+    { id: 'mock-p-1', name: 'Mock Alkaline (5 Gal)', price: 35.00, category: 'Water', image_url: null },
+    { id: 'mock-p-2', name: 'Mock Purified (5 Gal)', price: 25.00, category: 'Water', image_url: null },
+    { id: 'mock-p-3', name: 'Mock Mineral (1L)', price: 15.00, category: 'Retail', image_url: null },
+    { id: 'mock-p-4', name: 'Empty Bottle (Slim)', price: 250.00, category: 'Container', image_url: null },
+    { id: 'mock-p-5', name: 'Bottle Cap Seals (100pcs)', price: 50.00, category: 'Supplies', image_url: null },
+    { id: 'mock-p-6', name: 'Mock Product A', price: 10.00, category: 'N/A', image_url: null },
+    { id: 'mock-p-7', name: 'Mock Product B', price: 99.00, category: 'N/A', image_url: null },
 ];
 // --- END MOCK DATA ---
 
@@ -85,6 +85,7 @@ export function useProducts({ searchTerm = '', page = 1, itemsPerPage = 10 } = {
                         name: p.name || 'Unnamed Product',
                         price: parseFloat(p.price) || 0,
                         category: p.category || 'N/A',
+                        image_url: p.image_url || null,
                     })),
                     totalPages,
                     totalCount,

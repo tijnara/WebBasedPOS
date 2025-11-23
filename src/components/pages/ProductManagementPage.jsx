@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../../store/useStore';
+import { supabase } from '../../lib/supabaseClient';
 import {
     Button, Card, CardContent, Table, TableHeader, TableBody, TableRow,
     TableHead, TableCell, ScrollArea, Input, Label, Dialog, DialogContent,
@@ -60,8 +61,9 @@ export default function ProductManagementPage() {
     const [editing, setEditing] = useState(null);
     const [name, setName] = useState('');
     const [price, setPrice] = useState('');
+    const [imageFile, setImageFile] = useState(null);
+    const [uploading, setUploading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    // const [searchTerm, setSearchTerm] = useState(''); // Moved up
     const searchInputRef = useRef(null);
 
     // --- MODIFICATION: Debounce search term ---
@@ -93,6 +95,7 @@ export default function ProductManagementPage() {
         setEditing(p);
         setName(p?.name || '');
         setPrice(p?.price != null ? String(p.price) : '');
+        setImageFile(null);
         setIsModalOpen(true);
     };
 
@@ -110,6 +113,31 @@ export default function ProductManagementPage() {
         setEditing(null);
         setName('');
         setPrice('');
+        setImageFile(null);
+        setUploading(false);
+    };
+
+    const uploadImage = async (file) => {
+        try {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${Math.random()}.${fileExt}`;
+            const filePath = `${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('products')
+                .upload(filePath, file);
+
+            if (uploadError) {
+                throw uploadError;
+            }
+
+            const { data } = supabase.storage.from('products').getPublicUrl(filePath);
+            return data.publicUrl;
+        } catch (error) {
+            console.error('Error uploading image: ', error);
+            addToast({ title: 'Upload Error', description: error.message, variant: 'destructive' });
+            return null;
+        }
     };
 
     const save = async (e) => {
@@ -117,7 +145,7 @@ export default function ProductManagementPage() {
         const parsedPrice = parseFloat(price);
 
         if (!name || !price) {
-            addToast({ title: 'Error', description: 'All fields are required.' });
+            addToast({ title: 'Error', description: 'Name and Price are required.' });
             return;
         }
         if (isNaN(parsedPrice) || parsedPrice < 0) {
@@ -125,12 +153,8 @@ export default function ProductManagementPage() {
             return;
         }
 
-        // --- MODIFICATION: Simplify duplicate check.
-        // We refetch on mutation, but for a better UX, we can check the *currently loaded* products.
-        // This check is not foolproof (race condition) but is good enough.
-        // The database should have a UNIQUE constraint on the name.
         const nameLower = name.trim().toLowerCase();
-        const existingProducts = products || []; // Use loaded products
+        const existingProducts = products || [];
 
         if (!editing) {
             const exists = existingProducts.some(p => p.name.trim().toLowerCase() === nameLower);
@@ -145,25 +169,40 @@ export default function ProductManagementPage() {
                 return;
             }
         }
-        // --- END MODIFICATION ---
+
+        setUploading(true);
+        let imageUrl = editing?.image_url || null;
+
+        if (imageFile) {
+            const uploadedUrl = await uploadImage(imageFile);
+            if (uploadedUrl) {
+                imageUrl = uploadedUrl;
+            } else {
+                setUploading(false);
+                return;
+            }
+        }
 
         const payload = {
             name,
-            price: parsedPrice
+            price: parsedPrice,
+            image_url: imageUrl
         };
 
         try {
             if (editing) {
                 await updateProduct.mutateAsync({ ...payload, id: editing.id });
-                addToast({ title: 'Updated', description: `Product ${name} updated` });
+                addToast({ title: 'Updated', description: `Product ${name} updated`, variant: 'success' });
             } else {
                 await createProduct.mutateAsync(payload);
-                addToast({ title: 'Created', description: `Product ${name} created` });
+                addToast({ title: 'Created', description: `Product ${name} created`, variant: 'success' });
             }
             closeModal();
         } catch (e) {
             console.error(e);
-            addToast({ title: 'Error', description: e.message });
+            addToast({ title: 'Error', description: e.message, variant: 'destructive' });
+        } finally {
+            setUploading(false);
         }
     };
 
@@ -178,7 +217,7 @@ export default function ProductManagementPage() {
         }
     };
 
-    const isMutating = createProduct.isPending || updateProduct.isPending || deleteProduct.isPending;
+    const isMutating = createProduct.isPending || updateProduct.isPending || deleteProduct.isPending || uploading;
 
     return (
         <div className="product-page">
@@ -213,14 +252,14 @@ export default function ProductManagementPage() {
                                     <TableRow>
                                         <TableHead>Product Name</TableHead>
                                         <TableHead>Price</TableHead>
+                                        <TableHead>Image</TableHead>
                                         <TableHead>Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {isLoading ? (
                                         <TableRow>
-                                            {/* --- MODIFICATION: Added loading spinner --- */}
-                                            <TableCell colSpan={3} className="text-center text-muted py-8">
+                                            <TableCell colSpan={4} className="text-center text-muted py-8">
                                                 <div className="flex justify-center items-center">
                                                     <svg className="animate-spin h-5 w-5 text-primary mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -232,7 +271,7 @@ export default function ProductManagementPage() {
                                         </TableRow>
                                     ) : products.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={3} className="text-center text-muted py-8">
+                                            <TableCell colSpan={4} className="text-center text-muted py-8">
                                                 {debouncedSearchTerm ? `No products found for "${debouncedSearchTerm}".` : 'No products found.'}
                                             </TableCell>
                                         </TableRow>
@@ -241,6 +280,11 @@ export default function ProductManagementPage() {
                                             <TableRow key={p.id}>
                                                 <TableCell>{p.name}</TableCell>
                                                 <TableCell>₱{Number(p.price || 0).toFixed(2)}</TableCell>
+                                                <TableCell>
+                                                    {p.image_url ? (
+                                                        <img src={p.image_url} alt={p.name} className="w-12 h-12 object-cover rounded border border-gray-200" />
+                                                    ) : <span className="text-xs text-gray-400">None</span>}
+                                                </TableCell>
                                                 <TableCell>
                                                     <div className="flex space-x-1">
                                                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEdit(p)}>
@@ -273,17 +317,19 @@ export default function ProductManagementPage() {
                                     {debouncedSearchTerm ? `No products found for "${debouncedSearchTerm}".` : 'No products found.'}
                                 </div>
                             ) : (
-                                <div className="divide-y divide-gray-100"> {/* Lighter divider */}
+                                <div className="divide-y divide-gray-100">
                                     {products.map(p => (
                                         <div key={p.id} className="p-4 flex items-center space-x-3">
-                                            {/* Icon */}
                                             <div className="flex-shrink-0">
-                                                <span className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
-                                                    <BagIcon />
-                                                </span>
+                                                {p.image_url ? (
+                                                    <img src={p.image_url} alt={p.name} className="w-12 h-12 rounded object-cover bg-gray-100 border border-gray-200" />
+                                                ) : (
+                                                    <span className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center border border-gray-200">
+                                                        <BagIcon />
+                                                    </span>
+                                                )}
                                             </div>
 
-                                            {/* Product Info */}
                                             <div className="flex-1 min-w-0">
                                                 <div className="font-medium text-gray-900 truncate">{p.name}</div>
                                                 <div className="text-sm text-gray-500">
@@ -291,7 +337,6 @@ export default function ProductManagementPage() {
                                                 </div>
                                             </div>
 
-                                            {/* Actions */}
                                             <div className="flex-shrink-0 flex items-center space-x-0">
                                                 <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => startEdit(p)}>
                                                     <EditIcon />
@@ -330,12 +375,27 @@ export default function ProductManagementPage() {
                                         <Label htmlFor="pprice">Price (₱)</Label>
                                         <Input id="pprice" type="number" step="0.01" min="0" value={price} onChange={e => setPrice(e.target.value)} required />
                                     </div>
+
+                                    <div className="sm:col-span-2">
+                                        <Label htmlFor="productImage">Product Image (Optional)</Label>
+                                        <Input
+                                            id="productImage"
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={(e) => setImageFile(e.target.files[0])}
+                                        />
+                                        {editing?.image_url && !imageFile && (
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                Current image: <a href={editing.image_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">View</a>
+                                            </p>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                             <DialogFooter>
                                 <Button variant="outline" type="button" onClick={closeModal} disabled={isMutating}>Cancel</Button>
                                 <Button type="submit" disabled={isMutating}>
-                                    {isMutating ? 'Saving...' : 'Save Product'}
+                                    {uploading ? 'Uploading...' : isMutating ? 'Saving...' : 'Save Product'}
                                 </Button>
                             </DialogFooter>
                         </form>

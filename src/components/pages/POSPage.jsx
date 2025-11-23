@@ -36,27 +36,42 @@ const PackageIcon = (props) => (
 
 // --- ProductImage helper component ---
 const ProductImage = ({ product }) => {
+    // 1. Check for uploaded image first
+    if (product.image_url) {
+        return (
+            <img
+                src={product.image_url}
+                alt={product.name}
+                style={{
+                    width: '80px',
+                    height: '80px',
+                    objectFit: 'cover',
+                    borderRadius: '8px',
+                    border: '1px solid #e5e7eb',
+                }}
+            />
+        );
+    }
+
+    // 2. Fallback to hardcoded images based on name/category
     let imageUrl = '';
     let altText = product.name;
     const lowerName = (product.name || '').toLowerCase();
     const lowerCategory = (product.category || '').toLowerCase();
 
-    // 1. Check for Ice Tubes/Cubes (more robust)
+    // Check for Ice Tubes/Cubes (more robust)
     if (lowerName.includes('ice tube') || lowerName.includes('ice cubes') || lowerName.includes('ice cube') || lowerName.includes('ice tubes/cubes')) {
         imageUrl = '/icecubes.png';
     }
-        // 2. Check for Pet Bottles (Specific)
-    // Catches "Pet Bottles"
+    // Check for Pet Bottles (Specific)
     else if (lowerName.includes('pet bottles')) {
         imageUrl = '/petbottles.png';
     }
-        // 3. Check for Containers (General)
-    // Catches "Container", "Empty Bottle (Slim)", or "Container" category
+    // Check for Containers (General)
     else if (lowerCategory.includes('container') || lowerName.includes('empty bottle') || lowerName.includes('container')) {
         imageUrl = '/container1.png';
     }
-        // 4. Check for Water/Refills (Broad)
-    // Catches "Refill (25)", "Alkaline", etc.
+    // Check for Water/Refills (Broad)
     else if (lowerCategory === 'water' || lowerName.includes('refill') || lowerName.includes('alkaline') || lowerName.includes('purified')) {
         imageUrl = '/refill.png';
     }
@@ -67,14 +82,11 @@ const ProductImage = ({ product }) => {
                 src={imageUrl}
                 alt={altText}
                 style={{
-                    maxWidth: '70px',
-                    maxHeight: '70px',
-                    width: 'auto',
-                    height: 'auto',
-                    padding: '4px',
-                    display: 'block',
-                    margin: '0 auto',
+                    width: '80px',
+                    height: '80px',
                     objectFit: 'contain',
+                    borderRadius: '8px',
+                    padding: '4px',
                 }}
             />
         );

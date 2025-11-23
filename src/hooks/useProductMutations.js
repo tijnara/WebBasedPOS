@@ -10,11 +10,10 @@ export function useCreateProduct() {
     return useMutation({
         mutationFn: async (newProduct) => {
             console.log('useCreateProduct: Creating product with payload:', newProduct);
-            // Supabase handles ID generation (if primary key is identity/default)
-            // Ensure payload matches table columns (e.g., name, price, category, stock)
             const payload = {
                 name: newProduct.name,
-                price: newProduct.price
+                price: newProduct.price,
+                image_url: newProduct.image_url
             };
 
             const { data, error } = await supabase
