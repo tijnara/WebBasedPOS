@@ -296,7 +296,7 @@ export default function CustomerManagementPage() {
                 {/* --- MODAL: Customer Form (Enhanced UI) --- */}
                 <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
                     <DialogContent
-                        className="p-0 overflow-hidden w-full sm:max-w-2xl bg-white shadow-xl border border-gray-100"
+                        className="p-0 overflow-hidden w-full sm:max-w-3xl bg-white shadow-xl border border-gray-100"
                         style={{ backgroundColor: '#ffffff', zIndex: 50 }}
                     >
                         <form
@@ -320,9 +320,9 @@ export default function CustomerManagementPage() {
                                 className="flex-1 overflow-y-auto px-6 py-6 modal-scroll modal-scrollbar bg-white relative"
                                 style={{ backgroundColor: '#ffffff' }}
                             >
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                     {/* Customer Name (Full Width) */}
-                                    <div className="md:col-span-2 space-y-2">
+                                    <div className="md:col-span-2 space-y-3">
                                         <Label htmlFor="name" className="text-sm font-semibold text-gray-700">
                                             Customer Name <span className="text-red-500">*</span>
                                         </Label>
@@ -338,7 +338,7 @@ export default function CustomerManagementPage() {
                                     </div>
 
                                     {/* Email */}
-                                    <div className="space-y-2">
+                                    <div className="space-y-3">
                                         <Label htmlFor="email" className="text-sm font-semibold text-gray-700">
                                             Email (Optional)
                                         </Label>
@@ -353,7 +353,7 @@ export default function CustomerManagementPage() {
                                     </div>
 
                                     {/* Phone */}
-                                    <div className="space-y-2">
+                                    <div className="space-y-3">
                                         <Label htmlFor="phone" className="text-sm font-semibold text-gray-700">
                                             Phone (Optional)
                                         </Label>
@@ -367,7 +367,7 @@ export default function CustomerManagementPage() {
                                     </div>
 
                                     {/* Address (Full Width) */}
-                                    <div className="md:col-span-2 space-y-2">
+                                    <div className="md:col-span-2 space-y-3">
                                         <Label htmlFor="address" className="text-sm font-semibold text-gray-700">
                                             Address (Optional)
                                         </Label>
