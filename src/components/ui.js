@@ -1,8 +1,10 @@
 import React from 'react';
-import clsx from 'clsx';
+import { clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge'; // Import tailwind-merge
 
+// Update cn to use twMerge
 export function cn(...inputs) {
-    return clsx(...inputs);
+    return twMerge(clsx(inputs));
 }
 
 // ... (Button, Input, Card components remain the same) ...
@@ -70,7 +72,7 @@ export const Dialog = ({ open, children, className, onOpenChange, closeOnBackdro
     ) : null
 );
 
-export const DialogContent = ({ children, className }) => (
+export const DialogContent = ({ children, className, style, ...props }) => (
     <div
         className={cn(
             // Floating card on mobile; sized and rounded with deep shadow
@@ -81,9 +83,11 @@ export const DialogContent = ({ children, className }) => (
             maxHeight: 'calc(100dvh - 32px)',
             backgroundColor: '#ffffff',
             isolation: 'isolate',
-            zIndex: 10
+            zIndex: 10,
+            ...style
         }}
         onClick={(e) => e.stopPropagation()}
+        {...props}
     >
         {children}
     </div>
@@ -105,9 +109,9 @@ export const DialogTitle = ({ children, className }) => (
     </h2>
 );
 
-export const DialogFooter = ({ children, className }) => (
+export const DialogFooter = ({ children, className, style }) => (
     // MODIFIED: Added padding and border
-    <div className={cn("dialog-footer mt-auto p-4 border-t flex justify-end space-x-2", className)}>
+    <div className={cn("dialog-footer mt-auto p-4 border-t flex justify-end space-x-2", className)} style={style}>
         {children}
     </div>
 );
@@ -152,7 +156,7 @@ export const LoadingSpinner = ({ className }) => (
     </svg>
 );
 
-export const Label = ({ children, htmlFor }) => <label htmlFor={htmlFor} className="block text-sm font-medium text-gray-700 mb-1">{children}</label>; // Adjusted styles
+export const Label = ({ children, htmlFor, className }) => <label htmlFor={htmlFor} className={cn("block text-sm font-medium text-gray-700 mb-1", className)}>{children}</label>; // Adjusted styles
 
 // *** NEW: Select component ***
 export const Select = React.forwardRef(({ className, children, ...props }, ref) => (

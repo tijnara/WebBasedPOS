@@ -396,7 +396,7 @@ export default function ProductManagementPage() {
 
                 {/* --- MODAL: Product Form --- */}
                 <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                    {/* FIX: Increased max width to 5xl for more spacious layout */}
+                    {/* FIX: Force white background and set to max-w-5xl for ultra-wide layout */}
                     <DialogContent
                         className="p-0 overflow-hidden max-h-[calc(100dvh-2rem)] sm:max-w-5xl bg-white shadow-xl border border-gray-100"
                         style={{ backgroundColor: '#ffffff', zIndex: 50 }}
