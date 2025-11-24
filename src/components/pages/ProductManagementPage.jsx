@@ -4,7 +4,7 @@ import { supabase } from '../../lib/supabaseClient';
 import {
     Button, Card, CardContent, Table, TableHeader, TableBody, TableRow,
     TableHead, TableCell, ScrollArea, Input, Label, Dialog, DialogContent,
-    DialogHeader, DialogTitle, DialogFooter, DialogCloseButton
+    DialogHeader, DialogTitle, DialogFooter, DialogCloseButton, Select
 } from '../ui';
 import Pagination from '../Pagination';
 
@@ -46,10 +46,11 @@ const BagIcon = () => (
 export default function ProductManagementPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+    const [categoryFilter, setCategoryFilter] = useState('All');
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
-    // Pass page, itemsPerPage, and debouncedSearchTerm to useProducts
-    const { data: productsData = { products: [], totalPages: 1 }, isLoading } = useProducts({ page: currentPage, itemsPerPage, searchTerm: debouncedSearchTerm });
+    // Fetch products with server-side pagination and filters
+    const { data: productsData = { products: [], totalPages: 1 }, isLoading } = useProducts({ page: currentPage, itemsPerPage, searchTerm: debouncedSearchTerm, category: categoryFilter });
     const products = productsData.products;
     const totalPages = productsData.totalPages;
     const addToast = useStore(s => s.addToast);
@@ -60,10 +61,22 @@ export default function ProductManagementPage() {
 
     const [editing, setEditing] = useState(null);
     const [name, setName] = useState('');
+    const productNameRef = useRef(null); // NEW: ref for auto-focus
     const [price, setPrice] = useState('');
     const [imageFile, setImageFile] = useState(null);
     const [uploading, setUploading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [barcode, setBarcode] = useState('');
+    const [category, setCategory] = useState('General');
+    const [stock, setStock] = useState(0);
+    const [minStock, setMinStock] = useState(5);
+    const [cost, setCost] = useState('0');
+    const [customCategories, setCustomCategories] = useState(() => {
+        if (typeof window === 'undefined') return [];
+        try { return JSON.parse(localStorage.getItem('pos_custom_categories') || '[]'); } catch { return []; }
+    });
+    const [isAddingCategory, setIsAddingCategory] = useState(false);
+    const [newCategoryName, setNewCategoryName] = useState('');
     const searchInputRef = useRef(null);
 
     // --- MODIFICATION: Debounce search term ---
@@ -91,11 +104,37 @@ export default function ProductManagementPage() {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, []);
 
+    // Body scroll lock when Add Product modal is open
+    useEffect(() => {
+        if (isModalOpen) {
+            if (!document.body.dataset.pmPrevOverflow) {
+                document.body.dataset.pmPrevOverflow = document.body.style.overflow || '';
+            }
+            document.body.style.overflow = 'hidden';
+        } else {
+            if (document.body.dataset.pmPrevOverflow !== undefined) {
+                document.body.style.overflow = document.body.dataset.pmPrevOverflow;
+                delete document.body.dataset.pmPrevOverflow;
+            }
+        }
+        return () => {
+            if (document.body.dataset.pmPrevOverflow !== undefined) {
+                document.body.style.overflow = document.body.dataset.pmPrevOverflow;
+                delete document.body.dataset.pmPrevOverflow;
+            }
+        };
+    }, [isModalOpen]);
+
     const startEdit = (p) => {
         setEditing(p);
         setName(p?.name || '');
         setPrice(p?.price != null ? String(p.price) : '');
         setImageFile(null);
+        setBarcode(p?.barcode || '');
+        setCategory(p?.category || 'General');
+        setStock(Number(p?.stock ?? 0));
+        setMinStock(Number(p?.minStock ?? 5));
+        setCost(String(p?.cost ?? 0));
         setIsModalOpen(true);
     };
 
@@ -114,7 +153,14 @@ export default function ProductManagementPage() {
         setName('');
         setPrice('');
         setImageFile(null);
+        setBarcode('');
+        setCategory('General');
+        setStock(0);
+        setMinStock(5);
+        setCost('0');
         setUploading(false);
+        setIsAddingCategory(false);
+        setNewCategoryName('');
     };
 
     const uploadImage = async (file) => {
@@ -143,6 +189,9 @@ export default function ProductManagementPage() {
     const save = async (e) => {
         e.preventDefault();
         const parsedPrice = parseFloat(price);
+        const parsedCost = parseFloat(cost || '0');
+        const parsedStock = Math.max(0, parseInt(stock, 10) || 0);
+        const parsedMinStock = Math.max(0, parseInt(minStock, 10) || 0);
 
         if (!name || !price) {
             addToast({ title: 'Error', description: 'Name and Price are required.' });
@@ -186,7 +235,12 @@ export default function ProductManagementPage() {
         const payload = {
             name,
             price: parsedPrice,
-            image_url: imageUrl
+            image_url: imageUrl,
+            barcode: barcode?.trim() || null,
+            stock: parsedStock,
+            minStock: parsedMinStock,
+            cost: parsedCost,
+            category: category || 'General',
         };
 
         try {
@@ -219,6 +273,55 @@ export default function ProductManagementPage() {
 
     const isMutating = createProduct.isPending || updateProduct.isPending || deleteProduct.isPending || uploading;
 
+    // Helper: compute merged categories (from products + custom)
+    const categoriesFromProducts = Array.from(new Set((products || []).map(p => (p.category || 'General').trim()))).filter(Boolean);
+    const mergedCategories = Array.from(new Set(['General', ...categoriesFromProducts, ...customCategories]));
+
+    // Helper: add a new category
+    const addCategory = () => {
+        const name = (newCategoryName || '').trim();
+        if (!name) return;
+        // Check duplicates case-insensitive
+        const exists = mergedCategories.some(c => c.toLowerCase() === name.toLowerCase());
+        if (exists) {
+            setCategory(mergedCategories.find(c => c.toLowerCase() === name.toLowerCase()) || name);
+            setIsAddingCategory(false);
+            setNewCategoryName('');
+            return;
+        }
+        setCustomCategories(prev => [...prev, name]);
+        setCategory(name);
+        setIsAddingCategory(false);
+        setNewCategoryName('');
+    };
+
+    // Reset to first page when search or category changes
+    useEffect(() => { setCurrentPage(1); }, [debouncedSearchTerm, categoryFilter]);
+
+    // Derived list for category filter (merge + All)
+    const categories = ['All', ...mergedCategories];
+    const filteredProducts = products || [];
+
+    // NEW: Persist custom categories
+    useEffect(() => {
+        try { localStorage.setItem('pos_custom_categories', JSON.stringify(customCategories)); } catch {}
+    }, [customCategories]);
+
+    // NEW: Auto-focus product name when modal opens
+    useEffect(() => {
+        if (isModalOpen && productNameRef.current) {
+            productNameRef.current.focus();
+        }
+    }, [isModalOpen]);
+
+    // NEW: Helper to format numbers to 2 decimals (leave blank if empty)
+    const formatToTwoDecimals = (val) => {
+        if (val === '' || val == null) return '';
+        const num = parseFloat(val);
+        if (isNaN(num)) return '';
+        return num.toFixed(2);
+    };
+
     return (
         <div className="product-page">
             {/* --- Brand Logo at the very top left --- */}
@@ -232,14 +335,19 @@ export default function ProductManagementPage() {
                     </div><Button variant="primary" onClick={openModal}>Add Product</Button>
                 </div>
 
-                <div className="mb-4">
-                    <Input
-                        ref={searchInputRef}
-                        placeholder="Search products by name or category..." // Updated placeholder
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                        className="w-full max-w-xs mb-2"
-                    />
+                <div className="mb-4 flex flex-col sm:flex-row gap-3 sm:items-end">
+                    <div className="flex-1 max-w-xs">
+                        <Label htmlFor="search">Search</Label>
+                        <Input id="search" ref={searchInputRef} placeholder="Search products..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+                    </div>
+                    <div className="w-full sm:w-64">
+                        <Label>Filter by Category</Label>
+                        <Select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}>
+                            {categories.map(c => (
+                                <option key={c} value={c}>{c}</option>
+                            ))}
+                        </Select>
+                    </div>
                 </div>
 
                 {/* --- DESKTOP TABLE (Hidden on mobile) --- */}
@@ -251,7 +359,11 @@ export default function ProductManagementPage() {
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>Product Name</TableHead>
+                                        <TableHead>Category</TableHead>
+                                        <TableHead>Stock</TableHead>
                                         <TableHead>Price</TableHead>
+                                        <TableHead>Date Created</TableHead>
+                                        <TableHead>Date Updated</TableHead>
                                         <TableHead>Image</TableHead>
                                         <TableHead>Actions</TableHead>
                                     </TableRow>
@@ -259,7 +371,7 @@ export default function ProductManagementPage() {
                                 <TableBody>
                                     {isLoading ? (
                                         <TableRow>
-                                            <TableCell colSpan={4} className="text-center text-muted py-8">
+                                            <TableCell colSpan={6} className="text-center py-8">
                                                 <div className="flex justify-center items-center">
                                                     <svg className="animate-spin h-5 w-5 text-primary mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -269,17 +381,27 @@ export default function ProductManagementPage() {
                                                 </div>
                                             </TableCell>
                                         </TableRow>
-                                    ) : products.length === 0 ? (
+                                    ) : filteredProducts.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={4} className="text-center text-muted py-8">
+                                            <TableCell colSpan={6} className="text-center py-8">
                                                 {debouncedSearchTerm ? `No products found for "${debouncedSearchTerm}".` : 'No products found.'}
                                             </TableCell>
                                         </TableRow>
                                     ) : (
-                                        products.map(p => (
+                                        filteredProducts.map(p => (
                                             <TableRow key={p.id}>
                                                 <TableCell>{p.name}</TableCell>
+                                                <TableCell>{p.category || 'Uncategorized'}</TableCell>
+                                                <TableCell>
+                                                    <span className={`font-bold ${Number(p.stock) <= Number(p.minStock) ? 'text-red-600' : 'text-green-600'}`}>{p.stock}</span>
+                                                </TableCell>
                                                 <TableCell>₱{Number(p.price || 0).toFixed(2)}</TableCell>
+                                                <TableCell>
+                                                    {p.created_at ? new Date(p.created_at).toLocaleString() : <span className="text-xs text-gray-400">—</span>}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {p.updated_at ? new Date(p.updated_at).toLocaleString() : <span className="text-xs text-gray-400">—</span>}
+                                                </TableCell>
                                                 <TableCell>
                                                     {p.image_url ? (
                                                         <img src={p.image_url} alt={p.name} className="w-12 h-12 object-cover rounded border border-gray-200" />
@@ -312,13 +434,13 @@ export default function ProductManagementPage() {
                         <CardContent className="p-0"> {/* Remove padding from content to allow list to go edge-to-edge */}
                             {isLoading ? (
                                 <div className="text-center text-muted p-6">Loading products...</div>
-                            ) : products.length === 0 ? (
+                            ) : filteredProducts.length === 0 ? (
                                 <div className="text-center text-muted p-6">
                                     {debouncedSearchTerm ? `No products found for "${debouncedSearchTerm}".` : 'No products found.'}
                                 </div>
                             ) : (
                                 <div className="divide-y divide-gray-100">
-                                    {products.map(p => (
+                                    {filteredProducts.map(p => (
                                         <div key={p.id} className="p-4 flex items-center space-x-3">
                                             <div className="flex-shrink-0">
                                                 {p.image_url ? (
@@ -332,9 +454,8 @@ export default function ProductManagementPage() {
 
                                             <div className="flex-1 min-w-0">
                                                 <div className="font-medium text-gray-900 truncate">{p.name}</div>
-                                                <div className="text-sm text-gray-500">
-                                                    ₱{Number(p.price || 0).toFixed(2)}
-                                                </div>
+                                                <div className="text-sm text-gray-500">₱{Number(p.price || 0).toFixed(2)}</div>
+                                                <div className="text-[10px] text-gray-500">C: {p.created_at ? new Date(p.created_at).toLocaleDateString() : '—'} | U: {p.updated_at ? new Date(p.updated_at).toLocaleDateString() : '—'}</div>
                                             </div>
 
                                             <div className="flex-shrink-0 flex items-center space-x-0">
@@ -359,44 +480,76 @@ export default function ProductManagementPage() {
 
                 {/* --- MODAL: Product Form (No change needed) --- */}
                 <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>{editing ? 'Edit Product' : 'Add Product'}</DialogTitle>
-                            <DialogCloseButton onClick={closeModal} />
-                        </DialogHeader>
-                        <form onSubmit={save}>
-                            <div className="p-4 space-y-4">
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div className="sm:col-span-2">
-                                        <Label htmlFor="productName">Product Name</Label>
-                                        <Input id="productName" value={name} onChange={e => setName(e.target.value)} required />
-                                    </div>
-                                    <div>
-                                        <Label htmlFor="pprice">Price (₱)</Label>
-                                        <Input id="pprice" type="number" step="0.01" min="0" value={price} onChange={e => setPrice(e.target.value)} required />
-                                    </div>
+                    <DialogContent className="p-0 overflow-hidden max-h-[calc(100dvh-2rem)]">
+                        <form onSubmit={save} className="flex flex-col h-full max-h-[calc(100dvh-2rem)]">
+                            {/* Sticky Header */}
+                            <DialogHeader className="px-4 pt-4 pb-2 border-b bg-white flex-shrink-0">
+                                <DialogTitle className="text-base sm:text-lg font-semibold">{editing ? 'Edit Product' : 'Add Product'}</DialogTitle>
+                                <DialogCloseButton onClick={closeModal} />
+                            </DialogHeader>
 
-                                    <div className="sm:col-span-2">
-                                        <Label htmlFor="productImage">Product Image (Optional)</Label>
-                                        <Input
-                                            id="productImage"
-                                            type="file"
-                                            accept="image/*"
-                                            onChange={(e) => setImageFile(e.target.files[0])}
-                                        />
+                            {/* Scrollable form body */}
+                            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-5 modal-scroll modal-scrollbar bg-white" style={{ minHeight: '0', backgroundColor: '#ffffff' }}>
+                                <div className="space-y-5 sm:grid sm:grid-cols-2 sm:gap-5 sm:space-y-0">
+                                    <div className="flex flex-col space-y-1 sm:col-span-2">
+                                        <Label htmlFor="productName" className="text-[11px] font-medium tracking-wide text-gray-600">Product Name *</Label>
+                                        <Input id="productName" ref={productNameRef} value={name} onChange={e => setName(e.target.value)} required placeholder="e.g. Chips (Large)" className="text-sm" />
+                                    </div>
+                                    <div className="flex flex-col space-y-1">
+                                        <Label htmlFor="pprice" className="text-[11px] font-medium tracking-wide text-gray-600">Selling Price (₱) *</Label>
+                                        <Input id="pprice" type="number" step="0.01" min="0" value={price} onChange={e => setPrice(e.target.value)} onBlur={() => setPrice(p => formatToTwoDecimals(p))} required placeholder="0.00" className="text-sm" />
+                                    </div>
+                                    <div className="flex flex-col space-y-1">
+                                        <Label htmlFor="cost" className="text-[11px] font-medium tracking-wide text-gray-600">Cost Price (₱)</Label>
+                                        <Input id="cost" type="number" step="0.01" min="0" value={cost} onChange={e => setCost(e.target.value)} onBlur={() => setCost(c => formatToTwoDecimals(c))} placeholder="0.00" className="text-sm" />
+                                        <p className="text-[10px] text-gray-500">Optional – for profit analytics.</p>
+                                    </div>
+                                    <div className="flex flex-col space-y-1">
+                                        <Label htmlFor="barcode" className="text-[11px] font-medium tracking-wide text-gray-600">Barcode / SKU</Label>
+                                        <Input id="barcode" value={barcode} onChange={e => setBarcode(e.target.value)} placeholder="Scan or type code" className="text-sm" />
+                                        <p className="text-[10px] text-gray-500">Leave blank if none.</p>
+                                    </div>
+                                    <div className="flex flex-col space-y-1 sm:col-span-2">
+                                        <Label htmlFor="category" className="text-[11px] font-medium tracking-wide text-gray-600">Category</Label>
+                                        <div className="flex gap-2">
+                                            <Select id="category" value={category} onChange={e => setCategory(e.target.value)} className="flex-1 text-sm">
+                                                {mergedCategories.map(c => <option key={c} value={c}>{c}</option>)}
+                                            </Select>
+                                            <Button type="button" size="sm" variant="outline" onClick={() => { setIsAddingCategory(v => !v); setNewCategoryName(''); }} className="whitespace-nowrap">{isAddingCategory ? 'Cancel' : '+ Add'}</Button>
+                                        </div>
+                                        {isAddingCategory && (
+                                            <div className="mt-2 flex gap-2 items-center">
+                                                <Input id="newCategoryName" placeholder="New category" value={newCategoryName} onChange={e => setNewCategoryName(e.target.value)} className="flex-1 text-sm" />
+                                                <Button type="button" size="sm" onClick={addCategory}>Save</Button>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="flex flex-col space-y-1">
+                                        <Label htmlFor="stock" className="text-[11px] font-medium tracking-wide text-gray-600">Current Stock</Label>
+                                        <Input id="stock" type="number" min="0" value={stock} onChange={e => setStock(e.target.value)} placeholder="0" className="text-sm" />
+                                    </div>
+                                    <div className="flex flex-col space-y-1">
+                                        <Label htmlFor="minStock" className="text-[11px] font-medium tracking-wide text-gray-600">Low Stock Alert</Label>
+                                        <Input id="minStock" type="number" min="0" value={minStock} onChange={e => setMinStock(e.target.value)} placeholder="5" className="text-sm" />
+                                        <p className="text-[10px] text-gray-500">Red badge when stock ≤ value.</p>
+                                    </div>
+                                    <div className="flex flex-col space-y-1 sm:col-span-2">
+                                        <Label htmlFor="productImage" className="text-[11px] font-medium tracking-wide text-gray-600">Product Image (Optional)</Label>
+                                        <Input id="productImage" type="file" accept="image/*" onChange={(e) => setImageFile(e.target.files[0])} className="text-sm" />
+                                        <p className="text-[10px] text-gray-500">Square images look best (≈300×300).</p>
                                         {editing?.image_url && !imageFile && (
-                                            <p className="text-xs text-gray-500 mt-1">
-                                                Current image: <a href={editing.image_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">View</a>
-                                            </p>
+                                            <p className="text-[10px] text-gray-500">Current image: <a href={editing.image_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">View</a></p>
                                         )}
                                     </div>
                                 </div>
                             </div>
-                            <DialogFooter>
-                                <Button variant="outline" type="button" onClick={closeModal} disabled={isMutating}>Cancel</Button>
-                                <Button type="submit" disabled={isMutating}>
-                                    {uploading ? 'Uploading...' : isMutating ? 'Saving...' : 'Save Product'}
-                                </Button>
+
+                            {/* Sticky Footer */}
+                            <DialogFooter className="px-4 py-3 border-t bg-white flex-shrink-0">
+                                <div className="flex w-full gap-2">
+                                    <Button variant="outline" type="button" onClick={closeModal} disabled={isMutating} className="flex-1 text-sm">Cancel</Button>
+                                    <Button type="submit" disabled={isMutating} className="flex-1 text-sm">{uploading ? 'Uploading…' : isMutating ? 'Saving…' : (editing ? 'Save Changes' : 'Create Product')}</Button>
+                                </div>
                             </DialogFooter>
                         </form>
                     </DialogContent>

@@ -10,33 +10,37 @@ export function useCreateProduct() {
     return useMutation({
         mutationFn: async (newProduct) => {
             console.log('useCreateProduct: Creating product with payload:', newProduct);
+            const now = new Date().toISOString();
             const payload = {
                 name: newProduct.name,
                 price: newProduct.price,
-                image_url: newProduct.image_url
+                image_url: newProduct.image_url,
+                barcode: newProduct.barcode || null,
+                stock_quantity: newProduct.stock || 0,
+                min_stock_level: newProduct.minStock || 5,
+                cost_price: newProduct.cost || 0,
+                category: newProduct.category || 'Uncategorized',
+                created_at: now, // corrected field name
+                updated_at: now,
             };
+            // If legacy create_at field exists in schema, also set it for backward compatibility
+            if (!('created_at' in payload)) payload.created_at = now;
 
             const { data, error } = await supabase
                 .from('products')
-                .insert([payload]) // Pass payload in an array
-                .select()         // Select the created product
-                .single();        // Expect one result
+                .insert([payload])
+                .select()
+                .single();
 
             if (error) {
                 console.error('useCreateProduct: Supabase error:', error);
                 throw error;
             }
-            console.log('useCreateProduct: Create successful:', data);
             return data;
         },
-        onSuccess: (data) => {
-            console.log('useCreateProduct: Success! Invalidating products query.', data);
-            // Invalidate the 'products' query to refetch the list
+        onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: productsKey });
         },
-        onError: (error) => {
-            console.error('useCreateProduct: Mutation failed:', error);
-        }
     });
 }
 
@@ -46,43 +50,43 @@ export function useUpdateProduct() {
     return useMutation({
         mutationFn: async (product) => {
             const { id, ...payload } = product;
-            console.log('useUpdateProduct: Updating ID', id, 'with payload:', payload);
+            const now = new Date().toISOString();
+            const dbPayload = {
+                name: payload.name,
+                price: payload.price,
+                image_url: payload.image_url,
+                barcode: payload.barcode || null,
+                stock_quantity: payload.stock || 0,
+                min_stock_level: payload.minStock || 5,
+                cost_price: payload.cost || 0,
+                category: payload.category || 'Uncategorized',
+                updated_at: now, // only update updated_at
+            };
             const { data, error } = await supabase
                 .from('products')
-                .update(payload)  // Pass the fields to update
-                .eq('id', id)     // Specify which row to update using 'eq' (equals)
-                .select()         // Select the updated product data
-                .single();        // Expect one result
+                .update(dbPayload)
+                .eq('id', id)
+                .select()
+                .single();
 
             if (error) {
                 console.error('useUpdateProduct: Supabase error:', error);
                 throw error;
             }
-            console.log('useUpdateProduct: Update successful:', data);
             return data;
         },
-        // Optimistic update (optional but improves perceived performance)
         onMutate: async (updatedProduct) => {
-            // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
             await queryClient.cancelQueries({ queryKey: productsKey });
-            // Snapshot the previous value
             const previousProducts = queryClient.getQueryData(productsKey);
-            // Optimistically update to the new value
             queryClient.setQueryData(productsKey, (old = []) =>
-                old.map((p) => (p.id === updatedProduct.id ? updatedProduct : p))
+                old.map((p) => (p.id === updatedProduct.id ? { ...p, ...updatedProduct } : p))
             );
-            console.log('useUpdateProduct: Optimistic update applied for ID:', updatedProduct.id);
-            // Return a context object with the snapshotted value
             return { previousProducts };
         },
-        // If the mutation fails, use the context returned from onMutate to roll back
         onError: (err, updatedProduct, context) => {
-            console.error('useUpdateProduct: Mutation error, rolling back optimistic update for ID:', updatedProduct.id, err);
             queryClient.setQueryData(productsKey, context.previousProducts);
         },
-        // Always refetch after error or success
-        onSettled: (data, error, updatedProduct) => {
-            console.log('useUpdateProduct: Mutation settled for ID:', updatedProduct.id, 'Refetching products.');
+        onSettled: () => {
             queryClient.invalidateQueries({ queryKey: productsKey });
         },
     });
@@ -93,37 +97,22 @@ export function useDeleteProduct() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async (productId) => {
-            console.log('useDeleteProduct: Deleting ID:', productId);
-            const { error } = await supabase
-                .from('products')
-                .delete()
-                .eq('id', productId); // Specify which row to delete
-
-            if (error) {
-                console.error('useDeleteProduct: Supabase error:', error);
-                throw error;
-            }
-            console.log('useDeleteProduct: Delete successful for ID:', productId);
-            // Delete doesn't return data by default in Supabase, return the id
+            const { error } = await supabase.from('products').delete().eq('id', productId);
+            if (error) throw error;
             return productId;
         },
-        // Optimistic update
         onMutate: async (productId) => {
             await queryClient.cancelQueries({ queryKey: productsKey });
             const previousProducts = queryClient.getQueryData(productsKey);
-            // Optimistically remove the product from the list
             queryClient.setQueryData(productsKey, (old = []) =>
                 old.filter((p) => p.id !== productId)
             );
-            console.log('useDeleteProduct: Optimistic removal applied for ID:', productId);
             return { previousProducts };
         },
         onError: (err, productId, context) => {
-            console.error('useDeleteProduct: Mutation error, rolling back optimistic removal for ID:', productId, err);
             queryClient.setQueryData(productsKey, context.previousProducts);
         },
-        onSettled: (data, error, productId) => {
-            console.log('useDeleteProduct: Mutation settled for ID:', productId, 'Refetching products.');
+        onSettled: () => {
             queryClient.invalidateQueries({ queryKey: productsKey });
         },
     });

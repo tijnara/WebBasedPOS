@@ -156,31 +156,25 @@ button:disabled {
     background-color: var(--surface);
     color: var(--text);
     box-sizing: border-box;
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-    background-position: right 0.5rem center;
-    background-repeat: no-repeat;
-    background-size: 1.5em 1.5em;
-    padding-right: 2.5rem;
+    /* Removed appearance and arrow styling from generic inputs */
 }
+/* Focus state */
 .input:focus, select.input:focus {
     border-color: var(--primary);
     outline: none;
     box-shadow: 0 0 0 2px rgba(127, 0, 255, 0.2);
 }
-/* Override default input style for selects */
+/* Restrict arrow + appearance reset ONLY to selects */
 select.input {
+    appearance: none;
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
     background-position: right 0.5rem center;
     background-repeat: no-repeat;
     background-size: 1.5em 1.5em;
-    padding-right: 2.5rem;
+    padding-right: 2.5rem; /* Keep extra space for arrow */
 }
-/* Remove select arrow for non-input selects */
-select:not(.input) {
-    background-image: none;
-    padding-right: 0.75rem;
-}
+/* Remove select arrow for non-input selects (unchanged) */
+select:not(.input) { background-image: none; padding-right: 0.75rem; }
 /* Style plain checkbox */
 input[type="checkbox"] {
     appearance: auto;
@@ -968,5 +962,68 @@ input[type="checkbox"]:focus {
     background: #f3f4f6;
     border-radius: 0.75rem;
     padding: 0.5rem;
+  }
+}
+
+/* Mobile Modal Sheet Enhancements */
+@keyframes modalSlideUp { from { transform: translateY(30px); opacity: 0;} to { transform: translateY(0); opacity: 1;} }
+.mobile-modal { animation: modalSlideUp 0.25s ease; }
+@media (min-width: 640px) { .mobile-modal { animation: none; } }
+.mobile-modal .modal-handle { display: block; width: 42px; height: 5px; border-radius: 9999px; background: #d1d5db; margin: 8px auto 4px; }
+@media (min-width:640px){ .mobile-modal .modal-handle { display:none; } }
+.mobile-modal .modal-header { padding: 4px 16px 8px; position: sticky; top:0; background:#fff; z-index:10; border-bottom:1px solid var(--border); }
+.mobile-modal .modal-title { font-size: 1rem; font-weight:600; letter-spacing: -.015em; margin:0; }
+@media (min-width:640px){ .mobile-modal .modal-title { font-size:1.125rem; } }
+.mobile-modal .modal-body { padding: 8px 16px 24px; }
+.mobile-modal .modal-body form > .field + .field { margin-top:14px; }
+.mobile-modal .modal-footer { position: sticky; bottom:0; background:#fff; padding:12px 16px calc(env(safe-area-inset-bottom,0) + 12px); border-top:1px solid var(--border); display:flex; gap:12px; }
+.mobile-modal .modal-footer .btn { flex:1; }
+/* Scroll behavior to avoid body scroll */
+.mobile-modal .modal-scroll { overflow-y:auto; -webkit-overflow-scrolling:touch; }
+.mobile-modal.fullscreen { height:100%; display:flex; flex-direction:column; }
+.mobile-modal.fullscreen .modal-scroll { flex:1; }
+/* Modal internal scroll safe-area padding and scrollbar styling */
+.modal-scroll {
+  /* Ensure inner content never hides under sticky footer or gesture bar */
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 96px);
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  position: relative; /* allow gradient overlays */
+  background-color: #ffffff; /* Solid white background */
+}
+.modal-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(127,0,255,0.55) rgba(127,0,255,0.08);
+}
+.modal-scrollbar::-webkit-scrollbar {
+  width: 12px; /* widened */
+}
+.modal-scrollbar::-webkit-scrollbar-track {
+  background: rgba(127,0,255,0.08);
+  border-radius: 12px;
+}
+.modal-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(127,0,255,0.85), rgba(127,0,255,0.55));
+  border-radius: 12px;
+  border: 2px solid rgba(255,255,255,0.6); /* inner separation */
+}
+.modal-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(127,0,255,0.95), rgba(127,0,255,0.7));
+}
+/* Removed gradient scroll hint overlays that were causing transparency */
+/* End mobile modal sheet enhancements */
+
+/* Dialog backdrop fixes for proper centering and scrolling */
+.dialog-backdrop {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 640px) {
+  .dialog-backdrop {
+    padding: 1rem;
   }
 }

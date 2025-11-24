@@ -13,6 +13,8 @@ import MobileLogoutButton from '../MobileLogoutButton';
 // --- FIX: Added missing imports ---
 import TabBar from '../TabBar';
 import { supabase } from '../../lib/supabaseClient';
+import Pagination from '../Pagination';
+
 // --- (REMOVED) CartDrawer is no longer used ---
 // import CartDrawer from '../CartDrawer';
 
@@ -96,9 +98,14 @@ const ProductImage = ({ product }) => {
 };
 
 export default function POSPage() {
-    // --- Fetch products using the Supabase hook ---
-    const { data: productsData = { products: [], totalPages: 1 }, isLoading: isLoadingProducts } = useProducts();
+    // --- Pagination state (added) ---
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 20;
+    // --- Fetch products using the Supabase hook (paginated & barcode lookup) ---
+    const { data: productsData = { products: [], totalPages: 1 }, isLoading: isLoadingProducts } = useProducts({ searchTerm: '', page: currentPage, itemsPerPage });
     const products = productsData.products;
+    const totalPages = productsData.totalPages || 1;
+    const allProducts = products || []; // Alias for barcode lookup
 
     // --- Zustand state for UI (Cart, Customer, Toasts) ---
     const {
@@ -190,6 +197,18 @@ export default function POSPage() {
         return () => clearTimeout(handler);
     }, [searchTerm]);
 
+    // --- SCANNER LOGIC ---
+    useEffect(() => {
+        if (!searchTerm) return;
+        const trimmed = searchTerm.trim();
+        const scannedProduct = allProducts.find(p => p.barcode === trimmed);
+        if (scannedProduct) {
+            handleAdd(scannedProduct);
+            addToast({ title: 'Scanned', description: `${scannedProduct.name} added.`, variant: 'success' });
+            setSearchTerm('');
+        }
+    }, [searchTerm, allProducts]);
+
     // Customer Search Effect
     useEffect(() => {
         // Only search if a customer modal OR payment modal is open and the debounced term is not empty
@@ -232,16 +251,17 @@ export default function POSPage() {
     // --- Recently Used Products State ---
     const [recentProducts, setRecentProducts] = useState([]);
 
-    // --- Cart handling functions ---
-    const handleAdd = (p) => {
-        addItemToSale(p, 1);
+    // Add product (standard click or barcode scan) and track recent list (max 3)
+    const handleAdd = (product) => {
+        if (!product) return;
+        addItemToSale(product, 1);
         setRecentProducts(prev => {
-            // Remove if already exists
-            const filtered = prev.filter(prod => prod.id !== p.id);
-            // Add to front, keep max 3
-            return [p, ...filtered].slice(0, 3);
+            const without = prev.filter(p => p.id !== product.id);
+            return [product, ...without].slice(0, 3);
         });
     };
+
+    // --- Cart handling functions ---
     const handleIncreaseQuantity = (key) => {
         const item = currentSale[key];
         if (item) addItemToSale({ id: item.productId, name: item.name, price: item.price }, 1);
@@ -409,8 +429,12 @@ export default function POSPage() {
             return;
         }
 
-        // Use the addItemToSale function with the overridePrice parameter
         addItemToSale(selectedProduct, parsedQuantity, parsedPrice);
+        // Track product as recently used
+        setRecentProducts(prev => {
+            const without = prev.filter(p => p.id !== selectedProduct.id);
+            return [selectedProduct, ...without].slice(0, 3);
+        });
 
         addToast({ title: 'Item Added', description: `${parsedQuantity} x ${selectedProduct.name} at ₱${parsedPrice.toFixed(2)} each added.`, variant: 'success' });
         closeCustomSaleModal();
@@ -574,11 +598,21 @@ export default function POSPage() {
                                 {filteredProducts.map((p) => (
                                     <button
                                         key={p.id}
-                                        className="product-card p-4 text-center border rounded-xl shadow-md hover:border-primary hover:shadow-lg transition-all duration-150 bg-white flex flex-col items-center"
+                                        className="product-card p-4 text-center border rounded-xl shadow-md hover:border-primary hover:shadow-lg transition-all duration-150 bg-white flex flex-col items-center relative"
                                         onClick={() => handleAdd(p)}
                                         title={p.name}
                                         tabIndex={-1}
+                                        disabled={p.stock <= 0}
+                                        style={{ opacity: p.stock <= 0 ? 0.5 : 1 }}
                                     >
+                                        {/* Stock Badge */}
+                                        <div className={`absolute top-2 right-2 text-[10px] font-bold px-2 py-1 rounded-full ${
+                                            p.stock <= 0 ? 'bg-red-100 text-red-600' :
+                                            p.stock <= p.minStock ? 'bg-yellow-100 text-yellow-600' :
+                                            'bg-green-100 text-green-600'
+                                        }`}>
+                                            {p.stock} left
+                                        </div>
                                         {/* --- Product Image --- */}
                                         <div className="product-card-image h-20 w-full mb-2 flex items-center justify-center overflow-hidden rounded-lg bg-gray-50 p-1">
                                             <ProductImage product={p} />
@@ -588,24 +622,44 @@ export default function POSPage() {
                                     </button>
                                 ))}
                             </div>
-                            {/* --- Mobile List Layout --- */}
-                            <div className="mobile-product-list-grid block md:hidden" style={{paddingBottom: '16px'}}>
-                                {filteredProducts.map((p) => (
-                                    <button
-                                        key={p.id}
-                                        className="mobile-product-box p-2 border rounded-xl shadow-md bg-white flex flex-col items-center justify-center text-center transition-all duration-150"
-                                        onClick={() => handleAdd(p)}
-                                        tabIndex={-1}
-                                        style={{ aspectRatio: '1 / 1', width: '100%' }}
-                                    >
-                                        {/* --- Product Image --- */}
-                                        <div className="h-16 w-16 mb-2 flex items-center justify-center overflow-hidden rounded-lg bg-gray-50 p-2">
-                                            <ProductImage product={p} />
-                                        </div>
-                                        <div className="font-semibold text-sm leading-tight mb-1 line-clamp-2 text-gray-800">{p.name}</div>
-                                        <div className="text-xs text-primary font-bold">₱{Number(p.price || 0).toFixed(2)}</div>
-                                    </button>
-                                ))}
+                            {/* --- MOBILE LIST VIEW (Show on mobile, hide on md+) --- */}
+                            <div className="block md:hidden">
+                                <Card>
+                                    <CardContent className="p-0">
+                                        {isLoadingProducts ? (
+                                            <div className="text-center text-muted p-6">Loading products...</div>
+                                        ) : !filteredProducts.length ? (
+                                            <div className="text-center text-muted p-6">No products found.</div>
+                                        ) : (
+                                            // Mobile grid view (2 columns)
+                                            <div className="grid grid-cols-2 gap-3 p-3">
+                                                {filteredProducts.map(p => (
+                                                    <button
+                                                        key={p.id}
+                                                        className={`relative flex flex-col items-center p-2 rounded-xl border shadow-sm bg-white hover:border-primary transition-colors duration-150 ${p.stock <= 0 ? 'opacity-50' : ''}`}
+                                                        onClick={() => handleAdd(p)}
+                                                        disabled={p.stock <= 0}
+                                                        title={p.name}
+                                                    >
+                                                        {/* Stock Badge */}
+                                                        <div className={`absolute top-2 right-2 text-[10px] font-bold px-2 py-0.5 rounded-full ${p.stock <= 0 ? 'bg-red-100 text-red-600' : p.stock <= p.minStock ? 'bg-yellow-100 text-yellow-600' : 'bg-green-100 text-green-600'}`}>{p.stock} left</div>
+                                                        {/* Image */}
+                                                        <div className="w-16 h-16 mb-1 flex items-center justify-center overflow-hidden rounded-lg bg-gray-50 border border-gray-200">
+                                                            <ProductImage product={p} />
+                                                        </div>
+                                                        {/* Name */}
+                                                        <div className="w-full text-center font-medium text-[11px] leading-tight line-clamp-2 mb-0.5 text-gray-800">
+                                                            {p.name}
+                                                        </div>
+                                                        {/* Price */}
+                                                        <div className="text-[11px] font-semibold text-primary">₱{Number(p.price || 0).toFixed(2)}</div>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                                <Pagination currentPage={currentPage} totalPages={totalPages || 1} onPageChange={page => setCurrentPage(page)} />
                             </div>
                         </>
                     )}
@@ -958,6 +1012,329 @@ export default function POSPage() {
                 </Button>
             </div>
             */}
+
+            {/* Body scroll lock when any POS modal is open */}
+            <Dialog open={isCustomerModalOpen} onOpenChange={setIsCustomerModalOpen}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Select or Add Customer</DialogTitle>
+                        <DialogCloseButton onClick={() => setIsCustomerModalOpen(false)} />
+                    </DialogHeader>
+                    <div className="p-4 space-y-4">
+                        <Input
+                            id="customer-search-modal"
+                            type="text"
+                            placeholder="Search by name..."
+                            value={searchTerm}
+                            // --- FIX: Corrected typo e.g.target.value ---
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full"
+                            autoFocus
+                        />
+                        <ScrollArea className="h-[300px] border rounded-md">
+                            <div className="p-2 space-y-1">
+                                {/* Walk-in Option */}
+                                <Button
+                                    variant={selectedCustomer === null ? "secondary" : "ghost"}
+                                    className="w-full justify-start text-left h-auto py-2 px-3"
+                                    onClick={() => handleSelectCustomerFromModal(null)}
+                                >
+                                    Walk-in Customer
+                                </Button>
+                                <hr className="my-1 border-border" />
+
+                                {/* Search Results / Loading / Add New */}
+                                {isSearchingCustomers ? (
+                                    <p className="p-4 text-sm text-center text-muted">Searching...</p>
+                                ) : (
+                                    <>
+                                        {customerSearchResults.map(customer => (
+                                            <Button
+                                                key={customer.id}
+                                                variant={selectedCustomer?.id === customer.id ? "secondary" : "ghost"}
+                                                className="w-full justify-start text-left h-auto py-2 px-3"
+                                                onClick={() => handleSelectCustomerFromModal(customer)}
+                                            >
+                                                {customer.name} {customer.phone && `(${customer.phone})`}
+                                            </Button>
+                                        ))}
+                                        {/* Option to Add New Customer */}
+                                        {customerSearchResults.length === 0 && debouncedSearchTerm && (
+                                            <div className="p-4 text-center">
+                                                <p className="text-sm text-muted mb-2">No existing customer found.</p>
+                                                <Button
+                                                    variant="primary"
+                                                    size="sm"
+                                                    onClick={() => handleAddCustomer(debouncedSearchTerm)}
+                                                    disabled={createCustomerMutation.isPending}
+                                                >
+                                                    {createCustomerMutation.isPending ? 'Adding...' : `+ Add "${debouncedSearchTerm}"`}
+                                                </Button>
+                                            </div>
+                                        )}
+                                        {/* Initial Prompt */}
+                                        {customerSearchResults.length === 0 && !debouncedSearchTerm && !isSearchingCustomers && (
+                                            <p className="p-4 text-sm text-center text-muted">Type to search existing customers or add a new one.</p>
+                                        )}
+                                    </>
+                                )}
+                            </div>
+                        </ScrollArea>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsCustomerModalOpen(false)}>Close</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+
+            {/* --- CUSTOM SALE DIALOG --- */}
+            <Dialog open={isCustomSaleModalOpen} onOpenChange={setIsCustomSaleModalOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Add Custom Sale Item</DialogTitle>
+                        <DialogCloseButton onClick={closeCustomSaleModal} />
+                    </DialogHeader>
+                    <form onSubmit={handleCustomSaleSubmit}>
+                        <div className="p-4 space-y-4">
+                            {/* Product Selection */}
+                            <div>
+                                <Label htmlFor="customProduct">Product</Label>
+                                <Select
+                                    id="customProduct"
+                                    className="w-full" // Use input class for styling consistency
+                                    value={customSaleProduct}
+                                    onChange={(e) => handleCustomProductChange(e.target.value)}
+                                    required
+                                >
+                                    <option value="" disabled>-- Select Product --</option>
+                                    {products.map(p => (
+                                        <option key={p.id} value={p.id}>
+                                            {p.name} (₱{p.price?.toFixed(2)})
+                                        </option>
+                                    ))}
+                                </Select>
+                            </div>
+                            {/* Price Input */}
+                            <div>
+                                <Label htmlFor="customPrice">Custom Price (₱)</Label>
+                                <Input
+                                    id="customPrice"
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    value={customSalePrice}
+                                    onChange={e => setCustomSalePrice(e.target.value)}
+                                    required
+                                    className="w-full"
+                                    placeholder="Enter price per item"
+                                />
+                            </div>
+                            {/* Quantity Input */}
+                            <div>
+                                <Label htmlFor="customQuantity">Quantity</Label>
+                                <Input
+                                    id="customQuantity"
+                                    type="number"
+                                    step="1"
+                                    min="1"
+                                    value={customSaleQuantity}
+                                    onChange={e => setCustomSaleQuantity(e.target.value)}
+                                    required
+                                    className="w-full"
+                                />
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button variant="outline" type="button" onClick={closeCustomSaleModal}>Cancel</Button>
+                            <Button type="submit" variant="primary">Add to Order</Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* --- PAYMENT DIALOG (MODAL) --- */}
+            <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
+                <DialogContent
+                    className="sm:max-w-sm"
+                    // --- FIX: Add onOpenAutoFocus handler ---
+                    onOpenAutoFocus={(e) => {
+                        // Prevent the dialog's default auto-focus
+                        e.preventDefault();
+                        // Manually focus the customer input field
+                        customerPaymentInputRef.current?.focus();
+                    }}
+                >
+                    <DialogHeader>
+                        <DialogTitle>Complete Sale</DialogTitle>
+                        <DialogCloseButton onClick={closePaymentModal} />
+                    </DialogHeader>
+                    <div className="p-4 space-y-4">
+                        {/* --- Customer Searchable Dropdown --- */}
+                        <div>
+                            <Label htmlFor="customer-search-payment">
+                                Customer {lastCustomer ? `(last used: ${lastCustomer.name || 'Walk-in'})` : ''}
+                            </Label>
+                            <Input
+                                id="customer-search-payment"
+                                type="text"
+                                placeholder="Search by name..."
+                                value={searchTerm}
+                                onChange={e => setSearchTerm(e.target.value)}
+                                // --- FIX: Add text-base to prevent mobile zoom ---
+                                className="w-full mb-2 text-base"
+                                // --- FIX: The ref is now defined ---
+                                ref={customerPaymentInputRef}
+                                inputMode="text"
+                                pattern=".*"
+                                autoComplete="off"
+                            />
+                            <ScrollArea className="h-[150px] border rounded-md mb-2">
+                                <div className="p-2 space-y-1">
+                                    {/* Walk-in Option */}
+                                    <Button
+                                        variant={selectedCustomer === null ? "secondary" : "ghost"}
+                                        className="w-full justify-start text-left h-auto py-2 px-3"
+                                        onClick={() => handleSelectCustomerInPayment(null)}
+                                    >
+                                        Walk-in Customer
+                                    </Button>
+                                    <hr className="my-1 border-border" />
+                                    {/* Search Results / Loading / Add New */}
+                                    {isSearchingCustomers ? (
+                                        <p className="p-2 text-sm text-center text-muted">Searching...</p>
+                                    ) : (
+                                        <>
+                                            {customerSearchResults.map(customer => (
+                                                <Button
+                                                    key={customer.id}
+                                                    variant={selectedCustomer?.id === customer.id ? "secondary" : "ghost"}
+                                                    className={`w-full justify-start text-left h-auto py-2 px-3 ${selectedCustomer?.id === customer.id ? 'opacity-50 cursor-default' : ''}`}
+                                                    onClick={() => {
+                                                        if (selectedCustomer?.id !== customer.id) {
+                                                            handleSelectCustomerInPayment(customer);
+                                                        }
+                                                    }}
+                                                    disabled={selectedCustomer?.id === customer.id}
+                                                >
+                                                    {customer.name} {customer.phone && `(${customer.phone})`}
+                                                </Button>
+                                            ))}
+                                            {/* Option to Add New Customer */}
+                                            {customerSearchResults.length === 0 && searchTerm && (
+                                                <div className="p-2 text-center">
+                                                    <p className="text-sm text-muted mb-2">No existing customer found.</p>
+                                                    <Button
+                                                        variant="primary"
+                                                        size="sm"
+                                                        onClick={() => handleAddCustomer(searchTerm)}
+                                                        disabled={createCustomerMutation.isPending}
+                                                    >
+                                                        {createCustomerMutation.isPending ? 'Adding...' : `+ Add "${searchTerm}"`}
+                                                    </Button>
+                                                </div>
+                                            )}
+                                            {/* Initial Prompt */}
+                                            {customerSearchResults.length === 0 && !searchTerm && !isSearchingCustomers && (
+                                                <p className="p-2 text-sm text-center text-muted">Type to search existing customers or add a new one.</p>
+                                            )}
+                                        </>
+                                    )}
+                                </div>
+                            </ScrollArea>
+                            {/* Show selected customer below search with highlighted badge */}
+                            <div className="mt-1 flex items-center gap-2">
+                                <span className="text-xs text-gray-500">Selected:</span>
+                                <span className="inline-flex items-center px-3 py-1.5 rounded-full shadow-sm border font-semibold whitespace-nowrap bg-[#E8F9E6] border-[#C6ECC2]">
+                                    <span style={{ fontSize: '16px', color: '#7F00FF', fontWeight: '600' }}>{selectedCustomer?.name || 'Walk-in Customer'}</span>
+                                </span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <Label htmlFor="paymentMethod">Payment Method</Label>
+                            {/* Use Select component from ui.js */}
+                            <Select
+                                id="paymentMethod"
+                                value={paymentMethod}
+                                onChange={(e) => setPaymentMethod(e.target.value)}
+                                className="w-full"
+                            >
+                                <option value="Cash">Cash</option>
+                                <option value="Card">Card</option>
+                                <option value="GCash">GCash</option>
+                                <option value="Other">Other</option>
+                            </Select>
+                        </div>
+
+                        {/* Only show Amount Received and Change for Cash */}
+                        {paymentMethod === 'Cash' && (
+                            <>
+                                <div>
+                                    <Label htmlFor="amountReceived">Amount Received (₱)</Label>
+                                    <Input
+                                        id="amountReceived"
+                                        type="number"
+                                        step="0.01"
+                                        min={subtotal.toFixed(2)}
+                                        value={amountReceived}
+                                        onChange={e => setAmountReceived(e.target.value)}
+                                        required
+                                        className="w-full"
+                                        placeholder="Enter amount customer paid"
+                                        // --- FIX: Removed autoFocus to allow customer field to focus first ---
+                                        // autoFocus
+                                    />
+                                </div>
+                                {/* Summary Section: Only Total Amount Due */}
+                                <div className="flex flex-col gap-2 mt-2">
+                                    <div className="text-center">
+                                        <p className="text-sm text-muted">Total Amount Due</p>
+                                        <p className="text-xl font-semibold" style={{ color: '#7F00FF' }}>₱{subtotal.toFixed(2)}</p>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                        {/* You might add fields for Card/GCash reference numbers here if needed */}
+
+                        {/* --- Date Picker --- */}
+                        <div className="mb-2 flex gap-2">
+                            <div style={{ flex: 1 }}>
+                                <Label htmlFor="sale-date">Date</Label>
+                                <Input
+                                    id="sale-date"
+                                    type="date"
+                                    value={saleDate}
+                                    onChange={e => setSaleDate(e.target.value)}
+                                    className="w-full"
+                                    max={new Date().toISOString().slice(0, 10)}
+                                />
+                            </div>
+                            <div style={{ flex: 1 }}>
+                                <Label htmlFor="sale-time">Time</Label>
+                                <Input
+                                    id="sale-time"
+                                    type="time"
+                                    value={saleTime}
+                                    onChange={e => setSaleTime(e.target.value)}
+                                    className="w-full"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={closePaymentModal}>Cancel</Button>
+                        <Button
+                            onClick={handleFinalizeSale}
+                            disabled={createSaleMutation.isPending || (paymentMethod === 'Cash' && parseFloat(amountReceived || 0) < subtotal) || !selectedCustomer}
+                            style={{ backgroundColor: '#7F00FF', color: 'white' }}
+                            className="px-4 py-2 rounded-md font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
+                        >
+                            {createSaleMutation.isPending ? 'Saving...' : 'Confirm Sale'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

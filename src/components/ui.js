@@ -53,7 +53,11 @@ export const CardFooter = ({ children, className }) => (
 export const Dialog = ({ open, children, className, onOpenChange, closeOnBackdropClick = false }) => (
     open ? (
         <div
-            className={cn('dialog-backdrop fixed inset-0 flex items-center justify-center z-50 p-4', className)}
+            className={cn(
+                // Centered floating card on mobile; keep overlay padding
+                'dialog-backdrop fixed inset-0 z-40 sm:z-50 p-4 flex items-center justify-center overflow-y-auto',
+                className
+            )}
             style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
             onClick={(e) => {
                 if (closeOnBackdropClick && e.target === e.currentTarget && onOpenChange) {
@@ -68,11 +72,14 @@ export const Dialog = ({ open, children, className, onOpenChange, closeOnBackdro
 
 export const DialogContent = ({ children, className }) => (
     <div
-        // MODIFIED: Changed max-w-lg to max-w-md for a slightly smaller default
-        className={cn('dialog-content bg-white rounded-lg shadow-lg relative w-full max-w-md overflow-hidden', className)} // Added overflow-hidden
+        className={cn(
+            // Floating card on mobile; sized and rounded with deep shadow
+            'bg-white rounded-2xl sm:rounded-lg shadow-2xl relative w-full max-w-sm sm:max-w-md mx-auto my-4 flex flex-col overflow-hidden',
+            className
+        )}
+        style={{ maxHeight: 'calc(100dvh - 32px)', backgroundColor: '#ffffff' }}
         onClick={(e) => e.stopPropagation()}
     >
-        {/* Content is rendered directly now, padding/structure handled by DialogHeader, DialogFooter, and content divs */}
         {children}
     </div>
 );

@@ -73,7 +73,21 @@ export function useCreateSale() {
                 throw new Error(`Sale created (ID: ${newSaleId}), but failed to save items: ${itemsError.message}`);
             }
 
-            console.log('useCreateSale: Sale and items created successfully.');
+            // NEW: Decrement product stock quantities atomically (best-effort) using decrement_stock RPC
+            console.log('Deducting stock...');
+            for (const item of salePayload.items) {
+                if (item.productId && item.quantity > 0) {
+                    const { error: stockError } = await supabase.rpc('decrement_stock', {
+                        product_id: item.productId,
+                        quantity_sold: item.quantity
+                    });
+                    if (stockError) {
+                        console.error('useCreateSale: Failed to decrement stock for product', item.productId, stockError.message);
+                    }
+                }
+            }
+
+            console.log('useCreateSale: Sale and items created successfully. Stock updated.');
             // Return the full sale object (ID from saleData, items from itemsToInsert)
             return { ...saleData, items: itemsToInsert };
         },
@@ -85,7 +99,7 @@ export function useCreateSale() {
             queryClient.invalidateQueries({ queryKey: ['sales'] });
 
             // Invalidate 'products' query to update stock levels (if you implement that logic)
-            // queryClient.invalidateQueries({ queryKey: ['products'] });
+            queryClient.invalidateQueries({ queryKey: ['products'] });
         },
         onError: (error) => {
             console.error('useCreateSale: Mutation failed:', error);
