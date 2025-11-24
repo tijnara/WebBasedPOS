@@ -394,22 +394,26 @@ export default function ProductManagementPage() {
                     <Pagination currentPage={currentPage} totalPages={totalPages || 1} onPageChange={page => setCurrentPage(page)} />
                 </div>
 
-                {/* --- MODAL: Product Form --- */}
+                {/* --- MODAL: Product Form (Fixed) --- */}
                 <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                    {/* FIX: Force white background and set to max-w-5xl for ultra-wide layout */}
+                    {/* FIX:
+                        1. Added '!max-w-4xl' to forcefully increase width via utility
+                        2. Added 'width: 900px' in style to force width via inline CSS
+                        3. Added '!bg-white' and 'backgroundColor: white' to prevent transparency
+                    */}
                     <DialogContent
-                        className="p-0 overflow-hidden max-h-[calc(100dvh-2rem)] sm:max-w-5xl bg-white shadow-xl border border-gray-100"
-                        style={{ backgroundColor: '#ffffff', zIndex: 50 }}
+                        className="p-0 overflow-hidden w-full !max-w-4xl bg-white !bg-white shadow-xl border border-gray-100"
+                        style={{ backgroundColor: 'white', width: '900px', maxWidth: '95vw', zIndex: 50 }}
                     >
                         <form
                             onSubmit={save}
-                            className="flex flex-col h-full max-h-[calc(100dvh-2rem)] bg-white"
-                            style={{ backgroundColor: '#ffffff' }}
+                            className="flex flex-col h-full max-h-[calc(100dvh-2rem)] bg-white !bg-white"
+                            style={{ backgroundColor: 'white' }}
                         >
-                            {/* Header */}
+                            {/* Header - Forced White Background */}
                             <DialogHeader
-                                className="px-6 py-4 border-b bg-white flex-shrink-0 z-10"
-                                style={{ backgroundColor: '#ffffff' }}
+                                className="px-6 py-4 border-b bg-white !bg-white flex-shrink-0 z-10"
+                                style={{ backgroundColor: 'white' }}
                             >
                                 <DialogTitle className="text-lg font-bold text-gray-900">
                                     {editing ? 'Edit Product' : 'Add New Product'}
@@ -417,12 +421,12 @@ export default function ProductManagementPage() {
                                 <DialogCloseButton onClick={closeModal} />
                             </DialogHeader>
 
-                            {/* Scrollable Body */}
+                            {/* Scrollable Body - Forced White Background */}
                             <div
-                                className="flex-1 overflow-y-auto px-6 py-6 modal-scroll modal-scrollbar bg-white relative"
-                                style={{ backgroundColor: '#ffffff' }}
+                                className="flex-1 overflow-y-auto px-6 py-6 modal-scroll modal-scrollbar bg-white !bg-white relative"
+                                style={{ backgroundColor: 'white' }}
                             >
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6"> {/* Increased gap to gap-6 */}
                                     {/* Product Name (Full Width) */}
                                     <div className="md:col-span-2 space-y-2">
                                         <Label htmlFor="productName" className="text-sm font-semibold text-gray-700">
@@ -435,7 +439,7 @@ export default function ProductManagementPage() {
                                             onChange={e => setName(e.target.value)}
                                             required
                                             placeholder="e.g. Chips (Large)"
-                                            className="text-base py-2.5 border-gray-300"
+                                            className="text-base py-2.5 border-gray-300 h-11" // Added h-11
                                         />
                                     </div>
 
@@ -449,7 +453,7 @@ export default function ProductManagementPage() {
                                                 id="category"
                                                 value={category}
                                                 onChange={e => setCategory(e.target.value)}
-                                                className="flex-1 text-base py-2.5 border-gray-300"
+                                                className="flex-1 text-base py-2.5 border-gray-300 h-11" // Added h-11
                                             >
                                                 {mergedCategories.map(c => <option key={c} value={c}>{c}</option>)}
                                             </Select>
@@ -457,7 +461,7 @@ export default function ProductManagementPage() {
                                                 type="button"
                                                 variant="outline"
                                                 onClick={() => { setIsAddingCategory(v => !v); setNewCategoryName(''); }}
-                                                className="whitespace-nowrap h-[42px] px-4 border-gray-300"
+                                                className="whitespace-nowrap h-11 px-4 border-gray-300" // Matched h-11
                                             >
                                                 {isAddingCategory ? 'Cancel' : '+ Add'}
                                             </Button>
@@ -469,10 +473,10 @@ export default function ProductManagementPage() {
                                                     placeholder="Enter new category name"
                                                     value={newCategoryName}
                                                     onChange={e => setNewCategoryName(e.target.value)}
-                                                    className="flex-1 text-base border-gray-300"
+                                                    className="flex-1 text-base border-gray-300 h-11"
                                                     autoFocus
                                                 />
-                                                <Button type="button" size="sm" onClick={addCategory} className="h-[42px]">Save</Button>
+                                                <Button type="button" size="sm" onClick={addCategory} className="h-11">Save</Button>
                                             </div>
                                         )}
                                     </div>
@@ -492,7 +496,7 @@ export default function ProductManagementPage() {
                                             onBlur={() => setPrice(p => formatToTwoDecimals(p))}
                                             required
                                             placeholder="0.00"
-                                            className="text-base py-2.5 border-gray-300"
+                                            className="text-base py-2.5 border-gray-300 h-11" // Added h-11
                                         />
                                     </div>
                                     <div className="space-y-2">
@@ -508,7 +512,7 @@ export default function ProductManagementPage() {
                                             onChange={e => setCost(e.target.value)}
                                             onBlur={() => setCost(c => formatToTwoDecimals(c))}
                                             placeholder="0.00"
-                                            className="text-base py-2.5 border-gray-300"
+                                            className="text-base py-2.5 border-gray-300 h-11" // Added h-11
                                         />
                                     </div>
 
@@ -524,7 +528,7 @@ export default function ProductManagementPage() {
                                             value={stock}
                                             onChange={e => setStock(e.target.value)}
                                             placeholder="0"
-                                            className="text-base py-2.5 border-gray-300"
+                                            className="text-base py-2.5 border-gray-300 h-11" // Added h-11
                                         />
                                     </div>
                                     <div className="space-y-2">
@@ -538,7 +542,7 @@ export default function ProductManagementPage() {
                                             value={minStock}
                                             onChange={e => setMinStock(e.target.value)}
                                             placeholder="5"
-                                            className="text-base py-2.5 border-gray-300"
+                                            className="text-base py-2.5 border-gray-300 h-11" // Added h-11
                                         />
                                     </div>
 
@@ -552,7 +556,7 @@ export default function ProductManagementPage() {
                                             value={barcode}
                                             onChange={e => setBarcode(e.target.value)}
                                             placeholder="Scan or type code"
-                                            className="text-base py-2.5 border-gray-300"
+                                            className="text-base py-2.5 border-gray-300 h-11" // Added h-11
                                         />
                                     </div>
 
@@ -566,7 +570,7 @@ export default function ProductManagementPage() {
                                             type="file"
                                             accept="image/*"
                                             onChange={(e) => setImageFile(e.target.files[0])}
-                                            className="text-sm border-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-soft file:text-primary hover:file:bg-violet-100"
+                                            className="text-sm border-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-soft file:text-primary hover:file:bg-violet-100 h-12 pt-2" // Adjusted height for file input
                                         />
                                         {editing?.image_url && !imageFile && (
                                             <div className="mt-2">
