@@ -426,9 +426,9 @@ export default function ProductManagementPage() {
                                 className="flex-1 overflow-y-auto px-6 py-8 modal-scroll modal-scrollbar bg-white !bg-white relative"
                                 style={{ backgroundColor: 'white' }}
                             >
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8"> {/* Increased gap to gap-8 for better spacing */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-10"> {/* MODIFIED: Increased vertical gap between rows */}
                                     {/* Product Name (Full Width) */}
-                                    <div className="md:col-span-2 space-y-2.5">
+                                    <div className="md:col-span-2 space-y-3">
                                         <Label htmlFor="productName" className="text-sm font-semibold text-gray-700">
                                             Product Name <span className="text-red-500">*</span>
                                         </Label>
@@ -444,7 +444,7 @@ export default function ProductManagementPage() {
                                     </div>
 
                                     {/* Category (Full Width) */}
-                                    <div className="md:col-span-2 space-y-2.5">
+                                    <div className="md:col-span-2 space-y-3">
                                         <Label htmlFor="category" className="text-sm font-semibold text-gray-700">
                                             Category
                                         </Label>
@@ -482,7 +482,7 @@ export default function ProductManagementPage() {
                                     </div>
 
                                     {/* Prices */}
-                                    <div className="space-y-2.5">
+                                    <div className="space-y-3">
                                         <Label htmlFor="pprice" className="text-sm font-semibold text-gray-700">
                                             Selling Price (₱) <span className="text-red-500">*</span>
                                         </Label>
@@ -499,7 +499,7 @@ export default function ProductManagementPage() {
                                             className="text-base py-2.5 border-gray-300 h-11" // Added h-11
                                         />
                                     </div>
-                                    <div className="space-y-2.5">
+                                    <div className="space-y-3">
                                         <Label htmlFor="cost" className="text-sm font-semibold text-gray-700">
                                             Cost Price (₱)
                                         </Label>
@@ -517,7 +517,7 @@ export default function ProductManagementPage() {
                                     </div>
 
                                     {/* Stocks */}
-                                    <div className="space-y-2.5">
+                                    <div className="space-y-3">
                                         <Label htmlFor="stock" className="text-sm font-semibold text-gray-700">
                                             Current Stock
                                         </Label>
@@ -531,7 +531,7 @@ export default function ProductManagementPage() {
                                             className="text-base py-2.5 border-gray-300 h-11" // Added h-11
                                         />
                                     </div>
-                                    <div className="space-y-2.5">
+                                    <div className="space-y-3">
                                         <Label htmlFor="minStock" className="text-sm font-semibold text-gray-700">
                                             Low Stock Alert
                                         </Label>
@@ -547,7 +547,7 @@ export default function ProductManagementPage() {
                                     </div>
 
                                     {/* Barcode (Full Width) */}
-                                    <div className="md:col-span-2 space-y-2.5">
+                                    <div className="md:col-span-2 space-y-3">
                                         <Label htmlFor="barcode" className="text-sm font-semibold text-gray-700">
                                             Barcode / SKU
                                         </Label>
@@ -561,7 +561,7 @@ export default function ProductManagementPage() {
                                     </div>
 
                                     {/* Image (Full Width) */}
-                                    <div className="md:col-span-2 space-y-2.5">
+                                    <div className="md:col-span-2 space-y-3">
                                         <Label htmlFor="productImage" className="text-sm font-semibold text-gray-700">
                                             Product Image (Optional)
                                         </Label>
