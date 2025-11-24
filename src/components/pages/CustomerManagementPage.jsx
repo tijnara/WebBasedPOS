@@ -333,7 +333,7 @@ export default function CustomerManagementPage() {
                                             required
                                             placeholder="Enter full name"
                                             autoFocus
-                                            className="text-base py-2.5 border-gray-300 h-11"
+                                            className="w-full text-base py-2.5 border-gray-300 h-11"
                                         />
                                     </div>
 
@@ -348,7 +348,7 @@ export default function CustomerManagementPage() {
                                             value={email}
                                             onChange={(e) => setEmail(e.target.value)}
                                             placeholder="customer@example.com"
-                                            className="text-base py-2.5 border-gray-300 h-11"
+                                            className="w-full text-base py-2.5 border-gray-300 h-11"
                                         />
                                     </div>
 
@@ -362,7 +362,7 @@ export default function CustomerManagementPage() {
                                             value={phone}
                                             onChange={(e) => setPhone(e.target.value)}
                                             placeholder="e.g., 09171234567"
-                                            className="text-base py-2.5 border-gray-300 h-11"
+                                            className="w-full text-base py-2.5 border-gray-300 h-11"
                                         />
                                     </div>
 
@@ -376,7 +376,7 @@ export default function CustomerManagementPage() {
                                             value={address}
                                             onChange={(e) => setAddress(e.target.value)}
                                             placeholder="123 Main St, City"
-                                            className="text-base py-2.5 border-gray-300 h-11"
+                                            className="w-full text-base py-2.5 border-gray-300 h-11"
                                         />
                                     </div>
                                 </div>
