@@ -308,50 +308,129 @@ export default function UserManagementPage() {
 
                 {/* --- MODAL: User Form --- */}
                 <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>{editing ? 'Edit User' : 'Add New User'}</DialogTitle>
-                            <DialogCloseButton onClick={closeModal} />
-                        </DialogHeader>
-                        <form onSubmit={save}>
-                            <div className="p-4 space-y-4">
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div className="sm:col-span-2">
-                                        <Label htmlFor="name">Full Name <span className="text-red-500">*</span></Label>
-                                        <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required autoFocus />
+                    <DialogContent
+                        className="p-0 overflow-hidden max-h-[calc(100dvh-2rem)] sm:max-w-xl bg-white shadow-xl border border-gray-100"
+                        style={{ backgroundColor: '#ffffff', zIndex: 50 }}
+                    >
+                        <form
+                            onSubmit={save}
+                            className="flex flex-col h-full max-h-[calc(100dvh-2rem)] bg-white"
+                            style={{ backgroundColor: '#ffffff' }}
+                        >
+                            {/* Header */}
+                            <DialogHeader
+                                className="px-6 py-4 border-b bg-white flex-shrink-0 z-10"
+                                style={{ backgroundColor: '#ffffff' }}
+                            >
+                                <DialogTitle className="text-lg font-bold text-gray-900">
+                                    {editing ? 'Edit User' : 'Add New User'}
+                                </DialogTitle>
+                                <DialogCloseButton onClick={closeModal} />
+                            </DialogHeader>
+
+                            {/* Scrollable Body */}
+                            <div
+                                className="flex-1 overflow-y-auto px-6 py-6 space-y-6 modal-scroll modal-scrollbar bg-white"
+                                style={{ minHeight: '0', backgroundColor: '#ffffff' }}
+                            >
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                                    {/* Full Name - Full Width */}
+                                    <div className="sm:col-span-2 space-y-1.5">
+                                        <Label htmlFor="name" className="text-sm font-semibold text-gray-700">
+                                            Full Name <span className="text-red-500">*</span>
+                                        </Label>
+                                        <Input
+                                            id="name"
+                                            value={name}
+                                            onChange={(e) => setName(e.target.value)}
+                                            required
+                                            autoFocus
+                                            placeholder="Enter full name"
+                                            className="text-base py-2.5"
+                                        />
                                     </div>
-                                    <div className="sm:col-span-2">
-                                        <Label htmlFor="email">Email <span className="text-red-500">*</span></Label>
-                                        <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+
+                                    {/* Email - Full Width */}
+                                    <div className="sm:col-span-2 space-y-1.5">
+                                        <Label htmlFor="email" className="text-sm font-semibold text-gray-700">
+                                            Email <span className="text-red-500">*</span>
+                                        </Label>
+                                        <Input
+                                            id="email"
+                                            type="email"
+                                            value={email}
+                                            onChange={(e) => setEmail(e.target.value)}
+                                            required
+                                            placeholder="user@example.com"
+                                            className="text-base py-2.5"
+                                        />
                                     </div>
-                                    <div className="sm:col-span-2">
-                                        <Label htmlFor="role">Role</Label>
-                                        <Select value={role} onValueChange={setRole}>
-                                            {/* No SelectTrigger, SelectValue, SelectContent, SelectItem - use native <option> */}
+
+                                    {/* Role - Full Width */}
+                                    <div className="sm:col-span-2 space-y-1.5">
+                                        <Label htmlFor="role" className="text-sm font-semibold text-gray-700">
+                                            Role
+                                        </Label>
+                                        <Select
+                                            value={role}
+                                            onChange={(e) => setRole(e.target.value)}
+                                            className="text-base py-2.5"
+                                        >
                                             <option value={USER_ROLES.STAFF}>Staff</option>
                                             <option value={USER_ROLES.ADMIN}>Admin</option>
                                         </Select>
                                     </div>
+
+                                    {/* Password Section Divider */}
                                     <div className="sm:col-span-2 border-t pt-4">
-                                        <p className="text-sm text-muted mb-2">
+                                        <p className="text-sm font-semibold text-gray-700 mb-3">
                                             {editing ? 'Set a new password (optional)' : 'Set a password'}
                                         </p>
                                     </div>
-                                    <div>
-                                        <Label htmlFor="password">Password</Label>
-                                        <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+
+                                    {/* Password Fields */}
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="password" className="text-sm font-semibold text-gray-700">
+                                            Password {!editing && <span className="text-red-500">*</span>}
+                                        </Label>
+                                        <Input
+                                            id="password"
+                                            type="password"
+                                            value={password}
+                                            onChange={(e) => setPassword(e.target.value)}
+                                            placeholder="Enter password"
+                                            className="text-base py-2.5"
+                                        />
                                     </div>
-                                    <div>
-                                        <Label htmlFor="confirmPassword">Confirm Password</Label>
-                                        <Input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="confirmPassword" className="text-sm font-semibold text-gray-700">
+                                            Confirm Password {!editing && <span className="text-red-500">*</span>}
+                                        </Label>
+                                        <Input
+                                            id="confirmPassword"
+                                            type="password"
+                                            value={confirmPassword}
+                                            onChange={(e) => setConfirmPassword(e.target.value)}
+                                            placeholder="Confirm password"
+                                            className="text-base py-2.5"
+                                        />
                                     </div>
                                 </div>
                             </div>
-                            <DialogFooter>
-                                <Button variant="outline" type="button" onClick={closeModal} disabled={isMutating}>Cancel</Button>
-                                <Button type="submit" variant="primary" disabled={isMutating || isDemo}>
-                                    {isDemo ? 'Disabled in Demo' : (isMutating ? 'Saving...' : (editing ? 'Update User' : 'Create User'))}
-                                </Button>
+
+                            {/* Footer */}
+                            <DialogFooter
+                                className="px-6 py-4 border-t bg-gray-50 flex-shrink-0"
+                                style={{ backgroundColor: '#f9fafb' }}
+                            >
+                                <div className="flex w-full justify-end gap-3">
+                                    <Button variant="outline" type="button" onClick={closeModal} disabled={isMutating} className="px-6">
+                                        Cancel
+                                    </Button>
+                                    <Button type="submit" variant="primary" disabled={isMutating || isDemo} className="px-6 btn--primary">
+                                        {isDemo ? 'Disabled in Demo' : (isMutating ? 'Saving...' : (editing ? 'Update User' : 'Create User'))}
+                                    </Button>
+                                </div>
                             </DialogFooter>
                         </form>
                     </DialogContent>

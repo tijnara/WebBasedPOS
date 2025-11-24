@@ -83,68 +83,91 @@ const SaleDetailsModal = ({ sale, isOpen, onClose }) => {
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-md">
-                <DialogHeader>
-                    <DialogTitle>Sale Details</DialogTitle>
-                    <DialogCloseButton onClick={onClose} />
-                </DialogHeader>
+            <DialogContent
+                className="p-0 overflow-hidden max-h-[calc(100dvh-2rem)] sm:max-w-lg bg-white shadow-xl border border-gray-100"
+                style={{ backgroundColor: '#ffffff', zIndex: 50 }}
+            >
+                <div className="flex flex-col h-full max-h-[calc(100dvh-2rem)] bg-white" style={{ backgroundColor: '#ffffff' }}>
+                    {/* Header */}
+                    <DialogHeader
+                        className="px-6 py-4 border-b bg-white flex-shrink-0 z-10"
+                        style={{ backgroundColor: '#ffffff' }}
+                    >
+                        <DialogTitle className="text-lg font-bold text-gray-900">Sale Details</DialogTitle>
+                        <DialogCloseButton onClick={onClose} />
+                    </DialogHeader>
 
-                <div className="p-4 space-y-4">
-                    <div className="text-center">
-                        <img src="/seaside.png" alt="Logo" className="mx-auto h-12 w-12" />
-                        <h3 className="font-semibold text-lg">Seaside Water Refilling Station</h3>
-                        <p className="text-sm text-muted">Transaction Receipt</p>
+                    {/* Scrollable Body */}
+                    <div
+                        className="flex-1 overflow-y-auto px-6 py-6 space-y-6 modal-scroll modal-scrollbar bg-white"
+                        style={{ minHeight: '0', backgroundColor: '#ffffff' }}
+                    >
+                        {/* Logo and Title */}
+                        <div className="text-center pb-4">
+                            <img src="/seaside.png" alt="Logo" className="mx-auto h-14 w-14 mb-3" />
+                            <h3 className="font-bold text-lg text-gray-900">Seaside Water Refilling Station</h3>
+                            <p className="text-sm text-gray-600 mt-1">Transaction Receipt</p>
+                        </div>
+
+                        {/* Transaction Info */}
+                        <div className="border-t border-dashed border-gray-300 pt-4 space-y-3">
+                            <div className="flex justify-between">
+                                <span className="text-sm font-medium text-gray-600">Date:</span>
+                                <span className="text-sm font-semibold text-gray-900">{formatDate(sale.saleTimestamp)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-sm font-medium text-gray-600">Customer:</span>
+                                <span className="text-sm font-semibold text-gray-900">{sale.customerName}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-sm font-medium text-gray-600">Staff:</span>
+                                <span className="text-sm font-semibold text-gray-900">{sale.createdBy || 'N/A'}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-sm font-medium text-gray-600">Status:</span>
+                                <StatusBadge status={sale.status} />
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-sm font-medium text-gray-600">Payment:</span>
+                                <span className="text-sm font-semibold text-gray-900">{sale.paymentMethod}</span>
+                            </div>
+                        </div>
+
+                        {/* Items Purchased */}
+                        <div className="border-t border-dashed border-gray-300 pt-4">
+                            <h4 className="font-bold text-base text-gray-900 mb-3">Items Purchased</h4>
+                            <div className="space-y-2">
+                                {(sale.sale_items || []).map((item, idx) => (
+                                    <div key={idx} className="flex justify-between text-sm bg-gray-50 px-3 py-2 rounded">
+                                        <span className="text-gray-700">{item.productName} <span className="text-gray-500">(x{item.quantity})</span></span>
+                                        <span className="font-semibold text-gray-900">{formatCurrency(item.productPrice * item.quantity)}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Total */}
+                        <div className="border-t border-dashed border-gray-300 pt-4">
+                            <div className="flex justify-between items-center bg-primary-soft px-4 py-3 rounded-lg">
+                                <span className="text-base font-bold text-gray-900">Total Amount:</span>
+                                <span className="text-lg font-bold text-primary">{formatCurrency(sale.totalAmount)}</span>
+                            </div>
+                        </div>
                     </div>
 
-                    <div className="border-t border-dashed pt-2 space-y-1">
-                        <div className="flex justify-between text-sm">
-                            <span className="text-muted">Date:</span>
-                            <span className="font-medium">{formatDate(sale.saleTimestamp)}</span>
+                    {/* Footer */}
+                    <DialogFooter
+                        className="px-6 py-4 border-t bg-gray-50 flex-shrink-0"
+                        style={{ backgroundColor: '#f9fafb' }}
+                    >
+                        <div className="flex w-full justify-end gap-3">
+                            <Button variant="outline" onClick={handlePrintReceipt} disabled className="px-6">
+                                <ReceiptIcon /> <span className="ml-2">Print Receipt</span>
+                            </Button>
+                            <Button variant="primary" onClick={onClose} className="px-6 btn--primary">Close</Button>
                         </div>
-                        <div className="flex justify-between text-sm">
-                            <span className="text-muted">Customer:</span>
-                            <span className="font-medium">{sale.customerName}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                            <span className="text-muted">Staff:</span>
-                            <span className="font-medium">{sale.createdBy || 'N/A'}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                            <span className="text-muted">Status:</span>
-                            <StatusBadge status={sale.status} />
-                        </div>
-                        <div className="flex justify-between text-sm">
-                            <span className="text-muted">Payment:</span>
-                            <span className="font-medium">{sale.paymentMethod}</span>
-                        </div>
-                    </div>
-
-                    <div className="border-t border-dashed pt-2">
-                        <h4 className="font-semibold mb-2">Items Purchased</h4>
-                        <div className="space-y-1">
-                            {(sale.sale_items || []).map((item, idx) => (
-                                <div key={idx} className="flex justify-between text-sm">
-                                    <span>{item.productName} (x{item.quantity})</span>
-                                    <span>{formatCurrency(item.productPrice * item.quantity)}</span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    <div className="border-t border-dashed pt-2 space-y-1">
-                        <div className="flex justify-between text-base font-semibold">
-                            <span>Total Amount:</span>
-                            <span>{formatCurrency(sale.totalAmount)}</span>
-                        </div>
-                    </div>
+                    </DialogFooter>
                 </div>
-
-                <DialogFooter>
-                    <Button variant="outline" onClick={handlePrintReceipt} disabled>
-                        <ReceiptIcon /> <span className="ml-2">Print Receipt</span>
-                    </Button>
-                    <Button variant="primary" onClick={onClose}>Close</Button>
-                </DialogFooter>
             </DialogContent>
         </Dialog>
     );

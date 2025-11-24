@@ -319,16 +319,37 @@ export default function CustomerManagementPage() {
 
                 {/* --- MODAL: Customer Form (No change needed) --- */}
                 <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>{editing ? 'Edit Customer' : 'Add New Customer'}</DialogTitle>
-                            <DialogCloseButton onClick={closeModal} />
-                        </DialogHeader>
-                        <form onSubmit={save}>
-                            <div className="p-4 space-y-4">
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div className="sm:col-span-2">
-                                        <Label htmlFor="name">Customer Name <span className="text-red-500">*</span></Label>
+                    <DialogContent
+                        className="p-0 overflow-hidden max-h-[calc(100dvh-2rem)] sm:max-w-xl bg-white shadow-xl border border-gray-100"
+                        style={{ backgroundColor: '#ffffff', zIndex: 50 }}
+                    >
+                        <form
+                            onSubmit={save}
+                            className="flex flex-col h-full max-h-[calc(100dvh-2rem)] bg-white"
+                            style={{ backgroundColor: '#ffffff' }}
+                        >
+                            {/* Header */}
+                            <DialogHeader
+                                className="px-6 py-4 border-b bg-white flex-shrink-0 z-10"
+                                style={{ backgroundColor: '#ffffff' }}
+                            >
+                                <DialogTitle className="text-lg font-bold text-gray-900">
+                                    {editing ? 'Edit Customer' : 'Add New Customer'}
+                                </DialogTitle>
+                                <DialogCloseButton onClick={closeModal} />
+                            </DialogHeader>
+
+                            {/* Scrollable Body */}
+                            <div
+                                className="flex-1 overflow-y-auto px-6 py-6 space-y-6 modal-scroll modal-scrollbar bg-white"
+                                style={{ minHeight: '0', backgroundColor: '#ffffff' }}
+                            >
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                                    {/* Customer Name - Full Width */}
+                                    <div className="sm:col-span-2 space-y-1.5">
+                                        <Label htmlFor="name" className="text-sm font-semibold text-gray-700">
+                                            Customer Name <span className="text-red-500">*</span>
+                                        </Label>
                                         <Input
                                             id="name"
                                             value={name}
@@ -336,43 +357,66 @@ export default function CustomerManagementPage() {
                                             required
                                             placeholder="Enter full name"
                                             autoFocus
+                                            className="text-base py-2.5"
                                         />
                                     </div>
-                                    <div>
-                                        <Label htmlFor="email">Email (Optional)</Label>
+
+                                    {/* Email and Phone */}
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="email" className="text-sm font-semibold text-gray-700">
+                                            Email (Optional)
+                                        </Label>
                                         <Input
                                             id="email"
                                             type="email"
                                             value={email}
                                             onChange={(e) => setEmail(e.target.value)}
                                             placeholder="customer@example.com"
+                                            className="text-base py-2.5"
                                         />
                                     </div>
-                                    <div>
-                                        <Label htmlFor="phone">Phone (Optional)</Label>
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="phone" className="text-sm font-semibold text-gray-700">
+                                            Phone (Optional)
+                                        </Label>
                                         <Input
                                             id="phone"
                                             value={phone}
                                             onChange={(e) => setPhone(e.target.value)}
                                             placeholder="e.g., 09171234567"
+                                            className="text-base py-2.5"
                                         />
                                     </div>
-                                    <div className="sm:col-span-2">
-                                        <Label htmlFor="address">Address (Optional)</Label>
+
+                                    {/* Address - Full Width */}
+                                    <div className="sm:col-span-2 space-y-1.5">
+                                        <Label htmlFor="address" className="text-sm font-semibold text-gray-700">
+                                            Address (Optional)
+                                        </Label>
                                         <Input
                                             id="address"
                                             value={address}
                                             onChange={(e) => setAddress(e.target.value)}
                                             placeholder="123 Main St, City"
+                                            className="text-base py-2.5"
                                         />
                                     </div>
                                 </div>
                             </div>
-                            <DialogFooter>
-                                <Button variant="outline" type="button" onClick={closeModal} disabled={isMutating}>Cancel</Button>
-                                <Button type="submit" variant="primary" disabled={isMutating}>
-                                    {isMutating ? 'Saving...' : (editing ? 'Update Customer' : 'Create Customer')}
-                                </Button>
+
+                            {/* Footer */}
+                            <DialogFooter
+                                className="px-6 py-4 border-t bg-gray-50 flex-shrink-0"
+                                style={{ backgroundColor: '#f9fafb' }}
+                            >
+                                <div className="flex w-full justify-end gap-3">
+                                    <Button variant="outline" type="button" onClick={closeModal} disabled={isMutating} className="px-6">
+                                        Cancel
+                                    </Button>
+                                    <Button type="submit" variant="primary" disabled={isMutating} className="px-6 btn--primary">
+                                        {isMutating ? 'Saving...' : (editing ? 'Update Customer' : 'Create Customer')}
+                                    </Button>
+                                </div>
                             </DialogFooter>
                         </form>
                     </DialogContent>
