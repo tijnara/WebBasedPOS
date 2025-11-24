@@ -10,13 +10,11 @@ import Pagination from '../Pagination';
 
 // --- Import Customer Hooks ---
 import { useCreateCustomer } from '../../hooks/useCreateCustomer';
-// --- MODIFICATION: Fixed imports ---
 import {
     useUpdateCustomer,
     useDeleteCustomer
 } from '../../hooks/useCustomerMutations';
 import { useCustomers } from '../../hooks/useCustomers';
-// --- END MODIFICATION ---
 
 // --- NEW: Simple SVG Icon for Customer (User Circle) ---
 const UserIcon = () => (
@@ -28,7 +26,7 @@ const UserIcon = () => (
 // Simple SVG Icon for Edit
 const EditIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-        <path d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708l-3-3zm.646 6.061L9.793 2.5 3.293 9H3.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.207l6.5-6.5zm-7.468 7.468A.5.5 0 0 1 6 13.5V13h-.5a.5.5 0 0 1-.5-.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.5-.5V10h-.5a.499.499 0 0 1-.175-.032l-.179.178a.5.5 0 0 0-.11.168l-2 5a.5.5 0 0 0 .65.65l5-2a.5.5 0 0 0 .168-.11l.178-.178z"/>
+        <path d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708l-3-3zm.646 6.061L9.793 2.5 3.293 9H3.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.207l6.5-6.5zm-7.468 7.468A.5.5 0 0 1 6 13.5V13h-.5a.5.5 0 0 1-.5-.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.5-.5V10h-.5a.499.499 0 0 1-.175-.032l-.179.178a.5.5 0 0 0-.11.168l-2 5a.5.5 0 0 0 .65.65l5-2a.5.5 0 0 0 .168-.11l.178-.178z"/>
     </svg>
 );
 
@@ -50,7 +48,7 @@ export default function CustomerManagementPage() {
     const customers = customersData.customers;
     const totalPages = customersData.totalPages;
     const addToast = useStore(s => s.addToast);
-    const isDemo = useStore(s => s.user?.isDemo); // <-- FIX: define isDemo
+    const isDemo = useStore(s => s.user?.isDemo);
 
     const createCustomer = useCreateCustomer();
     const updateCustomer = useUpdateCustomer();
@@ -62,22 +60,18 @@ export default function CustomerManagementPage() {
     const [phone, setPhone] = useState('');
     const [address, setAddress] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
-    // const [searchTerm, setSearchTerm] = useState(''); // Moved up
-    // const [currentPage, setCurrentPage] = useState(1);
-    // const itemsPerPage = 10;
     const searchInputRef = useRef(null);
 
-    // --- MODIFICATION: Debounce search term ---
+    // Debounce search term
     useEffect(() => {
         const handler = setTimeout(() => {
             setDebouncedSearchTerm(searchTerm);
-        }, 300); // 300ms delay
+        }, 300);
 
         return () => {
             clearTimeout(handler);
         };
     }, [searchTerm]);
-    // --- END MODIFICATION ---
 
     useEffect(() => {
         const handleKeyDown = (e) => {
@@ -161,16 +155,8 @@ export default function CustomerManagementPage() {
 
     const isMutating = createCustomer.isPending || updateCustomer.isPending || deleteCustomer.isPending;
 
-    // --- MODIFICATION: Remove client-side filtering ---
-    // const filteredCustomers = customers; // Data from useCustomers is already filtered
-    // --- END MODIFICATION ---
-
-    // const totalPages = Math.ceil(filteredCustomers.length / itemsPerPage);
-    // const paginatedCustomers = filteredCustomers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-
     return (
         <div className="customer-page">
-            {/* --- Brand Logo at the very top left --- */}
             <img src="/seaside.png" alt="Seaside Logo" className="brand-logo-top" width={32} height={32} loading="lazy" />
             <MobileLogoutButton />
             <div>
@@ -185,17 +171,16 @@ export default function CustomerManagementPage() {
                 <div className="mb-4 mt-6">
                     <Input
                         ref={searchInputRef}
-                        placeholder="Search by name, email, phone, or staff..." // Updated placeholder
+                        placeholder="Search by name, email, phone, or staff..."
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
                         className="w-full max-w-xs mb-2"
                     />
                 </div>
 
-                {/* --- DESKTOP TABLE (Hidden on mobile) --- */}
+                {/* --- DESKTOP TABLE --- */}
                 <Card className="mb-4 hidden md:block">
                     <CardContent className="p-0">
-                        {/* --- MODIFICATION: Removed max-h, pagination handles length --- */}
                         <ScrollArea>
                             <Table>
                                 <TableHeader className="sticky top-0 bg-gray-50 z-10">
@@ -204,14 +189,13 @@ export default function CustomerManagementPage() {
                                         <TableHead>Email</TableHead>
                                         <TableHead>Contact Number</TableHead>
                                         <TableHead>Date Added</TableHead>
-                                        <TableHead>Staff</TableHead> {/* --- ADDED --- */}
+                                        <TableHead>Staff</TableHead>
                                         <TableHead className="text-right">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {isLoading ? (
                                         <TableRow>
-                                            {/* --- MODIFICATION: Added loading spinner --- */}
                                             <TableCell colSpan={6} className="text-center text-muted py-8">
                                                 <div className="flex justify-center items-center">
                                                     <svg className="animate-spin h-5 w-5 text-primary mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -245,7 +229,7 @@ export default function CustomerManagementPage() {
                                                         : c.created_by === 99999
                                                             ? 'Demo User'
                                                             : 'N/A'}
-                                                </TableCell> {/* --- Staff name cell --- */}
+                                                </TableCell>
                                                 <TableCell className="text-right">
                                                     <div className="flex justify-end space-x-1">
                                                         <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:bg-blue-100" onClick={() => startEdit(c)} title="Edit Customer" disabled={isDemo}>
@@ -262,12 +246,11 @@ export default function CustomerManagementPage() {
                                 </TableBody>
                             </Table>
                         </ScrollArea>
-                        {/* Pagination Controls */}
                         <Pagination currentPage={currentPage} totalPages={totalPages || 1} onPageChange={page => setCurrentPage(page)} />
                     </CardContent>
                 </Card>
 
-                {/* --- (MODIFIED) MOBILE CARD LIST (Show on mobile, hide on md+) --- */}
+                {/* --- MOBILE LIST VIEW --- */}
                 <div className="block md:hidden">
                     <Card>
                         <CardContent className="p-0">
@@ -281,14 +264,11 @@ export default function CustomerManagementPage() {
                                 <div className="divide-y divide-gray-100">
                                     {customers.map(c => (
                                         <div key={c.id} className="p-4 flex items-center space-x-3">
-                                            {/* Icon */}
                                             <div className="flex-shrink-0">
                                                 <span className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
                                                     <UserIcon />
                                                 </span>
                                             </div>
-
-                                            {/* Customer Info */}
                                             <div className="flex-1 min-w-0">
                                                 <div className="font-medium text-gray-900 truncate">{c.name}</div>
                                                 <div className="text-sm text-gray-500 truncate">{c.email || 'No email'}</div>
@@ -296,8 +276,6 @@ export default function CustomerManagementPage() {
                                                     Staff: {c.users?.name || (c.created_by === 99999 ? 'Demo User' : 'N/A')}
                                                 </div>
                                             </div>
-
-                                            {/* Action Buttons */}
                                             <div className="flex-shrink-0 flex items-center space-x-0">
                                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600" onClick={() => startEdit(c)} title="Edit Customer" disabled={isDemo}>
                                                     <EditIcon />
@@ -312,15 +290,13 @@ export default function CustomerManagementPage() {
                             )}
                         </CardContent>
                     </Card>
-
-                    {/* Pagination Controls for mobile */}
                     <Pagination currentPage={currentPage} totalPages={totalPages || 1} onPageChange={page => setCurrentPage(page)} />
                 </div>
 
-                {/* --- MODAL: Customer Form (No change needed) --- */}
+                {/* --- MODAL: Customer Form (Enhanced UI) --- */}
                 <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
                     <DialogContent
-                        className="p-0 overflow-hidden max-h-[calc(100dvh-2rem)] sm:max-w-xl bg-white shadow-xl border border-gray-100"
+                        className="p-0 overflow-hidden w-full sm:max-w-2xl bg-white shadow-xl border border-gray-100"
                         style={{ backgroundColor: '#ffffff', zIndex: 50 }}
                     >
                         <form
@@ -341,12 +317,12 @@ export default function CustomerManagementPage() {
 
                             {/* Scrollable Body */}
                             <div
-                                className="flex-1 overflow-y-auto px-6 py-6 space-y-6 modal-scroll modal-scrollbar bg-white"
-                                style={{ minHeight: '0', backgroundColor: '#ffffff' }}
+                                className="flex-1 overflow-y-auto px-6 py-6 modal-scroll modal-scrollbar bg-white relative"
+                                style={{ backgroundColor: '#ffffff' }}
                             >
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                                    {/* Customer Name - Full Width */}
-                                    <div className="sm:col-span-2 space-y-1.5">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {/* Customer Name (Full Width) */}
+                                    <div className="md:col-span-2 space-y-2">
                                         <Label htmlFor="name" className="text-sm font-semibold text-gray-700">
                                             Customer Name <span className="text-red-500">*</span>
                                         </Label>
@@ -357,12 +333,12 @@ export default function CustomerManagementPage() {
                                             required
                                             placeholder="Enter full name"
                                             autoFocus
-                                            className="text-base py-2.5"
+                                            className="text-base py-2.5 border-gray-300 h-11"
                                         />
                                     </div>
 
-                                    {/* Email and Phone */}
-                                    <div className="space-y-1.5">
+                                    {/* Email */}
+                                    <div className="space-y-2">
                                         <Label htmlFor="email" className="text-sm font-semibold text-gray-700">
                                             Email (Optional)
                                         </Label>
@@ -372,10 +348,12 @@ export default function CustomerManagementPage() {
                                             value={email}
                                             onChange={(e) => setEmail(e.target.value)}
                                             placeholder="customer@example.com"
-                                            className="text-base py-2.5"
+                                            className="text-base py-2.5 border-gray-300 h-11"
                                         />
                                     </div>
-                                    <div className="space-y-1.5">
+
+                                    {/* Phone */}
+                                    <div className="space-y-2">
                                         <Label htmlFor="phone" className="text-sm font-semibold text-gray-700">
                                             Phone (Optional)
                                         </Label>
@@ -384,12 +362,12 @@ export default function CustomerManagementPage() {
                                             value={phone}
                                             onChange={(e) => setPhone(e.target.value)}
                                             placeholder="e.g., 09171234567"
-                                            className="text-base py-2.5"
+                                            className="text-base py-2.5 border-gray-300 h-11"
                                         />
                                     </div>
 
-                                    {/* Address - Full Width */}
-                                    <div className="sm:col-span-2 space-y-1.5">
+                                    {/* Address (Full Width) */}
+                                    <div className="md:col-span-2 space-y-2">
                                         <Label htmlFor="address" className="text-sm font-semibold text-gray-700">
                                             Address (Optional)
                                         </Label>
@@ -398,7 +376,7 @@ export default function CustomerManagementPage() {
                                             value={address}
                                             onChange={(e) => setAddress(e.target.value)}
                                             placeholder="123 Main St, City"
-                                            className="text-base py-2.5"
+                                            className="text-base py-2.5 border-gray-300 h-11"
                                         />
                                     </div>
                                 </div>
@@ -406,11 +384,11 @@ export default function CustomerManagementPage() {
 
                             {/* Footer */}
                             <DialogFooter
-                                className="px-6 py-4 border-t bg-gray-50 flex-shrink-0"
+                                className="px-6 py-4 border-t bg-gray-50 flex-shrink-0 z-10"
                                 style={{ backgroundColor: '#f9fafb' }}
                             >
                                 <div className="flex w-full justify-end gap-3">
-                                    <Button variant="outline" type="button" onClick={closeModal} disabled={isMutating} className="px-6">
+                                    <Button variant="outline" type="button" onClick={closeModal} disabled={isMutating} className="px-6 bg-white border-gray-300">
                                         Cancel
                                     </Button>
                                     <Button type="submit" variant="primary" disabled={isMutating} className="px-6 btn--primary">
@@ -425,4 +403,3 @@ export default function CustomerManagementPage() {
         </div>
     );
 }
-

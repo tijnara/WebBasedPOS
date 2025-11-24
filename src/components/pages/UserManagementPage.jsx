@@ -26,7 +26,7 @@ const StaffIcon = () => (
 // Simple SVG Icon for Edit
 const EditIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-        <path d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708l-3-3zm.646 6.061L9.793 2.5 3.293 9H3.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.207l6.5-6.5zm-7.468 7.468A.5.5 0 0 1 6 13.5V13h-.5a.5.5 0 0 1-.5-.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.5-.5V10h-.5a.499.499 0 0 1-.175-.032l-.179.178a.5.5 0 0 0-.11.168l-2 5a.5.5 0 0 0 .65.65l5-2a.5.5 0 0 0 .168-.11l.178-.178z"/>
+        <path d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708l-3-3zm.646 6.061L9.793 2.5 3.293 9H3.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.207l6.5-6.5zm-7.468 7.468A.5.5 0 0 1 6 13.5V13h-.5a.5.5 0 0 1-.5-.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.5-.5V10h-.5a.499.499 0 0 1-.175-.032l-.179.178a.5.5 0 0 0-.11.168l-2 5a.5.5 0 0 0 .65.65l5-2a.5.5 0 0 0 .168-.11l.178-.178z"/>
     </svg>
 );
 
@@ -306,10 +306,10 @@ export default function UserManagementPage() {
                     <Pagination currentPage={currentPage} totalPages={totalPages || 1} onPageChange={page => setCurrentPage(page)} />
                 </div>
 
-                {/* --- MODAL: User Form --- */}
+                {/* --- MODAL: User Form (Fixed UI) --- */}
                 <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
                     <DialogContent
-                        className="p-0 overflow-hidden max-h-[calc(100dvh-2rem)] sm:max-w-xl bg-white shadow-xl border border-gray-100"
+                        className="p-0 overflow-hidden w-full max-w-sm sm:max-w-lg bg-white shadow-xl border border-gray-100"
                         style={{ backgroundColor: '#ffffff', zIndex: 50 }}
                     >
                         <form
@@ -330,101 +330,113 @@ export default function UserManagementPage() {
 
                             {/* Scrollable Body */}
                             <div
-                                className="flex-1 overflow-y-auto px-6 py-6 space-y-6 modal-scroll modal-scrollbar bg-white"
-                                style={{ minHeight: '0', backgroundColor: '#ffffff' }}
+                                className="flex-1 overflow-y-auto px-6 py-6 modal-scroll modal-scrollbar bg-white relative"
+                                style={{ backgroundColor: '#ffffff' }}
                             >
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                                    {/* Full Name - Full Width */}
-                                    <div className="sm:col-span-2 space-y-1.5">
-                                        <Label htmlFor="name" className="text-sm font-semibold text-gray-700">
-                                            Full Name <span className="text-red-500">*</span>
-                                        </Label>
-                                        <Input
-                                            id="name"
-                                            value={name}
-                                            onChange={(e) => setName(e.target.value)}
-                                            required
-                                            autoFocus
-                                            placeholder="Enter full name"
-                                            className="text-base py-2.5"
-                                        />
+                                <div className="space-y-5">
+                                    {/* Account Information Section */}
+                                    <div className="space-y-4">
+                                        <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">
+                                            Account Information
+                                        </h3>
+
+                                        {/* Full Name */}
+                                        <div className="space-y-2">
+                                            <Label htmlFor="name" className="text-sm font-medium text-gray-700">
+                                                Full Name <span className="text-red-500">*</span>
+                                            </Label>
+                                            <Input
+                                                id="name"
+                                                value={name}
+                                                onChange={(e) => setName(e.target.value)}
+                                                required
+                                                autoFocus
+                                                placeholder="Enter full name"
+                                                className="text-base py-2.5 border-gray-300 h-11 w-full"
+                                            />
+                                        </div>
+
+                                        {/* Email */}
+                                        <div className="space-y-2">
+                                            <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+                                                Email Address <span className="text-red-500">*</span>
+                                            </Label>
+                                            <Input
+                                                id="email"
+                                                type="email"
+                                                value={email}
+                                                onChange={(e) => setEmail(e.target.value)}
+                                                required
+                                                placeholder="email@example.com"
+                                                className="text-base py-2.5 border-gray-300 h-11 w-full"
+                                            />
+                                        </div>
+
+                                        {/* Role */}
+                                        <div className="space-y-2">
+                                            <Label htmlFor="role" className="text-sm font-medium text-gray-700">
+                                                User Role
+                                            </Label>
+                                            <Select
+                                                id="role"
+                                                value={role}
+                                                onChange={(e) => setRole(e.target.value)}
+                                                className="text-base py-2.5 border-gray-300 h-11 w-full"
+                                            >
+                                                <option value={USER_ROLES.STAFF}>Staff</option>
+                                                <option value={USER_ROLES.ADMIN}>Admin</option>
+                                            </Select>
+                                        </div>
                                     </div>
 
-                                    {/* Email - Full Width */}
-                                    <div className="sm:col-span-2 space-y-1.5">
-                                        <Label htmlFor="email" className="text-sm font-semibold text-gray-700">
-                                            Email <span className="text-red-500">*</span>
-                                        </Label>
-                                        <Input
-                                            id="email"
-                                            type="email"
-                                            value={email}
-                                            onChange={(e) => setEmail(e.target.value)}
-                                            required
-                                            placeholder="user@example.com"
-                                            className="text-base py-2.5"
-                                        />
-                                    </div>
+                                    {/* Password Section */}
+                                    <div className="pt-4 border-t border-gray-200">
+                                        <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-4">
+                                            {editing ? 'Change Password (Optional)' : 'Set Password'}
+                                        </h3>
 
-                                    {/* Role - Full Width */}
-                                    <div className="sm:col-span-2 space-y-1.5">
-                                        <Label htmlFor="role" className="text-sm font-semibold text-gray-700">
-                                            Role
-                                        </Label>
-                                        <Select
-                                            value={role}
-                                            onChange={(e) => setRole(e.target.value)}
-                                            className="text-base py-2.5"
-                                        >
-                                            <option value={USER_ROLES.STAFF}>Staff</option>
-                                            <option value={USER_ROLES.ADMIN}>Admin</option>
-                                        </Select>
-                                    </div>
+                                        {/* Password */}
+                                        <div className="space-y-2 mb-4">
+                                            <Label htmlFor="password" className="text-sm font-medium text-gray-700">
+                                                Password {!editing && <span className="text-red-500">*</span>}
+                                            </Label>
+                                            <Input
+                                                id="password"
+                                                type="password"
+                                                value={password}
+                                                onChange={(e) => setPassword(e.target.value)}
+                                                required={!editing}
+                                                placeholder="••••••••"
+                                                className="text-base py-2.5 border-gray-300 h-11 w-full"
+                                            />
+                                        </div>
 
-                                    {/* Password Section Divider */}
-                                    <div className="sm:col-span-2 border-t pt-4">
-                                        <p className="text-sm font-semibold text-gray-700 mb-3">
-                                            {editing ? 'Set a new password (optional)' : 'Set a password'}
-                                        </p>
-                                    </div>
-
-                                    {/* Password Fields */}
-                                    <div className="space-y-1.5">
-                                        <Label htmlFor="password" className="text-sm font-semibold text-gray-700">
-                                            Password {!editing && <span className="text-red-500">*</span>}
-                                        </Label>
-                                        <Input
-                                            id="password"
-                                            type="password"
-                                            value={password}
-                                            onChange={(e) => setPassword(e.target.value)}
-                                            placeholder="Enter password"
-                                            className="text-base py-2.5"
-                                        />
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <Label htmlFor="confirmPassword" className="text-sm font-semibold text-gray-700">
-                                            Confirm Password {!editing && <span className="text-red-500">*</span>}
-                                        </Label>
-                                        <Input
-                                            id="confirmPassword"
-                                            type="password"
-                                            value={confirmPassword}
-                                            onChange={(e) => setConfirmPassword(e.target.value)}
-                                            placeholder="Confirm password"
-                                            className="text-base py-2.5"
-                                        />
+                                        {/* Confirm Password */}
+                                        <div className="space-y-2">
+                                            <Label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700">
+                                                Confirm Password {!editing && <span className="text-red-500">*</span>}
+                                            </Label>
+                                            <Input
+                                                id="confirmPassword"
+                                                type="password"
+                                                value={confirmPassword}
+                                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                                required={!editing}
+                                                placeholder="••••••••"
+                                                className="text-base py-2.5 border-gray-300 h-11 w-full"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Footer */}
                             <DialogFooter
-                                className="px-6 py-4 border-t bg-gray-50 flex-shrink-0"
+                                className="px-6 py-4 border-t bg-gray-50 flex-shrink-0 z-10"
                                 style={{ backgroundColor: '#f9fafb' }}
                             >
                                 <div className="flex w-full justify-end gap-3">
-                                    <Button variant="outline" type="button" onClick={closeModal} disabled={isMutating} className="px-6">
+                                    <Button variant="outline" type="button" onClick={closeModal} disabled={isMutating} className="px-6 bg-white border-gray-300">
                                         Cancel
                                     </Button>
                                     <Button type="submit" variant="primary" disabled={isMutating || isDemo} className="px-6 btn--primary">
@@ -439,4 +451,3 @@ export default function UserManagementPage() {
         </div>
     );
 }
-
