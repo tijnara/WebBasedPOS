@@ -461,8 +461,11 @@ export default function ProductManagementPage() {
                                 <DialogCloseButton onClick={closeModal} />
                             </DialogHeader>
 
-                            {/* Scrollable Body */}
-                            <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6 modal-scroll modal-scrollbar bg-white" style={{ minHeight: '0', backgroundColor: '#ffffff' }}>
+                            {/* Scrollable Body - Solid white background to prevent transparency */}
+                            <div
+                                className="flex-1 overflow-y-auto px-6 py-6 space-y-6 modal-scroll modal-scrollbar bg-white"
+                                style={{ minHeight: '0', backgroundColor: '#ffffff' }}
+                            >
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                                     {/* Product Name - Full Width */}
                                     <div className="sm:col-span-2 space-y-1.5">

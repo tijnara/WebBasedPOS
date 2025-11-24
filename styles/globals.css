@@ -1003,6 +1003,8 @@ input[type="checkbox"]:focus {
   -webkit-overflow-scrolling: touch;
   position: relative; /* allow gradient overlays */
   background-color: #ffffff; /* Solid white background */
+  isolation: isolate; /* Create stacking context */
+  z-index: 1; /* Ensure above backdrop */
 }
 .modal-scrollbar {
   scrollbar-width: thin;

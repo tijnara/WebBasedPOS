@@ -77,7 +77,12 @@ export const DialogContent = ({ children, className }) => (
             'bg-white rounded-2xl sm:rounded-lg shadow-2xl relative w-full max-w-sm sm:max-w-md mx-auto my-4 flex flex-col overflow-hidden',
             className
         )}
-        style={{ maxHeight: 'calc(100dvh - 32px)', backgroundColor: '#ffffff' }}
+        style={{
+            maxHeight: 'calc(100dvh - 32px)',
+            backgroundColor: '#ffffff',
+            isolation: 'isolate',
+            zIndex: 10
+        }}
         onClick={(e) => e.stopPropagation()}
     >
         {children}
