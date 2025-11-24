@@ -402,12 +402,12 @@ export default function ProductManagementPage() {
                         3. Added '!bg-white' and 'backgroundColor: white' to prevent transparency
                     */}
                     <DialogContent
-                        className="p-0 overflow-hidden w-full !max-w-4xl bg-white !bg-white shadow-xl border border-gray-100"
+                        className="p-0 overflow-hidden w-full !max-w-4xl bg-white !bg-white shadow-xl border border-gray-100 relative"
                         style={{ backgroundColor: 'white', width: '900px', maxWidth: '95vw', zIndex: 50 }}
                     >
                         <form
                             onSubmit={save}
-                            className="flex flex-col h-full max-h-[calc(100dvh-2rem)] bg-white !bg-white"
+                            className="flex flex-col h-full max-h-[100vh] bg-white !bg-white"
                             style={{ backgroundColor: 'white' }}
                         >
                             {/* Header - Forced White Background */}
@@ -423,7 +423,7 @@ export default function ProductManagementPage() {
 
                             {/* Scrollable Body - Forced White Background */}
                             <div
-                                className="flex-1 overflow-y-auto px-6 py-8 modal-scroll modal-scrollbar bg-white !bg-white relative"
+                                className="flex-1 overflow-y-auto px-6 py-8 mb-20 modal-scroll modal-scrollbar bg-white !bg-white relative"
                                 style={{ backgroundColor: 'white' }}
                             >
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-10"> {/* MODIFIED: Increased vertical gap between rows */}
@@ -584,8 +584,8 @@ export default function ProductManagementPage() {
 
                             {/* Footer */}
                             <DialogFooter
-                                className="px-6 py-4 border-t bg-gray-50 flex-shrink-0 z-10"
-                                style={{ backgroundColor: '#f9fafb' }} // standard gray-50 hex
+                                className="px-6 py-4 border-t bg-gray-50 flex-shrink-0 z-10 absolute bottom-0 left-0 w-full"
+                                style={{ backgroundColor: '#f9fafb' }}
                             >
                                 <div className="flex w-full justify-end gap-3">
                                     <Button variant="outline" type="button" onClick={closeModal} disabled={isMutating} className="px-6 bg-white border-gray-300">

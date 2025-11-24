@@ -296,12 +296,12 @@ export default function CustomerManagementPage() {
                 {/* --- MODAL: Customer Form (Enhanced UI) --- */}
                 <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
                     <DialogContent
-                        className="p-0 overflow-hidden w-full sm:max-w-3xl bg-white shadow-xl border border-gray-100"
+                        className="p-0 overflow-hidden w-full sm:max-w-3xl bg-white shadow-xl border border-gray-100 relative"
                         style={{ backgroundColor: '#ffffff', zIndex: 50 }}
                     >
                         <form
                             onSubmit={save}
-                            className="flex flex-col h-full max-h-[calc(100dvh-2rem)] bg-white"
+                            className="flex flex-col h-full max-h-[100vh] bg-white"
                             style={{ backgroundColor: '#ffffff' }}
                         >
                             {/* Header */}
@@ -317,7 +317,7 @@ export default function CustomerManagementPage() {
 
                             {/* Scrollable Body */}
                             <div
-                                className="flex-1 overflow-y-auto px-6 py-6 modal-scroll modal-scrollbar bg-white relative"
+                                className="flex-1 overflow-y-auto px-6 py-6 mb-20 modal-scroll modal-scrollbar bg-white relative"
                                 style={{ backgroundColor: '#ffffff' }}
                             >
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -384,7 +384,7 @@ export default function CustomerManagementPage() {
 
                             {/* Footer */}
                             <DialogFooter
-                                className="px-6 py-4 border-t bg-gray-50 flex-shrink-0 z-10"
+                                className="px-6 py-4 border-t bg-gray-50 flex-shrink-0 z-10 absolute bottom-0 left-0 w-full"
                                 style={{ backgroundColor: '#f9fafb' }}
                             >
                                 <div className="flex w-full justify-end gap-3">
