@@ -1,3 +1,4 @@
+// src/components/pages/ProductManagementPage.jsx
 import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../../store/useStore';
 import { supabase } from '../../lib/supabaseClient';
@@ -8,7 +9,7 @@ import {
 } from '../ui';
 import Pagination from '../Pagination';
 
-// --- NEW: Import all the hooks ---
+// --- Import Hooks ---
 import { useProducts } from '../../hooks/useProducts';
 import {
     useCreateProduct,
@@ -18,9 +19,7 @@ import {
 
 import MobileLogoutButton from '../MobileLogoutButton';
 
-// --- UPDATED ICONS (Modern & Consistent) ---
-
-// Simple SVG Icon for Edit (Pencil)
+// --- ICONS ---
 const EditIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="currentColor">
         <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" />
@@ -28,20 +27,17 @@ const EditIcon = () => (
     </svg>
 );
 
-// Simple SVG Icon for Delete (Trash)
 const DeleteIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="currentColor">
         <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
     </svg>
 );
 
-// NEW: Simple SVG Icon for Product (Shopping Bag)
 const BagIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="currentColor" className="text-gray-500">
         <path fillRule="evenodd" d="M10 2a2 2 0 00-2 2v2H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V8a2 2 0 00-2-2h-4V4a2 2 0 00-2-2h-2zM9 4V3a1 1 0 011-1h.01a1 1 0 011 1v1H9zM4 8h12v10H4V8z" clipRule="evenodd" />
     </svg>
 );
-
 
 export default function ProductManagementPage() {
     const [searchTerm, setSearchTerm] = useState('');
@@ -49,7 +45,7 @@ export default function ProductManagementPage() {
     const [categoryFilter, setCategoryFilter] = useState('All');
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
-    // Fetch products with server-side pagination and filters
+
     const { data: productsData = { products: [], totalPages: 1 }, isLoading } = useProducts({ page: currentPage, itemsPerPage, searchTerm: debouncedSearchTerm, category: categoryFilter });
     const products = productsData.products;
     const totalPages = productsData.totalPages;
@@ -61,7 +57,7 @@ export default function ProductManagementPage() {
 
     const [editing, setEditing] = useState(null);
     const [name, setName] = useState('');
-    const productNameRef = useRef(null); // NEW: ref for auto-focus
+    const productNameRef = useRef(null);
     const [price, setPrice] = useState('');
     const [imageFile, setImageFile] = useState(null);
     const [uploading, setUploading] = useState(false);
@@ -79,17 +75,12 @@ export default function ProductManagementPage() {
     const [newCategoryName, setNewCategoryName] = useState('');
     const searchInputRef = useRef(null);
 
-    // --- MODIFICATION: Debounce search term ---
     useEffect(() => {
         const handler = setTimeout(() => {
             setDebouncedSearchTerm(searchTerm);
-        }, 300); // 300ms delay
-
-        return () => {
-            clearTimeout(handler);
-        };
+        }, 300);
+        return () => clearTimeout(handler);
     }, [searchTerm]);
-    // --- END MODIFICATION ---
 
     useEffect(() => {
         const handleKeyDown = (e) => {
@@ -104,25 +95,14 @@ export default function ProductManagementPage() {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, []);
 
-    // Body scroll lock when Add Product modal is open
+    // Body scroll lock
     useEffect(() => {
         if (isModalOpen) {
-            if (!document.body.dataset.pmPrevOverflow) {
-                document.body.dataset.pmPrevOverflow = document.body.style.overflow || '';
-            }
             document.body.style.overflow = 'hidden';
         } else {
-            if (document.body.dataset.pmPrevOverflow !== undefined) {
-                document.body.style.overflow = document.body.dataset.pmPrevOverflow;
-                delete document.body.dataset.pmPrevOverflow;
-            }
+            document.body.style.overflow = '';
         }
-        return () => {
-            if (document.body.dataset.pmPrevOverflow !== undefined) {
-                document.body.style.overflow = document.body.dataset.pmPrevOverflow;
-                delete document.body.dataset.pmPrevOverflow;
-            }
-        };
+        return () => { document.body.style.overflow = ''; };
     }, [isModalOpen]);
 
     const startEdit = (p) => {
@@ -168,15 +148,8 @@ export default function ProductManagementPage() {
             const fileExt = file.name.split('.').pop();
             const fileName = `${Math.random()}.${fileExt}`;
             const filePath = `${fileName}`;
-
-            const { error: uploadError } = await supabase.storage
-                .from('products')
-                .upload(filePath, file);
-
-            if (uploadError) {
-                throw uploadError;
-            }
-
+            const { error: uploadError } = await supabase.storage.from('products').upload(filePath, file);
+            if (uploadError) throw uploadError;
             const { data } = supabase.storage.from('products').getPublicUrl(filePath);
             return data.publicUrl;
         } catch (error) {
@@ -200,23 +173,6 @@ export default function ProductManagementPage() {
         if (isNaN(parsedPrice) || parsedPrice < 0) {
             addToast({ title: 'Error', description: 'Price must be a valid non-negative number.' });
             return;
-        }
-
-        const nameLower = name.trim().toLowerCase();
-        const existingProducts = products || [];
-
-        if (!editing) {
-            const exists = existingProducts.some(p => p.name.trim().toLowerCase() === nameLower);
-            if (exists) {
-                addToast({ title: 'Warning', description: `Product "${name}" already exists.`, variant: 'warning' });
-                return;
-            }
-        } else {
-            const exists = existingProducts.some(p => p.name.trim().toLowerCase() === nameLower && p.id !== editing.id);
-            if (exists) {
-                addToast({ title: 'Warning', description: `Another product with the name "${name}" already exists.`, variant: 'warning' });
-                return;
-            }
         }
 
         setUploading(true);
@@ -273,15 +229,12 @@ export default function ProductManagementPage() {
 
     const isMutating = createProduct.isPending || updateProduct.isPending || deleteProduct.isPending || uploading;
 
-    // Helper: compute merged categories (from products + custom)
     const categoriesFromProducts = Array.from(new Set((products || []).map(p => (p.category || 'General').trim()))).filter(Boolean);
     const mergedCategories = Array.from(new Set(['General', ...categoriesFromProducts, ...customCategories]));
 
-    // Helper: add a new category
     const addCategory = () => {
         const name = (newCategoryName || '').trim();
         if (!name) return;
-        // Check duplicates case-insensitive
         const exists = mergedCategories.some(c => c.toLowerCase() === name.toLowerCase());
         if (exists) {
             setCategory(mergedCategories.find(c => c.toLowerCase() === name.toLowerCase()) || name);
@@ -295,26 +248,20 @@ export default function ProductManagementPage() {
         setNewCategoryName('');
     };
 
-    // Reset to first page when search or category changes
     useEffect(() => { setCurrentPage(1); }, [debouncedSearchTerm, categoryFilter]);
-
-    // Derived list for category filter (merge + All)
     const categories = ['All', ...mergedCategories];
     const filteredProducts = products || [];
 
-    // NEW: Persist custom categories
     useEffect(() => {
         try { localStorage.setItem('pos_custom_categories', JSON.stringify(customCategories)); } catch {}
     }, [customCategories]);
 
-    // NEW: Auto-focus product name when modal opens
     useEffect(() => {
         if (isModalOpen && productNameRef.current) {
             productNameRef.current.focus();
         }
     }, [isModalOpen]);
 
-    // NEW: Helper to format numbers to 2 decimals (leave blank if empty)
     const formatToTwoDecimals = (val) => {
         if (val === '' || val == null) return '';
         const num = parseFloat(val);
@@ -324,7 +271,6 @@ export default function ProductManagementPage() {
 
     return (
         <div className="product-page">
-            {/* --- Brand Logo at the very top left --- */}
             <img src="/seaside.png" alt="Seaside Logo" className="brand-logo-top" width={32} height={32} />
             <MobileLogoutButton />
             <div>
@@ -332,7 +278,8 @@ export default function ProductManagementPage() {
                     <div>
                         <h1 className="text-2xl font-semibold">Products</h1>
                         <p className="text-muted">Manage your product inventory</p>
-                    </div><Button variant="primary" onClick={openModal}>Add Product</Button>
+                    </div>
+                    <Button variant="primary" onClick={openModal}>Add Product</Button>
                 </div>
 
                 <div className="mb-4 flex flex-col sm:flex-row gap-3 sm:items-end">
@@ -447,28 +394,37 @@ export default function ProductManagementPage() {
                     <Pagination currentPage={currentPage} totalPages={totalPages || 1} onPageChange={page => setCurrentPage(page)} />
                 </div>
 
-
-                {/* --- MODAL: Product Form (Fixed UI) --- */}
+                {/* --- MODAL: Product Form --- */}
                 <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                    {/* Increased max-width for better spacing */}
-                    <DialogContent className="p-0 overflow-hidden max-h-[calc(100dvh-2rem)] sm:max-w-lg">
-                        <form onSubmit={save} className="flex flex-col h-full max-h-[calc(100dvh-2rem)]">
+                    {/* FIX: Increased max width to 4xl */}
+                    <DialogContent
+                        className="p-0 overflow-hidden max-h-[calc(100dvh-2rem)] sm:max-w-4xl bg-white shadow-xl border border-gray-100"
+                        style={{ backgroundColor: '#ffffff', zIndex: 50 }}
+                    >
+                        <form
+                            onSubmit={save}
+                            className="flex flex-col h-full max-h-[calc(100dvh-2rem)] bg-white"
+                            style={{ backgroundColor: '#ffffff' }}
+                        >
                             {/* Header */}
-                            <DialogHeader className="px-6 py-4 border-b bg-white flex-shrink-0">
+                            <DialogHeader
+                                className="px-6 py-4 border-b bg-white flex-shrink-0 z-10"
+                                style={{ backgroundColor: '#ffffff' }}
+                            >
                                 <DialogTitle className="text-lg font-bold text-gray-900">
                                     {editing ? 'Edit Product' : 'Add New Product'}
                                 </DialogTitle>
                                 <DialogCloseButton onClick={closeModal} />
                             </DialogHeader>
 
-                            {/* Scrollable Body - Solid white background to prevent transparency */}
+                            {/* Scrollable Body */}
                             <div
-                                className="flex-1 overflow-y-auto px-6 py-6 space-y-6 modal-scroll modal-scrollbar bg-white"
-                                style={{ minHeight: '0', backgroundColor: '#ffffff' }}
+                                className="flex-1 overflow-y-auto px-6 py-6 modal-scroll modal-scrollbar bg-white relative"
+                                style={{ backgroundColor: '#ffffff' }}
                             >
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                                    {/* Product Name - Full Width */}
-                                    <div className="sm:col-span-2 space-y-1.5">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                    {/* Product Name (Full Width) */}
+                                    <div className="md:col-span-2 space-y-2">
                                         <Label htmlFor="productName" className="text-sm font-semibold text-gray-700">
                                             Product Name <span className="text-red-500">*</span>
                                         </Label>
@@ -479,12 +435,50 @@ export default function ProductManagementPage() {
                                             onChange={e => setName(e.target.value)}
                                             required
                                             placeholder="e.g. Chips (Large)"
-                                            className="text-base py-2.5"
+                                            className="text-base py-2.5 border-gray-300"
                                         />
                                     </div>
 
+                                    {/* Category (Full Width) */}
+                                    <div className="md:col-span-2 space-y-2">
+                                        <Label htmlFor="category" className="text-sm font-semibold text-gray-700">
+                                            Category
+                                        </Label>
+                                        <div className="flex gap-2">
+                                            <Select
+                                                id="category"
+                                                value={category}
+                                                onChange={e => setCategory(e.target.value)}
+                                                className="flex-1 text-base py-2.5 border-gray-300"
+                                            >
+                                                {mergedCategories.map(c => <option key={c} value={c}>{c}</option>)}
+                                            </Select>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                onClick={() => { setIsAddingCategory(v => !v); setNewCategoryName(''); }}
+                                                className="whitespace-nowrap h-[42px] px-4 border-gray-300"
+                                            >
+                                                {isAddingCategory ? 'Cancel' : '+ Add'}
+                                            </Button>
+                                        </div>
+                                        {isAddingCategory && (
+                                            <div className="mt-2 flex gap-2 items-center animate-in fade-in slide-in-from-top-1">
+                                                <Input
+                                                    id="newCategoryName"
+                                                    placeholder="Enter new category name"
+                                                    value={newCategoryName}
+                                                    onChange={e => setNewCategoryName(e.target.value)}
+                                                    className="flex-1 text-base border-gray-300"
+                                                    autoFocus
+                                                />
+                                                <Button type="button" size="sm" onClick={addCategory} className="h-[42px]">Save</Button>
+                                            </div>
+                                        )}
+                                    </div>
+
                                     {/* Prices */}
-                                    <div className="space-y-1.5">
+                                    <div className="space-y-2">
                                         <Label htmlFor="pprice" className="text-sm font-semibold text-gray-700">
                                             Selling Price (₱) <span className="text-red-500">*</span>
                                         </Label>
@@ -498,10 +492,10 @@ export default function ProductManagementPage() {
                                             onBlur={() => setPrice(p => formatToTwoDecimals(p))}
                                             required
                                             placeholder="0.00"
-                                            className="text-base py-2.5"
+                                            className="text-base py-2.5 border-gray-300"
                                         />
                                     </div>
-                                    <div className="space-y-1.5">
+                                    <div className="space-y-2">
                                         <Label htmlFor="cost" className="text-sm font-semibold text-gray-700">
                                             Cost Price (₱)
                                         </Label>
@@ -514,64 +508,12 @@ export default function ProductManagementPage() {
                                             onChange={e => setCost(e.target.value)}
                                             onBlur={() => setCost(c => formatToTwoDecimals(c))}
                                             placeholder="0.00"
-                                            className="text-base py-2.5"
+                                            className="text-base py-2.5 border-gray-300"
                                         />
-                                    </div>
-
-                                    {/* Barcode - Full Width */}
-                                    <div className="sm:col-span-2 space-y-1.5">
-                                        <Label htmlFor="barcode" className="text-sm font-semibold text-gray-700">
-                                            Barcode / SKU
-                                        </Label>
-                                        <Input
-                                            id="barcode"
-                                            value={barcode}
-                                            onChange={e => setBarcode(e.target.value)}
-                                            placeholder="Scan or type code"
-                                            className="text-base py-2.5"
-                                        />
-                                    </div>
-
-                                    {/* Category - Full Width with dynamic add */}
-                                    <div className="sm:col-span-2 space-y-1.5">
-                                        <Label htmlFor="category" className="text-sm font-semibold text-gray-700">
-                                            Category
-                                        </Label>
-                                        <div className="flex gap-2">
-                                            <Select
-                                                id="category"
-                                                value={category}
-                                                onChange={e => setCategory(e.target.value)}
-                                                className="flex-1 text-base py-2.5"
-                                            >
-                                                {mergedCategories.map(c => <option key={c} value={c}>{c}</option>)}
-                                            </Select>
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                onClick={() => { setIsAddingCategory(v => !v); setNewCategoryName(''); }}
-                                                className="whitespace-nowrap h-[42px] px-4"
-                                            >
-                                                {isAddingCategory ? 'Cancel' : '+ Add'}
-                                            </Button>
-                                        </div>
-                                        {isAddingCategory && (
-                                            <div className="mt-2 flex gap-2 items-center">
-                                                <Input
-                                                    id="newCategoryName"
-                                                    placeholder="Enter new category name"
-                                                    value={newCategoryName}
-                                                    onChange={e => setNewCategoryName(e.target.value)}
-                                                    className="flex-1 text-base"
-                                                    autoFocus
-                                                />
-                                                <Button type="button" size="sm" onClick={addCategory} className="h-[42px] px-4">Save</Button>
-                                            </div>
-                                        )}
                                     </div>
 
                                     {/* Stocks */}
-                                    <div className="space-y-1.5">
+                                    <div className="space-y-2">
                                         <Label htmlFor="stock" className="text-sm font-semibold text-gray-700">
                                             Current Stock
                                         </Label>
@@ -582,10 +524,10 @@ export default function ProductManagementPage() {
                                             value={stock}
                                             onChange={e => setStock(e.target.value)}
                                             placeholder="0"
-                                            className="text-base py-2.5"
+                                            className="text-base py-2.5 border-gray-300"
                                         />
                                     </div>
-                                    <div className="space-y-1.5">
+                                    <div className="space-y-2">
                                         <Label htmlFor="minStock" className="text-sm font-semibold text-gray-700">
                                             Low Stock Alert
                                         </Label>
@@ -596,12 +538,26 @@ export default function ProductManagementPage() {
                                             value={minStock}
                                             onChange={e => setMinStock(e.target.value)}
                                             placeholder="5"
-                                            className="text-base py-2.5"
+                                            className="text-base py-2.5 border-gray-300"
                                         />
                                     </div>
 
-                                    {/* Image - Full Width */}
-                                    <div className="sm:col-span-2 space-y-1.5">
+                                    {/* Barcode (Full Width) */}
+                                    <div className="md:col-span-2 space-y-2">
+                                        <Label htmlFor="barcode" className="text-sm font-semibold text-gray-700">
+                                            Barcode / SKU
+                                        </Label>
+                                        <Input
+                                            id="barcode"
+                                            value={barcode}
+                                            onChange={e => setBarcode(e.target.value)}
+                                            placeholder="Scan or type code"
+                                            className="text-base py-2.5 border-gray-300"
+                                        />
+                                    </div>
+
+                                    {/* Image (Full Width) */}
+                                    <div className="md:col-span-2 space-y-2">
                                         <Label htmlFor="productImage" className="text-sm font-semibold text-gray-700">
                                             Product Image (Optional)
                                         </Label>
@@ -610,7 +566,7 @@ export default function ProductManagementPage() {
                                             type="file"
                                             accept="image/*"
                                             onChange={(e) => setImageFile(e.target.files[0])}
-                                            className="text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-soft file:text-primary hover:file:bg-violet-100"
+                                            className="text-sm border-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-soft file:text-primary hover:file:bg-violet-100"
                                         />
                                         {editing?.image_url && !imageFile && (
                                             <div className="mt-2">
@@ -623,9 +579,12 @@ export default function ProductManagementPage() {
                             </div>
 
                             {/* Footer */}
-                            <DialogFooter className="px-6 py-4 border-t bg-gray-50 flex-shrink-0">
+                            <DialogFooter
+                                className="px-6 py-4 border-t bg-gray-50 flex-shrink-0 z-10"
+                                style={{ backgroundColor: '#f9fafb' }} // standard gray-50 hex
+                            >
                                 <div className="flex w-full justify-end gap-3">
-                                    <Button variant="outline" type="button" onClick={closeModal} disabled={isMutating} className="px-6">
+                                    <Button variant="outline" type="button" onClick={closeModal} disabled={isMutating} className="px-6 bg-white border-gray-300">
                                         Cancel
                                     </Button>
                                     <Button type="submit" disabled={isMutating} className="px-6 btn--primary">
