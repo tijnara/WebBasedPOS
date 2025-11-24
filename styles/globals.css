@@ -450,8 +450,10 @@ input[type="checkbox"]:focus {
 /* --- Sizing & Spacing --- */
 .w-full { width: 100%; }
 .mb-0 { margin-bottom: 0; }
+.mb-1 { margin-bottom: 0.25rem; }
 .mb-2 { margin-bottom: 0.5rem; }
 .mb-4 { margin-bottom: 1rem; }
+.mt-1 { margin-top: 0.25rem; }
 .mt-2 { margin-top: 0.5rem; }
 .mt-4 { margin-top: 1rem; }
 .p-0 { padding: 0; }
@@ -460,8 +462,10 @@ input[type="checkbox"]:focus {
 .pt-2 { padding-top: 0.5rem; }
 .space-x-1 > :not([hidden]) ~ :not([hidden]) { margin-left: 0.25rem; }
 .space-x-2 > :not([hidden]) ~ :not([hidden]) { margin-left: 0.5rem; }
+.space-y-1\.5 > :not([hidden]) ~ :not([hidden]) { margin-top: 0.375rem; }
 .gap-2 { gap: 0.5rem; }
 .gap-3 { gap: 0.75rem; }
+.gap-5 { gap: 1.25rem; }
 
 /* --- Flex & Grid --- */
 .flex { display: flex; }
@@ -560,10 +564,12 @@ input[type="checkbox"]:focus {
 .bg-slate-50 { background-color: #f8fafc; } /* --- ADDED THIS CLASS --- */
 .bg-slate-100 { background-color: #f1f5f9; } /* --- ADDED THIS CLASS --- */
 .bg-red-100 { background-color: #fee2e2; } /* --- ADDED THIS CLASS --- */
+.bg-green-100 { background-color: #dcfce7; }
 .bg-opacity-50 { opacity: 0.5; }
 .bg-gradient-to-r { background-image: linear-gradient(to right, var(--tw-gradient-stops)); } /* --- ADDED THIS CLASS --- */
 .from-success { --tw-gradient-from: var(--success); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(22, 163, 74, 0)); } /* --- ADDED THIS CLASS --- */
 .to-green-500 { --tw-gradient-to: #22c55e; } /* --- ADDED THIS CLASS --- */
+.bg-primary-soft { background-color: var(--primary-soft); }
 
 
 /* --- Specific Component Styles --- */
@@ -685,6 +691,10 @@ input[type="checkbox"]:focus {
 .text-gray-800 { color: #1f2937; } /* --- ADDED THIS CLASS --- */
 .text-gray-900 { color: #111827; } /* --- ADDED THIS CLASS --- */
 .text-red-600 { color: #dc2626; } /* --- ADDED THIS CLASS --- */
+.text-red-700 { color: #b91c1c; }
+.text-blue-600 { color: #2563eb; }
+.text-green-600 { color: #16a34a; }
+.text-green-700 { color: #15803d; }
 
 
 /* Responsive Design */
@@ -910,7 +920,10 @@ input[type="checkbox"]:focus {
 .p-12 { padding: 3rem; }
 .pt-12 { padding-top: 3rem; }
 .pr-12 { padding-right: 3rem; }
+.px-6 { padding-left: 1.5rem; padding-right: 1.5rem; }
+.py-2\.5 { padding-top: 0.625rem; padding-bottom: 0.625rem; }
 .space-y-5 > :not([hidden]) ~ :not([hidden]) { margin-top: 1.25rem; }
+.space-y-6 > :not([hidden]) ~ :not([hidden]) { margin-top: 1.5rem; }
 .my-8 { margin-top: 2rem; margin-bottom: 2rem; }
 .py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
 .py-4 { padding-top: 1rem; padding-bottom: 1rem; }

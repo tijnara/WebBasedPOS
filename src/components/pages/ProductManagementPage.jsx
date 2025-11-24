@@ -350,10 +350,9 @@ export default function ProductManagementPage() {
                     </div>
                 </div>
 
-                {/* --- DESKTOP TABLE (Hidden on mobile) --- */}
+                {/* --- DESKTOP TABLE --- */}
                 <Card className="hidden md:block">
                     <CardContent>
-                        {/* --- MODIFICATION: Removed max-h-96, pagination handles length --- */}
                         <ScrollArea>
                             <Table>
                                 <TableHeader>
@@ -362,7 +361,6 @@ export default function ProductManagementPage() {
                                         <TableHead>Category</TableHead>
                                         <TableHead>Stock</TableHead>
                                         <TableHead>Price</TableHead>
-                                        <TableHead>Date Created</TableHead>
                                         <TableHead>Date Updated</TableHead>
                                         <TableHead>Image</TableHead>
                                         <TableHead>Actions</TableHead>
@@ -371,50 +369,35 @@ export default function ProductManagementPage() {
                                 <TableBody>
                                     {isLoading ? (
                                         <TableRow>
-                                            <TableCell colSpan={6} className="text-center py-8">
-                                                <div className="flex justify-center items-center">
-                                                    <svg className="animate-spin h-5 w-5 text-primary mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                    </svg>
-                                                    Loading products...
-                                                </div>
-                                            </TableCell>
+                                            <TableCell colSpan={7} className="text-center py-8">Loading...</TableCell>
                                         </TableRow>
                                     ) : filteredProducts.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={6} className="text-center py-8">
-                                                {debouncedSearchTerm ? `No products found for "${debouncedSearchTerm}".` : 'No products found.'}
-                                            </TableCell>
+                                            <TableCell colSpan={7} className="text-center py-8">No products found.</TableCell>
                                         </TableRow>
                                     ) : (
                                         filteredProducts.map(p => (
                                             <TableRow key={p.id}>
-                                                <TableCell>{p.name}</TableCell>
+                                                <TableCell className="font-medium">{p.name}</TableCell>
                                                 <TableCell>{p.category || 'Uncategorized'}</TableCell>
                                                 <TableCell>
-                                                    <span className={`font-bold ${Number(p.stock) <= Number(p.minStock) ? 'text-red-600' : 'text-green-600'}`}>{p.stock}</span>
+                                                    <span className={`font-bold px-2 py-1 rounded-full text-xs ${Number(p.stock) <= Number(p.minStock) ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                                                        {p.stock}
+                                                    </span>
                                                 </TableCell>
                                                 <TableCell>₱{Number(p.price || 0).toFixed(2)}</TableCell>
                                                 <TableCell>
-                                                    {p.created_at ? new Date(p.created_at).toLocaleString() : <span className="text-xs text-gray-400">—</span>}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {p.updated_at ? new Date(p.updated_at).toLocaleString() : <span className="text-xs text-gray-400">—</span>}
+                                                    {p.updated_at ? new Date(p.updated_at).toLocaleDateString() : '—'}
                                                 </TableCell>
                                                 <TableCell>
                                                     {p.image_url ? (
-                                                        <img src={p.image_url} alt={p.name} className="w-12 h-12 object-cover rounded border border-gray-200" />
+                                                        <img src={p.image_url} alt={p.name} className="w-10 h-10 object-cover rounded border border-gray-200" />
                                                     ) : <span className="text-xs text-gray-400">None</span>}
                                                 </TableCell>
                                                 <TableCell>
                                                     <div className="flex space-x-1">
-                                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEdit(p)}>
-                                                            <EditIcon />
-                                                        </Button>
-                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(p)}>
-                                                            <DeleteIcon />
-                                                        </Button>
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600" onClick={() => startEdit(p)}><EditIcon /></Button>
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(p)}><DeleteIcon /></Button>
                                                     </div>
                                                 </TableCell>
                                             </TableRow>
@@ -423,21 +406,18 @@ export default function ProductManagementPage() {
                                 </TableBody>
                             </Table>
                         </ScrollArea>
-                        {/* Pagination Controls */}
                         <Pagination currentPage={currentPage} totalPages={totalPages || 1} onPageChange={page => setCurrentPage(page)} />
                     </CardContent>
                 </Card>
 
-                {/* --- MOBILE LIST VIEW (Show on mobile, hide on md+) --- */}
+                {/* --- MOBILE LIST VIEW --- */}
                 <div className="block md:hidden">
                     <Card>
-                        <CardContent className="p-0"> {/* Remove padding from content to allow list to go edge-to-edge */}
+                        <CardContent className="p-0">
                             {isLoading ? (
                                 <div className="text-center text-muted p-6">Loading products...</div>
                             ) : filteredProducts.length === 0 ? (
-                                <div className="text-center text-muted p-6">
-                                    {debouncedSearchTerm ? `No products found for "${debouncedSearchTerm}".` : 'No products found.'}
-                                </div>
+                                <div className="text-center text-muted p-6">No products found.</div>
                             ) : (
                                 <div className="divide-y divide-gray-100">
                                     {filteredProducts.map(p => (
@@ -446,25 +426,17 @@ export default function ProductManagementPage() {
                                                 {p.image_url ? (
                                                     <img src={p.image_url} alt={p.name} className="w-12 h-12 rounded object-cover bg-gray-100 border border-gray-200" />
                                                 ) : (
-                                                    <span className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center border border-gray-200">
-                                                        <BagIcon />
-                                                    </span>
+                                                    <span className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center border border-gray-200"><BagIcon /></span>
                                                 )}
                                             </div>
-
                                             <div className="flex-1 min-w-0">
                                                 <div className="font-medium text-gray-900 truncate">{p.name}</div>
-                                                <div className="text-sm text-gray-500">₱{Number(p.price || 0).toFixed(2)}</div>
-                                                <div className="text-[10px] text-gray-500">C: {p.created_at ? new Date(p.created_at).toLocaleDateString() : '—'} | U: {p.updated_at ? new Date(p.updated_at).toLocaleDateString() : '—'}</div>
+                                                <div className="text-sm text-primary font-semibold">₱{Number(p.price || 0).toFixed(2)}</div>
+                                                <div className="text-xs text-gray-500 mt-1">Stock: <span className={Number(p.stock) <= Number(p.minStock) ? 'text-red-600 font-bold' : 'text-green-600'}>{p.stock}</span></div>
                                             </div>
-
                                             <div className="flex-shrink-0 flex items-center space-x-0">
-                                                <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => startEdit(p)}>
-                                                    <EditIcon />
-                                                </Button>
-                                                <Button variant="ghost" size="icon" className="h-9 w-9 text-destructive" onClick={() => remove(p)}>
-                                                    <DeleteIcon />
-                                                </Button>
+                                                <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => startEdit(p)}><EditIcon /></Button>
+                                                <Button variant="ghost" size="icon" className="h-9 w-9 text-destructive" onClick={() => remove(p)}><DeleteIcon /></Button>
                                             </div>
                                         </div>
                                     ))}
@@ -472,83 +444,190 @@ export default function ProductManagementPage() {
                             )}
                         </CardContent>
                     </Card>
-
-                    {/* Pagination Controls for mobile */}
                     <Pagination currentPage={currentPage} totalPages={totalPages || 1} onPageChange={page => setCurrentPage(page)} />
                 </div>
 
 
-                {/* --- MODAL: Product Form (No change needed) --- */}
+                {/* --- MODAL: Product Form (Fixed UI) --- */}
                 <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                    <DialogContent className="p-0 overflow-hidden max-h-[calc(100dvh-2rem)]">
+                    {/* Increased max-width for better spacing */}
+                    <DialogContent className="p-0 overflow-hidden max-h-[calc(100dvh-2rem)] sm:max-w-lg">
                         <form onSubmit={save} className="flex flex-col h-full max-h-[calc(100dvh-2rem)]">
-                            {/* Sticky Header */}
-                            <DialogHeader className="px-4 pt-4 pb-2 border-b bg-white flex-shrink-0">
-                                <DialogTitle className="text-base sm:text-lg font-semibold">{editing ? 'Edit Product' : 'Add Product'}</DialogTitle>
+                            {/* Header */}
+                            <DialogHeader className="px-6 py-4 border-b bg-white flex-shrink-0">
+                                <DialogTitle className="text-lg font-bold text-gray-900">
+                                    {editing ? 'Edit Product' : 'Add New Product'}
+                                </DialogTitle>
                                 <DialogCloseButton onClick={closeModal} />
                             </DialogHeader>
 
-                            {/* Scrollable form body */}
-                            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-5 modal-scroll modal-scrollbar bg-white" style={{ minHeight: '0', backgroundColor: '#ffffff' }}>
-                                <div className="space-y-5 sm:grid sm:grid-cols-2 sm:gap-5 sm:space-y-0">
-                                    <div className="flex flex-col space-y-1 sm:col-span-2">
-                                        <Label htmlFor="productName" className="text-[11px] font-medium tracking-wide text-gray-600">Product Name *</Label>
-                                        <Input id="productName" ref={productNameRef} value={name} onChange={e => setName(e.target.value)} required placeholder="e.g. Chips (Large)" className="text-sm" />
+                            {/* Scrollable Body */}
+                            <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6 modal-scroll modal-scrollbar bg-white" style={{ minHeight: '0', backgroundColor: '#ffffff' }}>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                                    {/* Product Name - Full Width */}
+                                    <div className="sm:col-span-2 space-y-1.5">
+                                        <Label htmlFor="productName" className="text-sm font-semibold text-gray-700">
+                                            Product Name <span className="text-red-500">*</span>
+                                        </Label>
+                                        <Input
+                                            id="productName"
+                                            ref={productNameRef}
+                                            value={name}
+                                            onChange={e => setName(e.target.value)}
+                                            required
+                                            placeholder="e.g. Chips (Large)"
+                                            className="text-base py-2.5"
+                                        />
                                     </div>
-                                    <div className="flex flex-col space-y-1">
-                                        <Label htmlFor="pprice" className="text-[11px] font-medium tracking-wide text-gray-600">Selling Price (₱) *</Label>
-                                        <Input id="pprice" type="number" step="0.01" min="0" value={price} onChange={e => setPrice(e.target.value)} onBlur={() => setPrice(p => formatToTwoDecimals(p))} required placeholder="0.00" className="text-sm" />
+
+                                    {/* Prices */}
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="pprice" className="text-sm font-semibold text-gray-700">
+                                            Selling Price (₱) <span className="text-red-500">*</span>
+                                        </Label>
+                                        <Input
+                                            id="pprice"
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            value={price}
+                                            onChange={e => setPrice(e.target.value)}
+                                            onBlur={() => setPrice(p => formatToTwoDecimals(p))}
+                                            required
+                                            placeholder="0.00"
+                                            className="text-base py-2.5"
+                                        />
                                     </div>
-                                    <div className="flex flex-col space-y-1">
-                                        <Label htmlFor="cost" className="text-[11px] font-medium tracking-wide text-gray-600">Cost Price (₱)</Label>
-                                        <Input id="cost" type="number" step="0.01" min="0" value={cost} onChange={e => setCost(e.target.value)} onBlur={() => setCost(c => formatToTwoDecimals(c))} placeholder="0.00" className="text-sm" />
-                                        <p className="text-[10px] text-gray-500">Optional – for profit analytics.</p>
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="cost" className="text-sm font-semibold text-gray-700">
+                                            Cost Price (₱)
+                                        </Label>
+                                        <Input
+                                            id="cost"
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            value={cost}
+                                            onChange={e => setCost(e.target.value)}
+                                            onBlur={() => setCost(c => formatToTwoDecimals(c))}
+                                            placeholder="0.00"
+                                            className="text-base py-2.5"
+                                        />
                                     </div>
-                                    <div className="flex flex-col space-y-1">
-                                        <Label htmlFor="barcode" className="text-[11px] font-medium tracking-wide text-gray-600">Barcode / SKU</Label>
-                                        <Input id="barcode" value={barcode} onChange={e => setBarcode(e.target.value)} placeholder="Scan or type code" className="text-sm" />
-                                        <p className="text-[10px] text-gray-500">Leave blank if none.</p>
+
+                                    {/* Barcode - Full Width */}
+                                    <div className="sm:col-span-2 space-y-1.5">
+                                        <Label htmlFor="barcode" className="text-sm font-semibold text-gray-700">
+                                            Barcode / SKU
+                                        </Label>
+                                        <Input
+                                            id="barcode"
+                                            value={barcode}
+                                            onChange={e => setBarcode(e.target.value)}
+                                            placeholder="Scan or type code"
+                                            className="text-base py-2.5"
+                                        />
                                     </div>
-                                    <div className="flex flex-col space-y-1 sm:col-span-2">
-                                        <Label htmlFor="category" className="text-[11px] font-medium tracking-wide text-gray-600">Category</Label>
+
+                                    {/* Category - Full Width with dynamic add */}
+                                    <div className="sm:col-span-2 space-y-1.5">
+                                        <Label htmlFor="category" className="text-sm font-semibold text-gray-700">
+                                            Category
+                                        </Label>
                                         <div className="flex gap-2">
-                                            <Select id="category" value={category} onChange={e => setCategory(e.target.value)} className="flex-1 text-sm">
+                                            <Select
+                                                id="category"
+                                                value={category}
+                                                onChange={e => setCategory(e.target.value)}
+                                                className="flex-1 text-base py-2.5"
+                                            >
                                                 {mergedCategories.map(c => <option key={c} value={c}>{c}</option>)}
                                             </Select>
-                                            <Button type="button" size="sm" variant="outline" onClick={() => { setIsAddingCategory(v => !v); setNewCategoryName(''); }} className="whitespace-nowrap">{isAddingCategory ? 'Cancel' : '+ Add'}</Button>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                onClick={() => { setIsAddingCategory(v => !v); setNewCategoryName(''); }}
+                                                className="whitespace-nowrap h-[42px] px-4"
+                                            >
+                                                {isAddingCategory ? 'Cancel' : '+ Add'}
+                                            </Button>
                                         </div>
                                         {isAddingCategory && (
                                             <div className="mt-2 flex gap-2 items-center">
-                                                <Input id="newCategoryName" placeholder="New category" value={newCategoryName} onChange={e => setNewCategoryName(e.target.value)} className="flex-1 text-sm" />
-                                                <Button type="button" size="sm" onClick={addCategory}>Save</Button>
+                                                <Input
+                                                    id="newCategoryName"
+                                                    placeholder="Enter new category name"
+                                                    value={newCategoryName}
+                                                    onChange={e => setNewCategoryName(e.target.value)}
+                                                    className="flex-1 text-base"
+                                                    autoFocus
+                                                />
+                                                <Button type="button" size="sm" onClick={addCategory} className="h-[42px] px-4">Save</Button>
                                             </div>
                                         )}
                                     </div>
-                                    <div className="flex flex-col space-y-1">
-                                        <Label htmlFor="stock" className="text-[11px] font-medium tracking-wide text-gray-600">Current Stock</Label>
-                                        <Input id="stock" type="number" min="0" value={stock} onChange={e => setStock(e.target.value)} placeholder="0" className="text-sm" />
+
+                                    {/* Stocks */}
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="stock" className="text-sm font-semibold text-gray-700">
+                                            Current Stock
+                                        </Label>
+                                        <Input
+                                            id="stock"
+                                            type="number"
+                                            min="0"
+                                            value={stock}
+                                            onChange={e => setStock(e.target.value)}
+                                            placeholder="0"
+                                            className="text-base py-2.5"
+                                        />
                                     </div>
-                                    <div className="flex flex-col space-y-1">
-                                        <Label htmlFor="minStock" className="text-[11px] font-medium tracking-wide text-gray-600">Low Stock Alert</Label>
-                                        <Input id="minStock" type="number" min="0" value={minStock} onChange={e => setMinStock(e.target.value)} placeholder="5" className="text-sm" />
-                                        <p className="text-[10px] text-gray-500">Red badge when stock ≤ value.</p>
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="minStock" className="text-sm font-semibold text-gray-700">
+                                            Low Stock Alert
+                                        </Label>
+                                        <Input
+                                            id="minStock"
+                                            type="number"
+                                            min="0"
+                                            value={minStock}
+                                            onChange={e => setMinStock(e.target.value)}
+                                            placeholder="5"
+                                            className="text-base py-2.5"
+                                        />
                                     </div>
-                                    <div className="flex flex-col space-y-1 sm:col-span-2">
-                                        <Label htmlFor="productImage" className="text-[11px] font-medium tracking-wide text-gray-600">Product Image (Optional)</Label>
-                                        <Input id="productImage" type="file" accept="image/*" onChange={(e) => setImageFile(e.target.files[0])} className="text-sm" />
-                                        <p className="text-[10px] text-gray-500">Square images look best (≈300×300).</p>
+
+                                    {/* Image - Full Width */}
+                                    <div className="sm:col-span-2 space-y-1.5">
+                                        <Label htmlFor="productImage" className="text-sm font-semibold text-gray-700">
+                                            Product Image (Optional)
+                                        </Label>
+                                        <Input
+                                            id="productImage"
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={(e) => setImageFile(e.target.files[0])}
+                                            className="text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-soft file:text-primary hover:file:bg-violet-100"
+                                        />
                                         {editing?.image_url && !imageFile && (
-                                            <p className="text-[10px] text-gray-500">Current image: <a href={editing.image_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">View</a></p>
+                                            <div className="mt-2">
+                                                <p className="text-xs text-gray-500 mb-1">Current image:</p>
+                                                <img src={editing.image_url} alt="Current" className="h-16 w-16 object-cover rounded-md border" />
+                                            </div>
                                         )}
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Sticky Footer */}
-                            <DialogFooter className="px-4 py-3 border-t bg-white flex-shrink-0">
-                                <div className="flex w-full gap-2">
-                                    <Button variant="outline" type="button" onClick={closeModal} disabled={isMutating} className="flex-1 text-sm">Cancel</Button>
-                                    <Button type="submit" disabled={isMutating} className="flex-1 text-sm">{uploading ? 'Uploading…' : isMutating ? 'Saving…' : (editing ? 'Save Changes' : 'Create Product')}</Button>
+                            {/* Footer */}
+                            <DialogFooter className="px-6 py-4 border-t bg-gray-50 flex-shrink-0">
+                                <div className="flex w-full justify-end gap-3">
+                                    <Button variant="outline" type="button" onClick={closeModal} disabled={isMutating} className="px-6">
+                                        Cancel
+                                    </Button>
+                                    <Button type="submit" disabled={isMutating} className="px-6 btn--primary">
+                                        {uploading ? 'Uploading…' : isMutating ? 'Saving…' : (editing ? 'Save Changes' : 'Create Product')}
+                                    </Button>
                                 </div>
                             </DialogFooter>
                         </form>
