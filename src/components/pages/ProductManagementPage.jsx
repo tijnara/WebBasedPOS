@@ -575,7 +575,7 @@ export default function ProductManagementPage() {
                                         {editing?.image_url && !imageFile && (
                                             <div className="mt-2">
                                                 <p className="text-xs text-gray-500 mb-1">Current image:</p>
-                                                <img src={editing.image_url} alt="Current" className="h-16 w-16 object-cover rounded-md border" />
+                                                <img src={editing.image_url} alt="Current" className="h-12 w-12 object-cover rounded-md border" />
                                             </div>
                                         )}
                                     </div>
