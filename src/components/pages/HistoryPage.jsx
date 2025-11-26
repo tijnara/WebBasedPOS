@@ -72,99 +72,145 @@ const StatusBadge = ({ status }) => {
     return <span className={className}>{status}</span>;
 };
 
-// --- Sale Details Modal ---
+// --- Sale Details Modal (Fixed UI) ---
 const SaleDetailsModal = ({ sale, isOpen, onClose }) => {
     if (!sale) return null;
 
-    // Note: This function would be for a future "Print" feature
     const handlePrintReceipt = () => {
-        alert("Printing receipt... (feature not implemented)");
+        alert("Printing receipt... (feature to be implemented)");
     };
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent
-                className="p-0 overflow-hidden max-h-[calc(100dvh-2rem)] sm:max-w-lg bg-white shadow-xl border border-gray-100"
-                style={{ backgroundColor: '#ffffff', zIndex: 50 }}
+                // FIX: Force white background and explicit flex layout
+                className="p-0 w-full max-w-md bg-white rounded-lg shadow-2xl border border-gray-200 flex flex-col"
+                style={{
+                    backgroundColor: 'white', // Explicitly fix transparency
+                    maxHeight: '85vh',
+                    height: 'auto',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    zIndex: 50,
+                    position: 'relative',
+                    isolation: 'isolate' // Ensures stacking context to prevent bleed-through
+                }}
             >
-                <div className="flex flex-col h-full max-h-[calc(100dvh-2rem)] bg-white" style={{ backgroundColor: '#ffffff' }}>
-                    {/* Header */}
+                {/* Inner Wrapper to guarantee opacity on all layers */}
+                <div className="flex flex-col h-full w-full bg-white" style={{ backgroundColor: 'white' }}>
+
+                    {/* Header - Fixed */}
                     <DialogHeader
-                        className="px-6 py-4 border-b bg-white flex-shrink-0 z-10"
-                        style={{ backgroundColor: '#ffffff' }}
+                        className="px-6 py-4 border-b bg-white flex-shrink-0 flex justify-between items-center z-10"
+                        style={{ backgroundColor: 'white' }}
                     >
-                        <DialogTitle className="text-lg font-bold text-gray-900">Sale Details</DialogTitle>
+                        <DialogTitle className="text-lg font-bold text-gray-900">Transaction Details</DialogTitle>
                         <DialogCloseButton onClick={onClose} />
                     </DialogHeader>
 
-                    {/* Scrollable Body */}
+                    {/* Scrollable Body - Flexible */}
                     <div
-                        className="flex-1 overflow-y-auto px-6 py-6 space-y-6 modal-scroll modal-scrollbar bg-white"
-                        style={{ minHeight: '0', backgroundColor: '#ffffff' }}
+                        className="flex-1 overflow-y-auto p-6 bg-white relative z-0"
+                        style={{
+                            backgroundColor: 'white', // Ensure body is opaque
+                            minHeight: '200px' // Prevent collapse
+                        }}
                     >
-                        {/* Logo and Title */}
-                        <div className="text-center pb-4">
-                            <img src="/seaside.png" alt="Logo" className="mx-auto h-14 w-14 mb-3" />
-                            <h3 className="font-bold text-lg text-gray-900">Seaside Water Refilling Station</h3>
-                            <p className="text-sm text-gray-600 mt-1">Transaction Receipt</p>
-                        </div>
+                        {/* Content Container - Solid Background */}
+                        <div className="bg-white" style={{ backgroundColor: 'white' }}>
 
-                        {/* Transaction Info */}
-                        <div className="border-t border-dashed border-gray-300 pt-4 space-y-3">
-                            <div className="flex justify-between">
-                                <span className="text-sm font-medium text-gray-600">Date:</span>
-                                <span className="text-sm font-semibold text-gray-900">{formatDate(sale.saleTimestamp)}</span>
+                            {/* Branding - Centered */}
+                            <div className="flex flex-col items-center text-center mb-6">
+                                {/* FIX: Constrained logo container size */}
+                                <div className="relative h-20 w-20 mb-3" style={{ height: '80px', width: '80px' }}>
+                                    <img
+                                        src="/seaside.png"
+                                        alt="Seaside Logo"
+                                        className="object-contain w-full h-full"
+                                        style={{ objectFit: 'contain' }}
+                                    />
+                                </div>
+                                <h3 className="font-bold text-xl text-primary leading-tight">Seaside Water Refilling</h3>
+                                <p className="text-xs text-gray-500 mt-1">Loois, Labrador Pangasinan</p>
                             </div>
-                            <div className="flex justify-between">
-                                <span className="text-sm font-medium text-gray-600">Customer:</span>
-                                <span className="text-sm font-semibold text-gray-900">{sale.customerName}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-sm font-medium text-gray-600">Staff:</span>
-                                <span className="text-sm font-semibold text-gray-900">{sale.createdBy || 'N/A'}</span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <span className="text-sm font-medium text-gray-600">Status:</span>
-                                <StatusBadge status={sale.status} />
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-sm font-medium text-gray-600">Payment:</span>
-                                <span className="text-sm font-semibold text-gray-900">{sale.paymentMethod}</span>
-                            </div>
-                        </div>
 
-                        {/* Items Purchased */}
-                        <div className="border-t border-dashed border-gray-300 pt-4">
-                            <h4 className="font-bold text-base text-gray-900 mb-3">Items Purchased</h4>
-                            <div className="space-y-2">
-                                {(sale.sale_items || []).map((item, idx) => (
-                                    <div key={idx} className="flex justify-between text-sm bg-gray-50 px-3 py-2 rounded">
-                                        <span className="text-gray-700">{item.productName} <span className="text-gray-500">(x{item.quantity})</span></span>
-                                        <span className="font-semibold text-gray-900">{formatCurrency(item.productPrice * item.quantity)}</span>
+                            {/* Details Table */}
+                            <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 space-y-3 text-sm mb-6">
+                                <div className="flex justify-between">
+                                    <span className="text-gray-500">Date</span>
+                                    <span className="font-semibold text-gray-900 text-right">{formatDate(sale.saleTimestamp)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-gray-500">Customer</span>
+                                    <span className="font-semibold text-gray-900 text-right">{sale.customerName}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-gray-500">Staff</span>
+                                    <span className="font-semibold text-gray-900 text-right">{sale.createdBy || 'N/A'}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-gray-500">Payment</span>
+                                    <span className="font-semibold text-gray-900 text-right">{sale.paymentMethod}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-gray-500">Status</span>
+                                    <StatusBadge status={sale.status} />
+                                </div>
+                            </div>
+
+                            {/* Items List */}
+                            <div>
+                                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 border-b border-dashed border-gray-300 pb-2">
+                                    Items Purchased
+                                </h4>
+                                <div className="space-y-3">
+                                    {(sale.sale_items || []).map((item, idx) => (
+                                        <div key={idx} className="flex justify-between items-start text-sm">
+                                            <div className="flex-1 pr-2">
+                                                <div className="font-medium text-gray-800">{item.productName}</div>
+                                                <div className="text-xs text-gray-500">{item.quantity} x {formatCurrency(item.productPrice)}</div>
+                                            </div>
+                                            <div className="font-semibold text-gray-900">
+                                                {formatCurrency(item.productPrice * item.quantity)}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Totals Section - Opaque Background */}
+                            <div className="mt-6 pt-4 border-t-2 border-dashed border-gray-200 bg-white" style={{ backgroundColor: 'white' }}>
+                                {/* Use standard tailwind bg color instead of custom variable to ensure opacity */}
+                                <div className="flex justify-between items-end bg-purple-50 p-4 rounded-lg border border-purple-100">
+                                    <div>
+                                        <p className="text-xs text-purple-600 font-semibold uppercase tracking-wide">Total Amount</p>
                                     </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Total */}
-                        <div className="border-t border-dashed border-gray-300 pt-4">
-                            <div className="flex justify-between items-center bg-primary-soft px-4 py-3 rounded-lg">
-                                <span className="text-base font-bold text-gray-900">Total Amount:</span>
-                                <span className="text-lg font-bold text-primary">{formatCurrency(sale.totalAmount)}</span>
+                                    <div className="text-2xl font-bold text-primary">
+                                        {formatCurrency(sale.totalAmount)}
+                                    </div>
+                                </div>
+                                {sale.paymentMethod === 'Cash' && (
+                                    <div className="mt-3 flex justify-between text-xs text-gray-500 px-2">
+                                        <span>Cash Received: {formatCurrency(sale.amountReceived || sale.totalAmount)}</span>
+                                        <span>Change: {formatCurrency((sale.amountReceived || sale.totalAmount) - sale.totalAmount)}</span>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
 
-                    {/* Footer */}
+                    {/* Footer - Fixed */}
                     <DialogFooter
-                        className="px-6 py-4 border-t bg-gray-50 flex-shrink-0"
+                        className="px-6 py-4 border-t bg-gray-50 flex-shrink-0 z-10"
                         style={{ backgroundColor: '#f9fafb' }}
                     >
-                        <div className="flex w-full justify-end gap-3">
-                            <Button variant="outline" onClick={handlePrintReceipt} disabled className="px-6">
-                                <ReceiptIcon /> <span className="ml-2">Print Receipt</span>
+                        <div className="flex w-full gap-3">
+                            <Button variant="outline" onClick={handlePrintReceipt} className="flex-1 border-gray-300 text-gray-700 bg-white">
+                                <ReceiptIcon /> <span className="ml-2">Print</span>
                             </Button>
-                            <Button variant="primary" onClick={onClose} className="px-6 btn--primary">Close</Button>
+                            <Button variant="primary" onClick={onClose} className="flex-1 btn--primary">
+                                Close
+                            </Button>
                         </div>
                     </DialogFooter>
                 </div>
@@ -285,7 +331,7 @@ export default function HistoryPage() {
                     </CardContent>
                 </Card>
 
-                {/* --- (MODIFIED) MOBILE CARD LIST (Show on mobile, hide on md+) --- */}
+                {/* --- MOBILE CARD LIST --- */}
                 <div className="block md:hidden">
                     <Card>
                         <CardContent className="p-0">
@@ -296,7 +342,7 @@ export default function HistoryPage() {
                             ) : (
                                 <div className="divide-y divide-gray-100">
                                     {sortedSales.map(s => (
-                                        <div key={s.id} className="p-4 flex items-center space-x-3">
+                                        <div key={s.id} className="p-4 flex items-center space-x-3 active:bg-gray-50 transition-colors" onClick={() => openModal(s)}>
                                             {/* Icon */}
                                             <div className="flex-shrink-0">
                                                 <span className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
@@ -323,7 +369,7 @@ export default function HistoryPage() {
 
                                             {/* Action Button */}
                                             <div className="flex-shrink-0">
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600" onClick={() => openModal(s)} title="View Details">
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600">
                                                     <ViewIcon />
                                                 </Button>
                                             </div>
