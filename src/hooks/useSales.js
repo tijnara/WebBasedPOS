@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient';
 import { useStore } from '../store/useStore';
+import currency from 'currency.js';
 
 // --- MODIFIED MOCK DATA ---
 const MOCK_SALES = [
@@ -107,8 +108,8 @@ export function useSales({ searchTerm, startDate, endDate, page = 1, itemsPerPag
                 const sales = data.map(s => ({
                     id: s.id,
                     saleTimestamp: s.saletimestamp ? new Date(s.saletimestamp) : new Date(s.created_at),
-                    totalAmount: parseFloat(s.totalamount) || 0,
-                    amountReceived: parseFloat(s.amountreceived) || 0,
+                    totalAmount: currency(s.totalamount).value || 0,
+                    amountReceived: currency(s.amountreceived).value || 0,
                     customerId: s.customerId,
                     customerName: s.customername || 'N/A',
                     createdBy: s.users?.name || s.created_by || 'N/A',

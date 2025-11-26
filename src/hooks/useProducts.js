@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient';
 import { useStore } from '../store/useStore'; // <-- 1. Import the store
+import currency from 'currency.js';
 
 // --- 2. DEFINE MOCK DATA ---
 const MOCK_PRODUCTS = [
@@ -79,13 +80,13 @@ export function useProducts({ searchTerm = '', category = '', page = 1, itemsPer
                     products: products.map(p => ({
                         id: p.id,
                         name: p.name || 'Unnamed Product',
-                        price: parseFloat(p.price) || 0,
+                        price: currency(p.price).value || 0,
                         image_url: p.image_url || null,
                         // --- NEW FIELDS ---
                         barcode: p.barcode || '',
                         stock: p.stock_quantity || 0,
                         minStock: p.min_stock_level || 0,
-                        cost: parseFloat(p.cost_price) || 0,
+                        cost: currency(p.cost_price).value || 0,
                         category: p.category || 'General',
                         created_at: p.created_at || p.create_at || null,
                         updated_at: p.updated_at || null,
@@ -104,3 +105,5 @@ export function useProducts({ searchTerm = '', category = '', page = 1, itemsPer
         // gcTime: 1000 * 60 * 60 * 24, // 24 hours
     });
 }
+
+// No changes needed for display, as currency.js is only used for value extraction here.

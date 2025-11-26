@@ -14,6 +14,7 @@ import MobileLogoutButton from '../MobileLogoutButton';
 import TabBar from '../TabBar';
 import { supabase } from '../../lib/supabaseClient';
 import Pagination from '../Pagination';
+import currency from 'currency.js';
 
 // --- (REMOVED) CartDrawer is no longer used ---
 // import CartDrawer from '../CartDrawer';
@@ -312,7 +313,7 @@ export default function POSPage() {
             addToast({ title: 'Empty Cart', description: 'Add items before proceeding to payment.', variant: 'warning' });
             return;
         }
-        setAmountReceived(subtotal.toFixed(2)); // Pre-fill with exact amount
+        setAmountReceived(currency(subtotal, { symbol: '₱', precision: 2 }).format()); // Pre-fill with exact amount
         setPaymentMethod('Cash'); // Reset to default
         // Set default time to now when opening modal
         const now = new Date();
@@ -339,7 +340,7 @@ export default function POSPage() {
             priceAtSale: i.price,
             subtotal: i.price * i.quantity
         }));
-        const received = parseFloat(amountReceived || 0);
+        const received = currency(amountReceived || 0).value;
         try {
             // Combine date and time for saleTimestamp
             const saleTimestamp = saleDate && saleTime
@@ -496,7 +497,7 @@ export default function POSPage() {
                                                 {/* 2. Name & Unit Price */}
                                                 <div className="flex-1 min-w-0">
                                                     <div className="font-medium text-sm truncate">{item.name}</div>
-                                                    <div className="text-xs text-muted">@ ₱{item.price.toFixed(2)}</div>
+                                                    <div className="text-xs text-muted">@ {currency(item.price, { symbol: '₱', precision: 2 }).format()}</div>
                                                 </div>
 
                                                 {/* 3. Quantity Controls (min 44px height) */}
@@ -508,7 +509,7 @@ export default function POSPage() {
 
                                                 {/* 4. Line Total & Remove */}
                                                 <div className="text-right flex flex-col items-end" style={{ minWidth: '70px' }}>
-                                                    <span className="font-semibold text-sm">₱{(item.price * item.quantity).toFixed(2)}</span>
+                                                    <span className="font-semibold text-sm">₱{currency(item.price).multiply(item.quantity).format({ symbol: '₱', precision: 2 })}</span>
                                                     <Button variant="ghost" size="icon" className="text-destructive h-7 w-7 p-0" onClick={() => handleRemoveItem(key)} title="Remove Item">
                                                         <TrashIcon />
                                                     </Button>
@@ -525,8 +526,8 @@ export default function POSPage() {
                         </div>
                         <CardFooter className="p-3 flex-shrink-0 bg-gray-50 rounded-b-xl">
                             <div className="w-full">
-                                <div className="flex justify-between mb-1 text-sm"><span>Subtotal</span><span>₱{subtotal.toFixed(2)}</span></div>
-                                <div className="flex justify-between mb-3 font-bold text-lg border-t pt-2 mt-2"><span>Total</span><span className="text-success">₱{subtotal.toFixed(2)}</span></div>
+                                <div className="flex justify-between mb-1 text-sm"><span>Subtotal</span><span>₱{currency(subtotal, { symbol: '₱', precision: 2 }).format()}</span></div>
+                                <div className="flex justify-between mb-3 font-bold text-lg border-t pt-2 mt-2"><span>Total</span><span className="text-success">₱{currency(subtotal, { symbol: '₱', precision: 2 }).format()}</span></div>
                                 {/* --- (MODIFIED) Hide button on mobile, show on desktop --- */}
                                 <Button variant="primary" className="w-full h-12 text-lg rounded-lg shadow-md font-semibold hidden md:flex" onClick={openPaymentModal} disabled={Object.keys(currentSale).length === 0 || createSaleMutation.isPending}>
                                     {createSaleMutation.isPending ? 'Processing...' : 'Proceed to Payment'}
@@ -1088,12 +1089,13 @@ export default function POSPage() {
                                         {/* Option to Add New Customer */}
                                         {customerSearchResults.length === 0 && debouncedSearchTerm && (
                                             <div className="p-4 text-center">
-                                                <p className="text-sm text-muted mb-2">No existing customer found.</p>
+                                                <p className="text-sm text-gray-600 mb-2">No existing customer found.</p>
                                                 <Button
                                                     variant="primary"
                                                     size="sm"
                                                     onClick={() => handleAddCustomer(debouncedSearchTerm)}
                                                     disabled={createCustomerMutation.isPending}
+                                                    className="px-4"
                                                 >
                                                     {createCustomerMutation.isPending ? 'Adding...' : `+ Add "${debouncedSearchTerm}"`}
                                                 </Button>
@@ -1101,7 +1103,7 @@ export default function POSPage() {
                                         )}
                                         {/* Initial Prompt */}
                                         {customerSearchResults.length === 0 && !debouncedSearchTerm && !isSearchingCustomers && (
-                                            <p className="p-4 text-sm text-center text-muted">Type to search existing customers or add a new one.</p>
+                                            <p className="p-4 text-sm text-center text-gray-600">Type to search existing customers or add a new one.</p>
                                         )}
                                     </>
                                 )}

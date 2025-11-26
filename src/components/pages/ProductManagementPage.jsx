@@ -18,6 +18,7 @@ import {
 } from '../../hooks/useProductMutations';
 
 import MobileLogoutButton from '../MobileLogoutButton';
+import currency from 'currency.js';
 
 // --- ICONS ---
 const EditIcon = () => (
@@ -161,8 +162,8 @@ export default function ProductManagementPage() {
 
     const save = async (e) => {
         e.preventDefault();
-        const parsedPrice = parseFloat(price);
-        const parsedCost = parseFloat(cost || '0');
+        const parsedPrice = currency(price).value;
+        const parsedCost = currency(cost || '0').value;
         const parsedStock = Math.max(0, parseInt(stock, 10) || 0);
         const parsedMinStock = Math.max(0, parseInt(minStock, 10) || 0);
 
@@ -264,9 +265,9 @@ export default function ProductManagementPage() {
 
     const formatToTwoDecimals = (val) => {
         if (val === '' || val == null) return '';
-        const num = parseFloat(val);
+        const num = currency(val).value;
         if (isNaN(num)) return '';
-        return num.toFixed(2);
+        return currency(num, { symbol: '₱', precision: 2 }).format();
     };
 
     return (
@@ -332,7 +333,7 @@ export default function ProductManagementPage() {
                                                         {p.stock}
                                                     </span>
                                                 </TableCell>
-                                                <TableCell>₱{Number(p.price || 0).toFixed(2)}</TableCell>
+                                                <TableCell>{currency(p.price || 0, { symbol: '₱', precision: 2 }).format()}</TableCell>
                                                 <TableCell>
                                                     {p.updated_at ? new Date(p.updated_at).toLocaleDateString() : '—'}
                                                 </TableCell>
@@ -378,7 +379,7 @@ export default function ProductManagementPage() {
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <div className="font-medium text-gray-900 truncate">{p.name}</div>
-                                                <div className="text-sm text-primary font-semibold">₱{Number(p.price || 0).toFixed(2)}</div>
+                                                <div className="text-sm text-primary font-semibold">{currency(p.price || 0, { symbol: '₱', precision: 2 }).format()}</div>
                                                 <div className="text-xs text-gray-500 mt-1">Stock: <span className={Number(p.stock) <= Number(p.minStock) ? 'text-red-600 font-bold' : 'text-green-600'}>{p.stock}</span></div>
                                             </div>
                                             <div className="flex-shrink-0 flex items-center space-x-0">

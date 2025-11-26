@@ -11,6 +11,7 @@ import { useNewCustomersByDateSummary } from '../../hooks/useNewCustomersByDateS
 import { useInactiveCustomers } from '../../hooks/useInactiveCustomers';
 import { startOfWeek } from 'date-fns';
 import { UserIcon } from '../Icons'; // <-- FIXED IMPORT
+import currency from 'currency.js'; // <-- IMPORTED CURRENCY.JS
 // Removed Pagination import; using Prev/Next for unknown totals
 
 Chart.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Tooltip, Legend, Filler);
@@ -198,10 +199,10 @@ export default function DashboardPage() {
             <h1 className="text-3xl md:text-4xl font-bold mb-4 md:mb-6 text-primary tracking-tight">Dashboard</h1>
             {/* Add top margin to summary cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 mb-4 md:mb-6 mt-2 md:mt-6">
-                <SummaryCard title="Revenue" value={`₱${totalRevenue.toFixed(2)}`} />
+                <SummaryCard title="Revenue" value={currency(totalRevenue, { symbol: '₱', precision: 2 }).format()} />
                 <SummaryCard title="Transactions" value={transactionsCount} />
                 <SummaryCard title="New Customers" value={newCustomersCount} />
-                <SummaryCard title="Sales Today" value={`₱${todaySalesAmount.toFixed(2)}`} isSuccess={true} />
+                <SummaryCard title="Sales Today" value={currency(todaySalesAmount, { symbol: '₱', precision: 2 }).format()} isSuccess={true} />
             </div>
             {/* First row: swap Sales Over Time with Inactive Customers (place Sales Over Time first) */}
             <div className="flex flex-col md:flex-row gap-4 mb-6 mt-2 md:mt-6">

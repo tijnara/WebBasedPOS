@@ -9,17 +9,15 @@ import {
 import Pagination from '../Pagination';
 import MobileLogoutButton from '../MobileLogoutButton';
 import { format } from 'date-fns';
+import currency from 'currency.js';
 
 // --- Helper Functions ---
 const formatCurrency = (amount) => {
-    const numericAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+    const numericAmount = typeof amount === 'string' ? currency(amount).value : currency(amount).value;
     if (isNaN(numericAmount)) {
         return 'N/A';
     }
-    return new Intl.NumberFormat('en-PH', {
-        style: 'currency',
-        currency: 'PHP',
-    }).format(numericAmount);
+    return currency(numericAmount, { symbol: '₱', precision: 2 }).format();
 };
 
 const formatDate = (dateString) => {

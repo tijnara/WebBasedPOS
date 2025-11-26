@@ -14,6 +14,7 @@ import { DayPicker } from 'react-day-picker';
 import { Button, Input, Select } from '../ui'; // Added Select
 import MobileLogoutButton from '../MobileLogoutButton';
 import Pagination from '../Pagination';
+import currency from 'currency.js';
 
 // Helper hook for detecting clicks outside an element
 const useOutsideClick = (ref, callback) => {
@@ -32,14 +33,11 @@ const useOutsideClick = (ref, callback) => {
 
 // Utility to format currency
 const formatCurrency = (amount) => {
-    const numericAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+    const numericAmount = typeof amount === 'string' ? currency(amount).value : currency(amount).value;
     if (isNaN(numericAmount)) {
         return 'N/A';
     }
-    return new Intl.NumberFormat('en-PH', {
-        style: 'currency',
-        currency: 'PHP',
-    }).format(numericAmount);
+    return currency(numericAmount, { symbol: '₱', precision: 2 }).format();
 };
 
 // --- Calendar Icon (Simple SVG) ---

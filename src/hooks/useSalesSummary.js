@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient';
 import { useStore } from '../store/useStore';
+import currency from 'currency.js';
 
 // Demo summary for mock data
 const MOCK_SALES = [
@@ -41,10 +42,12 @@ export function useSalesSummary({ startDate, endDate } = {}) {
             const { data, error } = await query;
             if (error) throw error;
             const totalRevenue = Array.isArray(data)
-                ? data.reduce((sum, sale) => sum + Number(sale.totalamount || 0), 0)
+                ? data.reduce((sum, sale) => currency(sum).add(sale.totalamount).value, currency(0).value)
                 : 0;
             return { totalRevenue };
         },
         staleTime: 1000 * 60 * 3, // 3 minutes
     });
 }
+
+// No changes needed for display, as currency.js is only used for value extraction here.
