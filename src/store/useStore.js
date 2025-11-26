@@ -1,6 +1,7 @@
 // src/store/useStore.js
 import { create } from 'zustand';
 import api from '../lib/api'; // Ensure this points to your updated api.js
+import currency from 'currency.js';
 
 // Persistence for the custom user object (using sessionStorage)
 const persistUserToStorage = (user) => {
@@ -112,7 +113,10 @@ export const useStore = create((set, get) => ({
     },
     getTotalAmount: () => {
         const sale = get().currentSale;
-        return Object.values(sale).reduce((total, item) => total + (item.price * item.quantity), 0);
+        // FIX: Use currency.js for the calculation chain
+        return Object.values(sale).reduce((total, item) => {
+            return total.add(currency(item.price).multiply(item.quantity));
+        }, currency(0)).value; // Return the float value (e.g., 150.25)
     },
     addToast: (t) => {
         const id = Date.now() + Math.random(); // Unique ID for the toast

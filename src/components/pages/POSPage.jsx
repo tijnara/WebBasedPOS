@@ -333,14 +333,17 @@ export default function POSPage() {
             addToast({ title: 'Customer Required', description: 'Please select a customer before confirming the sale.', variant: 'warning' });
             return;
         }
+        // FIX 1: Calculate item subtotal using currency.js
         const items = Object.values(currentSale).map(i => ({
             productId: i.productId,
             productName: i.name,
             quantity: i.quantity,
             priceAtSale: i.price,
-            subtotal: i.price * i.quantity
+            subtotal: currency(i.price).multiply(i.quantity).value // <-- FIX: No native math
         }));
         const received = currency(amountReceived || 0).value;
+        // FIX 2: Calculate change using currency.js
+        const changeCalculated = currency(received).subtract(subtotal).value;
         try {
             // Combine date and time for saleTimestamp
             const saleTimestamp = saleDate && saleTime
@@ -355,7 +358,7 @@ export default function POSPage() {
                 status: 'Completed',
                 paymentMethod: paymentMethod,
                 amountReceived: received,
-                changeGiven: Math.max(0, received - subtotal),
+                changeGiven: Math.max(0, changeCalculated), // <-- FIX: Use the safe calculation
                 created_by: user?.id || null // <-- Add this line
             };
             const created = await createSaleMutation.mutateAsync(payload);
