@@ -75,6 +75,7 @@ export default function ProductManagementPage() {
     const [isAddingCategory, setIsAddingCategory] = useState(false);
     const [newCategoryName, setNewCategoryName] = useState('');
     const searchInputRef = useRef(null);
+    const fileInputRef = useRef(null);
 
     useEffect(() => {
         const handler = setTimeout(() => {
@@ -315,10 +316,20 @@ export default function ProductManagementPage() {
                     </div>
                     <div className="flex gap-2 items-center">
                         <Button variant="primary" onClick={openModal}>Add Product</Button>
-                        <label className="cursor-pointer text-sm font-medium bg-gray-100 px-3 py-2 rounded border border-gray-300 hover:bg-gray-200">
+                        <Button
+                            variant="outline"
+                            onClick={() => fileInputRef.current && fileInputRef.current.click()}
+                            className="text-sm font-medium"
+                        >
                             Import CSV
-                            <input type="file" accept=".csv" style={{ display: 'none' }} onChange={handleCSVUpload} />
-                        </label>
+                        </Button>
+                        <input
+                            type="file"
+                            accept=".csv"
+                            ref={fileInputRef}
+                            style={{ display: 'none' }}
+                            onChange={handleCSVUpload}
+                        />
                     </div>
                 </div>
 
@@ -643,3 +654,4 @@ export default function ProductManagementPage() {
         </div>
     );
 }
+

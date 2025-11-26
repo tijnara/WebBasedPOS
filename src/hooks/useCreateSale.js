@@ -79,7 +79,8 @@ export function useCreateSale() {
                 if (item.productId && item.quantity > 0) {
                     const { error: stockError } = await supabase.rpc('decrement_stock', {
                         product_id: item.productId,
-                        quantity_sold: item.quantity
+                        quantity_sold: item.quantity,
+                        staff_id_input: user?.id || null // <--- FIX: Pass staff_id_input
                     });
                     if (stockError) {
                         console.error('useCreateSale: Failed to decrement stock for product', item.productId, stockError.message);
