@@ -313,7 +313,7 @@ export default function POSPage() {
             addToast({ title: 'Empty Cart', description: 'Add items before proceeding to payment.', variant: 'warning' });
             return;
         }
-        setAmountReceived(currency(subtotal, { symbol: '₱', precision: 2 }).format()); // Pre-fill with exact amount
+        setAmountReceived(subtotal.toFixed(2)); // FIX: Use plain number string
         setPaymentMethod('Cash'); // Reset to default
         // Set default time to now when opening modal
         const now = new Date();
@@ -333,7 +333,7 @@ export default function POSPage() {
             addToast({ title: 'Customer Required', description: 'Please select a customer before confirming the sale.', variant: 'warning' });
             return;
         }
-        // FIX 1: Calculate item subtotal using currency.js
+        // --- FIX 1: Calculate Item Subtotals Safely ---
         const items = Object.values(currentSale).map(i => ({
             productId: i.productId,
             productName: i.name,
@@ -342,10 +342,9 @@ export default function POSPage() {
             subtotal: currency(i.price).multiply(i.quantity).value // <-- FIX: No native math
         }));
         const received = currency(amountReceived || 0).value;
-        // FIX 2: Calculate change using currency.js
+        // --- FIX 2: Calculate Change Safely ---
         const changeCalculated = currency(received).subtract(subtotal).value;
         try {
-            // Combine date and time for saleTimestamp
             const saleTimestamp = saleDate && saleTime
                 ? new Date(`${saleDate}T${saleTime}:00`).toISOString()
                 : new Date().toISOString();
@@ -358,8 +357,8 @@ export default function POSPage() {
                 status: 'Completed',
                 paymentMethod: paymentMethod,
                 amountReceived: received,
-                changeGiven: Math.max(0, changeCalculated), // <-- FIX: Use the safe calculation
-                created_by: user?.id || null // <-- Add this line
+                changeGiven: Math.max(0, changeCalculated), // <-- Use the safe calculated change
+                created_by: user?.id || null
             };
             const created = await createSaleMutation.mutateAsync(payload);
             addToast({ title: 'Sale Completed', description: `Sale #${created.id.toString().slice(-6)} recorded.`, variant: 'success' });
@@ -841,13 +840,6 @@ export default function POSPage() {
             <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
                 <DialogContent
                     className="sm:max-w-sm"
-                    // --- FIX: Add onOpenAutoFocus handler ---
-                    onOpenAutoFocus={(e) => {
-                        // Prevent the dialog's default auto-focus
-                        e.preventDefault();
-                        // Manually focus the customer input field
-                        customerPaymentInputRef.current?.focus();
-                    }}
                 >
                     <DialogHeader>
                         <DialogTitle>Complete Sale</DialogTitle>
@@ -1189,13 +1181,6 @@ export default function POSPage() {
             <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
                 <DialogContent
                     className="sm:max-w-sm"
-                    // --- FIX: Add onOpenAutoFocus handler ---
-                    onOpenAutoFocus={(e) => {
-                        // Prevent the dialog's default auto-focus
-                        e.preventDefault();
-                        // Manually focus the customer input field
-                        customerPaymentInputRef.current?.focus();
-                    }}
                 >
                     <DialogHeader>
                         <DialogTitle>Complete Sale</DialogTitle>

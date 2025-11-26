@@ -113,10 +113,10 @@ export const useStore = create((set, get) => ({
     },
     getTotalAmount: () => {
         const sale = get().currentSale;
-        // FIX: Use currency.js for the calculation chain
+        // Uses currency.js to add up values safely
         return Object.values(sale).reduce((total, item) => {
             return total.add(currency(item.price).multiply(item.quantity));
-        }, currency(0)).value; // Return the float value (e.g., 150.25)
+        }, currency(0)).value;
     },
     addToast: (t) => {
         const id = Date.now() + Math.random(); // Unique ID for the toast
