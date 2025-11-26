@@ -91,8 +91,16 @@ const Navbar = () => {
     const prepareZReading = async () => {
         if (!user) return;
         // 1. Get active shift for current user
-        const { data: shift } = await supabase.from('shifts')
-            .select('*').eq('staff_id', user.id).eq('status', 'OPEN').single();
+        // FIX: Use .maybeSingle() instead of .single()
+        const { data: shift, error } = await supabase.from('shifts')
+            .select('*')
+            .eq('staff_id', user.id)
+            .eq('status', 'OPEN')
+            .maybeSingle(); // <--- CHANGE THIS
+        if (error && error.code !== 'PGRST116') {
+            console.error("Error fetching shift:", error);
+            // Optional: handle real database errors
+        }
         if (!shift) {
             // No shift active, just logout
             logout();
