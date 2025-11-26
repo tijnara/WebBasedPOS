@@ -270,6 +270,39 @@ export default function ProductManagementPage() {
         return currency(num, { symbol: '₱', precision: 2 }).format();
     };
 
+    const handleCSVUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async ({ target }) => {
+            const csv = target.result;
+            const lines = csv.split('\n');
+            const productsToAdd = [];
+            // Assuming CSV format: Name,Price,Barcode,Stock,Category
+            for (let i = 1; i < lines.length; i++) { // Skip header
+                const [name, price, barcode, stock, category] = lines[i].split(',');
+                if (name && price) {
+                    productsToAdd.push({
+                        name: name.trim(),
+                        price: parseFloat(price),
+                        barcode: barcode?.trim() || null,
+                        stock_quantity: parseInt(stock) || 0,
+                        category: category?.trim() || 'General',
+                        created_at: new Date().toISOString()
+                    });
+                }
+            }
+            if (productsToAdd.length > 0) {
+                const { error } = await supabase.from('products').insert(productsToAdd);
+                if (!error) {
+                    addToast({ title: 'Import Successful', description: `Imported ${productsToAdd.length} products.` });
+                    // Optionally refetch products here
+                }
+            }
+        };
+        reader.readAsText(file);
+    };
+
     return (
         <div className="product-page">
             <img src="/seaside.png" alt="Seaside Logo" className="brand-logo-top" width={32} height={32} />
@@ -280,7 +313,13 @@ export default function ProductManagementPage() {
                         <h1 className="text-2xl font-semibold">Products</h1>
                         <p className="text-muted">Manage your product inventory</p>
                     </div>
-                    <Button variant="primary" onClick={openModal}>Add Product</Button>
+                    <div className="flex gap-2 items-center">
+                        <Button variant="primary" onClick={openModal}>Add Product</Button>
+                        <label className="cursor-pointer text-sm font-medium bg-gray-100 px-3 py-2 rounded border border-gray-300 hover:bg-gray-200">
+                            Import CSV
+                            <input type="file" accept=".csv" style={{ display: 'none' }} onChange={handleCSVUpload} />
+                        </label>
+                    </div>
                 </div>
 
                 <div className="mb-4 flex flex-col sm:flex-row gap-3 sm:items-end">

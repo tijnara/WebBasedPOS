@@ -1,10 +1,11 @@
 // src/components/Navbar.jsx
 import React, { useEffect, useState } from 'react';
-import { Button, cn } from './ui';
+import { Button, cn, Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogCloseButton, Input } from './ui';
 import { useRouter } from 'next/router';
 import { useStore } from '../store/useStore';
 import debounce from 'lodash/debounce';
 import Image from 'next/image';
+import { supabase } from '../lib/supabaseClient';
 
 // --- SVG ICONS (Keep necessary ones) ---
 const CartIcon = ({ className }) => ( /* ... SVG ... */ <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={cn("w-6 h-6", className)}><path d="M3 3h2l.4 2M7 13h10l4-8H5.4" /><circle cx="9" cy="20" r="2" /><circle cx="15" cy="20" r="2" /></svg> );
@@ -24,6 +25,9 @@ const Navbar = () => {
 
     // Removed isMobileMenuOpen state
     const [clientUser, setClientUser] = useState(null);
+    const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
+    const [actualCash, setActualCash] = useState('');
+    const [shiftStats, setShiftStats] = useState({ start: 0, sales: 0, expected: 0 });
 
     const links = [
         { name: 'Dashboard', path: '/dashboard', icon: <ChartIcon className="h-5 w-5" /> },
@@ -83,8 +87,42 @@ const Navbar = () => {
         logoutAfterInactivity();
     }, [logout, router]);
 
+    // Function to calculate Z-Reading before showing modal
+    const prepareZReading = async () => {
+        if (!user) return;
+        // 1. Get active shift for current user
+        const { data: shift } = await supabase.from('shifts')
+            .select('*').eq('staff_id', user.id).eq('status', 'OPEN').single();
+        if (!shift) {
+            // No shift active, just logout
+            logout();
+            return;
+        }
+        // 2. Calculate Sales since shift.start_time
+        const { data: sales } = await supabase.from('sales')
+            .select('totalamount')
+            .eq('created_by', user.id)
+            .eq('paymentmethod', 'Cash')
+            .gte('saletimestamp', shift.start_time);
+        const totalSales = Array.isArray(sales) ? sales.reduce((sum, s) => sum + (s.totalamount || 0), 0) : 0;
+        const expected = (shift.starting_cash || 0) + totalSales;
+        setShiftStats({ start: shift.starting_cash || 0, sales: totalSales, expected });
+        setIsShiftModalOpen(true);
+    };
+
+    const handleConfirmEndShift = async () => {
+        if (!user) return;
+        await supabase.from('shifts').update({
+            end_time: new Date().toISOString(),
+            ending_cash: parseFloat(actualCash),
+            status: 'CLOSED'
+        }).eq('staff_id', user.id).eq('status', 'OPEN');
+        setIsShiftModalOpen(false);
+        setActualCash('');
+        logout();
+    };
+
     return (
-        // Navbar is hidden on mobile by globals.css
         <div className="navbar">
             {/* Brand Logo and Name */}
             <div className="brand">
@@ -131,7 +169,7 @@ const Navbar = () => {
                         <Button
                             variant="ghost"
                             className="text-destructive"
-                            onClick={logout}
+                            onClick={prepareZReading}
                             title="Logout"
                         >
                             Logout
@@ -143,6 +181,30 @@ const Navbar = () => {
                     </div>
                 )}
             </div>
+            {/* End Shift / Z-Reading Modal */}
+            <Dialog open={isShiftModalOpen} onOpenChange={setIsShiftModalOpen}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>End Shift / Z-Reading</DialogTitle>
+                        <DialogCloseButton onClick={() => setIsShiftModalOpen(false)} />
+                    </DialogHeader>
+                    <div className="p-4 space-y-4">
+                        <div>
+                            <div className="mb-2 text-sm text-gray-700">Starting Cash: <span className="font-bold">₱{shiftStats.start.toFixed(2)}</span></div>
+                            <div className="mb-2 text-sm text-gray-700">Total Cash Sales: <span className="font-bold">₱{shiftStats.sales.toFixed(2)}</span></div>
+                            <div className="mb-4 text-lg font-semibold text-primary">Expected Cash: ₱{shiftStats.expected.toFixed(2)}</div>
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium">Actual Cash in Drawer</label>
+                            <Input type="number" min="0" step="0.01" value={actualCash} onChange={e => setActualCash(e.target.value)} placeholder="Enter actual cash" />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsShiftModalOpen(false)}>Cancel</Button>
+                        <Button variant="primary" onClick={handleConfirmEndShift} disabled={!actualCash || isNaN(parseFloat(actualCash))}>Confirm & Logout</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };
