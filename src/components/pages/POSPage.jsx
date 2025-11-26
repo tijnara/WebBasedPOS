@@ -339,7 +339,7 @@ export default function POSPage() {
             productName: i.name,
             quantity: i.quantity,
             priceAtSale: i.price,
-            subtotal: currency(i.price).multiply(i.quantity).value // <-- FIX: No native math
+            subtotal: currency(i.price).multiply(i.quantity).value // FIX: Use currency.js here
         }));
         const received = currency(amountReceived || 0).value;
         // --- FIX 2: Calculate Change Safely ---
@@ -357,7 +357,7 @@ export default function POSPage() {
                 status: 'Completed',
                 paymentMethod: paymentMethod,
                 amountReceived: received,
-                changeGiven: Math.max(0, changeCalculated), // <-- Use the safe calculated change
+                changeGiven: Math.max(0, changeCalculated), // Use calculated var
                 created_by: user?.id || null
             };
             const created = await createSaleMutation.mutateAsync(payload);

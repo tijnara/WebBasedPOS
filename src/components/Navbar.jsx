@@ -96,7 +96,7 @@ const Navbar = () => {
             .select('*')
             .eq('staff_id', user.id)
             .eq('status', 'OPEN')
-            .maybeSingle(); // <--- CHANGE THIS
+            .maybeSingle(); // <--- CHANGE .single() TO .maybeSingle()
         if (error && error.code !== 'PGRST116') {
             console.error("Error fetching shift:", error);
             // Optional: handle real database errors
