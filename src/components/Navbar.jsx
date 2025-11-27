@@ -89,33 +89,37 @@ const Navbar = () => {
 
     // Function to calculate Z-Reading before showing modal
     const prepareZReading = async () => {
-        if (!user) return;
+        if (!user) {
+            console.error("No user found");
+            return;
+        }
+        console.log("Preparing Z-Reading for user:", user.id);
         // 1. Get active shift for current user
-        // FIX: Use .maybeSingle() instead of .single()
         const { data: shift, error } = await supabase.from('shifts')
             .select('*')
             .eq('staff_id', user.id)
             .eq('status', 'OPEN')
-            .maybeSingle(); // <--- CHANGE .single() TO .maybeSingle()
-        if (error && error.code !== 'PGRST116') {
+            .maybeSingle();
+        if (error) {
             console.error("Error fetching shift:", error);
-            // Optional: handle real database errors
         }
         if (!shift) {
-            // No shift active, just logout
+            console.log("No open shift found. Logging out directly.");
             logout();
             return;
         }
+        console.log("Open shift found:", shift);
         // 2. Calculate Sales since shift.start_time
-        const { data: sales } = await supabase.from('sales')
+        const { data: sales, error: salesError } = await supabase.from('sales')
             .select('totalamount')
             .eq('created_by', user.id)
             .eq('paymentmethod', 'Cash')
             .gte('saletimestamp', shift.start_time);
+        if (salesError) console.error("Error fetching sales:", salesError);
         const totalSales = Array.isArray(sales) ? sales.reduce((sum, s) => sum + (s.totalamount || 0), 0) : 0;
         const expected = (shift.starting_cash || 0) + totalSales;
         setShiftStats({ start: shift.starting_cash || 0, sales: totalSales, expected });
-        setIsShiftModalOpen(true);
+        setIsShiftModalOpen(true); // <--- This triggers the modal
     };
 
     const handleConfirmEndShift = async () => {
@@ -218,3 +222,4 @@ const Navbar = () => {
 };
 
 export default Navbar;
+
