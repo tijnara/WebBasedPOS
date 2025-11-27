@@ -56,8 +56,7 @@ export const Dialog = ({ open, children, className, onOpenChange, closeOnBackdro
     open ? (
         <div
             className={cn(
-                // Centered floating card on mobile; keep overlay padding
-                'dialog-backdrop fixed inset-0 z-40 sm:z-50 p-4 flex items-center justify-center overflow-y-auto',
+                'dialog-backdrop fixed inset-0 z-40 sm:z-50 p-4 flex justify-center overflow-y-auto',
                 className
             )}
             style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
@@ -72,11 +71,10 @@ export const Dialog = ({ open, children, className, onOpenChange, closeOnBackdro
     ) : null
 );
 
-export const DialogContent = ({ children, className, style, closeOnBackdropClick, ...props }) => (
+export const DialogContent = ({ children, className, style, ...props }) => (
     <div
         className={cn(
-            // Floating card on mobile; sized and rounded with deep shadow
-            'bg-white rounded-2xl sm:rounded-lg shadow-2xl relative w-full max-w-sm sm:max-w-md mx-auto my-4 flex flex-col overflow-hidden',
+            'bg-white rounded-2xl sm:rounded-lg shadow-2xl relative w-full max-w-sm sm:max-w-md mx-auto flex flex-col overflow-hidden',
             className
         )}
         style={{

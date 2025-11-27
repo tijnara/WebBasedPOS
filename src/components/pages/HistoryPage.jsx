@@ -79,12 +79,11 @@ const SaleDetailsModal = ({ sale, isOpen, onClose }) => {
     };
 
     return (
-        <Dialog open={isOpen} onOpenChange={onClose}>
+        <Dialog open={isOpen} onOpenChange={onClose} className="items-start">
             <DialogContent
-                // FIX: Force white background and explicit flex layout
-                className="p-0 w-full max-w-md bg-white rounded-lg shadow-2xl border border-gray-200 flex flex-col"
+                className="p-0 w-full max-w-md bg-white rounded-lg shadow-2xl border border-gray-200 flex flex-col mt-16"
                 style={{
-                    backgroundColor: 'white', // Explicitly fix transparency
+                    backgroundColor: 'white',
                     maxHeight: '85vh',
                     height: 'auto',
                 }}
