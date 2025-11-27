@@ -72,7 +72,7 @@ export const Dialog = ({ open, children, className, onOpenChange, closeOnBackdro
     ) : null
 );
 
-export const DialogContent = ({ children, className, style, ...props }) => (
+export const DialogContent = ({ children, className, style, closeOnBackdropClick, ...props }) => (
     <div
         className={cn(
             // Floating card on mobile; sized and rounded with deep shadow

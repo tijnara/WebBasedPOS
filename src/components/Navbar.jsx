@@ -199,7 +199,7 @@ const Navbar = () => {
 
             {/* --- START SHIFT MODAL --- */}
             <Dialog open={isStartShiftModalOpen} onOpenChange={(open) => { if (!open) return; }}> {/* Prevent closing by clicking outside */}
-                <DialogContent className="max-w-sm" closeOnBackdropClick={false}>
+                <DialogContent className="max-w-sm">
                     <DialogHeader>
                         <DialogTitle>Start Shift</DialogTitle>
                         {/* No close button - Mandatory action */}
