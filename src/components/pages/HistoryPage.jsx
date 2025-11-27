@@ -87,11 +87,6 @@ const SaleDetailsModal = ({ sale, isOpen, onClose }) => {
                     backgroundColor: 'white', // Explicitly fix transparency
                     maxHeight: '85vh',
                     height: 'auto',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    zIndex: 50,
-                    position: 'relative',
-                    isolation: 'isolate' // Ensures stacking context to prevent bleed-through
                 }}
             >
                 {/* Inner Wrapper to guarantee opacity on all layers */}
