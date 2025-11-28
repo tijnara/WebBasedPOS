@@ -24,7 +24,7 @@ const POSCart = ({
     lastCustomer,
 }) => {
     return (
-        <div className="hidden md:flex w-full md:w-1/3 xl:w-1/4 flex-shrink-0 flex-col order-1 md:order-none" style={{height: 'auto'}}>
+        <div className="flex w-full md:w-1/3 xl:w-1/4 flex-shrink-0 flex-col order-1 md:order-none" style={{height: 'auto'}}>
             <Card className="flex flex-col shadow-lg border border-gray-200 rounded-xl bg-white overflow-hidden">
                 <CardHeader className="bg-gray-50 border-b border-gray-200 rounded-t-xl">
                     <div className="flex justify-between items-center">

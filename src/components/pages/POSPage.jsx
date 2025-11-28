@@ -5,7 +5,7 @@ import { useProducts } from '../../hooks/useProducts';
 import { useCreateSale } from '../../hooks/useCreateSale';
 import { useCreateCustomer } from '../../hooks/useCreateCustomer';
 import {
-    Button, Dialog, DialogContent, DialogCloseButton, Select, Label, DialogHeader, DialogTitle, DialogFooter, Input
+    Button, Input
 } from '../ui';
 import MobileLogoutButton from '../MobileLogoutButton';
 import TabBar from '../TabBar';
@@ -75,6 +75,15 @@ export default function POSPage() {
 
     const [saleDate, setSaleDate] = useState(() => new Date().toISOString().slice(0, 10));
     const [saleTime, setSaleTime] = useState(() => new Date().toTimeString().slice(0,5));
+
+    // --- Responsive state ---
+    const [isMobile, setIsMobile] = useState(false);
+    useEffect(() => {
+        const checkMobile = () => setIsMobile(window.innerWidth < 768);
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     // --- Effects ---
     useEffect(() => {
@@ -165,7 +174,8 @@ export default function POSPage() {
             return;
         }
 
-        addItemToSale(product, 1);
+        // Store stock in sale item for future-proofing
+        addItemToSale({ ...product, stock: product.stock }, 1);
         setRecentProducts(prev => {
             const without = prev.filter(p => p.id !== product.id);
             return [product, ...without].slice(0, 3);
@@ -175,9 +185,10 @@ export default function POSPage() {
     const handleIncreaseQuantity = (key) => {
         const item = currentSale[key];
         if (item) {
-            const product = allProducts.find(p => p.id === item.productId);
-            if (product && item.quantity + 1 > product.stock) {
-                addToast({ title: 'Stock Limit', description: `Cannot add more than the ${product.stock} available.`, variant: 'warning' });
+            // Use stock from item if available, fallback to allProducts
+            const productStock = typeof item.stock !== 'undefined' ? item.stock : (allProducts.find(p => p.id === item.productId)?.stock);
+            if (productStock !== undefined && item.quantity + 1 > productStock) {
+                addToast({ title: 'Stock Limit', description: `Cannot add more than the ${productStock} available.`, variant: 'warning' });
                 return;
             }
             addItemToSale({ id: item.productId, name: item.name, price: item.price }, 1);
@@ -310,18 +321,19 @@ export default function POSPage() {
 
             <div className="flex flex-col md:flex-row-reverse gap-4 w-full">
                 {/* --- 1. REPLACED SIDEBAR WITH COMPONENT --- */}
-                <POSCart
-                    currentSale={currentSale}
-                    clearSale={clearSale}
-                    subtotal={subtotal}
-                    handleIncreaseQuantity={handleIncreaseQuantity}
-                    handleDecreaseQuantity={handleDecreaseQuantity}
-                    handleRemoveItem={handleRemoveItem}
-                    openPaymentModal={openPaymentModal}
-                    createSaleMutation={createSaleMutation}
-                    lastCustomer={lastCustomer}
-                />
-
+                {!isMobile && (
+                    <POSCart
+                        currentSale={currentSale}
+                        clearSale={clearSale}
+                        subtotal={subtotal}
+                        handleIncreaseQuantity={handleIncreaseQuantity}
+                        handleDecreaseQuantity={handleDecreaseQuantity}
+                        handleRemoveItem={handleRemoveItem}
+                        openPaymentModal={openPaymentModal}
+                        createSaleMutation={createSaleMutation}
+                        lastCustomer={lastCustomer}
+                    />
+                )}
                 {/* --- 2. REPLACED GRID WITH COMPONENT --- */}
                 <POSProductGrid
                     isLoading={isLoadingProducts}
