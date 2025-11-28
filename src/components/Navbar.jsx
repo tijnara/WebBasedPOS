@@ -6,7 +6,7 @@ import { useStore } from '../store/useStore';
 import debounce from 'lodash/debounce';
 import Image from 'next/image';
 import { supabase } from '../lib/supabaseClient';
-import currency from 'currency.js'; // <-- ADDED IMPORT
+import currency from 'currency.js';
 
 // --- SVG ICONS ---
 const CartIcon = ({ className }) => ( <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={cn("w-6 h-6", className)}><path d="M3 3h2l.4 2M7 13h10l4-8H5.4" /><circle cx="9" cy="20" r="2" /><circle cx="15" cy="20" r="2" /></svg> );
@@ -28,6 +28,7 @@ const Navbar = () => {
     const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
     const [actualCash, setActualCash] = useState('');
     const [shiftStats, setShiftStats] = useState({ start: 0, sales: 0, expected: 0 });
+    const [cashShortage, setCashShortage] = useState(null); // New state for shortage warning
 
     // --- Start Shift State ---
     const [isStartShiftModalOpen, setIsStartShiftModalOpen] = useState(false);
@@ -45,8 +46,6 @@ const Navbar = () => {
 
     useEffect(() => {
         setClientUser(user);
-
-        // Check for active shift immediately when user loads
         if (user) {
             checkActiveShift();
         }
@@ -59,13 +58,12 @@ const Navbar = () => {
                 timeout = setTimeout(() => {
                     logout();
                     router.push('/login');
-                }, 15 * 60 * 1000); // 15 minutes
+                }, 15 * 60 * 1000);
             };
             const resetTimeout = debounce(() => {
                 clearTimeout(timeout);
                 startTimeout();
             }, 500);
-            // ... events ...
             startTimeout();
             window.addEventListener('mousemove', resetTimeout);
             window.addEventListener('keydown', resetTimeout);
@@ -78,10 +76,8 @@ const Navbar = () => {
         logoutAfterInactivity();
     }, [logout, router]);
 
-    // --- CHECK IF USER HAS AN OPEN SHIFT ---
     const checkActiveShift = async () => {
         if (!user) return;
-
         const { data: shift, error } = await supabase.from('shifts')
             .select('id')
             .eq('staff_id', user.id)
@@ -92,24 +88,20 @@ const Navbar = () => {
             console.error("Error checking shift:", error);
         }
 
-        // If no open shift found, prompt to start one
         if (!shift) {
-            setStartingCash(''); // Reset input
+            setStartingCash('');
             setIsStartShiftModalOpen(true);
         }
     };
 
-    // --- HANDLE START SHIFT ---
     const handleStartShift = async () => {
         if (!startingCash) return;
-
         const { error } = await supabase.from('shifts').insert({
             staff_id: user.id,
-            start_time: new Date().toISOString(), // Automatically set to NOW()
+            start_time: new Date().toISOString(),
             starting_cash: parseFloat(startingCash),
             status: 'OPEN'
         });
-
         if (error) {
             alert("Failed to start shift: " + error.message);
         } else {
@@ -117,38 +109,46 @@ const Navbar = () => {
         }
     };
 
-    // --- HANDLE END SHIFT / LOGOUT ---
     const prepareZReading = async () => {
         if (!user) return;
-        // 1. Get active shift for current user
         const { data: shift } = await supabase.from('shifts')
-            .select('*')
-            .eq('staff_id', user.id)
-            .eq('status', 'OPEN')
-            .maybeSingle();
+            .select('*').eq('staff_id', user.id).eq('status', 'OPEN').maybeSingle();
 
         if (!shift) {
-            logout(); // No active shift, just logout
+            logout();
             return;
         }
 
-        // 2. Calculate Sales since shift.start_time
         const { data: sales } = await supabase.from('sales')
             .select('totalamount')
             .eq('created_by', user.id)
             .eq('paymentmethod', 'Cash')
             .gte('saletimestamp', shift.start_time);
 
-        // FIX: Use currency.js to sum total sales accurately
         const totalSales = Array.isArray(sales)
             ? sales.reduce((sum, s) => sum.add(s.totalamount || 0), currency(0)).value
             : 0;
 
-        // FIX: Use currency.js for expected cash calculation
         const expected = currency(shift.starting_cash || 0).add(totalSales).value;
 
         setShiftStats({ start: shift.starting_cash || 0, sales: totalSales, expected });
+        setCashShortage(null); // Reset previous shortage warning
+        setActualCash(''); // Clear input
         setIsShiftModalOpen(true);
+    };
+
+    // Logic to check cash on input change
+    const handleCashInputChange = (e) => {
+        const val = e.target.value;
+        setActualCash(val);
+
+        const numVal = parseFloat(val);
+        if (!isNaN(numVal) && numVal < shiftStats.expected) {
+            const diff = currency(shiftStats.expected).subtract(numVal).value;
+            setCashShortage(diff);
+        } else {
+            setCashShortage(null);
+        }
     };
 
     const handleConfirmEndShift = async () => {
@@ -166,13 +166,11 @@ const Navbar = () => {
 
     return (
         <div className="navbar">
-            {/* Brand */}
             <div className="brand">
                 <Image src="/seaside.png" alt="Seaside Logo" width={32} height={32} />
                 <span className="font-bold text-lg text-primary hidden md:inline">Seaside</span>
             </div>
 
-            {/* Navigation */}
             <nav className="nav-links hidden md:flex">
                 {links.map(link => {
                     const isActive = router.pathname === link.path || (link.path === '/' && router.pathname === '/');
@@ -184,7 +182,6 @@ const Navbar = () => {
                 })}
             </nav>
 
-            {/* User & Logout */}
             <div className="meta-container">
                 {clientUser ? (
                     <>
@@ -198,11 +195,10 @@ const Navbar = () => {
             </div>
 
             {/* --- START SHIFT MODAL --- */}
-            <Dialog open={isStartShiftModalOpen} onOpenChange={(open) => { if (!open) return; }}> {/* Prevent closing by clicking outside */}
-                <DialogContent className="max-w-sm">
+            <Dialog open={isStartShiftModalOpen} onOpenChange={(open) => { if (!open) return; }}>
+                <DialogContent className="max-w-sm" closeOnBackdropClick={false}>
                     <DialogHeader>
                         <DialogTitle>Start Shift</DialogTitle>
-                        {/* No close button - Mandatory action */}
                     </DialogHeader>
                     <div className="p-4 space-y-4">
                         <p className="text-sm text-gray-600">Please enter the starting cash in the drawer to begin your shift.</p>
@@ -224,7 +220,6 @@ const Navbar = () => {
                         </div>
                     </div>
                     <DialogFooter>
-                        {/* Allow logout if they logged in by mistake */}
                         <Button variant="ghost" onClick={logout} className="text-red-500">Logout</Button>
                         <Button variant="primary" onClick={handleStartShift} disabled={!startingCash}>Start Shift</Button>
                     </DialogFooter>
@@ -246,12 +241,43 @@ const Navbar = () => {
                         </div>
                         <div>
                             <label className="text-sm font-medium">Actual Cash in Drawer</label>
-                            <Input type="number" min="0" step="0.01" value={actualCash} onChange={e => setActualCash(e.target.value)} placeholder="Enter actual cash" />
+                            <Input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={actualCash}
+                                onChange={handleCashInputChange}
+                                placeholder="Enter actual cash"
+                            />
+                            {/* --- SHORTAGE WARNING --- */}
+                            {cashShortage !== null && (
+                                <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm animate-in fade-in slide-in-from-top-1">
+                                    <p className="font-bold flex items-center gap-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                        </svg>
+                                        Cash Shortage Detected!
+                                    </p>
+                                    <p className="mt-1">
+                                        Short by: <span className="font-bold">₱{cashShortage.toFixed(2)}</span>
+                                    </p>
+                                    <p className="text-xs mt-1 opacity-80">Expected cash is higher than actual cash.</p>
+                                </div>
+                            )}
                         </div>
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsShiftModalOpen(false)}>Cancel</Button>
-                        <Button variant="primary" onClick={handleConfirmEndShift} disabled={!actualCash || isNaN(parseFloat(actualCash))}>Confirm & Logout</Button>
+                        <Button
+                            variant="primary"
+                            onClick={handleConfirmEndShift}
+                            // Disable if no input OR if there is a shortage (strict mode)
+                            // Remove `|| cashShortage !== null` if you want to allow recording shortages.
+                            disabled={!actualCash || isNaN(parseFloat(actualCash)) || cashShortage !== null}
+                            className={cashShortage !== null ? "opacity-50 cursor-not-allowed" : ""}
+                        >
+                            Confirm & Logout
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

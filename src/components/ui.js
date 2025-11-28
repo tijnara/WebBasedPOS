@@ -71,7 +71,7 @@ export const Dialog = ({ open, children, className, onOpenChange, closeOnBackdro
     ) : null
 );
 
-export const DialogContent = ({ children, className, style, ...props }) => (
+export const DialogContent = ({ children, className, style, closeOnBackdropClick, ...props }) => (
     <div
         className={cn(
             'bg-white rounded-2xl sm:rounded-lg shadow-2xl relative w-full max-w-sm sm:max-w-md mx-auto flex flex-col overflow-hidden',
