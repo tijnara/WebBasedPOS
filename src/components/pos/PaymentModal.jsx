@@ -13,7 +13,7 @@ const PaymentModal = ({
     isSearchingCustomers,
     customerSearchResults,
     handleAddCustomer,
-    createCustomerMutation,
+    createCustomerMutation = { isPending: false },
     lastCustomer,
     paymentMethod,
     setPaymentMethod,
@@ -25,7 +25,7 @@ const PaymentModal = ({
     saleTime,
     setSaleTime,
     handleFinalizeSale,
-    createSaleMutation,
+    createSaleMutation = { isPending: false },
     customerPaymentInputRef,
 }) => {
     return (

@@ -1,6 +1,11 @@
 import React from 'react';
 
-export default function CartDrawer({ cartItems, onRemove, onClose, visible }) {
+export default function CartDrawer({ cartItems, onRemove, onClose, visible, createSaleMutation }) {
+  // Defensive fallback for createSaleMutation
+  const safeCreateSaleMutation = createSaleMutation && typeof createSaleMutation.isPending !== 'undefined'
+    ? createSaleMutation
+    : { isPending: false };
+
   return (
     <div className={`cart-drawer ${visible ? 'open' : ''}`}>
       <div className="cart-header">
@@ -21,6 +26,8 @@ export default function CartDrawer({ cartItems, onRemove, onClose, visible }) {
           ))
         )}
       </div>
+      {/* Example usage of createSaleMutation.isPending for disabling actions */}
+      <button disabled={safeCreateSaleMutation.isPending}>Checkout</button>
     </div>
   );
 }

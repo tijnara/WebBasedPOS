@@ -20,13 +20,13 @@ const POSCart = ({
                      handleDecreaseQuantity,
                      handleRemoveItem,
                      openPaymentModal,
-                     createSaleMutation,
+                     createSaleMutation = { isPending: false },
                      lastCustomer,
                  }) => {
     // Show cart only on desktop (md and up)
     return (
-        <div className="hidden md:flex w-full md:w-1/3 xl:w-1/4 flex-shrink-0 flex-col" style={{height: 'auto'}}>
-            <Card className="flex flex-col shadow-lg border border-gray-200 rounded-xl bg-white overflow-hidden h-full max-h-[calc(100vh-100px)]">
+        <div className="hidden md:flex w-full h-full flex-shrink-0 flex-col">
+            <Card className="flex flex-col shadow-lg border border-gray-200 rounded-xl bg-white overflow-hidden h-full">
                 <CardHeader className="bg-gray-50 border-b border-gray-200 rounded-t-xl flex-shrink-0">
                     <div className="flex justify-between items-center">
                         <h3 className="font-semibold text-lg text-primary">Current Order</h3>
@@ -36,10 +36,9 @@ const POSCart = ({
                 <CardContent className="p-0 flex-1 relative flex flex-col min-h-0">
                     {!Object.keys(currentSale).length ? (
                         <div className="flex items-center justify-center text-center p-3 text-sm text-gray-500 bg-gray-50 h-full">
-                            Cart is empty — Start order
+                            Cart is empty
                         </div>
                     ) : (
-                        // 3. CHANGED: Replaced ScrollArea with a standard scrolling div
                         <div className="flex-1 overflow-y-auto w-full current-order-scroll-area">
                             <div className="flex flex-col divide-y divide-gray-100 p-2">
                                 {Object.entries(currentSale).map(([key, item]) => (
@@ -51,17 +50,38 @@ const POSCart = ({
                                             <div className="font-medium text-sm truncate">{item.name}</div>
                                             <div className="text-xs text-muted">@ {currency(item.price, { symbol: '₱', precision: 2 }).format()}</div>
                                         </div>
-                                        <div className="flex items-center justify-center space-x-0">
-                                            <Button variant="ghost" size="sm" className="p-1 h-9 w-9 rounded-full" onClick={() => handleDecreaseQuantity(key)}>-</Button>
-                                            <span className="w-6 text-center font-medium text-sm">{item.quantity}</span>
-                                            <Button variant="ghost" size="sm" className="p-1 h-9 w-9 rounded-full" onClick={() => handleIncreaseQuantity(key)}>+</Button>
-                                        </div>
-                                        <div className="text-right flex flex-col items-end" style={{ minWidth: '70px' }}>
-                                            <span className="font-semibold text-sm">₱{currency(item.price).multiply(item.quantity).format({ symbol: '₱', precision: 2 })}</span>
-                                            <Button variant="ghost" size="icon" className="text-destructive h-7 w-7 p-0" onClick={() => handleRemoveItem(key)} title="Remove Item">
-                                                <TrashIcon />
+                                        <div className="flex items-center gap-1">
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="p-1 h-auto"
+                                                onClick={() => handleDecreaseQuantity(key)}
+                                                disabled={item.quantity <= 1}
+                                            >
+                                                -
+                                            </Button>
+                                            <div className="text-sm font-medium w-6 text-center">{item.quantity}</div>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="p-1 h-auto"
+                                                onClick={() => handleIncreaseQuantity(key)}
+                                            >
+                                                +
                                             </Button>
                                         </div>
+                                        <div className="text-sm font-medium text-right w-16">
+                                            {currency(item.price * item.quantity, { symbol: '₱', precision: 2 }).format()}
+                                        </div>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="p-1 h-auto text-destructive"
+                                            onClick={() => handleRemoveItem(key)}
+                                            title="Remove"
+                                        >
+                                            <TrashIcon />
+                                        </Button>
                                     </div>
                                 ))}
                             </div>
