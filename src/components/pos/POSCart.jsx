@@ -13,17 +13,16 @@ const TrashIcon = () => (
 );
 
 const POSCart = ({
-                     currentSale,
-                     clearSale,
-                     subtotal,
-                     handleIncreaseQuantity,
-                     handleDecreaseQuantity,
-                     handleRemoveItem,
-                     openPaymentModal,
-                     createSaleMutation = { isPending: false },
-                     lastCustomer,
-                 }) => {
-    // Show cart only on desktop (md and up)
+    currentSale,
+    clearSale,
+    subtotal,
+    handleIncreaseQuantity,
+    handleDecreaseQuantity,
+    handleRemoveItem,
+    openPaymentModal,
+    createSaleMutation,
+    lastCustomer,
+}) => {
     return (
         <div className="hidden md:flex w-full h-full flex-shrink-0 flex-col">
             <Card className="flex flex-col shadow-lg border border-gray-200 rounded-xl bg-white overflow-hidden h-full">

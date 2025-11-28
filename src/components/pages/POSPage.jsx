@@ -16,43 +16,18 @@ import PaymentModal from '../pos/PaymentModal';
 import CustomSaleModal from '../pos/CustomSaleModal';
 import MobileCartBar from '../pos/MobileCartBar';
 import CartDrawer from '../pos/CartDrawer';
+import { supabase } from '../../lib/supabaseClient';
+import currency from 'currency.js';
 
 export default function POSPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 20;
-    const { data: productsData = { products: [], totalPages: 1 }, isLoading: isLoadingProducts } = useProducts({ searchTerm: '', page: currentPage, itemsPerPage });
-    const products = productsData.products;
-    const totalPages = productsData.totalPages || 1;
 
-    const {
-        currentSale, addItemToSale, clearSale, getTotalAmount,
-        currentCustomer
-    } = useStore();
-
-    const createSaleMutation = useCreateSale();
-    const createCustomerMutation = useCreateCustomer();
-
-    const [selectedCustomer, setSelectedCustomer] = useState(currentCustomer);
-    const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
+    // --- SEARCH STATE ---
     const [searchTerm, setSearchTerm] = useState('');
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
-    const [customerSearchResults, setCustomerSearchResults] = useState([]);
-    const [isSearchingCustomers, setIsSearchingCustomers] = useState(false);
 
-    const productSearchInputRef = useRef(null);
-
-    const [isCustomSaleModalOpen, setIsCustomSaleModalOpen] = useState(false);
-    const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-    const [paymentMethod, setPaymentMethod] = useState('Cash');
-    const [amountReceived, setAmountReceived] = useState('');
-    const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
-
-    const [saleDate, setSaleDate] = useState(() => new Date().toISOString().slice(0, 10));
-    const [saleTime, setSaleTime] = useState(() => new Date().toTimeString().slice(0,5));
-
-
-    const subtotal = getTotalAmount();
-
+    // --- DEBOUNCE EFFECT ---
     useEffect(() => {
         const handler = setTimeout(() => {
             setDebouncedSearchTerm(searchTerm);
@@ -60,6 +35,60 @@ export default function POSPage() {
         return () => clearTimeout(handler);
     }, [searchTerm]);
 
+    // --- FETCH PRODUCTS (FIXED: Passed debouncedSearchTerm) ---
+    const { data: productsData = { products: [], totalPages: 1 }, isLoading: isLoadingProducts } = useProducts({ searchTerm: debouncedSearchTerm, page: currentPage, itemsPerPage });
+    const products = productsData.products || [];
+    const totalPages = productsData.totalPages || 1;
+
+    const {
+        currentSale, addItemToSale, clearSale, getTotalAmount, addToast,
+        currentCustomer, setCurrentCustomer
+    } = useStore();
+
+    const createSaleMutation = useCreateSale();
+    const createCustomerMutation = useCreateCustomer();
+
+    const [selectedCustomer, setSelectedCustomer] = useState(currentCustomer);
+    const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
+
+    const [customerSearchResults, setCustomerSearchResults] = useState([]);
+    const [isSearchingCustomers, setIsSearchingCustomers] = useState(false);
+
+    // --- REFS ---
+    const productSearchInputRef = useRef(null);
+    const customerPaymentInputRef = useRef(null); // <--- ADDED THIS LINE
+
+    const [isCustomSaleModalOpen, setIsCustomSaleModalOpen] = useState(false);
+    const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+    const [paymentMethod, setPaymentMethod] = useState('Cash');
+    const [amountReceived, setAmountReceived] = useState('');
+    const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
+
+    const [lastCustomer, setLastCustomer] = useState(() => {
+        try {
+            const stored = localStorage.getItem('lastCustomer');
+            return stored ? JSON.parse(stored) : null;
+        } catch {
+            return null;
+        }
+    });
+
+    const [saleDate, setSaleDate] = useState(() => new Date().toISOString().slice(0, 10));
+    const [saleTime, setSaleTime] = useState(() => new Date().toTimeString().slice(0,5));
+
+    // Update local selected customer when global store changes
+    useEffect(() => {
+        setSelectedCustomer(currentCustomer);
+    }, [currentCustomer]);
+
+    const handleSetSelectedCustomer = (customer) => {
+        setSelectedCustomer(customer);
+        setCurrentCustomer(customer);
+    };
+
+    const subtotal = getTotalAmount();
+
+    // --- KEYBOARD SHORTCUTS ---
     useEffect(() => {
         const handleKeyDown = (event) => {
             if (event.key === 'F1') {
@@ -71,17 +100,20 @@ export default function POSPage() {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, []);
 
+    // --- SCANNER LOGIC ---
     useEffect(() => {
         if (!searchTerm) return;
         const trimmed = searchTerm.trim();
         const scannedProduct = products.find(p => p.barcode === trimmed);
         if (scannedProduct) {
             handleAdd(scannedProduct);
+            addToast({ title: 'Scanned', description: `${scannedProduct.name} added.`, variant: 'success' });
             setSearchTerm('');
             productSearchInputRef.current?.focus();
         }
-    }, [searchTerm, products]);
+    }, [searchTerm, products, addToast]);
 
+    // --- CUSTOMER SEARCH LOGIC ---
     useEffect(() => {
         if (!(isCustomerModalOpen || isPaymentModalOpen) || !debouncedSearchTerm) {
             setCustomerSearchResults([]);
@@ -98,6 +130,7 @@ export default function POSPage() {
                     .limit(10);
                 if (error) {
                     setCustomerSearchResults([]);
+                    addToast({ title: 'Search Error', description: error.message, variant: 'destructive' });
                     return;
                 }
                 setCustomerSearchResults(data || []);
@@ -109,7 +142,10 @@ export default function POSPage() {
             }
         };
         searchCustomers();
-    }, [debouncedSearchTerm, isCustomerModalOpen, isPaymentModalOpen]);
+    }, [debouncedSearchTerm, isCustomerModalOpen, isPaymentModalOpen, addToast]);
+
+    // --- RECENT PRODUCTS LOGIC ---
+    const [recentProducts, setRecentProducts] = useState([]);
 
     const handleAdd = (product) => {
         if (!product) return;
@@ -120,6 +156,60 @@ export default function POSPage() {
             return;
         }
         addItemToSale(product, 1);
+        setRecentProducts(prev => {
+            const without = prev.filter(p => p.id !== product.id);
+            return [product, ...without].slice(0, 3);
+        });
+    };
+
+    const handleIncreaseQuantity = (key) => {
+        const item = currentSale[key];
+        if (item) {
+            const product = products.find(p => p.id === item.productId);
+            if (product && item.quantity + 1 > product.stock) {
+                addToast({ title: 'Stock Limit', description: `Cannot add more than the ${product.stock} available.`, variant: 'warning' });
+                return;
+            }
+            addItemToSale({ id: item.productId, name: item.name, price: item.price }, 1);
+        }
+    };
+
+    const handleDecreaseQuantity = (key) => {
+        const item = currentSale[key];
+        if (item) addItemToSale({ id: item.productId, name: item.name, price: item.price }, -1);
+    };
+
+    const handleRemoveItem = (key) => {
+        // Use store action
+        useStore.getState().removeItemFromSale(key);
+    };
+
+    const handleSelectCustomerFromModal = (customer) => {
+        handleSetSelectedCustomer(customer);
+        setSearchTerm('');
+        setIsCustomerModalOpen(false);
+    };
+
+    const handleSelectCustomerInPayment = (customer) => {
+        handleSetSelectedCustomer(customer);
+        setSearchTerm('');
+        setDebouncedSearchTerm('');
+        setCustomerSearchResults([]);
+        setIsSearchingCustomers(false);
+    };
+
+    const handleAddCustomer = async (newCustomerName) => {
+        if (!newCustomerName || !newCustomerName.trim()) {
+            addToast({ title: 'Error', description: 'Customer name cannot be empty.', variant: 'destructive' });
+            return;
+        }
+        try {
+            const addedCustomer = await createCustomerMutation.mutateAsync({ name: newCustomerName.trim() });
+            handleSelectCustomerFromModal(addedCustomer);
+            addToast({ title: 'Customer Added', description: `${addedCustomer.name} added.`, variant: 'success' });
+        } catch (error) {
+            addToast({ title: 'Error Adding Customer', description: error.message, variant: 'destructive' });
+        }
     };
 
     const openPaymentModal = () => {
@@ -134,8 +224,11 @@ export default function POSPage() {
         setIsPaymentModalOpen(true);
     };
 
+    const user = useStore(s => s.user);
+
     const handleFinalizeSale = async () => {
         if (!selectedCustomer) {
+            addToast({ title: 'Customer Required', description: 'Please select a customer.', variant: 'warning' });
             return;
         }
         const items = Object.values(currentSale).map(i => ({
@@ -162,22 +255,27 @@ export default function POSPage() {
                 paymentMethod: paymentMethod,
                 amountReceived: received,
                 changeGiven: Math.max(0, changeCalculated),
-                created_by: useStore(s => s.user)?.id || null
+                created_by: user?.id || null
             };
             await createSaleMutation.mutateAsync(payload);
+            addToast({ title: 'Sale Completed', description: `Sale recorded.`, variant: 'success' });
             clearSale();
-            setSelectedCustomer(null);
+            handleSetSelectedCustomer(null);
+            setLastCustomer(selectedCustomer);
+            localStorage.setItem('lastCustomer', JSON.stringify(selectedCustomer));
             setAmountReceived('');
             setPaymentMethod('Cash');
             setSearchTerm('');
             setCustomerSearchResults([]);
             setIsPaymentModalOpen(false);
         } catch (e) {
+            addToast({ title: 'Checkout Error', description: e.message, variant: 'destructive' });
         }
     };
 
     return (
         <div className="pos-page">
+            <img src="/seaside.png" alt="Seaside Logo" className="brand-logo-top" width={32} height={32} loading="lazy" />
             <MobileLogoutButton />
 
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
@@ -199,27 +297,34 @@ export default function POSPage() {
                 </div>
             </div>
 
+            {/* --- Main Layout: Sticky Cart --- */}
             <div className="flex flex-col md:flex-row gap-4 w-full relative items-start">
+                {/* LEFT COLUMN: PRODUCTS - Fills remaining width */}
                 <POSProductGrid
                     isLoading={isLoadingProducts}
                     products={products}
+                    recentProducts={recentProducts}
+                    handleAdd={handleAdd}
                     currentPage={currentPage}
                     totalPages={totalPages}
                     setCurrentPage={setCurrentPage}
                 />
+
+                {/* RIGHT COLUMN: CART - Sticky Float */}
                 <div
-                    className="hidden md:flex w-full md:w-1/3 xl:w-1/4 flex-shrink-0 flex-col sticky top-20"
-                    style={{ height: 'calc(100vh - 6rem)' }}
+                    className="hidden md:flex w-full md:w-1/3 xl:w-1/4 flex-shrink-0 flex-col sticky top-4"
+                    style={{ height: 'calc(100vh - 2rem)' }}
                 >
                     <POSCart
                         currentSale={currentSale}
                         clearSale={clearSale}
                         subtotal={subtotal}
-                        handleDecreaseQuantity={() => {}}
-                        handleRemoveItem={() => {}}
-                        openPaymentModal={() => {}}
+                        handleIncreaseQuantity={handleIncreaseQuantity}
+                        handleDecreaseQuantity={handleDecreaseQuantity}
+                        handleRemoveItem={handleRemoveItem}
+                        openPaymentModal={openPaymentModal}
                         createSaleMutation={createSaleMutation}
-                        lastCustomer={null}
+                        lastCustomer={lastCustomer}
                     />
                 </div>
             </div>
@@ -230,10 +335,12 @@ export default function POSPage() {
                 searchTerm={searchTerm}
                 setSearchTerm={setSearchTerm}
                 selectedCustomer={selectedCustomer}
-                handleSelectCustomerFromModal={(customer) => setSelectedCustomer(customer)}
+                handleSelectCustomerFromModal={handleSelectCustomerFromModal}
                 isSearchingCustomers={isSearchingCustomers}
                 customerSearchResults={customerSearchResults}
-                handleAddCustomer={(name) => createCustomerMutation.mutateAsync({ name })}
+                debouncedSearchTerm={debouncedSearchTerm}
+                handleAddCustomer={handleAddCustomer}
+                createCustomerMutation={createCustomerMutation}
             />
 
             <PaymentModal
@@ -242,10 +349,12 @@ export default function POSPage() {
                 searchTerm={searchTerm}
                 setSearchTerm={setSearchTerm}
                 selectedCustomer={selectedCustomer}
-                handleSelectCustomerInPayment={(customer) => setSelectedCustomer(customer)}
+                handleSelectCustomerInPayment={handleSelectCustomerInPayment}
                 isSearchingCustomers={isSearchingCustomers}
                 customerSearchResults={customerSearchResults}
-                handleAddCustomer={(name) => createCustomerMutation.mutateAsync({ name })}
+                handleAddCustomer={handleAddCustomer}
+                createCustomerMutation={createCustomerMutation}
+                lastCustomer={lastCustomer}
                 paymentMethod={paymentMethod}
                 setPaymentMethod={setPaymentMethod}
                 amountReceived={amountReceived}
@@ -256,6 +365,8 @@ export default function POSPage() {
                 saleTime={saleTime}
                 setSaleTime={setSaleTime}
                 handleFinalizeSale={handleFinalizeSale}
+                createSaleMutation={createSaleMutation}
+                customerPaymentInputRef={customerPaymentInputRef}
             />
 
             <CustomSaleModal
@@ -265,6 +376,7 @@ export default function POSPage() {
                 onAddItem={(product, quantity, price) => addItemToSale(product, quantity, price)}
             />
 
+            {/* MobileCartBar only visible when cart drawer and payment modal are both closed */}
             {!(isCartDrawerOpen || isPaymentModalOpen) && (
                 <MobileCartBar
                     itemCount={Object.keys(currentSale).length}
@@ -278,9 +390,9 @@ export default function POSPage() {
                 onClose={() => setIsCartDrawerOpen(false)}
                 currentSale={currentSale}
                 subtotal={subtotal}
-                handleIncreaseQuantity={() => {}}
-                handleDecreaseQuantity={() => {}}
-                handleRemoveItem={() => {}}
+                handleIncreaseQuantity={handleIncreaseQuantity}
+                handleDecreaseQuantity={handleDecreaseQuantity}
+                handleRemoveItem={handleRemoveItem}
                 openPaymentModal={openPaymentModal}
                 createSaleMutation={createSaleMutation}
             />

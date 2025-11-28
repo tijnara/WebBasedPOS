@@ -1,25 +1,23 @@
 // src/components/pos/POSProductGrid.jsx
 import React from 'react';
-import { Card, CardContent } from '../ui';
-import Pagination from '../Pagination';
 import { ProductImage } from './ProductImage';
 
 const POSProductGrid = ({
-                            isLoading,
-                            products = [], // Default to empty array
-                            recentProducts = [], // Default to empty array
-                            handleAdd,
-                            currentPage,
-                            totalPages,
-                            setCurrentPage,
-                        }) => {
+    isLoading,
+    products = [],
+    recentProducts = [],
+    handleAdd,
+    currentPage,
+    totalPages,
+    setCurrentPage,
+}) => {
     return (
         <div className="w-full md:w-2/3 flex-1 pr-2">
             {isLoading ? (
                 <div className="p-10 text-center text-muted">Loading products...</div>
             ) : !products.length ? (
                 <div className="p-10 text-center text-muted">
-                    'No products available.'
+                    No products available.
                 </div>
             ) : (
                 <>
@@ -75,6 +73,11 @@ const POSProductGrid = ({
                                 </div>
                             </button>
                         ))}
+                    </div>
+
+                    {/* Mobile grid and pagination */}
+                    <div className="block md:hidden">
+                        {/* ...existing code for mobile grid... */}
                     </div>
                 </>
             )}
