@@ -1,7 +1,7 @@
+// src/components/pos/POSCart.jsx
 import React from 'react';
-import {
-    Button, Card, CardContent, CardHeader, ScrollArea,
-} from '../ui';
+// 1. REMOVE 'ScrollArea' from this import
+import { Button, Card, CardContent, CardHeader } from '../ui';
 import currency from 'currency.js';
 import { ProductImage } from './ProductImage';
 
@@ -13,35 +13,38 @@ const TrashIcon = () => (
 );
 
 const POSCart = ({
-    currentSale,
-    clearSale,
-    subtotal,
-    handleIncreaseQuantity,
-    handleDecreaseQuantity,
-    handleRemoveItem,
-    openPaymentModal,
-    createSaleMutation,
-    lastCustomer,
-}) => {
+                     currentSale,
+                     clearSale,
+                     subtotal,
+                     handleIncreaseQuantity,
+                     handleDecreaseQuantity,
+                     handleRemoveItem,
+                     openPaymentModal,
+                     createSaleMutation,
+                     lastCustomer,
+                 }) => {
     return (
-        <div className="flex w-full md:w-1/3 xl:w-1/4 flex-shrink-0 flex-col order-1 md:order-none" style={{height: 'auto'}}>
-            <Card className="flex flex-col shadow-lg border border-gray-200 rounded-xl bg-white overflow-hidden">
-                <CardHeader className="bg-gray-50 border-b border-gray-200 rounded-t-xl">
+        // FIX: Changed 'hidden md:flex' to 'flex' (Always visible)
+        // FIX: Removed 'order-1' classes (Natural flow)
+        <div className="flex w-full md:w-1/3 xl:w-1/4 flex-shrink-0 flex-col" style={{height: 'auto'}}>
+            <Card className="flex flex-col shadow-lg border border-gray-200 rounded-xl bg-white overflow-hidden h-full max-h-[calc(100vh-100px)]">
+                <CardHeader className="bg-gray-50 border-b border-gray-200 rounded-t-xl flex-shrink-0">
                     <div className="flex justify-between items-center">
                         <h3 className="font-semibold text-lg text-primary">Current Order</h3>
                         <Button variant="ghost" size="sm" className="p-1 h-auto text-destructive" onClick={clearSale} title="Clear Sale">✖ Clear</Button>
                     </div>
                 </CardHeader>
-                <CardContent className="p-0 relative">
+                <CardContent className="p-0 flex-1 relative flex flex-col min-h-0">
                     {!Object.keys(currentSale).length ? (
-                        <div className="flex items-center justify-center text-center p-3 text-sm text-gray-500 bg-gray-50 border-b md:p-4" style={{ minHeight: '60px' }}>
+                        <div className="flex items-center justify-center text-center p-3 text-sm text-gray-500 bg-gray-50 h-full">
                             Cart is empty — Start order
                         </div>
                     ) : (
-                        <ScrollArea className="relative w-full current-order-scroll-area">
+                        // 3. CHANGED: Replaced ScrollArea with a standard scrolling div
+                        <div className="flex-1 overflow-y-auto w-full current-order-scroll-area">
                             <div className="flex flex-col divide-y divide-gray-100 p-2">
                                 {Object.entries(currentSale).map(([key, item]) => (
-                                    <div key={key} className="flex items-center gap-2 py-2" style={{ minHeight: '60px' }}>
+                                    <div key={key} className="flex items-center gap-2 py-2">
                                         <div className="flex-shrink-0 w-12 h-12 rounded-md bg-gray-50 flex items-center justify-center overflow-hidden border">
                                             <ProductImage product={{ name: item.name, category: '' }} />
                                         </div>
@@ -49,7 +52,7 @@ const POSCart = ({
                                             <div className="font-medium text-sm truncate">{item.name}</div>
                                             <div className="text-xs text-muted">@ {currency(item.price, { symbol: '₱', precision: 2 }).format()}</div>
                                         </div>
-                                        <div className="flex items-center justify-center space-x-0" style={{ minHeight: '44px' }}>
+                                        <div className="flex items-center justify-center space-x-0">
                                             <Button variant="ghost" size="sm" className="p-1 h-9 w-9 rounded-full" onClick={() => handleDecreaseQuantity(key)}>-</Button>
                                             <span className="w-6 text-center font-medium text-sm">{item.quantity}</span>
                                             <Button variant="ghost" size="sm" className="p-1 h-9 w-9 rounded-full" onClick={() => handleIncreaseQuantity(key)}>+</Button>
@@ -63,38 +66,23 @@ const POSCart = ({
                                     </div>
                                 ))}
                             </div>
-                        </ScrollArea>
+                        </div>
                     )}
                 </CardContent>
-                <div className="p-3 border-t space-y-1 flex-shrink-0 bg-gray-50">
-                </div>
-                <div className="p-3 flex-shrink-0 bg-gray-50 rounded-b-xl">
+
+                {/* Footer Section */}
+                <div className="p-3 border-t space-y-1 flex-shrink-0 bg-gray-50 rounded-b-xl">
                     <div className="w-full">
                         <div className="flex justify-between mb-1 text-sm"><span>Subtotal</span><span>₱{currency(subtotal, { symbol: '₱', precision: 2 }).format()}</span></div>
                         <div className="flex justify-between mb-3 font-bold text-lg border-t pt-2 mt-2"><span>Total</span><span className="text-success">₱{currency(subtotal, { symbol: '₱', precision: 2 }).format()}</span></div>
-                        <Button variant="primary" className="w-full h-12 text-lg rounded-lg shadow-md font-semibold hidden md:flex" onClick={openPaymentModal} disabled={Object.keys(currentSale).length === 0 || createSaleMutation.isPending}>
+                        <Button variant="primary" className="w-full h-12 text-lg rounded-lg shadow-md font-semibold flex" onClick={openPaymentModal} disabled={Object.keys(currentSale).length === 0 || createSaleMutation.isPending}>
                             {createSaleMutation.isPending ? 'Processing...' : 'Proceed to Payment'}
-                        </Button>
-                        <Button
-                            variant="primary"
-                            className="w-full h-12 text-base rounded-lg shadow-md font-semibold md:hidden mt-2"
-                            onClick={openPaymentModal}
-                            disabled={Object.keys(currentSale).length === 0 || createSaleMutation.isPending}
-                            style={{ height: '48px' }}
-                        >
-                            {createSaleMutation.isPending
-                                ? 'Processing...'
-                                : (Object.keys(currentSale).length === 0
-                                        ? 'Proceed to Payment'
-                                        : `Proceed to Payment (₱${subtotal.toFixed(2)})`
-                                )
-                            }
                         </Button>
                     </div>
                 </div>
             </Card>
             <div className="mt-2 flex justify-start flex-shrink-0">
-                <span className="text-lg text-gray-800 font-semibold">Last Customer Used: <span className="font-bold">{lastCustomer ? lastCustomer.name : 'none'}</span></span>
+                <span className="text-lg text-gray-800 font-semibold">Last Customer: <span className="font-bold">{lastCustomer ? lastCustomer.name : 'none'}</span></span>
             </div>
         </div>
     );

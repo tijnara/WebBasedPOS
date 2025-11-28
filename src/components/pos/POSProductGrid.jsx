@@ -1,19 +1,20 @@
+// src/components/pos/POSProductGrid.jsx
 import React from 'react';
-import { Button, Card, CardContent } from '../ui';
+import { Card, CardContent } from '../ui';
 import Pagination from '../Pagination';
 import { ProductImage } from './ProductImage';
 
 const POSProductGrid = ({
-    isLoading,
-    products,
-    recentProducts,
-    handleAdd,
-    currentPage,
-    totalPages,
-    setCurrentPage,
-}) => {
+                            isLoading,
+                            products,
+                            recentProducts,
+                            handleAdd,
+                            currentPage,
+                            totalPages,
+                            setCurrentPage,
+                        }) => {
     return (
-        <div className="flex-1 overflow-y-auto pr-2 max-h-[calc(100vh-120px)] md:max-h-[calc(100vh-100px)] order-2">
+        <div className="flex-1 overflow-y-auto pr-2 max-h-[calc(100vh-120px)] md:max-h-[calc(100vh-100px)]">
             {isLoading ? (
                 <div className="p-10 text-center text-muted">Loading products...</div>
             ) : !products.length ? (
@@ -58,8 +59,8 @@ const POSProductGrid = ({
                             >
                                 <div className={`absolute top-2 right-2 text-[10px] font-bold px-2 py-1 rounded-full ${
                                     p.stock <= 0 ? 'bg-red-100 text-red-600' :
-                                    p.stock <= p.minStock ? 'bg-yellow-100 text-yellow-600' :
-                                    'bg-green-100 text-green-600'
+                                        p.stock <= p.minStock ? 'bg-yellow-100 text-yellow-600' :
+                                            'bg-green-100 text-green-600'
                                 }`}>
                                     {p.stock} left
                                 </div>

@@ -5,14 +5,13 @@ import { useProducts } from '../../hooks/useProducts';
 import { useCreateSale } from '../../hooks/useCreateSale';
 import { useCreateCustomer } from '../../hooks/useCreateCustomer';
 import {
-    Button, Input
+    Button, Dialog, DialogContent, DialogCloseButton, Select, Label, DialogHeader, DialogTitle, DialogFooter, Input
 } from '../ui';
 import MobileLogoutButton from '../MobileLogoutButton';
 import TabBar from '../TabBar';
 import { supabase } from '../../lib/supabaseClient';
 import currency from 'currency.js';
 
-// --- IMPORT YOUR NEW COMPONENTS ---
 import POSCart from '../pos/POSCart';
 import POSProductGrid from '../pos/POSProductGrid';
 import PaymentModal from '../pos/PaymentModal';
@@ -22,27 +21,21 @@ import CartDrawer from '../pos/CartDrawer';
 import MobileCartBar from '../pos/MobileCartBar';
 
 export default function POSPage() {
-    // --- Pagination state ---
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 20;
-
-    // --- Fetch products ---
     const { data: productsData = { products: [], totalPages: 1 }, isLoading: isLoadingProducts } = useProducts({ searchTerm: '', page: currentPage, itemsPerPage });
     const products = productsData.products;
     const totalPages = productsData.totalPages || 1;
     const allProducts = products || [];
 
-    // --- Zustand state ---
     const {
         currentSale, addItemToSale, removeItemFromSale, clearSale, getTotalAmount, addToast,
         currentCustomer, setCurrentCustomer
     } = useStore();
 
-    // --- Hooks ---
     const createSaleMutation = useCreateSale();
     const createCustomerMutation = useCreateCustomer();
 
-    // --- Component State ---
     const [selectedCustomer, setSelectedCustomer] = useState(currentCustomer);
     const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -53,15 +46,10 @@ export default function POSPage() {
     const customerPaymentInputRef = useRef(null);
     const productSearchInputRef = useRef(null);
 
-    // Custom Sale State
     const [isCustomSaleModalOpen, setIsCustomSaleModalOpen] = useState(false);
-
-    // Payment State
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState('Cash');
     const [amountReceived, setAmountReceived] = useState('');
-
-    // Cart Drawer State
     const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
 
     const [lastCustomer, setLastCustomer] = useState(() => {
@@ -76,17 +64,6 @@ export default function POSPage() {
     const [saleDate, setSaleDate] = useState(() => new Date().toISOString().slice(0, 10));
     const [saleTime, setSaleTime] = useState(() => new Date().toTimeString().slice(0,5));
 
-
-    // --- Responsive state ---
-    const [isMobile, setIsMobile] = useState(false);
-    useEffect(() => {
-        const checkMobile = () => setIsMobile(window.innerWidth < 768);
-        checkMobile();
-        window.addEventListener('resize', checkMobile);
-        return () => window.removeEventListener('resize', checkMobile);
-    }, []);
-
-    // --- Effects ---
     useEffect(() => {
         setSelectedCustomer(currentCustomer);
     }, [currentCustomer]);
@@ -116,7 +93,6 @@ export default function POSPage() {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, []);
 
-    // Scanner Logic
     useEffect(() => {
         if (!searchTerm) return;
         const trimmed = searchTerm.trim();
@@ -125,18 +101,16 @@ export default function POSPage() {
             handleAdd(scannedProduct);
             addToast({ title: 'Scanned', description: `${scannedProduct.name} added.`, variant: 'success' });
             setSearchTerm('');
-            productSearchInputRef.current?.focus(); // Re-focus after successful scan
+            productSearchInputRef.current?.focus();
         }
     }, [searchTerm, allProducts]);
 
-    // Customer Search
     useEffect(() => {
         if (!(isCustomerModalOpen || isPaymentModalOpen) || !debouncedSearchTerm) {
             setCustomerSearchResults([]);
             setIsSearchingCustomers(false);
             return;
         }
-
         const searchCustomers = async () => {
             setIsSearchingCustomers(true);
             try {
@@ -145,7 +119,6 @@ export default function POSPage() {
                     .select('*')
                     .ilike('name', `%${debouncedSearchTerm}%`)
                     .limit(10);
-
                 if (error) {
                     setCustomerSearchResults([]);
                     addToast({ title: 'Search Error', description: error.message, variant: 'destructive' });
@@ -162,21 +135,17 @@ export default function POSPage() {
         searchCustomers();
     }, [debouncedSearchTerm, isCustomerModalOpen, isPaymentModalOpen, addToast]);
 
-    // --- Handlers ---
     const [recentProducts, setRecentProducts] = useState([]);
 
     const handleAdd = (product) => {
         if (!product) return;
         const itemKey = `${product.id}__${Number(product.price).toFixed(2)}`;
         const currentQtyInCart = currentSale[itemKey]?.quantity || 0;
-
         if (currentQtyInCart + 1 > product.stock) {
             addToast({ title: 'Stock Limit', description: `Cannot add more than the ${product.stock} available.`, variant: 'warning' });
             return;
         }
-
-        // Store stock in sale item for future-proofing
-        addItemToSale({ ...product, stock: product.stock }, 1);
+        addItemToSale(product, 1);
         setRecentProducts(prev => {
             const without = prev.filter(p => p.id !== product.id);
             return [product, ...without].slice(0, 3);
@@ -186,10 +155,9 @@ export default function POSPage() {
     const handleIncreaseQuantity = (key) => {
         const item = currentSale[key];
         if (item) {
-            // Use stock from item if available, fallback to allProducts
-            const productStock = typeof item.stock !== 'undefined' ? item.stock : (allProducts.find(p => p.id === item.productId)?.stock);
-            if (productStock !== undefined && item.quantity + 1 > productStock) {
-                addToast({ title: 'Stock Limit', description: `Cannot add more than the ${productStock} available.`, variant: 'warning' });
+            const product = allProducts.find(p => p.id === item.productId);
+            if (product && item.quantity + 1 > product.stock) {
+                addToast({ title: 'Stock Limit', description: `Cannot add more than the ${product.stock} available.`, variant: 'warning' });
                 return;
             }
             addItemToSale({ id: item.productId, name: item.name, price: item.price }, 1);
@@ -264,7 +232,6 @@ export default function POSPage() {
             const saleTimestamp = saleDate && saleTime
                 ? new Date(`${saleDate}T${saleTime}:00`).toISOString()
                 : new Date().toISOString();
-
             const payload = {
                 saleTimestamp,
                 totalAmount: subtotal,
@@ -277,15 +244,12 @@ export default function POSPage() {
                 changeGiven: Math.max(0, changeCalculated),
                 created_by: user?.id || null
             };
-
-            const created = await createSaleMutation.mutateAsync(payload);
-            addToast({ title: 'Sale Completed', description: `Sale #${created.id.toString().slice(-6)} recorded.`, variant: 'success' });
-
+            await createSaleMutation.mutateAsync(payload);
+            addToast({ title: 'Sale Completed', description: `Sale recorded.`, variant: 'success' });
             clearSale();
             handleSetSelectedCustomer(null);
             setLastCustomer(selectedCustomer);
             localStorage.setItem('lastCustomer', JSON.stringify(selectedCustomer));
-
             setAmountReceived('');
             setPaymentMethod('Cash');
             setSearchTerm('');
@@ -320,9 +284,9 @@ export default function POSPage() {
                 </div>
             </div>
 
-            {/* --- 1. REPLACED SIDEBAR WITH COMPONENT --- */}
+            {/* --- LAYOUT FIX START --- */}
             <div className="flex flex-col md:flex-row gap-4 w-full h-full relative">
-                {/* COLUMN 1 (LEFT): PRODUCT GRID */}
+                {/* LEFT COLUMN: PRODUCTS (Placed First) */}
                 <POSProductGrid
                     isLoading={isLoadingProducts}
                     products={products}
@@ -332,24 +296,21 @@ export default function POSPage() {
                     totalPages={totalPages}
                     setCurrentPage={setCurrentPage}
                 />
-
-                {/* COLUMN 2 (RIGHT): POS CART */}
-                {!isMobile && (
-                    <POSCart
-                        currentSale={currentSale}
-                        clearSale={clearSale}
-                        subtotal={subtotal}
-                        handleIncreaseQuantity={handleIncreaseQuantity}
-                        handleDecreaseQuantity={handleDecreaseQuantity}
-                        handleRemoveItem={handleRemoveItem}
-                        openPaymentModal={openPaymentModal}
-                        createSaleMutation={createSaleMutation}
-                        lastCustomer={lastCustomer}
-                    />
-                )}
+                {/* RIGHT COLUMN: CURRENT ORDER (Placed Second) */}
+                <POSCart
+                    currentSale={currentSale}
+                    clearSale={clearSale}
+                    subtotal={subtotal}
+                    handleIncreaseQuantity={handleIncreaseQuantity}
+                    handleDecreaseQuantity={handleDecreaseQuantity}
+                    handleRemoveItem={handleRemoveItem}
+                    openPaymentModal={openPaymentModal}
+                    createSaleMutation={createSaleMutation}
+                    lastCustomer={lastCustomer}
+                />
             </div>
+            {/* --- LAYOUT FIX END --- */}
 
-            {/* --- 3. REPLACED DIALOGS WITH COMPONENTS --- */}
             <CustomerSelectionModal
                 isOpen={isCustomerModalOpen}
                 setIsOpen={setIsCustomerModalOpen}
@@ -390,7 +351,6 @@ export default function POSPage() {
                 customerPaymentInputRef={customerPaymentInputRef}
             />
 
-            {/* Custom Sale Dialog (Left inline as it is small/simple) */}
             <CustomSaleModal
                 isOpen={isCustomSaleModalOpen}
                 onClose={() => setIsCustomSaleModalOpen(false)}
@@ -417,8 +377,6 @@ export default function POSPage() {
             />
 
             <TabBar />
-
-            {/* Note: All duplicate modals at the bottom have been removed in this version */}
         </div>
     );
 }
