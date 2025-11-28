@@ -297,17 +297,20 @@ export default function POSPage() {
                     setCurrentPage={setCurrentPage}
                 />
                 {/* RIGHT COLUMN: CURRENT ORDER (Placed Second) */}
-                <POSCart
-                    currentSale={currentSale}
-                    clearSale={clearSale}
-                    subtotal={subtotal}
-                    handleIncreaseQuantity={handleIncreaseQuantity}
-                    handleDecreaseQuantity={handleDecreaseQuantity}
-                    handleRemoveItem={handleRemoveItem}
-                    openPaymentModal={openPaymentModal}
-                    createSaleMutation={createSaleMutation}
-                    lastCustomer={lastCustomer}
-                />
+                {/* Only show cart on desktop (md and up) */}
+                <div className="hidden md:flex w-full md:w-1/3 xl:w-1/4 flex-shrink-0 flex-col">
+                    <POSCart
+                        currentSale={currentSale}
+                        clearSale={clearSale}
+                        subtotal={subtotal}
+                        handleIncreaseQuantity={handleIncreaseQuantity}
+                        handleDecreaseQuantity={handleDecreaseQuantity}
+                        handleRemoveItem={handleRemoveItem}
+                        openPaymentModal={openPaymentModal}
+                        createSaleMutation={createSaleMutation}
+                        lastCustomer={lastCustomer}
+                    />
+                </div>
             </div>
             {/* --- LAYOUT FIX END --- */}
 
@@ -358,11 +361,14 @@ export default function POSPage() {
                 onAddItem={(product, quantity, price) => addItemToSale(product, quantity, price)}
             />
 
-            <MobileCartBar
-                itemCount={Object.keys(currentSale).length}
-                subtotal={subtotal}
-                onOpenCart={() => setIsCartDrawerOpen(true)}
-            />
+            {/* MobileCartBar only visible when cart drawer and payment modal are both closed */}
+            {!(isCartDrawerOpen || isPaymentModalOpen) && (
+                <MobileCartBar
+                    itemCount={Object.keys(currentSale).length}
+                    subtotal={subtotal}
+                    onOpenCart={() => setIsCartDrawerOpen(true)}
+                />
+            )}
 
             <CartDrawer
                 isOpen={isCartDrawerOpen}

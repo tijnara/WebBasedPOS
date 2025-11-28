@@ -23,10 +23,9 @@ const POSCart = ({
                      createSaleMutation,
                      lastCustomer,
                  }) => {
+    // Show cart only on desktop (md and up)
     return (
-        // FIX: Changed 'hidden md:flex' to 'flex' (Always visible)
-        // FIX: Removed 'order-1' classes (Natural flow)
-        <div className="flex w-full md:w-1/3 xl:w-1/4 flex-shrink-0 flex-col" style={{height: 'auto'}}>
+        <div className="hidden md:flex w-full md:w-1/3 xl:w-1/4 flex-shrink-0 flex-col" style={{height: 'auto'}}>
             <Card className="flex flex-col shadow-lg border border-gray-200 rounded-xl bg-white overflow-hidden h-full max-h-[calc(100vh-100px)]">
                 <CardHeader className="bg-gray-50 border-b border-gray-200 rounded-t-xl flex-shrink-0">
                     <div className="flex justify-between items-center">

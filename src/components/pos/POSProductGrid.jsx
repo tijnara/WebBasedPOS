@@ -14,7 +14,7 @@ const POSProductGrid = ({
                             setCurrentPage,
                         }) => {
     return (
-        <div className="flex-1 overflow-y-auto pr-2 max-h-[calc(100vh-120px)] md:max-h-[calc(100vh-100px)]">
+        <div className="w-full md:w-2/3 flex-1 overflow-y-auto pr-2 max-h-[calc(100vh-120px)] md:max-h-[calc(100vh-100px)]">
             {isLoading ? (
                 <div className="p-10 text-center text-muted">Loading products...</div>
             ) : !products.length ? (
