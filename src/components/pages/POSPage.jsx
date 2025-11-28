@@ -76,6 +76,7 @@ export default function POSPage() {
     const [saleDate, setSaleDate] = useState(() => new Date().toISOString().slice(0, 10));
     const [saleTime, setSaleTime] = useState(() => new Date().toTimeString().slice(0,5));
 
+
     // --- Responsive state ---
     const [isMobile, setIsMobile] = useState(false);
     useEffect(() => {
@@ -319,8 +320,20 @@ export default function POSPage() {
                 </div>
             </div>
 
-            <div className="flex flex-col md:flex-row-reverse gap-4 w-full">
-                {/* --- 1. REPLACED SIDEBAR WITH COMPONENT --- */}
+            {/* --- 1. REPLACED SIDEBAR WITH COMPONENT --- */}
+            <div className="flex flex-col md:flex-row gap-4 w-full h-full relative">
+                {/* COLUMN 1 (LEFT): PRODUCT GRID */}
+                <POSProductGrid
+                    isLoading={isLoadingProducts}
+                    products={products}
+                    recentProducts={recentProducts}
+                    handleAdd={handleAdd}
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    setCurrentPage={setCurrentPage}
+                />
+
+                {/* COLUMN 2 (RIGHT): POS CART */}
                 {!isMobile && (
                     <POSCart
                         currentSale={currentSale}
@@ -334,16 +347,6 @@ export default function POSPage() {
                         lastCustomer={lastCustomer}
                     />
                 )}
-                {/* --- 2. REPLACED GRID WITH COMPONENT --- */}
-                <POSProductGrid
-                    isLoading={isLoadingProducts}
-                    products={products}
-                    recentProducts={recentProducts}
-                    handleAdd={handleAdd}
-                    currentPage={currentPage}
-                    totalPages={totalPages}
-                    setCurrentPage={setCurrentPage}
-                />
             </div>
 
             {/* --- 3. REPLACED DIALOGS WITH COMPONENTS --- */}
