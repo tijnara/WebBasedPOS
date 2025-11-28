@@ -31,7 +31,7 @@ const PaymentModal = ({
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogContent
-                className="sm:max-w-sm"
+                className="sm:max-w-md"
             >
                 <DialogHeader>
                     <DialogTitle>Complete Sale</DialogTitle>
@@ -48,7 +48,7 @@ const PaymentModal = ({
                             placeholder="Search by name..."
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
-                            className="w-full mb-2 text-base"
+                            className="w-full mb-2 text-base h-11 py-2.5"
                             ref={customerPaymentInputRef}
                             inputMode="text"
                             pattern=".*"
@@ -117,7 +117,7 @@ const PaymentModal = ({
                             id="paymentMethod"
                             value={paymentMethod}
                             onChange={(e) => setPaymentMethod(e.target.value)}
-                            className="w-full"
+                            className="w-full h-11 py-2.5"
                         >
                             <option value="Cash">Cash</option>
                             <option value="Card">Card</option>
@@ -138,9 +138,28 @@ const PaymentModal = ({
                                     value={amountReceived}
                                     onChange={e => setAmountReceived(e.target.value)}
                                     required
-                                    className="w-full"
+                                    className="w-full h-11 py-2.5"
                                     placeholder="Enter amount customer paid"
                                 />
+                            </div>
+                            <div className="flex gap-2 mt-2">
+                                {[100, 500, 1000].map(amt => (
+                                    <Button
+                                        key={amt}
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setAmountReceived(amt.toString())}
+                                    >
+                                        ₱{amt}
+                                    </Button>
+                                ))}
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setAmountReceived(subtotal.toFixed(2))}
+                                >
+                                    Exact
+                                </Button>
                             </div>
                             <div className="flex flex-col gap-2 mt-2">
                                 <div className="text-center">
@@ -159,7 +178,7 @@ const PaymentModal = ({
                                 type="date"
                                 value={saleDate}
                                 onChange={e => setSaleDate(e.target.value)}
-                                className="w-full"
+                                className="w-full h-11 py-2.5"
                                 max={new Date().toISOString().slice(0, 10)}
                             />
                         </div>
@@ -170,12 +189,12 @@ const PaymentModal = ({
                                 type="time"
                                 value={saleTime}
                                 onChange={e => setSaleTime(e.target.value)}
-                                className="w-full"
+                                className="w-full h-11 py-2.5"
                             />
                         </div>
                     </div>
                 </div>
-                <DialogFooter>
+                <DialogFooter className="bg-gray-50">
                     <Button variant="outline" onClick={() => setIsOpen(false)}>Cancel</Button>
                     <Button
                         onClick={handleFinalizeSale}
