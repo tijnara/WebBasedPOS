@@ -1,4 +1,3 @@
-```javascript
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { Card, CardHeader, CardContent } from '../ui';
@@ -10,16 +9,19 @@ const ReorderReport = () => {
     useEffect(() => {
         const fetchLowStockProducts = async () => {
             setIsLoading(true);
-            const { data, error } = await supabase
+
+            // Fetching products to filter client side for robust comparison
+            const { data: products, error: prodError } = await supabase
                 .from('products')
-                .select('id, name, sku, stock_quantity, min_stock_level')
-                .lte('stock_quantity', 'min_stock_level')
+                .select('id, name, barcode, stock_quantity, min_stock_level')
                 .order('stock_quantity', { ascending: true });
 
-            if (error) {
-                console.error('Error fetching low stock products:', error);
+            if (prodError) {
+                console.error('Error fetching low stock products:', prodError);
             } else {
-                setLowStockProducts(data);
+                // Filter where stock <= min_stock
+                const lowStock = (products || []).filter(p => p.stock_quantity <= p.min_stock_level);
+                setLowStockProducts(lowStock);
             }
             setIsLoading(false);
         };
@@ -28,33 +30,35 @@ const ReorderReport = () => {
     }, []);
 
     return (
-        <Card>
-            <CardHeader>
-                <h3 className="font-semibold text-lg">Reorder Report</h3>
+        <Card className="mb-6 border-red-200 bg-red-50">
+            <CardHeader className="pb-2 border-red-100 bg-red-50">
+                <h3 className="font-semibold text-lg text-red-800 flex items-center gap-2">
+                    <span className="text-xl">⚠️</span> Reorder Alert
+                </h3>
             </CardHeader>
             <CardContent>
                 {isLoading ? (
-                    <p>Loading report...</p>
+                    <p className="text-sm text-red-600">Checking inventory...</p>
                 ) : lowStockProducts.length === 0 ? (
-                    <p>All products are well-stocked.</p>
+                    <p className="text-sm text-green-700 font-medium">✅ All products are well stocked.</p>
                 ) : (
                     <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product Name</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SKU</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Current Stock</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Min Stock Level</th>
+                        <table className="min-w-full text-sm">
+                            <thead>
+                                <tr className="text-left text-red-800 border-b border-red-200">
+                                    <th className="pb-2 font-semibold">Product</th>
+                                    <th className="pb-2 font-semibold">Barcode</th>
+                                    <th className="pb-2 font-semibold">Stock</th>
+                                    <th className="pb-2 font-semibold">Min</th>
                                 </tr>
                             </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
+                            <tbody className="divide-y divide-red-200">
                                 {lowStockProducts.map(product => (
                                     <tr key={product.id}>
-                                        <td className="px-6 py-4 whitespace-nowrap">{product.name}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap">{product.sku}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap font-bold text-red-600">{product.stock_quantity}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap">{product.min_stock_level}</td>
+                                        <td className="py-2 text-gray-800">{product.name}</td>
+                                        <td className="py-2 text-gray-600">{product.barcode || '-'}</td>
+                                        <td className="py-2 font-bold text-red-600">{product.stock_quantity}</td>
+                                        <td className="py-2 text-gray-600">{product.min_stock_level}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -67,4 +71,4 @@ const ReorderReport = () => {
 };
 
 export default ReorderReport;
-```
+
