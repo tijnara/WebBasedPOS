@@ -395,6 +395,7 @@ export default function POSPage() {
                 handleRemoveItem={handleRemoveItem}
                 openPaymentModal={openPaymentModal}
                 createSaleMutation={createSaleMutation}
+                clearSale={clearSale}
             />
 
             <TabBar />
