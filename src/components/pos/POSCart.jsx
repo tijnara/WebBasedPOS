@@ -39,11 +39,15 @@ const POSCart = ({
                         </div>
                     ) : (
                         <div className="flex-1 overflow-y-auto w-full current-order-scroll-area">
-                            <div className="flex flex-col divide-y divide-gray-100 p-2">
+                            <div className="flex flex-col divide-y divide-gray-100 p-0">
                                 {Object.entries(currentSale).map(([key, item]) => (
-                                    <div key={key} className="flex items-center gap-2 py-2">
-                                        <div className="flex-shrink-0 w-12 h-12 rounded-md bg-gray-50 flex items-center justify-center overflow-hidden border">
-                                            <ProductImage product={{ name: item.name, category: '' }} />
+                                    <div key={key} className="flex items-center gap-1 py-1">
+                                        {/* Remove gray background and extra padding from image container */}
+                                        <div className="flex-shrink-0 w-9 h-9 rounded-md flex items-center justify-center overflow-hidden border bg-transparent p-0 m-0">
+                                            <ProductImage
+                                                product={{ name: item.name, category: '' }}
+                                                style={{ width: '20%', height: '20%', border: 'none', background: 'transparent', padding: '0', margin: '0' }}
+                                            />
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <div className="font-medium text-sm truncate">{item.name}</div>

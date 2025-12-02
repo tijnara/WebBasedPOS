@@ -9,19 +9,23 @@ const PackageIcon = (props) => (
     </svg>
 );
 
-export const ProductImage = ({ product }) => {
+export const ProductImage = ({ product, className, style }) => {
+    // Merge custom styles with defaults
+    const defaultImgStyle = {
+        width: '80px',
+        height: '80px',
+        objectFit: 'cover',
+        //borderRadius: '8px',
+        //border: '1px solid #e5e7eb',
+    };
+
     if (product.image_url) {
         return (
             <img
                 src={product.image_url}
                 alt={product.name}
-                style={{
-                    width: '80px',
-                    height: '80px',
-                    objectFit: 'cover',
-                    borderRadius: '8px',
-                    border: '1px solid #e5e7eb',
-                }}
+                className={className}
+                style={{ ...defaultImgStyle, ...style }}
             />
         );
     }
@@ -49,15 +53,17 @@ export const ProductImage = ({ product }) => {
             <img
                 src={imageUrl}
                 alt={altText}
+                className={className}
                 style={{
-                    width: '80px',
-                    height: '80px',
+                    ...defaultImgStyle,
                     objectFit: 'contain',
-                    borderRadius: '8px',
                     padding: '4px',
+                    ...style // Allow override
                 }}
             />
         );
     }
-    return <PackageIcon className="w-10 h-10 text-muted" />;
+
+    // Pass styles to icon as well
+    return <PackageIcon className={`w-10 h-10 text-muted ${className || ''}`} style={style} />;
 };
