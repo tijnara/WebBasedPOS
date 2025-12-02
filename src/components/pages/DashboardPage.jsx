@@ -183,7 +183,8 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
                 <SummaryCard
                     title="Total Revenue"
-                    value={currency(salesSummary?.totalSales || 0, { symbol: '₱' }).format()}
+                    // FIX: Changed salesSummary?.totalSales to salesSummary?.totalRevenue
+                    value={currency(salesSummary?.totalRevenue || 0, { symbol: '₱' }).format()}
                     subtext="All time"
                     colorClass="text-blue-600"
                     icon={<span className="text-xl">🏦</span>}
@@ -202,7 +203,7 @@ export default function DashboardPage() {
                     icon={<span className="text-xl">👨‍👩‍👧</span>}
                 />
                 <SummaryCard
-                    title="New Customers(This Week)"
+                    title="New (This Week)"
                     value={newCustomersThisWeek}
                     colorClass="text-green-600"
                     icon={<span className="text-xl">🆕</span>}
@@ -218,8 +219,8 @@ export default function DashboardPage() {
 
             <ReorderReport />
 
-            {/* CHARTS SECTION - Added Spacing (gap-8) and New Graph */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* CHARTS SECTION - Added top margin for spacing */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
 
                 {/* Sales Trends (Full Width on Mobile, Half on Desktop) */}
                 <div className="lg:col-span-2">
@@ -268,8 +269,8 @@ export default function DashboardPage() {
                 </div>
             </div>
 
-            {/* Inactive Customers List */}
-            <Card className="shadow-sm border-none">
+            {/* Inactive Customers List - Added top margin for spacing */}
+            <Card className="shadow-sm border-none mt-8">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                     <h3 className="font-semibold text-lg text-gray-700">Recent Inactive Customers</h3>
                 </CardHeader>
@@ -312,4 +313,3 @@ export default function DashboardPage() {
         </div>
     );
 }
-
