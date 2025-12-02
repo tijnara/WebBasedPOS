@@ -14,7 +14,7 @@ const MobileCartBar = ({ itemCount, subtotal, onOpenCart }) => {
                 className="w-full h-12 text-lg rounded-lg"
                 onClick={onOpenCart}
             >
-                {itemCount} {itemCount > 1 ? 'Items' : 'Item'} • {currency(subtotal).format()} | View Cart &rarr;
+                {itemCount} {itemCount > 1 ? 'Items' : 'Item'} • {currency(subtotal, { symbol: '₱', precision: 2 }).format()} | View Cart &rarr;
             </Button>
         </div>
     );
