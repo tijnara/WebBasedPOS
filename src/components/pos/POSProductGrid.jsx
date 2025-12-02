@@ -1,6 +1,7 @@
 // src/components/pos/POSProductGrid.jsx
 import React from 'react';
 import { ProductImage } from './ProductImage';
+import currency from 'currency.js';
 
 const POSProductGrid = ({
     isLoading,
@@ -21,14 +22,15 @@ const POSProductGrid = ({
                 </div>
             ) : (
                 <>
+                    {/* Recent Products */}
                     {recentProducts.length > 0 && (
                         <div className="mb-4">
                             <h2 className="text-base font-semibold text-primary mb-2">Recently Used Products</h2>
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 overflow-x-auto pb-2">
                                 {recentProducts.map(p => (
                                     <button
                                         key={p.id}
-                                        className="product-card p-2 border rounded-xl shadow bg-white flex flex-col items-center hover:border-primary transition-all duration-150"
+                                        className="product-card p-2 border rounded-xl shadow bg-white flex flex-col items-center hover:border-primary transition-all duration-150 flex-shrink-0"
                                         onClick={() => handleAdd(p)}
                                         title={p.name}
                                         style={{ minWidth: '80px', maxWidth: '120px' }}
@@ -46,6 +48,7 @@ const POSProductGrid = ({
                         </div>
                     )}
 
+                    {/* Desktop Grid (Hidden on Mobile) */}
                     <div className="hidden md:grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                         {products.map((p) => (
                             <button
@@ -77,7 +80,32 @@ const POSProductGrid = ({
 
                     {/* Mobile grid and pagination */}
                     <div className="block md:hidden">
-                        {/* ...existing code for mobile grid... */}
+                        <div className="grid grid-cols-2 gap-3">
+                            {products.map((p) => (
+                                <button
+                                    key={`mobile-${p.id}`}
+                                    className="product-card p-3 border rounded-lg shadow-sm bg-white flex flex-col items-center active:scale-95 transition-transform"
+                                    onClick={() => handleAdd(p)}
+                                    disabled={p.stock <= 0}
+                                    style={{ opacity: p.stock <= 0 ? 0.6 : 1 }}
+                                >
+                                    <div className="h-16 w-full mb-2 flex items-center justify-center overflow-hidden rounded bg-gray-50">
+                                        <ProductImage product={p} />
+                                    </div>
+                                    <div className="font-medium text-xs text-gray-900 line-clamp-2 w-full text-center h-8 leading-4">{p.name}</div>
+                                    <div className="mt-1 text-sm text-primary font-bold">
+                                        {currency(p.price).format({ symbol: '₱' })}
+                                    </div>
+                                    <div className={`mt-1 text-[10px] px-2 rounded-full ${
+                                        p.stock <= 0 ? 'bg-red-100 text-red-700' : 
+                                         p.stock <= p.minStock ? 'bg-yellow-100 text-yellow-600' : 
+                                         'bg-green-100 text-green-600'
+                                    }`}>
+                                        {p.stock} left
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
                     </div>
                 </>
             )}
