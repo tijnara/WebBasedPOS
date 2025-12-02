@@ -102,8 +102,14 @@ const POSCart = ({
                 {/* Footer Section */}
                 <div className="p-3 border-t space-y-1 flex-shrink-0 bg-gray-50 rounded-b-xl">
                     <div className="w-full">
-                        <div className="flex justify-between mb-1 text-sm"><span>Subtotal</span><span>₱{currency(subtotal, { precision: 2 }).format()}</span></div>
-                        <div className="flex justify-between mb-3 font-bold text-lg border-t pt-2 mt-2"><span>Total</span><span className="text-success">₱{currency(subtotal, { precision: 2 }).format()}</span></div>
+                        <div className="flex justify-between mb-1 text-sm">
+                            <span>Subtotal</span>
+                            <span>₱{currency(subtotal, { symbol: '', precision: 2 }).format()}</span>
+                        </div>
+                        <div className="flex justify-between mb-3 font-bold text-lg border-t pt-2 mt-2">
+                            <span>Total</span>
+                            <span className="text-success">₱{currency(subtotal, { symbol: '', precision: 2 }).format()}</span>
+                        </div>
                         <Button variant="primary" className="w-full h-12 text-lg rounded-lg shadow-md font-semibold flex" onClick={openPaymentModal} disabled={Object.keys(currentSale).length === 0 || createSaleMutation.isPending}>
                             {createSaleMutation.isPending ? 'Processing...' : 'Proceed to Payment'}
                         </Button>
