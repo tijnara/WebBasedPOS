@@ -35,10 +35,14 @@ export default function POSPage() {
         return () => clearTimeout(handler);
     }, [searchTerm]);
 
-    // --- FETCH PRODUCTS (FIXED: Passed debouncedSearchTerm) ---
+    // --- FETCH PAGINATED PRODUCTS FOR DISPLAY ---
     const { data: productsData = { products: [], totalPages: 1 }, isLoading: isLoadingProducts } = useProducts({ searchTerm: debouncedSearchTerm, page: currentPage, itemsPerPage });
     const products = productsData.products || [];
     const totalPages = productsData.totalPages || 1;
+
+    // --- FETCH ALL PRODUCTS FOR SCANNER/SEARCH ---
+    const { data: allProductsData } = useProducts({ fetchAll: true, itemsPerPage: 5000 });
+    const allProducts = allProductsData?.products || [];
 
     const {
         currentSale, addItemToSale, clearSale, getTotalAmount, addToast,
@@ -100,18 +104,19 @@ export default function POSPage() {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, []);
 
-    // --- SCANNER LOGIC ---
+    // --- SCANNER LOGIC (uses allProducts for instant search) ---
     useEffect(() => {
         if (!searchTerm) return;
         const trimmed = searchTerm.trim();
-        const scannedProduct = products.find(p => p.barcode === trimmed);
+        // Search against the full local array, not the paginated API
+        const scannedProduct = allProducts.find(p => p.barcode === trimmed);
         if (scannedProduct) {
             handleAdd(scannedProduct);
             addToast({ title: 'Scanned', description: `${scannedProduct.name} added.`, variant: 'success' });
             setSearchTerm('');
             productSearchInputRef.current?.focus();
         }
-    }, [searchTerm, products, addToast]);
+    }, [searchTerm, allProducts]);
 
     // --- CUSTOMER SEARCH LOGIC ---
     useEffect(() => {
@@ -165,7 +170,8 @@ export default function POSPage() {
     const handleIncreaseQuantity = (key) => {
         const item = currentSale[key];
         if (item) {
-            const product = products.find(p => p.id === item.productId);
+            // Use allProducts for stock check to ensure accuracy
+            const product = allProducts.find(p => p.id === item.productId);
             if (product && item.quantity + 1 > product.stock) {
                 addToast({ title: 'Stock Limit', description: `Cannot add more than the ${product.stock} available.`, variant: 'warning' });
                 return;
@@ -236,6 +242,7 @@ export default function POSPage() {
             productName: i.name,
             quantity: i.quantity,
             priceAtSale: i.price,
+            cost_at_sale: i.cost || 0, // <-- PROFIT TRACKING
             subtotal: currency(i.price).multiply(i.quantity).value
         }));
         const received = currency(amountReceived || 0).value;

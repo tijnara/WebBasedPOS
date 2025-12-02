@@ -12,6 +12,7 @@ import { useInactiveCustomers } from '../../hooks/useInactiveCustomers';
 import { startOfWeek } from 'date-fns';
 import { UserIcon } from '../Icons'; // <-- FIXED IMPORT
 import currency from 'currency.js'; // <-- IMPORTED CURRENCY.JS
+import ReorderReport from '../dashboard/ReorderReport'; // <-- IMPORT REORDER REPORT
 // Removed Pagination import; using Prev/Next for unknown totals
 
 Chart.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Tooltip, Legend, Filler);
@@ -99,9 +100,9 @@ export default function DashboardPage() {
         customerData?.customers.forEach(cust => {
             if (!cust.dateAdded) return;
             try {
-                const addedDate = new Date(cust.dateAdded);
-                if (isNaN(addedDate.getTime())) return;
-                const weekStart = startOfWeek(addedDate, { weekStartsOn: 1 });
+
+                const joinDate = new Date(cust.dateAdded);
+                const weekStart = startOfWeek(joinDate, { weekStartsOn: 1 });
                 const key = weekStart.toISOString().split('T')[0];
                 map[key] = (map[key] || 0) + 1;
             } catch (e) {
@@ -112,274 +113,109 @@ export default function DashboardPage() {
         const labels = sortedData.map(([dateKey]) =>
             new Date(dateKey).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
         );
-        const data = sortedData.map(([, total]) => total);
+        const data = sortedData.map(([, count]) => count);
         return { labels, data };
     }, [customerData]);
     const customerDates = customersByWeek.labels;
     const customerCounts = customersByWeek.data;
 
-    // --- Summary Stats ---
-    const totalRevenue = summaryData?.totalRevenue || 0;
-    const transactionsCount = salesData?.totalCount || 0;
+    const salesChartData = {
+        labels: salesDates,
+        datasets: [
+            {
+                label: 'Weekly Sales',
+                data: salesAmounts,
+                borderColor: 'rgba(127, 0, 255, 1)',
+                backgroundColor: 'rgba(127, 0, 255, 0.1)',
+                fill: true,
+                tension: 0.3,
+            },
+        ],
+    };
 
-    // Helper function to check if a date is in the current week
-    function isDateInCurrentWeek(dateString) {
-        if (!dateString) return false;
-        const now = new Date();
-        const inputDate = new Date(dateString);
-        const firstDayOfWeek = new Date(now);
-        firstDayOfWeek.setDate(now.getDate() - now.getDay());
-        firstDayOfWeek.setHours(0, 0, 0, 0);
-        const lastDayOfWeek = new Date(firstDayOfWeek);
-        lastDayOfWeek.setDate(firstDayOfWeek.getDate() + 6);
-        lastDayOfWeek.setHours(23, 59, 59, 999);
-        return inputDate >= firstDayOfWeek && inputDate <= lastDayOfWeek;
-    }
-
-    // New customers this week (from summary data)
-    const newCustomersCount = newCustomersByDateData
-        .filter(row => isDateInCurrentWeek(row.customer_date))
-        .reduce((sum, row) => sum + Number(row.total_customers || 0), 0);
-
-    // Sales today (from summary data)
-    const todayDateString = new Date().toLocaleDateString();
-    const todaySalesAmount = salesByDateData
-        .filter(row => new Date(row.sale_date).toLocaleDateString() === todayDateString)
-        .reduce((sum, row) => sum + Number(row.total_sales || 0), 0);
-
-    // --- Top-Selling Products ---
-    const productSales = useMemo(() => {
-        const map = {};
-        salesData?.sales.forEach(sale => {
-            (sale.sale_items || []).forEach(item => {
-                map[item.productName] = (map[item.productName] || 0) + item.quantity;
-            });
-        });
-        return map;
-    }, [salesData]);
-    const topProducts = Object.entries(productSales)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 5);
-    const topProductNames = topProducts.map(([name]) => name);
-    const topProductQuantities = topProducts.map(([, qty]) => qty);
-
-    // Today's top-selling products
-    const todayProductSales = (() => {
-        const map = {};
-        salesData?.sales.filter(sale => {
-            const saleDate = new Date(sale.saleTimestamp).toLocaleDateString();
-            return saleDate === todayDateString;
-        }).forEach(sale => {
-            (sale.sale_items || []).forEach(item => {
-                map[item.productName] = (map[item.productName] || 0) + item.quantity;
-            });
-        });
-        return map;
-    })();
-    const todayTopProducts = Object.entries(todayProductSales)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 5);
-    const todayTopProductNames = todayTopProducts.map(([name]) => name);
-    const todayTopProductQuantities = todayTopProducts.map(([, qty]) => qty);
-
-    // Chart options
-    const chartOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: { display: false }
-        },
-        aspectRatio: 2,
+    const customerChartData = {
+        labels: customerDates,
+        datasets: [
+            {
+                label: 'New Customers',
+                data: customerCounts,
+                backgroundColor: 'rgba(22, 163, 74, 0.6)',
+            },
+        ],
     };
 
     return (
-        <div className="dashboard-page w-full p-0 md:p-4">
-            <img src="/seaside.png" alt="Seaside Logo" className="brand-logo-top" width={32} height={32} loading="lazy" />
+        <div className="p-4 md:p-6 space-y-6">
             <MobileLogoutButton />
-            <h1 className="text-3xl md:text-4xl font-bold mb-4 md:mb-6 text-primary tracking-tight">Dashboard</h1>
-            {/* Add top margin to summary cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 mb-4 md:mb-6 mt-2 md:mt-6">
-                <SummaryCard title="Revenue" value={currency(totalRevenue, { symbol: '₱', precision: 2 }).format()} />
-                <SummaryCard title="Transactions" value={transactionsCount} />
-                <SummaryCard title="New Customers" value={newCustomersCount} />
-                <SummaryCard title="Sales Today" value={currency(todaySalesAmount, { symbol: '₱', precision: 2 }).format()} isSuccess={true} />
+            <h1 className="text-2xl md:text-3xl font-bold text-primary tracking-tight">Dashboard</h1>
+
+            <div className="flex flex-col sm:flex-row gap-4">
+                <SummaryCard title="Total Revenue" value={currency(summaryData?.totalRevenue || 0, { symbol: '₱' }).format()} isSuccess />
+                <SummaryCard title="Total Sales" value={summaryData?.totalSales || 0} />
+                <SummaryCard title="Total Customers" value={customerData?.totalCount || 0} />
             </div>
-            {/* First row: swap Sales Over Time with Inactive Customers (place Sales Over Time first) */}
-            <div className="flex flex-col md:flex-row gap-4 mb-6 mt-2 md:mt-6">
-                {/* Sales Over Time (Weekly) */}
-                <div className="flex-1">
-                    <Card className="rounded-xl shadow bg-white border border-gray-200 h-[300px] md:h-[400px] flex flex-col">
-                        <CardHeader className="pb-2">
-                            <h3 className="font-semibold text-lg text-gray-600">Sales Over Time (Weekly)</h3>
+
+            <ReorderReport />
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2">
+                    <Card>
+                        <CardHeader>
+                            <h3 className="font-semibold text-lg">Sales Over Time</h3>
                         </CardHeader>
-                        <CardContent className="p-2 h-[calc(100%-4rem)]">
-                            <Line
-                                data={{
-                                    labels: salesDates,
-                                    datasets: [{
-                                        label: 'Sales (₱)',
-                                        data: salesAmounts,
-                                        borderColor: '#7F00FF',
-                                        backgroundColor: 'rgba(127,0,256,0.10)',
-                                        fill: true,
-                                        pointRadius: 2,
-                                    }],
-                                }}
-                                options={chartOptions}
-                            />
+                        <CardContent>
+                            <Line data={salesChartData} />
                         </CardContent>
                     </Card>
                 </div>
-                {/* Inactive Customers Section */}
-                <div className="flex-1">
-                    <Card className="rounded-xl shadow bg-white border border-gray-200 h-[300px] md:h-[400px] flex flex-col">
-                        <CardHeader className="pb-2">
-                            <h3 className="font-semibold text-lg text-gray-600">Inactive Customers (14+ Days)</h3>
-                            <div className="text-xs text-gray-500 mt-1">Customers who have not ordered in the last 14 days or never ordered.</div>
+                <div>
+                    <Card>
+                        <CardHeader>
+                            <h3 className="font-semibold text-lg">New Customers</h3>
                         </CardHeader>
-                        <CardContent className="p-0 flex-1 overflow-hidden">
-                            <ScrollArea className="h-full">
-                                {inactiveCustomersLoading ? (
-                                    <p className="p-4 text-center text-gray-500">Loading customers...</p>
-                                ) : paginatedInactiveCustomers.length === 0 ? (
-                                    <p className="p-4 text-center text-gray-500">No inactive customers found. Great!</p>
-                                ) : (
-                                    <div className="w-full h-full flex flex-col">
-                                        {/* Desktop Table occupies full space */}
-                                        <div className="hidden md:block h-full flex-1">
-                                            <table className="min-w-full h-full text-sm">
-                                                <thead className="bg-gray-50">
-                                                    <tr>
-                                                        <th className="px-2 py-1 text-left font-semibold text-gray-700">Name</th>
-                                                        <th className="px-2 py-1 text-left font-semibold text-gray-700">Phone</th>
-                                                        <th className="px-2 py-1 text-left font-semibold text-gray-700">Last Order</th>
-                                                        <th className="px-2 py-1 text-left font-semibold text-gray-700">Status</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-gray-100">
-                                                    {paginatedInactiveCustomers.map(cust => (
-                                                        <tr key={cust.id} className="hover:bg-gray-50">
-                                                            <td className="px-2 py-1 text-gray-800 font-medium">{cust.name}</td>
-                                                            <td className="px-2 py-1 text-gray-600">{cust.phone || 'No phone'}</td>
-                                                            <td className="px-2 py-1">{formatLastOrderDate(cust.last_order_date)}</td>
-                                                            <td className="px-2 py-1">{getStatusBadge(cust.last_order_date)}</td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
+                        <CardContent>
+                            <Bar data={customerChartData} />
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+
+            {/* Inactive Customers Section */}
+            <Card>
+                <CardHeader>
+                    <h3 className="font-semibold text-lg">Inactive Customers (No orders in 14 days)</h3>
+                </CardHeader>
+                <CardContent>
+                    {inactiveCustomersLoading ? (
+                        <p>Loading...</p>
+                    ) : paginatedInactiveCustomers.length === 0 ? (
+                        <p>No inactive customers found.</p>
+                    ) : (
+                        <ScrollArea className="h-72">
+                            <div className="space-y-4">
+                                {paginatedInactiveCustomers.map(customer => (
+                                    <div key={customer.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50">
+                                        <div className="flex items-center gap-3">
+                                            <div className="bg-gray-100 p-2 rounded-full">
+                                                <UserIcon className="w-5 h-5 text-gray-500" />
+                                            </div>
+                                            <div>
+                                                <div className="font-medium">{customer.name}</div>
+                                                <div className="text-sm text-gray-500">Last Order: {formatLastOrderDate(customer.last_order_date)}</div>
+                                            </div>
                                         </div>
-                                        {/* Mobile cards compact */}
-                                        <div className="md:hidden divide-y divide-gray-100 flex-1">
-                                            {paginatedInactiveCustomers.map(cust => (
-                                                <div key={cust.id} className="p-2 flex items-center space-x-2">
-                                                    <div className="flex-shrink-0">
-                                                        <span className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
-                                                            <UserIcon className="w-4 h-4 text-gray-500" />
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <div className="flex justify-between items-center">
-                                                            <div className="font-medium text-gray-900 truncate">{cust.name}</div>
-                                                            {getStatusBadge(cust.last_order_date)}
-                                                        </div>
-                                                        <div className="text-xs text-gray-500 truncate">{cust.phone || 'No phone'}</div>
-                                                        <div className="text-[10px] text-gray-500">Last: {formatLastOrderDate(cust.last_order_date)}</div>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                        {/* Compact Prev/Next controls (unknown total) */}
-                                        <div className="flex justify-center items-center gap-2 py-2">
-                                            <button
-                                                className="px-2 py-1 rounded bg-gray-200 text-gray-700 text-xs disabled:opacity-50"
-                                                onClick={() => setInactivePage(p => Math.max(1, p - 1))}
-                                                disabled={inactivePage === 1}
-                                            >Prev</button>
-                                            <span className="text-xs text-gray-600">Page {inactivePage}</span>
-                                            <button
-                                                className="px-2 py-1 rounded bg-gray-200 text-gray-700 text-xs disabled:opacity-50"
-                                                onClick={() => setInactivePage(p => (inactiveHasMore ? p + 1 : p))}
-                                                disabled={!inactiveHasMore}
-                                            >Next</button>
-                                        </div>
+                                        {getStatusBadge(customer.last_order_date)}
                                     </div>
-                                )}
-                            </ScrollArea>
-                        </CardContent>
-                    </Card>
-                </div>
-            </div>
-            {/* Second row: New Customers Over Time */}
-            <div className="flex flex-col md:flex-row gap-4 mb-6 mt-2 md:mt-6">
-                {/* New Customers Over Time (Weekly) */}
-                <div className="flex-1">
-                    <Card className="rounded-xl shadow bg-white border border-gray-200 h-[300px] md:h-[400px] flex flex-col">
-                        <CardHeader className="pb-2">
-                            <h3 className="font-semibold text-lg text-gray-600">New Customers Over Time (Weekly)</h3>
-                        </CardHeader>
-                        <CardContent className="p-2 h-[calc(100%-4rem)]">
-                            <Line
-                                data={{
-                                    labels: customerDates,
-                                    datasets: [{
-                                        label: 'New Customers',
-                                        data: customerCounts,
-                                        borderColor: '#f59e42',
-                                        backgroundColor: 'rgba(245,158,66,0.10)',
-                                        fill: true,
-                                        pointRadius: 2,
-                                    }],
-                                }}
-                                options={chartOptions}
-                            />
-                        </CardContent>
-                    </Card>
-                </div>
-            </div>
-            <div className="flex flex-col md:flex-row gap-4 mb-6 mt-2 md:mt-6">
-                {/* Top-Selling Products */}
-                <div className="flex-1">
-                    <Card className="rounded-xl shadow bg-white border border-gray-200 h-[300px] md:h-[400px] flex flex-col">
-                        <CardHeader className="pb-2">
-                            <h3 className="font-semibold text-lg text-gray-600">Top-Selling Products</h3>
-                        </CardHeader>
-                        <CardContent className="p-2 h-[calc(100%-4rem)]">
-                            <Bar
-                                data={{
-                                    labels: topProductNames,
-                                    datasets: [{
-                                        label: 'Units Sold',
-                                        data: topProductQuantities,
-                                        backgroundColor: '#10b981',
-                                    }],
-                                }}
-                                options={chartOptions}
-                            />
-                        </CardContent>
-                    </Card>
-                </div>
-                {/* Top-Selling Products (Today) */}
-                <div className="flex-1">
-                    <Card className="rounded-xl shadow bg-white border border-gray-200 h-[300px] md:h-[400px] flex flex-col">
-                        <CardHeader className="pb-2">
-                            <h3 className="font-semibold text-lg text-gray-600">Top-Selling Products (Today)</h3>
-                        </CardHeader>
-                        <CardContent className="p-2 h-[calc(100%-4rem)]">
-                            <Bar
-                                data={{
-                                    labels: todayTopProductNames,
-                                    datasets: [{
-                                        label: 'Units Sold',
-                                        data: todayTopProductQuantities,
-                                        backgroundColor: '#10b981',
-                                    }],
-                                }}
-                                options={chartOptions}
-                            />
-                        </CardContent>
-                    </Card>
-                </div>
-            </div>
+                                ))}
+                            </div>
+                        </ScrollArea>
+                    )}
+                    <div className="flex justify-between mt-4">
+                        <Button onClick={() => setInactivePage(p => Math.max(1, p - 1))} disabled={inactivePage === 1}>Previous</Button>
+                        <Button onClick={() => setInactivePage(p => p + 1)} disabled={!inactiveHasMore}>Next</Button>
+                    </div>
+                </CardContent>
+            </Card>
         </div>
     );
 }

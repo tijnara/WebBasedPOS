@@ -16,13 +16,13 @@ const MOCK_PRODUCTS = [
 // --- END MOCK DATA ---
 
 // --- MODIFICATION: Accept searchTerm and category ---
-export function useProducts({ searchTerm = '', category = '', page = 1, itemsPerPage = 10 } = {}) {
+export function useProducts({ searchTerm = '', category = '', page = 1, itemsPerPage = 10, fetchAll = false } = {}) {
     // 3. Get the user state and check the isDemo flag
     const isDemo = useStore(s => s.user?.isDemo);
 
     return useQuery({
-        // Include category in query key
-        queryKey: ['products', isDemo, searchTerm, category, page, itemsPerPage],
+        // Include category and fetchAll in query key
+        queryKey: ['products', isDemo, searchTerm, category, page, itemsPerPage, fetchAll],
         queryFn: async () => {
             const term = searchTerm.trim().toLowerCase();
             const cat = (category || '').trim();
@@ -55,8 +55,11 @@ export function useProducts({ searchTerm = '', category = '', page = 1, itemsPer
                 let query = supabase
                     .from('products')
                     .select('*', { count: 'exact' }) // Select all columns
-                    .order('name', { ascending: true }) // Optional: Order by name
-                    .range(startIndex, endIndex); // <-- 6. Enable pagination
+                    .order('name', { ascending: true }); // Optional: Order by name
+
+                if (!fetchAll) {
+                    query = query.range(startIndex, endIndex); // <-- 6. Enable pagination
+                }
 
                 // Server-side filters
                 if (term) {
