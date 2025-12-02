@@ -175,7 +175,6 @@ export default function DashboardPage() {
         <div className="p-4 md:p-6 space-y-8 bg-gray-50 min-h-screen">
             <MobileLogoutButton />
             <div className="flex justify-between items-end">
-                <h1 className="text-2xl md:text-3xl font-bold text-gray-800 tracking-tight">Dashboard</h1>
                 <span className="text-sm text-gray-500 hidden md:inline-block">Overview</span>
             </div>
 
@@ -216,13 +215,14 @@ export default function DashboardPage() {
                     icon={<span className="text-xl">💤</span>}
                 />
             </div>
-
+            <div><br></br></div>
             <ReorderReport />
 
             {/* CHARTS SECTION - Added top margin for spacing */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
 
                 {/* Sales Trends (Full Width on Mobile, Half on Desktop) */}
+                <div></div>
                 <div className="lg:col-span-2">
                     <Card className="shadow-sm border-none h-full">
                         <CardHeader>
@@ -270,9 +270,11 @@ export default function DashboardPage() {
             </div>
 
             {/* Inactive Customers List - Added top margin for spacing */}
+            <div><br></br></div>
             <Card className="shadow-sm border-none mt-8">
+
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <h3 className="font-semibold text-lg text-gray-700">Recent Inactive Customers</h3>
+                                        <h3 className="font-semibold text-lg text-gray-700">Recent Inactive Customers</h3>
                 </CardHeader>
                 <CardContent>
                     {inactiveCustomersLoading ? (
