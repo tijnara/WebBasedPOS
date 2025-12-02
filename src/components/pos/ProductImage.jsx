@@ -15,8 +15,8 @@ export const ProductImage = ({ product, className, style }) => {
         width: '80px',
         height: '80px',
         objectFit: 'cover',
-        //borderRadius: '8px',
-        //border: '1px solid #e5e7eb',
+        borderRadius: '8px',
+        border: '1px solid #e5e7eb',
     };
 
     if (product.image_url) {

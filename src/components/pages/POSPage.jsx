@@ -313,7 +313,7 @@ export default function POSPage() {
                 {/* RIGHT COLUMN: CART - Sticky Float */}
                 <div
                     className="hidden md:flex w-full md:w-1/3 xl:w-1/4 flex-shrink-0 flex-col sticky top-4"
-                    style={{ height: '50vh' }} // Changed from 'calc(100vh - 6rem)' to '50vh'
+                    style={{ height: 'calc(100vh - 2rem)' }}
                 >
                     <POSCart
                         currentSale={currentSale}
