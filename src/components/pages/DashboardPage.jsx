@@ -202,7 +202,7 @@ export default function DashboardPage() {
                     icon={<span className="text-xl">👨‍👩‍👧</span>}
                 />
                 <SummaryCard
-                    title="New (This Week)"
+                    title="New Customers(This Week)"
                     value={newCustomersThisWeek}
                     colorClass="text-green-600"
                     icon={<span className="text-xl">🆕</span>}
