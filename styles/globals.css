@@ -265,18 +265,25 @@ input[type="checkbox"]:focus {
     border-bottom: none; /* Remove bottom border */
 }
 
-/* Navbar Navigation Links */
+/* --- UPDATED: Navigation Links (Hidden on Mobile) --- */
 .navbar nav {
-    display: flex;
-    flex-direction: row; /* Horizontal links */
-    align-items: center; /* Vertically center links */
-    height: 100%;
-    margin-left: 1rem; /* Space between brand and nav */
-    overflow-x: auto; /* Allow horizontal scroll on small screens if needed */
-    overflow-y: hidden;
-    padding: 0;
-    border: none;
-    flex: 1; /* Allow nav to grow */
+    display: none; /* Default to hidden for mobile */
+}
+
+/* Only show nav links on Desktop (md: 768px and up) */
+@media (min-width: 768px) {
+    .navbar nav {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        height: 100%;
+        margin-left: 1rem;
+        flex: 1;
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding: 0;
+        border: none;
+    }
 }
 
 
