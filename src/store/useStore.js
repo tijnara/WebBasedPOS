@@ -16,7 +16,9 @@ const persistUserToStorage = (user) => {
                     email: user.email,
                     phone: user.phone, // Include if needed by UI
                     dateadded: user.dateadded, // Include if needed by UI
-                    isDemo: user.isDemo || false // <-- ADDED: Store the demo flag
+                    isDemo: user.isDemo || false, // <-- ADDED: Store the demo flag
+                    // --- ADDED: Persist the role so we can check permissions ---
+                    role: user.role
                 };
                 // --- CHANGED to localStorage ---
                 localStorage.setItem('pos_custom_user', JSON.stringify(userToStore));

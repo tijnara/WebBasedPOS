@@ -1,6 +1,5 @@
 // src/components/TabBar.jsx
 import React from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { cn } from './ui';
 import { CartIcon, PackageIcon, UserIcon, ChartIcon, UsersIcon, DocumentReportIcon } from './Icons'; // Import icons
@@ -27,21 +26,7 @@ export default function TabBar() {
         return null;
     }
 
-    const visibleLinks = links.filter(link => !link.adminOnly || user?.role === 'admin');
-
-    // A map to handle special active states
-    const activeStates = {
-        '/': '/',
-        '/history': '/history',
-        '/customer-management': '/customer-management',
-        '/product-management': '/product-management',
-        '/user-management': '/user-management',
-        '/report': '/report'
-    };
-
-    const currentActivePath = Object.keys(activeStates).find(key =>
-        router.pathname.startsWith(key)
-    );
+    const visibleLinks = links.filter(link => !link.adminOnly || (user && (user.role === 'Admin' || user.role === 'admin')));
 
     return (
         // This component uses the .tab-bar class defined in globals.css

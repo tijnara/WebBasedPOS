@@ -42,7 +42,19 @@ export async function login({ email, password }) {
             if (!userData.id || !userData.email || !userData.name) {
                 throw new Error('Login succeeded but user data is incomplete.');
             }
-            return userData; // Return the user data object directly
+            // --- Robust: Map isadmin to role, tolerant of string/boolean/case/whitespace ---
+            let role = 'User';
+            if (
+                (typeof user.isadmin === 'string' && user.isadmin.trim().toLowerCase() === 'true') ||
+                user.isadmin === true
+            ) {
+                role = 'Admin';
+            }
+            // Always clear and re-save user in localStorage to avoid stale data
+            if (typeof window !== 'undefined') {
+                localStorage.removeItem('pos_custom_user');
+            }
+            return { ...userData, role };
         } else {
             throw new Error('Invalid email or password.'); // Generic error for security
         }

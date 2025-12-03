@@ -39,8 +39,8 @@ const Navbar = () => {
         { name: 'Products', path: '/product-management', icon: <PackageIcon className="h-5 w-5" /> },
         { name: 'Customer', path: '/customer-management', icon: <UserIcon className="h-5 w-5" /> },
         { name: 'Sale History', path: '/history', icon: <ChartIcon className="h-5 w-5" /> },
-        { name: 'Users', path: '/user-management', icon: <UsersIcon className="h-5 w-5" /> },
-        { name: 'Report', path: '/report', icon: <ChartIcon className="h-5 w-5" /> },
+        { name: 'Users', path: '/user-management', icon: <UsersIcon className="h-5 w-5" />, adminOnly: true },
+        { name: 'Report', path: '/report', icon: <ChartIcon className="h-5 w-5" />, adminOnly: true },
     ];
 
     useEffect(() => {
@@ -150,13 +150,19 @@ const Navbar = () => {
             </div>
 
             <nav className="hidden md:flex">
-                {links.map(link => {
-                    const isActive = router.pathname === link.path || (link.path === '/' && router.pathname === '/');
-                    return (
-                        <Button key={link.name} className={`nav-item${isActive ? ' active text-primary font-bold border-b-2 border-primary' : ''}`} onClick={() => router.push(link.path)}>
-                            {link.icon} <span>{link.name}</span>
-                        </Button>
-                    );
+                {links
+                    // --- ADDED: Filter logic ---
+                    .filter(link =>
+                        !link.adminOnly ||
+                        (clientUser && (clientUser.role === 'Admin' || clientUser.role === 'admin'))
+                    )
+                    .map(link => {
+                        const isActive = router.pathname === link.path || (link.path === '/' && router.pathname === '/');
+                        return (
+                            <Button key={link.name} className={`nav-item${isActive ? ' active text-primary font-bold border-b-2 border-primary' : ''}`} onClick={() => router.push(link.path)}>
+                                {link.icon} <span>{link.name}</span>
+                            </Button>
+                        );
                 })}
             </nav>
 
