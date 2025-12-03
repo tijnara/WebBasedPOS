@@ -11,6 +11,8 @@ const MOCK_CUSTOMERS = [
 ];
 
 // --- Hook for GETTING Customers ---
+// (Note: The main UI uses the more advanced useCustomers hook in 'useCustomers.js',
+// but this simple version is kept here for reference or simple lists)
 export function useCustomers() {
     const isDemo = useStore(s => s.user?.isDemo);
     return useQuery({
@@ -21,23 +23,18 @@ export function useCustomers() {
                 return MOCK_CUSTOMERS;
             }
             try {
-                // Fetch all customers from Supabase, order by name
                 const { data, error } = await supabase
                     .from('customers')
-                    .select('id, name, email, phone, created_at') // Select the correct date column
+                    .select('id, name, email, phone, created_at')
                     .order('name', { ascending: true });
 
-                if (error) {
-                    // Intentionally rethrow for React Query error handling
-                    throw error;
-                }
+                if (error) throw error;
 
                 const responseData = data;
                 if (!responseData || !Array.isArray(responseData)) {
                     return [];
                 }
 
-                // Return mapped data directly
                 return responseData.map(c => ({
                     id: c.id,
                     name: c.name || 'Unnamed Customer',
@@ -46,46 +43,8 @@ export function useCustomers() {
                     dateAdded: c.created_at ? new Date(c.created_at) : null,
                 }));
             } catch(error) {
-                // Intentionally rethrow for React Query error handling
                 throw error;
             }
-        },
-    });
-}
-
-// --- Hook for UPDATING Customers ---
-export function useUpdateCustomer() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: async (customer) => {
-            const { id, dateAdded, ...payload } = customer;
-            const { data, error } = await supabase
-                .from('customers')
-                .update(payload)
-                .eq('id', id)
-                .select('id, name, email, phone, created_at')
-                .single();
-            if (error) {
-                // Intentionally rethrow for React Query error handling
-                throw error;
-            }
-            return { ...data, dateAdded: data.created_at ? new Date(data.created_at) : null };
-        },
-        onMutate: async (updatedCustomer) => {
-            await queryClient.cancelQueries({ queryKey: customersKey });
-            const previousCustomers = queryClient.getQueryData(customersKey);
-            queryClient.setQueryData(customersKey, (old = []) =>
-                old.map((c) => (c.id === updatedCustomer.id ? { ...c, ...updatedCustomer } : c))
-            );
-            return { previousCustomers };
-        },
-        onError: (err, updatedCustomer, context) => {
-            if (context?.previousCustomers) {
-                queryClient.setQueryData(customersKey, context.previousCustomers);
-            }
-        },
-        onSettled: () => {
-            queryClient.invalidateQueries({ queryKey: customersKey });
         },
     });
 }
@@ -115,11 +74,47 @@ export function useCreateCustomer() {
                 .single();
 
             if (error) {
+                console.error('useCreateCustomer: Supabase error:', error);
                 throw error;
             }
             return data;
         },
         onSuccess: () => {
+            // Invalidate the generic key so both hooks refresh
+            queryClient.invalidateQueries({ queryKey: customersKey });
+        },
+    });
+}
+
+// --- Hook for UPDATING Customers ---
+export function useUpdateCustomer() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (customer) => {
+            const { id, dateAdded, ...payload } = customer;
+            const { data, error } = await supabase
+                .from('customers')
+                .update(payload)
+                .eq('id', id)
+                .select('id, name, email, phone, created_at')
+                .single();
+            if (error) throw error;
+            return { ...data, dateAdded: data.created_at ? new Date(data.created_at) : null };
+        },
+        onMutate: async (updatedCustomer) => {
+            await queryClient.cancelQueries({ queryKey: customersKey });
+            const previousCustomers = queryClient.getQueryData(customersKey);
+            queryClient.setQueryData(customersKey, (old = []) =>
+                old.map((c) => (c.id === updatedCustomer.id ? { ...c, ...updatedCustomer } : c))
+            );
+            return { previousCustomers };
+        },
+        onError: (err, updatedCustomer, context) => {
+            if (context?.previousCustomers) {
+                queryClient.setQueryData(customersKey, context.previousCustomers);
+            }
+        },
+        onSettled: () => {
             queryClient.invalidateQueries({ queryKey: customersKey });
         },
     });
@@ -134,10 +129,7 @@ export function useDeleteCustomer() {
                 .from('customers')
                 .delete()
                 .eq('id', customerId);
-            if (error) {
-                // Intentionally rethrow for React Query error handling
-                throw error;
-            }
+            if (error) throw error;
             return customerId;
         },
         onMutate: async (customerId) => {
@@ -158,3 +150,4 @@ export function useDeleteCustomer() {
         },
     });
 }
+
