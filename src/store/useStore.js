@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import api from '../lib/api'; // Ensure this points to your updated api.js
 import currency from 'currency.js';
 
-// Persistence for the custom user object (using sessionStorage)
+// Persistence for the custom user object (using localStorage for permanent login)
 const persistUserToStorage = (user) => {
     // Ensure running on client-side
     if (typeof window !== 'undefined') {
@@ -18,14 +18,14 @@ const persistUserToStorage = (user) => {
                     dateadded: user.dateadded, // Include if needed by UI
                     isDemo: user.isDemo || false // <-- ADDED: Store the demo flag
                 };
-                // --- CHANGED to sessionStorage ---
-                sessionStorage.setItem('pos_custom_user', JSON.stringify(userToStore));
+                // --- CHANGED to localStorage ---
+                localStorage.setItem('pos_custom_user', JSON.stringify(userToStore));
             } else {
-                // --- CHANGED to sessionStorage ---
-                sessionStorage.removeItem('pos_custom_user');
+                // --- CHANGED to localStorage ---
+                localStorage.removeItem('pos_custom_user');
             }
         } catch (error) {
-            console.error("Store: Error persisting user to sessionStorage", error);
+            console.error("Store: Error persisting user to localStorage", error);
         }
     }
 };
@@ -33,8 +33,8 @@ const persistUserToStorage = (user) => {
 const getUserFromStorage = () => {
     // Ensure running on client-side
     if (typeof window !== 'undefined') {
-        // --- CHANGED to sessionStorage ---
-        const userJson = sessionStorage.getItem('pos_custom_user');
+        // --- CHANGED to localStorage ---
+        const userJson = localStorage.getItem('pos_custom_user');
         if (!userJson) return null;
         try {
             const user = JSON.parse(userJson);
@@ -42,13 +42,13 @@ const getUserFromStorage = () => {
             if (user && user.id && user.email) {
                 return user;
             } else {
-                // --- CHANGED to sessionStorage ---
-                sessionStorage.removeItem('pos_custom_user');
+                // --- CHANGED to localStorage ---
+                localStorage.removeItem('pos_custom_user');
                 return null;
             }
         } catch (e) {
-            // --- CHANGED to sessionStorage ---
-            sessionStorage.removeItem('pos_custom_user'); // Clear invalid data
+            // --- CHANGED to localStorage ---
+            localStorage.removeItem('pos_custom_user'); // Clear invalid data
             return null;
         }
     }
@@ -132,7 +132,7 @@ export const useStore = create((set, get) => ({
     // --- Auth (Updated for Custom Login) ---
     // Called after successful custom table login
     setAuth: (user) => {
-        persistUserToStorage(user); // Persist user to sessionStorage
+        persistUserToStorage(user); // Persist user to localStorage
         // Set user and ensure sessionLoaded is true
         set({ user, sessionLoaded: true });
     },
@@ -144,7 +144,7 @@ export const useStore = create((set, get) => ({
     logout: () => { // Made synchronous as api.logout is now sync
         try {
             api.logout(); // Call the simplified api.logout
-            persistUserToStorage(null); // Remove user from sessionStorage
+            persistUserToStorage(null); // Remove user from localStorage
             set({ user: null }); // Clear user state
         } catch (error) {
             get().addToast({ title: 'Logout Error', description: error.message || 'Logout failed.', variant: 'destructive' });
@@ -153,15 +153,13 @@ export const useStore = create((set, get) => ({
     // Function to ensure sessionLoaded is true after initial client-side hydration
     hydrate: () => {
         // This function now primarily ensures the store knows it's running client-side
-        // and has attempted to load the initial user state from sessionStorage.
+        // and has attempted to load the initial user state from localStorage.
         if (!get().sessionLoaded && typeof window !== 'undefined') {
-            // REMOVE CONFIDENTIAL LOGS
-            // console.log("Store: Hydrating sessionLoaded state on client.");
             // Try loading from storage again in case initialUser was null server-side
             const userFromStorage = getUserFromStorage();
             set({ sessionLoaded: true, user: userFromStorage });
-        } else if (get().sessionLoaded && typeof window !== 'undefined' && get().user === null && sessionStorage.getItem('pos_custom_user')) { // --- CHANGED to sessionStorage ---
-            // Handle edge case where initial state might be null but sessionStorage has data later
+        } else if (get().sessionLoaded && typeof window !== 'undefined' && get().user === null && localStorage.getItem('pos_custom_user')) { // --- CHANGED to localStorage ---
+            // Handle edge case where initial state might be null but localStorage has data later
             const userFromStorage = getUserFromStorage();
             set({ user: userFromStorage });
         }

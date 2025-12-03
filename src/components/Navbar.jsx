@@ -3,7 +3,6 @@ import React, { useEffect, useState } from 'react';
 import { Button, cn, Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogCloseButton, Input } from './ui';
 import { useRouter } from 'next/router';
 import { useStore } from '../store/useStore';
-import debounce from 'lodash/debounce';
 import Image from 'next/image';
 import { supabase } from '../lib/supabaseClient';
 import currency from 'currency.js';
@@ -51,30 +50,7 @@ const Navbar = () => {
         }
     }, [user]);
 
-    useEffect(() => {
-        const logoutAfterInactivity = () => {
-            let timeout;
-            const startTimeout = () => {
-                timeout = setTimeout(() => {
-                    logout();
-                    router.push('/login');
-                }, 15 * 60 * 1000);
-            };
-            const resetTimeout = debounce(() => {
-                clearTimeout(timeout);
-                startTimeout();
-            }, 500);
-            startTimeout();
-            window.addEventListener('mousemove', resetTimeout);
-            window.addEventListener('keydown', resetTimeout);
-            return () => {
-                clearTimeout(timeout);
-                window.removeEventListener('mousemove', resetTimeout);
-                window.removeEventListener('keydown', resetTimeout);
-            };
-        };
-        logoutAfterInactivity();
-    }, [logout, router]);
+    // --- REMOVED AUTO-LOGOUT TIMER ---
 
     const checkActiveShift = async () => {
         if (!user) return;
