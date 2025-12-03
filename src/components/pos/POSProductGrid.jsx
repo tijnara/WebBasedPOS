@@ -54,6 +54,7 @@ const POSProductGrid = ({
                                 disabled={p.stock <= 0}
                                 style={{ opacity: p.stock <= 0 ? 0.5 : 1 }}
                             >
+                                {p.stock !== null && (
                                 <div className={`absolute top-2 right-2 text-[10px] font-bold px-2 py-1 rounded-full ${
                                     p.stock <= 0 ? 'bg-red-100 text-red-600' :
                                         p.stock <= p.minStock ? 'bg-yellow-100 text-yellow-600' :
@@ -61,6 +62,7 @@ const POSProductGrid = ({
                                 }`}>
                                     {p.stock}
                                 </div>
+                                )}
                                 <div className="product-card-image h-20 w-full mb-2 flex items-center justify-center overflow-hidden rounded-lg bg-gray-50 p-1">
                                     <ProductImage product={p} />
                                 </div>
@@ -90,11 +92,13 @@ const POSProductGrid = ({
                                     <div className="mt-1 text-sm text-primary font-bold">
                                         {currency(p.price).format({ symbol: '₱' })}
                                     </div>
+                                    {p.stock !== null && (
                                     <div className={`mt-1 text-[10px] px-2 rounded-full ${
                                         p.stock <= 5 ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'
                                     }`}>
                                         {p.stock} left
                                     </div>
+                                    )}
                                 </button>
                             ))}
                         </div>

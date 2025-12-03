@@ -11,6 +11,8 @@ import Pagination from '../Pagination';
 import { format } from 'date-fns';
 import currency from 'currency.js';
 
+import { ViewIcon, ReceiptIcon } from '../Icons';
+
 // --- Helper Functions ---
 const formatCurrency = (amount) => {
     const numericAmount = typeof amount === 'string' ? currency(amount).value : currency(amount).value;
@@ -27,29 +29,6 @@ const formatDate = (dateString) => {
         return 'Invalid Date';
     }
 }
-
-// --- Modern Icons ---
-// View Icon (Eye)
-const ViewIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="currentColor">
-        <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
-        <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.022 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
-    </svg>
-);
-
-// Receipt Icon (for Modal Button)
-const ReceiptIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-        <path fillRule="evenodd" d="M5 2a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V4a2 2 0 00-2-2H5zm3 4a1 1 0 000 2h4a1 1 0 100-2H8zm0 3a1 1 0 100 2h4a1 1 0 100-2H8zm-1 3a1 1 0 102 0v1a1 1 0 102 0v-1a1 1 0 102 0v1a1 1 0 102 0v-1h.5a1 1 0 100-2H7v1z" clipRule="evenodd" />
-    </svg>
-);
-
-// Receipt Icon (for List Item)
-const ListReceiptIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="currentColor" className="text-gray-500">
-        <path fillRule="evenodd" d="M5 2a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V4a2 2 0 00-2-2H5zm3 4a1 1 0 000 2h4a1 1 0 100-2H8zm0 3a1 1 0 100 2h4a1 1 0 100-2H8zm-1 3a1 1 0 102 0v1a1 1 0 102 0v-1a1 1 0 102 0v1a1 1 0 102 0v-1h.5a1 1 0 100-2H7v1z" clipRule="evenodd" />
-    </svg>
-);
 
 // --- Status Badge Component ---
 const StatusBadge = ({ status }) => {
@@ -338,7 +317,7 @@ export default function HistoryPage() {
                                             {/* Icon */}
                                             <div className="flex-shrink-0">
                                                 <span className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
-                                                    <ListReceiptIcon />
+                                                    <ReceiptIcon className="text-gray-500" />
                                                 </span>
                                             </div>
 

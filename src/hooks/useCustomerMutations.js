@@ -90,6 +90,41 @@ export function useUpdateCustomer() {
     });
 }
 
+// --- Hook for CREATING Customers ---
+export function useCreateCustomer() {
+    const queryClient = useQueryClient();
+    const currentUserId = useStore(s => s.user?.id);
+
+    return useMutation({
+        mutationFn: async (customerPayload) => {
+            const capitalizeFirst = str => str ? str.charAt(0).toUpperCase() + str.slice(1) : '';
+
+            const payload = {
+                name: capitalizeFirst(customerPayload.name),
+                email: customerPayload.email || null,
+                phone: customerPayload.phone || null,
+                address: customerPayload.address || null,
+                created_at: customerPayload.created_at || new Date().toISOString(),
+                created_by: currentUserId || null,
+            };
+
+            const { data, error } = await supabase
+                .from('customers')
+                .insert([payload])
+                .select()
+                .single();
+
+            if (error) {
+                throw error;
+            }
+            return data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: customersKey });
+        },
+    });
+}
+
 // --- Hook for DELETING Customers ---
 export function useDeleteCustomer() {
     const queryClient = useQueryClient();

@@ -9,8 +9,8 @@ import {
 import Pagination from '../Pagination';
 
 // --- Import Customer Hooks ---
-import { useCreateCustomer } from '../../hooks/useCreateCustomer';
 import {
+    useCreateCustomer,
     useUpdateCustomer,
     useDeleteCustomer
 } from '../../hooks/useCustomerMutations';
