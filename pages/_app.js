@@ -2,7 +2,7 @@
 import '../styles/globals.css';
 import 'react-day-picker/dist/style.css'; // Moved global CSS import for react-day-picker here
 import '../src/components/pages/POSPage.css'; // Corrected path for POSPage.css import
-import '../src/components/CartDrawer.css'; // Import CartDrawer.css globally
+
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../src/store/useStore';
 import { useRouter } from 'next/router';
