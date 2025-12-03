@@ -279,12 +279,7 @@ input[type="checkbox"]:focus {
     flex: 1; /* Allow nav to grow */
 }
 
-/* --- ADDED: Explicitly hide nav on mobile to fix specificity issues --- */
-@media (max-width: 767px) {
-    .navbar nav {
-        display: none !important;
-    }
-}
+
 
 .navbar nav .btn {
     height: 100%; /* Make buttons fill navbar height */

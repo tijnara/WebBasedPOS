@@ -7,7 +7,7 @@ import {
     DialogHeader, DialogTitle, DialogFooter, DialogCloseButton
 } from '../ui';
 import Pagination from '../Pagination';
-import MobileLogoutButton from '../MobileLogoutButton';
+
 import { format } from 'date-fns';
 import currency from 'currency.js';
 

@@ -173,7 +173,7 @@ const Navbar = () => {
                 <span className="font-bold text-lg text-primary hidden md:inline">Seaside</span>
             </div>
 
-            <nav className="nav-links hidden md:flex">
+            <nav className="hidden md:flex">
                 {links.map(link => {
                     const isActive = router.pathname === link.path || (link.path === '/' && router.pathname === '/');
                     return (
