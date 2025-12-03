@@ -309,20 +309,36 @@ export default function ProductManagementPage() {
 
 
             <div>
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
-                    <div>
-                        <h1 className="text-2xl font-semibold">Products</h1>
-                        <p className="text-muted">Manage your product inventory</p>
+                {/* --- UNIFIED FILTER BAR (NEW) --- */}
+                <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6 p-4 border rounded-lg bg-white shadow-sm">
+                    {/* Left: Search & Filter */}
+                    <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
+                        <div className="w-full md:w-64">
+                            <Input
+                                ref={searchInputRef}
+                                placeholder="Search products... (F)"
+                                value={searchTerm}
+                                onChange={e => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+                        <div className="w-full md:w-48">
+                            <Select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}>
+                                {categories.map(c => (
+                                    <option key={c} value={c}>{c}</option>
+                                ))}
+                            </Select>
+                        </div>
                     </div>
-                    <div className="flex gap-2 items-center">
-                        <Button variant="primary" onClick={openModal}>Add Product</Button>
+                    {/* Right: Action Buttons */}
+                    <div className="flex items-center gap-2 w-full md:w-auto justify-end">
                         <Button
                             variant="outline"
                             onClick={() => fileInputRef.current && fileInputRef.current.click()}
-                            className="text-sm font-medium"
+                            className="text-sm font-medium w-full md:w-auto"
                         >
                             Import CSV
                         </Button>
+                        <Button variant="primary" onClick={openModal} className="w-full md:w-auto">Add Product</Button>
                         <input
                             type="file"
                             accept=".csv"
@@ -333,20 +349,6 @@ export default function ProductManagementPage() {
                     </div>
                 </div>
 
-                <div className="mb-4 flex flex-col sm:flex-row gap-3 sm:items-end">
-                    <div className="flex-1 max-w-xs">
-                        <Label htmlFor="search">Search</Label>
-                        <Input id="search" ref={searchInputRef} placeholder="Search products..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
-                    </div>
-                    <div className="w-full sm:w-64">
-                        <Label>Filter by Category</Label>
-                        <Select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}>
-                            {categories.map(c => (
-                                <option key={c} value={c}>{c}</option>
-                            ))}
-                        </Select>
-                    </div>
-                </div>
 
                 {/* --- DESKTOP TABLE --- */}
                 <Card className="hidden md:block">
