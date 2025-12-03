@@ -71,7 +71,6 @@ export function useUsers({ page = 1, itemsPerPage = 10, searchTerm = '' } = {}) 
     });
 }
 
-
 // --- Hook for CREATING Users in 'users' Table ---
 // !! INSECURE !! Assumes plain text password. Requires server-side hashing in practice.
 export function useCreateUser() {
@@ -173,34 +172,12 @@ export function useUpdateUser() {
             }
             return { ...data, dateAdded: data.dateadded ? new Date(data.dateadded) : null };
         },
-        // Optional: Add optimistic updates like in other hooks if desired
-        onMutate: async (updatedUser) => {
-            await queryClient.cancelQueries({ queryKey: usersTableKey });
-            const previousUsers = queryClient.getQueryData(usersTableKey);
-            // Ensure dateAdded is handled correctly in optimistic update
-            const optimisticUserData = {
-                ...updatedUser,
-                // Use the dateAdded from the input form data if available, otherwise parse from the existing cache
-                dateAdded: updatedUser.dateAdded instanceof Date
-                    ? updatedUser.dateAdded
-                    : (previousUsers?.find(u => u.id === updatedUser.id)?.dateAdded || null)
-            };
-            queryClient.setQueryData(usersTableKey, (old = []) =>
-                old.map((u) => (u.id === updatedUser.id ? optimisticUserData : u))
-            );
-            return { previousUsers };
-        },
         onSuccess: () => {
             addToast({ title: 'User Updated', description: `User updated.`, variant: 'success' });
-        },
-        onError: (error, variables, context) => {
-            if (context?.previousUsers) {
-                queryClient.setQueryData(usersTableKey, context.previousUsers); // Rollback optimistic update
-            }
-            addToast({ title: 'Update Failed', description: error.message, variant: 'destructive' });
-        },
-        onSettled: () => {
             queryClient.invalidateQueries({ queryKey: usersTableKey });
+        },
+        onError: (error) => {
+            addToast({ title: 'Update Failed', description: error.message, variant: 'destructive' });
         }
     });
 }
@@ -228,26 +205,12 @@ export function useDeleteUser() {
             }
             return userId; // Return ID for potential optimistic update
         },
-        // Optional: Add optimistic updates
-        onMutate: async (userIdToDelete) => {
-            await queryClient.cancelQueries({ queryKey: usersTableKey });
-            const previousUsers = queryClient.getQueryData(usersTableKey);
-            queryClient.setQueryData(usersTableKey, (old = []) =>
-                old.filter((u) => u.id !== userIdToDelete)
-            );
-            return { previousUsers };
-        },
         onSuccess: () => {
             addToast({ title: 'User Deleted', description: `User deleted successfully.`, variant: 'success' });
-        },
-        onError: (error, userId, context) => {
-            if (context?.previousUsers) {
-                queryClient.setQueryData(usersTableKey, context.previousUsers); // Rollback optimistic update
-            }
-            addToast({ title: 'Delete Failed', description: error.message, variant: 'destructive' });
-        },
-        onSettled: () => {
             queryClient.invalidateQueries({ queryKey: usersTableKey });
+        },
+        onError: (error) => {
+            addToast({ title: 'Delete Failed', description: error.message, variant: 'destructive' });
         }
     });
 }

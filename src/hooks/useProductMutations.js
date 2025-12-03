@@ -9,7 +9,6 @@ export function useCreateProduct() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async (newProduct) => {
-            console.log('useCreateProduct: Creating product with payload:', newProduct);
             const now = new Date().toISOString();
             const payload = {
                 name: newProduct.name,
@@ -20,22 +19,15 @@ export function useCreateProduct() {
                 min_stock_level: newProduct.minStock || 5,
                 cost_price: newProduct.cost || 0,
                 category: newProduct.category || 'Uncategorized',
-                created_at: now, // corrected field name
+                created_at: now,
                 updated_at: now,
             };
-            // If legacy create_at field exists in schema, also set it for backward compatibility
-            if (!('created_at' in payload)) payload.created_at = now;
-
             const { data, error } = await supabase
                 .from('products')
                 .insert([payload])
                 .select()
                 .single();
-
-            if (error) {
-                console.error('useCreateProduct: Supabase error:', error);
-                throw error;
-            }
+            if (error) throw error;
             return data;
         },
         onSuccess: () => {
@@ -60,7 +52,7 @@ export function useUpdateProduct() {
                 min_stock_level: payload.minStock || 5,
                 cost_price: payload.cost || 0,
                 category: payload.category || 'Uncategorized',
-                updated_at: now, // only update updated_at
+                updated_at: now,
             };
             const { data, error } = await supabase
                 .from('products')
@@ -68,25 +60,10 @@ export function useUpdateProduct() {
                 .eq('id', id)
                 .select()
                 .single();
-
-            if (error) {
-                console.error('useUpdateProduct: Supabase error:', error);
-                throw error;
-            }
+            if (error) throw error;
             return data;
         },
-        onMutate: async (updatedProduct) => {
-            await queryClient.cancelQueries({ queryKey: productsKey });
-            const previousProducts = queryClient.getQueryData(productsKey);
-            queryClient.setQueryData(productsKey, (old = []) =>
-                old.map((p) => (p.id === updatedProduct.id ? { ...p, ...updatedProduct } : p))
-            );
-            return { previousProducts };
-        },
-        onError: (err, updatedProduct, context) => {
-            queryClient.setQueryData(productsKey, context.previousProducts);
-        },
-        onSettled: () => {
+        onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: productsKey });
         },
     });
@@ -101,18 +78,7 @@ export function useDeleteProduct() {
             if (error) throw error;
             return productId;
         },
-        onMutate: async (productId) => {
-            await queryClient.cancelQueries({ queryKey: productsKey });
-            const previousProducts = queryClient.getQueryData(productsKey);
-            queryClient.setQueryData(productsKey, (old = []) =>
-                old.filter((p) => p.id !== productId)
-            );
-            return { previousProducts };
-        },
-        onError: (err, productId, context) => {
-            queryClient.setQueryData(productsKey, context.previousProducts);
-        },
-        onSettled: () => {
+        onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: productsKey });
         },
     });
