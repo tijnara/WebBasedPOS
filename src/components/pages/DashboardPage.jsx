@@ -5,7 +5,7 @@ import { Line, Bar } from 'react-chartjs-2';
 import { Chart, CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Tooltip, Legend, Filler } from 'chart.js';
 import { useSales } from '../../hooks/useSales';
 import { useCustomers } from '../../hooks/useCustomers';
-import MobileLogoutButton from '../MobileLogoutButton';
+
 import { useSalesSummary } from '../../hooks/useSalesSummary';
 import { useSalesByDateSummary } from '../../hooks/useSalesByDateSummary';
 import { useNewCustomersByDateSummary } from '../../hooks/useNewCustomersByDateSummary';
@@ -173,7 +173,7 @@ export default function DashboardPage() {
 
     return (
         <div className="p-4 md:p-6 space-y-8 bg-gray-50 min-h-screen">
-            <MobileLogoutButton />
+
             <div className="flex justify-between items-end">
                 <span className="text-sm text-gray-500 hidden md:inline-block">Overview</span>
             </div>

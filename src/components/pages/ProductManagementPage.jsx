@@ -17,7 +17,7 @@ import {
     useDeleteProduct
 } from '../../hooks/useProductMutations';
 
-import MobileLogoutButton from '../MobileLogoutButton';
+
 import currency from 'currency.js';
 
 // --- ICONS ---
@@ -306,8 +306,8 @@ export default function ProductManagementPage() {
 
     return (
         <div className="product-page">
-            <img src="/seaside.png" alt="Seaside Logo" className="brand-logo-top" width={32} height={32} />
-            <MobileLogoutButton />
+
+
             <div>
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
                     <div>

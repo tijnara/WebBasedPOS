@@ -253,7 +253,7 @@ export default function HistoryPage() {
     return (
         <div className="history-page">
             <img src="/seaside.png" alt="Seaside Logo" className="brand-logo-top" width={32} height={32} loading="lazy" />
-            <MobileLogoutButton />
+
             <div>
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                     <div>

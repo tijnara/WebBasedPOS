@@ -12,7 +12,7 @@ import {
 } from 'date-fns';
 import { DayPicker } from 'react-day-picker';
 import { Button, Input, Select } from '../ui'; // Added Select
-import MobileLogoutButton from '../MobileLogoutButton';
+
 import Pagination from '../Pagination';
 import currency from 'currency.js';
 
@@ -567,7 +567,7 @@ const ReportPage = () => {
             {/* Mobile Logo */}
             <img src="/seaside.png" alt="Seaside Logo" className="brand-logo-top" width={32} height={32} loading="lazy" />
             {/* Mobile Logout Button */}
-            <MobileLogoutButton />
+
 
             <h1 className="text-2xl font-bold">Reports</h1>
 

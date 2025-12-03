@@ -5,7 +5,7 @@ import {
     TableHead, TableCell, ScrollArea, Input, Label, Dialog, DialogContent,
     DialogHeader, DialogTitle, DialogFooter, DialogCloseButton
 } from '../ui';
-import MobileLogoutButton from '../MobileLogoutButton';
+
 import Pagination from '../Pagination';
 
 // --- Import Customer Hooks ---
@@ -157,8 +157,8 @@ export default function CustomerManagementPage() {
 
     return (
         <div className="customer-page">
-            <img src="/seaside.png" alt="Seaside Logo" className="brand-logo-top" width={32} height={32} loading="lazy" />
-            <MobileLogoutButton />
+
+
             <div>
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                     <div>

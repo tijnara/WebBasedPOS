@@ -7,7 +7,7 @@ import { useCreateCustomer } from '../../hooks/useCreateCustomer';
 import {
     Button, Input
 } from '../ui';
-import MobileLogoutButton from '../MobileLogoutButton';
+
 import TabBar from '../TabBar';
 import POSCart from '../pos/POSCart';
 import POSProductGrid from '../pos/POSProductGrid';
@@ -283,7 +283,7 @@ export default function POSPage() {
     return (
         <div className="pos-page">
             <img src="/seaside.png" alt="Seaside Logo" className="brand-logo-top" width={32} height={32} loading="lazy" />
-            <MobileLogoutButton />
+
 
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
                 <h1 className="text-2xl sm:text-3xl font-bold text-primary tracking-tight">Point of Sale</h1>
