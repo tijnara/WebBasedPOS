@@ -57,6 +57,8 @@ export default function ProductManagementPage() {
     const [stock, setStock] = useState(0);
     const [minStock, setMinStock] = useState(5);
     const [cost, setCost] = useState('0');
+    const [parentId, setParentId] = useState(null);
+    const [conversionRate, setConversionRate] = useState('');
     const [customCategories, setCustomCategories] = useState(() => {
         if (typeof window === 'undefined') return [];
         try { return JSON.parse(localStorage.getItem('pos_custom_categories') || '[]'); } catch { return []; }
@@ -106,6 +108,8 @@ export default function ProductManagementPage() {
         setStock(Number(p?.stock ?? 0));
         setMinStock(Number(p?.minStock ?? 5));
         setCost(String(p?.cost ?? 0));
+        setParentId(p?.parent_product_id || null);
+        setConversionRate(p?.conversion_rate ? String(p.conversion_rate) : '');
         setIsModalOpen(true);
     };
 
@@ -129,6 +133,8 @@ export default function ProductManagementPage() {
         setStock(0);
         setMinStock(5);
         setCost('0');
+        setParentId(null);
+        setConversionRate('');
         setUploading(false);
         setIsAddingCategory(false);
         setNewCategoryName('');
@@ -156,6 +162,7 @@ export default function ProductManagementPage() {
         const parsedCost = currency(cost || '0').value;
         const parsedStock = Math.max(0, parseInt(stock, 10) || 0);
         const parsedMinStock = Math.max(0, parseInt(minStock, 10) || 0);
+        const parsedConversionRate = Math.max(0, parseInt(conversionRate, 10) || 0);
 
         if (!name || !price) {
             addToast({ title: 'Error', description: 'Name and Price are required.' });
@@ -188,6 +195,8 @@ export default function ProductManagementPage() {
             minStock: parsedMinStock,
             cost: parsedCost,
             category: category || 'General',
+            parent_product_id: parentId,
+            conversion_rate: conversionRate ? parsedConversionRate : null,
         };
 
         try {
@@ -620,6 +629,33 @@ export default function ProductManagementPage() {
                                                 <img src={editing.image_url} alt="Current" className="h-12 w-12 object-cover rounded-md border" />
                                             </div>
                                         )}
+                                    </div>
+
+                                    {/* --- NEW: Unit Conversion Section --- */}
+                                    <div className="md:col-span-2 p-4 bg-blue-50 rounded-lg border border-blue-100 space-y-4">
+                                        <h4 className="font-semibold text-blue-800 text-sm">Unit Conversion (Optional)</h4>
+                                        <p className="text-xs text-blue-600">If this is a single unit (e.g. Can), link it to the Parent Pack (e.g. Case).</p>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <Label className="text-blue-900">Parent Product</Label>
+                                                <Select value={parentId || ''} onChange={e => setParentId(e.target.value || null)}>
+                                                    <option value="">-- None (Stand-alone) --</option>
+                                                    {products.filter(p => p.id !== editing?.id).map(p => (
+                                                        <option key={p.id} value={p.id}>{p.name}</option>
+                                                    ))}
+                                                </Select>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label className="text-blue-900">Units in Parent</Label>
+                                                <Input
+                                                    type="number"
+                                                    value={conversionRate}
+                                                    onChange={e => setConversionRate(e.target.value)}
+                                                    disabled={!parentId}
+                                                    placeholder="e.g. 24"
+                                                />
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

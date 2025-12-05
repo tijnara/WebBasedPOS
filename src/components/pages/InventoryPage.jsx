@@ -46,6 +46,83 @@ function InventoryAdjustment({ product, onAdjust, onCancel }) {
     );
 }
 
+function BreakBulk({ products, onSuccess }) {
+    // Only show products configured as "Children" (have a parent)
+    const childProducts = products.filter(p => p.parent_product_id && p.conversion_rate > 1);
+    const { user, addToast } = useStore();
+
+    const handleBreak = async (child) => {
+        // Find parent locally to check basic stock availability
+        const parent = products.find(p => p.id === child.parent_product_id);
+        if (!parent || parent.stock_quantity < 1) {
+            addToast({ title: 'No Stock', description: `No ${parent?.name || 'parent pack'} available to open.`, variant: 'destructive' });
+            return;
+        }
+        try {
+            const { error } = await supabase.rpc('break_bulk_stock', {
+                p_parent_id: parent.id,
+                p_child_id: child.id,
+                p_quantity_cases: 1,
+                p_staff_id: user?.id
+            });
+            if (error) throw error;
+            addToast({
+                title: 'Case Opened',
+                description: `Converted 1 ${parent.name} into ${child.conversion_rate} ${child.name}s`,
+                variant: 'success'
+            });
+            onSuccess();
+        } catch (error) {
+            addToast({ title: 'Error', description: error.message, variant: 'destructive' });
+        }
+    };
+
+    return (
+        <div className="space-y-4 animate-in fade-in">
+            <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 mb-4">
+                <h3 className="font-bold text-blue-900">Unit Conversions</h3>
+                <p className="text-sm text-blue-700">Open cases to replenish single units.</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {childProducts.map(child => {
+                    const parent = products.find(p => p.id === child.parent_product_id);
+                    return (
+                        <Card key={child.id} className="border shadow-sm">
+                            <CardContent className="p-4">
+                                <div className="flex justify-between items-start mb-2">
+                                    <div>
+                                        <div className="font-bold text-lg text-gray-800">{child.name}</div>
+                                        <div className="text-sm text-gray-500">Stock: {child.stock_quantity} units</div>
+                                    </div>
+                                    <div className="text-right">
+                                        <span className="text-xs bg-gray-100 px-2 py-1 rounded">Rate: {child.conversion_rate}</span>
+                                    </div>
+                                </div>
+                                <div className="bg-gray-50 p-3 rounded-md mb-4 text-sm">
+                                    <span className="text-gray-500">Parent:</span> <span className="font-medium">{parent?.name || 'Unknown'}</span>
+                                    <div className="text-xs text-gray-500 mt-1">Available Cases: {parent?.stock_quantity || 0}</div>
+                                </div>
+                                <Button
+                                    onClick={() => handleBreak(child)}
+                                    disabled={!parent || parent.stock_quantity < 1}
+                                    className="w-full btn--primary"
+                                >
+                                    Open 1 Case (+{child.conversion_rate})
+                                </Button>
+                            </CardContent>
+                        </Card>
+                    )
+                })}
+                {childProducts.length === 0 && (
+                    <div className="col-span-full text-center py-8 text-gray-500">
+                        No convertible products found. Go to Product Management to link Single units to Cases.
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
 export default function InventoryPage() {
     const [barcode, setBarcode] = useState('');
     const [selectedProduct, setSelectedProduct] = useState(null);
@@ -128,6 +205,7 @@ export default function InventoryPage() {
             <div className="flex gap-2 mb-4">
                 <Button onClick={() => setMode('restock')} variant={mode === 'restock' ? 'primary' : 'outline'}>Restock</Button>
                 <Button onClick={() => setMode('adjust')} variant={mode === 'adjust' ? 'primary' : 'outline'}>Adjust Stock</Button>
+                <Button onClick={() => setMode('convert')} variant={mode === 'convert' ? 'primary' : 'outline'}>Break Bulk</Button>
             </div>
             <div className="flex gap-2 mb-4">
                 <Input
@@ -167,6 +245,10 @@ export default function InventoryPage() {
                     onAdjust={handleAdjustment}
                     onCancel={() => setSelectedProduct(null)}
                 />
+            )}
+
+            {mode === 'convert' && (
+                <BreakBulk products={products} onSuccess={refetch} />
             )}
         </div>
     );

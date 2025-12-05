@@ -19,6 +19,8 @@ export function useCreateProduct() {
                 min_stock_level: newProduct.minStock || 5,
                 cost_price: newProduct.cost || 0,
                 category: newProduct.category || 'Uncategorized',
+                parent_product_id: newProduct.parent_product_id || null,
+                conversion_rate: newProduct.conversion_rate || 1,
                 created_at: now,
                 updated_at: now,
             };
@@ -52,6 +54,8 @@ export function useUpdateProduct() {
                 min_stock_level: payload.minStock || 5,
                 cost_price: payload.cost || 0,
                 category: payload.category || 'Uncategorized',
+                parent_product_id: payload.parent_product_id || null,
+                conversion_rate: payload.conversion_rate || 1,
                 updated_at: now,
             };
             const { data, error } = await supabase
