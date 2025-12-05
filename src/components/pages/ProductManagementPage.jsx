@@ -348,7 +348,6 @@ export default function ProductManagementPage() {
                                         <TableRow key={p.id}>
                                             <TableCell>
                                                 <div className="flex items-center gap-3">
-                                                    {/* FORCED IMAGE SIZE: Desktop */}
                                                     <div
                                                         className="rounded-lg border border-gray-100 bg-gray-50 flex items-center justify-center overflow-hidden flex-shrink-0"
                                                         style={{ width: '48px', height: '48px' }}
@@ -419,7 +418,6 @@ export default function ProductManagementPage() {
                 ) : (
                     filteredProducts.map(p => (
                         <div key={p.id} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex items-start gap-3">
-                            {/* 1. Fixed Thumbnail Area (Strictly Forced Dimensions) */}
                             <div className="flex-shrink-0">
                                 <div
                                     className="rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center overflow-hidden"
@@ -438,7 +436,6 @@ export default function ProductManagementPage() {
                                 </div>
                             </div>
 
-                            {/* 2. Product Details */}
                             <div className="flex-1 min-w-0 flex flex-col justify-between" style={{ height: '64px' }}>
                                 <div>
                                     <div className="font-semibold text-gray-900 text-sm leading-tight truncate">
@@ -454,7 +451,6 @@ export default function ProductManagementPage() {
                                         {currency(p.price || 0, { symbol: '₱' }).format()}
                                     </div>
 
-                                    {/* Stock Status */}
                                     <div className={`text-xs font-medium px-2 py-0.5 rounded-md ${
                                         Number(p.stock) <= Number(p.minStock)
                                             ? 'bg-red-50 text-red-600'
@@ -465,7 +461,6 @@ export default function ProductManagementPage() {
                                 </div>
                             </div>
 
-                            {/* 3. Actions Column */}
                             <div className="flex flex-col justify-between pl-2 border-l border-gray-50" style={{ height: '64px' }}>
                                 <button
                                     onClick={() => startEdit(p)}
@@ -483,7 +478,6 @@ export default function ProductManagementPage() {
                         </div>
                     ))
                 )}
-                {/* Pagination for Mobile */}
                 <div className="mt-4">
                     <Pagination
                         currentPage={currentPage}
@@ -576,6 +570,46 @@ export default function ProductManagementPage() {
                                         <Label htmlFor="barcode">Barcode / SKU</Label>
                                         <Input id="barcode" value={barcode} onChange={e => setBarcode(e.target.value)} placeholder="Scan or type code" className="h-11" />
                                     </div>
+
+                                    {/* Unit Conversion (Restored) */}
+                                    <div className="pt-4 border-t border-gray-100">
+                                        <Label className="mb-2 block text-xs font-semibold uppercase text-gray-500">
+                                            Unit Conversion (Advanced)
+                                        </Label>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-1.5">
+                                                <Label htmlFor="parentId" className="text-xs">Parent Product (e.g. Case)</Label>
+                                                <Select
+                                                    id="parentId"
+                                                    value={parentId || ''}
+                                                    onChange={e => setParentId(e.target.value || null)}
+                                                    className="h-10 text-sm"
+                                                >
+                                                    <option value="">-- None --</option>
+                                                    {products
+                                                        .filter(p => p.id !== editing?.id) // Prevent self-selection
+                                                        .map(p => (
+                                                            <option key={p.id} value={p.id}>{p.name}</option>
+                                                        ))
+                                                    }
+                                                </Select>
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <Label htmlFor="conversionRate" className="text-xs">Items per Parent</Label>
+                                                <Input
+                                                    id="conversionRate"
+                                                    type="number"
+                                                    min="1"
+                                                    value={conversionRate}
+                                                    onChange={e => setConversionRate(e.target.value)}
+                                                    placeholder="e.g. 12"
+                                                    className="h-10"
+                                                    disabled={!parentId}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
                                 </div>
                             </div>
                         </div>
