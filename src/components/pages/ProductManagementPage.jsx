@@ -266,7 +266,8 @@ export default function ProductManagementPage() {
         if (val === '' || val == null) return '';
         const num = currency(val).value;
         if (isNaN(num)) return '';
-        return currency(num, { symbol: '₱', precision: 2 }).format();
+        // FIX: Remove currency symbol for <input type="number"> compatibility
+        return currency(num, { symbol: '', precision: 2 }).format();
     };
 
     const handleCSVUpload = async (e) => {
@@ -681,4 +682,3 @@ export default function ProductManagementPage() {
         </div>
     );
 }
-
