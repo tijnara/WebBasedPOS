@@ -266,7 +266,7 @@ export default function ProductManagementPage() {
         if (val === '' || val == null) return '';
         const num = currency(val).value;
         if (isNaN(num)) return '';
-        // FIX: Remove currency symbol for <input type="number"> compatibility
+        // NEW (Fix): Empty symbol returns just "15.00" which works perfectly
         return currency(num, { symbol: '', precision: 2 }).format();
     };
 
