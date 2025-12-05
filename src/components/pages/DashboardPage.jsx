@@ -15,6 +15,7 @@ import { startOfWeek, parseISO } from 'date-fns';
 import { UserIcon } from '../Icons';
 import currency from 'currency.js';
 import ReorderReport from '../dashboard/ReorderReport';
+import SpoilageReport from '../dashboard/SpoilageReport';
 
 Chart.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Tooltip, Legend, Filler);
 
@@ -217,6 +218,7 @@ export default function DashboardPage() {
             </div>
             <div><br></br></div>
             <ReorderReport />
+            <SpoilageReport />
 
             {/* CHARTS SECTION - Added top margin for spacing */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
