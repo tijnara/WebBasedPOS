@@ -18,7 +18,7 @@ import {
 } from '../../hooks/useProductMutations';
 
 import currency from 'currency.js';
-import { EditIcon, DeleteIcon, PackageIcon } from '../Icons'; // Added PackageIcon
+import { EditIcon, DeleteIcon, PackageIcon } from '../Icons';
 
 // --- Component: Image Uploader UI (Helper) ---
 const ImageUploader = ({ previewUrl, onFileSelect }) => {
@@ -100,6 +100,7 @@ export default function ProductManagementPage() {
     // UI Refs
     const productNameRef = useRef(null);
     const searchInputRef = useRef(null);
+    const fileInputRef = useRef(null);
 
     // Custom Categories Logic
     const [customCategories, setCustomCategories] = useState(() => {
@@ -113,6 +114,10 @@ export default function ProductManagementPage() {
         const handler = setTimeout(() => setDebouncedSearchTerm(searchTerm), 300);
         return () => clearTimeout(handler);
     }, [searchTerm]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [debouncedSearchTerm, categoryFilter]);
 
     useEffect(() => {
         const handleKeyDown = (e) => {
@@ -264,6 +269,7 @@ export default function ProductManagementPage() {
         if (!name) return;
         if (!mergedCategories.some(c => c.toLowerCase() === name.toLowerCase())) {
             setCustomCategories(prev => [...prev, name]);
+            try { localStorage.setItem('pos_custom_categories', JSON.stringify([...customCategories, name])); } catch {}
         }
         setCategory(name);
         setIsAddingCategory(false);
@@ -273,11 +279,7 @@ export default function ProductManagementPage() {
     const handleCSVUpload = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        const reader = new FileReader();
-        reader.onload = async ({ target }) => {
-            // Implementation preserved
-        };
-        reader.readAsText(file);
+        // ... CSV logic
     };
 
     const filteredProducts = products || [];
@@ -303,11 +305,25 @@ export default function ProductManagementPage() {
                     </div>
                 </div>
                 <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+                    <Button
+                        variant="outline"
+                        onClick={() => fileInputRef.current && fileInputRef.current.click()}
+                        className="hidden md:inline-flex"
+                    >
+                        Import CSV
+                    </Button>
+                    <input
+                        type="file"
+                        accept=".csv"
+                        ref={fileInputRef}
+                        style={{ display: 'none' }}
+                        onChange={handleCSVUpload}
+                    />
                     <Button variant="primary" onClick={openModal} className="w-full md:w-auto">Add Product</Button>
                 </div>
             </div>
 
-            {/* --- DESKTOP TABLE (Redesigned) --- */}
+            {/* --- DESKTOP TABLE --- */}
             <Card className="hidden md:block">
                 <CardContent className="p-0">
                     <ScrollArea>
@@ -331,11 +347,19 @@ export default function ProductManagementPage() {
                                     filteredProducts.map(p => (
                                         <TableRow key={p.id}>
                                             <TableCell>
-                                                {/* MERGED IMAGE AND NAME COLUMN */}
                                                 <div className="flex items-center gap-3">
-                                                    <div className="h-12 w-12 rounded-lg border border-gray-100 bg-gray-50 flex items-center justify-center overflow-hidden flex-shrink-0">
+                                                    {/* FORCED IMAGE SIZE: Desktop */}
+                                                    <div
+                                                        className="rounded-lg border border-gray-100 bg-gray-50 flex items-center justify-center overflow-hidden flex-shrink-0"
+                                                        style={{ width: '48px', height: '48px' }}
+                                                    >
                                                         {p.image_url ? (
-                                                            <img src={p.image_url} alt={p.name} className="h-full w-full object-cover" />
+                                                            <img
+                                                                src={p.image_url}
+                                                                alt={p.name}
+                                                                className="object-cover"
+                                                                style={{ width: '100%', height: '100%' }}
+                                                            />
                                                         ) : (
                                                             <PackageIcon className="h-6 w-6 text-gray-300" />
                                                         )}
@@ -384,45 +408,92 @@ export default function ProductManagementPage() {
                 </CardContent>
             </Card>
 
-            {/* --- MOBILE LIST VIEW (Redesigned) --- */}
+            {/* --- MOBILE LIST VIEW (Compact Cards) --- */}
             <div className="block md:hidden space-y-3">
                 {isLoading ? (
                     <div className="text-center text-muted p-6">Loading products...</div>
                 ) : filteredProducts.length === 0 ? (
-                    <div className="text-center text-muted p-6">No products found.</div>
+                    <div className="text-center text-muted p-6 bg-white rounded-lg border border-dashed">
+                        No products found.
+                    </div>
                 ) : (
                     filteredProducts.map(p => (
-                        <div key={p.id} className="bg-white p-3 rounded-lg border shadow-sm flex items-center gap-3">
-                            <div className="h-16 w-16 rounded-md bg-gray-50 border flex items-center justify-center overflow-hidden flex-shrink-0">
-                                {p.image_url ? (
-                                    <img src={p.image_url} alt={p.name} className="h-full w-full object-cover" />
-                                ) : (
-                                    <PackageIcon className="h-8 w-8 text-gray-300" />
-                                )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <div className="font-semibold text-gray-900 truncate">{p.name}</div>
-                                <div className="flex items-center gap-2 mt-1">
-                                    <span className="text-primary font-bold text-sm">
-                                        {currency(p.price, { symbol: '₱' }).format()}
-                                    </span>
-                                    <span className="text-gray-300">|</span>
-                                    <span className={`text-xs ${Number(p.stock) <= Number(p.minStock) ? 'text-red-600 font-medium' : 'text-gray-500'}`}>
-                                        Stock: {p.stock}
-                                    </span>
+                        <div key={p.id} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex items-start gap-3">
+                            {/* 1. Fixed Thumbnail Area (Strictly Forced Dimensions) */}
+                            <div className="flex-shrink-0">
+                                <div
+                                    className="rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center overflow-hidden"
+                                    style={{ width: '64px', height: '64px' }}
+                                >
+                                    {p.image_url ? (
+                                        <img
+                                            src={p.image_url}
+                                            alt={p.name}
+                                            className="object-cover"
+                                            style={{ width: '100%', height: '100%' }}
+                                        />
+                                    ) : (
+                                        <PackageIcon className="h-8 w-8 text-gray-300" />
+                                    )}
                                 </div>
                             </div>
-                            <div className="flex flex-col gap-1">
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600" onClick={() => startEdit(p)}><EditIcon /></Button>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-red-600" onClick={() => remove(p)}><DeleteIcon /></Button>
+
+                            {/* 2. Product Details */}
+                            <div className="flex-1 min-w-0 flex flex-col justify-between" style={{ height: '64px' }}>
+                                <div>
+                                    <div className="font-semibold text-gray-900 text-sm leading-tight truncate">
+                                        {p.name}
+                                    </div>
+                                    <div className="text-xs text-gray-500 mt-0.5">
+                                        {p.category || 'General'}
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center justify-between mt-1">
+                                    <div className="font-bold text-primary text-sm">
+                                        {currency(p.price || 0, { symbol: '₱' }).format()}
+                                    </div>
+
+                                    {/* Stock Status */}
+                                    <div className={`text-xs font-medium px-2 py-0.5 rounded-md ${
+                                        Number(p.stock) <= Number(p.minStock)
+                                            ? 'bg-red-50 text-red-600'
+                                            : 'bg-green-50 text-green-600'
+                                    }`}>
+                                        {p.stock} in stock
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 3. Actions Column */}
+                            <div className="flex flex-col justify-between pl-2 border-l border-gray-50" style={{ height: '64px' }}>
+                                <button
+                                    onClick={() => startEdit(p)}
+                                    className="text-blue-600 p-1 hover:bg-blue-50 rounded"
+                                >
+                                    <EditIcon className="w-5 h-5" />
+                                </button>
+                                <button
+                                    onClick={() => remove(p)}
+                                    className="text-red-500 p-1 hover:bg-red-50 rounded"
+                                >
+                                    <DeleteIcon className="w-5 h-5" />
+                                </button>
                             </div>
                         </div>
                     ))
                 )}
-                <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+                {/* Pagination for Mobile */}
+                <div className="mt-4">
+                    <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages || 1}
+                        onPageChange={page => setCurrentPage(page)}
+                    />
+                </div>
             </div>
 
-            {/* --- MODAL --- */}
+            {/* --- MODAL (2-Column Layout) --- */}
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
                 <DialogContent
                     className="p-0 overflow-hidden w-full !max-w-4xl bg-white shadow-xl border border-gray-100"
