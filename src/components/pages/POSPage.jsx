@@ -22,13 +22,21 @@ export default function POSPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 20;
 
-    // --- SEARCH STATE ---
+    // --- PRODUCT SEARCH STATE ---
+    // This is used ONLY for the main product grid/scanner
     const [searchTerm, setSearchTerm] = useState('');
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
 
-    // --- DEBOUNCE EFFECT ---
+    // --- CUSTOMER SEARCH STATE ---
+    // This is a NEW separate state used for Payment & Customer Modals
+    const [customerSearchTerm, setCustomerSearchTerm] = useState('');
+    const [debouncedCustomerSearchTerm, setDebouncedCustomerSearchTerm] = useState('');
+
+    // --- PRODUCT DEBOUNCE EFFECT (With Barcode Logic) ---
     useEffect(() => {
         const handler = setTimeout(() => {
+            // If input is purely numeric (3+ digits), assume it's a barcode scan
+            // and do NOT filter the grid textually (the barcode hook handles it)
             if (!/^[0-9]{3,}$/.test(searchTerm)) {
                 setDebouncedSearchTerm(searchTerm);
             } else {
@@ -38,12 +46,20 @@ export default function POSPage() {
         return () => clearTimeout(handler);
     }, [searchTerm]);
 
-    // --- DATA FETCHING ---
+    // --- CUSTOMER DEBOUNCE EFFECT (Standard Text Search) ---
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedCustomerSearchTerm(customerSearchTerm);
+        }, 300);
+        return () => clearTimeout(handler);
+    }, [customerSearchTerm]);
+
+    // --- DATA FETCHING (Products) ---
     const { data: productsData = { products: [], totalPages: 1 }, isLoading: isLoadingProducts } = useProducts({ searchTerm: debouncedSearchTerm, page: currentPage, itemsPerPage });
     const products = productsData.products || [];
     const totalPages = productsData.totalPages || 1;
 
-    // --- BARCODE SCANNER ---
+    // --- BARCODE SCANNER HOOK ---
     const isBarcodeScan = /^[0-9]{3,}$/.test(searchTerm.trim());
     const { data: scannedProduct, isLoading: isScanning } = useProductByBarcode(
         isBarcodeScan ? searchTerm.trim() : null
@@ -116,22 +132,27 @@ export default function POSPage() {
         }
     }, [scannedProduct]);
 
-    // --- CUSTOMER SEARCH ---
+    // --- CUSTOMER SEARCH EFFECT (Uses separate customer state) ---
     useEffect(() => {
-        if (!(isCustomerModalOpen || isPaymentModalOpen) || !debouncedSearchTerm) {
+        // Only run if a modal is open AND there is text to search
+        if (!(isCustomerModalOpen || isPaymentModalOpen) || !debouncedCustomerSearchTerm) {
             setCustomerSearchResults([]);
             setIsSearchingCustomers(false);
             return;
         }
+
         const searchCustomers = async () => {
             setIsSearchingCustomers(true);
             try {
+                // FIX: Search by Name OR Phone Number
                 const { data, error } = await supabase
                     .from('customers')
                     .select('*')
-                    .ilike('name', `%${debouncedSearchTerm}%`)
+                    .or(`name.ilike.%${debouncedCustomerSearchTerm}%,phone.ilike.%${debouncedCustomerSearchTerm}%`)
                     .limit(10);
+
                 if (error) {
+                    console.error("Error searching customers:", error);
                     setCustomerSearchResults([]);
                     return;
                 }
@@ -144,7 +165,7 @@ export default function POSPage() {
             }
         };
         searchCustomers();
-    }, [debouncedSearchTerm, isCustomerModalOpen, isPaymentModalOpen]);
+    }, [debouncedCustomerSearchTerm, isCustomerModalOpen, isPaymentModalOpen]);
 
     // --- HANDLERS ---
     const [recentProducts, setRecentProducts] = useState([]);
@@ -153,10 +174,12 @@ export default function POSPage() {
         if (!product) return;
         const itemKey = `${product.id}__${Number(product.price).toFixed(2)}`;
         const currentQtyInCart = currentSale[itemKey]?.quantity || 0;
+
         if (currentQtyInCart + 1 > product.stock) {
             addToast({ title: 'Stock Limit', description: `Cannot add more than the ${product.stock} available.`, variant: 'warning' });
             return;
         }
+
         addItemToSale(product, 1);
         setRecentProducts(prev => {
             const without = prev.filter(p => p.id !== product.id);
@@ -182,14 +205,14 @@ export default function POSPage() {
 
     const handleSelectCustomerFromModal = (customer) => {
         handleSetSelectedCustomer(customer);
-        setSearchTerm('');
+        setCustomerSearchTerm(''); // Clear customer search
         setIsCustomerModalOpen(false);
     };
 
     const handleSelectCustomerInPayment = (customer) => {
         handleSetSelectedCustomer(customer);
-        setSearchTerm('');
-        setDebouncedSearchTerm('');
+        setCustomerSearchTerm(''); // Clear customer search
+        setDebouncedCustomerSearchTerm('');
         setCustomerSearchResults([]);
         setIsSearchingCustomers(false);
     };
@@ -201,8 +224,13 @@ export default function POSPage() {
         }
         try {
             const addedCustomer = await createCustomerMutation.mutateAsync({ name: newCustomerName.trim() });
-            handleSelectCustomerFromModal(addedCustomer);
+            handleSelectCustomerFromModal(addedCustomer); // This also closes the selection modal if open
             addToast({ title: 'Customer Added', description: `${addedCustomer.name} added.`, variant: 'success' });
+
+            // If we are in the Payment Modal, update the selection there too
+            if(isPaymentModalOpen) {
+                handleSelectCustomerInPayment(addedCustomer);
+            }
         } catch (error) {
             addToast({ title: 'Error Adding Customer', description: error.message, variant: 'destructive' });
         }
@@ -217,6 +245,11 @@ export default function POSPage() {
         setPaymentMethod('Cash');
         const now = new Date();
         setSaleTime(now.toTimeString().slice(0,5));
+
+        // Clear previous customer search state when opening
+        setCustomerSearchTerm('');
+        setCustomerSearchResults([]);
+
         setIsPaymentModalOpen(true);
     };
 
@@ -227,6 +260,7 @@ export default function POSPage() {
             addToast({ title: 'Customer Required', description: 'Please select a customer.', variant: 'warning' });
             return;
         }
+
         const items = Object.values(currentSale).map(i => ({
             productId: i.productId,
             productName: i.name,
@@ -235,6 +269,7 @@ export default function POSPage() {
             cost_at_sale: i.cost || 0,
             subtotal: currency(i.price).multiply(i.quantity).value
         }));
+
         const received = currency(amountReceived || 0).value;
         const changeCalculated = currency(received).subtract(subtotal).value;
 
@@ -242,6 +277,7 @@ export default function POSPage() {
             const saleTimestamp = saleDate && saleTime
                 ? new Date(`${saleDate}T${saleTime}:00`).toISOString()
                 : new Date().toISOString();
+
             const payload = {
                 saleTimestamp,
                 totalAmount: subtotal,
@@ -254,16 +290,22 @@ export default function POSPage() {
                 changeGiven: Math.max(0, changeCalculated),
                 created_by: user?.id || null
             };
+
             await createSaleMutation.mutateAsync(payload);
             addToast({ title: 'Sale Completed', description: `Sale recorded.`, variant: 'success' });
+
             clearSale();
             handleSetSelectedCustomer(null);
             setLastCustomer(selectedCustomer);
             localStorage.setItem('lastCustomer', JSON.stringify(selectedCustomer));
             setAmountReceived('');
             setPaymentMethod('Cash');
+
+            // Clear all search states
             setSearchTerm('');
+            setCustomerSearchTerm('');
             setCustomerSearchResults([]);
+
             setIsPaymentModalOpen(false);
         } catch (e) {
             addToast({ title: 'Checkout Error', description: e.message, variant: 'destructive' });
@@ -274,6 +316,7 @@ export default function POSPage() {
         <div className="pos-page">
             <img src="/seaside.png" alt="Seaside Logo" className="brand-logo-top" width={32} height={32} loading="lazy" />
 
+            {/* --- Top Bar: Title & Product Search --- */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
                 <h1 className="text-2xl sm:text-3xl font-bold text-primary tracking-tight">Point of Sale</h1>
                 <div className="flex items-center gap-2">
@@ -293,7 +336,7 @@ export default function POSPage() {
                 </div>
             </div>
 
-            {/* --- Main Layout --- */}
+            {/* --- Main Layout: Product Grid & Cart --- */}
             <div className="flex flex-col md:flex-row gap-4 w-full relative items-start">
                 <POSProductGrid
                     isLoading={isLoadingProducts}
@@ -304,7 +347,9 @@ export default function POSPage() {
                     totalPages={totalPages}
                     setCurrentPage={setCurrentPage}
                 />
-                <div className="hidden md:flex w-full md:w-1/3 xl:w-1/4 flex-shrink-0 flex-col sticky top-4" style={{ height: '50vh' }}>
+
+                {/* Desktop Cart Sidebar */}
+                <div className="hidden md:flex w-full md:w-1/3 xl:w-1/4 flex-shrink-0 flex-col sticky top-4" style={{ height: '85vh' }}>
                     <POSCart
                         currentSale={currentSale}
                         clearSale={clearSale}
@@ -323,13 +368,13 @@ export default function POSPage() {
             <CustomerSelectionModal
                 isOpen={isCustomerModalOpen}
                 setIsOpen={setIsCustomerModalOpen}
-                searchTerm={searchTerm}
-                setSearchTerm={setSearchTerm}
+                searchTerm={customerSearchTerm} // Using separate customer state
+                setSearchTerm={setCustomerSearchTerm} // Using separate customer setter
                 selectedCustomer={selectedCustomer}
                 handleSelectCustomerFromModal={handleSelectCustomerFromModal}
                 isSearchingCustomers={isSearchingCustomers}
                 customerSearchResults={customerSearchResults}
-                debouncedSearchTerm={debouncedSearchTerm}
+                debouncedSearchTerm={debouncedCustomerSearchTerm}
                 handleAddCustomer={handleAddCustomer}
                 createCustomerMutation={createCustomerMutation}
             />
@@ -337,8 +382,8 @@ export default function POSPage() {
             <PaymentModal
                 isOpen={isPaymentModalOpen}
                 setIsOpen={setIsPaymentModalOpen}
-                searchTerm={searchTerm}
-                setSearchTerm={setSearchTerm}
+                searchTerm={customerSearchTerm} // Using separate customer state
+                setSearchTerm={setCustomerSearchTerm} // Using separate customer setter
                 selectedCustomer={selectedCustomer}
                 handleSelectCustomerInPayment={handleSelectCustomerInPayment}
                 isSearchingCustomers={isSearchingCustomers}
@@ -367,6 +412,7 @@ export default function POSPage() {
                 onAddItem={(product, quantity, price) => addItemToSale(product, quantity, price)}
             />
 
+            {/* Mobile Bottom Bar (Visible only when cart/payment not open) */}
             {!(isCartDrawerOpen || isPaymentModalOpen) && (
                 <MobileCartBar
                     itemCount={Object.keys(currentSale).length}
@@ -375,6 +421,7 @@ export default function POSPage() {
                 />
             )}
 
+            {/* Mobile Cart Drawer */}
             <CartDrawer
                 isOpen={isCartDrawerOpen}
                 onClose={() => setIsCartDrawerOpen(false)}

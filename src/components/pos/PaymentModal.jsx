@@ -1,8 +1,9 @@
+// src/components/pos/PaymentModal.jsx
 import React, { useMemo } from 'react';
 import {
     Button, Dialog, DialogContent, DialogCloseButton, DialogHeader, DialogTitle, DialogFooter, Input, Label, ScrollArea, Select
 } from '../ui';
-import { UserIcon } from '../Icons'; // Assuming icons are in this path based on context
+import { UserIcon } from '../Icons';
 import currency from 'currency.js';
 
 const PaymentModal = ({
@@ -31,34 +32,34 @@ const PaymentModal = ({
                           customerPaymentInputRef,
                       }) => {
 
-    // Dynamic Change Calculation
     const changeDue = useMemo(() => {
         const received = parseFloat(amountReceived) || 0;
         const total = parseFloat(subtotal) || 0;
         return Math.max(0, received - total);
     }, [amountReceived, subtotal]);
 
+    // Ensure we have a valid array
+    const results = Array.isArray(customerSearchResults) ? customerSearchResults : [];
+    const showResults = searchTerm && searchTerm.length > 0;
+
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            {/* UI FIX: Changed width to sm:max-w-4xl (approx 900px)
-               Added flex column layout to ensure header/footer stay fixed while body scrolls if needed
-            */}
             <DialogContent
                 className="sm:max-w-4xl p-0 bg-white overflow-hidden flex flex-col max-h-[90vh]"
                 style={{ backgroundColor: '#ffffff', zIndex: 50 }}
             >
-                {/* --- HEADER --- */}
                 <DialogHeader className="px-6 py-4 border-b bg-white flex-shrink-0">
                     <DialogTitle className="text-xl font-bold text-gray-900">Complete Sale</DialogTitle>
                     <DialogCloseButton onClick={() => setIsOpen(false)} />
                 </DialogHeader>
 
-                {/* --- BODY (2-Column Grid) --- */}
                 <div className="flex-1 overflow-y-auto px-6 py-6 bg-white">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 h-full">
 
                         {/* LEFT COLUMN: Customer Selection */}
-                        <div className="flex flex-col gap-4 border-b md:border-b-0 md:border-r border-gray-100 md:pr-8 pb-6 md:pb-0">
+                        <div className="flex flex-col gap-6 border-b md:border-b-0 md:border-r border-gray-100 md:pr-8 pb-6 md:pb-0">
+
+                            {/* SEARCH INPUT */}
                             <div>
                                 <Label htmlFor="customer-search-payment" className="text-sm font-semibold text-gray-700 mb-2">
                                     Select Customer
@@ -67,15 +68,14 @@ const PaymentModal = ({
                                     <Input
                                         id="customer-search-payment"
                                         type="text"
-                                        placeholder="Search customer name..."
+                                        placeholder="Search name or phone..."
                                         value={searchTerm}
                                         onChange={e => setSearchTerm(e.target.value)}
-                                        className="w-full h-11 text-base py-2.5 pl-10"
+                                        className="w-full h-12 text-base py-2.5 pl-10 border-gray-300 focus:ring-primary focus:border-primary"
                                         ref={customerPaymentInputRef}
                                         autoComplete="off"
                                     />
-                                    {/* Search Icon */}
-                                    <div className="absolute left-3 top-3 text-gray-400">
+                                    <div className="absolute left-3 top-3.5 text-gray-400">
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                         </svg>
@@ -83,84 +83,80 @@ const PaymentModal = ({
                                 </div>
                             </div>
 
-                            {/* Customer List Area */}
-                            <div className="flex-1 min-h-[250px] border rounded-xl overflow-hidden bg-gray-50 flex flex-col">
-                                <ScrollArea className="flex-1 h-full">
-                                    <div className="p-2 space-y-1">
+                            {/* RESULTS LIST (Static / Inline) - Guaranteed to show if searchTerm exists */}
+                            {showResults && (
+                                <div className="w-full border rounded-lg border-gray-200 bg-gray-50 flex flex-col animate-in fade-in slide-in-from-top-2 duration-200">
+                                    <div className="max-h-60 overflow-y-auto p-1">
                                         <Button
-                                            variant={selectedCustomer === null ? "secondary" : "ghost"}
-                                            className="w-full justify-start text-left h-auto py-3 px-3 text-sm font-medium"
+                                            variant="ghost"
+                                            className="w-full justify-start text-left h-auto py-3 px-3 text-sm font-medium hover:bg-white border-b border-transparent hover:border-gray-100"
                                             onClick={() => handleSelectCustomerInPayment(null)}
                                         >
-                                            <span className="bg-gray-200 p-1 rounded mr-2">
-                                                <UserIcon className="w-4 h-4 text-gray-600"/>
+                                            <span className="bg-gray-200 p-1 rounded mr-3 text-gray-600">
+                                                <UserIcon className="w-4 h-4"/>
                                             </span>
-                                            Walk-in Customer
+                                            Use Walk-in Customer
                                         </Button>
 
-                                        <div className="h-px bg-gray-200 my-1 mx-2"></div>
-
                                         {isSearchingCustomers ? (
-                                            <p className="p-4 text-sm text-center text-muted">Searching...</p>
-                                        ) : (
+                                            <div className="p-4 text-center text-sm text-gray-500 flex items-center justify-center gap-2">
+                                                <span className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin"></span>
+                                                Searching...
+                                            </div>
+                                        ) : results.length > 0 ? (
                                             <>
-                                                {customerSearchResults.map(customer => (
+                                                <div className="h-px bg-gray-200 my-1 mx-2"></div>
+                                                {results.map(customer => (
                                                     <Button
                                                         key={customer.id}
-                                                        variant={selectedCustomer?.id === customer.id ? "secondary" : "ghost"}
-                                                        className={`w-full justify-start text-left h-auto py-2.5 px-3 ${selectedCustomer?.id === customer.id ? 'bg-primary-soft text-primary font-semibold' : 'text-gray-700'}`}
-                                                        onClick={() => {
-                                                            if (selectedCustomer?.id !== customer.id) {
-                                                                handleSelectCustomerInPayment(customer);
-                                                            }
-                                                        }}
+                                                        variant="ghost"
+                                                        className="w-full justify-start text-left h-auto py-2.5 px-3 hover:bg-white hover:shadow-sm transition-all group"
+                                                        onClick={() => handleSelectCustomerInPayment(customer)}
                                                     >
                                                         <div className="flex flex-col items-start">
-                                                            <span>{customer.name}</span>
-                                                            {customer.phone && <span className="text-xs text-gray-400 font-normal">{customer.phone}</span>}
+                                                            <span className="font-medium text-gray-900 group-hover:text-blue-700">{customer.name}</span>
+                                                            {customer.phone && <span className="text-xs text-gray-500 group-hover:text-blue-500">{customer.phone}</span>}
                                                         </div>
                                                     </Button>
                                                 ))}
-
-                                                {/* Empty State / Add New */}
-                                                {customerSearchResults.length === 0 && searchTerm && (
-                                                    <div className="p-4 text-center">
-                                                        <p className="text-sm text-muted mb-3">Customer not found.</p>
-                                                        <Button
-                                                            variant="primary"
-                                                            size="sm"
-                                                            className="w-full"
-                                                            onClick={() => handleAddCustomer(searchTerm)}
-                                                            disabled={createCustomerMutation.isPending}
-                                                        >
-                                                            {createCustomerMutation.isPending ? 'Adding...' : `+ Create "${searchTerm}"`}
-                                                        </Button>
-                                                    </div>
-                                                )}
                                             </>
+                                        ) : (
+                                            <div className="p-3 text-center">
+                                                <p className="text-sm text-gray-500 mb-2">No customer found.</p>
+                                                <Button
+                                                    variant="primary"
+                                                    size="sm"
+                                                    className="w-full"
+                                                    onClick={() => handleAddCustomer(searchTerm)}
+                                                    disabled={createCustomerMutation.isPending}
+                                                >
+                                                    {createCustomerMutation.isPending ? 'Creating...' : `+ Add "${searchTerm}"`}
+                                                </Button>
+                                            </div>
                                         )}
                                     </div>
-                                </ScrollArea>
-                            </div>
+                                </div>
+                            )}
 
-                            {/* Active Selection Badge */}
-                            <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 flex justify-between items-center">
-                                <span className="text-xs font-semibold text-blue-600 uppercase tracking-wide">Selected</span>
-                                <span className="font-bold text-blue-900 text-lg">
+                            {/* SELECTED CUSTOMER CARD */}
+                            <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex flex-col justify-center items-center text-center gap-1 mt-auto">
+                                <span className="text-xs font-semibold text-blue-600 uppercase tracking-wide">Selected Customer</span>
+                                <span className="font-bold text-blue-900 text-xl">
                                     {selectedCustomer ? selectedCustomer.name : 'Walk-in Customer'}
                                 </span>
+                                {selectedCustomer?.phone && (
+                                    <span className="text-sm text-blue-700 font-medium">{selectedCustomer.phone}</span>
+                                )}
                             </div>
                         </div>
 
                         {/* RIGHT COLUMN: Payment Details */}
                         <div className="flex flex-col gap-6">
-
                             {/* Total Amount Banner */}
                             <div className="bg-primary p-6 rounded-2xl text-white shadow-lg text-center flex flex-col justify-center transform transition-transform hover:scale-[1.01]"
                                  style={{ backgroundColor: 'var(--primary)' }}
                             >
-                                <span className="text-primary-soft text-sm font-medium uppercase tracking-wider opacity-90">Total Amount Due</span>
-
+                                <span className="text-white/90 text-sm font-medium uppercase tracking-wider opacity-90">Total Amount Due</span>
                                 <span className="text-5xl font-bold mt-1 tracking-tight">
                                     {currency(subtotal).format({ symbol: '₱' })}
                                 </span>
@@ -201,7 +197,6 @@ const PaymentModal = ({
                                             />
                                         </div>
 
-                                        {/* Quick Cash Buttons */}
                                         <div className="grid grid-cols-4 gap-2 mt-3">
                                             <Button variant="outline" size="sm" onClick={() => setAmountReceived(subtotal.toFixed(2))} className="text-xs h-9 bg-white hover:bg-gray-50">Exact</Button>
                                             {[100, 500, 1000].map(amt => (
@@ -217,7 +212,6 @@ const PaymentModal = ({
                                             ))}
                                         </div>
 
-                                        {/* Change Due Display */}
                                         <div className="mt-4 flex justify-between items-center p-4 bg-green-50 rounded-xl border border-green-100">
                                             <span className="text-green-700 font-semibold text-sm">Change Due</span>
                                             <span className="text-green-700 font-bold text-2xl">
@@ -227,7 +221,6 @@ const PaymentModal = ({
                                     </div>
                                 )}
 
-                                {/* Date/Time (Compact) */}
                                 <div className="grid grid-cols-2 gap-4 pt-2">
                                     <div>
                                         <Label className="text-xs text-gray-500 mb-1 block">Date</Label>
@@ -243,7 +236,6 @@ const PaymentModal = ({
                     </div>
                 </div>
 
-                {/* --- FOOTER --- */}
                 <DialogFooter className="px-6 py-4 border-t bg-gray-50 flex-shrink-0">
                     <div className="flex w-full justify-end gap-3">
                         <Button
