@@ -18,7 +18,7 @@ import {
 
 import { EditIcon, DeleteIcon, UserIcon as StaffIcon } from '../Icons';
 
-// --- Constants (Must match Postgres Enum exactly) ---
+// --- Constants ---
 const USER_ROLES = {
     STAFF: 'Staff',
     ADMIN: 'Admin',
@@ -35,6 +35,33 @@ const RoleBadge = ({ role }) => {
         </span>
     );
 };
+
+// --- Icons for Input Fields ---
+const UserInputIcon = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={className || "w-5 h-5"}>
+        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zM8 11a4 4 0 00-4 4v.5a.5.5 0 00.5.5h11a.5.5 0 00.5-.5V15a4 4 0 00-4-4H8z" clipRule="evenodd" />
+    </svg>
+);
+
+const MailIcon = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={className || "w-5 h-5"}>
+        <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+        <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+    </svg>
+);
+
+const LockIcon = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={className || "w-5 h-5"}>
+        <path fillRule="evenodd" d="M10 2a5 5 0 00-5 5v2a2 2 0 00-2 2v5a2 2 0 002 2h10a2 2 0 002-2v-5a2 2 0 00-2-2H7V7a3 3 0 015.905-.75 1 1 0 001.937-.5A5.002 5.002 0 0010 2z" clipRule="evenodd" />
+    </svg>
+);
+
+const BriefcaseIcon = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={className || "w-5 h-5"}>
+        <path fillRule="evenodd" d="M6 6V5a3 3 0 013-3h2a3 3 0 013 3v1h2a2 2 0 012 2v3.57A22.952 22.952 0 0110 13a22.95 22.95 0 01-8-1.43V8a2 2 0 012-2h2zm2-1a1 1 0 011-1h2a1 1 0 011 1v1H8V5zm1 5a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z" clipRule="evenodd" />
+        <path d="M2 13.692V16a2 2 0 002 2h12a2 2 0 002-2v-2.308A24.974 24.974 0 0110 15c-2.796 0-5.487-.46-8-1.308z" />
+    </svg>
+);
 
 export default function UserManagementPage() {
     const addToast = useStore(s => s.addToast);
@@ -96,7 +123,7 @@ export default function UserManagementPage() {
         setEditing(u);
         setName(u?.name || '');
         setEmail(u?.email || '');
-        setRole(u?.role || USER_ROLES.STAFF); // Now correctly pulls role from hook
+        setRole(u?.role || USER_ROLES.STAFF);
         setPassword('');
         setConfirmPassword('');
         setIsModalOpen(true);
@@ -126,7 +153,6 @@ export default function UserManagementPage() {
             return;
         }
 
-        // --- Include Role in Payload ---
         const payload = { name, email, role };
         if (password) {
             payload.password = password;
@@ -134,8 +160,6 @@ export default function UserManagementPage() {
 
         try {
             if (editing) {
-                // Removed the block that prevented editing self.
-                // Instead, warn if user is demoting themselves.
                 if (editing.id === currentUser?.id && role !== USER_ROLES.ADMIN) {
                     if (!confirm("Warning: You are removing your own Admin privileges. You may lose access to this page. Proceed?")) {
                         return;
@@ -148,12 +172,10 @@ export default function UserManagementPage() {
             closeModal();
         } catch (e) {
             console.error(e);
-            // AddToast handled by mutation hook error
         }
     };
 
     const remove = async (u) => {
-        // Still prevent deleting self for safety
         if (u.id === currentUser?.id) {
             addToast({ title: 'Cannot Delete Self', description: 'You cannot delete your own account.', variant: 'destructive' });
             return;
@@ -171,8 +193,6 @@ export default function UserManagementPage() {
 
     return (
         <div className="user-page">
-
-
             <div>
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                     <div>
@@ -223,7 +243,6 @@ export default function UserManagementPage() {
                                                 </TableCell>
                                                 <TableCell>{u.email}</TableCell>
                                                 <TableCell>
-                                                    {/* Display Role Badge */}
                                                     <RoleBadge role={u.role} />
                                                 </TableCell>
                                                 <TableCell>
@@ -233,11 +252,9 @@ export default function UserManagementPage() {
                                                 </TableCell>
                                                 <TableCell className="text-right">
                                                     <div className="flex justify-end space-x-1">
-                                                        {/* Enabled Edit for self */}
                                                         <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:bg-blue-100" onClick={() => startEdit(u)} title="Edit User" disabled={isDemo}>
                                                             <EditIcon />
                                                         </Button>
-                                                        {/* Delete still disabled for self */}
                                                         <Button variant="ghost" size="icon" className="h-8 w-8 text-red-600 hover:bg-red-100" onClick={() => remove(u)} title="Delete User" disabled={isDemo || u.id === currentUser?.id}>
                                                             <DeleteIcon />
                                                         </Button>
@@ -249,7 +266,6 @@ export default function UserManagementPage() {
                                 </TableBody>
                             </Table>
                         </ScrollArea>
-                        {/* Pagination Controls */}
                         <Pagination currentPage={currentPage} totalPages={totalPages || 1} onPageChange={page => setCurrentPage(page)} />
                     </CardContent>
                 </Card>
@@ -266,14 +282,11 @@ export default function UserManagementPage() {
                                 <div className="divide-y divide-gray-100">
                                     {users.map(u => (
                                         <div key={u.id} className="p-4 flex items-center space-x-3">
-                                            {/* Icon */}
                                             <div className="flex-shrink-0">
                                                 <span className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
                                                     <StaffIcon />
                                                 </span>
                                             </div>
-
-                                            {/* User Info */}
                                             <div className="flex-1 min-w-0">
                                                 <div className="font-medium text-gray-900 truncate">
                                                     {u.name} {u.id === currentUser?.id && <span className="text-xs text-gray-400">(You)</span>}
@@ -283,14 +296,10 @@ export default function UserManagementPage() {
                                                     <RoleBadge role={u.role} />
                                                 </div>
                                             </div>
-
-                                            {/* Action Buttons */}
                                             <div className="flex-shrink-0 flex items-center space-x-0">
-                                                {/* Enabled Edit for self */}
                                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600" onClick={() => startEdit(u)} title="Edit User" disabled={isDemo}>
                                                     <EditIcon />
                                                 </Button>
-                                                {/* Delete still disabled for self */}
                                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-red-600" onClick={() => remove(u)} title="Delete User" disabled={isDemo || u.id === currentUser?.id}>
                                                     <DeleteIcon />
                                                 </Button>
@@ -301,20 +310,22 @@ export default function UserManagementPage() {
                             )}
                         </CardContent>
                     </Card>
-
-                    {/* Pagination Controls for mobile */}
                     <Pagination currentPage={currentPage} totalPages={totalPages || 1} onPageChange={page => setCurrentPage(page)} />
                 </div>
 
-                {/* --- MODAL --- */}
-                <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+                {/* --- MODAL: Add/Edit User (Corrected & Replicated from Customer Page) --- */}
+                <Dialog
+                    open={isModalOpen}
+                    onOpenChange={setIsModalOpen}
+                    className="flex items-center justify-center"
+                >
                     <DialogContent
-                        className="p-0 overflow-hidden w-full sm:max-w-xl bg-white shadow-xl border border-gray-100 relative"
-                        style={{ backgroundColor: '#ffffff', zIndex: 50 }}
+                        className="p-0 w-full sm:max-w-xl bg-white shadow-xl border border-gray-100 flex flex-col"
+                        style={{ backgroundColor: '#ffffff', zIndex: 50, maxHeight: '85vh' }}
                     >
                         <form
                             onSubmit={save}
-                            className="flex flex-col h-full max-h-[100vh] bg-white"
+                            className="flex flex-col flex-1 min-h-0"
                             style={{ backgroundColor: '#ffffff' }}
                         >
                             {/* Header */}
@@ -330,109 +341,142 @@ export default function UserManagementPage() {
 
                             {/* Scrollable Body */}
                             <div
-                                className="flex-1 overflow-y-auto px-6 py-6 mb-20 modal-scroll modal-scrollbar bg-white relative"
+                                className="flex-1 overflow-y-auto px-6 py-6"
                                 style={{ backgroundColor: '#ffffff' }}
                             >
-                                <div className="space-y-5">
-                                    {/* Account Information Section */}
-                                    <div className="space-y-4">
-                                        <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">
-                                            Account Information
+                                <div className="space-y-6">
+
+                                    {/* --- Section 1: Account --- */}
+                                    <div className="space-y-5">
+                                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 pb-2 mb-4">
+                                            Account Details
                                         </h3>
 
                                         {/* Full Name */}
-                                        <div className="space-y-2">
-                                            <Label htmlFor="name" className="text-sm font-medium text-gray-700">
+                                        <div className="space-y-1.5">
+                                            <Label htmlFor="name" className="text-sm font-semibold text-gray-700">
                                                 Full Name <span className="text-red-500">*</span>
                                             </Label>
-                                            <Input
-                                                id="name"
-                                                value={name}
-                                                onChange={(e) => setName(e.target.value)}
-                                                required
-                                                autoFocus
-                                                placeholder="Enter full name"
-                                                className="text-base py-2.5 border-gray-300 h-11 w-full"
-                                            />
+                                            <div className="relative">
+                                                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                                                    <UserInputIcon className="w-5 h-5" />
+                                                </div>
+                                                <Input
+                                                    id="name"
+                                                    value={name}
+                                                    onChange={(e) => setName(e.target.value)}
+                                                    required
+                                                    autoFocus
+                                                    placeholder="Enter full name"
+                                                    className="w-full text-base pl-11 py-2.5 border-gray-300 h-11"
+                                                />
+                                            </div>
                                         </div>
 
-                                        {/* Email */}
-                                        <div className="space-y-2">
-                                            <Label htmlFor="email" className="text-sm font-medium text-gray-700">
-                                                Email Address <span className="text-red-500">*</span>
-                                            </Label>
-                                            <Input
-                                                id="email"
-                                                type="email"
-                                                value={email}
-                                                onChange={(e) => setEmail(e.target.value)}
-                                                required
-                                                placeholder="email@example.com"
-                                                className="text-base py-2.5 border-gray-300 h-11 w-full"
-                                            />
-                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                            {/* Email */}
+                                            <div className="space-y-1.5">
+                                                <Label htmlFor="email" className="text-sm font-semibold text-gray-700">
+                                                    Email <span className="text-red-500">*</span>
+                                                </Label>
+                                                <div className="relative">
+                                                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                                                        <MailIcon className="w-5 h-5" />
+                                                    </div>
+                                                    <Input
+                                                        id="email"
+                                                        type="email"
+                                                        value={email}
+                                                        onChange={(e) => setEmail(e.target.value)}
+                                                        required
+                                                        placeholder="email@example.com"
+                                                        className="w-full text-base pl-11 py-2.5 border-gray-300 h-11"
+                                                    />
+                                                </div>
+                                            </div>
 
-                                        {/* Role */}
-                                        <div className="space-y-2">
-                                            <Label htmlFor="role" className="text-sm font-medium text-gray-700">
-                                                User Role
-                                            </Label>
-                                            <Select
-                                                id="role"
-                                                value={role}
-                                                onChange={(e) => setRole(e.target.value)}
-                                                className="text-base py-2.5 border-gray-300 h-11 w-full"
-                                            >
-                                                <option value={USER_ROLES.STAFF}>Staff</option>
-                                                <option value={USER_ROLES.ADMIN}>Admin</option>
-                                            </Select>
+                                            {/* Role */}
+                                            <div className="space-y-1.5">
+                                                <Label htmlFor="role" className="text-sm font-semibold text-gray-700">
+                                                    User Role
+                                                </Label>
+                                                <div className="relative">
+                                                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                                                        <BriefcaseIcon className="w-5 h-5" />
+                                                    </div>
+                                                    <Select
+                                                        id="role"
+                                                        value={role}
+                                                        onChange={(e) => setRole(e.target.value)}
+                                                        className="w-full text-base pl-11 py-2.5 border-gray-300 h-11 appearance-none"
+                                                    >
+                                                        <option value={USER_ROLES.STAFF}>Staff</option>
+                                                        <option value={USER_ROLES.ADMIN}>Admin</option>
+                                                    </Select>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
 
-                                    {/* Password Section */}
-                                    <div className="pt-4 border-t border-gray-200">
-                                        <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-4">
-                                            {editing ? 'Change Password (Optional)' : 'Set Password'}
+                                    {/* --- Section 2: Security --- */}
+                                    <div className="space-y-5 pt-2">
+                                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 pb-2 mb-4">
+                                            {editing ? 'Change Password (Optional)' : 'Security'}
                                         </h3>
 
-                                        {/* Password */}
-                                        <div className="space-y-2 mb-4">
-                                            <Label htmlFor="password" className="text-sm font-medium text-gray-700">
-                                                Password {!editing && <span className="text-red-500">*</span>}
-                                            </Label>
-                                            <Input
-                                                id="password"
-                                                type="password"
-                                                value={password}
-                                                onChange={(e) => setPassword(e.target.value)}
-                                                required={!editing}
-                                                placeholder="••••••••"
-                                                className="text-base py-2.5 border-gray-300 h-11 w-full"
-                                            />
-                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                            {/* Password */}
+                                            <div className="space-y-1.5">
+                                                <Label htmlFor="password" className="text-sm font-semibold text-gray-700">
+                                                    Password {!editing && <span className="text-red-500">*</span>}
+                                                </Label>
+                                                <div className="relative">
+                                                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                                                        <LockIcon className="w-5 h-5" />
+                                                    </div>
+                                                    <Input
+                                                        id="password"
+                                                        type="password"
+                                                        value={password}
+                                                        onChange={(e) => setPassword(e.target.value)}
+                                                        required={!editing}
+                                                        placeholder="••••••••"
+                                                        className="w-full text-base pl-11 py-2.5 border-gray-300 h-11"
+                                                    />
+                                                </div>
+                                            </div>
 
-                                        {/* Confirm Password */}
-                                        <div className="space-y-2">
-                                            <Label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700">
-                                                Confirm Password {!editing && <span className="text-red-500">*</span>}
-                                            </Label>
-                                            <Input
-                                                id="confirmPassword"
-                                                type="password"
-                                                value={confirmPassword}
-                                                onChange={(e) => setConfirmPassword(e.target.value)}
-                                                required={!editing}
-                                                placeholder="••••••••"
-                                                className="text-base py-2.5 border-gray-300 h-11 w-full"
-                                            />
+                                            {/* Confirm Password */}
+                                            <div className="space-y-1.5">
+                                                <Label htmlFor="confirmPassword" className="text-sm font-semibold text-gray-700">
+                                                    Confirm Password {!editing && <span className="text-red-500">*</span>}
+                                                </Label>
+                                                <div className="relative">
+                                                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                                                        <LockIcon className="w-5 h-5" />
+                                                    </div>
+                                                    <Input
+                                                        id="confirmPassword"
+                                                        type="password"
+                                                        value={confirmPassword}
+                                                        onChange={(e) => setConfirmPassword(e.target.value)}
+                                                        required={!editing}
+                                                        placeholder="••••••••"
+                                                        className="w-full text-base pl-11 py-2.5 border-gray-300 h-11"
+                                                    />
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
+
+                                    {/* Mobile Spacer */}
+                                    <div className="h-4 md:hidden"></div>
                                 </div>
                             </div>
 
                             {/* Footer */}
                             <DialogFooter
-                                className="px-6 py-4 border-t bg-gray-50 flex-shrink-0 z-10 absolute bottom-0 left-0 w-full"
+                                className="px-6 py-4 border-t bg-gray-50 flex-shrink-0 z-10"
                                 style={{ backgroundColor: '#f9fafb' }}
                             >
                                 <div className="flex w-full justify-end gap-3">
