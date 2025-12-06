@@ -156,8 +156,11 @@ const PaymentModal = ({
                         <div className="flex flex-col gap-6">
 
                             {/* Total Amount Banner */}
-                            <div className="bg-primary p-6 rounded-2xl text-white shadow-lg text-center flex flex-col justify-center transform transition-transform hover:scale-[1.01]">
+                            <div className="bg-primary p-6 rounded-2xl text-white shadow-lg text-center flex flex-col justify-center transform transition-transform hover:scale-[1.01]"
+                                 style={{ backgroundColor: 'var(--primary)' }}
+                            >
                                 <span className="text-primary-soft text-sm font-medium uppercase tracking-wider opacity-90">Total Amount Due</span>
+
                                 <span className="text-5xl font-bold mt-1 tracking-tight">
                                     {currency(subtotal).format({ symbol: '₱' })}
                                 </span>
