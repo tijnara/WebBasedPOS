@@ -1,3 +1,4 @@
+// src/components/pages/CustomerManagementPage.jsx
 import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../../store/useStore';
 import {
@@ -16,21 +17,38 @@ import {
 } from '../../hooks/useCustomerMutations';
 import { useCustomers } from '../../hooks/useCustomers';
 
-// --- NEW: Simple SVG Icon for Customer (User Circle) ---
-const UserIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="currentColor" className="text-gray-500">
+// --- Icons for UI ---
+const UserIcon = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={className || "w-5 h-5"}>
         <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zM8 11a4 4 0 00-4 4v.5a.5.5 0 00.5.5h11a.5.5 0 00.5-.5V15a4 4 0 00-4-4H8z" clipRule="evenodd" />
     </svg>
 );
 
-// Simple SVG Icon for Edit
+const MailIcon = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={className || "w-5 h-5"}>
+        <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+        <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+    </svg>
+);
+
+const PhoneIcon = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={className || "w-5 h-5"}>
+        <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+    </svg>
+);
+
+const MapPinIcon = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={className || "w-5 h-5"}>
+        <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+    </svg>
+);
+
 const EditIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
         <path d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708l-3-3zm.646 6.061L9.793 2.5 3.293 9H3.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.207l6.5-6.5zm-7.468 7.468A.5.5 0 0 1 6 13.5V13h-.5a.5.5 0 0 1-.5-.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.5-.5V10h-.5a.499.499 0 0 1-.175-.032l-.179.178a.5.5 0 0 0-.11.168l-2 5a.5.5 0 0 0 .65.65l5-2a.5.5 0 0 0 .168-.11l.178-.178z"/>
     </svg>
 );
 
-// Simple SVG Icon for Delete
 const DeleteIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
         <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
@@ -43,7 +61,6 @@ export default function CustomerManagementPage() {
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
-    // Pass page, itemsPerPage, and debouncedSearchTerm to useCustomers
     const { data: customersData = { customers: [], totalPages: 1 }, isLoading } = useCustomers({ page: currentPage, itemsPerPage, searchTerm: debouncedSearchTerm });
     const customers = customersData.customers;
     const totalPages = customersData.totalPages;
@@ -67,10 +84,7 @@ export default function CustomerManagementPage() {
         const handler = setTimeout(() => {
             setDebouncedSearchTerm(searchTerm);
         }, 300);
-
-        return () => {
-            clearTimeout(handler);
-        };
+        return () => clearTimeout(handler);
     }, [searchTerm]);
 
     useEffect(() => {
@@ -157,8 +171,6 @@ export default function CustomerManagementPage() {
 
     return (
         <div className="customer-page">
-
-
             <div>
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                     <div>
@@ -167,7 +179,7 @@ export default function CustomerManagementPage() {
                     </div>
                     <Button onClick={openModal} variant="primary">Add Customer</Button>
                 </div>
-                <br/>
+
                 <div className="mb-4 mt-6">
                     <Input
                         ref={searchInputRef}
@@ -265,8 +277,8 @@ export default function CustomerManagementPage() {
                                     {customers.map(c => (
                                         <div key={c.id} className="p-4 flex items-center space-x-3">
                                             <div className="flex-shrink-0">
-                                                <span className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
-                                                    <UserIcon />
+                                                <span className="w-10 h-10 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center">
+                                                    <UserIcon className="w-6 h-6" />
                                                 </span>
                                             </div>
                                             <div className="flex-1 min-w-0">
@@ -293,18 +305,25 @@ export default function CustomerManagementPage() {
                     <Pagination currentPage={currentPage} totalPages={totalPages || 1} onPageChange={page => setCurrentPage(page)} />
                 </div>
 
-                {/* --- MODAL: Customer Form (Enhanced UI) --- */}
-                <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+                {/* --- MODAL: Customer Form (Updated Fix) --- */}
+                <Dialog
+                    open={isModalOpen}
+                    onOpenChange={setIsModalOpen}
+                    // FIX 1: Add centering class to the Backdrop via the Dialog className
+                    className="flex items-center justify-center"
+                >
                     <DialogContent
-                        className="p-0 overflow-hidden w-full sm:max-w-3xl bg-white shadow-xl border border-gray-100 relative"
-                        style={{ backgroundColor: '#ffffff', zIndex: 50 }}
+                        className="p-0 w-full sm:max-w-xl bg-white shadow-xl border border-gray-100 flex flex-col"
+                        // FIX 2: Limit max height to 85vh to ensure it fits on screen
+                        style={{ backgroundColor: '#ffffff', zIndex: 50, maxHeight: '85vh' }}
                     >
                         <form
                             onSubmit={save}
-                            className="flex flex-col h-full max-h-[100vh] bg-white"
+                            // FIX 3: flex-1 and min-h-0 allows this container to shrink/grow properly within DialogContent
+                            className="flex flex-col flex-1 min-h-0"
                             style={{ backgroundColor: '#ffffff' }}
                         >
-                            {/* Header */}
+                            {/* Header: Fixed Height */}
                             <DialogHeader
                                 className="px-6 py-4 border-b bg-white flex-shrink-0 z-10"
                                 style={{ backgroundColor: '#ffffff' }}
@@ -315,76 +334,102 @@ export default function CustomerManagementPage() {
                                 <DialogCloseButton onClick={closeModal} />
                             </DialogHeader>
 
-                            {/* Scrollable Body */}
+                            {/* Scrollable Body: Overflows correctly now */}
                             <div
-                                className="flex-1 overflow-y-auto px-6 py-6 mb-20 modal-scroll modal-scrollbar bg-white relative"
+                                className="flex-1 overflow-y-auto px-6 py-6"
                                 style={{ backgroundColor: '#ffffff' }}
                             >
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                    {/* Customer Name (Full Width) */}
-                                    <div className="md:col-span-2 space-y-3">
+                                <div className="space-y-5">
+
+                                    {/* Customer Name */}
+                                    <div className="space-y-1.5">
                                         <Label htmlFor="name" className="text-sm font-semibold text-gray-700">
                                             Customer Name <span className="text-red-500">*</span>
                                         </Label>
-                                        <Input
-                                            id="name"
-                                            value={name}
-                                            onChange={(e) => setName(e.target.value)}
-                                            required
-                                            placeholder="Enter full name"
-                                            autoFocus
-                                            className="w-full text-base py-2.5 border-gray-300 h-11"
-                                        />
+                                        <div className="relative">
+                                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                                                <UserIcon className="w-5 h-5" />
+                                            </div>
+                                            <Input
+                                                id="name"
+                                                value={name}
+                                                onChange={(e) => setName(e.target.value)}
+                                                required
+                                                placeholder="Enter full name"
+                                                autoFocus
+                                                className="w-full text-base pl-11 py-2.5 border-gray-300 h-11"
+                                            />
+                                        </div>
                                     </div>
 
-                                    {/* Email */}
-                                    <div className="space-y-3">
-                                        <Label htmlFor="email" className="text-sm font-semibold text-gray-700">
-                                            Email (Optional)
-                                        </Label>
-                                        <Input
-                                            id="email"
-                                            type="email"
-                                            value={email}
-                                            onChange={(e) => setEmail(e.target.value)}
-                                            placeholder="customer@example.com"
-                                            className="w-full text-base py-2.5 border-gray-300 h-11"
-                                        />
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                        {/* Email */}
+                                        <div className="space-y-1.5">
+                                            <Label htmlFor="email" className="text-sm font-semibold text-gray-700">
+                                                Email (Optional)
+                                            </Label>
+                                            <div className="relative">
+                                                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                                                    <MailIcon className="w-5 h-5" />
+                                                </div>
+                                                <Input
+                                                    id="email"
+                                                    type="email"
+                                                    value={email}
+                                                    onChange={(e) => setEmail(e.target.value)}
+                                                    placeholder="example@mail.com"
+                                                    className="w-full text-base pl-11 py-2.5 border-gray-300 h-11"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Phone */}
+                                        <div className="space-y-1.5">
+                                            <Label htmlFor="phone" className="text-sm font-semibold text-gray-700">
+                                                Phone (Optional)
+                                            </Label>
+                                            <div className="relative">
+                                                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                                                    <PhoneIcon className="w-5 h-5" />
+                                                </div>
+                                                <Input
+                                                    id="phone"
+                                                    value={phone}
+                                                    onChange={(e) => setPhone(e.target.value)}
+                                                    placeholder="0917 123 4567"
+                                                    className="w-full text-base pl-11 py-2.5 border-gray-300 h-11"
+                                                />
+                                            </div>
+                                        </div>
                                     </div>
 
-                                    {/* Phone */}
-                                    <div className="space-y-3">
-                                        <Label htmlFor="phone" className="text-sm font-semibold text-gray-700">
-                                            Phone (Optional)
-                                        </Label>
-                                        <Input
-                                            id="phone"
-                                            value={phone}
-                                            onChange={(e) => setPhone(e.target.value)}
-                                            placeholder="e.g., 09171234567"
-                                            className="w-full text-base py-2.5 border-gray-300 h-11"
-                                        />
-                                    </div>
-
-                                    {/* Address (Full Width) */}
-                                    <div className="md:col-span-2 space-y-3">
+                                    {/* Address */}
+                                    <div className="space-y-1.5">
                                         <Label htmlFor="address" className="text-sm font-semibold text-gray-700">
                                             Address (Optional)
                                         </Label>
-                                        <Input
-                                            id="address"
-                                            value={address}
-                                            onChange={(e) => setAddress(e.target.value)}
-                                            placeholder="123 Main St, City"
-                                            className="w-full text-base py-2.5 border-gray-300 h-11"
-                                        />
+                                        <div className="relative">
+                                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                                                <MapPinIcon className="w-5 h-5" />
+                                            </div>
+                                            <Input
+                                                id="address"
+                                                value={address}
+                                                onChange={(e) => setAddress(e.target.value)}
+                                                placeholder="House No., Street, Barangay, City"
+                                                className="w-full text-base pl-11 py-2.5 border-gray-300 h-11"
+                                            />
+                                        </div>
                                     </div>
+
+                                    {/* Spacer for mobile safe area */}
+                                    <div className="h-4 md:hidden"></div>
                                 </div>
                             </div>
 
-                            {/* Footer */}
+                            {/* Footer: Fixed Height, Pinned at Bottom */}
                             <DialogFooter
-                                className="px-6 py-4 border-t bg-gray-50 flex-shrink-0 z-10 absolute bottom-0 left-0 w-full"
+                                className="px-6 py-4 border-t bg-gray-50 flex-shrink-0 z-10"
                                 style={{ backgroundColor: '#f9fafb' }}
                             >
                                 <div className="flex w-full justify-end gap-3">
