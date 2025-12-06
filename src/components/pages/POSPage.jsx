@@ -4,10 +4,8 @@ import { useStore } from '../../store/useStore';
 import { useProducts } from '../../hooks/useProducts';
 import { useCreateSale } from '../../hooks/useCreateSale';
 import { useCreateCustomer } from '../../hooks/useCustomerMutations';
-import { useProductByBarcode } from '../../hooks/useProductByBarcode'; // <-- IMPORT THE NEW HOOK
-import {
-    Button, Input
-} from '../ui';
+import { useProductByBarcode } from '../../hooks/useProductByBarcode';
+import { Button, Input } from '../ui';
 
 import TabBar from '../TabBar';
 import POSCart from '../pos/POSCart';
@@ -28,29 +26,24 @@ export default function POSPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
 
-    // --- DEBOUNCE EFFECT for text-based search ---
+    // --- DEBOUNCE EFFECT ---
     useEffect(() => {
         const handler = setTimeout(() => {
-            // Only set debounced term if it's NOT a barcode-like string
             if (!/^[0-9]{3,}$/.test(searchTerm)) {
                 setDebouncedSearchTerm(searchTerm);
             } else {
-                setDebouncedSearchTerm(''); // Clear text search if it looks like a barcode
+                setDebouncedSearchTerm('');
             }
         }, 300);
         return () => clearTimeout(handler);
     }, [searchTerm]);
 
-    // --- FETCH PAGINATED PRODUCTS FOR DISPLAY (for text search) ---
+    // --- DATA FETCHING ---
     const { data: productsData = { products: [], totalPages: 1 }, isLoading: isLoadingProducts } = useProducts({ searchTerm: debouncedSearchTerm, page: currentPage, itemsPerPage });
     const products = productsData.products || [];
     const totalPages = productsData.totalPages || 1;
 
-    // --- REMOVE `fetchAll` ---
-    // const { data: allProductsData } = useProducts({ fetchAll: true, itemsPerPage: 5000 });
-    // const allProducts = allProductsData?.products || [];
-
-    // --- NEW: DEDICATED BARCODE SCANNER QUERY ---
+    // --- BARCODE SCANNER ---
     const isBarcodeScan = /^[0-9]{3,}$/.test(searchTerm.trim());
     const { data: scannedProduct, isLoading: isScanning } = useProductByBarcode(
         isBarcodeScan ? searchTerm.trim() : null
@@ -66,19 +59,17 @@ export default function POSPage() {
 
     const [selectedCustomer, setSelectedCustomer] = useState(currentCustomer);
     const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
-
     const [customerSearchResults, setCustomerSearchResults] = useState([]);
     const [isSearchingCustomers, setIsSearchingCustomers] = useState(false);
-
-    // --- REFS ---
-    const productSearchInputRef = useRef(null);
-    const customerPaymentInputRef = useRef(null); // <--- ADDED THIS LINE
-
     const [isCustomSaleModalOpen, setIsCustomSaleModalOpen] = useState(false);
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState('Cash');
     const [amountReceived, setAmountReceived] = useState('');
     const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
+
+    // --- REFS ---
+    const productSearchInputRef = useRef(null);
+    const customerPaymentInputRef = useRef(null);
 
     const [lastCustomer, setLastCustomer] = useState(() => {
         try {
@@ -92,7 +83,6 @@ export default function POSPage() {
     const [saleDate, setSaleDate] = useState(() => new Date().toISOString().slice(0, 10));
     const [saleTime, setSaleTime] = useState(() => new Date().toTimeString().slice(0,5));
 
-    // Update local selected customer when global store changes
     useEffect(() => {
         setSelectedCustomer(currentCustomer);
     }, [currentCustomer]);
@@ -116,18 +106,17 @@ export default function POSPage() {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, []);
 
-    // --- REVISED SCANNER LOGIC ---
+    // --- SCANNER EFFECT ---
     useEffect(() => {
-        // This effect runs when the `scannedProduct` data changes from the `useProductByBarcode` hook.
         if (scannedProduct) {
             handleAdd(scannedProduct);
             addToast({ title: 'Scanned', description: `${scannedProduct.name} added.`, variant: 'success' });
-            setSearchTerm(''); // Clear input after successful scan
+            setSearchTerm('');
             productSearchInputRef.current?.focus();
         }
-    }, [scannedProduct]); // Dependency array now only watches the result of the barcode query
+    }, [scannedProduct]);
 
-    // --- CUSTOMER SEARCH LOGIC ---
+    // --- CUSTOMER SEARCH ---
     useEffect(() => {
         if (!(isCustomerModalOpen || isPaymentModalOpen) || !debouncedSearchTerm) {
             setCustomerSearchResults([]);
@@ -144,7 +133,6 @@ export default function POSPage() {
                     .limit(10);
                 if (error) {
                     setCustomerSearchResults([]);
-                    addToast({ title: 'Search Error', description: error.message, variant: 'destructive' });
                     return;
                 }
                 setCustomerSearchResults(data || []);
@@ -156,9 +144,9 @@ export default function POSPage() {
             }
         };
         searchCustomers();
-    }, [debouncedSearchTerm, isCustomerModalOpen, isPaymentModalOpen, addToast]);
+    }, [debouncedSearchTerm, isCustomerModalOpen, isPaymentModalOpen]);
 
-    // --- RECENT PRODUCTS LOGIC ---
+    // --- HANDLERS ---
     const [recentProducts, setRecentProducts] = useState([]);
 
     const handleAdd = (product) => {
@@ -179,11 +167,6 @@ export default function POSPage() {
     const handleIncreaseQuantity = (key) => {
         const item = currentSale[key];
         if (item) {
-            // This part is tricky without all products loaded.
-            // We can make an optimistic update and rely on the database constraints
-            // or fetch the product individually if needed. For now, let's assume stock is sufficient
-            // as the initial `handleAdd` checks it. A more robust solution might involve
-            // storing the `stock` value in the cart item itself.
             addItemToSale({ id: item.productId, name: item.name, price: item.price, cost: item.cost }, 1);
         }
     };
@@ -194,7 +177,6 @@ export default function POSPage() {
     };
 
     const handleRemoveItem = (key) => {
-        // Use store action
         useStore.getState().removeItemFromSale(key);
     };
 
@@ -250,7 +232,7 @@ export default function POSPage() {
             productName: i.name,
             quantity: i.quantity,
             priceAtSale: i.price,
-            cost_at_sale: i.cost || 0, // <-- PROFIT TRACKING
+            cost_at_sale: i.cost || 0,
             subtotal: currency(i.price).multiply(i.quantity).value
         }));
         const received = currency(amountReceived || 0).value;
@@ -292,7 +274,6 @@ export default function POSPage() {
         <div className="pos-page">
             <img src="/seaside.png" alt="Seaside Logo" className="brand-logo-top" width={32} height={32} loading="lazy" />
 
-
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
                 <h1 className="text-2xl sm:text-3xl font-bold text-primary tracking-tight">Point of Sale</h1>
                 <div className="flex items-center gap-2">
@@ -312,9 +293,8 @@ export default function POSPage() {
                 </div>
             </div>
 
-            {/* --- Main Layout: Sticky Cart --- */}
+            {/* --- Main Layout --- */}
             <div className="flex flex-col md:flex-row gap-4 w-full relative items-start">
-                {/* LEFT COLUMN: PRODUCTS - Fills remaining width */}
                 <POSProductGrid
                     isLoading={isLoadingProducts}
                     products={products}
@@ -324,12 +304,7 @@ export default function POSPage() {
                     totalPages={totalPages}
                     setCurrentPage={setCurrentPage}
                 />
-
-                {/* RIGHT COLUMN: CART - Sticky Float */}
-                <div
-                    className="hidden md:flex w-full md:w-1/3 xl:w-1/4 flex-shrink-0 flex-col sticky top-4"
-                    style={{ height: '50vh' }}
-                >
+                <div className="hidden md:flex w-full md:w-1/3 xl:w-1/4 flex-shrink-0 flex-col sticky top-4" style={{ height: '50vh' }}>
                     <POSCart
                         currentSale={currentSale}
                         clearSale={clearSale}
@@ -344,6 +319,7 @@ export default function POSPage() {
                 </div>
             </div>
 
+            {/* --- Shared Responsive Modals --- */}
             <CustomerSelectionModal
                 isOpen={isCustomerModalOpen}
                 setIsOpen={setIsCustomerModalOpen}
@@ -391,7 +367,6 @@ export default function POSPage() {
                 onAddItem={(product, quantity, price) => addItemToSale(product, quantity, price)}
             />
 
-            {/* MobileCartBar only visible when cart drawer and payment modal are both closed */}
             {!(isCartDrawerOpen || isPaymentModalOpen) && (
                 <MobileCartBar
                     itemCount={Object.keys(currentSale).length}
