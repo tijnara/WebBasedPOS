@@ -1,18 +1,13 @@
 // src/components/Navbar.jsx
 import React, { useEffect, useState } from 'react';
-import { Button, cn, Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogCloseButton, Input } from './ui';
+import { Button, Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogCloseButton, Input } from './ui';
 import { useRouter } from 'next/router';
 import { useStore } from '../store/useStore';
 import Image from 'next/image';
 import { supabase } from '../lib/supabaseClient';
 import currency from 'currency.js';
-
-// --- SVG ICONS ---
-const CartIcon = ({ className }) => ( <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={cn("w-6 h-6", className)}><path d="M3 3h2l.4 2M7 13h10l4-8H5.4" /><circle cx="9" cy="20" r="2" /><circle cx="15" cy="20" r="2" /></svg> );
-const PackageIcon = ({ className }) => ( <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={cn("w-6 h-6", className)}><path d="M3 3h18v18H3V3zm2 2v14h14V5H5z" /><path d="M7 7h10v10H7z" /></svg> );
-const UserIcon = ({ className }) => ( <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={cn("w-6 h-6", className)}><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-3.31 0-10 1.67-10 5v3h20v-3c0-3.33-6.69-5-10-5z" /></svg> );
-const ChartIcon = ({ className }) => ( <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={cn("w-6 h-6", className)}><path d="M3 3h18v18H3V3zm2 2v14h14V5H5z" /><path d="M7 7h2v10H7zM11 10h2v7h-2zM15 5h2v12h-2z" /></svg> );
-const UsersIcon = ({ className }) => ( <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={cn("w-6 h-6", className)}><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-3.31 0-10 1.67-10 5v3h20v-3c0-3.33-6.69-5-10-5z" /><circle cx="6" cy="8" r="2" /><circle cx="18" cy="8" r="2" /></svg> );
+// Import icons from your shared component instead of redefining them
+import { CartIcon, PackageIcon, UserIcon, ChartIcon, UsersIcon } from './Icons';
 
 const Navbar = () => {
     const router = useRouter();
@@ -27,7 +22,7 @@ const Navbar = () => {
     const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
     const [actualCash, setActualCash] = useState('');
     const [shiftStats, setShiftStats] = useState({ start: 0, sales: 0, expected: 0 });
-    const [cashShortage, setCashShortage] = useState(null); // New state for shortage warning
+    const [cashShortage, setCashShortage] = useState(null);
 
     // --- Start Shift State ---
     const [isStartShiftModalOpen, setIsStartShiftModalOpen] = useState(false);
@@ -51,23 +46,26 @@ const Navbar = () => {
         }
     }, [user]);
 
-    // --- REMOVED AUTO-LOGOUT TIMER ---
-
     const checkActiveShift = async () => {
         if (!user) return;
-        const { data: shift, error } = await supabase.from('shifts')
-            .select('id')
-            .eq('staff_id', user.id)
-            .eq('status', 'OPEN')
-            .maybeSingle();
+        try {
+            const { data: shift, error } = await supabase.from('shifts')
+                .select('id')
+                .eq('staff_id', user.id)
+                .eq('status', 'OPEN')
+                .maybeSingle();
 
-        if (error && error.code !== 'PGRST116') {
-            console.error("Error checking shift:", error);
-        }
+            if (error && error.code !== 'PGRST116') {
+                console.error("Error checking shift:", error);
+                return;
+            }
 
-        if (!shift) {
-            setStartingCash('');
-            setIsStartShiftModalOpen(true);
+            if (!shift) {
+                setStartingCash('');
+                setIsStartShiftModalOpen(true);
+            }
+        } catch (err) {
+            console.error("Shift check failed:", err);
         }
     };
 
@@ -99,7 +97,7 @@ const Navbar = () => {
         const { data: sales } = await supabase.from('sales')
             .select('totalamount')
             .eq('created_by', user.id)
-            .eq('paymentmethod', 'Cash')
+            .eq('paymentmethod', 'Cash') // Ensure this matches DB casing exactly
             .gte('saletimestamp', shift.start_time);
 
         const totalSales = Array.isArray(sales)
@@ -109,12 +107,11 @@ const Navbar = () => {
         const expected = currency(shift.starting_cash || 0).add(totalSales).value;
 
         setShiftStats({ start: shift.starting_cash || 0, sales: totalSales, expected });
-        setCashShortage(null); // Reset previous shortage warning
-        setActualCash(''); // Clear input
+        setCashShortage(null);
+        setActualCash('');
         setIsShiftModalOpen(true);
     };
 
-    // Logic to check cash on input change
     const handleCashInputChange = (e) => {
         const val = e.target.value;
         setActualCash(val);
@@ -141,8 +138,6 @@ const Navbar = () => {
         logout();
     };
 
-
-
     return (
         <div className="navbar">
             <div className="brand">
@@ -152,7 +147,6 @@ const Navbar = () => {
 
             <nav className="hidden md:flex">
                 {links
-                    // --- ADDED: Filter logic ---
                     .filter(link =>
                         !link.adminOnly ||
                         (clientUser && (clientUser.role === 'Admin' || clientUser.role === 'admin'))
@@ -164,7 +158,7 @@ const Navbar = () => {
                                 {link.icon} <span>{link.name}</span>
                             </Button>
                         );
-                })}
+                    })}
             </nav>
 
             <div className="meta-container">
@@ -256,8 +250,6 @@ const Navbar = () => {
                         <Button
                             variant="primary"
                             onClick={handleConfirmEndShift}
-                            // Disable if no input OR if there is a shortage (strict mode)
-                            // Remove `|| cashShortage !== null` if you want to allow recording shortages.
                             disabled={!actualCash || isNaN(parseFloat(actualCash)) || cashShortage !== null}
                             className={cashShortage !== null ? "opacity-50 cursor-not-allowed" : ""}
                         >
