@@ -10,6 +10,7 @@ import { useStore } from '../store/useStore';
 const links = [
     { name: 'POS', path: '/', icon: <CartIcon className="h-6 w-6" />, adminOnly: false },
     { name: 'Products', path: '/product-management', icon: <PackageIcon className="h-6 w-6" />, adminOnly: false },
+    { name: 'Inventory', path: '/inventory', icon: <PackageIcon className="h-6 w-6" />, adminOnly: false },
     { name: 'Customer', path: '/customer-management', icon: <UserIcon className="h-6 w-6" />, adminOnly: false },
     { name: 'Dashboard', path: '/dashboard', icon: <ChartIcon className="h-6 w-6" />, adminOnly: false },
     { name: 'Sale History', path: '/history', icon: <ChartIcon className="h-6 w-6" />, adminOnly: false },

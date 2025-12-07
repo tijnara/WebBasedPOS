@@ -131,6 +131,12 @@ export default function InventoryPage() {
     const { user, addToast } = useStore();
     const [mode, setMode] = useState('restock'); // 'restock' or 'adjust'
 
+    // --- FIX: Fetch products for Break Bulk feature ---
+    // We use fetchAll: true so we can see all parent/child relationships
+    const { data: productsData, refetch } = useProducts({ fetchAll: true });
+    const products = productsData?.products || [];
+    // --------------------------------------------------
+
     // Fetch product when barcode is entered (you can adapt useProducts logic here)
     const handleSearch = async () => {
         const { data, error } = await supabase
@@ -167,6 +173,7 @@ export default function InventoryPage() {
             setSelectedProduct(null);
             setBarcode('');
             setAddQty('');
+            refetch(); // Refresh local list
         }
     };
 
@@ -194,6 +201,7 @@ export default function InventoryPage() {
             setSelectedProduct(null);
             setBarcode('');
             setMode('restock');
+            refetch(); // Refresh local list
         } else {
             addToast({ title: 'Error', description: moveError?.message || prodError?.message, variant: 'destructive' });
         }
@@ -207,15 +215,18 @@ export default function InventoryPage() {
                 <Button onClick={() => setMode('adjust')} variant={mode === 'adjust' ? 'primary' : 'outline'}>Adjust Stock</Button>
                 <Button onClick={() => setMode('convert')} variant={mode === 'convert' ? 'primary' : 'outline'}>Break Bulk</Button>
             </div>
-            <div className="flex gap-2 mb-4">
-                <Input
-                    placeholder="Scan Barcode"
-                    value={barcode}
-                    onChange={e => setBarcode(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && handleSearch()}
-                />
-                <Button onClick={handleSearch}>Search</Button>
-            </div>
+
+            {mode !== 'convert' && (
+                <div className="flex gap-2 mb-4">
+                    <Input
+                        placeholder="Scan Barcode"
+                        value={barcode}
+                        onChange={e => setBarcode(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && handleSearch()}
+                    />
+                    <Button onClick={handleSearch}>Search</Button>
+                </div>
+            )}
 
             {selectedProduct && mode === 'restock' && (
                 <Card>
