@@ -349,7 +349,8 @@ export default function POSPage() {
                 />
 
                 {/* Desktop Cart Sidebar */}
-                <div className="hidden md:flex w-full md:w-1/3 xl:w-1/4 flex-shrink-0 flex-col sticky top-4" style={{ height: '85vh' }}>
+                {/* CHANGED: height from '85vh' to '42.5vh' to reduce size to half */}
+                <div className="hidden md:flex w-full md:w-1/3 xl:w-1/4 flex-shrink-0 flex-col sticky top-4" style={{ height: '42.5vh' }}>
                     <POSCart
                         currentSale={currentSale}
                         clearSale={clearSale}
