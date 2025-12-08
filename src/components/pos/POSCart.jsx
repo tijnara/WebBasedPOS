@@ -1,10 +1,8 @@
 // src/components/pos/POSCart.jsx
-import React, { useState } from 'react';
+import React from 'react';
 import { Button, Card, CardContent, CardHeader } from '../ui';
 import currency from 'currency.js';
 import { ProductImage } from './ProductImage';
-import { useStore } from '../../store/useStore';
-import EditCartItemModal from './EditCartItemModal'; // --- NEW IMPORT ---
 
 const TrashIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
@@ -29,13 +27,8 @@ const POSCart = ({
                      openPaymentModal,
                      createSaleMutation,
                      lastCustomer,
+                     onEditItem // Receive callback
                  }) => {
-
-    // --- Edit Modal State ---
-    const [editItemKey, setEditItemKey] = useState(null);
-    const { updateCartItem } = useStore();
-
-    const itemToEdit = editItemKey ? currentSale[editItemKey] : null;
 
     return (
         <div className="hidden md:flex w-full h-full flex-shrink-0 flex-col">
@@ -58,7 +51,7 @@ const POSCart = ({
                                     <div
                                         key={key}
                                         className="flex items-center gap-2 py-2 group hover:bg-gray-50 rounded-lg px-1 transition-colors cursor-pointer"
-                                        onClick={() => setEditItemKey(key)} // Open modal on row click
+                                        onClick={() => onEditItem && onEditItem(key)} // Open modal on row click
                                     >
                                         <div className="flex-shrink-0 w-6 h-6 rounded-md flex items-center justify-center overflow-hidden border border-gray-200 bg-white">
                                             <ProductImage
@@ -76,7 +69,7 @@ const POSCart = ({
                                         <div className="flex-1 min-w-0">
                                             <div className="font-medium text-sm truncate text-gray-800">
                                                 {item.name}
-                                                {item.note && <span className="ml-2 text-[10px] text-blue-600 bg-blue-50 px-1 rounded">📝</span>}
+                                                {item.note && <span className="ml-2 text-[10px] text-blue-600 font-bold bg-blue-50 px-1 rounded">📝</span>}
                                             </div>
                                             <div className="text-xs text-muted flex items-center gap-1">
                                                 <span>@ {currency(item.price, { symbol: '₱', precision: 2 }).format()}</span>
@@ -121,7 +114,7 @@ const POSCart = ({
                                             className="p-1 h-auto text-blue-500 hover:bg-blue-50 md:hidden group-hover:inline-flex"
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                setEditItemKey(key);
+                                                onEditItem && onEditItem(key);
                                             }}
                                             title="Edit"
                                         >
@@ -147,7 +140,6 @@ const POSCart = ({
                     )}
                 </CardContent>
 
-                {/* Footer Section */}
                 <div className="p-3 border-t space-y-1 flex-shrink-0 bg-gray-50 rounded-b-xl">
                     <div className="w-full">
                         <div className="flex justify-between mb-1 text-sm">
@@ -167,16 +159,6 @@ const POSCart = ({
             <div className="mt-2 flex justify-start flex-shrink-0">
                 <span className="text-lg text-gray-800 font-semibold">Last Customer: <span className="font-bold">{lastCustomer ? lastCustomer.name : 'none'}</span></span>
             </div>
-
-            {/* --- Edit Item Modal --- */}
-            {editItemKey && (
-                <EditCartItemModal
-                    isOpen={!!editItemKey}
-                    onClose={() => setEditItemKey(null)}
-                    item={itemToEdit}
-                    onSave={(updatedItem) => updateCartItem(editItemKey, updatedItem)}
-                />
-            )}
         </div>
     );
 };

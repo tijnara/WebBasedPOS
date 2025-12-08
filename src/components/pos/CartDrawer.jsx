@@ -1,3 +1,4 @@
+// src/components/pos/CartDrawer.jsx
 import React from 'react';
 import { Button, Dialog, DialogContent } from '../ui';
 import { ProductImage } from './ProductImage';
@@ -9,18 +10,25 @@ const TrashIcon = () => (
     </svg>
 );
 
+const EditIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+    </svg>
+);
+
 const CartDrawer = ({
-    isOpen,
-    onClose,
-    currentSale,
-    subtotal,
-    handleIncreaseQuantity,
-    handleDecreaseQuantity,
-    handleRemoveItem,
-    openPaymentModal,
-    createSaleMutation,
-    clearSale
-}) => {
+                        isOpen,
+                        onClose,
+                        currentSale,
+                        subtotal,
+                        handleIncreaseQuantity,
+                        handleDecreaseQuantity,
+                        handleRemoveItem,
+                        openPaymentModal,
+                        createSaleMutation,
+                        clearSale,
+                        onEditItem // New Prop
+                    }) => {
     const cartItems = Object.entries(currentSale);
 
     return (
@@ -29,7 +37,6 @@ const CartDrawer = ({
                 className="fixed bottom-0 left-0 right-0 w-full max-w-full rounded-t-2xl rounded-b-none p-0 bg-white shadow-[0_-4px_20px_rgba(0,0,0,0.1)] border-t border-gray-100 flex flex-col h-[85vh] md:hidden z-50"
                 style={{ margin: 0, transform: 'none', height: '85vh', maxHeight: '85vh' }}
             >
-                {/* --- HEADER --- */}
                 <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 bg-white rounded-t-2xl flex-shrink-0">
                     <h2 className="text-xl font-bold text-[#7F00FF]">Current Order</h2>
                     <button
@@ -47,7 +54,6 @@ const CartDrawer = ({
                     </button>
                 </div>
 
-                {/* --- BODY LIST --- */}
                 <div className="flex-1 overflow-y-auto p-0 bg-white">
                     {cartItems.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-full text-gray-400 space-y-2">
@@ -57,7 +63,11 @@ const CartDrawer = ({
                     ) : (
                         <div className="divide-y divide-gray-50">
                             {cartItems.map(([key, item]) => (
-                                <div key={key} className="flex items-center justify-between p-4 bg-white">
+                                <div
+                                    key={key}
+                                    className="flex items-center justify-between p-4 bg-white active:bg-gray-50 transition-colors cursor-pointer"
+                                    onClick={() => onEditItem && onEditItem(key)} // Trigger edit on row click
+                                >
                                     {/* Left: Image & Name */}
                                     <div className="flex items-center gap-3 flex-1 min-w-0 mr-2">
                                         <div className="w-10 h-10 flex-shrink-0 rounded-md overflow-hidden">
@@ -69,26 +79,32 @@ const CartDrawer = ({
                                         <div className="flex flex-col min-w-0">
                                             <span className="font-semibold text-gray-900 text-sm truncate leading-tight">
                                                 {item.name}
+                                                {item.note && <span className="ml-1 text-[10px] text-blue-600 font-bold bg-blue-50 px-1 rounded">📝</span>}
                                             </span>
                                             <span className="text-xs text-gray-400 font-medium">
                                                 @ {currency(item.price).format({ symbol: '₱' })}
                                             </span>
+                                            {item.discountType && item.discountType !== 'none' && (
+                                                <span className="text-[10px] text-green-600 font-bold bg-green-50 px-1 rounded inline-block mt-0.5">
+                                                    -{item.discountType === 'percent' ? `${item.discountValue}%` : `₱${item.discountValue}`}
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
 
                                     {/* Right: Controls Row */}
-                                    <div className="flex items-center gap-3 flex-shrink-0">
-                                        {/* Qty Controls: - 1 + */}
-                                        <div className="flex items-center gap-2 text-sm font-medium text-gray-600">
+                                    <div className="flex items-center gap-2 flex-shrink-0">
+                                        {/* Qty Controls */}
+                                        <div className="flex items-center gap-2 text-sm font-medium text-gray-600" onClick={e => e.stopPropagation()}>
                                             <button
-                                                className="w-6 h-6 flex items-center justify-center text-gray-400 hover:text-primary active:scale-90 transition-transform text-lg leading-none pb-1"
+                                                className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-primary active:scale-90 transition-transform text-lg leading-none border border-gray-100 rounded-full"
                                                 onClick={() => handleDecreaseQuantity(key)}
                                             >
                                                 -
                                             </button>
                                             <span className="w-4 text-center text-gray-900 font-bold">{item.quantity}</span>
                                             <button
-                                                className="w-6 h-6 flex items-center justify-center text-gray-400 hover:text-primary active:scale-90 transition-transform text-lg leading-none pb-1"
+                                                className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-primary active:scale-90 transition-transform text-lg leading-none border border-gray-100 rounded-full"
                                                 onClick={() => handleIncreaseQuantity(key)}
                                             >
                                                 +
@@ -96,16 +112,21 @@ const CartDrawer = ({
                                         </div>
 
                                         {/* Item Total */}
-                                        <span className="font-bold text-gray-900 text-sm w-[70px] text-right">
-                                            {currency(item.price * item.quantity).format({ symbol: '₱' })}
-                                        </span>
+                                        <div className="flex flex-col items-end w-[60px]">
+                                            <span className="font-bold text-gray-900 text-sm">
+                                                {currency(item.price * item.quantity).format({ symbol: '₱' })}
+                                            </span>
+                                        </div>
 
-                                        {/* Delete Icon */}
+                                        {/* Edit Button (Visible) */}
                                         <button
-                                            className="text-red-500 hover:text-red-700 p-1 active:scale-95 transition-transform"
-                                            onClick={() => handleRemoveItem(key)}
+                                            className="text-blue-500 hover:text-blue-700 p-1"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onEditItem && onEditItem(key);
+                                            }}
                                         >
-                                            <TrashIcon />
+                                            <EditIcon />
                                         </button>
                                     </div>
                                 </div>
@@ -114,7 +135,6 @@ const CartDrawer = ({
                     )}
                 </div>
 
-                {/* --- FOOTER --- */}
                 <div className="p-5 bg-white border-t border-gray-100 flex-shrink-0 mb-safe">
                     <div className="flex justify-between items-center text-gray-500 text-sm mb-1">
                         <span>Subtotal</span>

@@ -7,7 +7,7 @@ import currency from 'currency.js';
 
 export default function EditCartItemModal({ isOpen, onClose, item, onSave }) {
     const [quantity, setQuantity] = useState(1);
-    const [discountType, setDiscountType] = useState('none'); // 'none', 'fixed', 'percent'
+    const [discountType, setDiscountType] = useState('none');
     const [discountValue, setDiscountValue] = useState(0);
     const [note, setNote] = useState('');
 
@@ -22,18 +22,16 @@ export default function EditCartItemModal({ isOpen, onClose, item, onSave }) {
 
     const basePrice = item ? (item.basePrice !== undefined ? item.basePrice : item.price) : 0;
 
-    // Calculate effective price based on discount
     const calculatedPrice = (() => {
         let price = currency(basePrice);
         if (discountType === 'fixed') {
-            // Assuming fixed discount is per unit amount off
             price = price.subtract(discountValue);
         } else if (discountType === 'percent') {
             const percent = currency(discountValue).divide(100);
             const discountAmount = price.multiply(percent);
             price = price.subtract(discountAmount);
         }
-        return Math.max(0, price.value); // Price cannot be negative
+        return Math.max(0, price.value);
     })();
 
     const handleSave = (e) => {
@@ -43,15 +41,20 @@ export default function EditCartItemModal({ isOpen, onClose, item, onSave }) {
             quantity: parseInt(quantity, 10),
             discountType,
             discountValue: parseFloat(discountValue),
-            price: calculatedPrice, // Update the active price used for totals
-            basePrice: basePrice,   // Ensure base price is preserved
+            price: calculatedPrice,
+            basePrice: basePrice,
             note: note.trim()
         });
         onClose();
     };
 
     return (
-        <Dialog open={isOpen} onOpenChange={onClose}>
+        <Dialog
+            open={isOpen}
+            onOpenChange={onClose}
+            // FIX: Manually set z-index higher than the Mobile Cart Drawer (usually z-50)
+            style={{ zIndex: 200 }}
+        >
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                     <DialogTitle>Edit Item: {item?.name}</DialogTitle>
@@ -72,7 +75,7 @@ export default function EditCartItemModal({ isOpen, onClose, item, onSave }) {
                         />
                     </div>
 
-                    {/* Discount Section */}
+                    {/* Discount */}
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1.5">
                             <Label htmlFor="discount-type">Discount Type</Label>

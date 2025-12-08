@@ -15,6 +15,7 @@ import PaymentModal from '../pos/PaymentModal';
 import CustomSaleModal from '../pos/CustomSaleModal';
 import MobileCartBar from '../pos/MobileCartBar';
 import CartDrawer from '../pos/CartDrawer';
+import EditCartItemModal from '../pos/EditCartItemModal'; // Import the Edit Modal
 import { supabase } from '../../lib/supabaseClient';
 import currency from 'currency.js';
 
@@ -22,15 +23,13 @@ export default function POSPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 20;
 
-    // --- PRODUCT SEARCH STATE ---
+    // --- SEARCH STATE ---
     const [searchTerm, setSearchTerm] = useState('');
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
-
-    // --- CUSTOMER SEARCH STATE ---
     const [customerSearchTerm, setCustomerSearchTerm] = useState('');
     const [debouncedCustomerSearchTerm, setDebouncedCustomerSearchTerm] = useState('');
 
-    // --- PRODUCT DEBOUNCE EFFECT (With Barcode Logic) ---
+    // --- DEBOUNCE EFFECTS ---
     useEffect(() => {
         const handler = setTimeout(() => {
             if (!/^[0-9]{3,}$/.test(searchTerm)) {
@@ -42,7 +41,6 @@ export default function POSPage() {
         return () => clearTimeout(handler);
     }, [searchTerm]);
 
-    // --- CUSTOMER DEBOUNCE EFFECT ---
     useEffect(() => {
         const handler = setTimeout(() => {
             setDebouncedCustomerSearchTerm(customerSearchTerm);
@@ -55,20 +53,18 @@ export default function POSPage() {
     const products = productsData.products || [];
     const totalPages = productsData.totalPages || 1;
 
-    // --- BARCODE SCANNER HOOK ---
     const isBarcodeScan = /^[0-9]{3,}$/.test(searchTerm.trim());
-    const { data: scannedProduct, isLoading: isScanning } = useProductByBarcode(
-        isBarcodeScan ? searchTerm.trim() : null
-    );
+    const { data: scannedProduct } = useProductByBarcode(isBarcodeScan ? searchTerm.trim() : null);
 
     const {
         currentSale, addItemToSale, clearSale, getTotalAmount, addToast,
-        currentCustomer, setCurrentCustomer
+        currentCustomer, setCurrentCustomer, updateCartItem // Get updateCartItem from store
     } = useStore();
 
     const createSaleMutation = useCreateSale();
     const createCustomerMutation = useCreateCustomer();
 
+    // --- MODAL STATES ---
     const [selectedCustomer, setSelectedCustomer] = useState(currentCustomer);
     const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
     const [customerSearchResults, setCustomerSearchResults] = useState([]);
@@ -78,6 +74,9 @@ export default function POSPage() {
     const [paymentMethod, setPaymentMethod] = useState('Cash');
     const [amountReceived, setAmountReceived] = useState('');
     const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
+
+    // --- EDIT ITEM STATE (Lifted Up) ---
+    const [editItemKey, setEditItemKey] = useState(null);
 
     // --- REFS ---
     const productSearchInputRef = useRef(null);
@@ -106,7 +105,7 @@ export default function POSPage() {
 
     const subtotal = getTotalAmount();
 
-    // --- KEYBOARD SHORTCUTS ---
+    // --- SHORTCUTS & SCANNER ---
     useEffect(() => {
         const handleKeyDown = (event) => {
             if (event.key === 'F1') {
@@ -118,7 +117,6 @@ export default function POSPage() {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, []);
 
-    // --- SCANNER EFFECT ---
     useEffect(() => {
         if (scannedProduct) {
             handleAdd(scannedProduct);
@@ -128,14 +126,13 @@ export default function POSPage() {
         }
     }, [scannedProduct]);
 
-    // --- CUSTOMER SEARCH EFFECT ---
+    // --- CUSTOMER SEARCH ---
     useEffect(() => {
         if (!(isCustomerModalOpen || isPaymentModalOpen) || !debouncedCustomerSearchTerm) {
             setCustomerSearchResults([]);
             setIsSearchingCustomers(false);
             return;
         }
-
         const searchCustomers = async () => {
             setIsSearchingCustomers(true);
             try {
@@ -144,16 +141,7 @@ export default function POSPage() {
                     .select('*')
                     .or(`name.ilike.%${debouncedCustomerSearchTerm}%,phone.ilike.%${debouncedCustomerSearchTerm}%`)
                     .limit(10);
-
-                if (error) {
-                    console.error("Error searching customers:", error);
-                    setCustomerSearchResults([]);
-                    return;
-                }
-                setCustomerSearchResults(data || []);
-            } catch (error) {
-                console.error("Failed to search customers:", error);
-                setCustomerSearchResults([]);
+                if (!error) setCustomerSearchResults(data || []);
             } finally {
                 setIsSearchingCustomers(false);
             }
@@ -212,18 +200,12 @@ export default function POSPage() {
     };
 
     const handleAddCustomer = async (newCustomerName) => {
-        if (!newCustomerName || !newCustomerName.trim()) {
-            addToast({ title: 'Error', description: 'Customer name cannot be empty.', variant: 'destructive' });
-            return;
-        }
+        if (!newCustomerName || !newCustomerName.trim()) return;
         try {
             const addedCustomer = await createCustomerMutation.mutateAsync({ name: newCustomerName.trim() });
             handleSelectCustomerFromModal(addedCustomer);
             addToast({ title: 'Customer Added', description: `${addedCustomer.name} added.`, variant: 'success' });
-
-            if(isPaymentModalOpen) {
-                handleSelectCustomerInPayment(addedCustomer);
-            }
+            if(isPaymentModalOpen) handleSelectCustomerInPayment(addedCustomer);
         } catch (error) {
             addToast({ title: 'Error Adding Customer', description: error.message, variant: 'destructive' });
         }
@@ -236,12 +218,9 @@ export default function POSPage() {
         }
         setAmountReceived(subtotal.toFixed(2));
         setPaymentMethod('Cash');
-        const now = new Date();
-        setSaleTime(now.toTimeString().slice(0,5));
-
+        setSaleTime(new Date().toTimeString().slice(0,5));
         setCustomerSearchTerm('');
         setCustomerSearchResults([]);
-
         setIsPaymentModalOpen(true);
     };
 
@@ -253,6 +232,7 @@ export default function POSPage() {
             return;
         }
 
+        // Construct items with new fields (basePrice, note)
         const items = Object.values(currentSale).map(i => ({
             productId: i.productId,
             productName: i.name,
@@ -260,9 +240,8 @@ export default function POSPage() {
             priceAtSale: i.price,
             cost_at_sale: i.cost || 0,
             subtotal: currency(i.price).multiply(i.quantity).value,
-            // --- UPDATED: Pass basePrice and note to useCreateSale ---
-            basePrice: i.basePrice,
-            note: i.note
+            basePrice: i.basePrice, // Critical for discount calculation
+            note: i.note            // Critical for saving note
         }));
 
         const received = currency(amountReceived || 0).value;
@@ -295,11 +274,8 @@ export default function POSPage() {
             localStorage.setItem('lastCustomer', JSON.stringify(selectedCustomer));
             setAmountReceived('');
             setPaymentMethod('Cash');
-
             setSearchTerm('');
             setCustomerSearchTerm('');
-            setCustomerSearchResults([]);
-
             setIsPaymentModalOpen(false);
         } catch (e) {
             addToast({ title: 'Checkout Error', description: e.message, variant: 'destructive' });
@@ -310,7 +286,6 @@ export default function POSPage() {
         <div className="pos-page">
             <img src="/seaside.png" alt="Seaside Logo" className="brand-logo-top" width={32} height={32} loading="lazy" />
 
-            {/* --- Top Bar: Title & Product Search --- */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
                 <h1 className="text-2xl sm:text-3xl font-bold text-primary tracking-tight">Point of Sale</h1>
                 <div className="flex items-center gap-2">
@@ -330,7 +305,6 @@ export default function POSPage() {
                 </div>
             </div>
 
-            {/* --- Main Layout: Product Grid & Cart --- */}
             <div className="flex flex-col md:flex-row gap-4 w-full relative items-start">
                 <POSProductGrid
                     isLoading={isLoadingProducts}
@@ -354,11 +328,13 @@ export default function POSPage() {
                         openPaymentModal={openPaymentModal}
                         createSaleMutation={createSaleMutation}
                         lastCustomer={lastCustomer}
+                        // Pass Edit Handler
+                        onEditItem={(key) => setEditItemKey(key)}
                     />
                 </div>
             </div>
 
-            {/* --- Shared Responsive Modals --- */}
+            {/* --- Modals --- */}
             <CustomerSelectionModal
                 isOpen={isCustomerModalOpen}
                 setIsOpen={setIsCustomerModalOpen}
@@ -406,7 +382,16 @@ export default function POSPage() {
                 onAddItem={(product, quantity, price) => addItemToSale(product, quantity, price)}
             />
 
-            {/* Mobile Bottom Bar (Visible only when cart/payment not open) */}
+            {/* Edit Item Modal (Rendered here so it works on mobile too) */}
+            {editItemKey && (
+                <EditCartItemModal
+                    isOpen={!!editItemKey}
+                    onClose={() => setEditItemKey(null)}
+                    item={currentSale[editItemKey]}
+                    onSave={(updatedItem) => updateCartItem(editItemKey, updatedItem)}
+                />
+            )}
+
             {!(isCartDrawerOpen || isPaymentModalOpen) && (
                 <MobileCartBar
                     itemCount={Object.keys(currentSale).length}
@@ -415,7 +400,6 @@ export default function POSPage() {
                 />
             )}
 
-            {/* Mobile Cart Drawer */}
             <CartDrawer
                 isOpen={isCartDrawerOpen}
                 onClose={() => setIsCartDrawerOpen(false)}
@@ -427,6 +411,8 @@ export default function POSPage() {
                 openPaymentModal={openPaymentModal}
                 createSaleMutation={createSaleMutation}
                 clearSale={clearSale}
+                // Pass Edit Handler to Mobile Drawer
+                onEditItem={(key) => setEditItemKey(key)}
             />
 
             <TabBar />
