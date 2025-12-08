@@ -1,11 +1,12 @@
 // src/components/pages/InventoryPage.jsx
-import React, { useState } from 'react';
-import { useProducts } from '../../hooks/useProducts';
+import React, { useState, useEffect } from 'react'; //
+import { useProducts } from '../../hooks/useProducts'; //
 import { supabase } from '../../lib/supabaseClient';
 import { Button, Input, Card, CardContent, Select } from '../ui';
 import { useStore } from '../../store/useStore';
 import { PackageIcon } from '../Icons';
-import currency from 'currency.js';
+import Pagination from '../Pagination'; // Import Pagination Component
+// ... (Keep existing imports like Adjustment/Restock sub-components)
 
 // --- Icons ---
 const SearchIcon = ({ className }) => (
@@ -297,20 +298,41 @@ function BreakBulk({ products, onSuccess }) {
 
 // --- Main Page Component ---
 export default function InventoryPage() {
+    // --- UPDATED STATE ---
     const [searchTerm, setSearchTerm] = useState('');
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(''); // Added debounce
+    const [currentPage, setCurrentPage] = useState(1); // Added pagination state
+    const itemsPerPage = 10;
+
     const [selectedProduct, setSelectedProduct] = useState(null);
     const { user, addToast } = useStore();
     const [mode, setMode] = useState('restock'); // 'restock', 'adjust', 'convert'
 
-    // Fetch all products
-    const { data: productsData, refetch } = useProducts({ fetchAll: true });
-    const products = productsData?.products || [];
+    // --- DEBOUNCE EFFECT ---
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedSearchTerm(searchTerm);
+            setCurrentPage(1); // Reset page on search
+        }, 300);
+        return () => clearTimeout(handler);
+    }, [searchTerm]);
 
-    // Filter products
-    const filteredProducts = products.filter(p =>
-        p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (p.barcode && p.barcode.includes(searchTerm))
-    );
+    // --- UPDATED QUERY ---
+    // Fetch all ONLY if mode is 'convert' (Break Bulk needs parent links), otherwise use pagination
+    const { data: productsData, refetch, isLoading } = useProducts({
+        searchTerm: debouncedSearchTerm,
+        page: currentPage,
+        itemsPerPage: itemsPerPage,
+        fetchAll: mode === 'convert' // Optimization: Only fetch all for conversion mode
+    });
+
+    const products = productsData?.products || [];
+    const totalPages = productsData?.totalPages || 1;
+
+    // Filter logic is now handled by the hook (server-side) EXCEPT for 'convert' mode
+    // If 'convert' mode, products contains ALL, so filtering is optional/client-side if needed,
+    // but typically BreakBulk view shows specialized cards.
+    // For 'restock'/'adjust' modes, 'products' is already the paginated slice.
 
     const handleRestock = async (qty, expiry) => {
         if (!selectedProduct) return;
@@ -366,7 +388,12 @@ export default function InventoryPage() {
     // Helper for tabs
     const TabButton = ({ id, label, active }) => (
         <button
-            onClick={() => { setMode(id); setSelectedProduct(null); setSearchTerm(''); }}
+            onClick={() => {
+                setMode(id);
+                setSelectedProduct(null);
+                setSearchTerm('');
+                setCurrentPage(1); // Reset page on tab switch
+            }}
             className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap ${
                 active
                     ? 'bg-white text-primary shadow-sm ring-1 ring-black/5 font-semibold'
@@ -397,12 +424,12 @@ export default function InventoryPage() {
 
             {/* CONTENT AREA */}
 
-            {/* 1. BREAK BULK MODE */}
+            {/* 1. BREAK BULK MODE (Uses fetchAll=true) */}
             {mode === 'convert' && (
                 <BreakBulk products={products} onSuccess={refetch} />
             )}
 
-            {/* 2. RESTOCK & ADJUST MODES */}
+            {/* 2. RESTOCK & ADJUST MODES (Paginated) */}
             {mode !== 'convert' && (
                 <>
                     {/* If NO product selected, show List & Search */}
@@ -434,43 +461,9 @@ export default function InventoryPage() {
                                         </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-100">
-                                        {filteredProducts.slice(0, 10).map(product => {
-                                            // Status Logic
-                                            const isLow = product.stock <= product.minStock;
-                                            const isOut = product.stock === 0;
-
-                                            return (
-                                                <tr key={product.id} className="hover:bg-gray-50 transition-colors group">
-                                                    <td className="px-4 py-3 font-medium text-gray-900">
-                                                        {product.name}
-                                                        {product.barcode && <div className="text-[10px] text-gray-400 font-mono">{product.barcode}</div>}
-                                                    </td>
-                                                    <td className="px-4 py-3">
-                                                        {isOut ? (
-                                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700">Out</span>
-                                                        ) : isLow ? (
-                                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700">Low</span>
-                                                        ) : (
-                                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700">OK</span>
-                                                        )}
-                                                    </td>
-                                                    <td className={`px-4 py-3 text-right font-mono font-bold ${isLow ? 'text-red-600' : 'text-gray-700'}`}>
-                                                        {product.stock}
-                                                    </td>
-                                                    <td className="px-4 py-3 text-right">
-                                                        <Button
-                                                            size="sm"
-                                                            variant={mode === 'restock' ? 'primary' : 'outline'}
-                                                            onClick={() => setSelectedProduct(product)}
-                                                            className={`h-8 text-xs px-3 ${mode === 'adjust' ? 'text-red-600 border-red-200 hover:bg-red-50' : 'btn--primary shadow-sm'}`}
-                                                        >
-                                                            {mode === 'restock' ? 'Select' : 'Adjust'}
-                                                        </Button>
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
-                                        {filteredProducts.length === 0 && (
+                                        {isLoading ? (
+                                            <tr><td colSpan="4" className="px-4 py-8 text-center text-muted">Loading inventory...</td></tr>
+                                        ) : products.length === 0 ? (
                                             <tr>
                                                 <td colSpan="4" className="px-4 py-8 text-center text-gray-500">
                                                     <div className="flex flex-col items-center justify-center gap-2">
@@ -479,10 +472,53 @@ export default function InventoryPage() {
                                                     </div>
                                                 </td>
                                             </tr>
+                                        ) : (
+                                            products.map(product => {
+                                                // Status Logic
+                                                const isLow = product.stock <= product.minStock;
+                                                const isOut = product.stock === 0;
+
+                                                return (
+                                                    <tr key={product.id} className="hover:bg-gray-50 transition-colors group">
+                                                        <td className="px-4 py-3 font-medium text-gray-900">
+                                                            {product.name}
+                                                            {product.barcode && <div className="text-[10px] text-gray-400 font-mono">{product.barcode}</div>}
+                                                        </td>
+                                                        <td className="px-4 py-3">
+                                                            {isOut ? (
+                                                                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700">Out</span>
+                                                            ) : isLow ? (
+                                                                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700">Low</span>
+                                                            ) : (
+                                                                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700">OK</span>
+                                                            )}
+                                                        </td>
+                                                        <td className={`px-4 py-3 text-right font-mono font-bold ${isLow ? 'text-red-600' : 'text-gray-700'}`}>
+                                                            {product.stock}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-right">
+                                                            <Button
+                                                                size="sm"
+                                                                variant={mode === 'restock' ? 'primary' : 'outline'}
+                                                                onClick={() => setSelectedProduct(product)}
+                                                                className={`h-8 text-xs px-3 ${mode === 'adjust' ? 'text-red-600 border-red-200 hover:bg-red-50' : 'btn--primary shadow-sm'}`}
+                                                            >
+                                                                {mode === 'restock' ? 'Select' : 'Adjust'}
+                                                            </Button>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })
                                         )}
                                         </tbody>
                                     </table>
                                 </div>
+                                {/* Pagination Controls */}
+                                <Pagination
+                                    currentPage={currentPage}
+                                    totalPages={totalPages}
+                                    onPageChange={page => setCurrentPage(page)}
+                                />
                             </div>
                         </div>
                     )}
