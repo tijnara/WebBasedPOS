@@ -23,20 +23,16 @@ export default function POSPage() {
     const itemsPerPage = 20;
 
     // --- PRODUCT SEARCH STATE ---
-    // This is used ONLY for the main product grid/scanner
     const [searchTerm, setSearchTerm] = useState('');
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
 
     // --- CUSTOMER SEARCH STATE ---
-    // This is a NEW separate state used for Payment & Customer Modals
     const [customerSearchTerm, setCustomerSearchTerm] = useState('');
     const [debouncedCustomerSearchTerm, setDebouncedCustomerSearchTerm] = useState('');
 
     // --- PRODUCT DEBOUNCE EFFECT (With Barcode Logic) ---
     useEffect(() => {
         const handler = setTimeout(() => {
-            // If input is purely numeric (3+ digits), assume it's a barcode scan
-            // and do NOT filter the grid textually (the barcode hook handles it)
             if (!/^[0-9]{3,}$/.test(searchTerm)) {
                 setDebouncedSearchTerm(searchTerm);
             } else {
@@ -46,7 +42,7 @@ export default function POSPage() {
         return () => clearTimeout(handler);
     }, [searchTerm]);
 
-    // --- CUSTOMER DEBOUNCE EFFECT (Standard Text Search) ---
+    // --- CUSTOMER DEBOUNCE EFFECT ---
     useEffect(() => {
         const handler = setTimeout(() => {
             setDebouncedCustomerSearchTerm(customerSearchTerm);
@@ -54,7 +50,7 @@ export default function POSPage() {
         return () => clearTimeout(handler);
     }, [customerSearchTerm]);
 
-    // --- DATA FETCHING (Products) ---
+    // --- DATA FETCHING ---
     const { data: productsData = { products: [], totalPages: 1 }, isLoading: isLoadingProducts } = useProducts({ searchTerm: debouncedSearchTerm, page: currentPage, itemsPerPage });
     const products = productsData.products || [];
     const totalPages = productsData.totalPages || 1;
@@ -132,9 +128,8 @@ export default function POSPage() {
         }
     }, [scannedProduct]);
 
-    // --- CUSTOMER SEARCH EFFECT (Uses separate customer state) ---
+    // --- CUSTOMER SEARCH EFFECT ---
     useEffect(() => {
-        // Only run if a modal is open AND there is text to search
         if (!(isCustomerModalOpen || isPaymentModalOpen) || !debouncedCustomerSearchTerm) {
             setCustomerSearchResults([]);
             setIsSearchingCustomers(false);
@@ -144,7 +139,6 @@ export default function POSPage() {
         const searchCustomers = async () => {
             setIsSearchingCustomers(true);
             try {
-                // FIX: Search by Name OR Phone Number
                 const { data, error } = await supabase
                     .from('customers')
                     .select('*')
@@ -205,13 +199,13 @@ export default function POSPage() {
 
     const handleSelectCustomerFromModal = (customer) => {
         handleSetSelectedCustomer(customer);
-        setCustomerSearchTerm(''); // Clear customer search
+        setCustomerSearchTerm('');
         setIsCustomerModalOpen(false);
     };
 
     const handleSelectCustomerInPayment = (customer) => {
         handleSetSelectedCustomer(customer);
-        setCustomerSearchTerm(''); // Clear customer search
+        setCustomerSearchTerm('');
         setDebouncedCustomerSearchTerm('');
         setCustomerSearchResults([]);
         setIsSearchingCustomers(false);
@@ -224,10 +218,9 @@ export default function POSPage() {
         }
         try {
             const addedCustomer = await createCustomerMutation.mutateAsync({ name: newCustomerName.trim() });
-            handleSelectCustomerFromModal(addedCustomer); // This also closes the selection modal if open
+            handleSelectCustomerFromModal(addedCustomer);
             addToast({ title: 'Customer Added', description: `${addedCustomer.name} added.`, variant: 'success' });
 
-            // If we are in the Payment Modal, update the selection there too
             if(isPaymentModalOpen) {
                 handleSelectCustomerInPayment(addedCustomer);
             }
@@ -246,7 +239,6 @@ export default function POSPage() {
         const now = new Date();
         setSaleTime(now.toTimeString().slice(0,5));
 
-        // Clear previous customer search state when opening
         setCustomerSearchTerm('');
         setCustomerSearchResults([]);
 
@@ -267,7 +259,10 @@ export default function POSPage() {
             quantity: i.quantity,
             priceAtSale: i.price,
             cost_at_sale: i.cost || 0,
-            subtotal: currency(i.price).multiply(i.quantity).value
+            subtotal: currency(i.price).multiply(i.quantity).value,
+            // --- UPDATED: Pass basePrice and note to useCreateSale ---
+            basePrice: i.basePrice,
+            note: i.note
         }));
 
         const received = currency(amountReceived || 0).value;
@@ -301,7 +296,6 @@ export default function POSPage() {
             setAmountReceived('');
             setPaymentMethod('Cash');
 
-            // Clear all search states
             setSearchTerm('');
             setCustomerSearchTerm('');
             setCustomerSearchResults([]);
@@ -349,7 +343,6 @@ export default function POSPage() {
                 />
 
                 {/* Desktop Cart Sidebar */}
-                {/* CHANGED: height from '85vh' to '42.5vh' to reduce size to half */}
                 <div className="hidden md:flex w-full md:w-1/3 xl:w-1/4 flex-shrink-0 flex-col sticky top-4" style={{ height: '42.5vh' }}>
                     <POSCart
                         currentSale={currentSale}
@@ -369,8 +362,8 @@ export default function POSPage() {
             <CustomerSelectionModal
                 isOpen={isCustomerModalOpen}
                 setIsOpen={setIsCustomerModalOpen}
-                searchTerm={customerSearchTerm} // Using separate customer state
-                setSearchTerm={setCustomerSearchTerm} // Using separate customer setter
+                searchTerm={customerSearchTerm}
+                setSearchTerm={setCustomerSearchTerm}
                 selectedCustomer={selectedCustomer}
                 handleSelectCustomerFromModal={handleSelectCustomerFromModal}
                 isSearchingCustomers={isSearchingCustomers}
@@ -383,8 +376,8 @@ export default function POSPage() {
             <PaymentModal
                 isOpen={isPaymentModalOpen}
                 setIsOpen={setIsPaymentModalOpen}
-                searchTerm={customerSearchTerm} // Using separate customer state
-                setSearchTerm={setCustomerSearchTerm} // Using separate customer setter
+                searchTerm={customerSearchTerm}
+                setSearchTerm={setCustomerSearchTerm}
                 selectedCustomer={selectedCustomer}
                 handleSelectCustomerInPayment={handleSelectCustomerInPayment}
                 isSearchingCustomers={isSearchingCustomers}

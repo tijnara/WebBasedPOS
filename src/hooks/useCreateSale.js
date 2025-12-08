@@ -1,37 +1,34 @@
+// src/hooks/useCreateSale.js
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient';
-import { useStore } from '../store/useStore'; // <-- 1. Import useStore
+import { useStore } from '../store/useStore';
+import currency from 'currency.js';
 
 export function useCreateSale() {
     const queryClient = useQueryClient();
-    const user = useStore(s => s.user); // <-- 2. Get the current user from the store
+    const user = useStore(s => s.user);
 
     return useMutation({
-        // 1. The function that performs the API call
         mutationFn: async (salePayload) => {
             console.log('useCreateSale: Starting sale transaction with payload:', salePayload);
 
-            // --- MODIFIED SECTION ---
-            // Step 1: Prepare and insert the main sale data into the 'sales' table
-            // This object contains all the summary fields
+            // 1. Insert Sale Record
             const saleDataToInsert = {
                 saletimestamp: salePayload.saleTimestamp,
                 totalamount: salePayload.totalAmount,
                 customerid: salePayload.customerId,
                 customername: salePayload.customerName,
                 paymentmethod: salePayload.paymentMethod,
-                amountreceived: salePayload.amountReceived, // <-- Renamed this key to all lowercase
+                amountreceived: salePayload.amountReceived,
                 changegiven: salePayload.changeGiven,
                 status: salePayload.status,
-                created_by: user?.id || null, // <-- 3. Add the logged-in user's ID
+                created_by: user?.id || null,
             };
-            // --- END OF MODIFICATION ---
 
-            // Insert into 'sales' and get the new 'id' back
             const { data: saleData, error: saleError } = await supabase
                 .from('sales')
-                .insert(saleDataToInsert) // Insert the main sale data
-                .select('id')             // Get the ID of the new sale
+                .insert(saleDataToInsert)
+                .select('id')
                 .single();
 
             if (saleError) {
@@ -40,48 +37,50 @@ export function useCreateSale() {
             }
 
             const newSaleId = saleData.id;
-            console.log('useCreateSale: Sale entry created with ID:', newSaleId);
 
-            // Step 2: Prepare the 'sale_items' records
-            // This maps over the cart items from the payload
-            const itemsToInsert = salePayload.items.map(item => ({
-                sale_id: newSaleId,             // <--- UPDATED: matches DB 'sale_id'
-                product_id: item.productId,     // <--- UPDATED: matches DB 'product_id'
-                product_name: item.productName, // <--- UPDATED: matches DB 'product_name'
-                quantity: item.quantity,
-                price_at_sale: item.priceAtSale, // <--- UPDATED: matches DB 'price_at_sale'
-                subtotal: item.subtotal,
-                cost_at_sale: item.cost_at_sale || 0 // <--- UPDATED: matches DB 'cost_at_sale'
-            }));
+            // 2. Prepare Items with Notes & Discounts
+            const itemsToInsert = salePayload.items.map(item => {
+                // Calculate discount amount: (BasePrice - SoldPrice) * Qty
+                // If basePrice isn't explicitly set, assume priceAtSale was the base (0 discount)
+                const base = item.basePrice || item.priceAtSale;
+                const unitDiscount = currency(base).subtract(item.priceAtSale).value;
+                const totalLineDiscount = currency(unitDiscount).multiply(item.quantity).value;
 
-            // Check if there are any items to insert
+                return {
+                    sale_id: newSaleId,
+                    product_id: item.productId,
+                    product_name: item.productName,
+                    quantity: item.quantity,
+                    price_at_sale: item.priceAtSale,
+                    subtotal: item.subtotal,
+                    cost_at_sale: item.cost_at_sale || 0,
+                    // --- UPDATED: Map singular 'note' from store to 'notes' DB column ---
+                    notes: item.note || null,
+                    discount_amount: Math.max(0, totalLineDiscount) // Ensure non-negative
+                };
+            });
+
             if (itemsToInsert.length === 0) {
                 console.warn("useCreateSale: Sale created, but no items were included.");
-                return { ...saleData, items: [] }; // Return the main sale data
+                return { ...saleData, items: [] };
             }
 
-            // Step 3: Insert all 'sale_items' in one batch
-            console.log('useCreateSale: Inserting sale items:', itemsToInsert);
             const { error: itemsError } = await supabase
                 .from('sale_items')
-                .insert(itemsToInsert); // Insert the array of items
+                .insert(itemsToInsert);
 
             if (itemsError) {
-                // This is a partial failure. The 'sale' was created, but 'items' failed.
-                // In a real production app, you'd use a database transaction (RPC function)
-                // to roll back the sale if this step fails.
                 console.error('useCreateSale: Error inserting sale items:', itemsError);
                 throw new Error(`Sale created (ID: ${newSaleId}), but failed to save items: ${itemsError.message}`);
             }
 
-            // NEW: Decrement product stock quantities atomically (best-effort) using decrement_stock RPC
-            console.log('Deducting stock...');
+            // 3. Decrement Stock
             for (const item of salePayload.items) {
                 if (item.productId && item.quantity > 0) {
                     const { error: stockError } = await supabase.rpc('decrement_stock', {
                         product_id: item.productId,
                         quantity_sold: item.quantity,
-                        staff_id_input: user?.id || null // <--- YOU MUST ADD THIS LINE
+                        staff_id_input: user?.id || null
                     });
                     if (stockError) {
                         console.error('useCreateSale: Failed to decrement stock for product', item.productId, stockError.message);
@@ -89,23 +88,15 @@ export function useCreateSale() {
                 }
             }
 
-            console.log('useCreateSale: Sale and items created successfully. Stock updated.');
-            // Return the full sale object (ID from saleData, items from itemsToInsert)
             return { ...saleData, items: itemsToInsert };
         },
 
-        // 2. After the mutation succeeds
         onSuccess: (data) => {
-            console.log('useCreateSale: Sale created! Invalidating queries.', data);
-            // Invalidate 'sales' query to update the History page
             queryClient.invalidateQueries({ queryKey: ['sales'] });
-
-            // Invalidate 'products' query to update stock levels (if you implement that logic)
             queryClient.invalidateQueries({ queryKey: ['products'] });
         },
         onError: (error) => {
             console.error('useCreateSale: Mutation failed:', error);
-            // Error toast is handled in POSPage.jsx
         }
     });
 }
