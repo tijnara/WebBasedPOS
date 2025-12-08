@@ -1,12 +1,12 @@
 // src/components/pages/InventoryPage.jsx
-import React, { useState, useEffect } from 'react'; //
-import { useProducts } from '../../hooks/useProducts'; //
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
+import { useProducts } from '../../hooks/useProducts';
 import { supabase } from '../../lib/supabaseClient';
 import { Button, Input, Card, CardContent, Select } from '../ui';
 import { useStore } from '../../store/useStore';
 import { PackageIcon } from '../Icons';
-import Pagination from '../Pagination'; // Import Pagination Component
-// ... (Keep existing imports like Adjustment/Restock sub-components)
+import Pagination from '../Pagination';
 
 // --- Icons ---
 const SearchIcon = ({ className }) => (
@@ -298,6 +298,7 @@ function BreakBulk({ products, onSuccess }) {
 
 // --- Main Page Component ---
 export default function InventoryPage() {
+    const router = useRouter();
     // --- UPDATED STATE ---
     const [searchTerm, setSearchTerm] = useState('');
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(''); // Added debounce
@@ -307,6 +308,38 @@ export default function InventoryPage() {
     const [selectedProduct, setSelectedProduct] = useState(null);
     const { user, addToast } = useStore();
     const [mode, setMode] = useState('restock'); // 'restock', 'adjust', 'convert'
+
+    const { restockProductId } = router.query;
+
+    useEffect(() => {
+        const fetchProductForRestock = async () => {
+            if (!restockProductId) return;
+
+            // Use Supabase directly to fetch specific product since it might not be in the current paginated list
+            const { data, error } = await supabase
+                .from('products')
+                .select('*')
+                .eq('id', restockProductId)
+                .single();
+
+            if (data && !error) {
+                const formattedProduct = {
+                    id: data.id,
+                    name: data.name,
+                    stock: data.stock_quantity,
+                };
+                setSelectedProduct(formattedProduct);
+                setMode('restock');
+
+                // Optional: remove the query param so refresh doesn't trigger it again
+                router.replace('/inventory', undefined, { shallow: true });
+            }
+        };
+
+        if (router.isReady && restockProductId) {
+            fetchProductForRestock();
+        }
+    }, [router.isReady, restockProductId, router]);
 
     // --- DEBOUNCE EFFECT ---
     useEffect(() => {

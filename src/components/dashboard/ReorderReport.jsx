@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
 import { supabase } from '../../lib/supabaseClient';
 import { Card, CardHeader, CardContent } from '../ui';
 
 const ReorderReport = () => {
     const [lowStockProducts, setLowStockProducts] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const router = useRouter();
 
     useEffect(() => {
         const fetchLowStockProducts = async () => {
@@ -35,6 +37,10 @@ const ReorderReport = () => {
         return { label: 'Low Stock', color: 'bg-yellow-100 text-yellow-800 ring-yellow-600/20' };
     };
 
+    const handleRestockClick = (productId) => {
+        router.push(`/inventory?restockProductId=${productId}`);
+    };
+
     if (isLoading) return null; // Or a skeleton loader
     if (lowStockProducts.length === 0) return null; // Don't show if nothing to reorder
 
@@ -61,41 +67,46 @@ const ReorderReport = () => {
                 <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
-                            <tr>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product Name</th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Barcode</th>
-                                <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Stock / Min</th>
-                                <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-                            </tr>
+                        <tr>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product Name</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Barcode</th>
+                            <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Stock / Min</th>
+                            <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                        </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200 bg-white">
-                            {lowStockProducts.map((product) => {
-                                const status = getStockStatus(product.stock_quantity, product.min_stock_level);
-                                return (
-                                    <tr key={product.id} className="hover:bg-gray-50 transition-colors">
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                            {product.name}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
-                                            {product.barcode || '—'}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                        {lowStockProducts.map((product) => {
+                            const status = getStockStatus(product.stock_quantity, product.min_stock_level);
+                            return (
+                                <tr key={product.id} className="hover:bg-gray-50 transition-colors">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                        {product.name}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
+                                        {product.barcode || '—'}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-center">
                                             <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${status.color}`}>
                                                 {status.label}
                                             </span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
-                                            <span className="font-bold text-gray-900">{product.stock_quantity}</span>
-                                            <span className="text-gray-400 mx-1">/</span>
-                                            <span className="text-gray-500">{product.min_stock_level}</span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <button className="text-indigo-600 hover:text-indigo-900">Restock</button>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
+                                        <span className="font-bold text-gray-900">{product.stock_quantity}</span>
+                                        <span className="text-gray-400 mx-1">/</span>
+                                        <span className="text-gray-500">{product.min_stock_level}</span>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <button
+                                            onClick={() => handleRestockClick(product.id)}
+                                            className="text-indigo-600 hover:text-indigo-900"
+                                        >
+                                            Restock
+                                        </button>
+                                    </td>
+                                </tr>
+                            );
+                        })}
                         </tbody>
                     </table>
                 </div>
