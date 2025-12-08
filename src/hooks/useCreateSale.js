@@ -45,12 +45,13 @@ export function useCreateSale() {
             // Step 2: Prepare the 'sale_items' records
             // This maps over the cart items from the payload
             const itemsToInsert = salePayload.items.map(item => ({
-                saleId: newSaleId, // Use the ID from Step 1
-                productId: item.productId,
-                productName: item.productName,
+                sale_id: newSaleId,             // <--- UPDATED: matches DB 'sale_id'
+                product_id: item.productId,     // <--- UPDATED: matches DB 'product_id'
+                product_name: item.productName, // <--- UPDATED: matches DB 'product_name'
                 quantity: item.quantity,
-                priceAtSale: item.priceAtSale,
-                subtotal: item.subtotal
+                price_at_sale: item.priceAtSale, // <--- UPDATED: matches DB 'price_at_sale'
+                subtotal: item.subtotal,
+                cost_at_sale: item.cost_at_sale || 0 // <--- UPDATED: matches DB 'cost_at_sale'
             }));
 
             // Check if there are any items to insert
