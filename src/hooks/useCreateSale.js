@@ -12,16 +12,47 @@ export function useCreateSale() {
         mutationFn: async (salePayload) => {
             console.log('useCreateSale: Starting sale transaction with payload:', salePayload);
 
-            // 1. Insert Sale Record
+            // --- 0. HANDLE DEMO MODE ---
+            if (user?.isDemo) {
+                console.log("Demo Mode detected. Simulating transaction...");
+                await new Promise(resolve => setTimeout(resolve, 800)); // Simulate network delay
+
+                // Return mock success response
+                return {
+                    id: `demo-sale-${Date.now()}`,
+                    ...salePayload,
+                    items: salePayload.items.map(item => ({ ...item, sale_id: `demo-sale-${Date.now()}` }))
+                };
+            }
+
+            // --- 1. HANDLE CREDIT (UTANG) LOGIC ---
+            if (salePayload.paymentMethod === 'Charge') {
+                if (!salePayload.customerId) {
+                    throw new Error("A registered customer is required for 'Charge to Account' transactions.");
+                }
+
+                // Call RPC to increment balance (Positive amount adds to debt)
+                const { error: creditError } = await supabase.rpc('update_customer_credit', {
+                    p_customer_id: salePayload.customerId,
+                    p_amount: salePayload.totalAmount
+                });
+
+                if (creditError) {
+                    console.error('Credit update failed:', creditError);
+                    throw new Error(`Failed to update credit balance: ${creditError.message}`);
+                }
+            }
+
+            // --- 2. Insert Sale Record ---
             const saleDataToInsert = {
                 saletimestamp: salePayload.saleTimestamp,
                 totalamount: salePayload.totalAmount,
                 customerid: salePayload.customerId,
                 customername: salePayload.customerName,
                 paymentmethod: salePayload.paymentMethod,
-                amountreceived: salePayload.amountReceived,
-                changegiven: salePayload.changeGiven,
-                status: salePayload.status,
+                amountreceived: salePayload.paymentMethod === 'Charge' ? 0 : salePayload.amountReceived,
+                changegiven: salePayload.paymentMethod === 'Charge' ? 0 : salePayload.changeGiven,
+                status: salePayload.paymentMethod === 'Charge' ? 'Unpaid' : salePayload.status,
                 created_by: user?.id || null,
             };
 
@@ -38,10 +69,8 @@ export function useCreateSale() {
 
             const newSaleId = saleData.id;
 
-            // 2. Prepare Items with Notes & Discounts
+            // --- 3. Prepare Items with Notes & Discounts ---
             const itemsToInsert = salePayload.items.map(item => {
-                // Calculate discount amount: (BasePrice - SoldPrice) * Qty
-                // If basePrice isn't explicitly set, assume priceAtSale was the base (0 discount)
                 const base = item.basePrice || item.priceAtSale;
                 const unitDiscount = currency(base).subtract(item.priceAtSale).value;
                 const totalLineDiscount = currency(unitDiscount).multiply(item.quantity).value;
@@ -54,9 +83,8 @@ export function useCreateSale() {
                     price_at_sale: item.priceAtSale,
                     subtotal: item.subtotal,
                     cost_at_sale: item.cost_at_sale || 0,
-                    // --- UPDATED: Map singular 'note' from store to 'notes' DB column ---
                     notes: item.note || null,
-                    discount_amount: Math.max(0, totalLineDiscount) // Ensure non-negative
+                    discount_amount: Math.max(0, totalLineDiscount)
                 };
             });
 
@@ -74,7 +102,7 @@ export function useCreateSale() {
                 throw new Error(`Sale created (ID: ${newSaleId}), but failed to save items: ${itemsError.message}`);
             }
 
-            // 3. Decrement Stock
+            // --- 4. Decrement Stock ---
             for (const item of salePayload.items) {
                 if (item.productId && item.quantity > 0) {
                     const { error: stockError } = await supabase.rpc('decrement_stock', {
@@ -94,6 +122,7 @@ export function useCreateSale() {
         onSuccess: (data) => {
             queryClient.invalidateQueries({ queryKey: ['sales'] });
             queryClient.invalidateQueries({ queryKey: ['products'] });
+            queryClient.invalidateQueries({ queryKey: ['customers'] });
         },
         onError: (error) => {
             console.error('useCreateSale: Mutation failed:', error);

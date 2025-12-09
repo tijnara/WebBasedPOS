@@ -83,7 +83,7 @@ const PaymentModal = ({
                                 </div>
                             </div>
 
-                            {/* RESULTS LIST (Static / Inline) - Guaranteed to show if searchTerm exists */}
+                            {/* RESULTS LIST */}
                             {showResults && (
                                 <div className="w-full border rounded-lg border-gray-200 bg-gray-50 flex flex-col animate-in fade-in slide-in-from-top-2 duration-200">
                                     <div className="max-h-60 overflow-y-auto p-1">
@@ -175,12 +175,13 @@ const PaymentModal = ({
                                         <option value="Cash">Cash</option>
                                         <option value="Card">Card</option>
                                         <option value="GCash">GCash</option>
+                                        <option value="Charge">Charge to Account (Utang)</option>
                                         <option value="Other">Other</option>
                                     </Select>
                                 </div>
 
-                                {/* Cash Input Section */}
-                                {paymentMethod === 'Cash' && (
+                                {/* Payment Input Logic */}
+                                {paymentMethod === 'Cash' ? (
                                     <div className="animate-in fade-in slide-in-from-top-2 duration-300">
                                         <Label htmlFor="amountReceived" className="text-sm font-semibold text-gray-700">Cash Received</Label>
                                         <div className="relative mt-1.5">
@@ -219,6 +220,44 @@ const PaymentModal = ({
                                             </span>
                                         </div>
                                     </div>
+                                ) : paymentMethod === 'Charge' ? (
+                                    /* --- CHARGE UI --- */
+                                    <div className="animate-in fade-in slide-in-from-top-2 duration-300 space-y-4">
+                                        <div className="p-4 bg-orange-50 border border-orange-100 rounded-xl">
+                                            <h4 className="text-orange-800 font-bold flex items-center gap-2">
+                                                <span className="text-lg">📝</span> Store Credit (Utang)
+                                            </h4>
+                                            <p className="text-sm text-orange-700 mt-1">
+                                                This amount will be added to the customer's account balance.
+                                            </p>
+                                        </div>
+
+                                        {selectedCustomer ? (
+                                            <div className="p-4 bg-white border border-gray-200 rounded-xl space-y-2">
+                                                <div className="flex justify-between text-sm">
+                                                    <span className="text-gray-500">Current Balance:</span>
+                                                    <span className="font-semibold">{currency(selectedCustomer.credit_balance || 0, { symbol: '₱' }).format()}</span>
+                                                </div>
+                                                <div className="flex justify-between text-sm text-primary font-bold">
+                                                    <span>+ New Charge:</span>
+                                                    <span>{currency(subtotal, { symbol: '₱' }).format()}</span>
+                                                </div>
+                                                <div className="border-t pt-2 mt-2 flex justify-between text-base font-bold text-gray-900">
+                                                    <span>New Balance:</span>
+                                                    <span>{currency((selectedCustomer.credit_balance || 0) + subtotal, { symbol: '₱' }).format()}</span>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm font-medium text-center">
+                                                ⚠ Please select a registered customer to charge.
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    /* --- OTHER METHODS --- */
+                                    <div className="p-6 bg-gray-50 rounded-xl border border-gray-200 text-center text-gray-500">
+                                        Reference / Transaction ID input can go here.
+                                    </div>
                                 )}
 
                                 <div className="grid grid-cols-2 gap-4 pt-2">
@@ -247,7 +286,12 @@ const PaymentModal = ({
                         </Button>
                         <Button
                             onClick={handleFinalizeSale}
-                            disabled={createSaleMutation.isPending || (paymentMethod === 'Cash' && parseFloat(amountReceived || 0) < subtotal) || (paymentMethod === 'Cash' && !amountReceived)}
+                            disabled={
+                                createSaleMutation.isPending ||
+                                (paymentMethod === 'Cash' && parseFloat(amountReceived || 0) < subtotal) ||
+                                (paymentMethod === 'Cash' && !amountReceived) ||
+                                (paymentMethod === 'Charge' && !selectedCustomer)
+                            }
                             variant="primary"
                             className="px-8 h-12 text-base font-bold shadow-md hover:shadow-lg transition-all btn--primary flex-1 sm:flex-none"
                         >

@@ -21,6 +21,7 @@ export function useCreateCustomer() {
                 address: customerPayload.address || null,
                 created_at: customerPayload.created_at || new Date().toISOString(),
                 created_by: currentUserId || null,
+                credit_balance: 0 // Initialize with 0 credit
             };
 
             const { data, error } = await supabase
@@ -77,5 +78,33 @@ export function useDeleteCustomer() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: customersKey });
         },
+    });
+}
+
+// --- NEW: Hook for REPAYING Debt (Utang) ---
+export function useRepayDebt() {
+    const queryClient = useQueryClient();
+    const addToast = useStore(s => s.addToast);
+
+    return useMutation({
+        mutationFn: async ({ customerId, amount }) => {
+            // Call the RPC function to deduct amount (pass negative value to reduce debt)
+            // Ensure you have created the 'update_customer_credit' RPC function in Supabase
+            const { error } = await supabase.rpc('update_customer_credit', {
+                p_customer_id: customerId,
+                p_amount: -Math.abs(amount)
+            });
+
+            if (error) throw error;
+            return { customerId, amount };
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: customersKey });
+            addToast({ title: 'Payment Recorded', description: `Credit balance updated successfully.`, variant: 'success' });
+        },
+        onError: (error) => {
+            console.error(error);
+            addToast({ title: 'Error', description: error.message || 'Failed to record payment.', variant: 'destructive' });
+        }
     });
 }

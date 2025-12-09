@@ -8,14 +8,19 @@ import {
 } from '../ui';
 
 import Pagination from '../Pagination';
+import currency from 'currency.js';
 
 // --- Import Customer Hooks ---
 import {
     useCreateCustomer,
     useUpdateCustomer,
-    useDeleteCustomer
+    useDeleteCustomer,
+    useRepayDebt // Newly imported
 } from '../../hooks/useCustomerMutations';
 import { useCustomers } from '../../hooks/useCustomers';
+
+// Import Repayment Modal
+import RepaymentModal from '../customers/RepaymentModal';
 
 // --- Icons for UI ---
 const UserIcon = ({ className }) => (
@@ -70,8 +75,10 @@ export default function CustomerManagementPage() {
     const createCustomer = useCreateCustomer();
     const updateCustomer = useUpdateCustomer();
     const deleteCustomer = useDeleteCustomer();
+    const repayDebt = useRepayDebt();
 
     const [editing, setEditing] = useState(null);
+    const [repayCustomer, setRepayCustomer] = useState(null);
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [phone, setPhone] = useState('');
@@ -167,6 +174,15 @@ export default function CustomerManagementPage() {
         }
     };
 
+    const handleRepayment = async (id, amount) => {
+        try {
+            await repayDebt.mutateAsync({ customerId: id, amount });
+            setRepayCustomer(null);
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
     const isMutating = createCustomer.isPending || updateCustomer.isPending || deleteCustomer.isPending;
 
     return (
@@ -175,7 +191,7 @@ export default function CustomerManagementPage() {
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                     <div>
                         <h1 className="text-2xl font-semibold">Customer Management</h1>
-                        <p className="text-muted mt-1">Manage your customer records</p>
+                        <p className="text-muted mt-1">Manage your customer records and credit balances</p>
                     </div>
                     <Button onClick={openModal} variant="primary">Add Customer</Button>
                 </div>
@@ -198,17 +214,16 @@ export default function CustomerManagementPage() {
                                 <TableHeader className="sticky top-0 bg-gray-50 z-10">
                                     <TableRow>
                                         <TableHead>Customer Name</TableHead>
-                                        <TableHead>Email</TableHead>
                                         <TableHead>Contact Number</TableHead>
-                                        <TableHead>Date Added</TableHead>
-                                        <TableHead>Staff</TableHead>
+                                        <TableHead>Address</TableHead>
+                                        <TableHead className="text-right">Balance (Utang)</TableHead>
                                         <TableHead className="text-right">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {isLoading ? (
                                         <TableRow>
-                                            <TableCell colSpan={6} className="text-center text-muted py-8">
+                                            <TableCell colSpan={5} className="text-center text-muted py-8">
                                                 <div className="flex justify-center items-center">
                                                     <svg className="animate-spin h-5 w-5 text-primary mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -220,7 +235,7 @@ export default function CustomerManagementPage() {
                                         </TableRow>
                                     ) : customers.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={6} className="text-center text-muted py-8">
+                                            <TableCell colSpan={5} className="text-center text-muted py-8">
                                                 {debouncedSearchTerm ? `No customers found for "${debouncedSearchTerm}".` : 'No customers found.'}
                                             </TableCell>
                                         </TableRow>
@@ -228,22 +243,25 @@ export default function CustomerManagementPage() {
                                         customers.map(c => (
                                             <TableRow key={c.id}>
                                                 <TableCell className="font-medium">{c.name}</TableCell>
-                                                <TableCell>{c.email}</TableCell>
-                                                <TableCell>{c.phone}</TableCell>
-                                                <TableCell>
-                                                    {c.dateAdded instanceof Date && !isNaN(c.dateAdded)
-                                                        ? c.dateAdded.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
-                                                        : 'N/A'}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {c.users?.name
-                                                        ? c.users.name
-                                                        : c.created_by === 99999
-                                                            ? 'Demo User'
-                                                            : 'N/A'}
+                                                <TableCell>{c.phone || 'N/A'}</TableCell>
+                                                <TableCell className="text-sm text-gray-500 truncate max-w-[200px]" title={c.address}>{c.address || 'N/A'}</TableCell>
+                                                <TableCell className="text-right font-semibold">
+                                                    <span className={c.credit_balance > 0 ? "text-red-600" : "text-green-600"}>
+                                                        {currency(c.credit_balance || 0, { symbol: '₱' }).format()}
+                                                    </span>
                                                 </TableCell>
                                                 <TableCell className="text-right">
                                                     <div className="flex justify-end space-x-1">
+                                                        {c.credit_balance > 0 && (
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                className="h-8 text-xs bg-green-50 text-green-700 border-green-200 hover:bg-green-100 mr-2"
+                                                                onClick={() => setRepayCustomer(c)}
+                                                            >
+                                                                Pay
+                                                            </Button>
+                                                        )}
                                                         <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:bg-blue-100" onClick={() => startEdit(c)} title="Edit Customer" disabled={isDemo}>
                                                             <EditIcon />
                                                         </Button>
@@ -275,25 +293,37 @@ export default function CustomerManagementPage() {
                             ) : (
                                 <div className="divide-y divide-gray-100">
                                     {customers.map(c => (
-                                        <div key={c.id} className="p-4 flex items-center space-x-3">
-                                            <div className="flex-shrink-0">
-                                                <span className="w-10 h-10 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center">
-                                                    <UserIcon className="w-6 h-6" />
-                                                </span>
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <div className="font-medium text-gray-900 truncate">{c.name}</div>
-                                                <div className="text-sm text-gray-500 truncate">{c.email || 'No email'}</div>
-                                                <div className="text-xs text-gray-400 truncate">
-                                                    Staff: {c.users?.name || (c.created_by === 99999 ? 'Demo User' : 'N/A')}
+                                        <div key={c.id} className="p-4 flex flex-col space-y-3">
+                                            <div className="flex items-start justify-between">
+                                                <div className="flex items-center space-x-3">
+                                                    <div className="flex-shrink-0">
+                                                        <span className="w-10 h-10 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center">
+                                                            <UserIcon className="w-6 h-6" />
+                                                        </span>
+                                                    </div>
+                                                    <div>
+                                                        <div className="font-medium text-gray-900">{c.name}</div>
+                                                        <div className="text-sm text-gray-500">{c.phone || 'No phone'}</div>
+                                                    </div>
+                                                </div>
+                                                <div className={`font-bold ${c.credit_balance > 0 ? "text-red-600" : "text-green-600"}`}>
+                                                    {currency(c.credit_balance || 0, { symbol: '₱' }).format()}
                                                 </div>
                                             </div>
-                                            <div className="flex-shrink-0 flex items-center space-x-0">
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600" onClick={() => startEdit(c)} title="Edit Customer" disabled={isDemo}>
+
+                                            <div className="flex justify-end space-x-2 pt-2 border-t border-gray-50">
+                                                {c.credit_balance > 0 && (
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="h-8 text-xs bg-green-50 text-green-700 border-green-200"
+                                                        onClick={() => setRepayCustomer(c)}
+                                                    >
+                                                        Repay Debt
+                                                    </Button>
+                                                )}
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 bg-blue-50" onClick={() => startEdit(c)}>
                                                     <EditIcon />
-                                                </Button>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-red-600" onClick={() => remove(c)} title="Delete Customer" disabled={isDemo}>
-                                                    <DeleteIcon />
                                                 </Button>
                                             </div>
                                         </div>
@@ -305,25 +335,21 @@ export default function CustomerManagementPage() {
                     <Pagination currentPage={currentPage} totalPages={totalPages || 1} onPageChange={page => setCurrentPage(page)} />
                 </div>
 
-                {/* --- MODAL: Customer Form (Updated Fix) --- */}
+                {/* --- MODAL: Add/Edit Customer --- */}
                 <Dialog
                     open={isModalOpen}
                     onOpenChange={setIsModalOpen}
-                    // FIX 1: Add centering class to the Backdrop via the Dialog className
                     className="flex items-center justify-center"
                 >
                     <DialogContent
                         className="p-0 w-full sm:max-w-xl bg-white shadow-xl border border-gray-100 flex flex-col"
-                        // FIX 2: Limit max height to 85vh to ensure it fits on screen
                         style={{ backgroundColor: '#ffffff', zIndex: 50, maxHeight: '85vh' }}
                     >
                         <form
                             onSubmit={save}
-                            // FIX 3: flex-1 and min-h-0 allows this container to shrink/grow properly within DialogContent
                             className="flex flex-col flex-1 min-h-0"
                             style={{ backgroundColor: '#ffffff' }}
                         >
-                            {/* Header: Fixed Height */}
                             <DialogHeader
                                 className="px-6 py-4 border-b bg-white flex-shrink-0 z-10"
                                 style={{ backgroundColor: '#ffffff' }}
@@ -334,14 +360,8 @@ export default function CustomerManagementPage() {
                                 <DialogCloseButton onClick={closeModal} />
                             </DialogHeader>
 
-                            {/* Scrollable Body: Overflows correctly now */}
-                            <div
-                                className="flex-1 overflow-y-auto px-6 py-6"
-                                style={{ backgroundColor: '#ffffff' }}
-                            >
+                            <div className="flex-1 overflow-y-auto px-6 py-6" style={{ backgroundColor: '#ffffff' }}>
                                 <div className="space-y-5">
-
-                                    {/* Customer Name */}
                                     <div className="space-y-1.5">
                                         <Label htmlFor="name" className="text-sm font-semibold text-gray-700">
                                             Customer Name <span className="text-red-500">*</span>
@@ -363,11 +383,8 @@ export default function CustomerManagementPage() {
                                     </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                        {/* Email */}
                                         <div className="space-y-1.5">
-                                            <Label htmlFor="email" className="text-sm font-semibold text-gray-700">
-                                                Email (Optional)
-                                            </Label>
+                                            <Label htmlFor="email" className="text-sm font-semibold text-gray-700">Email (Optional)</Label>
                                             <div className="relative">
                                                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
                                                     <MailIcon className="w-5 h-5" />
@@ -383,11 +400,8 @@ export default function CustomerManagementPage() {
                                             </div>
                                         </div>
 
-                                        {/* Phone */}
                                         <div className="space-y-1.5">
-                                            <Label htmlFor="phone" className="text-sm font-semibold text-gray-700">
-                                                Phone (Optional)
-                                            </Label>
+                                            <Label htmlFor="phone" className="text-sm font-semibold text-gray-700">Phone (Optional)</Label>
                                             <div className="relative">
                                                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
                                                     <PhoneIcon className="w-5 h-5" />
@@ -403,11 +417,8 @@ export default function CustomerManagementPage() {
                                         </div>
                                     </div>
 
-                                    {/* Address */}
                                     <div className="space-y-1.5">
-                                        <Label htmlFor="address" className="text-sm font-semibold text-gray-700">
-                                            Address (Optional)
-                                        </Label>
+                                        <Label htmlFor="address" className="text-sm font-semibold text-gray-700">Address (Optional)</Label>
                                         <div className="relative">
                                             <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
                                                 <MapPinIcon className="w-5 h-5" />
@@ -421,21 +432,13 @@ export default function CustomerManagementPage() {
                                             />
                                         </div>
                                     </div>
-
-                                    {/* Spacer for mobile safe area */}
                                     <div className="h-4 md:hidden"></div>
                                 </div>
                             </div>
 
-                            {/* Footer: Fixed Height, Pinned at Bottom */}
-                            <DialogFooter
-                                className="px-6 py-4 border-t bg-gray-50 flex-shrink-0 z-10"
-                                style={{ backgroundColor: '#f9fafb' }}
-                            >
+                            <DialogFooter className="px-6 py-4 border-t bg-gray-50 flex-shrink-0 z-10" style={{ backgroundColor: '#f9fafb' }}>
                                 <div className="flex w-full justify-end gap-3">
-                                    <Button variant="outline" type="button" onClick={closeModal} disabled={isMutating} className="px-6 bg-white border-gray-300">
-                                        Cancel
-                                    </Button>
+                                    <Button variant="outline" type="button" onClick={closeModal} disabled={isMutating} className="px-6 bg-white border-gray-300">Cancel</Button>
                                     <Button type="submit" variant="primary" disabled={isMutating} className="px-6 btn--primary">
                                         {isMutating ? 'Saving...' : (editing ? 'Update Customer' : 'Create Customer')}
                                     </Button>
@@ -444,6 +447,17 @@ export default function CustomerManagementPage() {
                         </form>
                     </DialogContent>
                 </Dialog>
+
+                {/* --- MODAL: Repayment --- */}
+                {repayCustomer && (
+                    <RepaymentModal
+                        isOpen={!!repayCustomer}
+                        onClose={() => setRepayCustomer(null)}
+                        customer={repayCustomer}
+                        onRepay={handleRepayment}
+                        isMutating={repayDebt.isPending}
+                    />
+                )}
             </div>
         </div>
     );
