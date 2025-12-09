@@ -90,8 +90,16 @@ const SaleCard = ({ sale }) => (
                             <span className="font-medium text-gray-800">{item.productName || 'N/A'}</span>
                             <span className="text-gray-500 ml-2">x{item.quantity || 0}</span>
                         </div>
-                        <div className="text-gray-700 whitespace-nowrap">
-                            {formatCurrency(item.productPrice || 0)}
+                        {/* Display Discount in Mobile View if applicable */}
+                        <div className="text-right">
+                            <div className="text-gray-700 whitespace-nowrap">
+                                {formatCurrency(item.productPrice || 0)}
+                            </div>
+                            {item.discount_amount > 0 && (
+                                <div className="text-xs text-green-600">
+                                    -{formatCurrency(item.discount_amount)}
+                                </div>
+                            )}
                         </div>
                     </div>
                 ))}
@@ -268,8 +276,8 @@ const InactiveCustomersTable = ({ inactiveCustomers, isLoading, error }) => (
                         <div className="text-xs text-gray-500 mt-1">{customer.phone || 'No phone'}</div>
                         <div className="text-xs text-gray-600 mt-1">
                             Last Order: {customer.last_order_date
-                                ? format(new Date(customer.last_order_date), 'MMM d, yyyy')
-                                : 'Never'}
+                            ? format(new Date(customer.last_order_date), 'MMM d, yyyy')
+                            : 'Never'}
                         </div>
                     </div>
                 ))
@@ -290,6 +298,8 @@ const SalesReportDisplay = ({ salesList, currentPage, totalPages, onPageChange }
                     <th className="px-4 py-3 text-left font-semibold text-gray-700">Customer</th>
                     <th className="px-4 py-3 text-left font-semibold text-gray-700">Item(s)</th>
                     <th className="px-4 py-3 text-left font-semibold text-gray-700">Price(s)</th>
+                    {/* NEW: Discount Column Header */}
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Discount</th>
                     <th className="px-4 py-3 text-center font-semibold text-gray-700">Qty</th>
                     <th className="px-4 py-3 text-right font-semibold text-gray-700">Total</th>
                     <th className="px-4 py-3 text-left font-semibold text-gray-700">Payment</th>
@@ -300,7 +310,7 @@ const SalesReportDisplay = ({ salesList, currentPage, totalPages, onPageChange }
                 <tbody className="divide-y divide-gray-200">
                 {salesList.length === 0 ? (
                     <tr>
-                        <td colSpan="9" className="text-center p-6 text-gray-500 text-lg">
+                        <td colSpan="10" className="text-center p-6 text-gray-500 text-lg">
                             No sales found for this period.
                         </td>
                     </tr>
@@ -323,6 +333,16 @@ const SalesReportDisplay = ({ salesList, currentPage, totalPages, onPageChange }
                                     {(sale.sale_items || []).map((item, idx) => (
                                         <span key={idx} className="block whitespace-nowrap">
                                             {formatCurrency(item.productPrice || 0)}
+                                        </span>
+                                    ))}
+                                </div>
+                            </td>
+                            {/* NEW: Discount Column Body */}
+                            <td className="px-4 py-3 align-top">
+                                <div className="flex flex-col gap-1">
+                                    {(sale.sale_items || []).map((item, idx) => (
+                                        <span key={idx} className={`block whitespace-nowrap ${item.discount_amount > 0 ? 'text-green-600 font-medium' : 'text-gray-400'}`}>
+                                            {item.discount_amount > 0 ? `-${formatCurrency(item.discount_amount)}` : '—'}
                                         </span>
                                     ))}
                                 </div>
@@ -590,115 +610,115 @@ const ReportPage = () => {
             {/* --- Sales Report Tab --- */}
             {activeTab === 'sales' && (
                 <>
-            {/* --- Controls & Totals Card --- */}
-            <div className={`filter-bar bg-white rounded-lg border p-4 transition-shadow sticky top-0 z-20 ${elevated ? 'shadow-md' : 'shadow-sm'}`}>
-                {/* Top Row: Total Sales & Date Range */}
-                <div className="mb-4 pb-3 border-b flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                    <div>
-                        <div className="text-xs font-medium text-gray-500 mb-1">
-                            Total Sales for Period
-                        </div>
-                        <div className="text-2xl md:text-3xl font-bold text-primary">
-                            {isLoading ? '...' : formatCurrency(totalRevenue)}
-                        </div>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
+                    {/* --- Controls & Totals Card --- */}
+                    <div className={`filter-bar bg-white rounded-lg border p-4 transition-shadow sticky top-0 z-20 ${elevated ? 'shadow-md' : 'shadow-sm'}`}>
+                        {/* Top Row: Total Sales & Date Range */}
+                        <div className="mb-4 pb-3 border-b flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                            <div>
+                                <div className="text-xs font-medium text-gray-500 mb-1">
+                                    Total Sales for Period
+                                </div>
+                                <div className="text-2xl md:text-3xl font-bold text-primary">
+                                    {isLoading ? '...' : formatCurrency(totalRevenue)}
+                                </div>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2">
                         <span className="px-3 py-1 rounded-full text-xs font-medium bg-primary-soft text-primary border border-primary whitespace-nowrap">
                             {activeRangeLabel}
                         </span>
-                        {fromDate && toDate && (
-                            <span className="px-2 py-1 rounded-md bg-primary text-white text-xs font-medium whitespace-nowrap">
+                                {fromDate && toDate && (
+                                    <span className="px-2 py-1 rounded-md bg-primary text-white text-xs font-medium whitespace-nowrap">
                                 Custom Range
                             </span>
-                        )}
-                    </div>
-                </div>
+                                )}
+                            </div>
+                        </div>
 
-                {/* Filters Row */}
-                <div className="flex flex-col md:flex-row md:items-end gap-3 flex-wrap">
-                    {/* Report Type */}
-                    <div className="flex-shrink-0">
-                        <label htmlFor="reportType" className="block text-xs font-medium text-gray-700 mb-1">
-                            Report Type
-                        </label>
-                        <Select
-                            id="reportType"
-                            value={reportType}
-                            onChange={handleReportTypeChange}
-                            className="text-sm"
-                        >
-                            <option value="daily">Daily</option>
-                            <option value="weekly">Weekly</option>
-                            <option value="monthly">Monthly</option>
-                        </Select>
-                    </div>
+                        {/* Filters Row */}
+                        <div className="flex flex-col md:flex-row md:items-end gap-3 flex-wrap">
+                            {/* Report Type */}
+                            <div className="flex-shrink-0">
+                                <label htmlFor="reportType" className="block text-xs font-medium text-gray-700 mb-1">
+                                    Report Type
+                                </label>
+                                <Select
+                                    id="reportType"
+                                    value={reportType}
+                                    onChange={handleReportTypeChange}
+                                    className="text-sm"
+                                >
+                                    <option value="daily">Daily</option>
+                                    <option value="weekly">Weekly</option>
+                                    <option value="monthly">Monthly</option>
+                                </Select>
+                            </div>
 
-                    {/* Date Picker */}
-                    <div className="relative flex-shrink-0" ref={popoverRef}>
-                        <label htmlFor="datePicker" className="block text-xs font-medium text-gray-700 mb-1">
-                            Select Date
-                        </label>
-                        <Button
-                            id="datePicker"
-                            onClick={() => setIsCalendarOpen(!isCalendarOpen)}
-                            className="px-3 py-2 text-sm flex items-center gap-2 rounded-md btn--primary hover:opacity-90"
-                        >
-                            <CalendarIcon />
-                            <span>{getSelectedDateDisplay()}</span>
-                        </Button>
-                        {isCalendarOpen && (
-                            <div className="absolute top-full mt-2 z-30 bg-white border rounded-lg shadow-lg left-0">
-                                <DayPicker
-                                    mode="single"
-                                    selected={selectedDate}
-                                    onSelect={handleDateSelect}
+                            {/* Date Picker */}
+                            <div className="relative flex-shrink-0" ref={popoverRef}>
+                                <label htmlFor="datePicker" className="block text-xs font-medium text-gray-700 mb-1">
+                                    Select Date
+                                </label>
+                                <Button
+                                    id="datePicker"
+                                    onClick={() => setIsCalendarOpen(!isCalendarOpen)}
+                                    className="px-3 py-2 text-sm flex items-center gap-2 rounded-md btn--primary hover:opacity-90"
+                                >
+                                    <CalendarIcon />
+                                    <span>{getSelectedDateDisplay()}</span>
+                                </Button>
+                                {isCalendarOpen && (
+                                    <div className="absolute top-full mt-2 z-30 bg-white border rounded-lg shadow-lg left-0">
+                                        <DayPicker
+                                            mode="single"
+                                            selected={selectedDate}
+                                            onSelect={handleDateSelect}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Date From */}
+                            <div className="flex-shrink-0">
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Date From</label>
+                                <Input
+                                    type="date"
+                                    className="text-sm"
+                                    value={fromDate ? new Date(fromDate).toISOString().slice(0,10) : ''}
+                                    onChange={handleFromDateChange}
                                 />
                             </div>
-                        )}
-                    </div>
 
-                    {/* Date From */}
-                    <div className="flex-shrink-0">
-                        <label className="block text-xs font-medium text-gray-700 mb-1">Date From</label>
-                        <Input
-                            type="date"
-                            className="text-sm"
-                            value={fromDate ? new Date(fromDate).toISOString().slice(0,10) : ''}
-                            onChange={handleFromDateChange}
-                        />
-                    </div>
+                            {/* Date To */}
+                            <div className="flex-shrink-0">
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Date To</label>
+                                <Input
+                                    type="date"
+                                    className="text-sm"
+                                    value={toDate ? new Date(toDate).toISOString().slice(0,10) : ''}
+                                    onChange={handleToDateChange}
+                                />
+                            </div>
 
-                    {/* Date To */}
-                    <div className="flex-shrink-0">
-                        <label className="block text-xs font-medium text-gray-700 mb-1">Date To</label>
-                        <Input
-                            type="date"
-                            className="text-sm"
-                            value={toDate ? new Date(toDate).toISOString().slice(0,10) : ''}
-                            onChange={handleToDateChange}
-                        />
+                            {/* Clear Range Button */}
+                            {(fromDate || toDate) && (
+                                <Button
+                                    onClick={handleClearRange}
+                                    disabled={!fromDate && !toDate}
+                                    className="px-3 py-2 text-sm rounded-md btn--outline disabled:opacity-50"
+                                    title="Clear custom date range"
+                                >
+                                    Clear Range
+                                </Button>
+                            )}
+                        </div>
                     </div>
-
-                    {/* Clear Range Button */}
-                    {(fromDate || toDate) && (
-                        <Button
-                            onClick={handleClearRange}
-                            disabled={!fromDate && !toDate}
-                            className="px-3 py-2 text-sm rounded-md btn--outline disabled:opacity-50"
-                            title="Clear custom date range"
-                        >
-                            Clear Range
-                        </Button>
-                    )}
-                </div>
-            </div>
-            {/* --- Report Title --- */}
-            <div className="px-1">
-                <h2 className="text-lg font-semibold leading-tight">{reportTitle}</h2>
-                <span className="text-sm text-gray-500">
+                    {/* --- Report Title --- */}
+                    <div className="px-1">
+                        <h2 className="text-lg font-semibold leading-tight">{reportTitle}</h2>
+                        <span className="text-sm text-gray-500">
                     {totalSalesCount} sales found
                 </span>
-            </div>
+                    </div>
                     {/* --- Loading / Error / Report Display --- */}
                     {isLoading && <div className="text-sm text-gray-500 p-4 text-center">Loading sales data...</div>}
                     {error && (
