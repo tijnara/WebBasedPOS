@@ -253,10 +253,22 @@ export default function ProductManagementPage() {
         if (!confirm(`Delete ${p.name}?`)) return;
         try {
             await deleteProduct.mutateAsync(p.id);
-            addToast({ title: 'Deleted', description: `${p.name} deleted` });
+            addToast({ title: 'Deleted', description: `${p.name} deleted`, variant: 'success' });
         } catch (e) {
             console.error(e);
-            addToast({ title: 'Error', description: e.message });
+
+            // --- MODIFIED ERROR HANDLING START ---
+            if (e.code === '23503') {
+                // Foreign key violation error code from PostgreSQL
+                addToast({
+                    title: 'Cannot Delete Product',
+                    description: 'This product is currently in use (e.g., as a Parent Product for other items or in sales history) and cannot be deleted.',
+                    variant: 'destructive'
+                });
+            } else {
+                addToast({ title: 'Error', description: e.message || 'Failed to delete product', variant: 'destructive' });
+            }
+            // --- MODIFIED ERROR HANDLING END ---
         }
     };
 
