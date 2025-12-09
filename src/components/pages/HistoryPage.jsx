@@ -1,3 +1,4 @@
+// src/components/pages/HistoryPage.jsx
 import React, { useState, useRef, useEffect } from 'react';
 import { useSales } from '../../hooks/useSales';
 import { useDebounce } from '../../hooks/useDebounce.js';
@@ -43,13 +44,16 @@ const StatusBadge = ({ status }) => {
         case 'Cancelled':
             className += 'bg-red-100 text-red-800';
             break;
+        case 'Unpaid':
+            className += 'bg-orange-100 text-orange-800';
+            break;
         default:
             className += 'bg-gray-100 text-gray-800';
     }
     return <span className={className}>{status}</span>;
 };
 
-// --- Sale Details Modal (Fixed UI) ---
+// --- Sale Details Modal ---
 const SaleDetailsModal = ({ sale, isOpen, onClose }) => {
     if (!sale) return null;
 
@@ -61,51 +65,24 @@ const SaleDetailsModal = ({ sale, isOpen, onClose }) => {
         <Dialog open={isOpen} onOpenChange={onClose} className="items-start">
             <DialogContent
                 className="p-0 w-full max-w-md bg-white rounded-lg shadow-2xl border border-gray-200 flex flex-col mt-16"
-                style={{
-                    backgroundColor: 'white',
-                    maxHeight: '85vh',
-                    height: 'auto',
-                }}
+                style={{ backgroundColor: 'white', maxHeight: '85vh', height: 'auto' }}
             >
-                {/* Inner Wrapper to guarantee opacity on all layers */}
-                <div className="flex flex-col h-full w-full bg-white" style={{ backgroundColor: 'white' }}>
-
-                    {/* Header - Fixed */}
-                    <DialogHeader
-                        className="px-6 py-4 border-b bg-white flex-shrink-0 flex justify-between items-center z-10"
-                        style={{ backgroundColor: 'white' }}
-                    >
+                <div className="flex flex-col h-full w-full bg-white">
+                    <DialogHeader className="px-6 py-4 border-b bg-white flex-shrink-0 flex justify-between items-center z-10">
                         <DialogTitle className="text-lg font-bold text-gray-900">Transaction Details</DialogTitle>
                         <DialogCloseButton onClick={onClose} />
                     </DialogHeader>
 
-                    {/* Scrollable Body - Flexible */}
-                    <div
-                        className="flex-1 overflow-y-auto p-6 bg-white relative z-0"
-                        style={{
-                            backgroundColor: 'white', // Ensure body is opaque
-                            minHeight: '200px' // Prevent collapse
-                        }}
-                    >
-                        {/* Content Container - Solid Background */}
-                        <div className="bg-white" style={{ backgroundColor: 'white' }}>
-
-                            {/* Branding - Centered */}
+                    <div className="flex-1 overflow-y-auto p-6 bg-white relative z-0" style={{ minHeight: '200px' }}>
+                        <div className="bg-white">
                             <div className="flex flex-col items-center text-center mb-6">
-                                {/* FIX: Constrained logo container size */}
                                 <div className="relative h-20 w-20 mb-3" style={{ height: '80px', width: '80px' }}>
-                                    <img
-                                        src="/seaside.png"
-                                        alt="Seaside Logo"
-                                        className="object-contain w-full h-full"
-                                        style={{ objectFit: 'contain' }}
-                                    />
+                                    <img src="/seaside.png" alt="Seaside Logo" className="object-contain w-full h-full" />
                                 </div>
                                 <h3 className="font-bold text-xl text-primary leading-tight">Seaside Water Refilling</h3>
                                 <p className="text-xs text-gray-500 mt-1">Loois, Labrador Pangasinan</p>
                             </div>
 
-                            {/* Details Table */}
                             <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 space-y-3 text-sm mb-6">
                                 <div className="flex justify-between">
                                     <span className="text-gray-500">Date</span>
@@ -120,7 +97,7 @@ const SaleDetailsModal = ({ sale, isOpen, onClose }) => {
                                     <span className="font-semibold text-gray-900 text-right">{sale.createdBy || 'N/A'}</span>
                                 </div>
                                 <div className="flex justify-between">
-                                    <span className="text-gray-500">Payment</span>
+                                    <span className="text-gray-500">Payment Method</span>
                                     <span className="font-semibold text-gray-900 text-right">{sale.paymentMethod}</span>
                                 </div>
                                 <div className="flex justify-between items-center">
@@ -129,7 +106,6 @@ const SaleDetailsModal = ({ sale, isOpen, onClose }) => {
                                 </div>
                             </div>
 
-                            {/* Items List */}
                             <div>
                                 <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 border-b border-dashed border-gray-300 pb-2">
                                     Items Purchased
@@ -139,19 +115,20 @@ const SaleDetailsModal = ({ sale, isOpen, onClose }) => {
                                         <div key={idx} className="flex justify-between items-start text-sm">
                                             <div className="flex-1 pr-2">
                                                 <div className="font-medium text-gray-800">{item.productName}</div>
-                                                <div className="text-xs text-gray-500">{item.quantity} x {formatCurrency(item.productPrice)}</div>
+                                                <div className="text-xs text-gray-500">
+                                                    {item.quantity} x <span className="font-semibold">{formatCurrency(item.price_at_sale)}</span>
+                                                    {item.discount_amount > 0 && <span className="ml-1 text-green-600">(Discounted)</span>}
+                                                </div>
                                             </div>
                                             <div className="font-semibold text-gray-900">
-                                                {formatCurrency(item.productPrice * item.quantity)}
+                                                {formatCurrency((item.price_at_sale || 0) * item.quantity)}
                                             </div>
                                         </div>
                                     ))}
                                 </div>
                             </div>
 
-                            {/* Totals Section - Opaque Background */}
-                            <div className="mt-6 pt-4 border-t-2 border-dashed border-gray-200 bg-white" style={{ backgroundColor: 'white' }}>
-                                {/* Use standard tailwind bg color instead of custom variable to ensure opacity */}
+                            <div className="mt-6 pt-4 border-t-2 border-dashed border-gray-200 bg-white">
                                 <div className="flex justify-between items-end bg-purple-50 p-4 rounded-lg border border-purple-100">
                                     <div>
                                         <p className="text-xs text-purple-600 font-semibold uppercase tracking-wide">Total Amount</p>
@@ -162,19 +139,15 @@ const SaleDetailsModal = ({ sale, isOpen, onClose }) => {
                                 </div>
                                 {sale.paymentMethod === 'Cash' && (
                                     <div className="mt-3 flex justify-between text-xs text-gray-500 px-2">
-                                        <span>Cash Received: {formatCurrency(sale.amountReceived || sale.totalAmount)}</span>
-                                        <span>Change: {formatCurrency((sale.amountReceived || sale.totalAmount) - sale.totalAmount)}</span>
+                                        <span>Cash Received: {formatCurrency(sale.amountReceived || 0)}</span>
+                                        <span>Change: {formatCurrency(sale.changegiven || 0)}</span>
                                     </div>
                                 )}
                             </div>
                         </div>
                     </div>
 
-                    {/* Footer - Fixed */}
-                    <DialogFooter
-                        className="px-6 py-4 border-t bg-gray-50 flex-shrink-0 z-10"
-                        style={{ backgroundColor: '#f9fafb' }}
-                    >
+                    <DialogFooter className="px-6 py-4 border-t bg-gray-50 flex-shrink-0 z-10">
                         <div className="flex w-full gap-3">
                             <Button variant="outline" onClick={handlePrintReceipt} className="flex-1 border-gray-300 text-gray-700 bg-white">
                                 <ReceiptIcon /> <span className="ml-2">Print</span>
@@ -223,10 +196,9 @@ export default function HistoryPage() {
 
     const closeModal = () => {
         setIsModalOpen(false);
-        setTimeout(() => setSelectedSale(null), 300); // Delay for animation
+        setTimeout(() => setSelectedSale(null), 300);
     };
 
-    // Sort sales by date descending
     const sortedSales = sales.sort((a, b) => new Date(b.saleTimestamp) - new Date(a.saleTimestamp));
 
     return (
@@ -251,7 +223,7 @@ export default function HistoryPage() {
                     />
                 </div>
 
-                {/* --- DESKTOP TABLE (Hidden on mobile) --- */}
+                {/* --- DESKTOP TABLE --- */}
                 <Card className="mb-4 hidden md:block">
                     <CardContent className="p-0">
                         <ScrollArea className="max-h-[calc(100vh-280px)]">
@@ -263,41 +235,95 @@ export default function HistoryPage() {
                                         <TableHead>Staff</TableHead>
                                         <TableHead>Status</TableHead>
                                         <TableHead>Payment</TableHead>
+
+                                        {/* REORDERED: Quantity, then Unit Price, then Total */}
+                                        <TableHead className="w-[100px] text-center">Quantity</TableHead>
+                                        <TableHead className="w-[150px]">Unit Price (Sold)</TableHead>
                                         <TableHead>Total</TableHead>
+
                                         <TableHead className="text-right">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {isLoading ? (
                                         <TableRow>
-                                            <TableCell colSpan={7} className="text-center text-muted py-8">Loading sales...</TableCell>
+                                            <TableCell colSpan={9} className="text-center text-muted py-8">Loading sales...</TableCell>
                                         </TableRow>
                                     ) : sortedSales.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={7} className="text-center text-muted py-8">No sales found.</TableCell>
+                                            <TableCell colSpan={9} className="text-center text-muted py-8">No sales found.</TableCell>
                                         </TableRow>
                                     ) : (
-                                        sortedSales.map(s => (
-                                            <TableRow key={s.id}>
-                                                <TableCell className="font-medium">{formatDate(s.saleTimestamp)}</TableCell>
-                                                <TableCell>{s.customerName}</TableCell>
-                                                <TableCell>{s.createdBy || 'N/A'}</TableCell>
-                                                <TableCell><StatusBadge status={s.status} /></TableCell>
-                                                <TableCell>{s.paymentMethod}</TableCell>
-                                                <TableCell>{formatCurrency(s.totalAmount)}</TableCell>
-                                                <TableCell className="text-right">
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:bg-blue-100" onClick={() => openModal(s)} title="View Details">
-                                                        <ViewIcon />
-                                                    </Button>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))
+                                        sortedSales.map(s => {
+                                            // Pre-calculate items to display
+                                            const items = s.sale_items || [];
+                                            const displayItems = items.slice(0, 2); // Show max 2
+                                            const remainingCount = items.length - 2;
+
+                                            return (
+                                                <TableRow key={s.id}>
+                                                    <TableCell className="font-medium text-xs whitespace-nowrap">{formatDate(s.saleTimestamp)}</TableCell>
+                                                    <TableCell>{s.customerName}</TableCell>
+                                                    <TableCell>{s.createdBy || 'N/A'}</TableCell>
+                                                    <TableCell><StatusBadge status={s.status} /></TableCell>
+                                                    <TableCell>{s.paymentMethod}</TableCell>
+
+                                                    {/* NEW ORDER: Quantity */}
+                                                    <TableCell>
+                                                        <div className="flex flex-col space-y-1 items-center">
+                                                            {displayItems.map((item, idx) => (
+                                                                <div key={idx} className="text-xs pb-1 border-b border-dashed border-gray-100 last:border-0 last:pb-0">
+                                                                    <span className="font-medium text-gray-700 bg-gray-50 px-2 py-0.5 rounded">
+                                                                        {item.quantity}
+                                                                    </span>
+                                                                </div>
+                                                            ))}
+                                                            {/* Spacer to align with Unit Price column 'more' text if needed */}
+                                                            {remainingCount > 0 && <div className="h-[15px]"></div>}
+                                                        </div>
+                                                    </TableCell>
+
+                                                    {/* NEW ORDER: Unit Price */}
+                                                    <TableCell>
+                                                        <div className="flex flex-col space-y-1">
+                                                            {displayItems.map((item, idx) => (
+                                                                <div key={idx} className="text-xs pb-1 border-b border-dashed border-gray-100 last:border-0 last:pb-0">
+                                                                    <span className="font-medium text-gray-700 bg-gray-50 px-2 py-0.5 rounded">
+                                                                        {formatCurrency(item.price_at_sale)}
+                                                                    </span>
+                                                                </div>
+                                                            ))}
+
+                                                            {/* Show "More" badge if there are extra items */}
+                                                            {remainingCount > 0 && (
+                                                                <div
+                                                                    className="text-[10px] text-blue-500 font-medium cursor-pointer hover:underline mt-1"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        openModal(s);
+                                                                    }}
+                                                                >
+                                                                    +{remainingCount} more...
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </TableCell>
+
+                                                    {/* NEW ORDER: Total */}
+                                                    <TableCell className="font-bold">{formatCurrency(s.totalAmount)}</TableCell>
+
+                                                    <TableCell className="text-right">
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:bg-blue-100" onClick={() => openModal(s)} title="View Details">
+                                                            <ViewIcon />
+                                                        </Button>
+                                                    </TableCell>
+                                                </TableRow>
+                                            );
+                                        })
                                     )}
                                 </TableBody>
                             </Table>
                         </ScrollArea>
-
-                        {/* Pagination Controls */}
                         <Pagination currentPage={currentPage} totalPages={totalPages || 1} onPageChange={page => setCurrentPage(page)} />
                     </CardContent>
                 </Card>
@@ -314,14 +340,11 @@ export default function HistoryPage() {
                                 <div className="divide-y divide-gray-100">
                                     {sortedSales.map(s => (
                                         <div key={s.id} className="p-4 flex items-center space-x-3 active:bg-gray-50 transition-colors" onClick={() => openModal(s)}>
-                                            {/* Icon */}
                                             <div className="flex-shrink-0">
                                                 <span className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
                                                     <ReceiptIcon className="text-gray-500" />
                                                 </span>
                                             </div>
-
-                                            {/* Sale Info */}
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex justify-between items-center">
                                                     <span className="font-medium text-gray-900 truncate">{s.customerName}</span>
@@ -337,8 +360,6 @@ export default function HistoryPage() {
                                                     <StatusBadge status={s.status} />
                                                 </div>
                                             </div>
-
-                                            {/* Action Button */}
                                             <div className="flex-shrink-0">
                                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600">
                                                     <ViewIcon />
@@ -350,12 +371,9 @@ export default function HistoryPage() {
                             )}
                         </CardContent>
                     </Card>
-
-                    {/* Pagination Controls for mobile */}
                     <Pagination currentPage={currentPage} totalPages={totalPages || 1} onPageChange={page => setCurrentPage(page)} />
                 </div>
 
-                {/* --- Sale Details Modal --- */}
                 <SaleDetailsModal
                     sale={selectedSale}
                     isOpen={isModalOpen}
