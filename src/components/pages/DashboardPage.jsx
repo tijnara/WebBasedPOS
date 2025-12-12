@@ -1,3 +1,4 @@
+// src/components/pages/DashboardPage.jsx
 import React, { useMemo, useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { Card, CardHeader, CardContent, Button } from '../ui';
@@ -60,6 +61,21 @@ export default function DashboardPage() {
     const { data: salesByDateData = [] } = useSalesByDateSummary();
     const { data: newCustomersByDateData = [] } = useNewCustomersByDateSummary();
     const { data: topProductsData = [] } = useTopProductsSummary(); // For Top Items Graph
+
+    // --- Date Ranges for Today ---
+    const { todayStart, todayEnd } = useMemo(() => {
+        const start = new Date();
+        start.setHours(0, 0, 0, 0);
+        const end = new Date();
+        end.setHours(23, 59, 59, 999);
+        return { todayStart: start, todayEnd: end };
+    }, []);
+
+    // Fetch Today's Sales using the summary hook with specific dates
+    const { data: todaySalesSummary } = useSalesSummary({
+        startDate: todayStart,
+        endDate: todayEnd
+    });
 
     // 2. Calculate Weekly Metrics
     const { thisWeekSales, newCustomersThisWeek } = useMemo(() => {
@@ -182,8 +198,14 @@ export default function DashboardPage() {
             {/* SUMMARY CARDS - Updated with Revenue and Total Customers */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
                 <SummaryCard
+                    title="Today's Sales"
+                    value={currency(todaySalesSummary?.totalRevenue || 0, { symbol: '₱' }).format()}
+                    subtext={todayStart.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                    colorClass="text-purple-600"
+                    icon={<span className="text-xl">📅</span>}
+                />
+                <SummaryCard
                     title="Total Revenue"
-                    // FIX: Changed salesSummary?.totalSales to salesSummary?.totalRevenue
                     value={currency(salesSummary?.totalRevenue || 0, { symbol: '₱' }).format()}
                     subtext="All time"
                     colorClass="text-blue-600"
@@ -276,7 +298,7 @@ export default function DashboardPage() {
             <Card className="shadow-sm border-none mt-8">
 
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                                        <h3 className="font-semibold text-lg text-gray-700">Recent Inactive Customers</h3>
+                    <h3 className="font-semibold text-lg text-gray-700">Recent Inactive Customers</h3>
                 </CardHeader>
                 <CardContent>
                     {inactiveCustomersLoading ? (
