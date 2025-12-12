@@ -75,7 +75,9 @@ export default function ProductManagementPage() {
     const { data: productsData = { products: [], totalPages: 1 }, isLoading } = useProducts({ page: currentPage, itemsPerPage, searchTerm: debouncedSearchTerm, category: categoryFilter });
     const products = productsData.products;
     const totalPages = productsData.totalPages;
-    const addToast = useStore(s => s.addToast);
+    //const addToast = useStore(s => s.addToast);
+    const { addToast, user } = useStore(s => ({ addToast: s.addToast, user: s.user }));
+    const isAdmin = user?.role === 'Admin' || user?.role === 'admin';
 
     const createProduct = useCreateProduct();
     const updateProduct = useUpdateProduct();
@@ -569,7 +571,14 @@ export default function ProductManagementPage() {
                                     <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg border border-gray-100">
                                         <div className="space-y-1.5">
                                             <Label htmlFor="stock">Current Stock</Label>
-                                            <Input id="stock" type="number" value={stock} onChange={e => setStock(e.target.value)} className="h-11 bg-white" />
+                                            <Input
+                                                id="stock"
+                                                type="number"
+                                                value={stock}
+                                                onChange={e => setStock(e.target.value)}
+                                                className="h-11 bg-white"
+                                                disabled={editing && !isAdmin}
+                                            />
                                         </div>
                                         <div className="space-y-1.5">
                                             <Label htmlFor="minStock">Low Stock Alert</Label>
