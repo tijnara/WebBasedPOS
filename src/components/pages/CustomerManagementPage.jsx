@@ -216,6 +216,8 @@ export default function CustomerManagementPage() {
                                         <TableHead>Customer Name</TableHead>
                                         <TableHead>Contact Number</TableHead>
                                         <TableHead>Address</TableHead>
+                                        {/* ADDED: Date Added Column */}
+                                        <TableHead>Date Added</TableHead>
                                         {/* FIX: Centered Header for Balance */}
                                         <TableHead className="text-center">Balance (Utang)</TableHead>
                                         {/* FIX: Centered Header for Actions */}
@@ -225,7 +227,7 @@ export default function CustomerManagementPage() {
                                 <TableBody>
                                     {isLoading ? (
                                         <TableRow>
-                                            <TableCell colSpan={5} className="text-center text-muted py-8">
+                                            <TableCell colSpan={6} className="text-center text-muted py-8">
                                                 <div className="flex justify-center items-center">
                                                     <svg className="animate-spin h-5 w-5 text-primary mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -237,7 +239,7 @@ export default function CustomerManagementPage() {
                                         </TableRow>
                                     ) : customers.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={5} className="text-center text-muted py-8">
+                                            <TableCell colSpan={6} className="text-center text-muted py-8">
                                                 {debouncedSearchTerm ? `No customers found for "${debouncedSearchTerm}".` : 'No customers found.'}
                                             </TableCell>
                                         </TableRow>
@@ -247,6 +249,10 @@ export default function CustomerManagementPage() {
                                                 <TableCell className="font-medium">{c.name}</TableCell>
                                                 <TableCell>{c.phone || 'N/A'}</TableCell>
                                                 <TableCell className="text-sm text-gray-500 truncate max-w-[200px]" title={c.address}>{c.address || 'N/A'}</TableCell>
+                                                {/* ADDED: Display Date Added */}
+                                                <TableCell className="text-sm text-gray-500">
+                                                    {c.dateAdded ? new Date(c.dateAdded).toLocaleDateString() : '-'}
+                                                </TableCell>
                                                 {/* FIX: Centered Cell for Balance */}
                                                 <TableCell className="text-center font-semibold">
                                                     <span className={c.credit_balance > 0 ? "text-red-600" : "text-green-600"}>
