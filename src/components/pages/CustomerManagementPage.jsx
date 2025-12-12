@@ -216,8 +216,10 @@ export default function CustomerManagementPage() {
                                         <TableHead>Customer Name</TableHead>
                                         <TableHead>Contact Number</TableHead>
                                         <TableHead>Address</TableHead>
-                                        <TableHead className="text-right">Balance (Utang)</TableHead>
-                                        <TableHead className="text-right">Actions</TableHead>
+                                        {/* FIX: Centered Header for Balance */}
+                                        <TableHead className="text-center">Balance (Utang)</TableHead>
+                                        {/* FIX: Centered Header for Actions */}
+                                        <TableHead className="text-center">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -245,13 +247,15 @@ export default function CustomerManagementPage() {
                                                 <TableCell className="font-medium">{c.name}</TableCell>
                                                 <TableCell>{c.phone || 'N/A'}</TableCell>
                                                 <TableCell className="text-sm text-gray-500 truncate max-w-[200px]" title={c.address}>{c.address || 'N/A'}</TableCell>
-                                                <TableCell className="text-right font-semibold">
+                                                {/* FIX: Centered Cell for Balance */}
+                                                <TableCell className="text-center font-semibold">
                                                     <span className={c.credit_balance > 0 ? "text-red-600" : "text-green-600"}>
                                                         {currency(c.credit_balance || 0, { symbol: '₱' }).format()}
                                                     </span>
                                                 </TableCell>
-                                                <TableCell className="text-right">
-                                                    <div className="flex justify-end space-x-1">
+                                                {/* FIX: Centered Cell and Flex container for Actions */}
+                                                <TableCell className="text-center">
+                                                    <div className="flex justify-center space-x-1">
                                                         {c.credit_balance > 0 && (
                                                             <Button
                                                                 variant="outline"
