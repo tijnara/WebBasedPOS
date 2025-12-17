@@ -14,7 +14,6 @@ import {
     DialogFooter
 } from '../ui';
 
-// ... (LoadingSpinner, EyeIcon, EyeOffIcon, UserIcon components remain the same) ...
 // Simple SVG Icon for loading
 const LoadingSpinner = () => (
     <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -89,21 +88,37 @@ const LoginPage = () => {
         }
     };
 
-    const handleDemoLogin = (e) => {
+    // --- DEMO ADMIN ---
+    const handleDemoAdminLogin = (e) => {
         e.preventDefault();
-        // 1. Create a mock demo user object
-        const demoUser = {
-            id: 99999, // Use a number (bigint) instead of string to match the users table ID type
-            name: 'Demo User',
-            email: 'demo@seaside.com',
+        const demoAdmin = {
+            id: 99999, // Unique ID for admin
+            name: 'Demo Admin',
+            email: 'demo.admin@seaside.com',
             phone: '09123456789',
             dateadded: new Date().toISOString(),
-            isDemo: true // <-- This is the crucial flag
+            role: 'Admin', // Admin Access
+            isDemo: true
         };
-        // 2. Use setAuth to store this user in state & sessionStorage
-        setAuth(demoUser);
-        // 3. Show a toast and redirect
-        addToast({ title: 'Demo Mode Activated', description: `Welcome, ${demoUser.name}!`, variant: 'success' });
+        setAuth(demoAdmin);
+        addToast({ title: 'Demo Admin Activated', description: `Welcome, ${demoAdmin.name}!`, variant: 'success' });
+        router.push('/dashboard');
+    };
+
+    // --- DEMO STAFF ---
+    const handleDemoStaffLogin = (e) => {
+        e.preventDefault();
+        const demoStaff = {
+            id: 88888, // Unique ID for staff
+            name: 'Demo Staff',
+            email: 'demo.staff@seaside.com',
+            phone: '09987654321',
+            dateadded: new Date().toISOString(),
+            role: 'Staff', // Restricted Access
+            isDemo: true
+        };
+        setAuth(demoStaff);
+        addToast({ title: 'Demo Staff Activated', description: `Welcome, ${demoStaff.name}!`, variant: 'success' });
         router.push('/dashboard');
     };
 
@@ -226,16 +241,26 @@ const LoginPage = () => {
                             </div>
                         </div>
 
-                        <div>
+                        <div className="space-y-3">
                             <Button
                                 type="button"
                                 variant="outline"
                                 className="w-full justify-center gap-2 py-3 rounded-xl shadow-sm hover:bg-gray-50"
-                                onClick={handleDemoLogin}
+                                onClick={handleDemoAdminLogin}
                                 disabled={isLoading}
                             >
                                 <UserIcon />
-                                Log in as Demo User
+                                Log in as Demo Admin
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="w-full justify-center gap-2 py-3 rounded-xl shadow-sm hover:bg-gray-50"
+                                onClick={handleDemoStaffLogin}
+                                disabled={isLoading}
+                            >
+                                <UserIcon />
+                                Log in as Demo Staff
                             </Button>
                         </div>
                     </div>
