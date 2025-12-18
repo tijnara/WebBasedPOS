@@ -4,11 +4,11 @@ import { ProductImage } from './ProductImage';
 import currency from 'currency.js';
 
 const POSProductGrid = ({
-    isLoading,
-    products = [],
-    recentProducts = [],
-    handleAdd,
-}) => {
+                            isLoading,
+                            products = [],
+                            recentProducts = [],
+                            handleAdd,
+                        }) => {
     return (
         <div className="w-full md:w-2/3 flex-1 pr-2">
             {isLoading ? (
@@ -19,23 +19,23 @@ const POSProductGrid = ({
                 </div>
             ) : (
                 <>
-                    {/* Recent Products */}
+                    {/* Recent Products - Slightly more compact */}
                     {recentProducts.length > 0 && (
                         <div className="mb-4">
-                            <h2 className="text-base font-semibold text-primary mb-2">Recently Used</h2>
-                            <div className="flex gap-2 overflow-x-auto pb-2">
+                            <h2 className="text-sm font-semibold text-primary mb-2">Recently Used</h2>
+                            <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
                                 {recentProducts.map(p => (
                                     <button
                                         key={`recent-${p.id}`}
-                                        className="product-card p-2 border rounded-xl shadow bg-white flex flex-col items-center hover:border-primary transition-all duration-150 flex-shrink-0"
+                                        className="product-card p-1.5 border rounded-lg shadow-sm bg-white flex flex-col items-center hover:border-primary transition-all duration-150 flex-shrink-0"
                                         onClick={() => handleAdd(p)}
-                                        style={{ width: '100px' }}
+                                        style={{ width: '85px' }}
                                     >
-                                        <div className="h-10 w-10 mb-1 flex items-center justify-center overflow-hidden rounded-lg bg-gray-50">
-                                            <ProductImage product={p} />
+                                        <div className="h-8 w-8 mb-1 flex items-center justify-center overflow-hidden rounded-md bg-gray-50">
+                                            <ProductImage product={p} style={{ width: '100%', height: '100%' }} />
                                         </div>
-                                        <div className="font-medium text-xs text-gray-800 truncate w-full">{p.name}</div>
-                                        <div className="text-xs text-primary font-bold">
+                                        <div className="font-medium text-[10px] text-gray-800 truncate w-full">{p.name}</div>
+                                        <div className="text-[10px] text-primary font-bold">
                                             {currency(p.price).format({ symbol: '₱' })}
                                         </div>
                                     </button>
@@ -44,60 +44,60 @@ const POSProductGrid = ({
                         </div>
                     )}
 
-                    {/* Desktop Grid (Hidden on Mobile) */}
-                    <div className="hidden md:grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                    {/* Desktop Grid - Increased columns and reduced card size */}
+                    <div className="hidden md:grid grid-cols-4 sm:grid-cols-5 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3">
                         {products.map((p) => (
                             <button
                                 key={p.id}
-                                className="product-card p-4 text-center border rounded-xl shadow-md hover:border-primary hover:shadow-lg transition-all duration-150 bg-white flex flex-col items-center relative"
+                                className="product-card p-2 text-center border rounded-lg shadow-sm hover:border-primary hover:shadow-md transition-all duration-150 bg-white flex flex-col items-center relative"
                                 onClick={() => handleAdd(p)}
                                 disabled={p.stock <= 0}
                                 style={{ opacity: p.stock <= 0 ? 0.5 : 1 }}
                             >
                                 {p.stock !== null && (
-                                <div className={`absolute top-2 right-2 text-[10px] font-bold px-2 py-1 rounded-full ${
-                                    p.stock <= 0 ? 'bg-red-100 text-red-600' :
-                                        p.stock <= p.minStock ? 'bg-yellow-100 text-yellow-600' :
-                                            'bg-green-100 text-green-600'
-                                }`}>
-                                    {p.stock}
-                                </div>
+                                    <div className={`absolute top-1 right-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
+                                        p.stock <= 0 ? 'bg-red-100 text-red-600' :
+                                            p.stock <= p.minStock ? 'bg-yellow-100 text-yellow-600' :
+                                                'bg-green-100 text-green-600'
+                                    }`}>
+                                        {p.stock}
+                                    </div>
                                 )}
-                                <div className="product-card-image h-20 w-full mb-2 flex items-center justify-center overflow-hidden rounded-lg bg-gray-50 p-1">
-                                    <ProductImage product={p} />
+                                <div className="product-card-image h-14 w-full mb-1.5 flex items-center justify-center overflow-hidden rounded-md bg-gray-50 p-0.5">
+                                    <ProductImage product={p} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                                 </div>
-                                <div className="font-semibold text-sm leading-tight mb-1 line-clamp-2 text-gray-800 w-full">{p.name}</div>
-                                <div className="text-xs text-primary font-bold">
+                                <div className="font-semibold text-[11px] leading-tight mb-0.5 line-clamp-2 text-gray-800 w-full min-h-[22px]">{p.name}</div>
+                                <div className="text-[11px] text-primary font-bold">
                                     {currency(p.price).format({ symbol: '₱' })}
                                 </div>
                             </button>
                         ))}
                     </div>
 
-                    {/* Mobile Grid (Visible only on Mobile) */}
+                    {/* Mobile Grid - 3 columns and more compact cards */}
                     <div className="block md:hidden">
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-3 gap-2">
                             {products.map((p) => (
                                 <button
                                     key={`mobile-${p.id}`}
-                                    className="product-card p-3 border rounded-lg shadow-sm bg-white flex flex-col items-center active:scale-95 transition-transform"
+                                    className="product-card p-2 border rounded-lg shadow-sm bg-white flex flex-col items-center active:scale-95 transition-transform"
                                     onClick={() => handleAdd(p)}
                                     disabled={p.stock <= 0}
                                     style={{ opacity: p.stock <= 0 ? 0.6 : 1 }}
                                 >
-                                    <div className="h-16 w-full mb-2 flex items-center justify-center overflow-hidden rounded bg-gray-50">
-                                        <ProductImage product={p} />
+                                    <div className="h-12 w-full mb-1.5 flex items-center justify-center overflow-hidden rounded bg-gray-50">
+                                        <ProductImage product={p} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                                     </div>
-                                    <div className="font-medium text-xs text-gray-900 line-clamp-2 w-full text-center h-8 leading-4">{p.name}</div>
-                                    <div className="mt-1 text-sm text-primary font-bold">
+                                    <div className="font-medium text-[10px] text-gray-900 line-clamp-2 w-full text-center h-6 leading-3">{p.name}</div>
+                                    <div className="mt-0.5 text-[10px] text-primary font-bold">
                                         {currency(p.price).format({ symbol: '₱' })}
                                     </div>
                                     {p.stock !== null && (
-                                    <div className={`mt-1 text-[10px] px-2 rounded-full ${
-                                        p.stock <= 5 ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'
-                                    }`}>
-                                        {p.stock} left
-                                    </div>
+                                        <div className={`mt-1 text-[9px] px-1.5 rounded-full ${
+                                            p.stock <= 5 ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'
+                                        }`}>
+                                            {p.stock}
+                                        </div>
                                     )}
                                 </button>
                             ))}

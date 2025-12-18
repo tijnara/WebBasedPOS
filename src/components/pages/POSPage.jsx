@@ -15,7 +15,7 @@ import PaymentModal from '../pos/PaymentModal';
 import CustomSaleModal from '../pos/CustomSaleModal';
 import MobileCartBar from '../pos/MobileCartBar';
 import CartDrawer from '../pos/CartDrawer';
-import EditCartItemModal from '../pos/EditCartItemModal'; // Import the Edit Modal
+import EditCartItemModal from '../pos/EditCartItemModal';
 import { supabase } from '../../lib/supabaseClient';
 import currency from 'currency.js';
 
@@ -23,11 +23,31 @@ export default function POSPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 20;
 
+    // --- CATEGORY STATE ---
+    const [categoryFilter, setCategoryFilter] = useState('All');
+    const [availableCategories, setAvailableCategories] = useState(['All']);
+
     // --- SEARCH STATE ---
     const [searchTerm, setSearchTerm] = useState('');
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
     const [customerSearchTerm, setCustomerSearchTerm] = useState('');
     const [debouncedCustomerSearchTerm, setDebouncedCustomerSearchTerm] = useState('');
+
+    // --- FETCH UNIQUE CATEGORIES FROM DB ---
+    useEffect(() => {
+        const fetchCategories = async () => {
+            const { data, error } = await supabase
+                .from('products')
+                .select('category')
+                .not('category', 'is', null);
+
+            if (!error && data) {
+                const uniqueCats = Array.from(new Set(data.map(item => item.category || 'General')));
+                setAvailableCategories(['All', ...uniqueCats.sort()]);
+            }
+        };
+        fetchCategories();
+    }, []);
 
     // --- DEBOUNCE EFFECTS ---
     useEffect(() => {
@@ -48,8 +68,13 @@ export default function POSPage() {
         return () => clearTimeout(handler);
     }, [customerSearchTerm]);
 
-    // --- DATA FETCHING ---
-    const { data: productsData = { products: [], totalPages: 1 }, isLoading: isLoadingProducts } = useProducts({ searchTerm: debouncedSearchTerm, page: currentPage, itemsPerPage });
+    // --- DATA FETCHING (Pass Category Filter) ---
+    const { data: productsData = { products: [], totalPages: 1 }, isLoading: isLoadingProducts } = useProducts({
+        searchTerm: debouncedSearchTerm,
+        category: categoryFilter,
+        page: currentPage,
+        itemsPerPage
+    });
     const products = productsData.products || [];
     const totalPages = productsData.totalPages || 1;
 
@@ -58,7 +83,7 @@ export default function POSPage() {
 
     const {
         currentSale, addItemToSale, clearSale, getTotalAmount, addToast,
-        currentCustomer, setCurrentCustomer, updateCartItem // Get updateCartItem from store
+        currentCustomer, setCurrentCustomer, updateCartItem
     } = useStore();
 
     const createSaleMutation = useCreateSale();
@@ -74,8 +99,6 @@ export default function POSPage() {
     const [paymentMethod, setPaymentMethod] = useState('Cash');
     const [amountReceived, setAmountReceived] = useState('');
     const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
-
-    // --- EDIT ITEM STATE (Lifted Up) ---
     const [editItemKey, setEditItemKey] = useState(null);
 
     // --- REFS ---
@@ -232,7 +255,6 @@ export default function POSPage() {
             return;
         }
 
-        // Construct items with new fields (basePrice, note)
         const items = Object.values(currentSale).map(i => ({
             productId: i.productId,
             productName: i.name,
@@ -240,8 +262,8 @@ export default function POSPage() {
             priceAtSale: i.price,
             cost_at_sale: i.cost || 0,
             subtotal: currency(i.price).multiply(i.quantity).value,
-            basePrice: i.basePrice, // Critical for discount calculation
-            note: i.note            // Critical for saving note
+            basePrice: i.basePrice,
+            note: i.note
         }));
 
         const received = currency(amountReceived || 0).value;
@@ -305,6 +327,28 @@ export default function POSPage() {
                 </div>
             </div>
 
+            {/* --- CATEGORY BAR UI --- */}
+            <div className="category-bar-container mb-6 overflow-x-auto no-scrollbar">
+                <div className="flex gap-2 pb-2">
+                    {availableCategories.map((cat) => (
+                        <button
+                            key={cat}
+                            onClick={() => {
+                                setCategoryFilter(cat);
+                                setCurrentPage(1);
+                            }}
+                            className={`px-6 py-2.5 rounded-xl font-semibold transition-all whitespace-nowrap border-2 ${
+                                categoryFilter === cat
+                                    ? 'bg-primary border-primary text-white shadow-md'
+                                    : 'bg-white border-gray-200 text-gray-600 hover:border-primary/50'
+                            }`}
+                        >
+                            {cat}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
             <div className="flex flex-col md:flex-row gap-4 w-full relative items-start">
                 <POSProductGrid
                     isLoading={isLoadingProducts}
@@ -316,7 +360,6 @@ export default function POSPage() {
                     setCurrentPage={setCurrentPage}
                 />
 
-                {/* Desktop Cart Sidebar */}
                 <div className="hidden md:flex w-full md:w-1/3 xl:w-1/4 flex-shrink-0 flex-col sticky top-4" style={{ height: '42.5vh' }}>
                     <POSCart
                         currentSale={currentSale}
@@ -328,13 +371,11 @@ export default function POSPage() {
                         openPaymentModal={openPaymentModal}
                         createSaleMutation={createSaleMutation}
                         lastCustomer={lastCustomer}
-                        // Pass Edit Handler
                         onEditItem={(key) => setEditItemKey(key)}
                     />
                 </div>
             </div>
 
-            {/* --- Modals --- */}
             <CustomerSelectionModal
                 isOpen={isCustomerModalOpen}
                 setIsOpen={setIsCustomerModalOpen}
@@ -382,7 +423,6 @@ export default function POSPage() {
                 onAddItem={(product, quantity, price) => addItemToSale(product, quantity, price)}
             />
 
-            {/* Edit Item Modal (Rendered here so it works on mobile too) */}
             {editItemKey && (
                 <EditCartItemModal
                     isOpen={!!editItemKey}
@@ -411,7 +451,6 @@ export default function POSPage() {
                 openPaymentModal={openPaymentModal}
                 createSaleMutation={createSaleMutation}
                 clearSale={clearSale}
-                // Pass Edit Handler to Mobile Drawer
                 onEditItem={(key) => setEditItemKey(key)}
             />
 
