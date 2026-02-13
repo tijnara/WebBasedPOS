@@ -1,159 +1,108 @@
 ```markdown
-# WebBasedPOS
+# Seaside WebBasedPOS
 
-A lightweight, web-based Point of Sale (POS) application built with Next.js, JavaScript and CSS. This repository contains a browser-accessible POS interface for managing products, customers and transactions — ideal for small businesses, demos, and learning projects.
+A comprehensive, web-based Point of Sale (POS) and inventory management application designed for water refilling stations and small retail businesses. Built with **Next.js**, **Supabase**, and **Zustand**.
 
-## What I found in this repository
+## Project Overview
 
-- This project uses Next.js (see scripts: `next dev`, `next build`, `next start`).
-- There is a Next.js pages/ directory with routes such as:
-  - pages/_app.js
-  - pages/index.js
-  - pages/login.js
-  - pages/dashboard.js
-  - pages/product-management.js
-  - pages/customer-management.js
-  - pages/user-management.js
-  - pages/history.js
-  - pages/report.js
-- There is no `next.config.js` present at the repository root (no custom Next configuration detected).
+This repository contains a full-featured POS system that handles everything from the front-end sales interface to back-end inventory tracking and customer debt management.
+
+### Key Components & Technologies
+- **Framework**: Next.js (React)
+- **Backend/Database**: Supabase (PostgreSQL)
+- **State Management**: Zustand (for cart and auth persistence)
+- **Data Fetching**: TanStack React Query
+- **Styling**: Modern CSS with custom utility classes and responsive design
+- **Testing**: Playwright for end-to-end flow validation
+- **Charts**: Chart.js for business analytics
 
 ## Features
 
-- Next.js routing (pages/)
-- Product catalog display and client-side search
-- Add, edit, and remove items from the current sale
-- Subtotal, tax, and total calculation
-- Printable receipt / receipt view
-- Responsive UI implemented in JavaScript and CSS
+### 🛒 Point of Sale (POS)
+- **Product Grid**: Responsive grid with categories and stock-level indicators.
+- **Barcode Scanning**: Real-time product lookup via barcode scanner integration.
+- **Custom Sales**: Ability to add non-catalog items directly to a sale.
+- **Flexible Payments**: Supports Cash, GCash, Cards, and "Charge to Account" (Utang).
 
-## Tech stack
+### 📦 Inventory Management
+- **Stock Tracking**: Automatic stock decrement upon sale.
+- **Bulk Conversion**: "Break Bulk" feature to convert parent items (e.g., a case) into individual units.
+- **Reorder Alerts**: Dashboard notifications for items falling below minimum stock levels.
+- **Loss Reporting**: Track and record spoilage, damage, or staff consumption.
 
-- Framework: Next.js (React)
-- Frontend: JavaScript (React), CSS, HTML
-- Optional backend: any REST API (Node.js/Express, Firebase, etc.)
-- Data persistence: optional (SQLite, MongoDB, PostgreSQL, or cloud datastore)
+### 👥 Customer & User Management
+- **Credit Tracking (Utang)**: Manage customer balances with a built-in repayment system.
+- **Role-Based Access**: Separate interfaces and permissions for Admin and Staff roles.
+- **Session Persistence**: User sessions and cart data persist across page refreshes via local storage.
 
-## Next.js-specific quickstart (recommended)
+### 📊 Reporting & Analytics
+- **Sales Trends**: Weekly and daily sales visualizations.
+- **Performance Summaries**: Total revenue, customer growth, and top-selling product reports.
+- **Inactive Customer Tracking**: Identify customers who haven't ordered within a specific period (e.g., 14 days).
 
-These steps assume a typical Next.js project layout (pages/ directory present).
+## Directory Structure
 
-Prerequisites:
-- Node.js v14+ (v18+ recommended)
-- npm or yarn
-
-Install dependencies:
-```bash
-npm install
-# or
-yarn
-```
-
-Development
-```bash
-npm run dev
-# or
-yarn dev
-```
-Open http://localhost:3000 to view the app.
-
-Production build
-```bash
-npm run build
-# or
-yarn build
-```
-
-Run production server
-```bash
-npm start
-# or
-yarn start
-```
-
-Static export (if you prefer exporting a static site; verify your app is compatible)
-```bash
-npm run build
-npm run export
-# or
-yarn build
-yarn export
-```
-(Static export will output into an `out/` directory by default.)
-
-Common npm scripts (from package.json)
-- dev: next dev
-- build: next build
-- start: next start
-- export: next export (if configured)
+- `pages/`: Next.js routes (Dashboard, POS, Inventory, History, Reports, etc.).
+- `src/components/`: Reusable UI components, modals, and page layouts.
+- `src/hooks/`: Custom React hooks for Supabase mutations and queries.
+- `src/store/`: Zustand store logic for global state.
+- `src/lib/`: API utilities and Supabase client configuration.
+- `public/`: Assets including the Seaside brand logo and product placeholders.
+- `tests/`: End-to-end testing scripts using Playwright.
 
 ## Configuration
 
-- next.config.js: not found in this repository root. Add a `next.config.js` if you need custom Next.js configuration (rewrites, environment variable handling, image domains, etc.):
-```js
-// example next.config.js
-module.exports = {
-  reactStrictMode: true,
-  images: {
-    domains: ['example.com'],
-  },
-}
-```
-- Environment variables: create a `.env.local` file for local secrets (do not commit `.env*` files). Common variables:
-  - PORT (if needed for a custom server)
-  - DATABASE_URL (if the app connects to a database)
-  - NEXT_PUBLIC_API_URL (a public API base URL used by client code)
+To run this project, you must set up a Supabase project and provide the following environment variables in a `.env.local` file:
 
-## Deployment
-
-- Vercel: recommended for Next.js apps — connect the repo and deploy (supports server-side rendering and static export).
-- Other hosts: Netlify (for static export), Docker, or any Node hosting provider (for `next start`).
-
-## Running as static frontend (if applicable)
-
-If the repository is implemented as client-only pages (no server-side features), you can serve it as static files with `next export` or simply host the built output.
-
-## Testing
-
-- If tests exist, run:
 ```bash
-npm test
-# or
-yarn test
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+
 ```
 
-## Contributing
+### Database Functions
 
-Contributions are welcome:
-1. Fork the repo
-2. Create a branch: `git checkout -b feature/my-feature`
-3. Commit changes with clear messages
-4. Push and open a Pull Request
+Several features (like stock decrement and credit updates) rely on Supabase RPC functions. Ensure your database includes:
 
-Guidelines:
-- Keep commits focused
-- Add documentation for complex logic
-- Update this README when adding features
+* `decrement_stock`
+* `update_customer_credit`
+* `break_bulk_stock`
 
-## Project ideas / TODOs
+## Quickstart
 
-- Add product categories and filtering
-- Integrate barcode scanning
-- Add offline mode / local persistence
-- Add user authentication and role-based access
-- Export sales to CSV and generate daily reports
+1. **Install dependencies**:
+```bash
+npm install
+
+```
+
+
+2. **Run development server**:
+```bash
+npm run dev
+
+```
+
+
+3. **Run E2E tests**:
+```bash
+npx playwright test
+
+```
+
+
+
+## Project Roadmap / TODOs
+
+* [ ] Implement actual thermal printer integration for receipts.
+* [ ] Add CSV export functionality for all reports.
+* [ ] Implement supplier management and purchase order tracking.
+* [ ] Add multi-branch data synchronization support.
 
 ## License
 
-If you don’t have a LICENSE file, consider adding one (e.g., MIT):
+Copyright © 2025 Seaside POS. SEASIDE™ is a trademark of Seaside, LLC.
 
-MIT License
+```
 
-Copyright (c) 2025 tijnara
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software...
 ```
