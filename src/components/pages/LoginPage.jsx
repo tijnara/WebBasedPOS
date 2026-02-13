@@ -13,6 +13,11 @@ import {
     DialogTitle,
     DialogFooter
 } from '../ui';
+import { useCustomers } from '../../hooks/useCustomers';
+import { useSalesSummary } from '../../hooks/useSalesSummary';
+import { useNewCustomersByDateSummary } from '../../hooks/useNewCustomersByDateSummary';
+import { UserIcon, ChartIcon, PackageIcon } from '../Icons';
+import currency from 'currency.js';
 
 // Simple SVG Icon for loading
 const LoadingSpinner = () => (
@@ -37,16 +42,7 @@ const EyeOffIcon = () => (
     </svg>
 );
 
-// Icon for Demo Button (Unchanged)
-const UserIcon = () => (
-    <svg className="-ml-1 mr-2 h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-        <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-    </svg>
-);
-
-
 const LoginPage = () => {
-    // ... (state and handlers remain the same) ...
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [rememberMe, setRememberMe] = useState(false);
@@ -88,196 +84,164 @@ const LoginPage = () => {
         }
     };
 
-    // --- DEMO ADMIN ---
     const handleDemoAdminLogin = (e) => {
         e.preventDefault();
         const demoAdmin = {
-            id: 99999, // Unique ID for admin
-            name: 'Demo Admin',
-            email: 'demo.admin@seaside.com',
-            phone: '09123456789',
-            dateadded: new Date().toISOString(),
-            role: 'Admin', // Admin Access
-            isDemo: true
+            id: 99999, name: 'Demo Admin', email: 'demo.admin@seaside.com', phone: '09123456789',
+            dateadded: new Date().toISOString(), role: 'Admin', isDemo: true
         };
         setAuth(demoAdmin);
         addToast({ title: 'Demo Admin Activated', description: `Welcome, ${demoAdmin.name}!`, variant: 'success' });
         router.push('/dashboard');
     };
 
-    // --- DEMO STAFF ---
     const handleDemoStaffLogin = (e) => {
         e.preventDefault();
         const demoStaff = {
-            id: 88888, // Unique ID for staff
-            name: 'Demo Staff',
-            email: 'demo.staff@seaside.com',
-            phone: '09987654321',
-            dateadded: new Date().toISOString(),
-            role: 'Staff', // Restricted Access
-            isDemo: true
+            id: 88888, name: 'Demo Staff', email: 'demo.staff@seaside.com', phone: '09987654321',
+            dateadded: new Date().toISOString(), role: 'Staff', isDemo: true
         };
         setAuth(demoStaff);
         addToast({ title: 'Demo Staff Activated', description: `Welcome, ${demoStaff.name}!`, variant: 'success' });
         router.push('/dashboard');
     };
 
+    // Data fetching for the public dashboard part
+    const { data: custData } = useCustomers({ itemsPerPage: 1 });
+    const { data: newCustData } = useNewCustomersByDateSummary();
+    const newThisWeek = newCustData?.slice(0, 7).reduce((sum, day) => sum + Number(day.total_customers), 0) || 0;
+
     return (
-        /* UPDATED: Assuming page background is bg-gray-100 from _app.js */
-        <div className="flex h-screen w-full items-center justify-center p-2 md:p-4 overflow-hidden bg-gray-100">
-            {/* UPDATED: Removed bg-white, rounded-3xl, shadow-2xl and prefixed them with md: */}
-            <div className="md:bg-white md:rounded-3xl md:shadow-2xl overflow-hidden max-w-5xl w-full flex flex-col md:flex-row h-full md:h-auto items-center md:items-stretch">
+        <div className="flex min-h-screen w-full items-center justify-center p-4 bg-gray-100">
+            <div className="md:bg-white md:rounded-3xl md:shadow-2xl overflow-hidden max-w-6xl w-full flex flex-col md:flex-row h-full md:h-auto">
+                
+                {/* Left Column: Brand & Dashboard (Visible to Visitors) */}
+                <div className="w-full md:w-1/2 bg-white p-8 md:p-12 flex flex-col justify-center text-gray-900 order-2 md:order-1">
+                    <div className="mb-8 flex items-center gap-3">
+                        <Image src="/seaside.png" alt="Logo" width={60} height={60} className="bg-white rounded-full p-1" />
+                        <h1 className="text-3xl font-extrabold tracking-tight text-primary">Seaside Water Refilling Station</h1>
+                    </div>
 
-                {/* Image Column */}
-                {/* UPDATED: Added padding back for mobile */ }
-                <div className="w-full md:w-1/2 flex items-center justify-center h-full p-4 pb-0 md:p-12 order-1 md:order-1">
-                    <Image
-                        src="/seasideHD_.png"
-                        alt="Seaside Purified Water Refilling Station"
-                        priority
-                        style={{ objectFit: 'contain' }}
-                        /* UPDATED: Removed border and rounded for mobile */
-                        className="md:rounded-2xl md:border md:border-slate-200 w-full h-full max-w-[150px] max-h-[150px] md:max-w-[600px] md:max-h-[600px]"
-                        width={600}
-                        height={600}
-                    />
-                </div>
-
-                {/* Form Column */}
-                {/* UPDATED: Added px-4 for mobile spacing */ }
-                <div className="w-full md:w-1/2 flex flex-col justify-center h-full px-4 pt-0 md:p-12 order-2 md:order-2 overflow-y-auto md:overflow-hidden">
-                    <div className="">
-                        <div className="mb-4 md:mb-10">
-                            <h1 className="text-2xl md:text-4xl font-bold mb-1 md:mb-2 text-gray-900">Welcome Back</h1>
-                            <p className="text-sm md:text-base text-gray-500">Please log in to your station.</p>
+                    <h2 className="text-xl font-semibold mb-6 text-gray-800">Our Station at a Glance</h2>
+                    
+                    {/* Statistics Grid */}
+                    <div className="grid grid-cols-2 gap-4 mb-8">
+                        <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 text-center">
+                            <div className="text-3xl font-extrabold text-blue-600">{custData?.totalCount || '...'}</div>
+                            <div className="text-blue-800 text-xs font-medium uppercase">Total Families Served</div>
                         </div>
-
-                        <form onSubmit={handleLogin} className="space-y-3 md:space-y-5" autoComplete="off">
-                            {/* ... (form content remains the same) ... */}
-                            <div>
-                                <Label htmlFor="no_autofill_email" className="text-sm font-medium text-gray-700 mb-1">Email Address</Label>
-                                <Input
-                                    id="no_autofill_email"
-                                    name="no_autofill_email"
-                                    type="email"
-                                    autoComplete="nope"
-                                    spellCheck={false}
-                                    readOnly
-                                    onFocus={e => e.target.removeAttribute('readOnly')}
-                                    placeholder="user@example.com"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    required
-                                    disabled={isLoading}
-                                    className="bg-white border border-gray-300 focus:border-success focus:ring-2 focus:ring-success/20 rounded-xl px-4 py-3 text-base transition-all shadow-sm"
-                                />
-                            </div>
-                            <div>
-                                <Label htmlFor="no_autofill_password" className="text-sm font-medium text-gray-700 mb-1">Password</Label>
-                                <div className="relative">
-                                    <Input
-                                        id="no_autofill_password"
-                                        name="no_autofill_password"
-                                        type={showPassword ? 'text' : 'password'}
-                                        autoComplete="nope"
-                                        spellCheck={false}
-                                        readOnly
-                                        onFocus={e => e.target.removeAttribute('readOnly')}
-                                        placeholder="••••••••"
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
-                                        required
-                                        disabled={isLoading}
-                                        className="bg-white border border-gray-300 focus:border-success focus:ring-2 focus:ring-success/20 rounded-xl px-4 py-3 text-base transition-all pr-12 shadow-sm"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                                        aria-label={showPassword ? "Hide password" : "Show password"}
-                                    >
-                                        {showPassword ? <EyeOffIcon /> : <EyeIcon />}
-                                    </button>
-                                </div>
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <input
-                                        id="remember-me"
-                                        type="checkbox"
-                                        className="h-4 w-4 text-success border-gray-300 rounded focus:ring-success"
-                                        checked={rememberMe}
-                                        onChange={(e) => setRememberMe(e.target.checked)}
-                                    />
-                                    <Label htmlFor="remember-me" className="mb-0 text-sm text-gray-600 font-medium">Remember Me</Label>
-                                </div>
-                                <a
-                                    href="#"
-                                    className="text-sm font-semibold text-success hover:text-success-hover transition-colors"
-                                >
-                                    Forgot Password?
-                                </a>
-                            </div>
-                            <Button
-                                type="submit"
-                                variant="success"
-                                size="lg"
-                                className="w-full shadow-lg hover:shadow-xl hover:opacity-95 transition-all rounded-xl text-lg font-bold py-3 md:py-4 flex items-center justify-center gap-2 bg-gradient-to-r from-success to-green-500"
-                                disabled={isLoading}
-                            >
-                                {isLoading ? (<><LoadingSpinner /> Logging in...</>) : 'Log In'}
-                            </Button>
-                        </form>
-
-                        <div className="relative my-4 md:my-8">
-                            <div className="absolute inset-0 flex items-center" aria-hidden="true">
-                                <div className="w-full border-t border-gray-200" />
-                            </div>
-                            <div className="relative flex justify-center">
-                                {/* UPDATED: Changed bg-white to bg-gray-100 (page bg) on mobile */}
-                                <span className="bg-gray-100 md:bg-white px-4 text-sm font-medium text-gray-500">
-                                    Or
-                                </span>
-                            </div>
-                        </div>
-
-                        <div className="space-y-3">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                className="w-full justify-center gap-2 py-3 rounded-xl shadow-sm hover:bg-gray-50"
-                                onClick={handleDemoAdminLogin}
-                                disabled={isLoading}
-                            >
-                                <UserIcon />
-                                Log in as Demo Admin
-                            </Button>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                className="w-full justify-center gap-2 py-3 rounded-xl shadow-sm hover:bg-gray-50"
-                                onClick={handleDemoStaffLogin}
-                                disabled={isLoading}
-                            >
-                                <UserIcon />
-                                Log in as Demo Staff
-                            </Button>
+                        <div className="bg-green-50 p-4 rounded-2xl border border-green-100 text-center">
+                            <div className="text-3xl font-extrabold text-green-600">+{newThisWeek}</div>
+                            <div className="text-green-800 text-xs font-medium uppercase">New This Week</div>
                         </div>
                     </div>
 
-                    <footer className="mt-4 pt-4 p-2 md:p-4 text-center text-xs text-gray-500 border-t border-gray-100 hidden md:block">
-                        <p>Copyright &copy; 2025 Seaside POS. SEASIDE&trade; is a trademark of Seaside, LLC.</p>
-                        <div className="mt-1 space-x-2">
-                            <a href="#" className="hover:text-gray-700">Terms of Service</a>
-                            <span>|</span>
-                            <a href="#" className="hover:text-gray-700">Privacy Policy</a>
+                    <div className="space-y-4">
+                        <div className="aspect-w-16 aspect-h-9 rounded-2xl overflow-hidden border border-gray-200">
+                            <iframe 
+                                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3834.4274905503635!2d120.12964557417915!3d16.043291340133674!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3393e1d08454d96f%3A0xfd7e1df20c90037d!2sSEASIDE%20Water%20Refilling%20Station!5e0!3m2!1sen!2sph!4v1770950130024!5m2!1sen!2sph" 
+                                width="100%" 
+                                height="100%" 
+                                style={{ border:0 }} 
+                                allowFullScreen="" 
+                                loading="lazy" 
+                                referrerPolicy="no-referrer-when-downgrade">
+                            </iframe>
                         </div>
-                    </footer>
+                    </div>
                 </div>
 
+                {/* Right Column: Login Form */}
+                <div className="w-full md:w-1/2 flex flex-col justify-center p-8 md:p-12 bg-white order-1 md:order-2">
+                    <div className="mb-8">
+                        <h1 className="text-2xl font-bold text-gray-900">Staff Portal</h1>
+                        <p className="text-gray-500 text-sm">Please log in to manage operations.</p>
+                    </div>
+                    
+                    <form onSubmit={handleLogin} className="space-y-3 md:space-y-5" autoComplete="off">
+                        <div>
+                            <Label htmlFor="no_autofill_email" className="text-sm font-medium text-gray-700 mb-1">Email Address</Label>
+                            <Input
+                                id="no_autofill_email" name="no_autofill_email" type="email"
+                                autoComplete="nope" spellCheck={false} readOnly onFocus={e => e.target.removeAttribute('readOnly')}
+                                placeholder="user@example.com" value={email} onChange={(e) => setEmail(e.target.value)}
+                                required disabled={isLoading}
+                                className="bg-white border border-gray-300 focus:border-success focus:ring-2 focus:ring-success/20 rounded-xl px-4 py-3 text-base transition-all shadow-sm"
+                            />
+                        </div>
+                        <div>
+                            <Label htmlFor="no_autofill_password" className="text-sm font-medium text-gray-700 mb-1">Password</Label>
+                            <div className="relative">
+                                <Input
+                                    id="no_autofill_password" name="no_autofill_password" type={showPassword ? 'text' : 'password'}
+                                    autoComplete="nope" spellCheck={false} readOnly onFocus={e => e.target.removeAttribute('readOnly')}
+                                    placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)}
+                                    required disabled={isLoading}
+                                    className="bg-white border border-gray-300 focus:border-success focus:ring-2 focus:ring-success/20 rounded-xl px-4 py-3 text-base transition-all pr-12 shadow-sm"
+                                />
+                                <button
+                                    type="button" onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                                    aria-label={showPassword ? "Hide password" : "Show password"}
+                                >
+                                    {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+                                </button>
+                            </div>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <input
+                                    id="remember-me" type="checkbox"
+                                    className="h-4 w-4 text-success border-gray-300 rounded focus:ring-success"
+                                    checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)}
+                                />
+                                <Label htmlFor="remember-me" className="mb-0 text-sm text-gray-600 font-medium">Remember Me</Label>
+                            </div>
+                            <a href="#" className="text-sm font-semibold text-success hover:text-success-hover transition-colors">
+                                Forgot Password?
+                            </a>
+                        </div>
+                        <Button
+                            type="submit" variant="success" size="lg"
+                            className="w-full shadow-lg hover:shadow-xl hover:opacity-95 transition-all rounded-xl text-lg font-bold py-3 md:py-4 flex items-center justify-center gap-2 bg-gradient-to-r from-success to-green-500"
+                            disabled={isLoading}
+                        >
+                            {isLoading ? (<><LoadingSpinner /> Logging in...</>) : 'Log In'}
+                        </Button>
+                    </form>
+
+                    <div className="relative my-4 md:my-8">
+                        <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                            <div className="w-full border-t border-gray-200" />
+                        </div>
+                        <div className="relative flex justify-center">
+                            <span className="bg-white px-4 text-sm font-medium text-gray-500">
+                                Or
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="space-y-3">
+                        <Button
+                            type="button" variant="outline"
+                            className="w-full justify-center gap-2 py-3 rounded-xl shadow-sm hover:bg-gray-50"
+                            onClick={handleDemoAdminLogin} disabled={isLoading}
+                        >
+                            <UserIcon />
+                            Log in as Demo Admin
+                        </Button>
+                        <Button
+                            type="button" variant="outline"
+                            className="w-full justify-center gap-2 py-3 rounded-xl shadow-sm hover:bg-gray-50"
+                            onClick={handleDemoStaffLogin} disabled={isLoading}
+                        >
+                            <UserIcon />
+                            Log in as Demo Staff
+                        </Button>
+                    </div>
+                </div>
             </div>
 
-            {/* ... (Error Modal remains the same) ... */}
             <Dialog open={modal.isOpen} onOpenChange={(open) => !open && closeModal()}>
                 <DialogContent className="sm:max-w-xs">
                     <DialogHeader>
