@@ -64,7 +64,7 @@ const CustomerWelcome = () => {
     }, []);
 
     return (
-        <div className="w-full md:w-3/5 p-8 md:p-16 bg-gradient-to-br from-white to-purple-50 order-2 md:order-1">
+        <div className="w-full md:w-3/5 p-8 md:p-16 bg-gradient-to-br from-white to-purple-50 order-2 md:order-1 overflow-y-auto max-h-full">
             <div className="mb-10">
                 <h1 className="text-4xl md:text-5xl font-black text-primary leading-tight tracking-tighter">
                     Pure Water. <br/>Pure Trust.
