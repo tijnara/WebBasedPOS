@@ -59,7 +59,7 @@ export const useStore = create((set, get) => ({
 
     setCurrentCustomer: (cust) => set({ currentCustomer: cust }),
 
-    // --- UPDATED: Support basePrice ---
+    // --- UPDATED: Support basePrice and image_url ---
     addItemToSale: (product, quantity = 1, overridePrice = null) =>
         set((state) => {
             const priceToParse = overridePrice !== null ? overridePrice : (product.price ?? 0);
@@ -85,6 +85,7 @@ export const useStore = create((set, get) => ({
                         productId: product.id,
                         name: product.name,
                         price,
+                        image_url: product.image_url, // --- ADDED ---
                         // Store basePrice for future discount calculations
                         basePrice: existing?.basePrice ?? (product.price ?? price),
                         quantity: newQty,

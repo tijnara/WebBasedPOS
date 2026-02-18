@@ -241,12 +241,12 @@ export default function POSPage() {
             return;
         }
 
-        addItemToSale(product, 1);
+        addItemToSale({ ...product }, 1);
     };
 
     // ... (Keep handleIncreaseQuantity, handleDecreaseQuantity, handleRemoveItem, handleSelectCustomer, handleAddCustomer logic same as original) ...
-    const handleIncreaseQuantity = (key) => { const item = currentSale[key]; if (item) addItemToSale({ id: item.productId, name: item.name, price: item.price, cost: item.cost }, 1); };
-    const handleDecreaseQuantity = (key) => { const item = currentSale[key]; if (item) addItemToSale({ id: item.productId, name: item.name, price: item.price }, -1); };
+    const handleIncreaseQuantity = (key) => { const item = currentSale[key]; if (item) addItemToSale({ ...item, id: item.productId }, 1); };
+    const handleDecreaseQuantity = (key) => { const item = currentSale[key]; if (item) addItemToSale({ ...item, id: item.productId }, -1); };
     const handleRemoveItem = (key) => { useStore.getState().removeItemFromSale(key); };
     
     const handleSelectCustomerFromModal = (c) => { handleSetSelectedCustomer(c); setCustomerSearchTerm(''); setIsCustomerModalOpen(false); };

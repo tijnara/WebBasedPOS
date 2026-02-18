@@ -69,11 +69,11 @@ const CartDrawer = ({
                                     onClick={() => onEditItem && onEditItem(key)} // Trigger edit on row click
                                 >
                                     {/* Left: Image & Name */}
-                                    <div className="flex items-center gap-3 flex-1 min-w-0 mr-2">
-                                        <div className="w-10 h-10 flex-shrink-0 rounded-md overflow-hidden">
+                                    <div className="flex items-center gap-4 flex-1 min-w-0 mr-2">
+                                        <div className="w-12 h-12 flex-shrink-0 rounded-lg overflow-hidden border border-gray-100">
                                             <ProductImage
-                                                product={{ name: item.name, category: '' }}
-                                                style={{ width: '100%', height: '100%', border: 'none', padding: 0, objectFit: 'contain' }}
+                                                product={item}
+                                                style={{ width: '100%', height: '100%', border: 'none', padding: 0, objectFit: 'cover' }}
                                             />
                                         </div>
                                         <div className="flex flex-col min-w-0">

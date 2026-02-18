@@ -55,13 +55,13 @@ const POSCart = ({
                                 {Object.entries(currentSale).map(([key, item]) => (
                                     <div
                                         key={key}
-                                        className="flex items-center gap-2 py-2 group hover:bg-gray-50 rounded-lg px-1 transition-colors cursor-pointer"
+                                        className="flex items-center gap-3 py-2 group hover:bg-gray-50 rounded-lg px-2 transition-colors cursor-pointer"
                                         onClick={() => onEditItem && onEditItem(key)} // Open modal on row click
                                         style={{ minHeight: '3.5rem' }}
                                     >
-                                        <div className="flex-shrink-0 w-6 h-6 rounded-md flex items-center justify-center overflow-hidden border border-gray-200 bg-white">
+                                        <div className="flex-shrink-0 w-10 h-10 rounded-md flex items-center justify-center overflow-hidden border border-gray-200 bg-white">
                                             <ProductImage
-                                                product={{ name: item.name, category: '' }}
+                                                product={item}
                                                 style={{
                                                     width: '100%',
                                                     height: '100%',
