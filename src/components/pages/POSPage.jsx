@@ -30,12 +30,16 @@ const BarcodeScannerModal = ({ isOpen, onClose, onScan }) => {
             onScan(result.getText());
         },
         onError(err) {
-            // Ignore minor errors, log critical ones
-            if (err.name === 'NotAllowedError') {
-                setError('Camera access denied. Please allow camera permissions.');
-            }
+            console.error(err);
+            setError(`Camera Error: ${err.name}`);
         },
-        constraints: { video: { facingMode: 'environment' } } // Prefer back camera
+        constraints: { 
+            video: { 
+                facingMode: { exact: "environment" },
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
+            } 
+        }
     });
 
     if (!isOpen) return null;
@@ -48,7 +52,12 @@ const BarcodeScannerModal = ({ isOpen, onClose, onScan }) => {
                     <DialogCloseButton onClick={onClose} className="text-white hover:bg-white/20" />
                 </DialogHeader>
                 <div className="relative aspect-square bg-black rounded-lg overflow-hidden mt-2">
-                    <video ref={ref} className="w-full h-full object-cover" />
+                    <video 
+                        ref={ref} 
+                        muted 
+                        playsInline 
+                        className="w-full h-full object-cover" 
+                    />
                     {/* Overlay Target Box */}
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                         <div className="w-64 h-40 border-2 border-red-500 rounded-lg shadow-[0_0_0_999px_rgba(0,0,0,0.5)]"></div>
