@@ -45,13 +45,19 @@ const POSCart = ({
                             Cart is empty
                         </div>
                     ) : (
-                        <div className="flex-1 overflow-y-auto w-full current-order-scroll-area">
+                        <div
+                            className="overflow-y-auto w-full current-order-scroll-area"
+                            style={{
+                                height: '14rem' // Approx 4 items (3.5rem each)
+                            }}
+                        >
                             <div className="flex flex-col divide-y divide-gray-100 p-2">
                                 {Object.entries(currentSale).map(([key, item]) => (
                                     <div
                                         key={key}
                                         className="flex items-center gap-2 py-2 group hover:bg-gray-50 rounded-lg px-1 transition-colors cursor-pointer"
                                         onClick={() => onEditItem && onEditItem(key)} // Open modal on row click
+                                        style={{ minHeight: '3.5rem' }}
                                     >
                                         <div className="flex-shrink-0 w-6 h-6 rounded-md flex items-center justify-center overflow-hidden border border-gray-200 bg-white">
                                             <ProductImage
@@ -140,7 +146,7 @@ const POSCart = ({
                     )}
                 </CardContent>
 
-                <div className="p-3 border-t space-y-1 flex-shrink-0 bg-gray-50 rounded-b-xl">
+                <div className="p-3 border-t space-y-1 flex-shrink-0 bg-gray-50 rounded-b-xl mt-auto">
                     <div className="w-full">
                         <div className="flex justify-between mb-1 text-sm">
                             <span>Subtotal</span>

@@ -6,7 +6,6 @@ import currency from 'currency.js';
 const POSProductGrid = ({
                             isLoading,
                             products = [],
-                            recentProducts = [],
                             handleAdd,
                         }) => {
     return (
@@ -19,31 +18,6 @@ const POSProductGrid = ({
                 </div>
             ) : (
                 <>
-                    {/* Recent Products - Slightly more compact */}
-                    {recentProducts.length > 0 && (
-                        <div className="mb-4">
-                            <h2 className="text-sm font-semibold text-primary mb-2">Recently Used</h2>
-                            <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
-                                {recentProducts.map(p => (
-                                    <button
-                                        key={`recent-${p.id}`}
-                                        className="product-card p-1.5 border rounded-lg shadow-sm bg-white flex flex-col items-center hover:border-primary transition-all duration-150 flex-shrink-0"
-                                        onClick={() => handleAdd(p)}
-                                        style={{ width: '85px' }}
-                                    >
-                                        <div className="h-8 w-8 mb-1 flex items-center justify-center overflow-hidden rounded-md bg-gray-50">
-                                            <ProductImage product={p} style={{ width: '100%', height: '100%' }} />
-                                        </div>
-                                        <div className="font-medium text-[10px] text-gray-800 truncate w-full">{p.name}</div>
-                                        <div className="text-[10px] text-primary font-bold">
-                                            {currency(p.price).format({ symbol: '₱' })}
-                                        </div>
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
                     {/* Desktop Grid - Increased columns and reduced card size */}
                     <div className="hidden md:grid grid-cols-4 sm:grid-cols-5 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3">
                         {products.map((p) => (

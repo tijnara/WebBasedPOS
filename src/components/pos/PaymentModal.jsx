@@ -83,6 +83,20 @@ const PaymentModal = ({
                                 </div>
                             </div>
 
+                            {/* LAST CUSTOMER BUTTON */}
+                            {lastCustomer && !showResults && (
+                                <div className="mt-2">
+                                    <Button
+                                        variant="outline"
+                                        className="w-full justify-start text-left h-auto py-2 px-3 bg-gray-50 hover:bg-gray-100 border-gray-200"
+                                        onClick={() => handleSelectCustomerInPayment(lastCustomer)}
+                                    >
+                                        <span className="text-xs text-gray-500 mr-2">Last:</span>
+                                        <span className="font-medium text-gray-800">{lastCustomer.name}</span>
+                                    </Button>
+                                </div>
+                            )}
+
                             {/* RESULTS LIST */}
                             {showResults && (
                                 <div className="w-full border rounded-lg border-gray-200 bg-gray-50 flex flex-col animate-in fade-in slide-in-from-top-2 duration-200">

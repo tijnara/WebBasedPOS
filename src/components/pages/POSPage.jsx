@@ -231,8 +231,6 @@ export default function POSPage() {
         searchCustomers();
     }, [debouncedCustomerSearchTerm, isCustomerModalOpen, isPaymentModalOpen]);
 
-    const [recentProducts, setRecentProducts] = useState([]);
-
     const handleAdd = (product) => {
         if (!product) return;
         const itemKey = `${product.id}__${Number(product.price).toFixed(2)}`;
@@ -244,10 +242,6 @@ export default function POSPage() {
         }
 
         addItemToSale(product, 1);
-        setRecentProducts(prev => {
-            const without = prev.filter(p => p.id !== product.id);
-            return [product, ...without].slice(0, 3);
-        });
     };
 
     // ... (Keep handleIncreaseQuantity, handleDecreaseQuantity, handleRemoveItem, handleSelectCustomer, handleAddCustomer logic same as original) ...
@@ -330,7 +324,6 @@ export default function POSPage() {
 
     return (
         <div className="pos-page">
-            <img src="/seaside.png" alt="Seaside Logo" className="brand-logo-top" width={32} height={32} loading="lazy" />
 
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
                 <h1 className="text-2xl sm:text-3xl font-bold text-primary tracking-tight">Point of Sale</h1>
@@ -371,7 +364,7 @@ export default function POSPage() {
                             key={cat}
                             onClick={() => { setCategoryFilter(cat); setCurrentPage(1); }}
                             className={`px-4 py-2.5 rounded-xl font-semibold transition-all border-2 ${
-                                categoryFilter === cat ? 'bg-primary border-primary text-white shadow-md' : 'bg-white border-gray-200 text-gray-600 hover:border-primary/50'
+                                categoryFilter === cat ? 'bg-primary-soft border-primary text-primary shadow-md' : 'bg-white border-gray-200 text-gray-600 hover:border-primary/50'
                             }`}
                         >
                             {cat}
@@ -384,14 +377,13 @@ export default function POSPage() {
                 <POSProductGrid
                     isLoading={isLoadingProducts}
                     products={products}
-                    recentProducts={recentProducts}
                     handleAdd={handleAdd}
                     currentPage={currentPage}
                     totalPages={totalPages}
                     setCurrentPage={setCurrentPage}
                 />
 
-                <div className="hidden md:flex w-full md:w-1/3 xl:w-1/4 flex-shrink-0 flex-col sticky top-4" style={{ height: '42.5vh' }}>
+                <div className="hidden md:flex w-full md:w-1/3 xl:w-1/4 flex-shrink-0 flex-col sticky top-4" style={{ height: '70vh' }}>
                     <POSCart
                         currentSale={currentSale}
                         clearSale={clearSale}
