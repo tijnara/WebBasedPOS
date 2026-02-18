@@ -1,5 +1,6 @@
 // src/components/ui.js
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -51,18 +52,25 @@ export const CardFooter = ({ children, className }) => (
     <div className={cn('card__footer', className)}>{children}</div>
 );
 
-// --- UPDATED DIALOG COMPONENT ---
-// Now accepts 'style' prop to allow z-index overrides
-export const Dialog = ({ open, children, className, style, onOpenChange, closeOnBackdropClick = false }) => (
-    open ? (
+// --- UPDATED DIALOG COMPONENT TO USE PORTAL ---
+export const Dialog = ({ open, children, className, style, onOpenChange, closeOnBackdropClick = false }) => {
+    const [portalNode, setPortalNode] = React.useState(null);
+
+    React.useEffect(() => {
+        setPortalNode(document.getElementById('modal-root'));
+    }, []);
+
+    if (!open || !portalNode) return null;
+
+    return createPortal(
         <div
             className={cn(
-                'dialog-backdrop fixed inset-0 z-40 sm:z-50 p-4 flex justify-center overflow-y-auto',
+                'dialog-backdrop fixed inset-0 z-50 p-4 flex justify-center overflow-y-auto',
                 className
             )}
             style={{
                 backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                ...style // Allow style override (e.g., zIndex)
+                ...style
             }}
             onClick={(e) => {
                 if (closeOnBackdropClick && e.target === e.currentTarget && onOpenChange) {
@@ -71,9 +79,10 @@ export const Dialog = ({ open, children, className, style, onOpenChange, closeOn
             }}
         >
             {children}
-        </div>
-    ) : null
-);
+        </div>,
+        portalNode
+    );
+};
 
 export const DialogContent = ({ children, className, style, closeOnBackdropClick, ...props }) => (
     <div
@@ -85,7 +94,6 @@ export const DialogContent = ({ children, className, style, closeOnBackdropClick
             maxHeight: 'calc(100dvh - 32px)',
             backgroundColor: '#ffffff',
             isolation: 'isolate',
-            zIndex: 10,
             ...style
         }}
         onClick={(e) => e.stopPropagation()}

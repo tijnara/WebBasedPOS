@@ -74,6 +74,13 @@
         border: 1px solid #d1d5db;
         box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     }
+
+    .category-bar-container button {
+        max-width: 120px; /* Set a max-width for mobile */
+        word-wrap: break-word; /* Force long words to wrap */
+        white-space: normal; /* Allow text to wrap to the next line */
+        hyphens: auto; /* Automatically add hyphens */
+    }
 }
 
 /* Desktop styles for Current Order section */

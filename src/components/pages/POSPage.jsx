@@ -5,7 +5,8 @@ import { useProducts } from '../../hooks/useProducts';
 import { useCreateSale } from '../../hooks/useCreateSale';
 import { useCreateCustomer } from '../../hooks/useCustomerMutations';
 import { useProductByBarcode } from '../../hooks/useProductByBarcode';
-import { Button, Input } from '../ui';
+import { Button, Input, Dialog, DialogContent, DialogHeader, DialogTitle, DialogCloseButton } from '../ui';
+import { useZxing } from 'react-zxing'; // Requires 'npm install react-zxing'
 
 import TabBar from '../TabBar';
 import POSCart from '../pos/POSCart';
@@ -19,21 +20,65 @@ import EditCartItemModal from '../pos/EditCartItemModal';
 import { supabase } from '../../lib/supabaseClient';
 import currency from 'currency.js';
 
+// --- Barcode Scanner Component ---
+const BarcodeScannerModal = ({ isOpen, onClose, onScan }) => {
+    const [error, setError] = useState('');
+    
+    // useZxing hook setup
+    const { ref } = useZxing({
+        onDecodeResult(result) {
+            onScan(result.getText());
+        },
+        onError(err) {
+            // Ignore minor errors, log critical ones
+            if (err.name === 'NotAllowedError') {
+                setError('Camera access denied. Please allow camera permissions.');
+            }
+        },
+        constraints: { video: { facingMode: 'environment' } } // Prefer back camera
+    });
+
+    if (!isOpen) return null;
+
+    return (
+        <Dialog open={isOpen} onOpenChange={onClose}>
+            <DialogContent className="max-w-sm bg-black text-white border-gray-800">
+                <DialogHeader>
+                    <DialogTitle className="text-white">Scan Barcode</DialogTitle>
+                    <DialogCloseButton onClick={onClose} className="text-white hover:bg-white/20" />
+                </DialogHeader>
+                <div className="relative aspect-square bg-black rounded-lg overflow-hidden mt-2">
+                    <video ref={ref} className="w-full h-full object-cover" />
+                    {/* Overlay Target Box */}
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div className="w-64 h-40 border-2 border-red-500 rounded-lg shadow-[0_0_0_999px_rgba(0,0,0,0.5)]"></div>
+                        <div className="absolute top-1/2 w-full h-0.5 bg-red-500/50"></div>
+                    </div>
+                </div>
+                <div className="text-center text-sm text-gray-400 mt-4 min-h-[20px]">
+                    {error || "Point camera at a barcode"}
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
 export default function POSPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 20;
 
-    // --- CATEGORY STATE ---
     const [categoryFilter, setCategoryFilter] = useState('All');
     const [availableCategories, setAvailableCategories] = useState(['All']);
 
-    // --- SEARCH STATE ---
     const [searchTerm, setSearchTerm] = useState('');
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
     const [customerSearchTerm, setCustomerSearchTerm] = useState('');
     const [debouncedCustomerSearchTerm, setDebouncedCustomerSearchTerm] = useState('');
 
-    // --- FETCH UNIQUE CATEGORIES FROM DB ---
+    // --- SCANNER STATE ---
+    const [isScannerOpen, setIsScannerOpen] = useState(false);
+
+    // Fetch unique categories
     useEffect(() => {
         const fetchCategories = async () => {
             const { data, error } = await supabase
@@ -49,7 +94,7 @@ export default function POSPage() {
         fetchCategories();
     }, []);
 
-    // --- DEBOUNCE EFFECTS ---
+    // Debounce Effects
     useEffect(() => {
         const handler = setTimeout(() => {
             if (!/^[0-9]{3,}$/.test(searchTerm)) {
@@ -68,7 +113,7 @@ export default function POSPage() {
         return () => clearTimeout(handler);
     }, [customerSearchTerm]);
 
-    // --- DATA FETCHING (Pass Category Filter) ---
+    // Data Fetching
     const { data: productsData = { products: [], totalPages: 1 }, isLoading: isLoadingProducts } = useProducts({
         searchTerm: debouncedSearchTerm,
         category: categoryFilter,
@@ -78,6 +123,7 @@ export default function POSPage() {
     const products = productsData.products || [];
     const totalPages = productsData.totalPages || 1;
 
+    // Barcode Lookup logic
     const isBarcodeScan = /^[0-9]{3,}$/.test(searchTerm.trim());
     const { data: scannedProduct } = useProductByBarcode(isBarcodeScan ? searchTerm.trim() : null);
 
@@ -89,7 +135,6 @@ export default function POSPage() {
     const createSaleMutation = useCreateSale();
     const createCustomerMutation = useCreateCustomer();
 
-    // --- MODAL STATES ---
     const [selectedCustomer, setSelectedCustomer] = useState(currentCustomer);
     const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
     const [customerSearchResults, setCustomerSearchResults] = useState([]);
@@ -101,7 +146,6 @@ export default function POSPage() {
     const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
     const [editItemKey, setEditItemKey] = useState(null);
 
-    // --- REFS ---
     const productSearchInputRef = useRef(null);
     const customerPaymentInputRef = useRef(null);
 
@@ -109,9 +153,7 @@ export default function POSPage() {
         try {
             const stored = localStorage.getItem('lastCustomer');
             return stored ? JSON.parse(stored) : null;
-        } catch {
-            return null;
-        }
+        } catch { return null; }
     });
 
     const [saleDate, setSaleDate] = useState(() => new Date().toISOString().slice(0, 10));
@@ -128,7 +170,24 @@ export default function POSPage() {
 
     const subtotal = getTotalAmount();
 
-    // --- SHORTCUTS & SCANNER ---
+    // Handle Barcode Scan Result
+    const handleScanResult = (code) => {
+        setIsScannerOpen(false); // Close modal immediately
+        setSearchTerm(code); // Trigger lookup via existing useEffect
+        addToast({ title: 'Scanned', description: `Searching for code: ${code}`, variant: 'info' });
+    };
+
+    // Effect to add scanned product
+    useEffect(() => {
+        if (scannedProduct) {
+            handleAdd(scannedProduct);
+            addToast({ title: 'Added', description: `${scannedProduct.name} added to cart.`, variant: 'success' });
+            setSearchTerm(''); // Clear to ready next scan
+            productSearchInputRef.current?.focus();
+        }
+    }, [scannedProduct]);
+
+    // Shortcuts
     useEffect(() => {
         const handleKeyDown = (event) => {
             if (event.key === 'F1') {
@@ -140,16 +199,7 @@ export default function POSPage() {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, []);
 
-    useEffect(() => {
-        if (scannedProduct) {
-            handleAdd(scannedProduct);
-            addToast({ title: 'Scanned', description: `${scannedProduct.name} added.`, variant: 'success' });
-            setSearchTerm('');
-            productSearchInputRef.current?.focus();
-        }
-    }, [scannedProduct]);
-
-    // --- CUSTOMER SEARCH ---
+    // Customer Search Effect
     useEffect(() => {
         if (!(isCustomerModalOpen || isPaymentModalOpen) || !debouncedCustomerSearchTerm) {
             setCustomerSearchResults([]);
@@ -172,7 +222,6 @@ export default function POSPage() {
         searchCustomers();
     }, [debouncedCustomerSearchTerm, isCustomerModalOpen, isPaymentModalOpen]);
 
-    // --- HANDLERS ---
     const [recentProducts, setRecentProducts] = useState([]);
 
     const handleAdd = (product) => {
@@ -192,46 +241,20 @@ export default function POSPage() {
         });
     };
 
-    const handleIncreaseQuantity = (key) => {
-        const item = currentSale[key];
-        if (item) {
-            addItemToSale({ id: item.productId, name: item.name, price: item.price, cost: item.cost }, 1);
-        }
-    };
-
-    const handleDecreaseQuantity = (key) => {
-        const item = currentSale[key];
-        if (item) addItemToSale({ id: item.productId, name: item.name, price: item.price }, -1);
-    };
-
-    const handleRemoveItem = (key) => {
-        useStore.getState().removeItemFromSale(key);
-    };
-
-    const handleSelectCustomerFromModal = (customer) => {
-        handleSetSelectedCustomer(customer);
-        setCustomerSearchTerm('');
-        setIsCustomerModalOpen(false);
-    };
-
-    const handleSelectCustomerInPayment = (customer) => {
-        handleSetSelectedCustomer(customer);
-        setCustomerSearchTerm('');
-        setDebouncedCustomerSearchTerm('');
-        setCustomerSearchResults([]);
-        setIsSearchingCustomers(false);
-    };
-
-    const handleAddCustomer = async (newCustomerName) => {
-        if (!newCustomerName || !newCustomerName.trim()) return;
+    // ... (Keep handleIncreaseQuantity, handleDecreaseQuantity, handleRemoveItem, handleSelectCustomer, handleAddCustomer logic same as original) ...
+    const handleIncreaseQuantity = (key) => { const item = currentSale[key]; if (item) addItemToSale({ id: item.productId, name: item.name, price: item.price, cost: item.cost }, 1); };
+    const handleDecreaseQuantity = (key) => { const item = currentSale[key]; if (item) addItemToSale({ id: item.productId, name: item.name, price: item.price }, -1); };
+    const handleRemoveItem = (key) => { useStore.getState().removeItemFromSale(key); };
+    
+    const handleSelectCustomerFromModal = (c) => { handleSetSelectedCustomer(c); setCustomerSearchTerm(''); setIsCustomerModalOpen(false); };
+    const handleSelectCustomerInPayment = (c) => { handleSetSelectedCustomer(c); setCustomerSearchTerm(''); setDebouncedCustomerSearchTerm(''); setCustomerSearchResults([]); setIsSearchingCustomers(false); };
+    const handleAddCustomer = async (name) => {
+        if(!name?.trim()) return;
         try {
-            const addedCustomer = await createCustomerMutation.mutateAsync({ name: newCustomerName.trim() });
-            handleSelectCustomerFromModal(addedCustomer);
-            addToast({ title: 'Customer Added', description: `${addedCustomer.name} added.`, variant: 'success' });
-            if(isPaymentModalOpen) handleSelectCustomerInPayment(addedCustomer);
-        } catch (error) {
-            addToast({ title: 'Error Adding Customer', description: error.message, variant: 'destructive' });
-        }
+            const added = await createCustomerMutation.mutateAsync({ name: name.trim() });
+            handleSelectCustomerFromModal(added);
+            if(isPaymentModalOpen) handleSelectCustomerInPayment(added);
+        } catch(e) { addToast({ title: 'Error', description: e.message, variant: 'destructive' }); }
     };
 
     const openPaymentModal = () => {
@@ -254,7 +277,6 @@ export default function POSPage() {
             addToast({ title: 'Customer Required', description: 'Please select a customer.', variant: 'warning' });
             return;
         }
-
         const items = Object.values(currentSale).map(i => ({
             productId: i.productId,
             productName: i.name,
@@ -265,15 +287,11 @@ export default function POSPage() {
             basePrice: i.basePrice,
             note: i.note
         }));
-
         const received = currency(amountReceived || 0).value;
         const changeCalculated = currency(received).subtract(subtotal).value;
 
         try {
-            const saleTimestamp = saleDate && saleTime
-                ? new Date(`${saleDate}T${saleTime}:00`).toISOString()
-                : new Date().toISOString();
-
+            const saleTimestamp = saleDate && saleTime ? new Date(`${saleDate}T${saleTime}:00`).toISOString() : new Date().toISOString();
             const payload = {
                 saleTimestamp,
                 totalAmount: subtotal,
@@ -286,10 +304,8 @@ export default function POSPage() {
                 changeGiven: Math.max(0, changeCalculated),
                 created_by: user?.id || null
             };
-
             await createSaleMutation.mutateAsync(payload);
             addToast({ title: 'Sale Completed', description: `Sale recorded.`, variant: 'success' });
-
             clearSale();
             handleSetSelectedCustomer(null);
             setLastCustomer(selectedCustomer);
@@ -297,7 +313,6 @@ export default function POSPage() {
             setAmountReceived('');
             setPaymentMethod('Cash');
             setSearchTerm('');
-            setCustomerSearchTerm('');
             setIsPaymentModalOpen(false);
         } catch (e) {
             addToast({ title: 'Checkout Error', description: e.message, variant: 'destructive' });
@@ -311,15 +326,27 @@ export default function POSPage() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
                 <h1 className="text-2xl sm:text-3xl font-bold text-primary tracking-tight">Point of Sale</h1>
                 <div className="flex items-center gap-2">
-                    <div className="relative flex-1 sm:flex-initial sm:w-full sm:max-w-xs">
+                    <div className="relative flex-1 sm:flex-initial sm:w-full sm:max-w-xs flex gap-2">
                         <Input
                             ref={productSearchInputRef}
                             type="text"
-                            placeholder="Scan or search (F1)"
+                            placeholder="Scan/Search (F1)"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full"
                         />
+                        {/* --- CAMERA SCAN BUTTON --- */}
+                        <Button 
+                            variant="secondary" 
+                            className="px-3" 
+                            onClick={() => setIsScannerOpen(true)}
+                            title="Open Camera Scanner"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />
+                            </svg>
+                        </Button>
                     </div>
                     <Button variant="primary" onClick={() => setIsCustomSaleModalOpen(true)} className="rounded-lg shadow-md font-semibold whitespace-nowrap">
                         + Custom
@@ -327,20 +354,15 @@ export default function POSPage() {
                 </div>
             </div>
 
-            {/* --- CATEGORY BAR UI --- */}
+            {/* --- CATEGORY BAR --- */}
             <div className="category-bar-container mb-6 overflow-x-auto no-scrollbar">
                 <div className="flex gap-2 pb-2">
                     {availableCategories.map((cat) => (
                         <button
                             key={cat}
-                            onClick={() => {
-                                setCategoryFilter(cat);
-                                setCurrentPage(1);
-                            }}
-                            className={`px-6 py-2.5 rounded-xl font-semibold transition-all whitespace-nowrap border-2 ${
-                                categoryFilter === cat
-                                    ? 'bg-primary border-primary text-white shadow-md'
-                                    : 'bg-white border-gray-200 text-gray-600 hover:border-primary/50'
+                            onClick={() => { setCategoryFilter(cat); setCurrentPage(1); }}
+                            className={`px-4 py-2.5 rounded-xl font-semibold transition-all border-2 ${
+                                categoryFilter === cat ? 'bg-primary border-primary text-white shadow-md' : 'bg-white border-gray-200 text-gray-600 hover:border-primary/50'
                             }`}
                         >
                             {cat}
@@ -376,6 +398,7 @@ export default function POSPage() {
                 </div>
             </div>
 
+            {/* --- MODALS --- */}
             <CustomerSelectionModal
                 isOpen={isCustomerModalOpen}
                 setIsOpen={setIsCustomerModalOpen}
@@ -431,6 +454,13 @@ export default function POSPage() {
                     onSave={(updatedItem) => updateCartItem(editItemKey, updatedItem)}
                 />
             )}
+
+            {/* --- SCANNER MODAL --- */}
+            <BarcodeScannerModal 
+                isOpen={isScannerOpen} 
+                onClose={() => setIsScannerOpen(false)} 
+                onScan={handleScanResult} 
+            />
 
             {!(isCartDrawerOpen || isPaymentModalOpen) && (
                 <MobileCartBar

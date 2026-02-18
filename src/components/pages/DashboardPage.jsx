@@ -10,7 +10,7 @@ import { useCustomers } from '../../hooks/useCustomers';
 import { useSalesSummary } from '../../hooks/useSalesSummary';
 import { useSalesByDateSummary } from '../../hooks/useSalesByDateSummary';
 import { useNewCustomersByDateSummary } from '../../hooks/useNewCustomersByDateSummary';
-import { useTopProductsSummary } from '../../hooks/useTopProductsSummary'; // Added Hook
+import { useTopProductsSummary } from '../../hooks/useTopProductsSummary';
 import { useInactiveCustomers } from '../../hooks/useInactiveCustomers';
 import { startOfWeek, parseISO } from 'date-fns';
 import { UserIcon } from '../Icons';
@@ -57,11 +57,15 @@ export default function DashboardPage() {
     const { data: customerData } = useCustomers({ page: 1, itemsPerPage: 1000 });
 
     // Summary Hooks
-    const { data: salesSummary } = useSalesSummary(); // For Total Revenue
+    const { data: salesSummary } = useSalesSummary(); // For Total Revenue & Profit
     const { data: salesByDateData = [] } = useSalesByDateSummary();
     const { data: newCustomersByDateData = [] } = useNewCustomersByDateSummary();
-    const { data: topProductsData = [] } = useTopProductsSummary(); // For Top Items Graph
+    const { data: topProductsData = [] } = useTopProductsSummary(); 
+    const { data: inactiveResult, isLoading: inactiveCustomersLoading } = useInactiveCustomers(14, { page: 1, itemsPerPage: 4 });
+    const paginatedInactiveCustomers = inactiveResult?.customers || [];
+    const inactiveHasMore = !!inactiveResult?.hasMore;
 
+    const [totalInactiveCount, setTotalInactiveCount] = useState(0);
     // --- Date Ranges for Today ---
     const { todayStart, todayEnd } = useMemo(() => {
         const start = new Date();
@@ -71,7 +75,7 @@ export default function DashboardPage() {
         return { todayStart: start, todayEnd: end };
     }, []);
 
-    // Fetch Today's Sales using the summary hook with specific dates
+    // Fetch Today's Sales
     const { data: todaySalesSummary } = useSalesSummary({
         startDate: todayStart,
         endDate: todayEnd
@@ -96,14 +100,6 @@ export default function DashboardPage() {
         };
     }, [salesByDateData, newCustomersByDateData]);
 
-    // 3. Inactive Customers Logic
-    const INACTIVE_PAGE_SIZE = 4;
-    const [inactivePage, setInactivePage] = useState(1);
-    const [totalInactiveCount, setTotalInactiveCount] = useState(0);
-    const { data: inactiveResult, isLoading: inactiveCustomersLoading } = useInactiveCustomers(14, { page: inactivePage, itemsPerPage: INACTIVE_PAGE_SIZE });
-    const paginatedInactiveCustomers = inactiveResult?.customers || [];
-    const inactiveHasMore = !!inactiveResult?.hasMore;
-
     useEffect(() => {
         const fetchInactiveCount = async () => {
             const { data, error } = await supabase.rpc('get_inactive_customers', { days_inactive: 14 });
@@ -112,9 +108,7 @@ export default function DashboardPage() {
         fetchInactiveCount();
     }, []);
 
-    // 4. Chart Data Preparation
-
-    // Sales Trend (Line Chart)
+    // Chart Data Preparation (Sales Trend)
     const salesByWeek = useMemo(() => {
         const map = {};
         salesData?.sales.forEach(sale => {
@@ -142,7 +136,7 @@ export default function DashboardPage() {
         }],
     };
 
-    // Customer Growth (Bar Chart)
+    // Customer Growth Chart
     const customersByWeek = useMemo(() => {
         const map = {};
         customerData?.customers.forEach(cust => {
@@ -167,42 +161,41 @@ export default function DashboardPage() {
         }],
     };
 
-    // Top Products (Bar Chart - Horizontal usually better for names)
+    // Top Products Chart
     const topProductsChartData = {
         labels: topProductsData.map(p => p.name),
         datasets: [{
             label: 'Quantity Sold',
             data: topProductsData.map(p => p.quantity),
-            backgroundColor: 'rgba(249, 115, 22, 0.6)', // Orange
+            backgroundColor: 'rgba(249, 115, 22, 0.6)',
             borderColor: 'rgba(249, 115, 22, 1)',
             borderWidth: 1
         }]
     };
 
-    const topProductsOptions = {
-        indexAxis: 'y', // Horizontal bar
-        responsive: true,
-        plugins: {
-            legend: { display: false },
-            title: { display: false }
-        }
-    };
+    const topProductsOptions = { indexAxis: 'y', responsive: true, plugins: { legend: { display: false }, title: { display: false } } };
 
     return (
         <div className="p-4 md:p-6 space-y-8 bg-gray-50 min-h-screen">
-
             <div className="flex justify-between items-end">
                 <span className="text-sm text-gray-500 hidden md:inline-block">Overview</span>
             </div>
 
-            {/* SUMMARY CARDS - Updated with Revenue and Total Customers */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+            {/* SUMMARY CARDS */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
                 <SummaryCard
                     title="Today's Sales"
                     value={currency(todaySalesSummary?.totalRevenue || 0, { symbol: '₱' }).format()}
-                    subtext={todayStart.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                    subtext="Revenue"
                     colorClass="text-purple-600"
                     icon={<span className="text-xl">📅</span>}
+                />
+                <SummaryCard
+                    title="Today's Profit"
+                    value={currency(todaySalesSummary?.totalProfit || 0, { symbol: '₱' }).format()}
+                    subtext="Est. Profit"
+                    colorClass="text-emerald-600"
+                    icon={<span className="text-xl">📈</span>}
                 />
                 <SummaryCard
                     title="Total Revenue"
@@ -212,41 +205,33 @@ export default function DashboardPage() {
                     icon={<span className="text-xl">🏦</span>}
                 />
                 <SummaryCard
-                    title="This Week Sales"
-                    value={currency(thisWeekSales, { symbol: '₱' }).format()}
-                    colorClass="text-indigo-600"
+                    title="Gross Profit"
+                    value={currency(salesSummary?.totalProfit || 0, { symbol: '₱' }).format()}
+                    subtext="All time margin"
+                    colorClass="text-green-600"
                     icon={<span className="text-xl">💰</span>}
                 />
                 <SummaryCard
                     title="Total Customers"
                     value={customerData?.totalCount || 0}
                     subtext="Registered"
-                    colorClass="text-emerald-600"
+                    colorClass="text-indigo-600"
                     icon={<span className="text-xl">👨‍👩‍👧</span>}
                 />
                 <SummaryCard
-                    title="New (This Week)"
-                    value={newCustomersThisWeek}
-                    colorClass="text-green-600"
-                    icon={<span className="text-xl">🆕</span>}
-                />
-                <SummaryCard
-                    title="Inactive Customers"
+                    title="Alerts"
                     value={totalInactiveCount}
-                    subtext=">14 days"
+                    subtext="Inactive Cust."
                     colorClass="text-amber-600"
-                    icon={<span className="text-xl">💤</span>}
+                    icon={<span className="text-xl">⚠️</span>}
                 />
             </div>
-            <div><br></br></div>
+            
             <ReorderReport />
             <SpoilageReport />
 
-            {/* CHARTS SECTION - Added top margin for spacing */}
+            {/* CHARTS SECTION */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
-
-                {/* Sales Trends (Full Width on Mobile, Half on Desktop) */}
-                <div></div>
                 <div className="lg:col-span-2">
                     <Card className="shadow-sm border-none h-full">
                         <CardHeader>
@@ -259,8 +244,6 @@ export default function DashboardPage() {
                         </CardContent>
                     </Card>
                 </div>
-
-                {/* Customer Growth */}
                 <div>
                     <Card className="shadow-sm border-none h-full">
                         <CardHeader>
@@ -273,8 +256,6 @@ export default function DashboardPage() {
                         </CardContent>
                     </Card>
                 </div>
-
-                {/* Most Buy Items (New Graph) */}
                 <div>
                     <Card className="shadow-sm border-none h-full">
                         <CardHeader>
@@ -292,50 +273,6 @@ export default function DashboardPage() {
                     </Card>
                 </div>
             </div>
-
-            {/* Inactive Customers List - Added top margin for spacing */}
-            <div><br></br></div>
-            <Card className="shadow-sm border-none mt-8">
-
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <h3 className="font-semibold text-lg text-gray-700">Recent Inactive Customers</h3>
-                </CardHeader>
-                <CardContent>
-                    {inactiveCustomersLoading ? (
-                        <div className="py-8 text-center text-gray-500">Loading inactive list...</div>
-                    ) : paginatedInactiveCustomers.length === 0 ? (
-                        <div className="py-8 text-center text-green-600 bg-green-50 rounded-lg border border-green-100">
-                            <span className="text-xl block mb-1">🎉</span>
-                            Everyone is active!
-                        </div>
-                    ) : (
-                        <div className="space-y-3">
-                            {paginatedInactiveCustomers.map(customer => (
-                                <div key={customer.id} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 bg-white hover:border-gray-200 transition-colors">
-                                    <div className="flex items-center gap-3">
-                                        <div className="bg-gray-100 h-10 w-10 rounded-full flex items-center justify-center">
-                                            <UserIcon className="w-5 h-5 text-gray-500" />
-                                        </div>
-                                        <div>
-                                            <div className="font-medium text-gray-800">{customer.name}</div>
-                                            <div className="text-xs text-gray-500">
-                                                Last Order: <span className="font-medium">{formatLastOrderDate(customer.last_order_date)}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    {getStatusBadge(customer.last_order_date)}
-                                </div>
-                            ))}
-                            {/* Pagination Controls */}
-                            <div className="flex justify-center gap-2 mt-4 pt-2 border-t border-gray-100">
-                                <Button variant="ghost" size="sm" onClick={() => setInactivePage(p => Math.max(1, p - 1))} disabled={inactivePage === 1} className="text-gray-600">Previous</Button>
-                                <span className="text-sm text-gray-400 py-1 px-2">Page {inactivePage}</span>
-                                <Button variant="ghost" size="sm" onClick={() => setInactivePage(p => p + 1)} disabled={!inactiveHasMore} className="text-gray-600">Next</Button>
-                            </div>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
         </div>
     );
 }

@@ -142,6 +142,8 @@ export default function App({ Component, pageProps }) {
                     </div> {/* End Toast Container */}
                 </div>
             </AuthGate>
+            {/* Portal root for modals */}
+            <div id="modal-root"></div>
             {/* React Query DevTools */}
             <ReactQueryDevtools initialIsOpen={false} position="bottom" />
         </QueryClientProvider>
