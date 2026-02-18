@@ -333,7 +333,7 @@ export default function POSPage() {
                             placeholder="Scan/Search (F1)"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full"
+                            className="flex-1 min-w-0"
                         />
                         {/* --- CAMERA SCAN BUTTON --- */}
                         <Button 
