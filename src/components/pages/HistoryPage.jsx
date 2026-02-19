@@ -53,117 +53,175 @@ const StatusBadge = ({ status }) => {
     return <span className={className}>{status}</span>;
 };
 
-// --- Sale Details Modal ---
+// --- Sale Details Modal (Fixed: Disables Background Scroll) ---
 const SaleDetailsModal = ({ sale, isOpen, onClose }) => {
+
+    // --- SCROLL LOCK FIX ---
+    // This effect disables the main page scrollbar when the modal is open
+    useEffect(() => {
+        if (isOpen) {
+            // Lock body scroll
+            document.body.style.overflow = 'hidden';
+        } else {
+            // Restore body scroll
+            document.body.style.overflow = 'unset';
+        }
+        // Cleanup function to restore scroll if component unmounts
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
+    }, [isOpen]);
+
     if (!sale) return null;
 
     const handlePrintReceipt = () => {
-        alert("Printing receipt... (feature to be implemented)");
+        alert("Printing receipt... (This would connect to a thermal printer)");
     };
 
-    return (
-        <Dialog open={isOpen} onOpenChange={onClose} className="items-start">
-            <DialogContent
-                className="p-0 w-full max-w-md bg-white rounded-lg shadow-2xl border border-gray-200 flex flex-col mt-16"
-                style={{ backgroundColor: 'white', maxHeight: '85vh', height: 'auto' }}
-            >
-                <div className="flex flex-col h-full w-full bg-white">
-                    <DialogHeader className="px-6 py-4 border-b bg-white flex-shrink-0 flex justify-between items-center z-10">
-                        <DialogTitle className="text-lg font-bold text-gray-900">Transaction Details</DialogTitle>
-                        <DialogCloseButton onClick={onClose} />
-                    </DialogHeader>
+    // Safely handle ID
+    const displayId = sale.id ? String(sale.id).slice(0, 8).toUpperCase() : '---';
 
-                    <div className="flex-1 overflow-y-auto p-6 bg-white relative z-0" style={{ minHeight: '200px' }}>
-                        <div className="bg-white">
-                            <div className="flex flex-col items-center text-center mb-6">
-                                <div className="relative h-20 w-20 mb-3" style={{ height: '80px', width: '80px' }}>
-                                    <img src="/seaside.png" alt="Seaside Logo" className="object-contain w-full h-full" />
-                                </div>
-                                <h3 className="font-bold text-xl text-primary leading-tight">Seaside Water Refilling</h3>
+    return (
+        <Dialog open={isOpen} onOpenChange={onClose}>
+            <DialogContent
+                className="p-0 overflow-hidden w-full sm:max-w-sm shadow-2xl border border-gray-200 rounded-lg flex flex-col"
+                style={{
+                    backgroundColor: '#ffffff', // Force solid white
+                    zIndex: 60,
+                    maxHeight: '90vh', // Prevent overflow on small screens
+                    margin: 'auto'
+                }}
+            >
+                {/* Inner Container: Explicit White Background */}
+                <div className="flex flex-col h-full w-full relative" style={{ backgroundColor: '#ffffff' }}>
+
+                    {/* Header: Title & Close Button */}
+                    <div className="flex justify-between items-center px-4 py-3 border-b border-gray-100" style={{ backgroundColor: '#ffffff' }}>
+                        <h3 className="font-bold text-gray-900">Transaction Receipt</h3>
+                        <DialogCloseButton onClick={onClose} />
+                    </div>
+
+                    {/* Scrollable Receipt Body */}
+                    {/* This div handles the internal scrolling for long receipts */}
+                    <div
+                        className="flex-1 overflow-y-auto px-6 py-6"
+                        style={{ backgroundColor: '#ffffff' }}
+                    >
+                        {/* 1. Brand Header */}
+                        <div className="flex flex-col items-center text-center space-y-2 pb-4 border-b-2 border-dashed border-gray-300">
+                            <div className="relative h-16 w-16 mb-1 grayscale opacity-90">
+                                <img src="/seaside.png" alt="Seaside Logo" className="object-contain w-full h-full" />
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-xl text-gray-900 tracking-tight uppercase">Seaside Water</h3>
                                 <p className="text-xs text-gray-500 mt-1">Loois, Labrador Pangasinan</p>
+                                <p className="text-xs text-gray-500">Tel: 0912-345-6789</p>
+                            </div>
+                        </div>
+
+                        {/* 2. Transaction Meta */}
+                        <div className="text-xs text-gray-600 space-y-1 font-mono mt-4">
+                            <div className="flex justify-between">
+                                <span>Date:</span>
+                                <span>{formatDate(sale.saleTimestamp)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span>Order #:</span>
+                                <span className="font-bold text-gray-900">{displayId}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span>Staff:</span>
+                                <span>{sale.createdBy || 'N/A'}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span>Customer:</span>
+                                <span className="font-bold">{sale.customerName}</span>
+                            </div>
+                        </div>
+
+                        {/* 3. Items Table */}
+                        <div className="border-t-2 border-dashed border-gray-300 pt-4 mt-4">
+                            <div className="text-xs font-bold text-gray-900 mb-2 uppercase flex justify-between">
+                                <span>Item</span>
+                                <span>Total</span>
+                            </div>
+                            <div className="space-y-3">
+                                {(sale.sale_items || []).map((item, idx) => (
+                                    <div key={idx} className="text-sm">
+                                        <div className="flex justify-between items-start">
+                                            <span className="text-gray-800 font-medium">{item.productName}</span>
+                                            <span className="text-gray-900 font-bold font-mono">
+                                                {formatCurrency((item.price_at_sale || 0) * item.quantity)}
+                                            </span>
+                                        </div>
+                                        <div className="text-xs text-gray-500 font-mono mt-0.5">
+                                            {item.quantity} x {formatCurrency(item.price_at_sale)}
+                                            {item.discount_amount > 0 && (
+                                                <span className="text-green-600 ml-1 italic">
+                                                    (Disc: -{formatCurrency(item.discount_amount)})
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* 4. Totals & Payment */}
+                        <div className="border-t-2 border-dashed border-gray-300 pt-4 mt-4 space-y-2">
+                            <div className="flex justify-between items-center text-lg font-bold text-gray-900">
+                                <span>TOTAL</span>
+                                <span className="font-mono">{formatCurrency(sale.totalAmount)}</span>
                             </div>
 
-                            <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 space-y-3 text-sm mb-6">
+                            <div className="pt-2 space-y-1 text-xs text-gray-600 font-mono">
                                 <div className="flex justify-between">
-                                    <span className="text-gray-500">Date</span>
-                                    <span className="font-semibold text-gray-900 text-right">{formatDate(sale.saleTimestamp)}</span>
+                                    <span>Payment Method:</span>
+                                    <span className="uppercase">{sale.paymentMethod}</span>
                                 </div>
-                                <div className="flex justify-between">
-                                    <span className="text-gray-500">Customer</span>
-                                    <span className="font-semibold text-gray-900 text-right">{sale.customerName}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-gray-500">Staff</span>
-                                    <span className="font-semibold text-gray-900 text-right">{sale.createdBy || 'N/A'}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-gray-500">Payment Method</span>
-                                    <span className="font-semibold text-gray-900 text-right">{sale.paymentMethod}</span>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-gray-500">Status</span>
+                                {sale.paymentMethod === 'Cash' && (
+                                    <>
+                                        <div className="flex justify-between">
+                                            <span>Cash Received:</span>
+                                            <span>{formatCurrency(sale.amountReceived || 0)}</span>
+                                        </div>
+                                        <div className="flex justify-between font-bold text-gray-900">
+                                            <span>Change:</span>
+                                            <span>{formatCurrency(sale.changegiven || 0)}</span>
+                                        </div>
+                                    </>
+                                )}
+                                <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-100">
+                                    <span>Status:</span>
                                     <StatusBadge status={sale.status} />
                                 </div>
                             </div>
+                        </div>
 
-                            <div>
-                                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 border-b border-dashed border-gray-300 pb-2">
-                                    Items Purchased
-                                </h4>
-                                <div className="space-y-3">
-                                    {(sale.sale_items || []).map((item, idx) => (
-                                        <div key={idx} className="flex justify-between items-start text-sm">
-                                            <div className="flex-1 pr-2">
-                                                <div className="font-medium text-gray-800">{item.productName}</div>
-                                                <div className="text-xs text-gray-500">
-                                                    {item.quantity} x <span className="font-semibold">{formatCurrency(item.price_at_sale)}</span>
-                                                    {item.discount_amount > 0 && <span className="ml-1 text-green-600">(Discounted)</span>}
-                                                </div>
-                                            </div>
-                                            <div className="font-semibold text-gray-900">
-                                                {formatCurrency((item.price_at_sale || 0) * item.quantity)}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="mt-6 pt-4 border-t-2 border-dashed border-gray-200 bg-white">
-                                <div className="flex justify-between items-end bg-purple-50 p-4 rounded-lg border border-purple-100">
-                                    <div>
-                                        <p className="text-xs text-purple-600 font-semibold uppercase tracking-wide">Total Amount</p>
-                                    </div>
-                                    <div className="text-2xl font-bold text-primary">
-                                        {formatCurrency(sale.totalAmount)}
-                                    </div>
-                                </div>
-                                {sale.paymentMethod === 'Cash' && (
-                                    <div className="mt-3 flex justify-between text-xs text-gray-500 px-2">
-                                        <span>Cash Received: {formatCurrency(sale.amountReceived || 0)}</span>
-                                        <span>Change: {formatCurrency(sale.changegiven || 0)}</span>
-                                    </div>
-                                )}
-                            </div>
+                        {/* 5. Footer Message */}
+                        <div className="text-center pt-6 pb-2">
+                            <p className="text-xs font-medium text-gray-400 uppercase tracking-widest">Thank You!</p>
+                            <p className="text-[10px] text-gray-300 mt-1">Please keep this receipt for your records.</p>
                         </div>
                     </div>
 
-                    <DialogFooter className="px-6 py-4 border-t bg-gray-50 flex-shrink-0 z-10">
-                        <div className="flex w-full gap-3">
-                            <Button variant="outline" onClick={handlePrintReceipt} className="flex-1 border-gray-300 text-gray-700 bg-white">
-                                <ReceiptIcon /> <span className="ml-2">Print</span>
-                            </Button>
-                            <Button variant="primary" onClick={onClose} className="flex-1 btn--primary">
+                    {/* Actions Footer */}
+                    <div className="p-4 bg-gray-50 border-t border-gray-200" style={{ backgroundColor: '#f9fafb' }}>
+                        <div className="grid grid-cols-2 gap-3">
+                            <Button variant="outline" onClick={onClose} className="w-full text-xs font-semibold bg-white border-gray-300 text-gray-700">
                                 Close
                             </Button>
+                            <Button variant="primary" onClick={handlePrintReceipt} className="w-full text-xs font-semibold shadow-sm btn--primary">
+                                <ReceiptIcon className="mr-2 h-3.5 w-3.5" /> Print Receipt
+                            </Button>
                         </div>
-                    </DialogFooter>
+                    </div>
                 </div>
             </DialogContent>
         </Dialog>
     );
 };
 
-// --- Main History Page Component ---
 export default function HistoryPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const debouncedSearchTerm = useDebounce(searchTerm, 300);
@@ -235,12 +293,9 @@ export default function HistoryPage() {
                                         <TableHead>Staff</TableHead>
                                         <TableHead>Status</TableHead>
                                         <TableHead>Payment</TableHead>
-
-                                        {/* REORDERED: Quantity, then Unit Price, then Total */}
                                         <TableHead className="w-[100px] text-center">Quantity</TableHead>
                                         <TableHead className="w-[150px]">Unit Price (Sold)</TableHead>
                                         <TableHead>Total</TableHead>
-
                                         <TableHead className="text-right">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -255,9 +310,8 @@ export default function HistoryPage() {
                                         </TableRow>
                                     ) : (
                                         sortedSales.map(s => {
-                                            // Pre-calculate items to display
                                             const items = s.sale_items || [];
-                                            const displayItems = items.slice(0, 2); // Show max 2
+                                            const displayItems = items.slice(0, 2);
                                             const remainingCount = items.length - 2;
 
                                             return (
@@ -267,8 +321,6 @@ export default function HistoryPage() {
                                                     <TableCell>{s.createdBy || 'N/A'}</TableCell>
                                                     <TableCell><StatusBadge status={s.status} /></TableCell>
                                                     <TableCell>{s.paymentMethod}</TableCell>
-
-                                                    {/* NEW ORDER: Quantity */}
                                                     <TableCell>
                                                         <div className="flex flex-col space-y-1 items-center">
                                                             {displayItems.map((item, idx) => (
@@ -278,12 +330,9 @@ export default function HistoryPage() {
                                                                     </span>
                                                                 </div>
                                                             ))}
-                                                            {/* Spacer to align with Unit Price column 'more' text if needed */}
                                                             {remainingCount > 0 && <div className="h-[15px]"></div>}
                                                         </div>
                                                     </TableCell>
-
-                                                    {/* NEW ORDER: Unit Price */}
                                                     <TableCell>
                                                         <div className="flex flex-col space-y-1">
                                                             {displayItems.map((item, idx) => (
@@ -293,8 +342,6 @@ export default function HistoryPage() {
                                                                     </span>
                                                                 </div>
                                                             ))}
-
-                                                            {/* Show "More" badge if there are extra items */}
                                                             {remainingCount > 0 && (
                                                                 <div
                                                                     className="text-[10px] text-blue-500 font-medium cursor-pointer hover:underline mt-1"
@@ -308,10 +355,7 @@ export default function HistoryPage() {
                                                             )}
                                                         </div>
                                                     </TableCell>
-
-                                                    {/* NEW ORDER: Total */}
                                                     <TableCell className="font-bold">{formatCurrency(s.totalAmount)}</TableCell>
-
                                                     <TableCell className="text-right">
                                                         <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:bg-blue-100" onClick={() => openModal(s)} title="View Details">
                                                             <ViewIcon />
@@ -354,9 +398,7 @@ export default function HistoryPage() {
                                                     {formatDate(s.saleTimestamp)}
                                                 </div>
                                                 <div className="flex justify-between items-center mt-1">
-                                                    <span className="text-xs text-gray-500">
-                                                        Staff: {s.createdBy || 'N/A'}
-                                                    </span>
+                                                    <span className="text-xs text-gray-500">Staff: {s.createdBy || 'N/A'}</span>
                                                     <StatusBadge status={s.status} />
                                                 </div>
                                             </div>
