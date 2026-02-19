@@ -53,22 +53,21 @@ const StatusBadge = ({ status }) => {
     return <span className={className}>{status}</span>;
 };
 
-// --- Sale Details Modal (Fixed: Disables Background Scroll) ---
+// --- Sale Details Modal (Fixed: 100% Scroll Lock) ---
 const SaleDetailsModal = ({ sale, isOpen, onClose }) => {
 
-    // --- SCROLL LOCK FIX ---
-    // This effect disables the main page scrollbar when the modal is open
+    // FIX: Lock BOTH html and body to ensure main scrollbar disappears
     useEffect(() => {
         if (isOpen) {
-            // Lock body scroll
-            document.body.style.overflow = 'hidden';
+            document.documentElement.style.overflow = 'hidden'; // Lock html
+            document.body.style.overflow = 'hidden';            // Lock body
         } else {
-            // Restore body scroll
-            document.body.style.overflow = 'unset';
+            document.documentElement.style.overflow = '';
+            document.body.style.overflow = '';
         }
-        // Cleanup function to restore scroll if component unmounts
         return () => {
-            document.body.style.overflow = 'unset';
+            document.documentElement.style.overflow = '';
+            document.body.style.overflow = '';
         };
     }, [isOpen]);
 
@@ -82,29 +81,33 @@ const SaleDetailsModal = ({ sale, isOpen, onClose }) => {
     const displayId = sale.id ? String(sale.id).slice(0, 8).toUpperCase() : '---';
 
     return (
-        <Dialog open={isOpen} onOpenChange={onClose}>
+        <Dialog
+            open={isOpen}
+            onOpenChange={onClose}
+            // FIX: Force overflow-hidden on the backdrop wrapper to prevent double scrolling
+            className="!overflow-hidden flex items-center justify-center"
+        >
             <DialogContent
                 className="p-0 overflow-hidden w-full sm:max-w-sm shadow-2xl border border-gray-200 rounded-lg flex flex-col"
                 style={{
                     backgroundColor: '#ffffff', // Force solid white
                     zIndex: 60,
-                    maxHeight: '90vh', // Prevent overflow on small screens
-                    margin: 'auto'
+                    maxHeight: '90vh', // Prevent growing taller than screen
+                    margin: '0 auto'
                 }}
             >
-                {/* Inner Container: Explicit White Background */}
+                {/* Inner Container */}
                 <div className="flex flex-col h-full w-full relative" style={{ backgroundColor: '#ffffff' }}>
 
-                    {/* Header: Title & Close Button */}
-                    <div className="flex justify-between items-center px-4 py-3 border-b border-gray-100" style={{ backgroundColor: '#ffffff' }}>
+                    {/* Header */}
+                    <div className="flex justify-between items-center px-4 py-3 border-b border-gray-100 bg-white">
                         <h3 className="font-bold text-gray-900">Transaction Receipt</h3>
                         <DialogCloseButton onClick={onClose} />
                     </div>
 
-                    {/* Scrollable Receipt Body */}
-                    {/* This div handles the internal scrolling for long receipts */}
+                    {/* Scrollable Receipt Body - This is the ONLY scrollable area */}
                     <div
-                        className="flex-1 overflow-y-auto px-6 py-6"
+                        className="flex-1 overflow-y-auto px-6 py-6 bg-white"
                         style={{ backgroundColor: '#ffffff' }}
                     >
                         {/* 1. Brand Header */}
@@ -115,7 +118,7 @@ const SaleDetailsModal = ({ sale, isOpen, onClose }) => {
                             <div>
                                 <h3 className="font-bold text-xl text-gray-900 tracking-tight uppercase">Seaside Water</h3>
                                 <p className="text-xs text-gray-500 mt-1">Loois, Labrador Pangasinan</p>
-                                <p className="text-xs text-gray-500">Tel: 0912-345-6789</p>
+                                <p className="text-xs text-gray-500">Tel: 09686786072</p>
                             </div>
                         </div>
 
