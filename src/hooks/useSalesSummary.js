@@ -37,6 +37,7 @@ export function useSalesSummary({ startDate, endDate } = {}) {
                 let totalProfit = 0;
                 let totalRefill20 = 0;
                 let totalRefill25 = 0;
+                let firstTransactionDate = null;
 
                 filtered.forEach(sale => {
                     totalRevenue += Number(sale.totalAmount || 0);
@@ -49,9 +50,14 @@ export function useSalesSummary({ startDate, endDate } = {}) {
                             if (name === 'Refill(25)') totalRefill25 += (item.quantity || 0);
                         });
                     }
+
+                    const sDate = new Date(sale.saleTimestamp);
+                    if (!firstTransactionDate || sDate < firstTransactionDate) {
+                        firstTransactionDate = sDate;
+                    }
                 });
 
-                return { totalRevenue, totalProfit, totalRefill20, totalRefill25 };
+                return { totalRevenue, totalProfit, totalRefill20, totalRefill25, firstTransactionDate };
             }
 
             // --- REAL DATABASE LOGIC ---
@@ -75,6 +81,7 @@ export function useSalesSummary({ startDate, endDate } = {}) {
             let totalProfit = 0;
             let totalRefill20 = 0;
             let totalRefill25 = 0;
+            let firstTransactionDate = null;
 
             if (data && Array.isArray(data)) {
                 data.forEach(item => {
@@ -92,10 +99,18 @@ export function useSalesSummary({ startDate, endDate } = {}) {
                     } else if (name === 'Refill(25)') {
                         totalRefill25 += qty;
                     }
+
+                    // Track the very first transaction date
+                    if (item.sales && item.sales.saletimestamp) {
+                        const sDate = new Date(item.sales.saletimestamp);
+                        if (!firstTransactionDate || sDate < firstTransactionDate) {
+                            firstTransactionDate = sDate;
+                        }
+                    }
                 });
             }
 
-            return { totalRevenue, totalProfit, totalRefill20, totalRefill25 };
+            return { totalRevenue, totalProfit, totalRefill20, totalRefill25, firstTransactionDate };
         },
         staleTime: 1000 * 60 * 3, // 3 minutes
     });
