@@ -27,7 +27,8 @@ const CartDrawer = ({
                         openPaymentModal,
                         createSaleMutation,
                         clearSale,
-                        onEditItem // New Prop
+                        onEditItem, // New Prop
+                        handleSetQuantity // Handle manual quantity input
                     }) => {
     const cartItems = Object.entries(currentSale);
 
@@ -102,7 +103,23 @@ const CartDrawer = ({
                                             >
                                                 -
                                             </button>
-                                            <span className="w-4 text-center text-gray-900 font-bold">{item.quantity}</span>
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                className="w-12 text-center border border-gray-300 rounded text-sm font-bold text-gray-900 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none bg-white py-0.5 mx-1"
+                                                value={item.quantity}
+                                                onChange={(e) => {
+                                                    const val = parseInt(e.target.value, 10);
+                                                    if (!isNaN(val) && val > 0) {
+                                                        handleSetQuantity(key, val);
+                                                    }
+                                                }}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    e.target.select();
+                                                }}
+                                                onFocus={(e) => e.target.select()}
+                                            />
                                             <button
                                                 className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-primary active:scale-90 transition-transform text-lg leading-none border border-gray-100 rounded-full"
                                                 onClick={() => handleIncreaseQuantity(key)}

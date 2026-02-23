@@ -23,7 +23,7 @@ import currency from 'currency.js';
 // --- Barcode Scanner Component ---
 const BarcodeScannerModal = ({ isOpen, onClose, onScan }) => {
     const [error, setError] = useState('');
-    
+
     // useZxing hook setup
     const { ref } = useZxing({
         onDecodeResult(result) {
@@ -33,12 +33,12 @@ const BarcodeScannerModal = ({ isOpen, onClose, onScan }) => {
             console.error(err);
             setError(`Camera Error: ${err.name}`);
         },
-        constraints: { 
-            video: { 
+        constraints: {
+            video: {
                 facingMode: { exact: "environment" },
                 width: { ideal: 1280 },
                 height: { ideal: 720 }
-            } 
+            }
         }
     });
 
@@ -52,11 +52,11 @@ const BarcodeScannerModal = ({ isOpen, onClose, onScan }) => {
                     <DialogCloseButton onClick={onClose} className="text-white hover:bg-white/20" />
                 </DialogHeader>
                 <div className="relative aspect-square bg-black rounded-lg overflow-hidden mt-2">
-                    <video 
-                        ref={ref} 
-                        muted 
-                        playsInline 
-                        className="w-full h-full object-cover" 
+                    <video
+                        ref={ref}
+                        muted
+                        playsInline
+                        className="w-full h-full object-cover"
                     />
                     {/* Overlay Target Box */}
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -179,6 +179,9 @@ export default function POSPage() {
 
     const subtotal = getTotalAmount();
 
+    // --- Calculate Total Quantity ---
+    const totalQty = Object.values(currentSale).reduce((sum, item) => sum + (item.quantity || 0), 0);
+
     // Handle Barcode Scan Result
     const handleScanResult = (code) => {
         setIsScannerOpen(false); // Close modal immediately
@@ -244,11 +247,28 @@ export default function POSPage() {
         addItemToSale({ ...product }, 1);
     };
 
-    // ... (Keep handleIncreaseQuantity, handleDecreaseQuantity, handleRemoveItem, handleSelectCustomer, handleAddCustomer logic same as original) ...
     const handleIncreaseQuantity = (key) => { const item = currentSale[key]; if (item) addItemToSale({ ...item, id: item.productId }, 1); };
     const handleDecreaseQuantity = (key) => { const item = currentSale[key]; if (item) addItemToSale({ ...item, id: item.productId }, -1); };
     const handleRemoveItem = (key) => { useStore.getState().removeItemFromSale(key); };
-    
+
+    // --- NEW: Handle Manual Quantity Input ---
+    const handleSetQuantity = (key, qty) => {
+        const item = currentSale[key];
+        if (!item) return;
+
+        const product = products.find(p => p.id === item.productId);
+        let finalQty = qty;
+
+        if (product && product.stock !== null && product.stock !== undefined) {
+            if (qty > product.stock) {
+                addToast({ title: 'Stock Limit', description: `Cannot add more than the ${product.stock} available.`, variant: 'warning' });
+                finalQty = product.stock;
+            }
+        }
+
+        updateCartItem(key, { quantity: finalQty });
+    };
+
     const handleSelectCustomerFromModal = (c) => { handleSetSelectedCustomer(c); setCustomerSearchTerm(''); setIsCustomerModalOpen(false); };
     const handleSelectCustomerInPayment = (c) => { handleSetSelectedCustomer(c); setCustomerSearchTerm(''); setDebouncedCustomerSearchTerm(''); setCustomerSearchResults([]); setIsSearchingCustomers(false); };
     const handleAddCustomer = async (name) => {
@@ -338,9 +358,9 @@ export default function POSPage() {
                             className="flex-1 min-w-0"
                         />
                         {/* --- CAMERA SCAN BUTTON --- */}
-                        <Button 
-                            variant="secondary" 
-                            className="px-3" 
+                        <Button
+                            variant="secondary"
+                            className="px-3"
                             onClick={() => setIsScannerOpen(true)}
                             title="Open Camera Scanner"
                         >
@@ -395,6 +415,7 @@ export default function POSPage() {
                         createSaleMutation={createSaleMutation}
                         lastCustomer={lastCustomer}
                         onEditItem={(key) => setEditItemKey(key)}
+                        handleSetQuantity={handleSetQuantity}
                     />
                 </div>
             </div>
@@ -457,15 +478,17 @@ export default function POSPage() {
             )}
 
             {/* --- SCANNER MODAL --- */}
-            <BarcodeScannerModal 
-                isOpen={isScannerOpen} 
-                onClose={() => setIsScannerOpen(false)} 
-                onScan={handleScanResult} 
+            <BarcodeScannerModal
+                isOpen={isScannerOpen}
+                onClose={() => setIsScannerOpen(false)}
+                onScan={handleScanResult}
             />
 
+            {/* --- MOBILE CART BAR --- */}
             {!(isCartDrawerOpen || isPaymentModalOpen) && (
                 <MobileCartBar
                     itemCount={Object.keys(currentSale).length}
+                    totalQty={totalQty}
                     subtotal={subtotal}
                     onOpenCart={() => setIsCartDrawerOpen(true)}
                 />
@@ -483,6 +506,7 @@ export default function POSPage() {
                 createSaleMutation={createSaleMutation}
                 clearSale={clearSale}
                 onEditItem={(key) => setEditItemKey(key)}
+                handleSetQuantity={handleSetQuantity}
             />
 
             <TabBar />

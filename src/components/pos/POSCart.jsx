@@ -27,7 +27,8 @@ const POSCart = ({
                      openPaymentModal,
                      createSaleMutation,
                      lastCustomer,
-                     onEditItem // Receive callback
+                     onEditItem, // Receive callback
+                     handleSetQuantity // Handle manual quantity input
                  }) => {
 
     return (
@@ -98,7 +99,23 @@ const POSCart = ({
                                             >
                                                 -
                                             </Button>
-                                            <div className="text-sm font-medium w-6 text-center">{item.quantity}</div>
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                className="w-12 text-center border border-gray-300 rounded text-sm font-medium focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none bg-white py-0.5 mx-1"
+                                                value={item.quantity}
+                                                onChange={(e) => {
+                                                    const val = parseInt(e.target.value, 10);
+                                                    if (!isNaN(val) && val > 0) {
+                                                        handleSetQuantity(key, val);
+                                                    }
+                                                }}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    e.target.select();
+                                                }}
+                                                onFocus={(e) => e.target.select()}
+                                            />
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
