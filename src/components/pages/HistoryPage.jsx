@@ -116,7 +116,7 @@ const SaleDetailsModal = ({ sale, isOpen, onClose }) => {
                                 <img src="/seaside.png" alt="Seaside Logo" className="object-contain w-full h-full" />
                             </div>
                             <div>
-                                <h3 className="font-bold text-xl text-gray-900 tracking-tight uppercase">Seaside Water</h3>
+                                <h3 className="font-bold text-xl text-gray-900 tracking-tight uppercase">Seaside Water Refilling Station</h3>
                                 <p className="text-xs text-gray-500 mt-1">Loois, Labrador Pangasinan</p>
                                 <p className="text-xs text-gray-500">Tel: 09686786072</p>
                             </div>
