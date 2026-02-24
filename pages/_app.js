@@ -43,8 +43,8 @@ function AuthGate({ children }) {
             const isLandingPage = router.pathname === '/'; // The new public route
 
             if (!isLoggedIn && !isLoginPage && !isLandingPage) {
-                console.log("AuthGate: Not logged in, redirecting to login");
-                router.push('/login');
+                console.log("AuthGate: Not logged in, redirecting to landing page");
+                router.push('/'); // <-- CHANGED: Now redirects to the landing page
             } else if (isLoggedIn && isLoginPage) {
                 console.log("AuthGate: Logged in, redirecting from login to dashboard");
                 router.replace('/dashboard');

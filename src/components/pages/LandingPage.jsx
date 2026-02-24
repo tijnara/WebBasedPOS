@@ -1,9 +1,12 @@
-import React from 'react';
-import { Phone, Mail, ChevronDown, Twitter, Linkedin, Facebook, Droplet, Activity, Leaf, ShieldCheck } from 'lucide-react';
+import React, { useState } from 'react';
+import { Phone, Mail, ChevronDown, Twitter, Linkedin, Facebook, Droplet, Activity, Leaf, ShieldCheck, Menu, X } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { Button } from '../ui';
 
 const SeasideWaterLanding = () => {
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+
     return (
         <div
             className="relative min-h-screen w-full font-sans text-slate-800"
@@ -33,19 +36,18 @@ const SeasideWaterLanding = () => {
                         {/* Top Bar & Main Navigation */}
                         <div className="flex flex-col items-end">
                             {/* Top Bar */}
-                            <div className="flex justify-end items-center text-[10px] sm:text-xs mb-4">
+                            <div className="hidden md:flex justify-end items-center text-[10px] sm:text-xs mb-4">
                                 <div className="flex flex-wrap items-center justify-center sm:justify-end gap-x-6 gap-y-2">
-                                    <Link
-                                        href="/login"
-                                        className="bg-lime-500 hover:bg-lime-600 text-black px-5 py-1.5 rounded-full transition-colors font-bold text-[11px] shadow-sm ml-2"
-                                    >
-                                        Staff Login
+                                    <Link href="/login" passHref>
+                                        <Button as="a" className="bg-lime-500 hover:bg-green-500 active:bg-violet-500 text-black px-5 py-1.5 rounded-full transition-colors font-bold text-[11px] shadow-sm ml-2">
+                                            Staff Login
+                                        </Button>
                                     </Link>
                                 </div>
                             </div>
 
                             {/* Main Navigation */}
-                            <nav className="flex flex-wrap items-center justify-center lg:justify-end gap-x-1 gap-y-2 text-[12px] font-bold tracking-wide">
+                            <nav className="hidden md:flex flex-wrap items-center justify-center lg:justify-end gap-x-1 gap-y-2 text-[12px] font-bold tracking-wide">
                                 <Link href="/" className="px-4 py-2 rounded-full text-green-900 hover:bg-green-100 transition-all duration-300">
                                     HOME
                                 </Link>
@@ -63,8 +65,42 @@ const SeasideWaterLanding = () => {
                                     CONTACT US
                                 </Link>
                             </nav>
+
+                            {/* Hamburger Menu Button */}
+                            <div className="md:hidden">
+                                <button onClick={() => setIsMenuOpen(!isMenuOpen)}>
+                                    {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                                </button>
+                            </div>
                         </div>
                     </div>
+                    {/* Mobile Menu */}
+                    {isMenuOpen && (
+                        <div className="md:hidden mt-4">
+                            <nav className="flex flex-col items-center gap-y-4 text-[12px] font-bold tracking-wide">
+                                <Link href="/" className="px-4 py-2 rounded-full text-green-900 hover:bg-green-100 transition-all duration-300">
+                                    HOME
+                                </Link>
+                                <Link href="#purification" className="px-4 py-2 rounded-full text-green-900 hover:bg-green-100 transition-all duration-300">
+                                    PURIFICATION PROCESS
+                                </Link>
+                                <Link href="#services" className="px-4 py-2 rounded-full text-green-900 hover:bg-green-100 transition-all duration-300">
+                                    SERVICES
+                                </Link>
+                                <Link href="#pricing" className="px-4 py-2 rounded-full text-green-900 hover:bg-green-100 transition-all duration-300">
+                                    PRICING
+                                </Link>
+                                <Link href="#contact" className="px-4 py-2 rounded-full text-green-900 hover:bg-green-100 transition-all duration-300">
+                                    CONTACT US
+                                </Link>
+                                <Link href="/login" passHref>
+                                    <Button as="a" className="bg-lime-500 hover:bg-green-500 active:bg-violet-500 text-black px-5 py-1.5 rounded-full transition-colors font-bold text-[11px] shadow-sm">
+                                        Staff Login
+                                    </Button>
+                                </Link>
+                            </nav>
+                        </div>
+                    )}
                 </header>
                 <div className="container mx-auto flex flex-col flex-grow relative" style={{ backgroundColor: '#FFFFFF99' }}>
                     {/* HERO SECTION */}

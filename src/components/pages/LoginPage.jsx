@@ -64,7 +64,7 @@ const CustomerWelcome = () => {
     }, []);
 
     return (
-        <div className="w-full md:w-3/5 p-8 md:p-16 bg-gradient-to-br from-white to-[#F1F8E9] order-2 md:order-1 overflow-y-auto max-h-full">
+        <div className="w-full md:w-3/5 p-12 md:p-16 bg-gradient-to-br from-white to-[#F1F8E9] order-2 md:order-1 overflow-y-auto max-h-full">
             <div className="mb-10">
                 <h1 className="text-4xl md:text-5xl font-black text-primary leading-tight tracking-tighter">
                     Pure Water. <br/>Pure Trust.
@@ -129,7 +129,7 @@ const StaffLogin = ({ onLogin, onDemoAdmin, onDemoStaff, isLoading }) => {
     };
 
     return (
-        <div className="w-full md:w-2/5 p-8 md:p-12 bg-gray-50 flex flex-col justify-center order-1 md:order-2 border-l border-gray-100">
+        <div className="w-full md:w-2/5 p-12 md:p-16 bg-gray-50 flex flex-col justify-center order-1 md:order-2 border-l border-gray-100">
             <div className="mb-8 text-center md:text-left">
                 <div className="flex justify-center md:justify-start mb-4">
                      <Image src="/seaside.png" alt="Logo" width={50} height={50} />
@@ -224,7 +224,7 @@ const LoginPage = () => {
     };
 
     return (
-        <div className="flex min-h-screen w-full items-center justify-center p-4 bg-gray-100 font-inter">
+        <div className="flex min-h-screen w-full items-center justify-center p-8 bg-gray-100 font-inter">
             <div className="bg-white rounded-[2rem] shadow-2xl overflow-hidden max-w-6xl w-full flex flex-col md:flex-row border border-gray-100">
                 <CustomerWelcome />
                 <StaffLogin 

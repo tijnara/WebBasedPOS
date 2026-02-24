@@ -6,7 +6,6 @@ import { useStore } from '../store/useStore';
 import Image from 'next/image';
 import { supabase } from '../lib/supabaseClient';
 import currency from 'currency.js';
-// Import icons from your shared component
 import { CartIcon, PackageIcon, UserIcon, ChartIcon, UsersIcon } from './Icons';
 
 // Hamburger Icon
@@ -37,7 +36,6 @@ const Navbar = () => {
     const [isStartShiftModalOpen, setIsStartShiftModalOpen] = useState(false);
     const [startingCash, setStartingCash] = useState('');
 
-    // --- CHANGED: POS path updated to '/pos' ---
     const links = [
         { name: 'Dashboard', path: '/dashboard', icon: <ChartIcon className="h-5 w-5" /> },
         { name: 'POS', path: '/pos', icon: <CartIcon className="h-5 w-5" /> },
@@ -71,11 +69,11 @@ const Navbar = () => {
         };
     }, [user, router.events]);
 
-    // --- CHANGED: Added central logout handler to clear session and push to '/' ---
+    // --- CHANGED: Await router.push to the landing page first to prevent race condition ---
     const handleLogout = async () => {
+        await router.push('/'); // Navigate first
         await supabase.auth.signOut();
-        if (logout) logout();
-        router.push('/');
+        if (logout) logout(); // Clear state
     };
 
     const checkActiveShift = async () => {
