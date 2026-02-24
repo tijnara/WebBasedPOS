@@ -39,7 +39,7 @@ const CartDrawer = ({
                 style={{ margin: 0, transform: 'none', height: '85vh', maxHeight: '85vh' }}
             >
                 <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 bg-white rounded-t-2xl flex-shrink-0">
-                    <h2 className="text-xl font-bold text-[#7F00FF]">Current Order</h2>
+                    <h2 className="text-xl font-bold text-[#8BC34A]">Current Order</h2>
                     <button
                         onClick={() => {
                             if (cartItems.length > 0 && confirm("Clear current order?")) {
@@ -167,7 +167,7 @@ const CartDrawer = ({
 
                     <Button
                         variant="primary"
-                        className="w-full h-12 text-base font-bold rounded-xl shadow-lg bg-[#7F00FF] hover:bg-[#6a00d9] text-white active:scale-[0.98] transition-transform"
+                        className="w-full h-12 text-base font-bold rounded-xl shadow-lg bg-[#8BC34A] hover:bg-[#7CB342] text-white active:scale-[0.98] transition-transform"
                         onClick={() => {
                             onClose();
                             openPaymentModal();

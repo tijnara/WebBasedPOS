@@ -64,7 +64,7 @@ const CustomerWelcome = () => {
     }, []);
 
     return (
-        <div className="w-full md:w-3/5 p-8 md:p-16 bg-gradient-to-br from-white to-purple-50 order-2 md:order-1 overflow-y-auto max-h-full">
+        <div className="w-full md:w-3/5 p-8 md:p-16 bg-gradient-to-br from-white to-[#F1F8E9] order-2 md:order-1 overflow-y-auto max-h-full">
             <div className="mb-10">
                 <h1 className="text-4xl md:text-5xl font-black text-primary leading-tight tracking-tighter">
                     Pure Water. <br/>Pure Trust.
@@ -76,11 +76,11 @@ const CustomerWelcome = () => {
 
             {/* Live Dashboard / Community Proof */}
             <div className="grid grid-cols-2 gap-6 mb-12">
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-purple-100">
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-[#DCEDC8]">
                     <div className="text-4xl font-black text-primary">{custData?.totalCount || 0}</div>
                     <div className="text-gray-400 text-xs font-bold uppercase tracking-widest mt-1">Families Served</div>
                 </div>
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-purple-100">
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-[#DCEDC8]">
                     <div className="text-4xl font-black text-green-500">+{newThisWeek}</div>
                     <div className="text-gray-400 text-xs font-bold uppercase tracking-widest mt-1">New This Week</div>
                 </div>

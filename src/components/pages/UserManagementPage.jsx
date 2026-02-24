@@ -29,7 +29,7 @@ const RoleBadge = ({ role }) => {
     const isAdmin = role === USER_ROLES.ADMIN;
     return (
         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-            isAdmin ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'
+            isAdmin ? 'bg-[#DCEDC8] text-[#33691E]' : 'bg-gray-100 text-gray-800'
         }`}>
             {isAdmin ? 'Admin' : 'Staff'}
         </span>

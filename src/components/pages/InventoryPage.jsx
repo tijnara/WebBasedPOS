@@ -226,7 +226,7 @@ function BreakBulk({ products, onSuccess }) {
 
     return (
         <div className="space-y-5 animate-in fade-in">
-            <div className="bg-gradient-to-r from-violet-50 to-white p-4 rounded-xl border border-violet-100 flex items-start gap-4">
+            <div className="bg-gradient-to-r from-[#F1F8E9] to-white p-4 rounded-xl border border-[#DCEDC8] flex items-start gap-4">
                 <div className="bg-white p-2 rounded-lg shadow-sm text-primary">
                     <PackageIcon className="w-5 h-5"/>
                 </div>
@@ -251,7 +251,7 @@ function BreakBulk({ products, onSuccess }) {
                                 <div className="p-4">
                                     <div className="flex justify-between items-start mb-2">
                                         <div className="font-bold text-base text-gray-900 leading-tight">{child.name}</div>
-                                        <span className="text-[10px] font-bold bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full whitespace-nowrap">
+                                        <span className="text-[10px] font-bold bg-[#DCEDC8] text-[#33691E] px-2 py-0.5 rounded-full whitespace-nowrap">
                                             x{child.conversion_rate} Units
                                         </span>
                                     </div>

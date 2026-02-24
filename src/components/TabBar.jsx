@@ -2,13 +2,13 @@
 import React from 'react';
 import { useRouter } from 'next/router';
 import { cn } from './ui';
-import { CartIcon, PackageIcon, UserIcon, ChartIcon, UsersIcon, DocumentReportIcon } from './Icons'; // Import icons
+import { CartIcon, PackageIcon, UserIcon, ChartIcon, UsersIcon, DocumentReportIcon } from './Icons';
 
 import { useStore } from '../store/useStore';
 
-// Define the navigation links for the tab bar
+// --- CHANGED: POS path updated to '/pos' ---
 const links = [
-    { name: 'POS', path: '/', icon: <CartIcon className="h-6 w-6" />, adminOnly: false },
+    { name: 'POS', path: '/pos', icon: <CartIcon className="h-6 w-6" />, adminOnly: false },
     { name: 'Products', path: '/product-management', icon: <PackageIcon className="h-6 w-6" />, adminOnly: false },
     { name: 'Inventory', path: '/inventory', icon: <PackageIcon className="h-6 w-6" />, adminOnly: false },
     { name: 'Customer', path: '/customer-management', icon: <UserIcon className="h-6 w-6" />, adminOnly: false },
@@ -22,8 +22,8 @@ export default function TabBar() {
     const router = useRouter();
     const user = useStore(s => s.user);
 
-    // Don't show the tab bar on the login page
-    if (router.pathname === '/login') {
+    // --- CHANGED: Don't show the tab bar on the login page AND landing page ('/') ---
+    if (router.pathname === '/login' || router.pathname === '/') {
         return null;
     }
 

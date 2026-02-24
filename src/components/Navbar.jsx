@@ -37,9 +37,10 @@ const Navbar = () => {
     const [isStartShiftModalOpen, setIsStartShiftModalOpen] = useState(false);
     const [startingCash, setStartingCash] = useState('');
 
+    // --- CHANGED: POS path updated to '/pos' ---
     const links = [
         { name: 'Dashboard', path: '/dashboard', icon: <ChartIcon className="h-5 w-5" /> },
-        { name: 'POS', path: '/', icon: <CartIcon className="h-5 w-5" /> },
+        { name: 'POS', path: '/pos', icon: <CartIcon className="h-5 w-5" /> },
         { name: 'Products', path: '/product-management', icon: <PackageIcon className="h-5 w-5" /> },
         { name: 'Inventory', path: '/inventory', icon: <PackageIcon className="h-5 w-5" /> },
         { name: 'Customer', path: '/customer-management', icon: <UserIcon className="h-5 w-5" /> },
@@ -53,7 +54,7 @@ const Navbar = () => {
         if (user) {
             checkActiveShift();
         }
-        
+
         const handleRouteChange = () => setIsMenuOpen(false);
         router.events.on('routeChangeComplete', handleRouteChange);
 
@@ -69,6 +70,13 @@ const Navbar = () => {
             document.removeEventListener('mousedown', handleClickOutside);
         };
     }, [user, router.events]);
+
+    // --- CHANGED: Added central logout handler to clear session and push to '/' ---
+    const handleLogout = async () => {
+        await supabase.auth.signOut();
+        if (logout) logout();
+        router.push('/');
+    };
 
     const checkActiveShift = async () => {
         if (!user) return;
@@ -114,7 +122,7 @@ const Navbar = () => {
             .select('*').eq('staff_id', user.id).eq('status', 'OPEN').maybeSingle();
 
         if (!shift) {
-            logout();
+            handleLogout(); // Ensure redirect happens here
             return;
         }
 
@@ -157,7 +165,7 @@ const Navbar = () => {
         }).eq('staff_id', user.id).eq('status', 'OPEN');
         setIsShiftModalOpen(false);
         setActualCash('');
-        logout();
+        handleLogout(); // Ensure redirect happens here
     };
 
     const renderLinks = () => links
@@ -184,7 +192,7 @@ const Navbar = () => {
                         <Button variant="ghost" onClick={() => setIsMenuOpen(!isMenuOpen)}>
                             <HamburgerIcon className="h-6 w-6" />
                         </Button>
-                        
+
                         {/* Floating Menu */}
                         {isMenuOpen && (
                             <div className="absolute left-0 mt-2 w-56 origin-top-left bg-white border border-gray-200 divide-y divide-gray-100 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50" id="main-menu">
@@ -229,7 +237,7 @@ const Navbar = () => {
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="ghost" onClick={logout} className="text-red-500">Logout</Button>
+                        <Button variant="ghost" onClick={handleLogout} className="text-red-500">Logout</Button>
                         <Button variant="primary" onClick={handleStartShift} disabled={!startingCash}>Start Shift</Button>
                     </DialogFooter>
                 </DialogContent>

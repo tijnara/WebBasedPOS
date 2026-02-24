@@ -7,10 +7,10 @@
 /* Modernized global styles */
 
 :root {
-    /* --- THEME COLOR UPDATED --- */
-    --primary: #7F00FF; /* Vibrant Violet */
-    --primary-hover: #6a00d9; /* Darker Violet */
-    --primary-soft: #F3E8FF; /* Soft Violet background */
+    /* --- THEME COLOR UPDATED TO APPLE GREEN --- */
+    --primary: #8BC34A; /* Apple Green */
+    --primary-hover: #7CB342; /* Darker Apple Green */
+    --primary-soft: #F1F8E9; /* Very Light Apple Green */
     /* --- End Theme Color Update --- */
 
     --secondary: #6b7280; /* Gray-500 */

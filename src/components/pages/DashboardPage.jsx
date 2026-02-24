@@ -311,7 +311,7 @@ export default function DashboardPage() {
                     title="Today's Sales"
                     value={currency(todaySalesSummary?.totalRevenue || 0, { symbol: '₱' }).format()}
                     subtext="Sales today"
-                    colorClass="text-violet-600"
+                    colorClass="text-[#8BC34A]"
                     icon={<CurrencyDollarIcon />}
                 />
                 <SummaryCard
