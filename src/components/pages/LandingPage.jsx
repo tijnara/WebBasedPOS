@@ -1,11 +1,17 @@
 import React, { useState } from 'react';
-import { Phone, Mail, ChevronDown, Twitter, Linkedin, Facebook, Droplet, Activity, Leaf, ShieldCheck, Menu, X } from 'lucide-react';
+import { Phone, Mail, ChevronDown, Facebook, Droplet, Activity, Leaf, ShieldCheck, Menu, X, MessageCircle } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '../ui';
+import { motion } from 'framer-motion';
 
 const SeasideWaterLanding = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+    const sectionVariants = {
+        hidden: { opacity: 0, y: 50 },
+        visible: { opacity: 1, y: 0, transition: { duration: 0.6 } }
+    };
 
     return (
         <div
@@ -61,8 +67,8 @@ const SeasideWaterLanding = () => {
                                 <Link href="#pricing" className="px-4 py-2 rounded-full text-green-900 hover:bg-green-100 transition-all duration-300">
                                     PRICING
                                 </Link>
-                                <Link href="#contact" className="px-4 py-2 rounded-full text-green-900 hover:bg-green-100 transition-all duration-300">
-                                    CONTACT US
+                                <Link href="#location" className="px-4 py-2 rounded-full text-green-900 hover:bg-green-100 transition-all duration-300">
+                                    LOCATION
                                 </Link>
                             </nav>
 
@@ -90,8 +96,8 @@ const SeasideWaterLanding = () => {
                                 <Link href="#pricing" className="px-4 py-2 rounded-full text-green-900 hover:bg-green-100 transition-all duration-300">
                                     PRICING
                                 </Link>
-                                <Link href="#contact" className="px-4 py-2 rounded-full text-green-900 hover:bg-green-100 transition-all duration-300">
-                                    CONTACT US
+                                <Link href="#location" className="px-4 py-2 rounded-full text-green-900 hover:bg-green-100 transition-all duration-300">
+                                    LOCATION
                                 </Link>
                                 <Link href="/login" passHref>
                                     <Button as="a" className="bg-lime-500 hover:bg-green-500 active:bg-violet-500 text-black px-5 py-1.5 rounded-full transition-colors font-bold text-[11px] shadow-sm">
@@ -104,7 +110,12 @@ const SeasideWaterLanding = () => {
                 </header>
                 <div className="container mx-auto flex flex-col flex-grow relative" style={{ backgroundColor: '#FFFFFF99' }}>
                     {/* HERO SECTION */}
-                    <div className="relative pt-6 pb-24 lg:pb-32 overflow-hidden flex-grow">
+                    <motion.div
+                        variants={sectionVariants}
+                        initial="hidden"
+                        animate="visible"
+                        className="relative pt-6 pb-24 lg:pb-32 overflow-hidden flex-grow"
+                    >
                         {/* Hero Content */}
                         <div className="px-6 mt-16 md:mt-24 relative z-20">
                             <div className="max-w-2xl">
@@ -128,10 +139,16 @@ const SeasideWaterLanding = () => {
                                 </ul>
                             </div>
                         </div>
-                    </div>
+                    </motion.div>
 
                     {/* BENEFITS SECTION */}
-                    <div className="bg-transparent relative z-20 border-t">
+                    <motion.div
+                        variants={sectionVariants}
+                        initial="hidden"
+                        whileInView="visible"
+                        viewport={{ once: true }}
+                        className="bg-transparent relative z-20 border-t"
+                    >
                         <div className="px-6 py-20 pb-32 max-w-6xl mx-auto">
                             <div className="text-center mb-16">
                                 <span className="inline-block py-1 px-4 rounded-full bg-lime-100 mb-3 border">
@@ -176,7 +193,37 @@ const SeasideWaterLanding = () => {
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </motion.div>
+
+                    {/* LOCATION SECTION */}
+                    <motion.div
+                        id="location"
+                        variants={sectionVariants}
+                        initial="hidden"
+                        whileInView="visible"
+                        viewport={{ once: true }}
+                        className="bg-transparent relative z-20 border-t"
+                    >
+                        <div className="px-6 py-20 pb-32 max-w-6xl mx-auto">
+                            <div className="text-center mb-16">
+                                <span className="inline-block py-1 px-4 rounded-full bg-lime-100 mb-3 border">
+                                    <h2 className="text-green-700 text-sm font-bold tracking-widest uppercase m-0">Our Location</h2>
+                                </span>
+                                <p className="text-2xl md:text-3xl font-medium text-slate-800 drop-shadow-sm">Come visit us!</p>
+                            </div>
+                            <div className="w-full">
+                                <iframe
+                                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3834.427589470715!2d120.1322205!3d16.043286199999997!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3393e1d08454d96f%3A0xfd7e1df20c90037d!2sSEASIDE%20Water%20Refilling%20Station!5e0!3m2!1sen!2sph!4v1771921863348!5m2!1sen!2sph"
+                                    width="100%"
+                                    height="450"
+                                    style={{ border: 0 }}
+                                    allowFullScreen=""
+                                    loading="lazy"
+                                    referrerPolicy="no-referrer-when-downgrade"
+                                ></iframe>
+                            </div>
+                        </div>
+                    </motion.div>
 
                     {/* FOOTER */}
                     <footer className="bg-green-950 text-green-100 text-sm relative z-20 border-t border-green-900 mt-auto">
@@ -187,9 +234,8 @@ const SeasideWaterLanding = () => {
                                     <p>&copy; {new Date().getFullYear()} SEASIDE Purified Water. All rights reserved.</p>
                                 </div>
                                 <div className="flex space-x-5">
-                                    <a href="#" className="hover:text-lime-300 transition-colors"><Twitter className="w-5 h-5" /></a>
-                                    <a href="#" className="hover:text-lime-300 transition-colors"><Linkedin className="w-5 h-5" /></a>
-                                    <a href="#" className="hover:text-lime-300 transition-colors"><Facebook className="w-5 h-5" /></a>
+                                    <a href="https://www.facebook.com/profile.php?id=61587059323111" className="hover:text-lime-300 transition-colors"><Facebook className="w-5 h-5" /></a>
+                                    <a href="http://m.me/943197025547521" className="hover:text-lime-300 transition-colors"><MessageCircle className="w-5 h-5" /></a>
                                 </div>
                             </div>
                         </div>
