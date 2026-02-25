@@ -1,38 +1,38 @@
 // src/components/pages/LandingPage.jsx
 import React, { useState, useEffect } from 'react';
 import {
-    Phone, Mail, ChevronDown, Facebook, Droplet, Activity,
+    ChevronDown, Facebook, Droplet, Activity,
     Leaf, ShieldCheck, Menu, X, MessageCircle,
-    Image as ImageIcon, ChevronLeft, ChevronRight
+    Image as ImageIcon
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '../ui';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useGallery } from '../../hooks/useGallery';
 
 const SeasideWaterLanding = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const { data: galleryItems = [] } = useGallery();
 
-    // Carousel State
     const [currentIndex, setCurrentIndex] = useState(0);
+    const [isLightboxOpen, setIsLightboxOpen] = useState(false); // New state for Lightbox
 
-    // Auto-play logic to rotate images every 5 seconds
+    // Auto-play logic
     useEffect(() => {
-        if (galleryItems.length <= 1) return;
+        if (galleryItems.length <= 1 || isLightboxOpen) return; // Pause auto-play if lightbox is open
         const timer = setInterval(() => {
-            paginate(1);
+            setCurrentIndex((prev) => (prev === galleryItems.length - 1 ? 0 : prev + 1));
         }, 5000);
         return () => clearInterval(timer);
-    }, [currentIndex, galleryItems.length]);
+    }, [galleryItems.length, isLightboxOpen]);
 
-    const paginate = (direction) => {
-        if (direction === 1) {
-            setCurrentIndex((prev) => (prev === galleryItems.length - 1 ? 0 : prev + 1));
-        } else {
-            setCurrentIndex((prev) => (prev === 0 ? galleryItems.length - 1 : prev - 1));
-        }
+    const nextSlide = () => {
+        setCurrentIndex((prev) => (prev === galleryItems.length - 1 ? 0 : prev + 1));
+    };
+
+    const prevSlide = () => {
+        setCurrentIndex((prev) => (prev === 0 ? galleryItems.length - 1 : prev - 1));
     };
 
     const sectionVariants = {
@@ -51,12 +51,9 @@ const SeasideWaterLanding = () => {
                 backgroundRepeat: 'no-repeat'
             }}
         >
-            {/* Main Content Wrapper */}
             <div className="relative z-10 min-h-screen flex flex-col">
-                {/* STICKY HEADER */}
                 <header className="px-6 py-2 relative z-50 sticky top-0 border-b border-green-900/10 shadow-sm w-full" style={{ backgroundColor: 'transparent' }}>
                     <div className="container mx-auto flex justify-between items-center">
-                        {/* Logo */}
                         <div className="flex items-center space-x-3">
                             <div className="p-2 rounded-xl shadow-sm border border-green-100" style={{ backgroundColor: '#FFFFFF99' }}>
                                 <Image src="/seasidelogo_.png" alt="SEASIDE Logo" width={100} height={100} className="object-contain" />
@@ -66,7 +63,6 @@ const SeasideWaterLanding = () => {
                                 <span className="text-[8px] tracking-[0.25em] font-bold uppercase leading-tight text-green-800">Water Refilling Station</span>
                             </div>
                         </div>
-                        {/* Top Bar & Main Navigation */}
                         <div className="flex flex-col items-end">
                             <div className="hidden md:flex justify-end items-center text-[10px] sm:text-xs mb-4">
                                 <div className="flex flex-wrap items-center justify-center sm:justify-end gap-x-6 gap-y-2">
@@ -77,7 +73,6 @@ const SeasideWaterLanding = () => {
                                     </Link>
                                 </div>
                             </div>
-
                             <nav className="hidden md:flex flex-wrap items-center justify-center lg:justify-end gap-x-1 gap-y-2 text-[12px] font-bold tracking-wide">
                                 <Link href="/" className="px-4 py-2 rounded-full text-green-900 hover:bg-green-100 transition-all duration-300">HOME</Link>
                                 <Link href="#purification" className="px-4 py-2 rounded-full text-green-900 hover:bg-green-100 transition-all duration-300">PURIFICATION PROCESS</Link>
@@ -87,7 +82,6 @@ const SeasideWaterLanding = () => {
                                 <Link href="#gallery" className="px-4 py-2 rounded-full text-green-900 hover:bg-green-100 transition-all duration-300">GALLERY</Link>
                                 <Link href="#location" className="px-4 py-2 rounded-full text-green-900 hover:bg-green-100 transition-all duration-300">LOCATION</Link>
                             </nav>
-
                             <div className="md:hidden">
                                 <button onClick={() => setIsMenuOpen(!isMenuOpen)}>
                                     {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -114,7 +108,7 @@ const SeasideWaterLanding = () => {
                 </header>
 
                 <div className="container mx-auto flex flex-col flex-grow relative" style={{ backgroundColor: '#FFFFFF99' }}>
-                    {/* HERO SECTION */}
+
                     <motion.div variants={sectionVariants} initial="hidden" animate="visible" className="relative pt-6 pb-24 lg:pb-32 overflow-hidden flex-grow">
                         <div className="px-6 mt-16 md:mt-24 relative z-20">
                             <div className="max-w-2xl">
@@ -130,7 +124,6 @@ const SeasideWaterLanding = () => {
                         </div>
                     </motion.div>
 
-                    {/* BENEFITS SECTION */}
                     <motion.div variants={sectionVariants} initial="hidden" whileInView="visible" viewport={{ once: true }} className="bg-transparent relative z-20 border-t">
                         <div className="px-6 py-20 pb-32 max-w-6xl mx-auto text-center">
                             <div className="mb-16">
@@ -159,7 +152,7 @@ const SeasideWaterLanding = () => {
                         </div>
                     </motion.div>
 
-                    {/* BULLETPROOF GALLERY SLIDESHOW */}
+                    {/* GALLERY SLIDESHOW */}
                     <motion.div id="gallery" variants={sectionVariants} initial="hidden" whileInView="visible" viewport={{ once: true }} className="bg-transparent relative z-20 border-t">
                         <div className="px-6 py-20 pb-32 max-w-5xl mx-auto">
                             <div className="text-center mb-16">
@@ -170,59 +163,76 @@ const SeasideWaterLanding = () => {
                             </div>
 
                             {galleryItems.length > 0 ? (
-                                /* FIX: Added explicit inline styles for absolute minimum height to prevent layout collapse */
                                 <div
-                                    className="relative w-full overflow-hidden rounded-[2rem] shadow-2xl border-4 border-white bg-slate-200 group"
-                                    style={{ minHeight: '350px', height: '60vh', maxHeight: '600px' }}
+                                    className="relative w-full rounded-[2rem] shadow-2xl border-4 border-white bg-slate-900 group overflow-hidden"
+                                    style={{ height: '450px' }}
                                 >
-                                    {galleryItems.map((item, idx) => (
-                                        <div
-                                            key={item.id}
-                                            className={`absolute inset-0 w-full h-full transition-opacity duration-1000 ease-in-out ${
-                                                idx === currentIndex ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
-                                            }`}
+                                    <AnimatePresence mode="wait">
+                                        <motion.div
+                                            key={currentIndex}
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            exit={{ opacity: 0 }}
+                                            transition={{ duration: 0.5 }}
+                                            className="absolute inset-0 w-full h-full"
                                         >
                                             <img
-                                                src={item.image_url}
-                                                alt={item.title}
-                                                className="w-full h-full object-cover block"
+                                                src={galleryItems[currentIndex]?.image_url}
+                                                alt={galleryItems[currentIndex]?.title || 'Gallery'}
+                                                className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-700"
+                                                onClick={() => setIsLightboxOpen(true)}
                                             />
                                             {/* Info Overlay */}
-                                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-6 md:p-8 text-white">
-                                                <h3 className="text-xl md:text-2xl font-bold">{item.title}</h3>
-                                                <p className="text-sm md:text-base opacity-90 mt-2 max-w-2xl">{item.description}</p>
+                                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-6 md:p-8 text-white z-20 pointer-events-none">
+                                                <h3 className="text-2xl md:text-3xl font-bold drop-shadow-md">
+                                                    {galleryItems[currentIndex]?.title}
+                                                </h3>
+                                                {galleryItems[currentIndex]?.description && (
+                                                    <p className="text-sm md:text-base text-gray-200 mt-2 max-w-3xl drop-shadow">
+                                                        {galleryItems[currentIndex]?.description}
+                                                    </p>
+                                                )}
                                             </div>
-                                        </div>
-                                    ))}
+                                        </motion.div>
+                                    </AnimatePresence>
 
                                     {/* Navigation Arrows */}
-                                    <button
-                                        className="absolute left-4 top-1/2 -translate-y-1/2 z-20 bg-white/20 hover:bg-white/40 backdrop-blur-md p-3 rounded-full text-white transition-all md:opacity-0 group-hover:opacity-100"
-                                        onClick={() => paginate(-1)}
-                                    >
-                                        <ChevronLeft size={32} />
-                                    </button>
-                                    <button
-                                        className="absolute right-4 top-1/2 -translate-y-1/2 z-20 bg-white/20 hover:bg-white/40 backdrop-blur-md p-3 rounded-full text-white transition-all md:opacity-0 group-hover:opacity-100"
-                                        onClick={() => paginate(1)}
-                                    >
-                                        <ChevronRight size={32} />
-                                    </button>
-
-                                    {/* Dot Indicators */}
-                                    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-3 z-20">
-                                        {galleryItems.map((_, idx) => (
+                                    {galleryItems.length > 1 && (
+                                        <>
                                             <button
-                                                key={idx}
-                                                onClick={() => setCurrentIndex(idx)}
-                                                className={`h-2.5 rounded-full transition-all ${idx === currentIndex ? 'w-10 bg-white shadow-lg' : 'w-2.5 bg-white/40 hover:bg-white/60'}`}
-                                            />
-                                        ))}
-                                    </div>
+                                                onClick={prevSlide}
+                                                className="absolute left-4 top-1/2 -translate-y-1/2 z-30 flex items-center justify-center w-12 h-12 md:w-14 md:h-14 bg-[#FFFFFF00] hover:bg-white/40 text-black rounded-full backdrop-blur-md transition-all shadow-lg hover:scale-110 active:scale-95 border border-white/50 md:opacity-0 group-hover:opacity-100"
+                                                aria-label="Previous image"
+                                            >
+                                                <span className="text-xl md:text-2xl font-bold leading-none -mt-1">❮</span>
+                                            </button>
+
+                                            <button
+                                                onClick={nextSlide}
+                                                className="absolute right-4 top-1/2 -translate-y-1/2 z-30 flex items-center justify-center w-12 h-12 md:w-14 md:h-14 bg-[#FFFFFF00] hover:bg-white/40 text-black rounded-full backdrop-blur-md transition-all shadow-lg hover:scale-110 active:scale-95 border border-white/50 md:opacity-0 group-hover:opacity-100"
+                                                aria-label="Next image"
+                                            >
+                                                <span className="text-xl md:text-2xl font-bold leading-none -mt-1">❯</span>
+                                            </button>
+
+                                            {/* Dots Indicator */}
+                                            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3 z-30 bg-black/30 px-4 py-2.5 rounded-full backdrop-blur-md border border-white/10 shadow-lg">
+                                                {galleryItems.map((_, idx) => (
+                                                    <button
+                                                        key={idx}
+                                                        onClick={() => setCurrentIndex(idx)}
+                                                        className={`h-2.5 rounded-full transition-all duration-300 ${
+                                                            idx === currentIndex ? 'w-8 bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]' : 'w-2.5 bg-white/50 hover:bg-white/90'
+                                                        }`}
+                                                    />
+                                                ))}
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             ) : (
                                 <div className="text-center py-20 bg-white/50 rounded-3xl border border-dashed border-slate-300">
-                                    <ImageIcon className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+                                    <ImageIcon className="w-12 h-12 text-slate-400 mx-auto mb-4" />
                                     <p className="text-slate-500 font-medium">No gallery items yet.</p>
                                 </div>
                             )}
@@ -238,7 +248,7 @@ const SeasideWaterLanding = () => {
                                 </span>
                                 <p className="text-2xl md:text-3xl font-medium text-slate-800 drop-shadow-sm">Come visit us!</p>
                             </div>
-                            <div className="w-full">
+                            <div className="w-full relative z-30">
                                 <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3834.427589470715!2d120.1322205!3d16.043286199999997!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3393e1d08454d96f%3A0xfd7e1df20c90037d!2sSEASIDE%20Water%20Refilling%20Station!5e0!3m2!1sen!2sph!4v1771921863348!5m2!1sen!2sph" width="100%" height="450" style={{ border: 0 }} allowFullScreen="" loading="lazy" referrerPolicy="no-referrer-when-downgrade"></iframe>
                             </div>
                         </div>
@@ -258,6 +268,48 @@ const SeasideWaterLanding = () => {
                     </footer>
                 </div>
             </div>
+
+            {/* LIGHTBOX / ENLARGED IMAGE OVERLAY - Refined for "focus, zoom, blur, and small size" without arrows */}
+            <AnimatePresence>
+                {isLightboxOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.3 }}
+                        // Intense blur and darker background for absolute focus on the image
+                        className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-xl p-4 md:p-10"
+                        onClick={() => setIsLightboxOpen(false)}
+                    >
+                        {/* Close Button */}
+                        <button
+                            className="absolute top-4 right-4 md:top-8 md:right-8 text-white/70 hover:text-white bg-black/50 hover:bg-black/80 p-2 rounded-full transition-all z-[110]"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setIsLightboxOpen(false);
+                            }}
+                        >
+                            <X size={32} />
+                        </button>
+
+                        {/* Enlarged Image Container - Uses spring scale for "zoom" feel, and strictly limited max-sizes */}
+                        <motion.img
+                            initial={{ scale: 0.85, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.85, opacity: 0 }}
+                            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                            src={galleryItems[currentIndex]?.image_url}
+                            alt={galleryItems[currentIndex]?.title || 'Enlarged Image'}
+                            // Set width to full, max width to 5xl (same as container), and height limit to prevent overflow
+                            className="w-full max-w-5xl max-h-[85vh] object-contain cursor-default drop-shadow-[0_20px_40px_rgba(0,0,0,0.4)] rounded-[2rem] bg-transparent"
+                            onClick={(e) => e.stopPropagation()}
+                        />
+
+                        {/* Navigation arrows intentionally removed from the Lightbox overlay as requested */}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
         </div>
     );
 };
