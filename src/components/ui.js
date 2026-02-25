@@ -39,6 +39,11 @@ export const Input = React.forwardRef(({ className, ...props }, ref) => (
 ));
 Input.displayName = 'Input';
 
+export const Textarea = React.forwardRef(({ className, ...props }, ref) => (
+    <textarea ref={ref} className={cn('input min-h-[80px]', className)} {...props} />
+));
+Textarea.displayName = 'Textarea';
+
 export const Card = ({ children, className }) => (
     <div className={cn('card', className)}>{children}</div>
 );

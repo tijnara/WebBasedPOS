@@ -2,7 +2,7 @@
 import React from 'react';
 import { useRouter } from 'next/router';
 import { cn } from './ui';
-import { CartIcon, PackageIcon, UserIcon, ChartIcon, UsersIcon, DocumentReportIcon } from './Icons';
+import { CartIcon, PackageIcon, UserIcon, ChartIcon, UsersIcon, DocumentReportIcon, GalleryIcon } from './Icons';
 
 import { useStore } from '../store/useStore';
 
@@ -14,6 +14,7 @@ const links = [
     { name: 'Customer', path: '/customer-management', icon: <UserIcon className="h-6 w-6" />, adminOnly: false },
     { name: 'Dashboard', path: '/dashboard', icon: <ChartIcon className="h-6 w-6" />, adminOnly: false },
     { name: 'Sale History', path: '/history', icon: <ChartIcon className="h-6 w-6" />, adminOnly: false },
+    { name: 'Gallery', path: '/gallery-management', icon: <GalleryIcon className="h-6 w-6" />, adminOnly: true },
     { name: 'Users', path: '/user-management', icon: <UsersIcon className="h-6 w-6" />, adminOnly: true },
     { name: 'Report', path: '/report', icon: <DocumentReportIcon className="h-6 w-6" />, adminOnly: true },
 ];

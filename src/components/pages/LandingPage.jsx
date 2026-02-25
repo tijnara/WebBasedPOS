@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { Phone, Mail, ChevronDown, Facebook, Droplet, Activity, Leaf, ShieldCheck, Menu, X, MessageCircle } from 'lucide-react';
+import { Phone, Mail, ChevronDown, Facebook, Droplet, Activity, Leaf, ShieldCheck, Menu, X, MessageCircle, Image as ImageIcon } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '../ui';
 import { motion } from 'framer-motion';
+import { useGallery } from '../../hooks/useGallery';
 
 const SeasideWaterLanding = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const { data: galleryItems = [] } = useGallery();
 
     const sectionVariants = {
         hidden: { opacity: 0, y: 50 },
@@ -64,8 +66,8 @@ const SeasideWaterLanding = () => {
                                     SERVICES
                                     <ChevronDown className="w-3.5 h-3.5 ml-1.5 opacity-70 transition-transform duration-300 group-hover:rotate-180"/>
                                 </Link>
-                                <Link href="#pricing" className="px-4 py-2 rounded-full text-green-900 hover:bg-green-100 transition-all duration-300">
-                                    PRICING
+                                <Link href="#gallery" className="px-4 py-2 rounded-full text-green-900 hover:bg-green-100 transition-all duration-300">
+                                    GALLERY
                                 </Link>
                                 <Link href="#location" className="px-4 py-2 rounded-full text-green-900 hover:bg-green-100 transition-all duration-300">
                                     LOCATION
@@ -93,8 +95,8 @@ const SeasideWaterLanding = () => {
                                 <Link href="#services" className="px-4 py-2 rounded-full text-green-900 hover:bg-green-100 transition-all duration-300">
                                     SERVICES
                                 </Link>
-                                <Link href="#pricing" className="px-4 py-2 rounded-full text-green-900 hover:bg-green-100 transition-all duration-300">
-                                    PRICING
+                                <Link href="#gallery" className="px-4 py-2 rounded-full text-green-900 hover:bg-green-100 transition-all duration-300">
+                                    GALLERY
                                 </Link>
                                 <Link href="#location" className="px-4 py-2 rounded-full text-green-900 hover:bg-green-100 transition-all duration-300">
                                     LOCATION
@@ -192,6 +194,50 @@ const SeasideWaterLanding = () => {
                                     </p>
                                 </div>
                             </div>
+                        </div>
+                    </motion.div>
+
+                    {/* GALLERY SECTION */}
+                    <motion.div
+                        id="gallery"
+                        variants={sectionVariants}
+                        initial="hidden"
+                        whileInView="visible"
+                        viewport={{ once: true }}
+                        className="bg-transparent relative z-20 border-t"
+                    >
+                        <div className="px-6 py-20 pb-32 max-w-6xl mx-auto">
+                            <div className="text-center mb-16">
+                                <span className="inline-block py-1 px-4 rounded-full bg-lime-100 mb-3 border">
+                                    <h2 className="text-green-700 text-sm font-bold tracking-widest uppercase m-0">Gallery</h2>
+                                </span>
+                                <p className="text-2xl md:text-3xl font-medium text-slate-800 drop-shadow-sm">A glimpse of our station and services</p>
+                            </div>
+
+                            {galleryItems.length > 0 ? (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                                    {galleryItems.map((item) => (
+                                        <div key={item.id} className="group relative overflow-hidden rounded-3xl border shadow-sm hover:shadow-md transition-all duration-300" style={{ backgroundColor: '#FFFFFF99' }}>
+                                            <div className="aspect-video overflow-hidden">
+                                                <img
+                                                    src={item.image_url}
+                                                    alt={item.title}
+                                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                                />
+                                            </div>
+                                            <div className="p-6">
+                                                <h3 className="text-green-950 text-lg font-bold mb-2">{item.title}</h3>
+                                                <p className="text-sm text-slate-700 font-medium">{item.description}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-center py-20 bg-white/50 rounded-3xl border border-dashed border-slate-300">
+                                    <ImageIcon className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+                                    <p className="text-slate-500 font-medium">No gallery items yet.</p>
+                                </div>
+                            )}
                         </div>
                     </motion.div>
 

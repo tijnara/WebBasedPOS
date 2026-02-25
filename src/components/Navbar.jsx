@@ -6,7 +6,7 @@ import { useStore } from '../store/useStore';
 import Image from 'next/image';
 import { supabase } from '../lib/supabaseClient';
 import currency from 'currency.js';
-import { CartIcon, PackageIcon, UserIcon, ChartIcon, UsersIcon } from './Icons';
+import { CartIcon, PackageIcon, UserIcon, ChartIcon, UsersIcon, GalleryIcon } from './Icons';
 
 // Hamburger Icon
 const HamburgerIcon = (props) => (
@@ -43,6 +43,7 @@ const Navbar = () => {
         { name: 'Inventory', path: '/inventory', icon: <PackageIcon className="h-5 w-5" /> },
         { name: 'Customer', path: '/customer-management', icon: <UserIcon className="h-5 w-5" /> },
         { name: 'Sale History', path: '/history', icon: <ChartIcon className="h-5 w-5" /> },
+        { name: 'Gallery', path: '/gallery-management', icon: <GalleryIcon className="h-5 w-5" />, adminOnly: true },
         { name: 'Users', path: '/user-management', icon: <UsersIcon className="h-5 w-5" />, adminOnly: true },
         { name: 'Report', path: '/report', icon: <ChartIcon className="h-5 w-5" />, adminOnly: true },
     ];
