@@ -10,10 +10,12 @@ import Image from 'next/image';
 import { Button } from '../ui';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGallery } from '../../hooks/useGallery';
+import { useStore } from '../../store/useStore';
 
 const SeasideWaterLanding = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const { data: galleryItems = [] } = useGallery();
+    const user = useStore(state => state.user);
 
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isLightboxOpen, setIsLightboxOpen] = useState(false); // New state for Lightbox
@@ -66,11 +68,19 @@ const SeasideWaterLanding = () => {
                         <div className="flex flex-col items-end">
                             <div className="hidden md:flex justify-end items-center text-[10px] sm:text-xs mb-4">
                                 <div className="flex flex-wrap items-center justify-center sm:justify-end gap-x-6 gap-y-2">
-                                    <Link href="/login" passHref>
-                                        <Button as="a" className="bg-lime-500 hover:bg-green-500 active:bg-violet-500 text-black px-5 py-1.5 rounded-full transition-colors font-bold text-[11px] shadow-sm ml-2">
-                                            Staff Login
-                                        </Button>
-                                    </Link>
+                                    {user ? (
+                                        <Link href="/pos" passHref>
+                                            <Button as="a" className="bg-lime-500 hover:bg-green-500 active:bg-violet-500 text-black px-5 py-1.5 rounded-full transition-colors font-bold text-[11px] shadow-sm ml-2">
+                                                Continue to Office
+                                            </Button>
+                                        </Link>
+                                    ) : (
+                                        <Link href="/login" passHref>
+                                            <Button as="a" className="bg-lime-500 hover:bg-green-500 active:bg-violet-500 text-black px-5 py-1.5 rounded-full transition-colors font-bold text-[11px] shadow-sm ml-2">
+                                                Staff Login
+                                            </Button>
+                                        </Link>
+                                    )}
                                 </div>
                             </div>
                             <nav className="hidden md:flex flex-wrap items-center justify-center lg:justify-end gap-x-1 gap-y-2 text-[12px] font-bold tracking-wide">
@@ -97,11 +107,19 @@ const SeasideWaterLanding = () => {
                                 <Link href="#services" className="px-4 py-2 rounded-full text-green-900 hover:bg-green-100 transition-all duration-300">SERVICES</Link>
                                 <Link href="#gallery" className="px-4 py-2 rounded-full text-green-900 hover:bg-green-100 transition-all duration-300">GALLERY</Link>
                                 <Link href="#location" className="px-4 py-2 rounded-full text-green-900 hover:bg-green-100 transition-all duration-300">LOCATION</Link>
-                                <Link href="/login" passHref>
-                                    <Button as="a" className="bg-lime-500 hover:bg-green-500 active:bg-violet-500 text-black px-5 py-1.5 rounded-full transition-colors font-bold text-[11px] shadow-sm">
-                                        Staff Login
-                                    </Button>
-                                </Link>
+                                {user ? (
+                                    <Link href="/pos" passHref>
+                                        <Button as="a" className="bg-lime-500 hover:bg-green-500 active:bg-violet-500 text-black px-5 py-1.5 rounded-full transition-colors font-bold text-[11px] shadow-sm">
+                                            Continue to Office
+                                        </Button>
+                                    </Link>
+                                ) : (
+                                    <Link href="/login" passHref>
+                                        <Button as="a" className="bg-lime-500 hover:bg-green-500 active:bg-violet-500 text-black px-5 py-1.5 rounded-full transition-colors font-bold text-[11px] shadow-sm">
+                                            Staff Login
+                                        </Button>
+                                    </Link>
+                                )}
                             </nav>
                         </div>
                     )}
@@ -127,9 +145,11 @@ const SeasideWaterLanding = () => {
                     <motion.div variants={sectionVariants} initial="hidden" whileInView="visible" viewport={{ once: true }} className="bg-transparent relative z-20 border-t">
                         <div className="px-6 py-20 pb-32 max-w-6xl mx-auto text-center">
                             <div className="mb-16">
-                                <span className="inline-block py-1 px-4 rounded-full bg-lime-100 mb-3 border">
-                                    <h2 className="text-green-700 text-sm font-bold tracking-widest uppercase m-0">Why Choose Seaside?</h2>
-                                </span>
+                                <span className="inline-block py-2 px-6 rounded-full bg-lime-100 mb-4 border">
+    <h2 className="text-green-700 text-2xl md:text-3xl font-bold tracking-widest uppercase m-0">
+        Why Choose Seaside?
+    </h2>
+</span>
                                 <p className="text-2xl md:text-3xl font-medium text-slate-800 drop-shadow-sm">Purity you can taste, quality you can trust.</p>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-12 lg:gap-16">
@@ -156,9 +176,9 @@ const SeasideWaterLanding = () => {
                     <motion.div id="gallery" variants={sectionVariants} initial="hidden" whileInView="visible" viewport={{ once: true }} className="bg-transparent relative z-20 border-t">
                         <div className="px-6 py-20 pb-32 max-w-5xl mx-auto">
                             <div className="text-center mb-16">
-                                <span className="inline-block py-1 px-4 rounded-full bg-lime-100 mb-3 border">
-                                    <h2 className="text-green-700 text-sm font-bold tracking-widest uppercase m-0">Gallery</h2>
-                                </span>
+                                <span className="inline-block py-2 px-6 rounded-full bg-lime-200 mb-4 border border-lime-300 shadow-sm">
+    <h2 className="text-green-700 text-2xl md:text-3xl font-black tracking-widest uppercase m-0">Gallery</h2>
+</span>
                                 <p className="text-2xl md:text-3xl font-medium text-slate-800 drop-shadow-sm">A glimpse of our station and services</p>
                             </div>
 
@@ -183,12 +203,12 @@ const SeasideWaterLanding = () => {
                                                 onClick={() => setIsLightboxOpen(true)}
                                             />
                                             {/* Info Overlay */}
-                                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-6 md:p-8 text-white z-20 pointer-events-none">
+                                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-white/90 via-white/40 to-transparent p-6 md:p-8 text-black z-20 pointer-events-none">
                                                 <h3 className="text-2xl md:text-3xl font-bold drop-shadow-md">
                                                     {galleryItems[currentIndex]?.title}
                                                 </h3>
                                                 {galleryItems[currentIndex]?.description && (
-                                                    <p className="text-sm md:text-base text-gray-200 mt-2 max-w-3xl drop-shadow">
+                                                    <p className="text-sm md:text-base text-gray-800 mt-2 max-w-3xl drop-shadow">
                                                         {galleryItems[currentIndex]?.description}
                                                     </p>
                                                 )}
@@ -243,9 +263,9 @@ const SeasideWaterLanding = () => {
                     <motion.div id="location" variants={sectionVariants} initial="hidden" whileInView="visible" viewport={{ once: true }} className="bg-transparent relative z-20 border-t">
                         <div className="px-6 py-20 pb-32 max-w-6xl mx-auto text-center">
                             <div className="mb-16">
-                                <span className="inline-block py-1 px-4 rounded-full bg-lime-100 mb-3 border">
-                                    <h2 className="text-green-700 text-sm font-bold tracking-widest uppercase m-0">Our Location</h2>
-                                </span>
+                             <span className="inline-block py-2 px-6 rounded-full bg-lime-100 mb-4 border border-lime-300 shadow-sm">
+    <h2 className="text-green-700 text-2xl md:text-3xl font-black tracking-widest uppercase m-0">Our Location</h2>
+</span>
                                 <p className="text-2xl md:text-3xl font-medium text-slate-800 drop-shadow-sm">Come visit us!</p>
                             </div>
                             <div className="w-full relative z-30">

@@ -83,3 +83,10 @@ export const GalleryIcon = ({ className }) => (
         <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
     </svg>
 );
+
+export const HomeIcon = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={cn("w-6 h-6", className)}>
+        <path d="M11.47 3.84a.75.75 0 011.06 0l8.99 8.99a.75.75 0 01-1.06 1.06L12 5.66l-8.46 8.23a.75.75 0 01-1.06-1.06l8.99-8.99z" />
+        <path d="M12 5.43l8 7.78V20a2 2 0 01-2 2H6a2 2 0 01-2-2v-6.79l8-7.78z" />
+    </svg>
+);

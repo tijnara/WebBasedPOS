@@ -6,7 +6,7 @@ import { useStore } from '../store/useStore';
 import Image from 'next/image';
 import { supabase } from '../lib/supabaseClient';
 import currency from 'currency.js';
-import { CartIcon, PackageIcon, UserIcon, ChartIcon, UsersIcon, GalleryIcon } from './Icons';
+import { CartIcon, PackageIcon, UserIcon, ChartIcon, UsersIcon, GalleryIcon, HomeIcon } from './Icons';
 
 // Hamburger Icon
 const HamburgerIcon = (props) => (
@@ -70,7 +70,6 @@ const Navbar = () => {
         };
     }, [user, router.events]);
 
-    // --- CHANGED: Await router.push to the landing page first to prevent race condition ---
     const handleLogout = async () => {
         await router.push('/'); // Navigate first
         await supabase.auth.signOut();
@@ -214,6 +213,14 @@ const Navbar = () => {
                                 <span className="text-gray-600">Logged in as:</span>{' '}
                                 <strong className="text-primary">{clientUser.name || clientUser.email}</strong>
                             </div>
+                            <Button variant="ghost" onClick={() => router.push('/')} className="hidden sm:flex items-center gap-1 hover:text-primary transition-colors" title="Landing Page">
+                                <HomeIcon className="w-5 h-5" /> <span>Landing Page</span>
+                            </Button>
+                            {/* Mobile-only icon version to save space */}
+                            <Button variant="ghost" onClick={() => router.push('/')} className="sm:hidden p-2 hover:text-primary transition-colors" title="Landing Page">
+                                <HomeIcon className="w-5 h-5" />
+                            </Button>
+
                             <Button variant="ghost" className="text-destructive" onClick={prepareZReading} title="Logout">Logout</Button>
                         </>
                     ) : <div className="user-info-text">Loading...</div>}
