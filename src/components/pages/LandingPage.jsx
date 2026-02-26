@@ -21,13 +21,20 @@ const SeasideWaterLanding = () => {
     const [isLightboxOpen, setIsLightboxOpen] = useState(false);
     const [showScrollTop, setShowScrollTop] = useState(false);
 
-    // Handle scroll for "Back to Top" visibility
+    // Handle scroll for "Back to Top" visibility - Fixed for cross-browser & mobile
     useEffect(() => {
         const handleScroll = () => {
-            setShowScrollTop(window.scrollY > 400);
+            const scrolled = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
+            setShowScrollTop(scrolled > 400);
         };
-        window.addEventListener('scroll', handleScroll);
-        return () => window.removeEventListener('scroll', handleScroll);
+
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        document.addEventListener('scroll', handleScroll, { passive: true });
+
+        return () => {
+            window.removeEventListener('scroll', handleScroll);
+            document.removeEventListener('scroll', handleScroll);
+        };
     }, []);
 
     const scrollToTop = () => {
@@ -100,12 +107,12 @@ const SeasideWaterLanding = () => {
                                 </div>
                             </div>
                             <nav className="hidden md:flex flex-wrap items-center justify-center lg:justify-end gap-x-1 gap-y-2 text-[12px] font-bold tracking-wide">
-                                <Link href="/" className="px-4 py-2 rounded-full text-green-900 hover:bg-green-100 active:bg-violet-500 transition-all duration-300">HOME</Link>
-                                <Link href="#services" className="px-4 py-2 rounded-full text-green-900 hover:bg-green-100 active:bg-violet-500 transition-all duration-300">
+                                <Link href="/" className="px-4 py-2 rounded-full text-green-700 hover:bg-green-100 active:text-violet-500 transition-all duration-300">HOME</Link>
+                                <Link href="#services" className="px-4 py-2 rounded-full text-green-700 hover:bg-green-100 active:text-violet-500 transition-all duration-300">
                                     SERVICES
                                 </Link>
-                                <Link href="#gallery" className="px-4 py-2 rounded-full text-green-900 hover:bg-green-100 active:bg-violet-500 transition-all duration-300">GALLERY</Link>
-                                <Link href="#location" className="px-4 py-2 rounded-full text-green-900 hover:bg-green-100 active:bg-violet-500 transition-all duration-300">LOCATION</Link>
+                                <Link href="#gallery" className="px-4 py-2 rounded-full text-green-700 hover:bg-green-100 active:text-violet-500 transition-all duration-300">GALLERY</Link>
+                                <Link href="#location" className="px-4 py-2 rounded-full text-green-700 hover:bg-green-100 active:text-violet-500 transition-all duration-300">LOCATION</Link>
                             </nav>
                             <div className="md:hidden">
                                 <button onClick={() => setIsMenuOpen(!isMenuOpen)}>
@@ -117,19 +124,19 @@ const SeasideWaterLanding = () => {
                     {isMenuOpen && (
                         <div className="md:hidden mt-4">
                             <nav className="flex flex-col items-center gap-y-4 text-[12px] font-bold tracking-wide">
-                                <Link href="/" className="px-4 py-2 rounded-full text-green-900 hover:bg-green-100 transition-all duration-300">HOME</Link>
-                                <Link href="#services" className="px-4 py-2 rounded-full text-green-900 hover:bg-green-100 transition-all duration-300">SERVICES</Link>
-                                <Link href="#gallery" className="px-4 py-2 rounded-full text-green-900 hover:bg-green-100 transition-all duration-300">GALLERY</Link>
-                                <Link href="#location" className="px-4 py-2 rounded-full text-green-900 hover:bg-green-100 transition-all duration-300">LOCATION</Link>
+                                <Link href="/" onClick={() => setIsMenuOpen(false)} className="px-4 py-2 rounded-full text-green-700 hover:bg-green-100 transition-all duration-300">HOME</Link>
+                                <Link href="#services" onClick={() => setIsMenuOpen(false)} className="px-4 py-2 rounded-full text-green-700 hover:bg-green-100 transition-all duration-300">SERVICES</Link>
+                                <Link href="#gallery" onClick={() => setIsMenuOpen(false)} className="px-4 py-2 rounded-full text-green-700 hover:bg-green-100 transition-all duration-300">GALLERY</Link>
+                                <Link href="#location" onClick={() => setIsMenuOpen(false)} className="px-4 py-2 rounded-full text-green-700 hover:bg-green-100 transition-all duration-300">LOCATION</Link>
                                 {user ? (
                                     <Link href="/pos" passHref>
-                                        <Button as="a" className="bg-lime-500 hover:bg-green-500 active:bg-violet-500 text-black px-5 py-1.5 rounded-full transition-colors font-bold text-[11px] shadow-sm">
+                                        <Button as="a" onClick={() => setIsMenuOpen(false)} className="bg-lime-500 hover:bg-green-500 active:bg-violet-500 text-black px-5 py-1.5 rounded-full transition-colors font-bold text-[11px] shadow-sm">
                                             Continue to Office
                                         </Button>
                                     </Link>
                                 ) : (
                                     <Link href="/login" passHref>
-                                        <Button as="a" className="bg-lime-500 hover:bg-green-500 active:bg-violet-500 text-black px-5 py-1.5 rounded-full transition-colors font-bold text-[11px] shadow-sm">
+                                        <Button as="a" onClick={() => setIsMenuOpen(false)} className="bg-lime-500 hover:bg-green-500 active:bg-violet-500 text-black px-5 py-1.5 rounded-full transition-colors font-bold text-[11px] shadow-sm">
                                             Staff Login
                                         </Button>
                                     </Link>
@@ -151,7 +158,7 @@ const SeasideWaterLanding = () => {
 
                                 {/* Localized Welcome Paragraph */}
                                 <p className="mb-8 text-base md:text-lg text-slate-800 max-w-2xl font-medium leading-relaxed p-5 rounded-xl border shadow-sm" style={{ backgroundColor: '#FFFFFF99' }}>
-                                    Proudly serving the families of Laois, Labrador. At Seaside, we believe our community deserves world-class hydration withoutleaving town. We combine state-of-the-art 21-stage reverse osmosis with the warm, local service you know and trust.
+                                    Proudly serving the families of Laois, Labrador. At Seaside, we believe our community deserves world-class hydration without leaving town. We combine state-of-the-art 21-stage reverse osmosis with the warm, local service you know and trust.
                                 </p>
 
                                 <ul className="mb-10 space-y-4 text-sm md:text-base font-medium text-slate-800 p-4 rounded-xl border shadow-sm inline-block" style={{ backgroundColor: '#FFFFFF99' }}>
@@ -205,27 +212,35 @@ const SeasideWaterLanding = () => {
                                 </span>
                                 <p className="text-2xl md:text-3xl font-medium text-slate-800 drop-shadow-sm">Convenience and Quality, Delivered.</p>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+
+                            {/* UPDATED: Changed lg:grid-cols-4 to lg:grid-cols-3 to force the 4th box down */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+
                                 <div className="flex flex-col items-center text-center p-8 rounded-3xl border shadow-sm hover:shadow-md transition-all duration-300" style={{ backgroundColor: '#FFFFFF99' }}>
                                     <div className="w-20 h-20 rounded-2xl bg-slate-50 border shadow-sm flex items-center justify-center mb-6"><Leaf className="w-8 h-8 text-green-600" /></div>
                                     <h3 className="text-green-950 text-sm font-bold uppercase tracking-wider mb-4">Walk-In Refills</h3>
                                     <p className="text-[14px] text-slate-700 leading-relaxed font-medium">Experience fast, friendly, and clean service right at our station. Bring your own jugs to help reduce plastic waste, and watch our team sanitize and refill them with crystal clear water while you wait.</p>
                                 </div>
+
                                 <div className="flex flex-col items-center text-center p-8 rounded-3xl border shadow-sm hover:shadow-md transition-all duration-300" style={{ backgroundColor: '#FFFFFF99' }}>
                                     <div className="w-20 h-20 rounded-2xl bg-slate-50 border shadow-sm flex items-center justify-center mb-6"><Truck className="w-8 h-8 text-green-600" /></div>
                                     <h3 className="text-green-950 text-sm font-bold uppercase tracking-wider mb-4">Door-to-Door Delivery</h3>
                                     <p className="text-[14px] text-slate-700 leading-relaxed font-medium">Stay hydrated without leaving your home. We offer prompt and reliable delivery services across Labrador and neighboring municipalities. Just send us a message, and we'll do the heavy lifting for you.</p>
                                 </div>
+
                                 <div className="flex flex-col items-center text-center p-8 rounded-3xl border shadow-sm hover:shadow-md transition-all duration-300" style={{ backgroundColor: '#FFFFFF99' }}>
                                     <div className="w-20 h-20 rounded-2xl bg-slate-50 border shadow-sm flex items-center justify-center mb-6"><GlassWater className="w-8 h-8 text-green-600" /></div>
                                     <h3 className="text-green-950 text-sm font-bold uppercase tracking-wider mb-4">Ready-to-Drink PET Bottles</h3>
                                     <p className="text-[14px] text-slate-700 leading-relaxed font-medium">Always on the go? Grab our freshly sealed, purified water in convenient PET bottles. Perfect for road trips, family parties, corporate events, or simply stocking up your fridge.</p>
                                 </div>
+
+                                {/* This 4th box will now wrap to the second row on large screens */}
                                 <div className="flex flex-col items-center text-center p-8 rounded-3xl border shadow-sm hover:shadow-md transition-all duration-300" style={{ backgroundColor: '#FFFFFF99' }}>
                                     <div className="w-20 h-20 rounded-2xl bg-slate-50 border shadow-sm flex items-center justify-center mb-6"><Snowflake className="w-8 h-8 text-green-600" /></div>
                                     <h3 className="text-green-950 text-sm font-bold uppercase tracking-wider mb-4">Purified Ice Tubes & Cubes</h3>
                                     <p className="text-[14px] text-slate-700 leading-relaxed font-medium">Keep your drinks perfectly chilled without compromising on safety. Made from our signature 21-stage filtered water, our ice is crystal clear, food-grade safe, and slow-melting—perfect for parties, businesses, and everyday use.</p>
                                 </div>
+
                             </div>
                         </div>
                     </motion.div>
@@ -398,11 +413,11 @@ const SeasideWaterLanding = () => {
             <AnimatePresence>
                 {showScrollTop && (
                     <motion.button
-                        initial={{ opacity: 0, scale: 0.5 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.5 }}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 20 }}
                         onClick={scrollToTop}
-                        className="fixed bottom-6 right-6 z-[60] p-3 bg-green-600 text-white rounded-full shadow-lg hover:bg-green-700 transition-colors"
+                        className="fixed bottom-6 right-6 z-[999] p-4 bg-green-600 text-white rounded-full shadow-2xl hover:bg-green-700 active:scale-90 transition-all cursor-pointer flex items-center justify-center border-2 border-white/20"
                         aria-label="Back to top"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
@@ -447,12 +462,9 @@ const SeasideWaterLanding = () => {
                             className="w-full max-w-5xl max-h-[85vh] object-contain cursor-default drop-shadow-[0_20px_40px_rgba(0,0,0,0.4)] rounded-[2rem] bg-transparent"
                             onClick={(e) => e.stopPropagation()}
                         />
-
-                        {/* Navigation arrows intentionally removed from the Lightbox overlay as requested */}
                     </motion.div>
                 )}
             </AnimatePresence>
-
         </div>
     );
 };
