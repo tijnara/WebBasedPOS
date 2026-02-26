@@ -18,11 +18,11 @@ const SeasideWaterLanding = () => {
     const user = useStore(state => state.user);
 
     const [currentIndex, setCurrentIndex] = useState(0);
-    const [isLightboxOpen, setIsLightboxOpen] = useState(false); // New state for Lightbox
+    const [isLightboxOpen, setIsLightboxOpen] = useState(false);
 
     // Auto-play logic
     useEffect(() => {
-        if (galleryItems.length <= 1 || isLightboxOpen) return; // Pause auto-play if lightbox is open
+        if (galleryItems.length <= 1 || isLightboxOpen) return;
         const timer = setInterval(() => {
             setCurrentIndex((prev) => (prev === galleryItems.length - 1 ? 0 : prev + 1));
         }, 5000);
@@ -63,6 +63,8 @@ const SeasideWaterLanding = () => {
                             <div className="flex flex-col">
                                 <span className="text-3xl font-extrabold tracking-wider leading-none mb-1 text-green-950">SEASIDE</span>
                                 <span className="text-[8px] tracking-[0.25em] font-bold uppercase leading-tight text-green-800">Water Refilling Station</span>
+                                {/* SEO Tagline Added Here */}
+                                <span className="text-[9px] font-semibold tracking-wide text-green-700 mt-0.5">Proudly hydrating Laois, Labrador</span>
                             </div>
                         </div>
                         <div className="flex flex-col items-end">
@@ -129,13 +131,20 @@ const SeasideWaterLanding = () => {
 
                     <motion.div variants={sectionVariants} initial="hidden" animate="visible" className="relative pt-6 pb-24 lg:pb-32 overflow-hidden flex-grow">
                         <div className="px-6 mt-16 md:mt-24 relative z-20">
-                            <div className="max-w-2xl">
-                                <h2 className="text-4xl md:text-5xl lg:text-[3.25rem] font-light leading-tight mb-8 text-slate-900">
-                                    Refresh Your Life with<br/> <span className="font-extrabold text-green-700">Crystal Clear and Purified Water</span>
+                            <div className="max-w-3xl">
+                                {/* Updated Hero Headline */}
+                                <h2 className="text-4xl md:text-5xl lg:text-[3.25rem] font-light leading-tight mb-6 text-slate-900">
+                                    Your Family’s Health,<br/> <span className="font-extrabold text-green-700">Flowing Crystal Clear from Seaside.</span>
                                 </h2>
+
+                                {/* New Localized About Us Paragraph */}
+                                <p className="mb-8 text-base md:text-lg text-slate-800 max-w-2xl font-medium leading-relaxed p-5 rounded-xl border shadow-sm" style={{ backgroundColor: '#FFFFFF99' }}>
+                                    Proudly serving the families of Laois, Labrador. At Seaside, we believe our community deserves world-class hydration without leaving town. We combine state-of-the-art 21-stage reverse osmosis with the warm, local service you know and trust.
+                                </p>
+
                                 <ul className="mb-10 space-y-4 text-sm md:text-base font-medium text-slate-800 p-4 rounded-xl border shadow-sm inline-block" style={{ backgroundColor: '#FFFFFF99' }}>
                                     <li className="flex items-center"><ShieldCheck className="w-5 h-5 text-green-600 mr-3 shrink-0"/>Advanced 21-stage reverse osmosis filtration system</li>
-                                    <li className="flex items-center"><Activity className="w-5 h-5 text-green-600 mr-3 shrink-0"/>Perfectly pH balanced and mineralized for optimal health</li>
+                                    <li className="flex items-center"><Activity className="w-5 h-5 text-green-600 mr-3 shrink-0"/>Carefully remineralized to deliver crisp, healthy hydration for your whole family</li>
                                     <li className="flex items-center"><Leaf className="w-5 h-5 text-green-600 mr-3 shrink-0"/>Eco-friendly station—bring your jugs and save the planet</li>
                                 </ul>
                             </div>
@@ -146,27 +155,28 @@ const SeasideWaterLanding = () => {
                         <div className="px-6 py-20 pb-32 max-w-6xl mx-auto text-center">
                             <div className="mb-16">
                                 <span className="inline-block py-2 px-6 rounded-full bg-lime-100 mb-4 border">
-    <h2 className="text-green-700 text-2xl md:text-3xl font-bold tracking-widest uppercase m-0">
-        Why Choose Seaside?
-    </h2>
-</span>
+                                    <h2 className="text-green-700 text-2xl md:text-3xl font-bold tracking-widest uppercase m-0">
+                                        Why Choose Seaside?
+                                    </h2>
+                                </span>
                                 <p className="text-2xl md:text-3xl font-medium text-slate-800 drop-shadow-sm">Purity you can taste, quality you can trust.</p>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-12 lg:gap-16">
+                                {/* Updated Value Proposition Card */}
                                 <div className="flex flex-col items-center group p-8 rounded-3xl border shadow-sm hover:shadow-md transition-all duration-300" style={{ backgroundColor: '#FFFFFF99' }}>
                                     <div className="w-20 h-20 rounded-2xl bg-slate-50 border shadow-sm flex items-center justify-center mb-6 transition-transform duration-300 group-hover:-translate-y-2 group-hover:bg-lime-50"><Droplet className="w-8 h-8 text-green-600" /></div>
-                                    <h3 className="text-green-950 text-sm font-bold uppercase tracking-wider mb-4">Ultimate Purity</h3>
-                                    <p className="text-[14px] text-slate-700 leading-relaxed font-medium">Our filtration process removes 99.9% of impurities, giving you water that tastes exactly as nature intended.</p>
+                                    <h3 className="text-green-950 text-sm font-bold uppercase tracking-wider mb-4 text-center">Zero Doubts, Just Pure Water</h3>
+                                    <p className="text-[14px] text-slate-700 leading-relaxed font-medium text-center">We don't cut corners. Our advanced 21-stage filtration system strips away 99.9% of impurities, heavy metals, and bacteria, leaving you with water that is as safe as it is refreshing.</p>
                                 </div>
                                 <div className="flex flex-col items-center group p-8 rounded-3xl border shadow-sm hover:shadow-md transition-all duration-300" style={{ backgroundColor: '#FFFFFF99' }}>
                                     <div className="w-20 h-20 rounded-2xl bg-slate-50 border shadow-sm flex items-center justify-center mb-6 transition-transform duration-300 group-hover:-translate-y-2 group-hover:bg-lime-50"><Activity className="w-8 h-8 text-green-600" /></div>
-                                    <h3 className="text-green-950 text-sm font-bold uppercase tracking-wider mb-4">Health & Wellness</h3>
-                                    <p className="text-[14px] text-slate-700 leading-relaxed font-medium">Our system reintroduces essential electrolytes and balances the pH level to keep you perfectly hydrated.</p>
+                                    <h3 className="text-green-950 text-sm font-bold uppercase tracking-wider mb-4 text-center">Gentle on Tummies, Great for Health</h3>
+                                    <p className="text-[14px] text-slate-700 leading-relaxed font-medium text-center">From mixing your baby’s formula to brewing your morning coffee, our water is crafted for family life. We ensure a healthy balance of natural minerals, making every glass safe, nourishing, and deeply refreshing.</p>
                                 </div>
                                 <div className="flex flex-col items-center group p-8 rounded-3xl border shadow-sm hover:shadow-md transition-all duration-300" style={{ backgroundColor: '#FFFFFF99' }}>
                                     <div className="w-20 h-20 rounded-2xl bg-slate-50 border shadow-sm flex items-center justify-center mb-6 transition-transform duration-300 group-hover:-translate-y-2 group-hover:bg-lime-50"><Leaf className="w-8 h-8 text-green-600" /></div>
-                                    <h3 className="text-green-950 text-sm font-bold uppercase tracking-wider mb-4">Eco-Friendly</h3>
-                                    <p className="text-[14px] text-slate-700 leading-relaxed font-medium">Bring your own containers or purchase reusable jugs. Every refill helps reduce single-use plastic pollution.</p>
+                                    <h3 className="text-green-950 text-sm font-bold uppercase tracking-wider mb-4 text-center">Eco-Friendly</h3>
+                                    <p className="text-[14px] text-slate-700 leading-relaxed font-medium text-center">Bring your own containers or purchase reusable jugs. Every refill helps reduce single-use plastic pollution.</p>
                                 </div>
                             </div>
                         </div>
@@ -177,8 +187,8 @@ const SeasideWaterLanding = () => {
                         <div className="px-6 py-20 pb-32 max-w-5xl mx-auto">
                             <div className="text-center mb-16">
                                 <span className="inline-block py-2 px-6 rounded-full bg-lime-200 mb-4 border border-lime-300 shadow-sm">
-    <h2 className="text-green-700 text-2xl md:text-3xl font-black tracking-widest uppercase m-0">Gallery</h2>
-</span>
+                                    <h2 className="text-green-700 text-2xl md:text-3xl font-black tracking-widest uppercase m-0">Gallery</h2>
+                                </span>
                                 <p className="text-2xl md:text-3xl font-medium text-slate-800 drop-shadow-sm">A glimpse of our station and services</p>
                             </div>
 
@@ -263,14 +273,14 @@ const SeasideWaterLanding = () => {
                     <motion.div id="location" variants={sectionVariants} initial="hidden" whileInView="visible" viewport={{ once: true }} className="bg-transparent relative z-20 border-t">
                         <div className="px-6 py-20 pb-32 max-w-6xl mx-auto text-center">
                             <div className="mb-16">
-                             <span className="inline-block py-2 px-6 rounded-full bg-lime-100 mb-4 border border-lime-300 shadow-sm">
-    <h2 className="text-green-700 text-2xl md:text-3xl font-black tracking-widest uppercase m-0">..</h2>
-</span>
-                                <p>...</p>
-                                <p className="text-2xl md:text-3xl font-bold text-green-700 drop-shadow-sm">Our Location</p>
+                                <span className="inline-block py-2 px-6 rounded-full bg-lime-100 mb-4 border border-lime-300 shadow-sm">
+                                    <h2 className="text-green-700 text-2xl md:text-3xl font-black tracking-widest uppercase m-0">Location</h2>
+                                </span>
+                                {/* Updated Location CTA */}
+                                <p className="text-2xl md:text-3xl font-bold text-slate-800 drop-shadow-sm mt-4">Navigate to Purity – See Us on the Map!</p>
                             </div>
                             <div className="w-full relative z-30">
-                                <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3834.427589470715!2d120.1322205!3d16.043286199999997!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3393e1d08454d96f%3A0xfd7e1df20c90037d!2sSEASIDE%20Water%20Refilling%20Station!5e0!3m2!1sen!2sph!4v1771921863348!5m2!1sen!2sph" width="100%" height="450" style={{ border: 0 }} allowFullScreen="" loading="lazy" referrerPolicy="no-referrer-when-downgrade"></iframe>
+                                <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3834.427589470715!2d120.1322205!3d16.043286199999997!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3393e1d08454d96f%3A0xfd7e1df20c90037d!2sSEASIDE%20Water%20Refilling%20Station!5e0!3m2!1sen!2sph!4v1771921863348!5m2!1sen!2sph" width="100%" height="450" style={{ border: 0, borderRadius: '1rem', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} allowFullScreen="" loading="lazy" referrerPolicy="no-referrer-when-downgrade"></iframe>
                             </div>
                         </div>
                     </motion.div>
