@@ -1,7 +1,7 @@
 // src/components/pages/LandingPage.jsx
 import React, { useState, useEffect } from 'react';
 import {
-    ChevronDown, Facebook, Droplet, Heart,
+    Facebook, Droplet, Heart,
     Leaf, ShieldCheck, Menu, X, MessageCircle,
     Image as ImageIcon, MapPin, Truck, GlassWater, Snowflake
 } from 'lucide-react';
@@ -19,6 +19,20 @@ const SeasideWaterLanding = () => {
 
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+    const [showScrollTop, setShowScrollTop] = useState(false);
+
+    // Handle scroll for "Back to Top" visibility
+    useEffect(() => {
+        const handleScroll = () => {
+            setShowScrollTop(window.scrollY > 400);
+        };
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
+    const scrollToTop = () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
 
     // Auto-play logic
     useEffect(() => {
@@ -86,12 +100,12 @@ const SeasideWaterLanding = () => {
                                 </div>
                             </div>
                             <nav className="hidden md:flex flex-wrap items-center justify-center lg:justify-end gap-x-1 gap-y-2 text-[12px] font-bold tracking-wide">
-                                <Link href="/" className="px-4 py-2 rounded-full text-green-900 hover:bg-green-100 transition-all duration-300">HOME</Link>
-                                <Link href="#services" className="group flex items-center px-4 py-2 rounded-full text-green-900 hover:bg-green-100 transition-all duration-300">
-                                    SERVICES <ChevronDown className="w-3.5 h-3.5 ml-1.5 opacity-70 transition-transform duration-300 group-hover:rotate-180"/>
+                                <Link href="/" className="px-4 py-2 rounded-full text-green-900 hover:bg-green-100 active:bg-violet-500 transition-all duration-300">HOME</Link>
+                                <Link href="#services" className="px-4 py-2 rounded-full text-green-900 hover:bg-green-100 active:bg-violet-500 transition-all duration-300">
+                                    SERVICES
                                 </Link>
-                                <Link href="#gallery" className="px-4 py-2 rounded-full text-green-900 hover:bg-green-100 transition-all duration-300">GALLERY</Link>
-                                <Link href="#location" className="px-4 py-2 rounded-full text-green-900 hover:bg-green-100 transition-all duration-300">LOCATION</Link>
+                                <Link href="#gallery" className="px-4 py-2 rounded-full text-green-900 hover:bg-green-100 active:bg-violet-500 transition-all duration-300">GALLERY</Link>
+                                <Link href="#location" className="px-4 py-2 rounded-full text-green-900 hover:bg-green-100 active:bg-violet-500 transition-all duration-300">LOCATION</Link>
                             </nav>
                             <div className="md:hidden">
                                 <button onClick={() => setIsMenuOpen(!isMenuOpen)}>
@@ -343,6 +357,7 @@ const SeasideWaterLanding = () => {
                                 </h4>
                                 <ul className="space-y-3 text-green-200/80 font-medium">
                                     <li><Link href="/" className="hover:text-lime-400 transition-colors">Home</Link></li>
+                                    <li><Link href="#services" className="hover:text-lime-400 transition-colors">Our Services</Link></li>
                                     <li><Link href="#gallery" className="hover:text-lime-400 transition-colors">Gallery</Link></li>
                                     <li><Link href="#location" className="hover:text-lime-400 transition-colors">Location map</Link></li>
                                 </ul>
@@ -379,6 +394,23 @@ const SeasideWaterLanding = () => {
                     </footer>
                 </div>
             </div>
+
+            <AnimatePresence>
+                {showScrollTop && (
+                    <motion.button
+                        initial={{ opacity: 0, scale: 0.5 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.5 }}
+                        onClick={scrollToTop}
+                        className="fixed bottom-6 right-6 z-[60] p-3 bg-green-600 text-white rounded-full shadow-lg hover:bg-green-700 transition-colors"
+                        aria-label="Back to top"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="m18 15-6-6-6 6"/>
+                        </svg>
+                    </motion.button>
+                )}
+            </AnimatePresence>
 
             {/* LIGHTBOX / ENLARGED IMAGE OVERLAY - Refined for "focus, zoom, blur, and small size" without arrows */}
             <AnimatePresence>

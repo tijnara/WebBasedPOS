@@ -937,3 +937,10 @@ input[type="checkbox"]:focus {
     .xl\:w-1\/4 { width: 25%; }
     .xl\:grid-cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 }
+
+/* Ensure the scroll-to-top button is visible on mobile POS pages */
+@media (max-width: 767px) {
+    .fixed.bottom-6.right-6 {
+        bottom: 5.5rem; /* Moves it above the MobileCartBar if applicable */
+    }
+}
