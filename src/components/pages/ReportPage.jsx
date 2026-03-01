@@ -1,10 +1,12 @@
+// src/components/pages/ReportPage.jsx
 import React, { useState, useMemo } from 'react';
 import { useSales } from '../../hooks/useSales';
 import { useSalesSummary } from '../../hooks/useSalesSummary';
 import { useCustomers } from '../../hooks/useCustomers';
+import { useProducts } from '../../hooks/useProducts'; // Added useProducts
 import { useInactiveCustomers } from '../../hooks/useInactiveCustomers';
 import { format } from 'date-fns';
-import { Button, Input } from '../ui';
+import { Button, Input, Select } from '../ui'; // Added Select
 
 import Pagination from '../Pagination';
 import currency from 'currency.js';
@@ -333,6 +335,12 @@ const ReportPage = () => {
     const [customerPage, setCustomerPage] = useState(1);
     const [inactivePage, setInactivePage] = useState(1);
 
+    const [productSearch, setProductSearch] = useState('');
+
+    // Fetch products for the dropdown filter
+    const { data: allProductsData } = useProducts({ fetchAll: true });
+    const availableProducts = allProductsData?.products || [];
+
     // Default to today
     const todayStr = new Date().toISOString().slice(0, 10);
     const [fromDate, setFromDate] = useState(todayStr);
@@ -376,6 +384,7 @@ const ReportPage = () => {
     } = useSales({
         startDate: interval.start,
         endDate: interval.end,
+        productName: productSearch, // Use exact product name for the filter
         page: currentPage,
         itemsPerPage: SALES_PAGE_SIZE
     });
@@ -387,7 +396,8 @@ const ReportPage = () => {
         error: summaryError
     } = useSalesSummary({
         startDate: interval.start,
-        endDate: interval.end
+        endDate: interval.end,
+        productName: productSearch
     });
 
     // Fetch customer data
@@ -495,8 +505,6 @@ const ReportPage = () => {
     // --- Render JSX ---
     return (
         <div className="report-page max-w-7xl mx-auto p-2 md:p-4 space-y-4">
-            <img src="/seaside.png" alt="Seaside Logo" className="brand-logo-top" width={32} height={32} loading="lazy" />
-
             <h1 className="text-2xl font-bold">Reports</h1>
 
             <div className="flex gap-2 border-b">
@@ -554,14 +562,34 @@ const ReportPage = () => {
                                 />
                             </div>
 
-                            {(fromDate || toDate) && (
-                                <Button
-                                    onClick={handleClearRange}
-                                    disabled={!fromDate && !toDate}
-                                    className="px-3 py-2 text-sm rounded-md btn--outline disabled:opacity-50"
-                                    title="Clear custom date range"
+                            <div className="flex-shrink-0 w-full sm:w-auto flex-1 max-w-xs">
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Filter by Product</label>
+                                {/* Replaced Input with Select for Products */}
+                                <Select
+                                    value={productSearch}
+                                    onChange={(e) => {
+                                        setProductSearch(e.target.value);
+                                        setCurrentPage(1);
+                                    }}
+                                    className="text-sm w-full"
                                 >
-                                    Clear Range
+                                    <option value="">All Products</option>
+                                    {availableProducts.map(p => (
+                                        <option key={p.id} value={p.name}>{p.name}</option>
+                                    ))}
+                                </Select>
+                            </div>
+
+                            {(fromDate || toDate || productSearch) && (
+                                <Button
+                                    onClick={() => {
+                                        handleClearRange();
+                                        setProductSearch('');
+                                    }}
+                                    className="px-3 py-2 text-sm rounded-md btn--outline"
+                                    title="Clear filters"
+                                >
+                                    Clear Filters
                                 </Button>
                             )}
 

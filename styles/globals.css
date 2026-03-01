@@ -733,24 +733,6 @@ input[type="checkbox"]:focus {
 .user-page {
     position: relative;
 }
-
-/* --- Brand Logo Top Styles --- */
-.brand-logo-top {
-    position: fixed;
-    top: 0;
-    left: 0;
-    z-index: 101;
-    width: 32px;
-    height: 32px;
-    margin: 0.5rem;
-    background: transparent;
-}
-@media (min-width: 768px) {
-    .brand-logo-top {
-        display: none;
-    }
-}
-
 /* --- ADDITIONS FOR LOGIN PAGE --- */
 .hover\:text-success-hover:hover {
     color: var(--success-hover);

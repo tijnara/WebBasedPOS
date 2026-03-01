@@ -1,9 +1,9 @@
+// src/hooks/useSales.js
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient';
 import { useStore } from '../store/useStore';
 import currency from 'currency.js';
 
-// --- MODIFIED MOCK DATA ---
 const MOCK_SALES = [
     {
         id: 'mock-s-1',
@@ -22,7 +22,7 @@ const MOCK_SALES = [
         ],
         paymentMethod: 'Cash',
         status: 'Completed',
-        createdBy: 'Demo Staff A' // <-- ADDED
+        createdBy: 'Demo Staff A'
     },
     {
         id: 'mock-s-2',
@@ -39,15 +39,14 @@ const MOCK_SALES = [
         ],
         paymentMethod: 'GCash',
         status: 'Completed',
-        createdBy: 'Demo Staff B' // <-- ADDED
+        createdBy: 'Demo Staff B'
     }
 ];
-// --- END MODIFICATION ---
 
-export function useSales({ searchTerm, startDate, endDate, page = 1, itemsPerPage = 10 } = {}) {
+export function useSales({ searchTerm, startDate, endDate, productName, page = 1, itemsPerPage = 10 } = {}) {
     const isDemo = useStore(s => s.user?.isDemo);
     return useQuery({
-        queryKey: ['sales', isDemo, searchTerm, startDate, endDate, page, itemsPerPage],
+        queryKey: ['sales', isDemo, searchTerm, startDate, endDate, productName, page, itemsPerPage],
         queryFn: async () => {
             if (isDemo) {
                 await new Promise(resolve => setTimeout(resolve, 400));
@@ -59,6 +58,12 @@ export function useSales({ searchTerm, startDate, endDate, page = 1, itemsPerPag
                         (s.status && s.status.toLowerCase().includes(term)) ||
                         (s.paymentMethod && s.paymentMethod.toLowerCase().includes(term)) ||
                         (s.createdBy && s.createdBy.toLowerCase().includes(term))
+                    );
+                }
+                if (productName) {
+                    const pName = productName.trim().toLowerCase();
+                    filtered = filtered.filter(s =>
+                        s.sale_items && s.sale_items.some(i => i.productName.toLowerCase().includes(pName))
                     );
                 }
                 if (startDate) {
@@ -78,20 +83,29 @@ export function useSales({ searchTerm, startDate, endDate, page = 1, itemsPerPag
             try {
                 const startIndex = (page - 1) * itemsPerPage;
                 const endIndex = startIndex + itemsPerPage - 1;
+
+                // If filtering by product, we force an INNER JOIN on sale_items
+                const selectString = `
+                    *,
+                    sale_items${productName ? '!inner' : ''} ( *, product:products ( name, price ) ),
+                    users:created_by ( name )
+                `;
+
                 let query = supabase
                     .from('sales')
-                    .select(`
-                        *,
-                        sale_items ( *, product:products ( name, price ) ),
-                        users:created_by ( name )
-                    `, { count: 'exact' })
+                    .select(selectString, { count: 'exact' })
                     .order('saletimestamp', { ascending: false })
                     .range(startIndex, endIndex);
+
                 if (searchTerm) {
                     const term = searchTerm.trim().toLowerCase();
                     query = query.or(
                         `customername.ilike.%${term}%,status.ilike.%${term}%,paymentmethod.ilike.%${term}%`
                     );
+                }
+                if (productName) {
+                    const pName = productName.trim().toLowerCase();
+                    query = query.ilike('sale_items.product_name', `%${pName}%`);
                 }
                 if (startDate) {
                     query = query.gte('saletimestamp', startDate.toISOString());
@@ -99,6 +113,7 @@ export function useSales({ searchTerm, startDate, endDate, page = 1, itemsPerPag
                 if (endDate) {
                     query = query.lte('saletimestamp', endDate.toISOString());
                 }
+
                 const { data, error, count } = await query;
                 if (error) {
                     console.error("useSales Error:", error);
@@ -115,8 +130,8 @@ export function useSales({ searchTerm, startDate, endDate, page = 1, itemsPerPag
                     createdBy: s.users?.name || s.created_by || 'N/A',
                     sale_items: Array.isArray(s.sale_items) ? s.sale_items.map(item => ({
                         ...item,
-                        productName: item.product?.name || '',
-                        productPrice: item.product?.price || 0
+                        productName: item.product?.name || item.product_name || '',
+                        productPrice: item.product?.price || item.price_at_sale || 0
                     })) : [],
                     items: Array.isArray(s.sale_items) ? s.sale_items : [],
                     paymentMethod: s.paymentmethod || 'N/A',

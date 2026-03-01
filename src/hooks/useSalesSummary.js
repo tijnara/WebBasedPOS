@@ -4,29 +4,28 @@ import { supabase } from '../lib/supabaseClient';
 import { useStore } from '../store/useStore';
 import currency from 'currency.js';
 
-// Demo summary for mock data
 const MOCK_SALES = [
     {
         id: 'mock-s-1',
         saleTimestamp: new Date('2025-11-03T09:00:00'),
         totalAmount: 60.00,
         costAmount: 40.00,
-        items: [{ productName: 'Refill(20)', quantity: 2 }]
+        items: [{ productName: 'Refill(20)', quantity: 2, price_at_sale: 30, cost_at_sale: 20 }]
     },
     {
         id: 'mock-s-2',
         saleTimestamp: new Date('2025-11-02T15:30:00'),
         totalAmount: 99.00,
         costAmount: 70.00,
-        items: [{ productName: 'Refill(25)', quantity: 3 }]
+        items: [{ productName: 'Refill(25)', quantity: 3, price_at_sale: 33, cost_at_sale: 23 }]
     }
 ];
 
-export function useSalesSummary({ startDate, endDate } = {}) {
+export function useSalesSummary({ startDate, endDate, productName } = {}) {
     const isDemo = useStore(s => s.user?.isDemo);
 
     return useQuery({
-        queryKey: ['sales-summary', isDemo, startDate, endDate],
+        queryKey: ['sales-summary', isDemo, startDate, endDate, productName],
         queryFn: async () => {
             if (isDemo) {
                 let filtered = MOCK_SALES;
@@ -40,20 +39,33 @@ export function useSalesSummary({ startDate, endDate } = {}) {
                 let firstTransactionDate = null;
 
                 filtered.forEach(sale => {
-                    totalRevenue += Number(sale.totalAmount || 0);
-                    totalProfit += (Number(sale.totalAmount) - Number(sale.costAmount || sale.totalAmount * 0.7));
+                    let saleRevenue = 0;
+                    let saleCost = 0;
+
                     if (sale.items) {
                         sale.items.forEach(item => {
-                            // Normalize name to handle spaces like "Refill (20)"
-                            const name = (item.productName || '').trim().replace(/\s+/g, '');
-                            if (name === 'Refill(20)') totalRefill20 += (item.quantity || 0);
-                            if (name === 'Refill(25)') totalRefill25 += (item.quantity || 0);
+                            const name = (item.productName || '').trim();
+
+                            // If filtering by product, skip items that don't match
+                            if (productName && !name.toLowerCase().includes(productName.toLowerCase())) return;
+
+                            saleRevenue += (item.price_at_sale || 0) * (item.quantity || 0);
+                            saleCost += (item.cost_at_sale || 0) * (item.quantity || 0);
+
+                            const normalizedName = name.replace(/\s+/g, '');
+                            if (normalizedName === 'Refill(20)') totalRefill20 += (item.quantity || 0);
+                            if (normalizedName === 'Refill(25)') totalRefill25 += (item.quantity || 0);
                         });
                     }
 
-                    const sDate = new Date(sale.saleTimestamp);
-                    if (!firstTransactionDate || sDate < firstTransactionDate) {
-                        firstTransactionDate = sDate;
+                    // Accumulate totals if there was matched revenue (or if no filter was applied)
+                    if (!productName || saleRevenue > 0) {
+                        totalRevenue += saleRevenue;
+                        totalProfit += (saleRevenue - saleCost);
+                        const sDate = new Date(sale.saleTimestamp);
+                        if (!firstTransactionDate || sDate < firstTransactionDate) {
+                            firstTransactionDate = sDate;
+                        }
                     }
                 });
 
@@ -73,6 +85,7 @@ export function useSalesSummary({ startDate, endDate } = {}) {
 
             if (startDate) query = query.gte('sales.saletimestamp', startDate.toISOString());
             if (endDate) query = query.lte('sales.saletimestamp', endDate.toISOString());
+            if (productName) query = query.ilike('product_name', `%${productName.trim()}%`);
 
             const { data, error } = await query;
             if (error) throw error;
@@ -92,7 +105,6 @@ export function useSalesSummary({ startDate, endDate } = {}) {
                     totalRevenue += revenue;
                     totalProfit += (revenue - cost);
 
-                    // Normalize name to ensure we catch "Refill (20)" or "Refill(20)"
                     const name = (item.product_name || '').trim().replace(/\s+/g, '');
                     if (name === 'Refill(20)') {
                         totalRefill20 += qty;
@@ -100,7 +112,6 @@ export function useSalesSummary({ startDate, endDate } = {}) {
                         totalRefill25 += qty;
                     }
 
-                    // Track the very first transaction date
                     if (item.sales && item.sales.saletimestamp) {
                         const sDate = new Date(item.sales.saletimestamp);
                         if (!firstTransactionDate || sDate < firstTransactionDate) {
@@ -112,6 +123,6 @@ export function useSalesSummary({ startDate, endDate } = {}) {
 
             return { totalRevenue, totalProfit, totalRefill20, totalRefill25, firstTransactionDate };
         },
-        staleTime: 1000 * 60 * 3, // 3 minutes
+        staleTime: 1000 * 60 * 3,
     });
 }
