@@ -36,16 +36,17 @@ const Navbar = () => {
     const [isStartShiftModalOpen, setIsStartShiftModalOpen] = useState(false);
     const [startingCash, setStartingCash] = useState('');
 
+    // --- MASSIVE ICONS FOR DESKTOP (md:h-10 md:w-10) ---
     const links = [
-        { name: 'Dashboard', path: '/dashboard', icon: <ChartIcon className="h-5 w-5" /> },
-        { name: 'POS', path: '/pos', icon: <CartIcon className="h-5 w-5" /> },
-        { name: 'Products', path: '/product-management', icon: <PackageIcon className="h-5 w-5" /> },
-        { name: 'Inventory', path: '/inventory', icon: <PackageIcon className="h-5 w-5" /> },
-        { name: 'Customer', path: '/customer-management', icon: <UserIcon className="h-5 w-5" /> },
-        { name: 'Sale History', path: '/history', icon: <ChartIcon className="h-5 w-5" /> },
-        { name: 'Gallery', path: '/gallery-management', icon: <GalleryIcon className="h-5 w-5" />, adminOnly: true },
-        { name: 'Users', path: '/user-management', icon: <UsersIcon className="h-5 w-5" />, adminOnly: true },
-        { name: 'Report', path: '/report', icon: <ChartIcon className="h-5 w-5" />, adminOnly: true },
+        { name: 'Dashboard', path: '/dashboard', icon: <ChartIcon className="h-5 w-5 md:h-10 md:w-10" /> },
+        { name: 'POS', path: '/pos', icon: <CartIcon className="h-5 w-5 md:h-10 md:w-10" /> },
+        { name: 'Products', path: '/product-management', icon: <PackageIcon className="h-5 w-5 md:h-10 md:w-10" /> },
+        { name: 'Inventory', path: '/inventory', icon: <PackageIcon className="h-5 w-5 md:h-10 md:w-10" /> },
+        { name: 'Customer', path: '/customer-management', icon: <UserIcon className="h-5 w-5 md:h-10 md:w-10" /> },
+        { name: 'Sale History', path: '/history', icon: <ChartIcon className="h-5 w-5 md:h-10 md:w-10" /> },
+        { name: 'Gallery', path: '/gallery-management', icon: <GalleryIcon className="h-5 w-5 md:h-10 md:w-10" />, adminOnly: true },
+        { name: 'Users', path: '/user-management', icon: <UsersIcon className="h-5 w-5 md:h-10 md:w-10" />, adminOnly: true },
+        { name: 'Report', path: '/report', icon: <ChartIcon className="h-5 w-5 md:h-10 md:w-10" />, adminOnly: true },
     ];
 
     useEffect(() => {
@@ -173,7 +174,9 @@ const Navbar = () => {
             return (
                 <Button
                     key={link.name}
-                    className={`nav-item w-full justify-start ${isActive ? ' active text-primary font-bold' : ''}`}
+                    variant="ghost"
+                    // MASSIVE SIZING for desktop items: text-3xl, large padding, huge gap
+                    className={`nav-item w-full justify-start gap-3 md:gap-6 px-4 py-2.5 md:py-6 md:px-8 md:text-3xl transition-colors ${isActive ? ' active text-primary font-bold bg-green-50' : 'text-gray-700 hover:bg-gray-100'}`}
                     onClick={() => router.push(link.path)}
                 >
                     {link.icon} <span>{link.name}</span>
@@ -188,13 +191,15 @@ const Navbar = () => {
                     {/* Hamburger Button */}
                     <div className="relative" ref={menuRef}>
                         <Button variant="ghost" onClick={() => setIsMenuOpen(!isMenuOpen)}>
-                            <HamburgerIcon className="h-6 w-6" />
+                            {/* BIGGER HAMBURGER ICON */}
+                            <HamburgerIcon className="h-6 w-6 md:h-10 md:w-10" />
                         </Button>
 
                         {/* Floating Menu */}
                         {isMenuOpen && (
-                            <div className="absolute left-0 mt-2 w-56 origin-top-left bg-white border border-gray-200 divide-y divide-gray-100 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50" id="main-menu">
-                                <nav className="flex flex-col px-1 py-1">
+                            // WIDTH EXPANDED TO 30vw (30% of screen), no max-width cap
+                            <div className="absolute left-0 mt-2 w-56 md:w-[30vw] md:min-w-[400px] origin-top-left bg-white border border-gray-200 divide-y divide-gray-100 rounded-2xl shadow-2xl ring-1 ring-black ring-opacity-5 focus:outline-none z-50" id="main-menu">
+                                <nav className="flex flex-col px-1 py-1 md:p-4 md:gap-3">
                                     {renderLinks()}
                                 </nav>
                             </div>
