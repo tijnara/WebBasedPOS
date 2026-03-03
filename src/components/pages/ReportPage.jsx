@@ -3,10 +3,13 @@ import React, { useState, useMemo } from 'react';
 import { useSales } from '../../hooks/useSales';
 import { useSalesSummary } from '../../hooks/useSalesSummary';
 import { useCustomers } from '../../hooks/useCustomers';
-import { useProducts } from '../../hooks/useProducts'; // Added useProducts
+import { useProducts } from '../../hooks/useProducts';
 import { useInactiveCustomers } from '../../hooks/useInactiveCustomers';
+import { useDeleteSale } from '../../hooks/useDeleteSale'; // Import the new hook
+import { useDebounce } from '../../hooks/useDebounce'; // Added useDebounce
 import { format } from 'date-fns';
-import { Button, Input, Select } from '../ui'; // Added Select
+import { Button, Input, Select } from '../ui';
+import { DeleteIcon } from '../Icons'; // Reuse existing Delete icon
 
 import Pagination from '../Pagination';
 import currency from 'currency.js';
@@ -21,7 +24,7 @@ const formatCurrency = (amount) => {
 };
 
 // --- Mobile Sale Card ---
-const SaleCard = ({ sale }) => (
+const SaleCard = ({ sale, onDelete }) => (
     <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
         <div className="p-4 space-y-3">
             <div className="flex justify-between items-start">
@@ -31,7 +34,7 @@ const SaleCard = ({ sale }) => (
                     </div>
                     <div className="text-xs text-gray-500">{sale.customerName}</div>
                 </div>
-                <div className="text-right flex-shrink-0 ml-2">
+                <div className="text-right flex flex-col items-end gap-2">
                     <div className="text-lg font-bold text-gray-900">
                         {formatCurrency(sale.totalAmount)}
                     </div>
@@ -40,6 +43,15 @@ const SaleCard = ({ sale }) => (
                     }`}>
                         {sale.status || 'Unknown'}
                     </span>
+                    {/* Add Delete Button for Mobile */}
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-red-500 bg-red-50 mt-1"
+                        onClick={() => onDelete(sale.id)}
+                    >
+                        <DeleteIcon className="w-4 h-4" />
+                    </Button>
                 </div>
             </div>
             <div className="space-y-2 pt-2 border-t">
@@ -237,7 +249,7 @@ const InactiveCustomersTable = ({ inactiveCustomers, isLoading, error }) => (
 );
 
 // --- Sales Report Table / Cards ---
-const SalesReportDisplay = ({ salesList, currentPage, totalPages, onPageChange }) => (
+const SalesReportDisplay = ({ salesList, currentPage, totalPages, onPageChange, onDelete }) => (
     <div className="bg-white rounded-lg border shadow-sm md:overflow-hidden">
         <div className="overflow-x-auto hidden md:block">
             <table className="min-w-full text-base">
@@ -253,12 +265,13 @@ const SalesReportDisplay = ({ salesList, currentPage, totalPages, onPageChange }
                     <th className="px-4 py-3 text-left font-semibold text-gray-700">Payment</th>
                     <th className="px-4 py-3 text-left font-semibold text-gray-700">Status</th>
                     <th className="px-4 py-3 text-left font-semibold text-gray-700">Staff</th>
+                    <th className="px-4 py-3 text-right font-semibold text-gray-700">Action</th>
                 </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                 {salesList.length === 0 ? (
                     <tr>
-                        <td colSpan="10" className="text-center p-6 text-gray-500 text-lg">
+                        <td colSpan="11" className="text-center p-6 text-gray-500 text-lg">
                             No sales found for this period.
                         </td>
                     </tr>
@@ -303,6 +316,16 @@ const SalesReportDisplay = ({ salesList, currentPage, totalPages, onPageChange }
                             <td className="px-4 py-3 whitespace-nowrap align-top">{sale.paymentMethod}</td>
                             <td className="px-4 py-3 whitespace-nowrap align-top">{sale.status}</td>
                             <td className="px-4 py-3 whitespace-nowrap align-top">{sale.staffName || 'N/A'}</td>
+                            <td className="px-4 py-3 text-right align-top">
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="text-red-600 hover:bg-red-50 h-8 w-8"
+                                    onClick={() => onDelete(sale.id)}
+                                >
+                                    <DeleteIcon className="w-4 h-4" />
+                                </Button>
+                            </td>
                         </tr>
                     ))
                 )}
@@ -316,7 +339,7 @@ const SalesReportDisplay = ({ salesList, currentPage, totalPages, onPageChange }
                 </div>
             ) : (
                 salesList.map(sale => (
-                    <SaleCard key={sale.id} sale={sale} />
+                    <SaleCard key={sale.id} sale={sale} onDelete={onDelete} />
                 ))
             )}
         </div>
@@ -336,6 +359,8 @@ const ReportPage = () => {
     const [inactivePage, setInactivePage] = useState(1);
 
     const [productSearch, setProductSearch] = useState('');
+    const [customerSearch, setCustomerSearch] = useState(''); // New customer search state
+    const debouncedCustomerSearch = useDebounce(customerSearch, 300); // Debounced value
 
     // Fetch products for the dropdown filter
     const { data: allProductsData } = useProducts({ fetchAll: true });
@@ -349,6 +374,9 @@ const ReportPage = () => {
 
     const SALES_PAGE_SIZE = 10;
     const CUSTOMER_PAGE_SIZE = 5;
+
+    // Add delete hook
+    const deleteSaleMutation = useDeleteSale();
 
     // Elevation on scroll
     React.useEffect(() => {
@@ -384,7 +412,8 @@ const ReportPage = () => {
     } = useSales({
         startDate: interval.start,
         endDate: interval.end,
-        productName: productSearch, // Use exact product name for the filter
+        productName: productSearch,
+        searchTerm: debouncedCustomerSearch, // Pass the search term
         page: currentPage,
         itemsPerPage: SALES_PAGE_SIZE
     });
@@ -410,6 +439,7 @@ const ReportPage = () => {
         itemsPerPage: CUSTOMER_PAGE_SIZE,
         startDate: interval.start,
         endDate: interval.end,
+        searchTerm: debouncedCustomerSearch // Pass the search term
     });
 
     // Fetch inactive customers (14+ days)
@@ -500,6 +530,14 @@ const ReportPage = () => {
         setCurrentPage(1);
         setCustomerPage(1);
         setInactivePage(1);
+        setProductSearch('');
+        setCustomerSearch(''); // Clear the customer search input
+    };
+
+    const handleDeleteSale = (id) => {
+        if (window.confirm("Permanently delete this transaction? This will remove the record and associated items from the database.")) {
+            deleteSaleMutation.mutate(id);
+        }
     };
 
     // --- Render JSX ---
@@ -564,7 +602,6 @@ const ReportPage = () => {
 
                             <div className="flex-shrink-0 w-full sm:w-auto flex-1 max-w-xs">
                                 <label className="block text-xs font-medium text-gray-700 mb-1">Filter by Product</label>
-                                {/* Replaced Input with Select for Products */}
                                 <Select
                                     value={productSearch}
                                     onChange={(e) => {
@@ -580,12 +617,23 @@ const ReportPage = () => {
                                 </Select>
                             </div>
 
-                            {(fromDate || toDate || productSearch) && (
-                                <Button
-                                    onClick={() => {
-                                        handleClearRange();
-                                        setProductSearch('');
+                            <div className="flex-shrink-0 w-full sm:w-auto flex-1 max-w-xs">
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Search Customer</label>
+                                <Input
+                                    type="text"
+                                    placeholder="Search customer..."
+                                    className="text-sm"
+                                    value={customerSearch}
+                                    onChange={(e) => {
+                                        setCustomerSearch(e.target.value);
+                                        setCurrentPage(1);
                                     }}
+                                />
+                            </div>
+
+                            {(fromDate || toDate || productSearch || customerSearch) && (
+                                <Button
+                                    onClick={handleClearRange}
                                     className="px-3 py-2 text-sm rounded-md btn--outline"
                                     title="Clear filters"
                                 >
@@ -633,6 +681,7 @@ const ReportPage = () => {
                             currentPage={currentPage}
                             totalPages={totalPages}
                             onPageChange={page => setCurrentPage(page)}
+                            onDelete={handleDeleteSale}
                         />
                     )}
                 </>
@@ -678,14 +727,27 @@ const ReportPage = () => {
                                 />
                             </div>
 
-                            {(fromDate || toDate) && (
+                            <div className="flex-shrink-0 w-full sm:w-auto flex-1 max-w-xs">
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Search Customer</label>
+                                <Input
+                                    type="text"
+                                    placeholder="Search customer..."
+                                    className="text-sm"
+                                    value={customerSearch}
+                                    onChange={(e) => {
+                                        setCustomerSearch(e.target.value);
+                                        setCustomerPage(1);
+                                    }}
+                                />
+                            </div>
+
+                            {(fromDate || toDate || customerSearch) && (
                                 <Button
                                     onClick={handleClearRange}
-                                    disabled={!fromDate && !toDate}
-                                    className="px-3 py-2 text-sm rounded-md btn--outline disabled:opacity-50"
-                                    title="Clear custom date range"
+                                    className="px-3 py-2 text-sm rounded-md btn--outline"
+                                    title="Clear filters"
                                 >
-                                    Clear Range
+                                    Clear Filters
                                 </Button>
                             )}
 
