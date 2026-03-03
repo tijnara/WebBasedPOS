@@ -5,11 +5,12 @@ import { useSalesSummary } from '../../hooks/useSalesSummary';
 import { useCustomers } from '../../hooks/useCustomers';
 import { useProducts } from '../../hooks/useProducts';
 import { useInactiveCustomers } from '../../hooks/useInactiveCustomers';
-import { useDeleteSale } from '../../hooks/useDeleteSale'; // Import the new hook
-import { useDebounce } from '../../hooks/useDebounce'; // Added useDebounce
+import { useDeleteSale } from '../../hooks/useDeleteSale';
+import { useDebounce } from '../../hooks/useDebounce';
+import { useStore } from '../../store/useStore'; // Added to get current user
 import { format } from 'date-fns';
 import { Button, Input, Select } from '../ui';
-import { DeleteIcon } from '../Icons'; // Reuse existing Delete icon
+import { DeleteIcon } from '../Icons';
 
 import Pagination from '../Pagination';
 import currency from 'currency.js';
@@ -24,7 +25,7 @@ const formatCurrency = (amount) => {
 };
 
 // --- Mobile Sale Card ---
-const SaleCard = ({ sale, onDelete }) => (
+const SaleCard = ({ sale, onDelete, isAdmin }) => (
     <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
         <div className="p-4 space-y-3">
             <div className="flex justify-between items-start">
@@ -43,15 +44,17 @@ const SaleCard = ({ sale, onDelete }) => (
                     }`}>
                         {sale.status || 'Unknown'}
                     </span>
-                    {/* Add Delete Button for Mobile */}
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-red-500 bg-red-50 mt-1"
-                        onClick={() => onDelete(sale.id)}
-                    >
-                        <DeleteIcon className="w-4 h-4" />
-                    </Button>
+                    {/* Only show Delete Button if user is an Admin */}
+                    {isAdmin && (
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-red-500 bg-red-50 mt-1"
+                            onClick={() => onDelete(sale.id)}
+                        >
+                            <DeleteIcon className="w-4 h-4" />
+                        </Button>
+                    )}
                 </div>
             </div>
             <div className="space-y-2 pt-2 border-t">
@@ -249,7 +252,7 @@ const InactiveCustomersTable = ({ inactiveCustomers, isLoading, error }) => (
 );
 
 // --- Sales Report Table / Cards ---
-const SalesReportDisplay = ({ salesList, currentPage, totalPages, onPageChange, onDelete }) => (
+const SalesReportDisplay = ({ salesList, currentPage, totalPages, onPageChange, onDelete, isAdmin }) => (
     <div className="bg-white rounded-lg border shadow-sm md:overflow-hidden">
         <div className="overflow-x-auto hidden md:block">
             <table className="min-w-full text-base">
@@ -265,13 +268,14 @@ const SalesReportDisplay = ({ salesList, currentPage, totalPages, onPageChange, 
                     <th className="px-4 py-3 text-left font-semibold text-gray-700">Payment</th>
                     <th className="px-4 py-3 text-left font-semibold text-gray-700">Status</th>
                     <th className="px-4 py-3 text-left font-semibold text-gray-700">Staff</th>
-                    <th className="px-4 py-3 text-right font-semibold text-gray-700">Action</th>
+                    {/* Only render Action column header if user is Admin */}
+                    {isAdmin && <th className="px-4 py-3 text-right font-semibold text-gray-700">Action</th>}
                 </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                 {salesList.length === 0 ? (
                     <tr>
-                        <td colSpan="11" className="text-center p-6 text-gray-500 text-lg">
+                        <td colSpan={isAdmin ? "11" : "10"} className="text-center p-6 text-gray-500 text-lg">
                             No sales found for this period.
                         </td>
                     </tr>
@@ -316,16 +320,20 @@ const SalesReportDisplay = ({ salesList, currentPage, totalPages, onPageChange, 
                             <td className="px-4 py-3 whitespace-nowrap align-top">{sale.paymentMethod}</td>
                             <td className="px-4 py-3 whitespace-nowrap align-top">{sale.status}</td>
                             <td className="px-4 py-3 whitespace-nowrap align-top">{sale.staffName || 'N/A'}</td>
-                            <td className="px-4 py-3 text-right align-top">
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="text-red-600 hover:bg-red-50 h-8 w-8"
-                                    onClick={() => onDelete(sale.id)}
-                                >
-                                    <DeleteIcon className="w-4 h-4" />
-                                </Button>
-                            </td>
+
+                            {/* Only render the Delete Action if Admin */}
+                            {isAdmin && (
+                                <td className="px-4 py-3 text-right align-top">
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="text-red-600 hover:bg-red-50 h-8 w-8"
+                                        onClick={() => onDelete(sale.id)}
+                                    >
+                                        <DeleteIcon className="w-4 h-4" />
+                                    </Button>
+                                </td>
+                            )}
                         </tr>
                     ))
                 )}
@@ -339,7 +347,7 @@ const SalesReportDisplay = ({ salesList, currentPage, totalPages, onPageChange, 
                 </div>
             ) : (
                 salesList.map(sale => (
-                    <SaleCard key={sale.id} sale={sale} onDelete={onDelete} />
+                    <SaleCard key={sale.id} sale={sale} onDelete={onDelete} isAdmin={isAdmin} />
                 ))
             )}
         </div>
@@ -353,14 +361,18 @@ const SalesReportDisplay = ({ salesList, currentPage, totalPages, onPageChange, 
 
 // --- Main Report Page Component ---
 const ReportPage = () => {
+    // Get the currently logged-in user from the store to check for admin privileges
+    const user = useStore(state => state.user);
+    const isAdmin = user?.role === 'Admin' || user?.role === 'admin';
+
     const [activeTab, setActiveTab] = useState('sales');
     const [currentPage, setCurrentPage] = useState(1);
     const [customerPage, setCustomerPage] = useState(1);
     const [inactivePage, setInactivePage] = useState(1);
 
     const [productSearch, setProductSearch] = useState('');
-    const [customerSearch, setCustomerSearch] = useState(''); // New customer search state
-    const debouncedCustomerSearch = useDebounce(customerSearch, 300); // Debounced value
+    const [customerSearch, setCustomerSearch] = useState('');
+    const debouncedCustomerSearch = useDebounce(customerSearch, 300);
 
     // Fetch products for the dropdown filter
     const { data: allProductsData } = useProducts({ fetchAll: true });
@@ -413,7 +425,7 @@ const ReportPage = () => {
         startDate: interval.start,
         endDate: interval.end,
         productName: productSearch,
-        searchTerm: debouncedCustomerSearch, // Pass the search term
+        searchTerm: debouncedCustomerSearch,
         page: currentPage,
         itemsPerPage: SALES_PAGE_SIZE
     });
@@ -439,7 +451,7 @@ const ReportPage = () => {
         itemsPerPage: CUSTOMER_PAGE_SIZE,
         startDate: interval.start,
         endDate: interval.end,
-        searchTerm: debouncedCustomerSearch // Pass the search term
+        searchTerm: debouncedCustomerSearch
     });
 
     // Fetch inactive customers (14+ days)
@@ -682,6 +694,7 @@ const ReportPage = () => {
                             totalPages={totalPages}
                             onPageChange={page => setCurrentPage(page)}
                             onDelete={handleDeleteSale}
+                            isAdmin={isAdmin} // Pass the admin state here
                         />
                     )}
                 </>
