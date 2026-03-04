@@ -612,7 +612,7 @@ const ReportPage = () => {
                                 />
                             </div>
 
-                            <div className="flex-shrink-0 w-full sm:w-auto flex-1 max-w-xs">
+                            <div className="flex-shrink-0 w-full sm:w-auto flex-1 max-w-xs md:max-w-md lg:max-w-lg">
                                 <label className="block text-xs font-medium text-gray-700 mb-1">Filter by Product</label>
                                 <Select
                                     value={productSearch}
@@ -629,7 +629,7 @@ const ReportPage = () => {
                                 </Select>
                             </div>
 
-                            <div className="flex-shrink-0 w-full sm:w-auto flex-1 max-w-xs">
+                            <div className="flex-shrink-0 w-full sm:w-auto flex-1 max-w-xs md:max-w-md lg:max-w-lg">
                                 <label className="block text-xs font-medium text-gray-700 mb-1">Search Customer</label>
                                 <Input
                                     type="text"
@@ -740,8 +740,9 @@ const ReportPage = () => {
                                 />
                             </div>
 
-                            <div className="flex-shrink-0 w-full sm:w-auto flex-1 max-w-xs">
+                            <div className="flex-shrink-0 w-full sm:w-auto flex-1 max-w-xs md:max-w-md lg:max-w-lg">
                                 <label className="block text-xs font-medium text-gray-700 mb-1">Search Customer</label>
+
                                 <Input
                                     type="text"
                                     placeholder="Search customer..."
