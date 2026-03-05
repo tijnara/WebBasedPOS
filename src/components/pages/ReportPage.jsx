@@ -39,9 +39,8 @@ const SaleCard = ({ sale, onDelete, isAdmin }) => (
                     <div className="text-lg font-bold text-gray-900">
                         {formatCurrency(sale.totalAmount)}
                     </div>
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                        sale.status === 'Completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                    }`}>
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${sale.status === 'Completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                        }`}>
                         {sale.status || 'Unknown'}
                     </span>
                     {/* Only show Delete Button if user is an Admin */}
@@ -128,36 +127,36 @@ const CustomerReportDisplay = ({ customersList, currentPage, totalPages, onPageC
         <div className="overflow-x-auto hidden md:block">
             <table className="min-w-full text-base">
                 <thead className="bg-gray-100">
-                <tr>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Name</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Phone</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Email</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Address</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Date Added</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Added By</th>
-                </tr>
+                    <tr>
+                        <th className="px-4 py-3 text-left font-semibold text-gray-700">Name</th>
+                        <th className="px-4 py-3 text-left font-semibold text-gray-700">Phone</th>
+                        <th className="px-4 py-3 text-left font-semibold text-gray-700">Email</th>
+                        <th className="px-4 py-3 text-left font-semibold text-gray-700">Address</th>
+                        <th className="px-4 py-3 text-left font-semibold text-gray-700">Date Added</th>
+                        <th className="px-4 py-3 text-left font-semibold text-gray-700">Added By</th>
+                    </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                {customersList.length === 0 ? (
-                    <tr>
-                        <td colSpan="6" className="text-center p-6 text-gray-500 text-lg">
-                            No customers found.
-                        </td>
-                    </tr>
-                ) : (
-                    customersList.map(customer => (
-                        <tr key={customer.id} className="hover:bg-gray-50">
-                            <td className="px-4 py-3 font-medium text-gray-800">{customer.name}</td>
-                            <td className="px-4 py-3 text-gray-600">{customer.phone || 'N/A'}</td>
-                            <td className="px-4 py-3 text-gray-600">{customer.email || 'N/A'}</td>
-                            <td className="px-4 py-3 text-gray-600">{customer.address || 'N/A'}</td>
-                            <td className="px-4 py-3 text-gray-600">
-                                {customer.dateAdded ? format(customer.dateAdded, 'MMM d, yyyy') : 'N/A'}
+                    {customersList.length === 0 ? (
+                        <tr>
+                            <td colSpan="6" className="text-center p-6 text-gray-500 text-lg">
+                                No customers found.
                             </td>
-                            <td className="px-4 py-3 text-gray-600">{customer.users?.name || 'N/A'}</td>
                         </tr>
-                    ))
-                )}
+                    ) : (
+                        customersList.map(customer => (
+                            <tr key={customer.id} className="hover:bg-gray-50">
+                                <td className="px-4 py-3 font-medium text-gray-800">{customer.name}</td>
+                                <td className="px-4 py-3 text-gray-600">{customer.phone || 'N/A'}</td>
+                                <td className="px-4 py-3 text-gray-600">{customer.email || 'N/A'}</td>
+                                <td className="px-4 py-3 text-gray-600">{customer.address || 'N/A'}</td>
+                                <td className="px-4 py-3 text-gray-600">
+                                    {customer.dateAdded ? format(customer.dateAdded, 'MMM d, yyyy') : 'N/A'}
+                                </td>
+                                <td className="px-4 py-3 text-gray-600">{customer.users?.name || 'N/A'}</td>
+                            </tr>
+                        ))
+                    )}
                 </tbody>
             </table>
         </div>
@@ -195,32 +194,32 @@ const InactiveCustomersTable = ({ inactiveCustomers, isLoading, error }) => (
             ) : (
                 <table className="min-w-full text-base">
                     <thead className="bg-gray-100">
-                    <tr>
-                        <th className="px-4 py-3 text-left font-semibold text-gray-700">Name</th>
-                        <th className="px-4 py-3 text-left font-semibold text-gray-700">Phone</th>
-                        <th className="px-4 py-3 text-left font-semibold text-gray-700">Last Order</th>
-                    </tr>
+                        <tr>
+                            <th className="px-4 py-3 text-left font-semibold text-gray-700">Name</th>
+                            <th className="px-4 py-3 text-left font-semibold text-gray-700">Phone</th>
+                            <th className="px-4 py-3 text-left font-semibold text-gray-700">Last Order</th>
+                        </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
-                    {inactiveCustomers.length === 0 ? (
-                        <tr>
-                            <td colSpan="3" className="text-center p-6 text-gray-500 text-lg">
-                                No inactive customers found.
-                            </td>
-                        </tr>
-                    ) : (
-                        inactiveCustomers.map(customer => (
-                            <tr key={customer.id} className="hover:bg-gray-50">
-                                <td className="px-4 py-3 font-medium text-gray-800">{customer.name}</td>
-                                <td className="px-4 py-3 text-gray-600">{customer.phone || 'N/A'}</td>
-                                <td className="px-4 py-3 text-gray-600">
-                                    {customer.last_order_date
-                                        ? format(new Date(customer.last_order_date), 'MMM d, yyyy')
-                                        : 'Never ordered'}
+                        {inactiveCustomers.length === 0 ? (
+                            <tr>
+                                <td colSpan="3" className="text-center p-6 text-gray-500 text-lg">
+                                    No inactive customers found.
                                 </td>
                             </tr>
-                        ))
-                    )}
+                        ) : (
+                            inactiveCustomers.map(customer => (
+                                <tr key={customer.id} className="hover:bg-gray-50">
+                                    <td className="px-4 py-3 font-medium text-gray-800">{customer.name}</td>
+                                    <td className="px-4 py-3 text-gray-600">{customer.phone || 'N/A'}</td>
+                                    <td className="px-4 py-3 text-gray-600">
+                                        {customer.last_order_date
+                                            ? format(new Date(customer.last_order_date), 'MMM d, yyyy')
+                                            : 'Never ordered'}
+                                    </td>
+                                </tr>
+                            ))
+                        )}
                     </tbody>
                 </table>
             )}
@@ -241,8 +240,8 @@ const InactiveCustomersTable = ({ inactiveCustomers, isLoading, error }) => (
                         <div className="text-xs text-gray-500 mt-1">{customer.phone || 'No phone'}</div>
                         <div className="text-xs text-gray-600 mt-1">
                             Last Order: {customer.last_order_date
-                            ? format(new Date(customer.last_order_date), 'MMM d, yyyy')
-                            : 'Never'}
+                                ? format(new Date(customer.last_order_date), 'MMM d, yyyy')
+                                : 'Never'}
                         </div>
                     </div>
                 ))
@@ -257,86 +256,86 @@ const SalesReportDisplay = ({ salesList, currentPage, totalPages, onPageChange, 
         <div className="overflow-x-auto hidden md:block">
             <table className="min-w-full text-base">
                 <thead className="bg-gray-100">
-                <tr>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Date & Time</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Customer</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Item(s) & Qty</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Price(s)</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Discount</th>
-                    <th className="px-4 py-3 text-center font-semibold text-gray-700">Total Qty</th>
-                    <th className="px-4 py-3 text-right font-semibold text-gray-700">Total</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Payment</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Status</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Staff</th>
-                    {/* Only render Action column header if user is Admin */}
-                    {isAdmin && <th className="px-4 py-3 text-right font-semibold text-gray-700">Action</th>}
-                </tr>
+                    <tr>
+                        <th className="px-4 py-3 text-left font-semibold text-gray-700">Date & Time</th>
+                        <th className="px-4 py-3 text-left font-semibold text-gray-700">Customer</th>
+                        <th className="px-4 py-3 text-left font-semibold text-gray-700">Item(s) & Qty</th>
+                        <th className="px-4 py-3 text-left font-semibold text-gray-700">Price(s)</th>
+                        <th className="px-4 py-3 text-left font-semibold text-gray-700">Discount</th>
+                        <th className="px-4 py-3 text-center font-semibold text-gray-700">Total Qty</th>
+                        <th className="px-4 py-3 text-right font-semibold text-gray-700">Total</th>
+                        <th className="px-4 py-3 text-left font-semibold text-gray-700">Payment</th>
+                        <th className="px-4 py-3 text-left font-semibold text-gray-700">Status</th>
+                        <th className="px-4 py-3 text-left font-semibold text-gray-700">Staff</th>
+                        {/* Only render Action column header if user is Admin */}
+                        {isAdmin && <th className="px-4 py-3 text-right font-semibold text-gray-700">Action</th>}
+                    </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                {salesList.length === 0 ? (
-                    <tr>
-                        <td colSpan={isAdmin ? "11" : "10"} className="text-center p-6 text-gray-500 text-lg">
-                            No sales found for this period.
-                        </td>
-                    </tr>
-                ) : (
-                    salesList.map(sale => (
-                        <tr key={sale.id} className="hover:bg-gray-50">
-                            <td className="px-4 py-3 whitespace-nowrap align-top">{format(new Date(sale.saleTimestamp), 'MMM d, yyyy h:mm a')}</td>
-                            <td className="px-4 py-3 whitespace-nowrap align-top">{sale.customerName}</td>
-                            <td className="px-4 py-3 align-top">
-                                <div className="flex flex-col gap-1">
-                                    {(sale.sale_items || []).map((item, idx) => (
-                                        <span key={idx} className="block truncate" title={item.productName}>
-                                            {item.productName || 'N/A'} <span className="font-bold text-primary">x{item.quantity || 0}</span>
-                                        </span>
-                                    ))}
-                                </div>
+                    {salesList.length === 0 ? (
+                        <tr>
+                            <td colSpan={isAdmin ? "11" : "10"} className="text-center p-6 text-gray-500 text-lg">
+                                No sales found for this period.
                             </td>
-                            <td className="px-4 py-3 align-top">
-                                <div className="flex flex-col gap-1">
-                                    {(sale.sale_items || []).map((item, idx) => (
-                                        <span key={idx} className="block whitespace-nowrap">
-                                            {formatCurrency(item.productPrice || 0)}
-                                        </span>
-                                    ))}
-                                </div>
-                            </td>
-                            <td className="px-4 py-3 align-top">
-                                <div className="flex flex-col gap-1">
-                                    {(sale.sale_items || []).map((item, idx) => (
-                                        <span key={idx} className={`block whitespace-nowrap ${item.discount_amount > 0 ? 'text-green-600 font-medium' : 'text-gray-400'}`}>
-                                            {item.discount_amount > 0 ? `-${formatCurrency(item.discount_amount)}` : '—'}
-                                        </span>
-                                    ))}
-                                </div>
-                            </td>
-                            <td className="px-4 py-3 align-top text-center font-medium text-gray-800">
-                                {(sale.sale_items || []).reduce((acc, item) => acc + (item.quantity || 0), 0)}
-                            </td>
-                            <td className="px-4 py-3 text-right whitespace-nowrap align-top font-bold text-gray-900">
-                                {formatCurrency(sale.totalAmount)}
-                            </td>
-                            <td className="px-4 py-3 whitespace-nowrap align-top">{sale.paymentMethod}</td>
-                            <td className="px-4 py-3 whitespace-nowrap align-top">{sale.status}</td>
-                            <td className="px-4 py-3 whitespace-nowrap align-top">{sale.staffName || 'N/A'}</td>
-
-                            {/* Only render the Delete Action if Admin */}
-                            {isAdmin && (
-                                <td className="px-4 py-3 text-right align-top">
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="text-red-600 hover:bg-red-50 h-8 w-8"
-                                        onClick={() => onDelete(sale.id)}
-                                    >
-                                        <DeleteIcon className="w-4 h-4" />
-                                    </Button>
-                                </td>
-                            )}
                         </tr>
-                    ))
-                )}
+                    ) : (
+                        salesList.map(sale => (
+                            <tr key={sale.id} className="hover:bg-gray-50">
+                                <td className="px-4 py-3 whitespace-nowrap align-top">{format(new Date(sale.saleTimestamp), 'MMM d, yyyy h:mm a')}</td>
+                                <td className="px-4 py-3 whitespace-nowrap align-top">{sale.customerName}</td>
+                                <td className="px-4 py-3 align-top">
+                                    <div className="flex flex-col gap-1">
+                                        {(sale.sale_items || []).map((item, idx) => (
+                                            <span key={idx} className="block truncate" title={item.productName}>
+                                                {item.productName || 'N/A'} <span className="font-bold text-primary">x{item.quantity || 0}</span>
+                                            </span>
+                                        ))}
+                                    </div>
+                                </td>
+                                <td className="px-4 py-3 align-top">
+                                    <div className="flex flex-col gap-1">
+                                        {(sale.sale_items || []).map((item, idx) => (
+                                            <span key={idx} className="block whitespace-nowrap">
+                                                {formatCurrency(item.productPrice || 0)}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </td>
+                                <td className="px-4 py-3 align-top">
+                                    <div className="flex flex-col gap-1">
+                                        {(sale.sale_items || []).map((item, idx) => (
+                                            <span key={idx} className={`block whitespace-nowrap ${item.discount_amount > 0 ? 'text-green-600 font-medium' : 'text-gray-400'}`}>
+                                                {item.discount_amount > 0 ? `-${formatCurrency(item.discount_amount)}` : '—'}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </td>
+                                <td className="px-4 py-3 align-top text-center font-medium text-gray-800">
+                                    {(sale.sale_items || []).reduce((acc, item) => acc + (item.quantity || 0), 0)}
+                                </td>
+                                <td className="px-4 py-3 text-right whitespace-nowrap align-top font-bold text-gray-900">
+                                    {formatCurrency(sale.totalAmount)}
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap align-top">{sale.paymentMethod}</td>
+                                <td className="px-4 py-3 whitespace-nowrap align-top">{sale.status}</td>
+                                <td className="px-4 py-3 whitespace-nowrap align-top">{sale.staffName || 'N/A'}</td>
+
+                                {/* Only render the Delete Action if Admin */}
+                                {isAdmin && (
+                                    <td className="px-4 py-3 text-right align-top">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="text-red-600 hover:bg-red-50 h-8 w-8"
+                                            onClick={() => onDelete(sale.id)}
+                                        >
+                                            <DeleteIcon className="w-4 h-4" />
+                                        </Button>
+                                    </td>
+                                )}
+                            </tr>
+                        ))
+                    )}
                 </tbody>
             </table>
         </div>
@@ -591,70 +590,78 @@ const ReportPage = () => {
                             </div>
                         </div>
 
-                        <div className="flex flex-col md:flex-row md:items-end gap-3 flex-wrap">
-                            <div className="flex-shrink-0">
-                                <label className="block text-xs font-medium text-gray-700 mb-1">Date From</label>
-                                <Input
-                                    type="date"
-                                    className="text-sm"
-                                    value={fromDate || ''}
-                                    onChange={handleFromDateChange}
-                                />
+                        <div className="flex flex-col gap-4">
+                            {/* Row 1: Dates side-by-side on desktop */}
+                            <div className="flex flex-col md:flex-row gap-4 w-full">
+                                <div className="flex-1">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Date From</label>
+                                    <Input
+                                        type="date"
+                                        className="text-base md:text-lg h-12 w-full"
+                                        value={fromDate || ''}
+                                        onChange={handleFromDateChange}
+                                    />
+                                </div>
+                                <div className="flex-1">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Date To</label>
+                                    <Input
+                                        type="date"
+                                        className="text-base md:text-lg h-12 w-full"
+                                        value={toDate || ''}
+                                        onChange={handleToDateChange}
+                                    />
+                                </div>
                             </div>
 
-                            <div className="flex-shrink-0">
-                                <label className="block text-xs font-medium text-gray-700 mb-1">Date To</label>
-                                <Input
-                                    type="date"
-                                    className="text-sm"
-                                    value={toDate || ''}
-                                    onChange={handleToDateChange}
-                                />
+                            {/* Row 2: Product & Customer side-by-side on desktop */}
+                            <div className="flex flex-col md:flex-row gap-4 w-full">
+                                <div className="flex-1">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Product</label>
+                                    <Select
+                                        value={productSearch}
+                                        onChange={(e) => {
+                                            setProductSearch(e.target.value);
+                                            setCurrentPage(1);
+                                        }}
+                                        className="text-base md:text-lg w-full h-12"
+                                    >
+                                        <option value="">All Products</option>
+                                        {availableProducts.map(p => (
+                                            <option key={p.id} value={p.name}>{p.name}</option>
+                                        ))}
+                                    </Select>
+                                </div>
+                                <div className="flex-1">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Search Customer</label>
+                                    <Input
+                                        type="text"
+                                        placeholder="Search customer..."
+                                        className="text-base md:text-lg h-12 w-full"
+                                        value={customerSearch}
+                                        onChange={(e) => {
+                                            setCustomerSearch(e.target.value);
+                                            setCurrentPage(1);
+                                        }}
+                                    />
+                                </div>
                             </div>
 
-                            <div className="flex-shrink-0 w-full sm:w-auto flex-1 max-w-xs md:max-w-md lg:max-w-lg">
-                                <label className="block text-xs font-medium text-gray-700 mb-1">Filter by Product</label>
-                                <Select
-                                    value={productSearch}
-                                    onChange={(e) => {
-                                        setProductSearch(e.target.value);
-                                        setCurrentPage(1);
-                                    }}
-                                    className="text-sm w-full"
-                                >
-                                    <option value="">All Products</option>
-                                    {availableProducts.map(p => (
-                                        <option key={p.id} value={p.name}>{p.name}</option>
-                                    ))}
-                                </Select>
-                            </div>
-
-                            <div className="flex-shrink-0 w-full sm:w-auto flex-1 max-w-xs md:max-w-md lg:max-w-lg">
-                                <label className="block text-xs font-medium text-gray-700 mb-1">Search Customer</label>
-                                <Input
-                                    type="text"
-                                    placeholder="Search customer..."
-                                    className="text-sm"
-                                    value={customerSearch}
-                                    onChange={(e) => {
-                                        setCustomerSearch(e.target.value);
-                                        setCurrentPage(1);
-                                    }}
-                                />
-                            </div>
-
-                            {(fromDate || toDate || productSearch || customerSearch) && (
-                                <Button
-                                    onClick={handleClearRange}
-                                    className="px-3 py-2 text-sm rounded-md btn--outline"
-                                    title="Clear filters"
-                                >
-                                    Clear Filters
-                                </Button>
-                            )}
-
-                            <div className="w-full mt-1">
-                                <p className="text-xs text-gray-500 italic">Note: For a single day report, select the same date for Date From and Date To.</p>
+                            {/* Row 3: Clear Button */}
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mt-2">
+                                <div className="text-xs text-gray-500 italic">
+                                    Note: For a single day report, select the same date for Date From and Date To.
+                                </div>
+                                {(fromDate || toDate || productSearch || customerSearch) && (
+                                    <div className="flex-shrink-0">
+                                        <Button
+                                            onClick={handleClearRange}
+                                            className="px-6 py-2 text-base rounded-md btn--outline w-full md:w-max"
+                                            title="Clear filters"
+                                        >
+                                            Clear Filters
+                                        </Button>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -719,54 +726,63 @@ const ReportPage = () => {
                             </div>
                         </div>
 
-                        <div className="flex flex-col md:flex-row md:items-end gap-3 flex-wrap">
-                            <div className="flex-shrink-0">
-                                <label className="block text-xs font-medium text-gray-700 mb-1">Date From</label>
-                                <Input
-                                    type="date"
-                                    className="text-sm"
-                                    value={fromDate || ''}
-                                    onChange={handleFromDateChange}
-                                />
+                        <div className="flex flex-col gap-4">
+                            {/* Row 1: Dates side-by-side on desktop */}
+                            <div className="flex flex-col md:flex-row gap-4 w-full">
+                                <div className="flex-1">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Date From</label>
+                                    <Input
+                                        type="date"
+                                        className="text-base md:text-lg h-12 w-full"
+                                        value={fromDate || ''}
+                                        onChange={handleFromDateChange}
+                                    />
+                                </div>
+                                <div className="flex-1">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Date To</label>
+                                    <Input
+                                        type="date"
+                                        className="text-base md:text-lg h-12 w-full"
+                                        value={toDate || ''}
+                                        onChange={handleToDateChange}
+                                    />
+                                </div>
                             </div>
 
-                            <div className="flex-shrink-0">
-                                <label className="block text-xs font-medium text-gray-700 mb-1">Date To</label>
-                                <Input
-                                    type="date"
-                                    className="text-sm"
-                                    value={toDate || ''}
-                                    onChange={handleToDateChange}
-                                />
+                            {/* Row 2: Empty placeholder & Customer side-by-side on desktop */}
+                            <div className="flex flex-col md:flex-row gap-4 w-full">
+                                <div className="flex-1 hidden md:block" />
+                                <div className="flex-1">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Search Customer</label>
+                                    <Input
+                                        type="text"
+                                        placeholder="Search customer..."
+                                        className="text-base md:text-lg h-12 w-full"
+                                        value={customerSearch}
+                                        onChange={(e) => {
+                                            setCustomerSearch(e.target.value);
+                                            setCustomerPage(1);
+                                        }}
+                                    />
+                                </div>
                             </div>
 
-                            <div className="flex-shrink-0 w-full sm:w-auto flex-1 max-w-xs md:max-w-md lg:max-w-lg">
-                                <label className="block text-xs font-medium text-gray-700 mb-1">Search Customer</label>
-
-                                <Input
-                                    type="text"
-                                    placeholder="Search customer..."
-                                    className="text-sm"
-                                    value={customerSearch}
-                                    onChange={(e) => {
-                                        setCustomerSearch(e.target.value);
-                                        setCustomerPage(1);
-                                    }}
-                                />
-                            </div>
-
-                            {(fromDate || toDate || customerSearch) && (
-                                <Button
-                                    onClick={handleClearRange}
-                                    className="px-3 py-2 text-sm rounded-md btn--outline"
-                                    title="Clear filters"
-                                >
-                                    Clear Filters
-                                </Button>
-                            )}
-
-                            <div className="w-full mt-1">
-                                <p className="text-xs text-gray-500 italic">Note: For a single day report, select the same date for Date From and Date To.</p>
+                            {/* Row 3: Clear Button */}
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mt-2">
+                                <div className="text-xs text-gray-500 italic">
+                                    Note: For a single day report, select the same date for Date From and Date To.
+                                </div>
+                                {(fromDate || toDate || customerSearch) && (
+                                    <div className="flex-shrink-0">
+                                        <Button
+                                            onClick={handleClearRange}
+                                            className="px-6 py-2 text-base rounded-md btn--outline w-full md:w-max"
+                                            title="Clear filters"
+                                        >
+                                            Clear Filters
+                                        </Button>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
