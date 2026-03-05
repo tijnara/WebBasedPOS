@@ -36,17 +36,17 @@ const Navbar = () => {
     const [isStartShiftModalOpen, setIsStartShiftModalOpen] = useState(false);
     const [startingCash, setStartingCash] = useState('');
 
-    // --- MASSIVE ICONS FOR DESKTOP (md:h-10 md:w-10) ---
+    // --- ICONS FOR NAVIGATION ---
     const links = [
-        { name: 'Dashboard', path: '/dashboard', icon: <ChartIcon className="h-5 w-5 md:h-10 md:w-10" /> },
-        { name: 'POS', path: '/pos', icon: <CartIcon className="h-5 w-5 md:h-10 md:w-10" /> },
-        { name: 'Products', path: '/product-management', icon: <PackageIcon className="h-5 w-5 md:h-10 md:w-10" /> },
-        { name: 'Inventory', path: '/inventory', icon: <PackageIcon className="h-5 w-5 md:h-10 md:w-10" /> },
-        { name: 'Customer', path: '/customer-management', icon: <UserIcon className="h-5 w-5 md:h-10 md:w-10" /> },
-        { name: 'Sale History', path: '/history', icon: <ChartIcon className="h-5 w-5 md:h-10 md:w-10" /> },
-        { name: 'Gallery', path: '/gallery-management', icon: <GalleryIcon className="h-5 w-5 md:h-10 md:w-10" />, adminOnly: true },
-        { name: 'Users', path: '/user-management', icon: <UsersIcon className="h-5 w-5 md:h-10 md:w-10" />, adminOnly: true },
-        { name: 'Report', path: '/report', icon: <ChartIcon className="h-5 w-5 md:h-10 md:w-10" />, adminOnly: true },
+        { name: 'Dashboard', path: '/dashboard', icon: <ChartIcon className="h-5 w-5 menu-icon" /> },
+        { name: 'POS', path: '/pos', icon: <CartIcon className="h-5 w-5 menu-icon" /> },
+        { name: 'Products', path: '/product-management', icon: <PackageIcon className="h-5 w-5 menu-icon" /> },
+        { name: 'Inventory', path: '/inventory', icon: <PackageIcon className="h-5 w-5 menu-icon" /> },
+        { name: 'Customer', path: '/customer-management', icon: <UserIcon className="h-5 w-5 menu-icon" /> },
+        { name: 'Sale History', path: '/history', icon: <ChartIcon className="h-5 w-5 menu-icon" /> },
+        { name: 'Gallery', path: '/gallery-management', icon: <GalleryIcon className="h-5 w-5 menu-icon" />, adminOnly: true },
+        { name: 'Users', path: '/user-management', icon: <UsersIcon className="h-5 w-5 menu-icon" />, adminOnly: true },
+        { name: 'Report', path: '/report', icon: <ChartIcon className="h-5 w-5 menu-icon" />, adminOnly: true },
     ];
 
     useEffect(() => {
@@ -167,7 +167,8 @@ const Navbar = () => {
         handleLogout(); // Ensure redirect happens here
     };
 
-    const renderLinks = () => links
+    // --- RENDER MOBILE LINKS (Original Design) ---
+    const renderMobileLinks = () => links
         .filter(link => !link.adminOnly || (clientUser && (clientUser.role === 'Admin' || clientUser.role === 'admin')))
         .map(link => {
             const isActive = router.pathname === link.path;
@@ -175,11 +176,27 @@ const Navbar = () => {
                 <Button
                     key={link.name}
                     variant="ghost"
-                    // MASSIVE SIZING for desktop items: text-3xl, large padding, huge gap
-                    className={`nav-item w-full justify-start gap-3 md:gap-6 px-4 py-2.5 md:py-6 md:px-8 md:text-3xl transition-colors ${isActive ? ' active text-primary font-bold bg-green-50' : 'text-gray-700 hover:bg-gray-100'}`}
-                    onClick={() => router.push(link.path)}
+                    className={`nav-item w-full justify-start gap-3 px-4 py-2.5 transition-colors ${isActive ? ' active text-primary font-bold bg-green-50' : 'text-gray-700 hover:bg-gray-100'}`}
+                    onClick={() => { router.push(link.path); setIsMenuOpen(false); }}
                 >
                     {link.icon} <span>{link.name}</span>
+                </Button>
+            );
+        });
+
+    // --- RENDER DESKTOP LINKS (Office 2016 Design) ---
+    const renderDesktopLinks = () => links
+        .filter(link => !link.adminOnly || (clientUser && (clientUser.role === 'Admin' || clientUser.role === 'admin')))
+        .map(link => {
+            const isActive = router.pathname === link.path;
+            return (
+                <Button
+                    key={link.name}
+                    variant="ghost"
+                    className={`nav-item w-full justify-start gap-4 px-6 py-4 transition-colors text-white ${isActive ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}
+                    onClick={() => { router.push(link.path); setIsMenuOpen(false); }}
+                >
+                    {link.icon} <span className="text-lg">{link.name}</span>
                 </Button>
             );
         });
@@ -192,21 +209,59 @@ const Navbar = () => {
                     <div className="relative" ref={menuRef}>
                         <Button variant="ghost" onClick={() => setIsMenuOpen(!isMenuOpen)}>
                             {/* BIGGER HAMBURGER ICON */}
-                            <HamburgerIcon className="h-6 w-6 md:h-10 md:w-10" />
+                            <HamburgerIcon className="h-6 w-6 hamburger-icon" />
                         </Button>
 
-                        {/* Floating Menu */}
                         {isMenuOpen && (
-                            // WIDTH EXPANDED TO 30vw (30% of screen), no max-width cap
-                            <div className="absolute left-0 mt-2 w-56 md:w-[30vw] md:min-w-[400px] origin-top-left bg-white border border-gray-200 divide-y divide-gray-100 rounded-2xl shadow-2xl ring-1 ring-black ring-opacity-5 focus:outline-none z-50" id="main-menu">
-                                <nav className="flex flex-col px-1 py-1 md:p-4 md:gap-3">
-                                    {renderLinks()}
-                                </nav>
-                            </div>
+                            <>
+                                {/* --- MOBILE LAYOUT: FLOATING MENU --- */}
+                                <div className="md:hidden absolute left-0 mt-2 w-56 origin-top-left bg-white border border-gray-200 divide-y divide-gray-100 rounded-2xl shadow-2xl ring-1 ring-black ring-opacity-5 focus:outline-none z-50" id="main-menu-mobile">
+                                    <nav className="flex flex-col px-1 py-1">
+                                        {renderMobileLinks()}
+                                    </nav>
+                                </div>
+
+                                {/* --- DESKTOP LAYOUT: SIDEBAR DRAWER --- */}
+                                <div className="hidden md:block">
+                                    {/* Dimmed Backdrop */}
+                                    <div
+                                        className="fixed inset-0 bg-black/40 z-40 transition-opacity"
+                                        onClick={() => setIsMenuOpen(false)}
+                                    ></div>
+
+                                    {/* Sidebar Drawer */}
+                                    <div
+                                        className="fixed top-0 left-0 bottom-0 w-[350px] bg-primary text-white z-50 shadow-2xl overflow-y-auto flex flex-col transition-transform duration-300 ease-in-out transform translate-x-0"
+                                        style={{ backgroundColor: 'var(--primary)', opacity: 1 }}
+                                        id="main-menu-desktop"
+                                    >
+                                        {/* Sidebar Header */}
+                                        <div className="flex items-center gap-4 px-6 py-6 border-b border-white/20">
+                                            <Button variant="ghost" onClick={() => setIsMenuOpen(false)} className="text-white hover:bg-white/10 p-2">
+                                                <HamburgerIcon className="h-7 w-7" />
+                                            </Button>
+                                            <span className="font-bold text-xl uppercase tracking-wider">Menu</span>
+                                        </div>
+
+                                        {/* Navigation Links */}
+                                        <nav className="flex flex-col py-4 gap-1">
+                                            {renderDesktopLinks()}
+                                        </nav>
+
+                                        {/* Bottom Settings (Optional for that Office look) */}
+                                        <div className="mt-auto px-6 py-6 border-t border-white/20">
+                                            <div className="text-sm opacity-80 uppercase tracking-widest mb-2 font-semibold">Additional Information</div>
+                                            <Button variant="ghost" onClick={() => { setIsMenuOpen(false); prepareZReading(); }} className="w-full justify-start text-white hover:bg-white/10 px-0 py-2">
+                                                <span className="font-medium text-lg">Sign Out</span>
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </>
                         )}
                     </div>
                     <div className="brand">
-                        <Image src="/seaside.png" alt="Seaside Logo" width={32} height={32} />
+                        <Image src="/seaside.png" alt="Seaside Logo" width={80} height={80} />
                         <span className="font-bold text-lg text-primary hidden md:inline">Seaside</span>
                     </div>
                 </div>
