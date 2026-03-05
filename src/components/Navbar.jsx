@@ -193,7 +193,7 @@ const Navbar = () => {
                 <Button
                     key={link.name}
                     variant="ghost"
-                    className={`nav-item w-full justify-start gap-4 px-6 py-4 transition-colors text-white ${isActive ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}
+                    className={`nav-item w-full justify-start gap-4 px-6 py-2 transition-colors text-white ${isActive ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}
                     onClick={() => { router.push(link.path); setIsMenuOpen(false); }}
                 >
                     {link.icon} <span className="text-lg">{link.name}</span>
@@ -244,7 +244,7 @@ const Navbar = () => {
                                         </div>
 
                                         {/* Navigation Links */}
-                                        <nav className="flex flex-col py-4 gap-1">
+                                        <nav className="flex flex-col py-2 gap-0">
                                             {renderDesktopLinks()}
                                         </nav>
 
