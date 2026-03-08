@@ -8,6 +8,7 @@ import { useStore } from '../src/store/useStore';
 import { useRouter } from 'next/router';
 import Navbar from '../src/components/Navbar';
 import TabBar from '../src/components/TabBar';
+import FloatingNotes from '../src/components/FloatingNotes';
 import { Button } from '../src/components/ui';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
@@ -93,6 +94,7 @@ export default function App({ Component, pageProps }) {
 
                     {!hideNav && <Navbar />}
                     {!hideNav && <TabBar />}
+                    {!hideNav && <FloatingNotes />}
 
                     {/* Landing Page uses its own full-width structure without container margins */}
                     {isLandingPage ? (
@@ -105,21 +107,22 @@ export default function App({ Component, pageProps }) {
                         </main>
                     )}
 
+                    {!hideNav && <FloatingNotes />}
+
                     {/* Toast Container */}
                     <div className="toasts fixed bottom-4 right-4 z-50 flex flex-col items-end gap-3" aria-live="polite">
                         {toasts.map(t => (
-                            <div key={t.id} className={`toast bg-white border border-gray-200 p-4 rounded-lg shadow-xl w-80 max-w-[calc(100vw-2rem)] flex items-start gap-3 ${
-                                t.variant === 'destructive' ? 'border-l-4 border-red-500' :
+                            <div key={t.id} className={`toast bg-white border border-gray-200 p-4 rounded-lg shadow-xl w-80 max-w-[calc(100vw-2rem)] flex items-start gap-3 ${t.variant === 'destructive' ? 'border-l-4 border-red-500' :
                                     t.variant === 'success' ? 'border-l-4 border-green-500' :
                                         t.variant === 'warning' ? 'border-l-4 border-yellow-500' : 'border-l-4 border-blue-500'
-                            }`}>
+                                }`}>
                                 <div className="flex-1">
                                     <div className="toast__title font-semibold text-gray-800">{t.title}</div>
                                     {t.description && <div className="toast__desc text-sm text-gray-600 mt-1">{t.description}</div>}
                                 </div>
                                 <Button variant="ghost" size="sm" className="p-1 -mr-2 -mt-2 h-auto text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full" onClick={() => dismissToast(t.id)} aria-label="Dismiss toast">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                                        <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+                                        <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" />
                                     </svg>
                                 </Button>
                             </div>
