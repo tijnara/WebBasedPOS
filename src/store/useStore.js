@@ -2,6 +2,7 @@
 import { create } from 'zustand';
 import api from '../lib/api';
 import currency from 'currency.js';
+import { supabase } from '../lib/supabaseClient'; // Import supabase client
 
 // ... (persistence code remains the same) ...
 const persistUserToStorage = (user) => {
@@ -51,7 +52,7 @@ const initialUser = getUserFromStorage();
 
 export const useStore = create((set, get) => ({
     user: initialUser,
-    sessionLoaded: typeof window !== 'undefined',
+    sessionLoaded: false, // Start as false until we check the session
 
     currentSale: {},
     currentCustomer: null,
@@ -59,7 +60,6 @@ export const useStore = create((set, get) => ({
 
     setCurrentCustomer: (cust) => set({ currentCustomer: cust }),
 
-    // --- UPDATED: Support basePrice and image_url ---
     addItemToSale: (product, quantity = 1, overridePrice = null) =>
         set((state) => {
             const priceToParse = overridePrice !== null ? overridePrice : (product.price ?? 0);
@@ -67,7 +67,6 @@ export const useStore = create((set, get) => ({
 
             if (isNaN(price)) return {};
 
-            // Key is ID + Active Price
             const key = `${product.id}__${price.toFixed(2)}`;
             const existing = state.currentSale[key];
             const currentQty = existing ? existing.quantity : 0;
@@ -85,11 +84,9 @@ export const useStore = create((set, get) => ({
                         productId: product.id,
                         name: product.name,
                         price,
-                        image_url: product.image_url, // --- ADDED ---
-                        // Store basePrice for future discount calculations
+                        image_url: product.image_url,
                         basePrice: existing?.basePrice ?? (product.price ?? price),
                         quantity: newQty,
-                        // Preserve existing notes/discounts if simply incrementing
                         discountType: existing?.discountType || 'none',
                         discountValue: existing?.discountValue || 0,
                         note: existing?.note || ''
@@ -98,30 +95,22 @@ export const useStore = create((set, get) => ({
             };
         }),
 
-    // --- NEW: Update Cart Item (Handle edits from modal) ---
     updateCartItem: (oldKey, updates) => set((state) => {
         const item = state.currentSale[oldKey];
         if (!item) return {};
 
-        // Calculate new effective price if provided, otherwise keep old
         const newPrice = updates.price !== undefined ? Number(updates.price) : item.price;
         const newQty = updates.quantity !== undefined ? Number(updates.quantity) : item.quantity;
 
-        // If qty is 0, remove
         if (newQty <= 0) {
             const { [oldKey]: _, ...rest } = state.currentSale;
             return { currentSale: rest };
         }
 
-        // Generate new key based on new price
         const newKey = `${item.productId}__${newPrice.toFixed(2)}`;
 
-        // If key changed (price changed), we need to move the item
         if (newKey !== oldKey) {
-            // Remove old
             const { [oldKey]: _, ...rest } = state.currentSale;
-
-            // Check if target key exists (merging)
             const existingTarget = rest[newKey];
             const mergedQty = existingTarget ? existingTarget.quantity + newQty : newQty;
 
@@ -137,7 +126,6 @@ export const useStore = create((set, get) => ({
                 }
             };
         } else {
-            // Just update in place
             return {
                 currentSale: {
                     ...state.currentSale,
@@ -173,23 +161,42 @@ export const useStore = create((set, get) => ({
         persistUserToStorage(user);
         set({ user, sessionLoaded: true });
     },
-    logout: () => {
+    logout: async () => {
         try {
-            api.logout();
+            await supabase.auth.signOut();
             persistUserToStorage(null);
-            set({ user: null });
+            set({ user: null, sessionLoaded: true });
         } catch (error) {
             get().addToast({ title: 'Logout Error', description: error.message || 'Logout failed.', variant: 'destructive' });
         }
     },
-    hydrate: () => {
-        if (!get().sessionLoaded && typeof window !== 'undefined') {
-            const userFromStorage = getUserFromStorage();
-            set({ sessionLoaded: true, user: userFromStorage });
-        } else if (get().sessionLoaded && typeof window !== 'undefined' && get().user === null && localStorage.getItem('pos_custom_user')) {
-            const userFromStorage = getUserFromStorage();
-            set({ user: userFromStorage });
+    hydrate: async () => {
+        if (typeof window === 'undefined' || get().sessionLoaded) return;
+
+        set({ sessionLoaded: false });
+
+        const { data: { session } } = await supabase.auth.getSession();
+
+        if (session && session.user) {
+            // Match session email with the public users table email
+            const { data: userProfile } = await supabase
+                .from('users')
+                .select('*')
+                .eq('email', session.user.email)
+                .single();
+            
+            if (userProfile) {
+                get().setAuth(userProfile);
+            } else {
+                // User is authenticated but has no profile, log them out of the app state
+                get().setAuth(null);
+            }
+        } else {
+            // No session, ensure user is logged out
+            get().setAuth(null);
         }
+        
+        set({ sessionLoaded: true });
     }
 }));
 

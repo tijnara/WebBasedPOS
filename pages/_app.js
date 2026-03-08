@@ -30,30 +30,24 @@ function AuthGate({ children }) {
         sessionLoaded: s.sessionLoaded
     }));
     const router = useRouter();
-    const [isClient, setIsClient] = useState(false);
 
     useEffect(() => {
-        setIsClient(true);
-        useStore.getState().hydrate();
-    }, []);
-
-    useEffect(() => {
-        if (isClient && sessionLoaded) {
+        if (sessionLoaded) {
             const isLoggedIn = !!user;
             const isLoginPage = router.pathname === '/login';
-            const isLandingPage = router.pathname === '/'; // The new public route
+            const isLandingPage = router.pathname === '/';
 
             if (!isLoggedIn && !isLoginPage && !isLandingPage) {
                 console.log("AuthGate: Not logged in, redirecting to landing page");
-                router.push('/'); // <-- CHANGED: Now redirects to the landing page
+                router.push('/');
             } else if (isLoggedIn && isLoginPage) {
                 console.log("AuthGate: Logged in, redirecting from login to dashboard");
                 router.replace('/dashboard');
             }
         }
-    }, [user, sessionLoaded, router, isClient]);
+    }, [user, sessionLoaded, router]);
 
-    if (!isClient || !sessionLoaded) {
+    if (!sessionLoaded) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-gray-100 text-gray-600">
                 Loading application...
@@ -61,7 +55,6 @@ function AuthGate({ children }) {
         );
     }
 
-    // Allow rendering if conditions met
     if (router.pathname === '/login' || router.pathname === '/' || user) {
         return children;
     }
@@ -77,10 +70,13 @@ export default function App({ Component, pageProps }) {
     const { toasts, dismissToast } = useStore();
     const router = useRouter();
 
+    // Run hydrate on initial client-side load
+    useEffect(() => {
+        useStore.getState().hydrate();
+    }, []);
+
     const isLoginPage = router.pathname === '/login';
     const isLandingPage = router.pathname === '/';
-
-    // Hide Navigation elements on both Login and Landing pages
     const hideNav = isLoginPage || isLandingPage;
 
     return (
@@ -91,12 +87,9 @@ export default function App({ Component, pageProps }) {
             </Head>
             <AuthGate>
                 <div className="app bg-gray-100">
-
                     {!hideNav && <Navbar />}
                     {!hideNav && <TabBar />}
-                    {!hideNav && <FloatingNotes />}
 
-                    {/* Landing Page uses its own full-width structure without container margins */}
                     {isLandingPage ? (
                         <Component {...pageProps} />
                     ) : (
@@ -107,9 +100,8 @@ export default function App({ Component, pageProps }) {
                         </main>
                     )}
 
-                    {!hideNav && <FloatingNotes />}
+                    {!isLandingPage && <FloatingNotes />}
 
-                    {/* Toast Container */}
                     <div className="toasts fixed bottom-4 right-4 z-50 flex flex-col items-end gap-3" aria-live="polite">
                         {toasts.map(t => (
                             <div key={t.id} className={`toast bg-white border border-gray-200 p-4 rounded-lg shadow-xl w-80 max-w-[calc(100vw-2rem)] flex items-start gap-3 ${t.variant === 'destructive' ? 'border-l-4 border-red-500' :

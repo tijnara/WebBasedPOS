@@ -27,12 +27,12 @@ export function useNotes() {
 
                 if (error) {
                     console.error("Notes fetch error:", error.message);
-                    return []; // Return empty array instead of crashing the app
+                    return [];
                 }
                 return data || [];
             } catch (err) {
                 console.error("Notes critical error:", err);
-                return []; // Prevent crashing UI on deeper failures
+                return [];
             }
         },
     });
@@ -40,7 +40,7 @@ export function useNotes() {
 
 export function useCreateNote() {
     const queryClient = useQueryClient();
-    const user = useStore(s => s.user);
+    const user = useStore(s => s.user); // Get user from the store
 
     return useMutation({
         mutationFn: async (content) => {
@@ -48,7 +48,13 @@ export function useCreateNote() {
                 MOCK_NOTES.push({ id: `mock-${Date.now()}`, content, created_at: new Date().toISOString() });
                 return;
             }
-            const { error } = await supabase.from('notes').insert([{ content, created_by: user?.id }]);
+            
+            if (!user || !user.id) {
+                throw new Error('User not available for creating a note.');
+            }
+
+            // Use the integer ID from the store's user profile
+            const { error } = await supabase.from('notes').insert([{ content, created_by: user.id }]);
             if (error) throw error;
         },
         onSuccess: () => queryClient.invalidateQueries({ queryKey: notesKey }),

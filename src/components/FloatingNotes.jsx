@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { useNotes, useCreateNote, useUpdateNote, useDeleteNote } from '../hooks/useNotes';
 import { Button, Card, CardHeader, CardContent, Textarea } from './ui';
 import { format } from 'date-fns';
+import { useStore } from '../store/useStore';
 
 const StickyNoteIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
@@ -17,22 +18,24 @@ export default function FloatingNotes() {
     const [currentContent, setCurrentContent] = useState('');
     const [editingId, setEditingId] = useState(null);
 
+    const user = useStore(s => s.user);
     const { data: notes = [], isLoading } = useNotes();
     const createNote = useCreateNote();
     const updateNote = useUpdateNote();
     const deleteNote = useDeleteNote();
 
-    // Ensure we only render the portal on the client side
     useEffect(() => {
         setMounted(true);
     }, []);
 
     const handleSave = async () => {
-        if (!currentContent.trim()) return;
+        if (!currentContent.trim() || !user) return;
+
         if (editingId) {
             await updateNote.mutateAsync({ id: editingId, content: currentContent });
             setEditingId(null);
         } else {
+            // Pass only the content, as the hook now handles the user ID
             await createNote.mutateAsync(currentContent);
         }
         setCurrentContent('');
@@ -59,14 +62,13 @@ export default function FloatingNotes() {
     const floatingUI = (
         <div style={{
             position: 'fixed',
-            bottom: '80px', // High enough to clear the mobile tab bar
-            right: '20px',  // Moved to right side to avoid overlapping mobile menus
-            zIndex: 999999, // Unbeatable z-index
+            bottom: '80px',
+            right: '20px',
+            zIndex: 999999,
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'flex-end'
         }}>
-            {/* Popover Window */}
             {isOpen && (
                 <Card className="w-80 md:w-96 mb-4 shadow-2xl border-gray-200 flex flex-col h-[28rem] bg-white">
                     <CardHeader className="bg-yellow-100 border-b border-yellow-200 py-3 flex justify-between items-center rounded-t-lg">
@@ -101,7 +103,6 @@ export default function FloatingNotes() {
                             )}
                         </div>
 
-                        {/* Input Area */}
                         <div className="p-3 bg-white border-t border-yellow-200">
                             <Textarea
                                 placeholder="Type a note..."
@@ -117,6 +118,7 @@ export default function FloatingNotes() {
                                     size="sm"
                                     onClick={handleSave}
                                     className="bg-yellow-400 hover:bg-yellow-500 text-yellow-900 border-none font-bold"
+                                    disabled={!user}
                                 >
                                     {editingId ? 'Update Note' : 'Add Note'}
                                 </Button>
@@ -126,13 +128,12 @@ export default function FloatingNotes() {
                 </Card>
             )}
 
-            {/* Floating Action Button */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 style={{
                     height: '56px', width: '56px',
-                    backgroundColor: '#facc15', // yellow-400
-                    color: '#713f12', // yellow-900
+                    backgroundColor: '#facc15',
+                    color: '#713f12',
                     borderRadius: '9999px',
                     boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -146,6 +147,5 @@ export default function FloatingNotes() {
         </div>
     );
 
-    // Render directly into the document body to bypass ALL other components' CSS
     return createPortal(floatingUI, document.body);
 }
