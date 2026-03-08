@@ -166,7 +166,7 @@ export default function POSPage() {
     });
 
     const [saleDate, setSaleDate] = useState(() => new Date().toISOString().slice(0, 10));
-    const [saleTime, setSaleTime] = useState(() => new Date().toTimeString().slice(0,5));
+    const [saleTime, setSaleTime] = useState(() => new Date().toTimeString().slice(0, 5));
 
     useEffect(() => {
         setSelectedCustomer(currentCustomer);
@@ -247,7 +247,17 @@ export default function POSPage() {
         addItemToSale({ ...product }, 1);
     };
 
-    const handleIncreaseQuantity = (key) => { const item = currentSale[key]; if (item) addItemToSale({ ...item, id: item.productId }, 1); };
+    const handleIncreaseQuantity = (key) => {
+        const item = currentSale[key];
+        if (item) {
+            const product = products.find(p => p.id === item.productId);
+            if (product && item.quantity + 1 > product.stock) {
+                addToast({ title: 'Stock Limit', description: `Cannot add more than the ${product.stock} available.`, variant: 'warning' });
+                return;
+            }
+            addItemToSale({ ...item, id: item.productId }, 1);
+        }
+    };
     const handleDecreaseQuantity = (key) => { const item = currentSale[key]; if (item) addItemToSale({ ...item, id: item.productId }, -1); };
     const handleRemoveItem = (key) => { useStore.getState().removeItemFromSale(key); };
 
@@ -272,12 +282,12 @@ export default function POSPage() {
     const handleSelectCustomerFromModal = (c) => { handleSetSelectedCustomer(c); setCustomerSearchTerm(''); setIsCustomerModalOpen(false); };
     const handleSelectCustomerInPayment = (c) => { handleSetSelectedCustomer(c); setCustomerSearchTerm(''); setDebouncedCustomerSearchTerm(''); setCustomerSearchResults([]); setIsSearchingCustomers(false); };
     const handleAddCustomer = async (name) => {
-        if(!name?.trim()) return;
+        if (!name?.trim()) return;
         try {
             const added = await createCustomerMutation.mutateAsync({ name: name.trim() });
             handleSelectCustomerFromModal(added);
-            if(isPaymentModalOpen) handleSelectCustomerInPayment(added);
-        } catch(e) { addToast({ title: 'Error', description: e.message, variant: 'destructive' }); }
+            if (isPaymentModalOpen) handleSelectCustomerInPayment(added);
+        } catch (e) { addToast({ title: 'Error', description: e.message, variant: 'destructive' }); }
     };
 
     const openPaymentModal = () => {
@@ -287,7 +297,7 @@ export default function POSPage() {
         }
         setAmountReceived(subtotal.toFixed(2));
         setPaymentMethod('Cash');
-        setSaleTime(new Date().toTimeString().slice(0,5));
+        setSaleTime(new Date().toTimeString().slice(0, 5));
         setCustomerSearchTerm('');
         setCustomerSearchResults([]);
         setIsPaymentModalOpen(true);
@@ -383,9 +393,8 @@ export default function POSPage() {
                         <button
                             key={cat}
                             onClick={() => { setCategoryFilter(cat); setCurrentPage(1); }}
-                            className={`px-4 py-2.5 rounded-xl font-semibold transition-all border-2 ${
-                                categoryFilter === cat ? 'bg-primary-soft border-primary text-primary shadow-md' : 'bg-white border-gray-200 text-gray-600 hover:border-primary/50'
-                            }`}
+                            className={`px-4 py-2.5 rounded-xl font-semibold transition-all border-2 ${categoryFilter === cat ? 'bg-primary-soft border-primary text-primary shadow-md' : 'bg-white border-gray-200 text-gray-600 hover:border-primary/50'
+                                }`}
                         >
                             {cat}
                         </button>
@@ -473,7 +482,14 @@ export default function POSPage() {
                     isOpen={!!editItemKey}
                     onClose={() => setEditItemKey(null)}
                     item={currentSale[editItemKey]}
-                    onSave={(updatedItem) => updateCartItem(editItemKey, updatedItem)}
+                    onSave={(updatedItem) => {
+                        const product = products.find(p => p.id === updatedItem.productId);
+                        if (product && updatedItem.quantity > product.stock) {
+                            addToast({ title: 'Stock Limit', description: `Limited to ${product.stock} items.`, variant: 'warning' });
+                            updatedItem.quantity = product.stock;
+                        }
+                        updateCartItem(editItemKey, updatedItem);
+                    }}
                 />
             )}
 

@@ -1,5 +1,5 @@
 // src/components/pos/PaymentModal.jsx
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import {
     Button, Dialog, DialogContent, DialogCloseButton, DialogHeader, DialogTitle, DialogFooter, Input, Label, ScrollArea, Select
 } from '../ui';
@@ -7,30 +7,30 @@ import { UserIcon } from '../Icons';
 import currency from 'currency.js';
 
 const PaymentModal = ({
-                          isOpen,
-                          setIsOpen,
-                          searchTerm,
-                          setSearchTerm,
-                          selectedCustomer,
-                          handleSelectCustomerInPayment,
-                          isSearchingCustomers,
-                          customerSearchResults,
-                          handleAddCustomer,
-                          createCustomerMutation = { isPending: false },
-                          lastCustomer,
-                          paymentMethod,
-                          setPaymentMethod,
-                          amountReceived,
-                          setAmountReceived,
-                          subtotal,
-                          saleDate,
-                          setSaleDate,
-                          saleTime,
-                          setSaleTime,
-                          handleFinalizeSale,
-                          createSaleMutation = { isPending: false },
-                          customerPaymentInputRef,
-                      }) => {
+    isOpen,
+    setIsOpen,
+    searchTerm,
+    setSearchTerm,
+    selectedCustomer,
+    handleSelectCustomerInPayment,
+    isSearchingCustomers,
+    customerSearchResults,
+    handleAddCustomer,
+    createCustomerMutation = { isPending: false },
+    lastCustomer,
+    paymentMethod,
+    setPaymentMethod,
+    amountReceived,
+    setAmountReceived,
+    subtotal,
+    saleDate,
+    setSaleDate,
+    saleTime,
+    setSaleTime,
+    handleFinalizeSale,
+    createSaleMutation = { isPending: false },
+    customerPaymentInputRef,
+}) => {
 
     const changeDue = useMemo(() => {
         const received = parseFloat(amountReceived) || 0;
@@ -41,6 +41,16 @@ const PaymentModal = ({
     // Ensure we have a valid array
     const results = Array.isArray(customerSearchResults) ? customerSearchResults : [];
     const showResults = searchTerm && searchTerm.length > 0;
+
+    // Focus the customer search box when the modal opens
+    useEffect(() => {
+        if (isOpen) {
+            const timer = setTimeout(() => {
+                customerPaymentInputRef?.current?.focus();
+            }, 150);
+            return () => clearTimeout(timer);
+        }
+    }, [isOpen]);
 
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -107,7 +117,7 @@ const PaymentModal = ({
                                             onClick={() => handleSelectCustomerInPayment(null)}
                                         >
                                             <span className="bg-gray-200 p-1 rounded mr-3 text-gray-600">
-                                                <UserIcon className="w-4 h-4"/>
+                                                <UserIcon className="w-4 h-4" />
                                             </span>
                                             Use Walk-in Customer
                                         </Button>
@@ -168,7 +178,7 @@ const PaymentModal = ({
                         <div className="flex flex-col gap-6">
                             {/* Total Amount Banner */}
                             <div className="bg-primary p-6 rounded-2xl text-white shadow-lg text-center flex flex-col justify-center transform transition-transform hover:scale-[1.01]"
-                                 style={{ backgroundColor: 'var(--primary)' }}
+                                style={{ backgroundColor: 'var(--primary)' }}
                             >
                                 <span className="text-white/90 text-sm font-medium uppercase tracking-wider opacity-90">Total Amount Due</span>
                                 <span className="text-5xl font-bold mt-1 tracking-tight">
@@ -208,7 +218,6 @@ const PaymentModal = ({
                                                 onChange={e => setAmountReceived(e.target.value)}
                                                 className="w-full h-14 pl-10 text-3xl font-bold text-gray-900 bg-gray-50 border-gray-300 focus:bg-white focus:border-primary transition-all"
                                                 placeholder="0.00"
-                                                autoFocus
                                             />
                                         </div>
 

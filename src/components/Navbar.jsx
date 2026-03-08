@@ -15,6 +15,33 @@ const HamburgerIcon = (props) => (
     </svg>
 );
 
+// --- Live Clock Component ---
+const LiveClock = () => {
+    const [time, setTime] = useState(() => new Date());
+
+    useEffect(() => {
+        const id = setInterval(() => setTime(new Date()), 1000);
+        return () => clearInterval(id);
+    }, []);
+
+    const hh = time.getHours();
+    const mm = String(time.getMinutes()).padStart(2, '0');
+    const ss = String(time.getSeconds()).padStart(2, '0');
+    const ampm = hh >= 12 ? 'PM' : 'AM';
+    const displayHour = String(hh % 12 || 12).padStart(2, '0');
+    const dateStr = time.toLocaleDateString('en-PH', { weekday: 'short', month: 'short', day: 'numeric' });
+
+    return (
+        <div className="live-clock" title="Philippine Time">
+            <div className="clock-time">
+                <span>{displayHour}:{mm}:{ss}</span>
+                <span className="clock-ampm">{ampm}</span>
+            </div>
+            <span className="clock-date">{dateStr}</span>
+        </div>
+    );
+};
+
 const Navbar = () => {
     const router = useRouter();
     const { user, logout } = useStore(s => ({
@@ -269,6 +296,7 @@ const Navbar = () => {
                 <div className="meta-container">
                     {clientUser ? (
                         <>
+                            <LiveClock />
                             <div className="user-info-text hidden sm:block">
                                 <span className="text-gray-600">Logged in as:</span>{' '}
                                 <strong className="text-primary">{clientUser.name || clientUser.email}</strong>

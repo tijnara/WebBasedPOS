@@ -56,6 +56,10 @@ const CustomSaleModal = ({ isOpen, onClose, products, onAddItem }) => {
             addToast({ title: 'Error', description: 'Please enter a valid quantity greater than 0.', variant: 'destructive' });
             return;
         }
+        if (selectedProduct.stock !== null && selectedProduct.stock !== undefined && parsedQuantity > selectedProduct.stock) {
+            addToast({ title: 'Stock Limit', description: `Only ${selectedProduct.stock} in stock.`, variant: 'warning' });
+            return;
+        }
 
         onAddItem(selectedProduct, parsedQuantity, parsedPrice);
         addToast({ title: 'Item Added', description: `${parsedQuantity} x ${selectedProduct.name} at ₱${parsedPrice.toFixed(2)} each added.`, variant: 'success' });

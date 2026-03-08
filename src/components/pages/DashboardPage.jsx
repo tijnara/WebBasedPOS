@@ -14,7 +14,7 @@ import { useSalesByDateSummary } from '../../hooks/useSalesByDateSummary';
 import { useNewCustomersByDateSummary } from '../../hooks/useNewCustomersByDateSummary';
 import { useTopProductsSummary } from '../../hooks/useTopProductsSummary';
 import { useInactiveCustomers } from '../../hooks/useInactiveCustomers';
-import { startOfWeek, parseISO } from 'date-fns';
+import { startOfWeek, endOfWeek, parseISO } from 'date-fns';
 import currency from 'currency.js';
 import ReorderReport from '../dashboard/ReorderReport';
 import SpoilageReport from '../dashboard/SpoilageReport';
@@ -118,13 +118,21 @@ export default function DashboardPage() {
 
     const [totalInactiveCount, setTotalInactiveCount] = useState(0);
 
-    // --- Date Ranges for Today ---
-    const { todayStart, todayEnd } = useMemo(() => {
-        const start = new Date();
-        start.setHours(0, 0, 0, 0);
-        const end = new Date();
-        end.setHours(23, 59, 59, 999);
-        return { todayStart: start, todayEnd: end };
+    // --- Date Ranges for Today & This Week ---
+    const { todayStart, todayEnd, weekStart, weekEnd } = useMemo(() => {
+        const now = new Date();
+
+        const tStart = new Date(now);
+        tStart.setHours(0, 0, 0, 0);
+        const tEnd = new Date(now);
+        tEnd.setHours(23, 59, 59, 999);
+
+        const wStart = startOfWeek(now, { weekStartsOn: 1 }); // Monday
+        wStart.setHours(0, 0, 0, 0);
+        const wEnd = endOfWeek(now, { weekStartsOn: 1 }); // Sunday
+        wEnd.setHours(23, 59, 59, 999);
+
+        return { todayStart: tStart, todayEnd: tEnd, weekStart: wStart, weekEnd: wEnd };
     }, []);
 
     // Fetch Today's Sales
@@ -133,24 +141,26 @@ export default function DashboardPage() {
         endDate: todayEnd
     });
 
-    // 2. Calculate Weekly Metrics
-    const { thisWeekSales, newCustomersThisWeek } = useMemo(() => {
-        const now = new Date();
-        const startOfCurrentWeek = startOfWeek(now, { weekStartsOn: 1 });
+    // Fetch This Week's Sales — same hook & datetime precision as the Report page
+    const { data: weekSalesSummary } = useSalesSummary({
+        startDate: weekStart,
+        endDate: weekEnd
+    });
+    const thisWeekSales = weekSalesSummary?.totalRevenue || 0;
 
-        const weeklySalesTotal = salesByDateData
-            .filter(item => parseISO(item.sale_date) >= startOfCurrentWeek)
-            .reduce((sum, item) => sum + Number(item.total_sales || 0), 0);
-
+    // 2. Calculate Weekly Customer Metrics
+    const { newCustomersThisWeek } = useMemo(() => {
         const weeklyCustomersTotal = newCustomersByDateData
-            .filter(item => parseISO(item.customer_date) >= startOfCurrentWeek)
+            .filter(item => {
+                const itemDate = parseISO(item.customer_date);
+                return itemDate >= weekStart && itemDate <= weekEnd;
+            })
             .reduce((sum, item) => sum + Number(item.total_customers || 0), 0);
 
         return {
-            thisWeekSales: weeklySalesTotal,
             newCustomersThisWeek: weeklyCustomersTotal
         };
-    }, [salesByDateData, newCustomersByDateData]);
+    }, [newCustomersByDateData, weekStart, weekEnd]);
 
     useEffect(() => {
         const fetchInactiveCount = async () => {
@@ -229,7 +239,7 @@ export default function DashboardPage() {
                 ticks: {
                     color: '#6b7280',
                     font: { family: 'Inter', size: 12 },
-                    callback: (value) => `₱${value >= 1000 ? (value/1000).toFixed(1)+'k' : value}`
+                    callback: (value) => `₱${value >= 1000 ? (value / 1000).toFixed(1) + 'k' : value}`
                 },
                 beginAtZero: true
             }
