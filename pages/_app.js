@@ -84,6 +84,7 @@ export default function App({ Component, pageProps }) {
         <QueryClientProvider client={queryClient}>
             <Head>
                 <title>SEASIDE</title>
+                <link rel="icon" href="/seaside.png" />
                 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
             </Head>
             <AuthGate>
