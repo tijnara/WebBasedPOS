@@ -293,10 +293,17 @@ const Navbar = () => {
                     </div>
                 </div>
 
+                {/* Mobile-only clock */}
+                <div className="mobile-clock-container">
+                    <LiveClock />
+                </div>
+
                 <div className="meta-container">
                     {clientUser ? (
                         <>
-                            <LiveClock />
+                            <div className="hidden md:flex">
+                                <LiveClock />
+                            </div>
                             <div className="user-info-text hidden sm:block">
                                 <span className="text-gray-600">Logged in as:</span>{' '}
                                 <strong className="text-primary">{clientUser.name || clientUser.email}</strong>

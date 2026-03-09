@@ -1,5 +1,6 @@
 // pages/_app.js
 import '../styles/globals.css';
+import '../styles/navbar.css';
 import 'react-day-picker/dist/style.css';
 import '../src/components/pages/POSPage.css';
 
