@@ -175,24 +175,37 @@ export const useStore = create((set, get) => ({
 
         set({ sessionLoaded: false });
 
-        const { data: { session } } = await supabase.auth.getSession();
+        // Get the user from localStorage instead of Supabase Auth
+        const storedUser = getUserFromStorage();
 
-        if (session && session.user) {
-            // Match session email with the public users table email
-            const { data: userProfile } = await supabase
-                .from('users')
-                .select('*')
-                .eq('email', session.user.email)
-                .single();
-            
-            if (userProfile) {
-                get().setAuth(userProfile);
+        if (storedUser) {
+            if (storedUser.isDemo) {
+                // Restore demo user without querying the database
+                get().setAuth(storedUser);
             } else {
-                // User is authenticated but has no profile, log them out of the app state
-                get().setAuth(null);
+                // Verify the real user still exists in the database
+                const { data: userProfile, error } = await supabase
+                    .from('users')
+                    .select('*')
+                    .eq('email', storedUser.email)
+                    .single();
+                
+                if (userProfile && !error) {
+                    let role = 'Staff';
+                    if (
+                        (typeof userProfile.isadmin === 'string' && userProfile.isadmin.trim().toLowerCase() === 'true') || 
+                        userProfile.isadmin === true
+                    ) {
+                        role = 'Admin';
+                    }
+                    get().setAuth({ ...userProfile, role });
+                } else {
+                    // User no longer exists or was deleted
+                    get().setAuth(null);
+                }
             }
         } else {
-            // No session, ensure user is logged out
+            // No session found
             get().setAuth(null);
         }
         
