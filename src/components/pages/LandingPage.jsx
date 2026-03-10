@@ -1,9 +1,11 @@
 // src/components/pages/LandingPage.jsx
 import React, { useState, useEffect } from 'react';
+import { supabase } from '../../lib/supabaseClient'; // <-- Add this import
 import {
     Facebook, Droplet, Heart,
     Leaf, ShieldCheck, Menu, X, MessageCircle,
-    Image as ImageIcon, MapPin, Truck, GlassWater, Snowflake
+    Image as ImageIcon, MapPin, Truck, GlassWater, Snowflake,
+    Eye // <-- Add the Eye icon here
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -20,6 +22,29 @@ const SeasideWaterLanding = () => {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isLightboxOpen, setIsLightboxOpen] = useState(false);
     const [showScrollTop, setShowScrollTop] = useState(false);
+    const [viewCount, setViewCount] = useState(null); // <-- Add this state
+
+    // <-- Add this useEffect block -->
+    useEffect(() => {
+        const initCounter = async () => {
+            // Check if they've already been counted in this browser session
+            if (!sessionStorage.getItem('has_viewed_seaside')) {
+                const { data, error } = await supabase.rpc('increment_page_view');
+                if (!error && data !== null) {
+                    setViewCount(data);
+                    sessionStorage.setItem('has_viewed_seaside', 'true');
+                }
+            } else {
+                // If they already visited, just fetch the current total
+                const { data, error } = await supabase.rpc('get_page_views');
+                if (!error && data !== null) {
+                    setViewCount(data);
+                }
+            }
+        };
+        initCounter();
+    }, []);
+
 
     // Handle scroll for "Back to Top" visibility - Fixed for cross-browser & mobile
     useEffect(() => {
@@ -404,7 +429,15 @@ const SeasideWaterLanding = () => {
                                 <Leaf className="w-4 h-4 text-lime-500/50"/>
                                 <p>© {new Date().getFullYear()} SEASIDE Purified Water. All rights reserved.</p>
                             </div>
-                            <p className="text-[12px]">Purity you can taste, quality you can trust.</p>
+                            
+                            <div className="flex items-center gap-4">
+                                {/* Page Views Counter */}
+                                <div className="flex items-center gap-1.5 bg-green-900/50 px-3 py-1 rounded-full text-lime-300/80 text-xs border border-green-800/50" title="Total Page Views">
+                                    <Eye className="w-3.5 h-3.5" />
+                                    <span>{viewCount !== null ? viewCount.toLocaleString() : '...'} Views</span>
+                                </div>
+                                <p className="text-[12px] hidden md:block">Purity you can taste, quality you can trust.</p>
+                            </div>
                         </div>
                     </footer>
                 </div>
