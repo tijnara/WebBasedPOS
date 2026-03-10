@@ -52,11 +52,18 @@ const BellAlertIcon = ({ className = "w-6 h-6" }) => (
     </svg>
 );
 
+const EyeIcon = ({ className = "w-6 h-6" }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639l4.436-7.332a1.012 1.012 0 011.605 0l4.436 7.332a1.012 1.012 0 010 .639l-4.436 7.332a1.012 1.012 0 01-1.605 0l-4.436-7.332z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+);
+
 // --- UI Components ---
-const SummaryCard = ({ title, value, subtext, icon, colorClass = "text-indigo-600" }) => {
+const SummaryCard = ({ title, value, subtext, icon, colorClass = "text-indigo-600", className = "" }) => {
     const bgClass = colorClass.replace('text-', 'bg-').replace('600', '100');
     return (
-        <Card className="border border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-300 bg-white">
+        <Card className={`border border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-300 bg-white ${className}`}>
             <CardContent className="p-5">
                 <div className="flex justify-between items-start">
                     <div>
@@ -117,6 +124,7 @@ export default function DashboardPage() {
     const { data: topProductsData = [] } = useTopProductsSummary();
 
     const [totalInactiveCount, setTotalInactiveCount] = useState(0);
+    const [viewCount, setViewCount] = useState(null);
 
     // --- Date Ranges for Today & This Week ---
     const { todayStart, todayEnd, weekStart, weekEnd } = useMemo(() => {
@@ -167,7 +175,14 @@ export default function DashboardPage() {
             const { data, error } = await supabase.rpc('get_inactive_customers', { days_inactive: 14 });
             if (!error && data) setTotalInactiveCount(data.length);
         };
+        const fetchViewCount = async () => {
+            const { data, error } = await supabase.rpc('get_page_views');
+            if (!error && data !== null) {
+                setViewCount(data);
+            }
+        };
         fetchInactiveCount();
+        fetchViewCount();
     }, []);
 
     // Chart Data Preparation (Sales Trend)
@@ -299,10 +314,10 @@ export default function DashboardPage() {
         : "All time";
 
     return (
-        <div className="p-4 md:p-6 space-y-6 bg-slate-50/50 min-h-screen">
+        <div className="p-4 md:p-6 bg-slate-50/50 min-h-screen">
 
             {/* Page Header */}
-            <div className="flex flex-col md:flex-row justify-between md:items-end gap-4 mb-2">
+            <div className="flex flex-col md:flex-row justify-between md:items-end gap-4 mb-6">
                 <div>
                     <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
                         Welcome back, {user?.name?.split(' ')[0] || 'Admin'} 👋
@@ -315,119 +330,54 @@ export default function DashboardPage() {
                 </div>
             </div>
 
-            {/* Top KPI Cards - 4 Columns */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-                <SummaryCard
-                    title="Today's Sales"
-                    value={currency(todaySalesSummary?.totalRevenue || 0, { symbol: '₱' }).format()}
-                    subtext="Sales today"
-                    colorClass="text-[#8BC34A]"
-                    icon={<CurrencyDollarIcon />}
-                />
-                <SummaryCard
-                    title="This Week Sales"
-                    value={currency(thisWeekSales || 0, { symbol: '₱' }).format()}
-                    subtext="Current week revenue"
-                    colorClass="text-blue-600"
-                    icon={<TrendingUpIcon />}
-                />
-                <SummaryCard
-                    title="All Time Sales"
-                    value={currency(salesSummary?.totalRevenue || 0, { symbol: '₱' }).format()}
-                    subtext={`Since ${formattedFirstTx}`}
-                    colorClass="text-emerald-600"
-                    icon={<GlobeIcon />}
-                />
-                <SummaryCard
-                    title="Total Customers"
-                    value={customerData?.totalCount || 0}
-                    subtext={`${newCustomersThisWeek} new this week`}
-                    colorClass="text-orange-600"
-                    icon={<UsersGroupIcon />}
-                />
+            {/* KPI Cards Grid */}
+            <div className="grid grid-cols-3 gap-6 mb-6">
+                <SummaryCard className="col-span-1" title="Today's Sales" value={currency(todaySalesSummary?.totalRevenue || 0, { symbol: '₱' }).format()} subtext="Sales today" colorClass="text-[#8BC34A]" icon={<CurrencyDollarIcon />} />
+                <SummaryCard className="col-span-1" title="This Week Sales" value={currency(thisWeekSales || 0, { symbol: '₱' }).format()} subtext="Current week revenue" colorClass="text-blue-600" icon={<TrendingUpIcon />} />
+                <SummaryCard className="col-span-1" title="All Time Sales" value={currency(salesSummary?.totalRevenue || 0, { symbol: '₱' }).format()} subtext={`Since ${formattedFirstTx}`} colorClass="text-emerald-600" icon={<GlobeIcon />} />
+                <SummaryCard className="col-span-3 sm:col-span-2" title="Total Customers" value={customerData?.totalCount || 0} subtext={`${newCustomersThisWeek} new this week`} colorClass="text-orange-600" icon={<UsersGroupIcon />} />
+                <SummaryCard className="col-span-3 sm:col-span-1" title="Page Views" value={viewCount !== null ? viewCount.toLocaleString() : '...'} subtext="Landing page visits" colorClass="text-purple-600" icon={<EyeIcon />} />
             </div>
 
-            {/* Middle Section: Main Chart & Top Products */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2">
-                    <Card className="h-full border-slate-200 shadow-sm">
-                        <CardHeader className="bg-white border-b border-slate-100 py-5">
-                            <h3 className="font-semibold text-slate-800 text-lg">Sales Trend</h3>
-                        </CardHeader>
-                        <CardContent className="p-5">
-                            <div className="h-[320px]">
-                                <Line data={salesChartData} options={salesChartOptions} />
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
-
-                <div className="lg:col-span-1">
-                    <Card className="h-full border-slate-200 shadow-sm">
-                        <CardHeader className="bg-white border-b border-slate-100 py-5">
-                            <h3 className="font-semibold text-slate-800 text-lg">Top Selling Products</h3>
-                        </CardHeader>
-                        <CardContent className="p-5 overflow-y-auto max-h-[320px]">
-                            <TopProductsList products={topProductsData} />
-                        </CardContent>
-                    </Card>
-                </div>
-            </div>
-
-            {/* Bottom Section: Operations / Alerts */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-1 flex flex-col gap-6">
-                    <Card className="border-slate-200 shadow-sm h-full">
-                        <CardHeader className="bg-white border-b border-slate-100 py-4">
-                            <h3 className="font-semibold text-slate-800">Customer Growth</h3>
-                        </CardHeader>
-                        <CardContent className="p-4">
-                            <div className="h-[200px]">
-                                <Bar data={customerChartData} options={customerChartOptions} />
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="border-orange-200 shadow-sm bg-gradient-to-br from-orange-50 to-white">
-                        <CardHeader className="py-4 border-b border-orange-100">
-                            <h3 className="font-semibold text-orange-800 flex items-center gap-2">
-                                <BellAlertIcon className="w-5 h-5" />
-                                Action Required
-                            </h3>
-                        </CardHeader>
-                        <CardContent className="p-0">
-                            <div className="divide-y divide-orange-100">
-                                <div className="p-5 flex items-center justify-between hover:bg-orange-50/50 transition-colors">
-                                    <div>
-                                        <p className="text-sm font-semibold text-slate-800">Inactive Customers</p>
-                                        <p className="text-xs text-slate-500 mt-0.5">No orders in 14+ days</p>
-                                    </div>
-                                    <span className="bg-orange-100 border border-orange-200 text-orange-700 px-3.5 py-1.5 rounded-full text-sm font-bold shadow-sm">
-                                        {totalInactiveCount}
-                                    </span>
+            {/* Main Content Area */}
+            <div className="space-y-6">
+                {/* Sales Trend and Top Products */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div className="lg:col-span-2">
+                        <Card className="h-full border-slate-200 shadow-sm">
+                            <CardHeader className="bg-white border-b border-slate-100 py-5">
+                                <h3 className="font-semibold text-slate-800 text-lg">Sales Trend</h3>
+                            </CardHeader>
+                            <CardContent className="p-5">
+                                <div className="h-[350px]">
+                                    <Line data={salesChartData} options={salesChartOptions} />
                                 </div>
-                                <div className="p-5 flex items-center justify-between hover:bg-orange-50/50 transition-colors">
-                                    <div>
-                                        <p className="text-sm font-semibold text-slate-800">Low Stock Items</p>
-                                        <p className="text-xs text-slate-500 mt-0.5">Requires restocking</p>
-                                    </div>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="text-xs font-semibold bg-white border-orange-200 text-orange-700 hover:bg-orange-100 hover:text-orange-800"
-                                        onClick={() => router.push('/inventory')}
-                                    >
-                                        Manage
-                                    </Button>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
+                            </CardContent>
+                        </Card>
+                    </div>
+                    <div className="lg:col-span-1">
+                        <Card className="h-full border-slate-200 shadow-sm">
+                            <CardHeader className="bg-white border-b border-slate-100 py-5">
+                                <h3 className="font-semibold text-slate-800 text-lg">Top Selling Products</h3>
+                            </CardHeader>
+                            <CardContent className="p-5 overflow-y-auto" style={{maxHeight: '350px'}}>
+                                <TopProductsList products={topProductsData} />
+                            </CardContent>
+                        </Card>
+                    </div>
                 </div>
 
-                <div className="lg:col-span-2 flex flex-col gap-6">
-                    <ReorderReport />
-                    <SpoilageReport />
+                {/* Reports and Other Info */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div className="lg:col-span-1">
+                        <ReorderReport />
+                    </div>
+                    <div className="lg:col-span-1">
+                        <SpoilageReport />
+                    </div>
+                    <div className="lg:col-span-1">
+                        {/* You can add another component here if needed */}
+                    </div>
                 </div>
             </div>
 
