@@ -305,6 +305,38 @@ export default function POSPage() {
 
     const user = useStore(s => s.user);
 
+    const handleCameraButtonClick = async () => {
+        if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const hasCamera = devices.some(device => device.kind === 'videoinput');
+
+                if (hasCamera) {
+                    setIsScannerOpen(true);
+                } else {
+                    addToast({
+                        title: 'No Camera Found',
+                        description: 'This device does not have a camera for scanning.',
+                        variant: 'warning',
+                    });
+                }
+            } catch (err) {
+                console.error("Error enumerating devices:", err);
+                addToast({
+                    title: 'Camera Error',
+                    description: 'Could not check for available cameras.',
+                    variant: 'destructive',
+                });
+            }
+        } else {
+            addToast({
+                title: 'Feature Not Supported',
+                description: 'Your browser does not support camera access.',
+                variant: 'warning',
+            });
+        }
+    };
+
     const handleFinalizeSale = async () => {
         if (!selectedCustomer) {
             addToast({ title: 'Customer Required', description: 'Please select a customer.', variant: 'warning' });
@@ -371,7 +403,7 @@ export default function POSPage() {
                         <Button
                             variant="secondary"
                             className="px-3"
-                            onClick={() => setIsScannerOpen(true)}
+                            onClick={handleCameraButtonClick}
                             title="Open Camera Scanner"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
