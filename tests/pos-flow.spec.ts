@@ -8,7 +8,7 @@ test('Full Flow: Login -> Add Item -> Checkout', async ({ page }) => {
     await expect(page.getByRole('heading', { name: 'Welcome Back' })).toBeVisible();
 
     // Login as Demo User
-    await page.getByRole('button', { name: 'Log in as Demo User' }).click();
+    await page.getByRole('button', { name: 'Log in as Demo Admin' }).click();
 
     // 2. VERIFY LOGIN SUCCESS (DASHBOARD)
     // We wait for the dashboard to load first to ensure auth is complete
