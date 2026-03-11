@@ -33,6 +33,9 @@ const SeasideWaterLanding = () => {
                 if (!error && data !== null) {
                     setViewCount(data);
                     sessionStorage.setItem('has_viewed_seaside', 'true');
+                    
+                    // NEW: Log the timestamp of the new unique visit
+                    await supabase.from('page_views_log').insert([{ viewed_at: new Date().toISOString() }]);
                 }
             } else {
                 // If they already visited, just fetch the current total
@@ -183,7 +186,7 @@ const SeasideWaterLanding = () => {
 
                                 {/* Localized Welcome Paragraph */}
                                 <p className="mb-8 text-base md:text-lg text-slate-800 max-w-2xl font-medium leading-relaxed p-5 rounded-xl border shadow-sm" style={{ backgroundColor: '#FFFFFF99' }}>
-                                    Proudly serving the families of Laois, Labrador. At Seaside, we believe our community deserves world-class hydration without leaving town. We combine state-of-the-art 21-stage reverse osmosis with the warm, local service you know and trust.
+                                    Proudly serving the families of Laois, Labrador. At Seaside, we believe our community deserves world-class hydration withoutleaving town. We combine state-of-the-art 21-stage reverse osmosis with the warm, local service you know and trust.
                                 </p>
 
                                 <ul className="mb-10 space-y-4 text-sm md:text-base font-medium text-slate-800 p-4 rounded-xl border shadow-sm inline-block" style={{ backgroundColor: '#FFFFFF99' }}>

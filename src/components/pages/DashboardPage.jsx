@@ -60,11 +60,11 @@ const EyeIcon = ({ className = "w-6 h-6" }) => (
 );
 
 // --- UI Components ---
-const SummaryCard = ({ title, value, subtext, icon, colorClass = "text-indigo-600", className = "" }) => {
+const SummaryCard = ({ title, value, subtext, icon, colorClass = "text-indigo-600", className = "", children }) => {
     const bgClass = colorClass.replace('text-', 'bg-').replace('600', '100');
     return (
-        <Card className={`border border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-300 bg-white ${className}`}>
-            <CardContent className="p-5">
+        <Card className={`border border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-300 bg-white flex flex-col h-full ${className}`}>
+            <CardContent className="p-5 flex-1 flex flex-col">
                 <div className="flex justify-between items-start">
                     <div>
                         <p className="text-sm font-medium text-slate-500">{title}</p>
@@ -77,6 +77,11 @@ const SummaryCard = ({ title, value, subtext, icon, colorClass = "text-indigo-60
                 {subtext && (
                     <div className="mt-4 flex items-center text-sm">
                         <span className="text-slate-400">{subtext}</span>
+                    </div>
+                )}
+                {children && (
+                    <div className="mt-4 pt-4 border-t border-slate-100 flex-1">
+                        {children}
                     </div>
                 )}
             </CardContent>
@@ -125,6 +130,7 @@ export default function DashboardPage() {
 
     const [totalInactiveCount, setTotalInactiveCount] = useState(0);
     const [viewCount, setViewCount] = useState(null);
+    const [recentViews, setRecentViews] = useState([]); // NEW: State for timestamps
 
     // --- Date Ranges for Today & This Week ---
     const { todayStart, todayEnd, weekStart, weekEnd } = useMemo(() => {
@@ -181,8 +187,21 @@ export default function DashboardPage() {
                 setViewCount(data);
             }
         };
+        // NEW: Fetch recent timestamps
+        const fetchRecentViews = async () => {
+            const { data, error } = await supabase
+                .from('page_views_log')
+                .select('viewed_at')
+                .order('viewed_at', { ascending: false })
+                .limit(5);
+            if (!error && data) {
+                setRecentViews(data);
+            }
+        };
+        
         fetchInactiveCount();
         fetchViewCount();
+        fetchRecentViews(); // Trigger fetch
     }, []);
 
     // Chart Data Preparation (Sales Trend)
@@ -336,7 +355,24 @@ export default function DashboardPage() {
                 <SummaryCard className="col-span-1" title="This Week Sales" value={currency(thisWeekSales || 0, { symbol: '₱' }).format()} subtext="Current week revenue" colorClass="text-blue-600" icon={<TrendingUpIcon />} />
                 <SummaryCard className="col-span-1" title="All Time Sales" value={currency(salesSummary?.totalRevenue || 0, { symbol: '₱' }).format()} subtext={`Since ${formattedFirstTx}`} colorClass="text-emerald-600" icon={<GlobeIcon />} />
                 <SummaryCard className="col-span-3 sm:col-span-2" title="Total Customers" value={customerData?.totalCount || 0} subtext={`${newCustomersThisWeek} new this week`} colorClass="text-orange-600" icon={<UsersGroupIcon />} />
-                <SummaryCard className="col-span-3 sm:col-span-1" title="Page Views" value={viewCount !== null ? viewCount.toLocaleString() : '...'} subtext="Landing page visits" colorClass="text-purple-600" icon={<EyeIcon />} />
+                <SummaryCard className="col-span-3 sm:col-span-1" title="Page Views" value={viewCount !== null ? viewCount.toLocaleString() : '...'} subtext="Landing page visits" colorClass="text-purple-600" icon={<EyeIcon />}>
+                    {recentViews && recentViews.length > 0 && (
+                        <div className="space-y-2 mt-1">
+                            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Last 5 Visitors</p>
+                            <ul className="text-xs text-slate-600 space-y-1.5">
+                                {recentViews.map((view, idx) => (
+                                    <li key={idx} className="flex items-center gap-2">
+                                        <span className="w-1.5 h-1.5 bg-purple-400 rounded-full"></span>
+                                        {new Date(view.viewed_at).toLocaleString('en-US', {
+                                            month: 'short', day: 'numeric',
+                                            hour: 'numeric', minute: '2-digit'
+                                        })}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+                </SummaryCard>
             </div>
 
             {/* Main Content Area */}
