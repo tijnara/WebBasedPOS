@@ -5,7 +5,7 @@ import {
     Facebook, Droplet, Heart,
     Leaf, ShieldCheck, Menu, X, MessageCircle,
     Image as ImageIcon, MapPin, Truck, GlassWater, Snowflake,
-    Eye // <-- Add the Eye icon here
+    Eye
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -13,11 +13,14 @@ import { Button } from '../ui';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGallery } from '../../hooks/useGallery';
 import { useStore } from '../../store/useStore';
+import { useSettings } from '../../hooks/useSettings';
 
 const SeasideWaterLanding = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const { data: galleryItems = [] } = useGallery();
     const user = useStore(state => state.user);
+    const { data: settings } = useSettings();
+    const isAdmin = user?.role === 'Admin' || user?.role === 'admin';
 
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isLightboxOpen, setIsLightboxOpen] = useState(false);
@@ -107,11 +110,15 @@ const SeasideWaterLanding = () => {
                     <div className="container mx-auto flex justify-between items-center">
                         <div className="flex items-center space-x-3">
                             <div className="p-2 rounded-xl shadow-sm border border-green-100" style={{ backgroundColor: '#FFFFFF99' }}>
-                                <Image src="/seasidelogo_.png" alt="SEASIDE Logo" width={100} height={100} className="object-contain" />
+                                <img src={settings?.logo_url || "/seasidelogo_.png"} alt="SEASIDE Logo" width={100} height={100} className="object-contain w-[100px] h-[100px]" />
                             </div>
                             <div className="flex flex-col">
-                                <span className="text-7xl font-extrabold tracking-wider leading-none mb-1 text-green-950">SEASIDE</span>
-                                <span className="text-[8px] tracking-[0.25em] font-bold uppercase leading-tight text-green-800">Water Refilling Station</span>
+                                <span className="text-7xl font-extrabold tracking-wider leading-none mb-1 text-green-950">
+                                    {settings?.business_name ? settings.business_name.split(' ')[0] : 'SEASIDE'}
+                                </span>
+                                <span className="text-[8px] tracking-[0.25em] font-bold uppercase leading-tight text-green-800">
+                                    {settings?.business_name ? settings.business_name.substring(settings.business_name.indexOf(' ') + 1) : 'Water Refilling Station'}
+                                </span>
                                 {/* SEO Tagline */}
                                 <span className="text-[9px] font-semibold tracking-wide text-green-700 mt-0.5">Proudly hydrating Laois, Labrador</span>
                             </div>
@@ -370,7 +377,7 @@ const SeasideWaterLanding = () => {
                                 <p className="text-2xl md:text-3xl font-bold text-slate-800 drop-shadow-sm mt-4">Navigate to Purity – See Us on the Map!</p>
                             </div>
                             <div className="w-full relative z-30">
-                                <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3834.427589470715!2d120.1322205!3d16.043286199999997!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3393e1d08454d96f%3A0xfd7e1df20c90037d!2sSEASIDE%20Water%20Refilling%20Station!5e0!3m2!1sen!2sph!4v1771921863348!5m2!1sen!2sph" width="100%" height="450" style={{ border: 0, borderRadius: '1rem', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} allowFullScreen="" loading="lazy" referrerPolicy="no-referrer-when-downgrade"></iframe>
+                                <iframe src={settings?.location_embed || "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3834.427589470715!2d120.1322205!3d16.043286199999997!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3393e1d08454d96f%3A0xfd7e1df20c90037d!2sSEASIDE%20Water%20Refilling%20Station!5e0!3m2!1sen!2sph!4v1771921863348!5m2!1sen!2sph"} width="100%" height="450" style={{ border: 0, borderRadius: '1rem', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} allowFullScreen="" loading="lazy" referrerPolicy="no-referrer-when-downgrade"></iframe>
                             </div>
                         </div>
                     </motion.div>
@@ -382,13 +389,14 @@ const SeasideWaterLanding = () => {
                             <div className="md:col-span-1">
                                 <div className="flex items-center space-x-3 mb-6">
                                     <div className="p-1.5 rounded-lg bg-white/10 backdrop-blur-sm border border-green-800">
-                                        <Image src="/seasidelogo_.png" alt="SEASIDE Logo" width={60} height={60} className="object-contain brightness-0 invert" />
+                                        <img src={settings?.logo_url || "/seasidelogo_.png"} alt="Logo" width={60} height={60} className="object-contain brightness-0 invert" />
                                     </div>
-                                    <span className="text-2xl font-extrabold tracking-wider text-black">SEASIDE</span>
+                                    <span className="text-2xl font-extrabold tracking-wider text-black">
+                                        {settings?.business_name ? settings.business_name.split(' ')[0] : 'SEASIDE'}
+                                    </span>
                                 </div>
-                                {/* NEW ABOUT US PARAGRAPH */}
-                                <p className="text-green-200/80 leading-relaxed pr-4 font-medium">
-                                    Founded in 2021, Seaside Water Refilling Station was established with a simple goal: to serve the community with exceptionally clean, safe, and purified drinking water. We remain deeply committed to delivering quality hydration to every household, treating every family like our own.
+                                <p className="text-green-200/80 leading-relaxed pr-4 font-medium whitespace-pre-wrap">
+                                    {settings?.about_content || 'Founded in 2021, Seaside Water Refilling Station was established with a simple goal...'}
                                 </p>
                             </div>
 
@@ -416,10 +424,10 @@ const SeasideWaterLanding = () => {
                                     Visit our station located in<br/> Laois, Labrador, Pangasinan.
                                 </p>
                                 <div className="flex space-x-4">
-                                    <a href="https://www.facebook.com/profile.php?id=61587059323111" className="bg-white/5 border border-white/10 hover:bg-white/10 p-3 rounded-full transition-colors hover:text-lime-400 shadow-sm" aria-label="Facebook">
+                                    <a href={settings?.facebook_link || "https://www.facebook.com/"} target="_blank" className="bg-white/5 border border-white/10 hover:bg-white/10 p-3 rounded-full transition-colors hover:text-lime-400 shadow-sm" aria-label="Facebook">
                                         <Facebook className="w-5 h-5" />
                                     </a>
-                                    <a href="http://m.me/94319702554752" className="bg-white/5 border border-white/10 hover:bg-white/10 p-3 rounded-full transition-colors hover:text-lime-400 shadow-sm" aria-label="Messenger">
+                                    <a href={settings?.messenger_link || "http://m.me/"} target="_blank" className="bg-white/5 border border-white/10 hover:bg-white/10 p-3 rounded-full transition-colors hover:text-lime-400 shadow-sm" aria-label="Messenger">
                                         <MessageCircle className="w-5 h-5" />
                                     </a>
                                 </div>

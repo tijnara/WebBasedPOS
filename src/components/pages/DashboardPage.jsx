@@ -117,6 +117,7 @@ const TopProductsList = ({ products }) => {
 export default function DashboardPage() {
     const router = useRouter();
     const user = useStore(s => s.user);
+    const isAdmin = user?.role === 'Admin' || user?.role === 'admin';
 
     // 1. Fetch Data
     const { data: salesData } = useSales({ page: 1, itemsPerPage: 1000 });
@@ -410,9 +411,6 @@ export default function DashboardPage() {
                     </div>
                     <div className="lg:col-span-1">
                         <SpoilageReport />
-                    </div>
-                    <div className="lg:col-span-1">
-                        {/* You can add another component here if needed */}
                     </div>
                 </div>
             </div>
