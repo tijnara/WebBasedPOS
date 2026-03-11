@@ -155,7 +155,8 @@ export default function GalleryManagementPage() {
                 </Button>
             </div>
 
-            <Card>
+            {/* --- DESKTOP TABLE --- */}
+            <Card className="hidden md:block">
                 <CardContent className="p-0">
                     <ScrollArea className="h-[calc(100vh-250px)]">
                         <Table>
@@ -176,7 +177,12 @@ export default function GalleryManagementPage() {
                                     galleryItems.map((item) => (
                                         <TableRow key={item.id}>
                                             <TableCell>
-                                                <img src={item.image_url} alt={item.title} className="w-20 h-12 object-cover rounded-md" />
+                                                <div
+                                                    className="rounded-md border border-gray-100 bg-gray-50 flex items-center justify-center overflow-hidden flex-shrink-0"
+                                                    style={{ width: '80px', height: '48px' }}
+                                                >
+                                                    <img src={item.image_url} alt={item.title} className="object-cover" style={{ width: '100%', height: '100%' }} />
+                                                </div>
                                             </TableCell>
                                             <TableCell className="font-medium">{item.title}</TableCell>
                                             <TableCell className="max-w-[300px] truncate">{item.description}</TableCell>
@@ -197,10 +203,64 @@ export default function GalleryManagementPage() {
                 </CardContent>
             </Card>
 
+            {/* --- MOBILE LIST VIEW --- */}
+            <div className="block md:hidden space-y-3">
+                {isLoading ? (
+                    <div className="text-center text-muted p-6">Loading items...</div>
+                ) : galleryItems.length === 0 ? (
+                    <div className="text-center text-muted p-6 bg-white rounded-lg border border-dashed">
+                        No items found
+                    </div>
+                ) : (
+                    galleryItems.map((item) => (
+                        <div key={item.id} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex items-start gap-3">
+                            <div className="flex-shrink-0">
+                                {/* Strict inline sizing container to force thumbnail aspect */}
+                                <div
+                                    className="rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center overflow-hidden"
+                                    style={{ width: '80px', height: '80px' }}
+                                >
+                                    <img
+                                        src={item.image_url}
+                                        alt={item.title}
+                                        className="object-cover"
+                                        style={{ width: '100%', height: '100%' }}
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex-1 min-w-0 flex flex-col justify-center min-h-[5rem]">
+                                <div>
+                                    <div className="font-semibold text-gray-900 text-sm leading-tight truncate">
+                                        {item.title}
+                                    </div>
+                                    <div className="text-xs text-gray-500 mt-1 line-clamp-2">
+                                        {item.description}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex flex-col justify-between pl-2 border-l border-gray-50 min-h-[5rem]">
+                                <button
+                                    onClick={() => handleEdit(item)}
+                                    className="text-blue-600 p-1 hover:bg-blue-50 rounded flex items-center justify-center"
+                                >
+                                    <EditIcon className="w-5 h-5" />
+                                </button>
+                                <button
+                                    onClick={() => handleDelete(item.id)}
+                                    className="text-red-500 p-1 hover:bg-red-50 rounded flex items-center justify-center"
+                                >
+                                    <DeleteIcon className="w-5 h-5" />
+                                </button>
+                            </div>
+                        </div>
+                    ))
+                )}
+            </div>
+
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
                 <DialogContent className="sm:max-w-[550px] p-0">
                     <form onSubmit={handleSubmit} className="flex flex-col max-h-[85vh]">
-                        <DialogHeader className="px-6 py-4">
+                        <DialogHeader className="px-6 py-4 border-b bg-white flex-shrink-0">
                             <DialogTitle>{editing ? 'Edit Gallery Item' : 'Add Gallery Item'}</DialogTitle>
                             <DialogCloseButton onClick={() => setIsModalOpen(false)} />
                         </DialogHeader>
@@ -220,11 +280,13 @@ export default function GalleryManagementPage() {
                             </div>
                         </div>
 
-                        <DialogFooter className="px-6 py-4">
-                            <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-                            <Button type="submit" disabled={uploading || createItem.isPending || updateItem.isPending} className="btn--primary">
-                                {uploading ? 'Uploading...' : editing ? 'Update Item' : 'Add Item'}
-                            </Button>
+                        <DialogFooter className="px-6 py-4 border-t bg-gray-50">
+                            <div className="flex w-full justify-end gap-3">
+                                <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
+                                <Button type="submit" disabled={uploading || createItem.isPending || updateItem.isPending} className="btn--primary">
+                                    {uploading ? 'Uploading...' : editing ? 'Update Item' : 'Add Item'}
+                                </Button>
+                            </div>
                         </DialogFooter>
                     </form>
                 </DialogContent>
