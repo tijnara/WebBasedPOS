@@ -14,7 +14,8 @@ import {
     useUpdateGalleryItem,
     useDeleteGalleryItem
 } from '../../hooks/useGalleryMutations';
-import { EditIcon, DeleteIcon, GalleryIcon } from '../Icons';
+import { EditIcon, DeleteIcon } from '../Icons';
+import { Image as GalleryIcon } from 'lucide-react';
 
 const ImageUploader = ({ previewUrl, onFileSelect }) => {
     const fileInputRef = useRef(null);
@@ -95,9 +96,10 @@ export default function GalleryManagementPage() {
             const fileExt = file.name.split('.').pop();
             const fileName = `${Math.random()}.${fileExt}`;
             const filePath = `gallery/${fileName}`;
-            const { error: uploadError } = await supabase.storage.from('products').upload(filePath, file);
+            // Assuming a 'gallery' bucket exists for gallery images
+            const { error: uploadError } = await supabase.storage.from('gallery').upload(filePath, file);
             if (uploadError) throw uploadError;
-            const { data: { publicUrl } } = supabase.storage.from('products').getPublicUrl(filePath);
+            const { data: { publicUrl } } = supabase.storage.from('gallery').getPublicUrl(filePath);
             return publicUrl;
         } catch (error) {
             console.error('Error uploading image: ', error);
@@ -106,19 +108,42 @@ export default function GalleryManagementPage() {
         }
     };
 
+    // Helper to extract file path from public URL
+    const getFilePathFromUrl = (url) => {
+        if (!url) return null;
+        const parts = url.split('/public/');
+        if (parts.length > 1) {
+            return parts[1];
+        }
+        return null;
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setUploading(true);
         try {
             let imageUrl = imagePreview;
+            let oldImagePath = null;
+
             if (imageFile) {
                 const uploadedUrl = await uploadImage(imageFile);
-                if (uploadedUrl) imageUrl = uploadedUrl;
+                if (!uploadedUrl) throw new Error('Image upload failed.');
+
+                imageUrl = uploadedUrl;
+
+                // If editing and a new image is uploaded, delete the old one
+                if (editing && editing.image_url && editing.image_url !== imageUrl) {
+                    oldImagePath = getFilePathFromUrl(editing.image_url);
+                }
             }
 
             if (editing) {
                 await updateItem.mutateAsync({ id: editing.id, title, description, image_url: imageUrl });
                 addToast({ title: 'Success', description: 'Gallery item updated successfully' });
+                if (oldImagePath) {
+                    // Delete old image from storage
+                    await supabase.storage.from('gallery').remove([oldImagePath]);
+                }
             } else {
                 await createItem.mutateAsync({ title, description, image_url: imageUrl });
                 addToast({ title: 'Success', description: 'Gallery item added successfully' });
@@ -135,8 +160,18 @@ export default function GalleryManagementPage() {
     const handleDelete = async (id) => {
         if (window.confirm('Are you sure you want to delete this item?')) {
             try {
+                // Find the item to get its image_url
+                const itemToDelete = galleryItems.find(item => item.id === id);
                 await deleteItem.mutateAsync(id);
                 addToast({ title: 'Success', description: 'Gallery item deleted successfully' });
+
+                // Delete image from storage if it exists
+                if (itemToDelete && itemToDelete.image_url) {
+                    const filePath = getFilePathFromUrl(itemToDelete.image_url);
+                    if (filePath) {
+                        await supabase.storage.from('gallery').remove([filePath]);
+                    }
+                }
             } catch (error) {
                 addToast({ title: 'Error', description: error.message, variant: 'destructive' });
             }
