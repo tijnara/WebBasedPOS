@@ -7,6 +7,7 @@ import { Button, Input, Card, CardContent, Select } from '../ui';
 import { useStore } from '../../store/useStore';
 import { PackageIcon } from '../Icons';
 import Pagination from '../Pagination';
+import { useQueryClient } from '@tanstack/react-query';
 
 // --- Icons ---
 const SearchIcon = ({ className }) => (
@@ -184,6 +185,7 @@ function RestockForm({ product, onRestock, onCancel }) {
 function BreakBulk({ products, onSuccess }) {
     const childProducts = products.filter(p => p.parent_product_id && p.conversion_rate > 1);
     const { user, addToast } = useStore();
+    const queryClient = useQueryClient();
 
     const handleBreak = async (child) => {
         const parent = products.find(p => p.id === child.parent_product_id);
@@ -204,6 +206,7 @@ function BreakBulk({ products, onSuccess }) {
                 description: `Converted 1 ${parent.name} into ${child.conversion_rate} ${child.name}s`,
                 variant: 'success'
             });
+            await queryClient.invalidateQueries(['products']);
             onSuccess();
         } catch (error) {
             addToast({ title: 'Error', description: error.message, variant: 'destructive' });
@@ -299,6 +302,7 @@ function BreakBulk({ products, onSuccess }) {
 // --- Main Page Component ---
 export default function InventoryPage() {
     const router = useRouter();
+    const queryClient = useQueryClient();
     // --- UPDATED STATE ---
     const [searchTerm, setSearchTerm] = useState('');
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(''); // Added debounce
@@ -386,6 +390,7 @@ export default function InventoryPage() {
         if (!moveError && !prodError) {
             addToast({ title: 'Success', description: `Added ${qty} to ${selectedProduct.name}`, variant: 'success' });
             setSelectedProduct(null);
+            await queryClient.invalidateQueries(['products']);
             refetch();
         } else {
             console.error(moveError, prodError);
@@ -411,6 +416,7 @@ export default function InventoryPage() {
         if (!moveError && !prodError) {
             addToast({ title: 'Success', description: `Removed ${qty} from stock`, variant: 'success' });
             setSelectedProduct(null);
+            await queryClient.invalidateQueries(['products']);
             refetch();
         } else {
             console.error(moveError, prodError);
