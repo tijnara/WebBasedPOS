@@ -76,6 +76,29 @@ export default function App({ Component, pageProps }) {
         useStore.getState().hydrate();
     }, []);
 
+    useEffect(() => {
+        const handleInteraction = (event) => {
+            const target = event.target;
+
+            // Exclude clicks on the navigation/hamburger menu and non-functional areas
+            if (
+                target.closest('.navbar, .tab-bar, .hamburger-icon, #main-menu-mobile, #main-menu-desktop') ||
+                ['HTML', 'BODY', 'MAIN'].includes(target.tagName) ||
+                target.classList.contains('container')
+            ) {
+                return;
+            }
+
+            router.reload();
+        };
+
+        document.addEventListener('click', handleInteraction);
+
+        return () => {
+            document.removeEventListener('click', handleInteraction);
+        };
+    }, [router]);
+
     const isLoginPage = router.pathname === '/login';
     const isLandingPage = router.pathname === '/';
     const hideNav = isLoginPage || isLandingPage;
