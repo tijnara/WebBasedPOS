@@ -358,7 +358,7 @@ export default function DashboardPage() {
                 <SummaryCard className="col-span-3 sm:col-span-2" title="Total Customers" value={customerData?.totalCount || 0} subtext={`${newCustomersThisWeek} new this week`} colorClass="text-orange-600" icon={<UsersGroupIcon />} />
                 <SummaryCard className="col-span-3 sm:col-span-1" title="Page Views" value={viewCount !== null ? viewCount.toLocaleString() : '...'} subtext="Landing page visits" colorClass="text-purple-600" icon={<EyeIcon />}>
                     {recentViews && recentViews.length > 0 && (
-                        <div className="hidden sm:block space-y-2 mt-1">
+                        <div className="hidden md:block space-y-2 mt-1">
                             <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Last 5 Visitors</p>
                             <ul className="text-xs text-slate-600 space-y-1.5">
                                 {recentViews.map((view, idx) => (
