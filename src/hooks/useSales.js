@@ -43,10 +43,10 @@ const MOCK_SALES = [
     }
 ];
 
-export function useSales({ searchTerm, startDate, endDate, productName, page = 1, itemsPerPage = 10 } = {}) {
+export function useSales({ searchTerm, startDate, endDate, productName, page = 1, itemsPerPage = 10, fetchAll = false } = {}) {
     const isDemo = useStore(s => s.user?.isDemo);
     return useQuery({
-        queryKey: ['sales', isDemo, searchTerm, startDate, endDate, productName, page, itemsPerPage],
+        queryKey: ['sales', isDemo, searchTerm, startDate, endDate, productName, page, itemsPerPage, fetchAll],
         queryFn: async () => {
             if (isDemo) {
                 await new Promise(resolve => setTimeout(resolve, 400));
@@ -74,9 +74,9 @@ export function useSales({ searchTerm, startDate, endDate, productName, page = 1
                 }
                 // Server-side pagination for demo
                 const totalCount = filtered.length;
-                const totalPages = Math.max(1, Math.ceil(totalCount / itemsPerPage));
-                const startIdx = (page - 1) * itemsPerPage;
-                const endIdx = startIdx + itemsPerPage;
+                const totalPages = fetchAll ? 1 : Math.max(1, Math.ceil(totalCount / itemsPerPage));
+                const startIdx = fetchAll ? 0 : (page - 1) * itemsPerPage;
+                const endIdx = fetchAll ? totalCount : startIdx + itemsPerPage;
                 const paginated = filtered.slice(startIdx, endIdx);
                 return { sales: paginated, totalPages, totalCount };
             }
@@ -94,8 +94,12 @@ export function useSales({ searchTerm, startDate, endDate, productName, page = 1
                 let query = supabase
                     .from('sales')
                     .select(selectString, { count: 'exact' })
-                    .order('saletimestamp', { ascending: false })
-                    .range(startIndex, endIndex);
+                    .order('saletimestamp', { ascending: false });
+
+                // Conditionally apply pagination
+                if (!fetchAll) {
+                    query = query.range(startIndex, endIndex);
+                }
 
                 if (searchTerm) {
                     const term = searchTerm.trim().toLowerCase();
@@ -138,7 +142,7 @@ export function useSales({ searchTerm, startDate, endDate, productName, page = 1
                     status: s.status || 'Completed'
                 }));
                 const totalCount = count || 0;
-                const totalPages = Math.max(1, Math.ceil(totalCount / itemsPerPage));
+                const totalPages = fetchAll ? 1 : Math.max(1, Math.ceil(totalCount / itemsPerPage));
                 return { sales, totalPages, totalCount };
             } catch (error) {
                 throw error;

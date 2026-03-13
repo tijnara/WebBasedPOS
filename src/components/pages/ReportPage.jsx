@@ -13,6 +13,7 @@ import { Button, Input, Select } from '../ui';
 import { DeleteIcon } from '../Icons';
 
 import Pagination from '../Pagination';
+import WeeklySalesChart from '../charts/WeeklySalesChart'; // Import the new chart component
 import currency from 'currency.js';
 
 // Utility to format currency
@@ -429,6 +430,15 @@ const ReportPage = () => {
         itemsPerPage: SALES_PAGE_SIZE
     });
 
+    // Fetch all sales data for the chart without pagination
+    const { data: allSalesData } = useSales({
+        startDate: interval.start,
+        endDate: interval.end,
+        productName: productSearch,
+        searchTerm: debouncedCustomerSearch,
+        fetchAll: true,
+    });
+
     // Call hook for the total summary (Includes totalRefill20 & totalRefill25)
     const {
         data: summaryData,
@@ -471,6 +481,7 @@ const ReportPage = () => {
 
     // Get data from hooks with fallbacks
     const salesData = salesPageData?.sales || [];
+    const chartSalesData = allSalesData?.sales || []; // Data for the chart
     const totalPages = activeTab === 'sales'
         ? (salesPageData?.totalPages || 1)
         : (customersPageData?.totalPages || 1);
@@ -664,6 +675,11 @@ const ReportPage = () => {
                                 )}
                             </div>
                         </div>
+                    </div>
+
+                    {/* --- Weekly Sales Chart --- */}
+                    <div className="my-4">
+                        <WeeklySalesChart salesData={chartSalesData} />
                     </div>
 
                     {/* --- Report Title & Item Quantities Summary --- */}
