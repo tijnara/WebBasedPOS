@@ -14,7 +14,6 @@ import { Button } from '../src/components/ui';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import Head from 'next/head';
-import Script from 'next/script'; // <-- Imported next/script for AdSense
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -83,20 +82,10 @@ export default function App({ Component, pageProps }) {
 
     return (
         <QueryClientProvider client={queryClient}>
-            {/* --- GOOGLE ADSENSE VERIFICATION SCRIPT --- */}
-            <Script
-                async
-                src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3607213315862760"
-                crossOrigin="anonymous"
-                strategy="afterInteractive"
-            />
-
             <Head>
                 <title>SEASIDE</title>
                 <link rel="icon" href="/seaside.png" />
                 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-                {/* --- ADD THIS META TAG FOR ADSENSE VERIFICATION --- */}
-                <meta name="google-adsense-account" content="ca-pub-3607213315862760" />
             </Head>
             <AuthGate>
                 <div className="app bg-gray-100">

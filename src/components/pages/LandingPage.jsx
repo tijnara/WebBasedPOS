@@ -1,5 +1,7 @@
 // src/components/pages/LandingPage.jsx
 import React, { useState, useEffect } from 'react';
+import Head from 'next/head';
+import Script from 'next/script';
 import { supabase } from '../../lib/supabaseClient'; // <-- Add this import
 import {
     Facebook, Droplet, Heart,
@@ -105,6 +107,18 @@ const SeasideWaterLanding = () => {
                 backgroundRepeat: 'no-repeat'
             }}
         >
+            {/* --- ADD THESE ADSENSE TAGS HERE --- */}
+            <Head>
+                <meta name="google-adsense-account" content="ca-pub-3607213315862760" />
+            </Head>
+            <Script
+                async
+                src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3607213315862760"
+                crossOrigin="anonymous"
+                strategy="afterInteractive"
+            />
+            {/* ----------------------------------- */}
+
             <div className="relative z-10 min-h-screen flex flex-col">
                 <header className="px-6 py-2 relative z-50 sticky top-0 border-b border-green-900/10 shadow-sm w-full" style={{ backgroundColor: 'transparent' }}>
                     <div className="container mx-auto flex justify-between items-center">
