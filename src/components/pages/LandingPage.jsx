@@ -108,28 +108,28 @@ const SeasideWaterLanding = () => {
             }}
         >
             <Head>
-                {/* Your AdSense Tag */}
                 <meta name="google-adsense-account" content="ca-pub-3607213315862760" />
-                
-                {/* 1. The Title Google will display in search results */}
                 <title>Seaside Purified Water Refilling Station | Labrador, Pangasinan</title>
-                
-                {/* 2. The Description Google will show under the title */}
                 <meta name="description" content="Seaside offers 21-stage purified water, walk-in refills, and reliable door-to-door water delivery in Labrador, Pangasinan. Pure water, pure trust." />
-                
-                {/* 3. Local SEO Keywords */}
                 <meta name="keywords" content="water refilling station, Labrador Pangasinan, water delivery, purified water, Seaside water, ice tubes, alkaline water" />
-                
-                {/* 4. Open Graph Tags (Makes links look great when shared on Facebook/Messenger) */}
                 <meta property="og:title" content="Seaside Water Refilling Station | Labrador" />
                 <meta property="og:description" content="Fast, clean, and reliable water delivery in Labrador, Pangasinan. Your family's health, flowing crystal clear." />
                 <meta property="og:image" content="https://seasidepos.vercel.app/seasideHD_.png" />
                 <meta property="og:type" content="website" />
                 <meta property="og:locale" content="en_PH" />
             </Head>
+
+            <Script
+                id="adsense-init"
+                async
+                src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3607213315862760"
+                crossOrigin="anonymous"
+                strategy="afterInteractive"
+            />
             <Script
                 id="local-business-schema"
                 type="application/ld+json"
+                strategy="afterInteractive"
                 dangerouslySetInnerHTML={{
                     __html: JSON.stringify({
                         "@context": "https://schema.org",
@@ -152,13 +152,6 @@ const SeasideWaterLanding = () => {
                     })
                 }}
             />
-            <Script
-                async
-                src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3607213315862760"
-                crossOrigin="anonymous"
-                strategy="afterInteractive"
-            />
-            {/* ----------------------------------- */}
 
             <div className="relative z-10 min-h-screen flex flex-col">
                 <header className="px-6 py-2 relative z-50 sticky top-0 border-b border-green-900/10 shadow-sm w-full" style={{ backgroundColor: 'transparent' }}>
