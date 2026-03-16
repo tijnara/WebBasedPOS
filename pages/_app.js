@@ -35,7 +35,7 @@ function AuthGate({ children }) {
     useEffect(() => {
         if (sessionLoaded) {
             const isLoggedIn = !!user;
-            const isPublicPage = ['/', '/login', '/terms', '/privacy'].includes(router.pathname);
+            const isPublicPage = ['/', '/login', '/terms', '/privacy', '/contact'].includes(router.pathname);
 
             if (!isLoggedIn && !isPublicPage) {
                 console.log("AuthGate: Not logged in, redirecting to landing page");
@@ -55,7 +55,7 @@ function AuthGate({ children }) {
         );
     }
 
-    if (['/', '/login', '/terms', '/privacy'].includes(router.pathname) || user) {
+    if (['/', '/login', '/terms', '/privacy', '/contact'].includes(router.pathname) || user) {
         return children;
     }
 
@@ -75,7 +75,7 @@ export default function App({ Component, pageProps }) {
         useStore.getState().hydrate();
     }, []);
 
-    const isPublicPage = ['/', '/login', '/terms', '/privacy'].includes(router.pathname);
+    const isPublicPage = ['/', '/login', '/terms', '/privacy', '/contact'].includes(router.pathname);
     const hideNav = isPublicPage;
 
     return (
