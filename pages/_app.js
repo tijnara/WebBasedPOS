@@ -14,6 +14,7 @@ import { Button } from '../src/components/ui';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import Head from 'next/head';
+import Script from 'next/script'; // <-- Imported next/script for AdSense
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -82,6 +83,14 @@ export default function App({ Component, pageProps }) {
 
     return (
         <QueryClientProvider client={queryClient}>
+            {/* --- GOOGLE ADSENSE VERIFICATION SCRIPT --- */}
+            <Script
+                async
+                src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3607213315862760"
+                crossOrigin="anonymous"
+                strategy="afterInteractive"
+            />
+
             <Head>
                 <title>SEASIDE</title>
                 <link rel="icon" href="/seaside.png" />
@@ -107,9 +116,9 @@ export default function App({ Component, pageProps }) {
                     <div className="toasts fixed bottom-4 right-4 z-50 flex flex-col items-end gap-3" aria-live="polite">
                         {toasts.map(t => (
                             <div key={t.id} className={`toast bg-white border border-gray-200 p-4 rounded-lg shadow-xl w-80 max-w-[calc(100vw-2rem)] flex items-start gap-3 ${t.variant === 'destructive' ? 'border-l-4 border-red-500' :
-                                    t.variant === 'success' ? 'border-l-4 border-green-500' :
-                                        t.variant === 'warning' ? 'border-l-4 border-yellow-500' : 'border-l-4 border-blue-500'
-                                }`}>
+                                t.variant === 'success' ? 'border-l-4 border-green-500' :
+                                    t.variant === 'warning' ? 'border-l-4 border-yellow-500' : 'border-l-4 border-blue-500'
+                            }`}>
                                 <div className="flex-1">
                                     <div className="toast__title font-semibold text-gray-800">{t.title}</div>
                                     {t.description && <div className="toast__desc text-sm text-gray-600 mt-1">{t.description}</div>}
