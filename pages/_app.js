@@ -75,7 +75,7 @@ export default function App({ Component, pageProps }) {
         useStore.getState().hydrate();
     }, []);
 
-    const isPublicPage = ['/', '/login', '/terms', 'privacy'].includes(router.pathname);
+    const isPublicPage = ['/', '/login', '/terms', '/privacy'].includes(router.pathname);
     const hideNav = isPublicPage;
 
     return (

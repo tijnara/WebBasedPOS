@@ -2,8 +2,7 @@
 import React from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
-import Image from 'next/image';
-import { ArrowLeft } from 'lucide-react';
+import { FileText, ArrowLeft } from 'lucide-react';
 
 export default function TermsOfService() {
     return (
@@ -21,14 +20,13 @@ export default function TermsOfService() {
 
                 <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 md:p-12">
                     <div className="flex items-center gap-3 mb-6">
-                        <Image src="/seaside.png" alt="Seaside Logo" width={32} height={32} />
+                        <FileText className="w-8 h-8 text-green-600" />
                         <h1 className="text-3xl md:text-4xl font-bold text-slate-900 tracking-tight">Terms of Service</h1>
                     </div>
-                    
+
                     <p className="text-sm text-slate-500 mb-8">Last Updated: {new Date().toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
 
                     <div className="space-y-8 text-slate-700 leading-relaxed">
-                        
                         <section>
                             <h2 className="text-xl font-bold text-green-950 mb-3">1. Acceptance of Terms</h2>
                             <p>
@@ -59,33 +57,18 @@ export default function TermsOfService() {
                         </section>
 
                         <section>
-                            <h2 className="text-xl font-bold text-green-950 mb-3">5. Staff Portal and Security</h2>
-                            <p>
-                                Access to the `seasidepos.vercel.app` Point of Sale (POS) backend is strictly restricted to authorized Seaside personnel. Unauthorized access, tampering, or misuse of the POS system is prohibited and may result in legal action or termination of employment.
-                            </p>
-                        </section>
-
-                        <section>
-                            <h2 className="text-xl font-bold text-green-950 mb-3">6. Third-Party Advertising</h2>
+                            <h2 className="text-xl font-bold text-green-950 mb-3">5. Third-Party Advertising</h2>
                             <p>
                                 Our public landing page may display advertisements provided by third parties (such as Google AdSense). We are not responsible for the content of external websites linked through these advertisements.
                             </p>
                         </section>
 
                         <section>
-                            <h2 className="text-xl font-bold text-green-950 mb-3">7. Limitation of Liability</h2>
-                            <p>
-                                Seaside Purified Water Refilling Station adheres to strict health and sanitation standards. However, we are not liable for any illness, injury, or damages arising from the improper storage of water by the customer after delivery or pickup. Purified water should be stored in a cool, dry place away from direct sunlight.
-                            </p>
-                        </section>
-
-                        <section>
-                            <h2 className="text-xl font-bold text-green-950 mb-3">8. Contact Us</h2>
+                            <h2 className="text-xl font-bold text-green-950 mb-3">6. Contact Us</h2>
                             <p>
                                 If you have any questions regarding these terms, please contact us at our physical station in Loois, Labrador, Pangasinan, or via our official Facebook page.
                             </p>
                         </section>
-
                     </div>
                 </div>
             </main>
