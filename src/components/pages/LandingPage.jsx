@@ -432,7 +432,7 @@ const SeasideWaterLanding = () => {
 
                     {/* UPDATED EXPANDED FOOTER */}
                     <footer className="bg-green-950 text-green-50 text-sm relative z-20 border-t border-green-900 mt-auto pt-16 pb-8">
-                        <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+                        <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-12 mb-12">
                             {/* Brand & About Column */}
                             <div className="md:col-span-1">
                                 <div className="flex items-center space-x-3 mb-6">
@@ -449,7 +449,7 @@ const SeasideWaterLanding = () => {
                             </div>
 
                             {/* Quick Links Column */}
-                            <div>
+                            <div className="flex flex-col">
                                 <h4 className="text-black font-bold tracking-wider uppercase mb-6 flex items-center">
                                     <Droplet className="w-4 h-4 mr-2 text-lime-400" />
                                     Quick Links
@@ -464,7 +464,7 @@ const SeasideWaterLanding = () => {
                             </div>
 
                             {/* Contact Column */}
-                            <div>
+                            <div className="flex flex-col">
                                 <h4 className="text-black font-bold tracking-wider uppercase mb-6 flex items-center">
                                     <MapPin className="w-4 h-4 mr-2 text-lime-400" />
                                     Connect With Us
@@ -483,7 +483,7 @@ const SeasideWaterLanding = () => {
                             </div>
 
                             {/* Legal Column */}
-                            <div>
+                            <div className="flex flex-col">
                                 <h4 className="text-black font-bold tracking-wider uppercase mb-6 flex items-center">
                                     <ShieldCheck className="w-4 h-4 mr-2 text-lime-400" />
                                     Legal

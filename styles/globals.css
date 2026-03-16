@@ -1738,6 +1738,9 @@ input[type="checkbox"]:focus {
 
 /* --- ADD RESPONSIVE UTILITIES --- */
 @media (min-width: 640px) {
+    .sm\:grid-cols-2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
     .sm\:flex-row {
         flex-direction: row;
     }
@@ -1764,6 +1767,9 @@ input[type="checkbox"]:focus {
 }
 
 @media (min-width: 768px) {
+    .md\:grid-cols-4 {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
     .md\:block {
         display: block;
     }
