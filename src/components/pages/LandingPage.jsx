@@ -439,7 +439,7 @@ const SeasideWaterLanding = () => {
 
                     {/* UPDATED EXPANDED FOOTER */}
                     <footer className="bg-green-950 text-green-50 text-sm relative z-20 border-t border-green-900 mt-auto pt-16 pb-8">
-                        <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
+                        <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
                             {/* Brand & About Column */}
                             <div className="md:col-span-1">
                                 <div className="flex items-center space-x-3 mb-6">
@@ -466,6 +466,7 @@ const SeasideWaterLanding = () => {
                                     <li><Link href="#services" className="hover:text-lime-400 transition-colors">Our Services</Link></li>
                                     <li><Link href="#gallery" className="hover:text-lime-400 transition-colors">Gallery</Link></li>
                                     <li><Link href="#location" className="hover:text-lime-400 transition-colors">Location map</Link></li>
+                                    <li><Link href="/terms" className="hover:text-lime-400 transition-colors">Terms of Service</Link></li>
                                 </ul>
                             </div>
 
@@ -486,6 +487,19 @@ const SeasideWaterLanding = () => {
                                         <MessageCircle className="w-5 h-5" />
                                     </a>
                                 </div>
+                            </div>
+
+                            {/* Legal Column */}
+                            <div>
+                                <h4 className="text-black font-bold tracking-wider uppercase mb-6 flex items-center">
+                                    <ShieldCheck className="w-4 h-4 mr-2 text-lime-400" />
+                                    Legal
+                                </h4>
+                                <ul className="space-y-3 text-green-200/80 font-medium">
+                                    <li><Link href="/privacy" className="hover:text-lime-400 transition-colors">Privacy Policy</Link></li>
+                                    <li><Link href="/terms" className="hover:text-lime-400 transition-colors">Terms of Service</Link></li>
+                                    <li><Link href="/contact" className="hover:text-lime-400 transition-colors">Contact Us</Link></li>
+                                </ul>
                             </div>
                         </div>
 
@@ -519,7 +533,7 @@ const SeasideWaterLanding = () => {
                         className="fixed bottom-6 right-6 z-[999] p-4 bg-green-600 text-white rounded-full shadow-2xl hover:bg-green-700 active:scale-90 transition-all cursor-pointer flex items-center justify-center border-2 border-white/20"
                         aria-label="Back to top"
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                             <path d="m18 15-6-6-6 6"/>
                         </svg>
                     </motion.button>

@@ -35,13 +35,12 @@ function AuthGate({ children }) {
     useEffect(() => {
         if (sessionLoaded) {
             const isLoggedIn = !!user;
-            const isLoginPage = router.pathname === '/login';
-            const isLandingPage = router.pathname === '/';
+            const isPublicPage = ['/', '/login', '/terms', '/privacy'].includes(router.pathname);
 
-            if (!isLoggedIn && !isLoginPage && !isLandingPage) {
+            if (!isLoggedIn && !isPublicPage) {
                 console.log("AuthGate: Not logged in, redirecting to landing page");
                 router.push('/');
-            } else if (isLoggedIn && isLoginPage) {
+            } else if (isLoggedIn && router.pathname === '/login') {
                 console.log("AuthGate: Logged in, redirecting from login to dashboard");
                 router.replace('/dashboard');
             }
@@ -56,7 +55,7 @@ function AuthGate({ children }) {
         );
     }
 
-    if (router.pathname === '/login' || router.pathname === '/' || user) {
+    if (['/', '/login', '/terms', '/privacy'].includes(router.pathname) || user) {
         return children;
     }
 
@@ -76,9 +75,8 @@ export default function App({ Component, pageProps }) {
         useStore.getState().hydrate();
     }, []);
 
-    const isLoginPage = router.pathname === '/login';
-    const isLandingPage = router.pathname === '/';
-    const hideNav = isLoginPage || isLandingPage;
+    const isPublicPage = ['/', '/login', '/terms', 'privacy'].includes(router.pathname);
+    const hideNav = isPublicPage;
 
     return (
         <QueryClientProvider client={queryClient}>
@@ -91,7 +89,7 @@ export default function App({ Component, pageProps }) {
                     {!hideNav && <Navbar />}
                     {!hideNav && <TabBar />}
 
-                    {isLandingPage ? (
+                    {isPublicPage ? (
                         <Component {...pageProps} />
                     ) : (
                         <main className="main">
@@ -101,7 +99,7 @@ export default function App({ Component, pageProps }) {
                         </main>
                     )}
 
-                    {!isLandingPage && <FloatingNotes />}
+                    {!isPublicPage && <FloatingNotes />}
 
                     <div className="toasts fixed bottom-4 right-4 z-50 flex flex-col items-end gap-3" aria-live="polite">
                         {toasts.map(t => (
