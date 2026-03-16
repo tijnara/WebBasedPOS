@@ -107,10 +107,51 @@ const SeasideWaterLanding = () => {
                 backgroundRepeat: 'no-repeat'
             }}
         >
-            {/* --- ADD THESE ADSENSE TAGS HERE --- */}
             <Head>
+                {/* Your AdSense Tag */}
                 <meta name="google-adsense-account" content="ca-pub-3607213315862760" />
+                
+                {/* 1. The Title Google will display in search results */}
+                <title>Seaside Purified Water Refilling Station | Labrador, Pangasinan</title>
+                
+                {/* 2. The Description Google will show under the title */}
+                <meta name="description" content="Seaside offers 21-stage purified water, walk-in refills, and reliable door-to-door water delivery in Labrador, Pangasinan. Pure water, pure trust." />
+                
+                {/* 3. Local SEO Keywords */}
+                <meta name="keywords" content="water refilling station, Labrador Pangasinan, water delivery, purified water, Seaside water, ice tubes, alkaline water" />
+                
+                {/* 4. Open Graph Tags (Makes links look great when shared on Facebook/Messenger) */}
+                <meta property="og:title" content="Seaside Water Refilling Station | Labrador" />
+                <meta property="og:description" content="Fast, clean, and reliable water delivery in Labrador, Pangasinan. Your family's health, flowing crystal clear." />
+                <meta property="og:image" content="https://seasidepos.vercel.app/seasideHD_.png" />
+                <meta property="og:type" content="website" />
+                <meta property="og:locale" content="en_PH" />
             </Head>
+            <Script
+                id="local-business-schema"
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{
+                    __html: JSON.stringify({
+                        "@context": "https://schema.org",
+                        "@type": "WaterRefillingStation",
+                        "name": "Seaside Purified Water Refilling Station",
+                        "image": "https://seasidepos.vercel.app/seasidelogo_.png",
+                        "address": {
+                            "@type": "PostalAddress",
+                            "streetAddress": "Loois",
+                            "addressLocality": "Labrador",
+                            "addressRegion": "Pangasinan",
+                            "addressCountry": "PH"
+                        },
+                        "telephone": "09686786072",
+                        "url": "https://seasidepos.vercel.app",
+                        "priceRange": "₱",
+                        "sameAs": [
+                            "https://www.facebook.com/61587059323111/"
+                        ]
+                    })
+                }}
+            />
             <Script
                 async
                 src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3607213315862760"
@@ -201,9 +242,9 @@ const SeasideWaterLanding = () => {
                         <div className="px-6 mt-16 md:mt-24 relative z-20">
                             <div className="max-w-3xl">
                                 {/* Updated Hero Headline */}
-                                <h2 className="text-4xl md:text-5xl lg:text-[3.25rem] font-light leading-tight mb-6 text-slate-900">
+                                <h1 className="text-4xl md:text-5xl lg:text-[3.25rem] font-light leading-tight mb-6 text-slate-900">
                                     Your Family’s Health,<br/> <span className="font-extrabold text-green-700">Flowing Crystal Clear from Seaside.</span>
-                                </h2>
+                                </h1>
 
                                 {/* Localized Welcome Paragraph */}
                                 <p className="mb-8 text-base md:text-lg text-slate-800 max-w-2xl font-medium leading-relaxed p-5 rounded-xl border shadow-sm" style={{ backgroundColor: '#FFFFFF99' }}>
@@ -478,7 +519,7 @@ const SeasideWaterLanding = () => {
                         className="fixed bottom-6 right-6 z-[999] p-4 bg-green-600 text-white rounded-full shadow-2xl hover:bg-green-700 active:scale-90 transition-all cursor-pointer flex items-center justify-center border-2 border-white/20"
                         aria-label="Back to top"
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                             <path d="m18 15-6-6-6 6"/>
                         </svg>
                     </motion.button>
