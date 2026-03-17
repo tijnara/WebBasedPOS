@@ -151,16 +151,16 @@ const SeasideWaterLanding = () => {
     };
 
     return (
-        <div
-            className="relative min-h-screen w-full font-sans text-slate-800"
-            style={{
-                backgroundImage: "url('/seaside_bg2.png')",
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                backgroundAttachment: 'fixed',
-                backgroundRepeat: 'no-repeat'
-            }}
-        >
+        <div className="relative min-h-screen w-full font-sans text-slate-800">
+            <div className="fixed inset-0 -z-10">
+                <Image
+                    src="/seaside_bg2.png"
+                    alt="Seaside background"
+                    layout="fill"
+                    objectFit="cover"
+                    priority
+                />
+            </div>
             <Head>
                 {/* Only render AdSense metadata if user is NOT logged in */}
                 {!user && <meta name="google-adsense-account" content="ca-pub-3607213315862760" />}
@@ -216,7 +216,14 @@ const SeasideWaterLanding = () => {
                     <div className="container mx-auto flex justify-between items-center">
                         <div className="flex items-center space-x-3">
                             <div className="p-2 rounded-xl shadow-sm border border-green-100" style={{ backgroundColor: '#FFFFFF80' }}>
-                                <img src={settings?.logo_url || "/seasidelogo_.png"} alt="SEASIDE Logo" width={100} height={100} className="object-contain w-[100px] h-[100px]" />
+                                <Image 
+                                  src={settings?.logo_url || "/seasidelogo_.png"} 
+                                  alt="SEASIDE Logo" 
+                                  width={100} 
+                                  height={100} 
+                                  className="object-contain w-[100px] h-[100px]" 
+                                  priority // Tells Google to load this immediately
+                                />
                             </div>
                             <div className="flex flex-col">
                                 <span className="text-7xl font-extrabold tracking-wider leading-none mb-1 text-green-950">
@@ -418,9 +425,11 @@ const SeasideWaterLanding = () => {
                                             transition={{ duration: 0.5 }}
                                             className="absolute inset-0 w-full h-full"
                                         >
-                                            <img
+                                            <Image
                                                 src={galleryItems[currentIndex]?.image_url}
                                                 alt={galleryItems[currentIndex]?.title || 'Gallery'}
+                                                width={800}
+                                                height={450}
                                                 className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-700"
                                                 onClick={() => setIsLightboxOpen(true)}
                                             />
@@ -625,7 +634,7 @@ const SeasideWaterLanding = () => {
                         className="fixed bottom-6 right-6 z-[999] p-4 bg-green-600 text-white rounded-full shadow-2xl hover:bg-green-700 active:scale-90 transition-all cursor-pointer flex items-center justify-center border-2 border-white/20"
                         aria-label="Back to top"
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                             <path d="m18 15-6-6-6 6"/>
                         </svg>
                     </motion.button>

@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /pos
+Disallow: /inventory
+Disallow: /customer-management
+Disallow: /settings
+
+Sitemap: https://seasidepos.vercel.app/sitemap.xml
