@@ -2,26 +2,82 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://seasidepos.vercel.app/</loc>
+    <lastmod>2026-03-17</lastmod>
+    <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://seasidepos.vercel.app/resources</loc>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://seasidepos.vercel.app/privacy</loc>
+    <loc>https://seasidepos.vercel.app/terms</loc>
+    <lastmod>2026-03-17</lastmod>
+    <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://seasidepos.vercel.app/terms</loc>
+    <loc>https://seasidepos.vercel.app/privacy</loc>
+    <lastmod>2026-03-17</lastmod>
+    <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://seasidepos.vercel.app/contact</loc>
+    <lastmod>2026-03-17</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <url>
+    <loc>https://seasidepos.vercel.app/resources</loc>
+    <lastmod>2026-03-17</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <url>
+    <loc>https://seasidepos.vercel.app/resources/benefits-of-21-stage-purified-water</loc>
+    <lastmod>2026-03-17</lastmod>
+    <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://seasidepos.vercel.app/resources/benefits-of-21-stage-purified-water</loc>
-    <priority>0.7</priority>
+    <loc>https://seasidepos.vercel.app/resources/how-reverse-osmosis-protects-your-kidneys</loc>
+    <lastmod>2026-03-17</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://seasidepos.vercel.app/resources/maintaining-your-water-containers-at-home</loc>
+    <lastmod>2026-03-17</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://seasidepos.vercel.app/resources/purified-ice-why-it-is-safer-for-your-business</loc>
+    <lastmod>2026-03-17</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://seasidepos.vercel.app/resources/signs-your-home-water-dispenser-needs-cleaning</loc>
+    <lastmod>2026-03-17</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://seasidepos.vercel.app/resources/staying-hydrated-in-labrador-summer-tips</loc>
+    <lastmod>2026-03-17</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://seasidepos.vercel.app/resources/the-importance-of-regular-water-testing</loc>
+    <lastmod>2026-03-17</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://seasidepos.vercel.app/resources/why-seaside-is-the-trusted-water-delivery-in-labrador</loc>
+    <lastmod>2026-03-17</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
   </url>
 </urlset>

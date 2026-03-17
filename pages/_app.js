@@ -83,6 +83,7 @@ export default function App({ Component, pageProps }) {
             <Head>
                 <link rel="icon" href="/seaside.png" />
                 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+                <meta name="google-site-verification" content="google-site-verification=kd1wSsNQZCjJmyp4LaQKI9Mr7s6Z9_I5Z3ETpaW1EVc" />
             </Head>
             <AuthGate>
                 <div className="app bg-gray-100">
