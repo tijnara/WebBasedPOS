@@ -32,6 +32,7 @@ function AuthGate({ children }) {
     }));
     const router = useRouter();
 
+    // Standard Auth Routing
     useEffect(() => {
         if (sessionLoaded) {
             const isLoggedIn = !!user;
@@ -46,6 +47,69 @@ function AuthGate({ children }) {
             }
         }
     }, [user, sessionLoaded, router]);
+
+    // --- NEW: Navigation Reset & Idle Tracker (No Logout) ---
+    useEffect(() => {
+        if (!user) return;
+
+        const IDLE_TIMEOUT = 15 * 60 * 1000; // 15 minutes of inactivity
+
+        const checkNavigationState = () => {
+            const now = Date.now();
+            const lastActive = localStorage.getItem('pos_last_active_time');
+
+            // Check if this is a newly opened tab or a return to the site
+            const isNewTabSession = !sessionStorage.getItem('pos_tab_initialized');
+
+            let needsRedirect = false;
+
+            if (isNewTabSession) {
+                // User closed the tab and came back, or opened a new tab
+                needsRedirect = true;
+                sessionStorage.setItem('pos_tab_initialized', 'true');
+            } else if (lastActive && now - parseInt(lastActive, 10) > IDLE_TIMEOUT) {
+                // User left the tab open but was idle for > 15 mins
+                needsRedirect = true;
+            }
+
+            if (needsRedirect) {
+                localStorage.setItem('pos_last_active_time', now.toString()); // Reset to prevent loop
+                if (router.pathname !== '/') {
+                    console.log("User was away/idle. Redirecting to landing page.");
+                    router.push('/');
+                }
+            }
+        };
+
+        const resetTimer = () => {
+            localStorage.setItem('pos_last_active_time', Date.now().toString());
+        };
+
+        checkNavigationState();
+        resetTimer();
+
+        // Track interactions to prevent idle timeout
+        const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+        events.forEach(e => document.addEventListener(e, resetTimer, true));
+        window.addEventListener('focus', checkNavigationState);
+
+        // Background checker for idleness
+        const intervalId = setInterval(() => {
+            const lastActive = localStorage.getItem('pos_last_active_time');
+            if (lastActive && Date.now() - parseInt(lastActive, 10) > IDLE_TIMEOUT) {
+                localStorage.setItem('pos_last_active_time', Date.now().toString());
+                if (router.pathname !== '/') {
+                    router.push('/');
+                }
+            }
+        }, 30000);
+
+        return () => {
+            events.forEach(e => document.removeEventListener(e, resetTimer, true));
+            window.removeEventListener('focus', checkNavigationState);
+            clearInterval(intervalId);
+        };
+    }, [user, router.pathname]);
 
     if (!sessionLoaded) {
         return (
@@ -70,7 +134,6 @@ export default function App({ Component, pageProps }) {
     const { toasts, dismissToast } = useStore();
     const router = useRouter();
 
-    // Run hydrate on initial client-side load
     useEffect(() => {
         useStore.getState().hydrate();
     }, []);

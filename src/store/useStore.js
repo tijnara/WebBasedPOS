@@ -2,9 +2,8 @@
 import { create } from 'zustand';
 import api from '../lib/api';
 import currency from 'currency.js';
-import { supabase } from '../lib/supabaseClient'; // Import supabase client
+import { supabase } from '../lib/supabaseClient';
 
-// ... (persistence code remains the same) ...
 const persistUserToStorage = (user) => {
     if (typeof window !== 'undefined') {
         try {
@@ -52,7 +51,7 @@ const initialUser = getUserFromStorage();
 
 export const useStore = create((set, get) => ({
     user: initialUser,
-    sessionLoaded: false, // Start as false until we check the session
+    sessionLoaded: false,
 
     currentSale: {},
     currentCustomer: null,
@@ -175,40 +174,35 @@ export const useStore = create((set, get) => ({
 
         set({ sessionLoaded: false });
 
-        // Get the user from localStorage instead of Supabase Auth
         const storedUser = getUserFromStorage();
 
         if (storedUser) {
             if (storedUser.isDemo) {
-                // Restore demo user without querying the database
                 get().setAuth(storedUser);
             } else {
-                // Verify the real user still exists in the database
                 const { data: userProfile, error } = await supabase
                     .from('users')
                     .select('*')
                     .eq('email', storedUser.email)
                     .single();
-                
+
                 if (userProfile && !error) {
                     let role = 'Staff';
                     if (
-                        (typeof userProfile.isadmin === 'string' && userProfile.isadmin.trim().toLowerCase() === 'true') || 
+                        (typeof userProfile.isadmin === 'string' && userProfile.isadmin.trim().toLowerCase() === 'true') ||
                         userProfile.isadmin === true
                     ) {
                         role = 'Admin';
                     }
                     get().setAuth({ ...userProfile, role });
                 } else {
-                    // User no longer exists or was deleted
                     get().setAuth(null);
                 }
             }
         } else {
-            // No session found
             get().setAuth(null);
         }
-        
+
         set({ sessionLoaded: true });
     }
 }));
