@@ -1,11 +1,12 @@
+import React from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
-import { ArrowLeft, HeartPulse, Activity } from 'lucide-react';
+import { ArrowLeft, Droplet, HeartPulse, ShieldCheck, HelpCircle } from 'lucide-react';
 
-export default function HealthArticle() {
+export default function ReverseOsmosisKidneys() {
   return (
-    <div 
-      className="min-h-screen font-sans"
+    <div
+      className="min-h-screen text-slate-800 font-sans selection:bg-lime-200"
       style={{
         backgroundImage: "url('/seaside_bg2.png')",
         backgroundSize: 'cover',
@@ -13,50 +14,110 @@ export default function HealthArticle() {
         backgroundAttachment: 'fixed'
       }}
     >
+      <Head>
+        <title>How Reverse Osmosis Purified Water Protects Your Kidneys | Seaside</title>
+        <meta name="description" content="Learn how Reverse Osmosis (RO) purified water helps protect your kidneys from heavy metals, prevents stones, and supports long-term health." />
+      </Head>
+
       <main className="max-w-4xl mx-auto px-6 py-12 md:py-20">
-        <article className="bg-white/50 backdrop-blur-sm rounded-3xl shadow-lg border border-white/20 p-8 md:p-12" style={{ backgroundColor: '#FFFFFF80' }}>
+        <Link href="/resources" className="inline-flex items-center text-green-700 hover:text-green-800 font-medium mb-8 transition-colors">
+          <ArrowLeft className="w-4 h-4 mr-2" /> Back to Resources
+        </Link>
+
+        <article
+          className="rounded-3xl shadow-lg border border-white/20 p-8 md:p-12 backdrop-blur-sm"
+          style={{ backgroundColor: '#FFFFFFBF' }}
+        >
           <header className="mb-10">
-            <Link href="/resources" className="inline-flex items-center text-green-700 hover:text-green-800 font-medium mb-8 transition-colors">
-              <ArrowLeft className="w-4 h-4 mr-2" /> Back to Resources
-            </Link>
-            <div className="flex items-center gap-2 text-red-600 mb-4 font-bold uppercase tracking-widest text-xs">
-              <HeartPulse className="w-4 h-4" />
-              Health & Wellness
-            </div>
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight">
-              The Kidney Connection: How Purified Water Supports Your Internal Filters
+            <h1 className="text-3xl md:text-5xl font-bold text-slate-900 tracking-tight leading-tight mb-4">
+              How Reverse Osmosis Purified Water Protects Your Kidneys
             </h1>
+            <div className="flex items-center text-sm text-slate-500">
+              <span>By Seaside Editorial Team</span>
+              <span className="mx-2">•</span>
+              <span>7 min read</span>
+            </div>
           </header>
 
-          <div className="prose prose-green max-w-none text-slate-800 leading-relaxed space-y-6">
-            <p className="text-lg">
-              Your kidneys are your body's natural filtration system, working tirelessly to remove waste and excess fluids. However, when the water you drink contains high levels of heavy metals, salts, or impurities, your kidneys have to work significantly harder. At <strong>Seaside Purified Water</strong> in Labrador, our <strong>Reverse Osmosis (RO)</strong> process acts as a "pre-filter" for your body.
-            </p>
-
-            <h2 className="text-2xl font-bold text-green-950 mt-12 mb-4">The Science of Reverse Osmosis</h2>
+          <div className="space-y-8 text-slate-700 leading-relaxed text-lg">
             <p>
-              Reverse Osmosis is one of the most effective ways to remove dissolved solids that are invisible to the naked eye. This includes contaminants like lead, arsenic, and excess sodium. For residents of <strong>Pangasinan</strong>, where groundwater can sometimes be "hard" (high in calcium and magnesium), RO water provides a lighter alternative that is easier on the digestive and renal systems.
+              Your kidneys are the unsung heroes of your body. Every single day, these two bean-shaped organs filter about 200 quarts of fluid, removing waste, toxins, and excess water from your bloodstream to produce urine. To do this monumental job effectively, your kidneys rely entirely on one vital resource: water. However, the <em>quality</em> of the water you drink is just as important as the quantity.
+            </p>
+            <p>
+              Drinking water laden with heavy metals, excessive dissolved solids, and microscopic toxins forces your kidneys to work overtime. Over years or decades, this can lead to diminished kidney function, the formation of painful kidney stones, or chronic kidney disease. This is why making the switch to <strong>Reverse Osmosis (RO) purified water</strong>, like the water provided by Seaside Water Refilling Station in Labrador, is one of the best preventative health measures you can take.
             </p>
 
-            <div className="bg-red-50/50 backdrop-blur-sm p-6 rounded-2xl border border-red-100/50 my-8">
-              <h3 className="text-xl font-bold text-red-900 mb-4 flex items-center">
-                <Activity className="w-5 h-5 mr-2 text-red-600" />
-                Why Purity Matters for Your Kidneys
+            <h2 className="text-2xl font-bold text-green-900 mt-8 mb-4">The Danger of Heavy Metals and Toxins</h2>
+            <p>
+              Tap water and water from poorly maintained deep wells can look completely clear while hiding a dangerous secret. Contaminants such as lead, arsenic, cadmium, and excessive calcium or magnesium salts dissolve easily in water. When you consume these substances, they enter your bloodstream and inevitably pass through your kidneys.
+            </p>
+            <p>
+              Because heavy metals are difficult for the body to excrete, they tend to accumulate in renal tissue. Over time, this toxic build-up causes cellular damage, inflammation, and can severely impair the kidneys' ability to filter waste. Furthermore, extremely "hard" water—water with exceptionally high concentrations of calcium and minerals—significantly increases the risk of developing calcium oxalate kidney stones, a notoriously painful condition.
+            </p>
+
+            <div className="bg-blue-50/50 p-6 rounded-2xl border border-blue-100/50 my-8 backdrop-blur-sm">
+              <h3 className="text-xl font-bold text-blue-900 mb-3 flex items-center">
+                <Droplet className="w-6 h-6 mr-2 text-blue-600" /> 
+                Enter Reverse Osmosis (RO): Your Kidneys' Best Friend
               </h3>
-              <ul className="list-disc pl-6 space-y-2 text-sm text-red-800">
-                <li><strong>Reduced Mineral Load:</strong> Lowers the risk of kidney stones by reducing excess calcium intake from hard water.</li>
-                <li><strong>Chemical-Free:</strong> Eliminates chlorine and pesticide residues found in some agricultural water tables.</li>
-                <li><strong>Optimal Hydration:</strong> Pure water is absorbed more efficiently, aiding the kidneys in flushing out toxins.</li>
+              <p className="mb-4">
+                Reverse Osmosis is a state-of-the-art water purification technology that acts as an impenetrable shield for your drinking water. Here is how it directly alleviates the burden on your kidneys:
+              </p>
+              <ul className="list-disc pl-6 space-y-3">
+                <li><strong>Microscopic Filtration:</strong> The RO membrane has pores measuring 0.0001 microns. It literally pushes water molecules through while rejecting almost everything else. This process successfully removes up to 99% of heavy metals, effectively ensuring that lead and arsenic never reach your kidneys.</li>
+                <li><strong>Lowering Total Dissolved Solids (TDS):</strong> RO strips water of excessive dissolved salts and hardness. By consuming low-TDS water, you dramatically reduce the mineral sediment in your urine, which is the primary cause of kidney stones.</li>
+                <li><strong>Removing Chemical Burden:</strong> Industrial runoff, chlorine, and agricultural pesticides are frequently found in trace amounts in ground water. RO filtration ensures your kidneys don't have to process these synthetic, harmful chemicals.</li>
+                <li><strong>Preventing Mineral Overload:</strong> While some minerals are beneficial, an excess of certain inorganic minerals (like those found in very hard water) can contribute to kidney stone formation. RO provides water with a balanced mineral profile, reducing this risk.</li>
               </ul>
             </div>
 
-            <h2 className="text-2xl font-bold text-green-950 mt-12 mb-4">A Family-First Approach</h2>
+            <h2 className="text-2xl font-bold text-green-900 mt-8 mb-4">Hydration: The Ultimate Kidney Medicine</h2>
             <p>
-              Protecting kidney health is a lifelong journey that starts in childhood. By providing your children with <strong>Seaside’s 21-stage purified water</strong>, you are establishing healthy habits that protect their vital organs from a young age.
+              Aside from purity, volume matters immensely for kidney health. When you are dehydrated, your urine becomes highly concentrated with waste products. This concentrated environment is the perfect breeding ground for crystals to form and bind together, creating painful kidney stones. Adequate hydration keeps your urine diluted, making it harder for stones to form and easier for your kidneys to flush out toxins.
+            </p>
+            <p>
+              Because Reverse Osmosis water from Seaside undergoes a comprehensive 21-stage process—including a final polishing stage that removes bitter chlorine tastes—it simply tastes better. It is crisp, sweet, and incredibly refreshing. Studies show that when water tastes pure and clean, people naturally drink more of it. By increasing your daily intake of high-quality RO water, you keep your urine diluted and your kidneys flushed, promoting long-term renal health.
             </p>
 
-            <p className="pt-6 border-t border-gray-100/50 font-medium text-slate-900">
-              Investing in purified water is an investment in your family's long-term health. Visit us in Loois, Labrador, to learn more about our process.
+            <h2 className="text-2xl font-bold text-green-900 mt-8 mb-4">The Impact of Water Quality on Chronic Kidney Disease (CKD)</h2>
+            <p>
+              For individuals already managing Chronic Kidney Disease (CKD), the quality of drinking water becomes even more critical. Kidneys that are already compromised struggle significantly more to filter out impurities. Consuming water with high levels of sodium, potassium, or phosphorus (which can be present in untreated water) can exacerbate CKD symptoms and accelerate disease progression. RO water, with its significantly reduced mineral and contaminant load, provides a safer, gentler option for those with sensitive or impaired kidney function. Always consult with a healthcare professional regarding specific dietary and hydration needs for CKD.
+            </p>
+
+            <h2 className="text-2xl font-bold text-green-900 mt-8 mb-4">The Seaside Commitment to Your Health</h2>
+            <p>
+              At Seaside Water Refilling Station in Labrador, Pangasinan, our core mission is community health. We invest heavily in our Reverse Osmosis membranes and ensure they are routinely cleaned, backwashed, and replaced according to strict health standards. Our 21-stage purification process is meticulously monitored to guarantee that every drop of water we deliver is of the highest purity. When you choose Seaside, you aren't just choosing convenience; you are choosing a proactive approach to your family's long-term health.
+            </p>
+            <p>
+              Protect your kidneys, boost your family's hydration, and enjoy the peace of mind that comes with knowing every drop is pure.
+            </p>
+
+            <hr className="my-12 border-gray-200" />
+
+            {/* --- FAQ SECTION --- */}
+            <div className="bg-slate-50/50 p-6 rounded-2xl border border-slate-100/50 my-8 backdrop-blur-sm">
+                <h3 className="text-2xl font-bold text-slate-900 mb-6 flex items-center">
+                    <HelpCircle className="w-7 h-7 mr-3 text-green-600" />
+                    Frequently Asked Questions About RO Water & Kidney Health
+                </h3>
+                <div className="space-y-6">
+                    <div>
+                        <h4 className="font-semibold text-slate-800 text-lg">Does RO water remove beneficial minerals?</h4>
+                        <p className="text-slate-700 mt-1">Yes, RO is highly effective at removing almost all dissolved solids, including some beneficial minerals. However, our 21-stage process includes a remineralization stage where healthy trace minerals like calcium and magnesium are reintroduced. This ensures you get the benefits of purity without sacrificing essential nutrients or taste.</p>
+                    </div>
+                    <div>
+                        <h4 className="font-semibold text-slate-800 text-lg">Can drinking RO water cause mineral deficiencies?</h4>
+                        <p className="text-slate-700 mt-1">For most healthy individuals with a balanced diet, drinking remineralized RO water will not cause mineral deficiencies. The majority of essential minerals come from food, not water. Our remineralization process further mitigates this concern. If you have specific health conditions, always consult your doctor.</p>
+                    </div>
+                    <div>
+                        <h4 className="font-semibold text-slate-800 text-lg">Is RO water safe for people with kidney stones?</h4>
+                        <p className="text-slate-700 mt-1">Many urologists recommend low-TDS water, like RO water, for individuals prone to kidney stones, especially calcium oxalate stones. By reducing the mineral load in the water, it helps decrease the concentration of stone-forming substances in the urine. However, always follow your doctor's specific advice regarding diet and hydration for kidney stone prevention.</p>
+                    </div>
+                </div>
+            </div>
+
+            <p className="font-medium text-slate-900 text-center pt-8">
+              Ensure your kidneys are protected with the purest water available. <Link href="/#contact" className="text-green-600 hover:underline">Contact Seaside today</Link> for reliable purified water delivery in Labrador, Pangasinan.
             </p>
           </div>
         </article>

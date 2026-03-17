@@ -1,11 +1,12 @@
+import React from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
-import { ArrowLeft, Sun, Thermometer, Droplets, Utensils } from 'lucide-react';
+import { ArrowLeft, Sun, Thermometer, Droplets } from 'lucide-react';
 
-export default function SummerHydrationArticle() {
+export default function SummerHydrationTips() {
   return (
-    <div 
-      className="min-h-screen font-sans"
+    <div
+      className="min-h-screen text-slate-800 font-sans selection:bg-lime-200"
       style={{
         backgroundImage: "url('/seaside_bg2.png')",
         backgroundSize: 'cover',
@@ -13,94 +14,93 @@ export default function SummerHydrationArticle() {
         backgroundAttachment: 'fixed'
       }}
     >
+      <Head>
+        <title>Beat the Heat: Essential Hydration Tips for Labrador Summers | Seaside</title>
+        <meta name="description" content="Discover crucial hydration strategies to survive the intense summer heat in Labrador, Pangasinan, and learn why Seaside purified water is your best defense." />
+      </Head>
+
       <main className="max-w-4xl mx-auto px-6 py-12 md:py-20">
-        {/* Article Content */}
-        <article className="bg-white/50 backdrop-blur-sm rounded-3xl shadow-lg border border-white/20 p-8 md:p-12" style={{ backgroundColor: '#FFFFFF80' }}>
+        <Link href="/resources" className="inline-flex items-center text-green-700 hover:text-green-800 font-medium mb-8 transition-colors">
+          <ArrowLeft className="w-4 h-4 mr-2" /> Back to Resources
+        </Link>
+
+        <article
+          className="rounded-3xl shadow-lg border border-white/20 p-8 md:p-12 backdrop-blur-sm"
+          style={{ backgroundColor: '#FFFFFFBF' }}
+        >
           <header className="mb-10">
-            <Link href="/resources" className="inline-flex items-center text-green-700 hover:text-green-800 font-medium mb-8 transition-colors">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Resources
-            </Link>
-            <div className="flex items-center gap-2 text-orange-600 mb-4 font-bold uppercase tracking-widest text-xs">
-              <Sun className="w-4 h-4" />
-              Seasonal Health Advice
-            </div>
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight">
-              Beat the Pangasinan Heat: Essential Summer Hydration Tips
+            <h1 className="text-3xl md:text-5xl font-bold text-slate-900 tracking-tight leading-tight mb-4">
+              Beat the Heat: Essential Hydration Tips for Labrador Summers
             </h1>
-            <p className="text-sm text-slate-600 mt-6 italic">
-              Last Updated: March 2024 • 7 min read
-            </p>
+            <div className="flex items-center text-sm text-slate-500">
+              <span>By Seaside Editorial Team</span>
+              <span className="mx-2">•</span>
+              <span>4 min read</span>
+            </div>
           </header>
 
-          <div className="prose prose-green max-w-none text-slate-800 leading-relaxed space-y-6">
-            <p className="text-lg">
-              As the summer sun settles over <strong>Labrador, Pangasinan</strong>, temperatures can soar, making hydration more critical than ever. At <strong>Seaside Purified Water Refilling Station</strong>, we see firsthand how the demand for pure, refreshing water peaks during these months. Staying hydrated isn't just about quenching thirst; it’s about maintaining your energy, focus, and overall well-being.
-            </p>
-
-            <h2 className="text-2xl font-bold text-green-950 mt-12 mb-4">Understanding Summer Dehydration</h2>
+          <div className="space-y-8 text-slate-700 leading-relaxed text-lg">
             <p>
-              In the humid tropical climate of Labrador, your body loses fluids rapidly through sweat. Dehydration can creep up on you, manifesting as headaches, fatigue, or dizziness. By the time you feel thirsty, you are likely already slightly dehydrated. For active families and local workers, consistent water intake is the first line of defense against heat exhaustion.
+              If you live in Labrador, Pangasinan, you are intimately familiar with the intense, sweltering heat of the Philippine summer. From March to May, the combination of blazing sun and high humidity can push the heat index well into the danger zone. While summer brings beautiful beach days and town fiestas, it also brings a serious hidden danger: severe dehydration and heatstroke.
+            </p>
+            <p>
+              When the temperature rises, your body cools itself by sweating. But sweating depletes your body of its most precious resource—water. Failing to replenish this water can lead to headaches, dizziness, fatigue, and in extreme cases, hospitalization. Here is your definitive guide to staying safely hydrated during a Labrador summer, and why the quality of water you drink matters more than ever.
             </p>
 
-            {/* Practical Advice Box */}
-            <div className="bg-orange-50/50 backdrop-blur-sm rounded-2xl border border-orange-100/50 p-6 my-8">
-              <h3 className="text-xl font-bold text-orange-900 mb-4 flex items-center">
-                <Thermometer className="w-5 h-5 mr-2 text-orange-600" />
-                Hydration Best Practices
+            <h2 className="text-2xl font-bold text-green-900 mt-8 mb-4">How Much Water Do You Really Need?</h2>
+            <p>
+              We have all heard the "eight glasses a day" rule. However, during a Pangasinan summer, that old adage falls severely short. Your water requirements depend heavily on your body weight, your activity level, and the environmental heat. 
+            </p>
+            <p>
+              A more accurate baseline is to drink at least 30 to 40 milliliters of water per kilogram of body weight. For a 70 kg (154 lb) adult, that equates to roughly 2.1 to 2.8 liters of water per day. However, if you are working outdoors, gardening, or exercising in the Labrador heat, you should add an additional 500ml to 1 liter for every hour of strenuous activity to compensate for heavy sweating.
+            </p>
+
+            <div className="bg-orange-50/50 p-6 rounded-2xl border border-orange-100/50 my-8 backdrop-blur-sm">
+              <h3 className="text-xl font-bold text-orange-900 mb-3 flex items-center">
+                <Thermometer className="w-6 h-6 mr-2 text-orange-600" /> 
+                Recognizing the Signs of Dehydration
               </h3>
-              <div className="space-y-4">
-                <div className="flex gap-3">
-                    <div className="bg-white p-1 h-fit rounded shadow-sm"><Droplets className="w-4 h-4 text-blue-500" /></div>
-                    <div>
-                        <h4 className="font-bold text-orange-800">Don't Wait for Thirst</h4>
-                        <p className="text-sm">Sip water consistently throughout the day. Aim for at least 8 to 10 glasses, and more if you are spending time outdoors in Loois or neighboring areas.</p>
-                    </div>
-                </div>
-                <div className="flex gap-3">
-                    <div className="bg-white p-1 h-fit rounded shadow-sm"><Utensils className="w-4 h-4 text-green-500" /></div>
-                    <div>
-                        <h4 className="font-bold text-orange-800">Eat Hydrating Foods</h4>
-                        <p className="text-sm">Incorporate local fruits like watermelon, cucumber, and singkamas into your diet. These have high water content and provide essential vitamins.</p>
-                    </div>
-                </div>
-              </div>
+              <p className="mb-4">Do not wait until you feel thirsty to drink water. Thirst is actually a late indicator of dehydration. Be on the lookout for these early warning signs:</p>
+              <ul className="list-disc pl-6 space-y-3">
+                <li><strong>Dark Urine:</strong> This is the easiest self-check. Your urine should be pale yellow or almost clear. If it is dark yellow or amber, you are dehydrated.</li>
+                <li><strong>Dry Mouth and Bad Breath:</strong> A lack of saliva production allows bacteria to thrive in your mouth.</li>
+                <li><strong>Sudden Fatigue or Brain Fog:</strong> Even a 2% drop in your body's water content can cause a significant decrease in physical and cognitive performance.</li>
+                <li><strong>Muscle Cramps:</strong> Sweating depletes water and essential electrolytes, leading to painful cramps in your legs or abdomen.</li>
+              </ul>
             </div>
 
-            <h2 className="text-2xl font-bold text-green-950 mt-12 mb-4">The Seaside Advantage</h2>
+            <h2 className="text-2xl font-bold text-green-900 mt-8 mb-4">Pro-Tips for Summer Hydration</h2>
+            
+            <h3 className="text-xl font-semibold text-slate-800 mt-6 mb-2">1. Start Your Day with a Glass</h3>
             <p>
-              During the summer, the quality of your water matters as much as the quantity. Tap water can sometimes carry a heavy chlorine taste or sediments that make it less palatable. <strong>Seaside’s 21-stage purified water</strong> is processed to remove these impurities, resulting in a crisp, clean taste that encourages you to drink more.
-            </p>
-            <p>
-                Our <strong>purified ice tubes</strong> are also a local favorite for cooling down drinks safely. Because they are made from the same high-quality filtered water, you don't have to worry about contaminants melting into your beverage.
-            </p>
-
-            <h2 className="text-2xl font-bold text-green-950 mt-12 mb-4">Tips for Kids and Seniors</h2>
-            <p>
-              Children and the elderly are most at risk during Pangasinan summers. Encourage kids to carry reusable <strong>Seaside PET bottles</strong> to school or play. For seniors, keep a 5-gallon slim container within easy reach at home to ensure they stay hydrated without needing to lift heavy jugs.
+              After 7 to 8 hours of sleep, your body wakes up naturally dehydrated. Before you reach for your morning coffee or pandesal, drink a large glass of Seaside purified water. This kickstarts your metabolism and rehydrates your brain.
             </p>
 
-            <div className="bg-blue-50/50 backdrop-blur-sm rounded-2xl border border-blue-100/50 p-6 my-8">
-                <h3 className="text-xl font-bold text-blue-900 mb-2">Pro Tip: Cold vs. Room Temp</h3>
-                <p className="text-sm text-blue-700">
-                    While an ice-cold glass of water feels amazing, room-temperature water is actually absorbed faster by your body. If you’re feeling overheated, try starting with cool water rather than freezing cold to avoid shocking your system.
-                </p>
+            <h3 className="text-xl font-semibold text-slate-800 mt-6 mb-2">2. Eat Your Water</h3>
+            <p>
+              Hydration doesn't just come from a glass. Roughly 20% of our daily water intake comes from food. Take advantage of local summer fruits available in Labrador. Watermelon, local citrus (calamansi), cucumbers, and tomatoes have incredibly high water contents and provide essential vitamins.
+            </p>
+
+            <h3 className="text-xl font-semibold text-slate-800 mt-6 mb-2">3. Mind Your Electrolytes</h3>
+            <p>
+              When you sweat heavily, you aren't just losing water; you are losing sodium, potassium, and magnesium. If you drink massive amounts of "dead" or distilled water without replacing these minerals, you can actually cause a dangerous condition called hyponatremia. 
+            </p>
+            <p>
+              This is why Seaside's 21-stage purified water is superior. The final stages of our filtration process include <strong>bio-ceramic remineralization</strong>. We reintroduce healthy trace minerals into the water, giving it a slightly alkaline profile. This ensures that every glass of Seaside water helps replenish what the summer heat takes out of you.
+            </p>
+
+            <h2 className="text-2xl font-bold text-green-900 mt-8 mb-4">Keep It Ice Cold</h2>
+            <p>
+              Drinking cold water can help lower your core body temperature faster during a heatwave. At Seaside, we also manufacture <strong>Purified Ice Tubes</strong> made from the exact same 21-stage filtered water. Adding our ice to your insulated tumbler guarantees that your water stays ice-cold all day without being contaminated by unfiltered tap-water ice.
+            </p>
+
+            <div className="flex items-center p-4 bg-green-50/50 rounded-xl mt-8 border border-green-100/50 backdrop-blur-sm">
+              <Sun className="w-8 h-8 text-green-600 mr-4 flex-shrink-0" />
+              <p className="text-sm font-medium text-green-900">
+                Don't let the Pangasinan summer catch you unprepared. Schedule a regular Seaside water delivery today, and ensure your family's hydration never runs dry!
+              </p>
             </div>
-
-            <p className="pt-6 border-t border-gray-100/50 font-medium text-slate-900">
-              Don't let the heat get the best of you. Visit Seaside in Loois, Labrador, for your daily refill, or contact us for reliable door-to-door delivery.
-            </p>
           </div>
-
-          <footer className="mt-12 pt-8 border-t border-gray-100/50 flex flex-col sm:flex-row justify-between items-center gap-4">
-             <div className="text-sm text-slate-600">
-               © {new Date().getFullYear()} Seaside Purified Water
-             </div>
-             <div className="flex gap-4">
-               <Link href="/contact" className="text-green-700 hover:underline text-sm font-bold">Contact Us</Link>
-               <Link href="/privacy" className="text-green-700 hover:underline text-sm font-bold">Privacy Policy</Link>
-             </div>
-          </footer>
         </article>
       </main>
     </div>
