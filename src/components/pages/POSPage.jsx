@@ -20,6 +20,18 @@ import EditCartItemModal from '../pos/EditCartItemModal';
 import { supabase } from '../../lib/supabaseClient';
 import currency from 'currency.js';
 
+// --- Helper Functions to Handle Local Timezones correctly ---
+const getLocalDateString = () => {
+    const now = new Date();
+    // Adjust for timezone offset so mornings don't register as "yesterday" in UTC
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    return now.toISOString().slice(0, 10);
+};
+
+const getLocalTimeString = () => {
+    return new Date().toTimeString().slice(0, 5);
+};
+
 // --- Barcode Scanner Component ---
 const BarcodeScannerModal = ({ isOpen, onClose, onScan }) => {
     const [error, setError] = useState('');
@@ -165,8 +177,8 @@ export default function POSPage() {
         } catch { return null; }
     });
 
-    const [saleDate, setSaleDate] = useState(() => new Date().toISOString().slice(0, 10));
-    const [saleTime, setSaleTime] = useState(() => new Date().toTimeString().slice(0, 5));
+    const [saleDate, setSaleDate] = useState(getLocalDateString());
+    const [saleTime, setSaleTime] = useState(getLocalTimeString());
 
     useEffect(() => {
         setSelectedCustomer(currentCustomer);
@@ -297,7 +309,10 @@ export default function POSPage() {
         }
         setAmountReceived(subtotal.toFixed(2));
         setPaymentMethod('Cash');
-        setSaleTime(new Date().toTimeString().slice(0, 5));
+        // Instantly capture precise local time & date immediately upon opening payment modal
+        setSaleDate(getLocalDateString());
+        setSaleTime(getLocalTimeString());
+
         setCustomerSearchTerm('');
         setCustomerSearchResults([]);
         setIsPaymentModalOpen(true);
@@ -356,9 +371,22 @@ export default function POSPage() {
         const changeCalculated = currency(received).subtract(subtotal).value;
 
         try {
-            const saleTimestamp = saleDate && saleTime ? new Date(`${saleDate}T${saleTime}:00`).toISOString() : new Date().toISOString();
+            const now = new Date();
+            const constructedDate = new Date(`${saleDate}T${saleTime}:00`);
+            let finalSaleTimestamp;
+
+            // If the time entered in the modal is within 5 minutes of real current time,
+            // assume it's a real-time live transaction. Use the exact millisecond `now`
+            // to prevent the sale from recording *before* the shift start time.
+            if (Math.abs(now - constructedDate) < 5 * 60 * 1000) {
+                finalSaleTimestamp = now.toISOString();
+            } else {
+                // Otherwise, the user intentionally backdated the transaction.
+                finalSaleTimestamp = constructedDate.toISOString();
+            }
+
             const payload = {
-                saleTimestamp,
+                saleTimestamp: finalSaleTimestamp,
                 totalAmount: subtotal,
                 customerId: selectedCustomer?.id || null,
                 customerName: selectedCustomer?.name || 'Walk-in',
@@ -426,7 +454,7 @@ export default function POSPage() {
                             key={cat}
                             onClick={() => { setCategoryFilter(cat); setCurrentPage(1); }}
                             className={`px-4 py-2.5 rounded-xl font-semibold transition-all border-2 ${categoryFilter === cat ? 'bg-primary-soft border-primary text-primary shadow-md' : 'bg-white border-gray-200 text-gray-600 hover:border-primary/50'
-                                }`}
+                            }`}
                         >
                             {cat}
                         </button>

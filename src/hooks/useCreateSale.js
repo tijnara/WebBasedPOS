@@ -17,6 +17,18 @@ export function useCreateSale() {
                 console.log("Demo Mode detected. Simulating transaction...");
                 await new Promise(resolve => setTimeout(resolve, 800)); // Simulate network delay
 
+                // --- NEW: Update demo shift sales in sessionStorage so the Navbar counter updates ---
+                if (salePayload.paymentMethod === 'Cash') {
+                    const shiftKey = `demo_shift_${user.id}`;
+                    const storedShift = sessionStorage.getItem(shiftKey);
+                    if (storedShift) {
+                        const shiftData = JSON.parse(storedShift);
+                        // Add the new sale amount to the running demo total
+                        shiftData.demo_sales = (shiftData.demo_sales || 0) + salePayload.totalAmount;
+                        sessionStorage.setItem(shiftKey, JSON.stringify(shiftData));
+                    }
+                }
+
                 // Return mock success response
                 return {
                     id: `demo-sale-${Date.now()}`,
@@ -123,6 +135,8 @@ export function useCreateSale() {
             queryClient.invalidateQueries({ queryKey: ['sales'] });
             queryClient.invalidateQueries({ queryKey: ['products'] });
             queryClient.invalidateQueries({ queryKey: ['customers'] });
+            // Explicitly force the active shift indicator to refresh
+            queryClient.invalidateQueries({ queryKey: ['sales', 'active-shift'] });
         },
         onError: (error) => {
             console.error('useCreateSale: Mutation failed:', error);

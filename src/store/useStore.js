@@ -2,8 +2,9 @@
 import { create } from 'zustand';
 import api from '../lib/api';
 import currency from 'currency.js';
-import { supabase } from '../lib/supabaseClient';
+import { supabase } from '../lib/supabaseClient'; // Import supabase client
 
+// ... (persistence code remains the same) ...
 const persistUserToStorage = (user) => {
     if (typeof window !== 'undefined') {
         try {
@@ -51,7 +52,7 @@ const initialUser = getUserFromStorage();
 
 export const useStore = create((set, get) => ({
     user: initialUser,
-    sessionLoaded: false,
+    sessionLoaded: false, // Start as false until we check the session
 
     currentSale: {},
     currentCustomer: null,
@@ -162,8 +163,15 @@ export const useStore = create((set, get) => ({
     },
     logout: async () => {
         try {
+            const currentUser = get().user;
             await supabase.auth.signOut();
             persistUserToStorage(null);
+
+            // --- NEW: Clear the shift prompt flag on logout ---
+            if (currentUser) {
+                sessionStorage.removeItem(`pos_shift_prompted_${currentUser.id}`);
+            }
+
             set({ user: null, sessionLoaded: true });
         } catch (error) {
             get().addToast({ title: 'Logout Error', description: error.message || 'Logout failed.', variant: 'destructive' });
@@ -174,12 +182,15 @@ export const useStore = create((set, get) => ({
 
         set({ sessionLoaded: false });
 
+        // Get the user from localStorage instead of Supabase Auth
         const storedUser = getUserFromStorage();
 
         if (storedUser) {
             if (storedUser.isDemo) {
+                // Restore demo user without querying the database
                 get().setAuth(storedUser);
             } else {
+                // Verify the real user still exists in the database
                 const { data: userProfile, error } = await supabase
                     .from('users')
                     .select('*')
@@ -196,10 +207,12 @@ export const useStore = create((set, get) => ({
                     }
                     get().setAuth({ ...userProfile, role });
                 } else {
+                    // User no longer exists or was deleted
                     get().setAuth(null);
                 }
             }
         } else {
+            // No session found
             get().setAuth(null);
         }
 

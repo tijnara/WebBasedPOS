@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { supabase } from '../lib/supabaseClient';
 import currency from 'currency.js';
 import { CartIcon, PackageIcon, UserIcon, ChartIcon, UsersIcon, GalleryIcon, HomeIcon, SettingsIcon } from './Icons';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 // Hamburger Icon
 const HamburgerIcon = (props) => (
@@ -42,8 +43,91 @@ const LiveClock = () => {
     );
 };
 
+// --- Active Shift Indicator Component ---
+const ActiveShiftIndicator = ({ user, onOpenStartShift }) => {
+    const { data: shiftStats, isLoading } = useQuery({
+        queryKey: ['sales', 'active-shift', user?.id],
+        queryFn: async () => {
+            if (!user) return null;
+
+            if (user.isDemo) {
+                const stored = sessionStorage.getItem(`demo_shift_${user.id}`);
+                if (!stored) return null;
+                const shiftData = JSON.parse(stored);
+
+                // --- FIXED: Read the dynamically updating demo sales ---
+                const demoSales = shiftData.demo_sales || 0;
+                const expected = currency(shiftData.starting_cash).add(demoSales).value;
+                return { start: shiftData.starting_cash, sales: demoSales, expected };
+            }
+
+            const { data: shifts, error } = await supabase
+                .from('shifts')
+                .select('*')
+                .eq('staff_id', user.id)
+                .eq('status', 'OPEN')
+                .order('start_time', { ascending: false })
+                .limit(1);
+
+            const shift = shifts?.[0];
+
+            if (error || !shift) return null;
+
+            const { data: sales } = await supabase
+                .from('sales')
+                .select('totalamount')
+                .eq('created_by', user.id)
+                .eq('paymentmethod', 'Cash')
+                .gte('saletimestamp', shift.start_time);
+
+            const totalSales = Array.isArray(sales)
+                ? sales.reduce((sum, s) => sum.add(s.totalamount || 0), currency(0)).value
+                : 0;
+
+            const expected = currency(shift.starting_cash || 0).add(totalSales).value;
+
+            return {
+                start: shift.starting_cash,
+                sales: totalSales,
+                expected
+            };
+        },
+        enabled: !!user
+    });
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center gap-2 bg-gray-50 text-gray-400 px-3 py-1 rounded-lg border border-gray-200 text-xs font-bold md:mr-2 shadow-sm whitespace-nowrap">
+                Loading Shift...
+            </div>
+        );
+    }
+
+    if (!shiftStats) {
+        return (
+            <button
+                onClick={onOpenStartShift}
+                className="flex items-center gap-2 bg-red-50 text-red-600 px-3 py-1 rounded-lg border border-red-200 text-xs font-bold md:mr-2 shadow-sm whitespace-nowrap hover:bg-red-100 transition-colors cursor-pointer"
+                title="Click to start a new shift">
+                No Active Shift (Click to Start)
+            </button>
+        );
+    }
+
+    return (
+        <div className="flex items-center gap-2 bg-green-50 text-green-700 px-3 py-1 rounded-lg border border-green-200 text-xs font-bold md:mr-2 shadow-sm whitespace-nowrap" title="Expected Cash in Drawer">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+            </span>
+            Active Shift: ₱{shiftStats.expected.toFixed(2)}
+        </div>
+    );
+};
+
 const Navbar = () => {
     const router = useRouter();
+    const queryClient = useQueryClient();
     const { user, logout } = useStore(s => ({
         user: s.user,
         logout: s.logout
@@ -100,19 +184,37 @@ const Navbar = () => {
     }, [user, router.events]);
 
     const handleLogout = async () => {
-        await router.push('/'); // Navigate first
+        await router.push('/');
         await supabase.auth.signOut();
-        if (logout) logout(); // Clear state
+        if (logout) logout();
     };
 
     const checkActiveShift = async () => {
         if (!user) return;
+
+        const promptKey = `pos_shift_prompted_${user.id}`;
+        if (sessionStorage.getItem(promptKey) === 'true') {
+            return;
+        }
+
         try {
-            const { data: shift, error } = await supabase.from('shifts')
+            if (user.isDemo) {
+                const demoShift = sessionStorage.getItem(`demo_shift_${user.id}`);
+                if (!demoShift) {
+                    setStartingCash('');
+                    setIsStartShiftModalOpen(true);
+                    sessionStorage.setItem(promptKey, 'true');
+                }
+                return;
+            }
+
+            const { data: shifts, error } = await supabase.from('shifts')
                 .select('id')
                 .eq('staff_id', user.id)
                 .eq('status', 'OPEN')
-                .maybeSingle();
+                .limit(1);
+
+            const shift = shifts?.[0];
 
             if (error && error.code !== 'PGRST116') {
                 console.error("Error checking shift:", error);
@@ -123,6 +225,8 @@ const Navbar = () => {
                 setStartingCash('');
                 setIsStartShiftModalOpen(true);
             }
+
+            sessionStorage.setItem(promptKey, 'true');
         } catch (err) {
             console.error("Shift check failed:", err);
         }
@@ -130,26 +234,66 @@ const Navbar = () => {
 
     const handleStartShift = async () => {
         if (!startingCash) return;
+
+        if (user.isDemo) {
+            sessionStorage.setItem(`demo_shift_${user.id}`, JSON.stringify({
+                start_time: new Date().toISOString(),
+                starting_cash: parseFloat(startingCash),
+                demo_sales: 0 // Initialize at 0
+            }));
+            setIsStartShiftModalOpen(false);
+            queryClient.invalidateQueries({ queryKey: ['sales', 'active-shift'] });
+            return;
+        }
+
         const { error } = await supabase.from('shifts').insert({
             staff_id: user.id,
             start_time: new Date().toISOString(),
             starting_cash: parseFloat(startingCash),
             status: 'OPEN'
         });
+
         if (error) {
             alert("Failed to start shift: " + error.message);
         } else {
             setIsStartShiftModalOpen(false);
+            queryClient.invalidateQueries({ queryKey: ['sales', 'active-shift'] });
         }
     };
 
     const prepareZReading = async () => {
         if (!user) return;
-        const { data: shift } = await supabase.from('shifts')
-            .select('*').eq('staff_id', user.id).eq('status', 'OPEN').maybeSingle();
+
+        if (user.isDemo) {
+            const demoShiftStr = sessionStorage.getItem(`demo_shift_${user.id}`);
+            if (!demoShiftStr) {
+                handleLogout();
+                return;
+            }
+            const demoShift = JSON.parse(demoShiftStr);
+
+            // --- FIXED: Z-Reading now displays the dynamically updated sales ---
+            const demoSales = demoShift.demo_sales || 0;
+            const expected = currency(demoShift.starting_cash).add(demoSales).value;
+
+            setShiftStats({ start: demoShift.starting_cash, sales: demoSales, expected });
+            setCashShortage(null);
+            setActualCash('');
+            setIsShiftModalOpen(true);
+            return;
+        }
+
+        const { data: shifts } = await supabase.from('shifts')
+            .select('*')
+            .eq('staff_id', user.id)
+            .eq('status', 'OPEN')
+            .order('start_time', { ascending: false })
+            .limit(1);
+
+        const shift = shifts?.[0];
 
         if (!shift) {
-            handleLogout(); // Ensure redirect happens here
+            handleLogout();
             return;
         }
 
@@ -185,14 +329,26 @@ const Navbar = () => {
 
     const handleConfirmEndShift = async () => {
         if (!user) return;
+
+        if (user.isDemo) {
+            sessionStorage.removeItem(`demo_shift_${user.id}`);
+            sessionStorage.removeItem(`pos_shift_prompted_${user.id}`);
+            setIsShiftModalOpen(false);
+            setActualCash('');
+            handleLogout();
+            return;
+        }
+
         await supabase.from('shifts').update({
             end_time: new Date().toISOString(),
             ending_cash: parseFloat(actualCash),
             status: 'CLOSED'
         }).eq('staff_id', user.id).eq('status', 'OPEN');
+
+        sessionStorage.removeItem(`pos_shift_prompted_${user.id}`);
         setIsShiftModalOpen(false);
         setActualCash('');
-        handleLogout(); // Ensure redirect happens here
+        handleLogout();
     };
 
     // --- RENDER MOBILE LINKS (Original Design) ---
@@ -236,7 +392,6 @@ const Navbar = () => {
                     {/* Hamburger Button */}
                     <div className="relative" ref={menuRef}>
                         <Button variant="ghost" onClick={() => setIsMenuOpen(!isMenuOpen)}>
-                            {/* BIGGER HAMBURGER ICON */}
                             <HamburgerIcon className="h-6 w-6 hamburger-icon" />
                         </Button>
 
@@ -251,19 +406,16 @@ const Navbar = () => {
 
                                 {/* --- DESKTOP LAYOUT: SIDEBAR DRAWER --- */}
                                 <div className="hidden md:block">
-                                    {/* Dimmed Backdrop */}
                                     <div
                                         className="fixed inset-0 bg-black/40 z-40 transition-opacity"
                                         onClick={() => setIsMenuOpen(false)}
                                     ></div>
 
-                                    {/* Sidebar Drawer */}
                                     <div
                                         className="fixed top-0 left-0 bottom-0 w-[350px] bg-primary text-white z-50 shadow-2xl overflow-y-auto flex flex-col transition-transform duration-300 ease-in-out transform translate-x-0"
                                         style={{ backgroundColor: 'var(--primary)', opacity: 1 }}
                                         id="main-menu-desktop"
                                     >
-                                        {/* Sidebar Header */}
                                         <div className="flex items-center gap-4 px-6 py-6 border-b border-white/20">
                                             <Button variant="ghost" onClick={() => setIsMenuOpen(false)} className="text-white hover:bg-white/10 p-2">
                                                 <HamburgerIcon className="h-7 w-7" />
@@ -271,12 +423,10 @@ const Navbar = () => {
                                             <span className="font-bold text-xl uppercase tracking-wider">Menu</span>
                                         </div>
 
-                                        {/* Navigation Links */}
                                         <nav className="flex flex-col py-2 gap-0">
                                             {renderDesktopLinks()}
                                         </nav>
 
-                                        {/* Bottom Settings (Optional for that Office look) */}
                                         <div className="mt-auto px-6 py-6 border-t border-white/20">
                                             <div className="text-sm opacity-80 uppercase tracking-widest mb-2 font-semibold">Additional Information</div>
                                             <Button variant="ghost" onClick={() => { setIsMenuOpen(false); prepareZReading(); }} className="w-full justify-start text-white hover:bg-white/10 px-0 py-2">
@@ -295,14 +445,16 @@ const Navbar = () => {
                 </div>
 
                 {/* Mobile-only clock */}
-                <div className="mobile-clock-container">
+                <div className="mobile-clock-container flex flex-col items-center gap-1">
+                    {clientUser && <ActiveShiftIndicator user={clientUser} onOpenStartShift={() => setIsStartShiftModalOpen(true)} />}
                     <LiveClock />
                 </div>
 
                 <div className="meta-container">
                     {clientUser ? (
                         <>
-                            <div className="hidden md:flex">
+                            <div className="hidden md:flex items-center">
+                                <ActiveShiftIndicator user={clientUser} onOpenStartShift={() => setIsStartShiftModalOpen(true)} />
                                 <LiveClock />
                             </div>
                             <div className="user-info-text hidden sm:block">
