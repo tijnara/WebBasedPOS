@@ -557,9 +557,21 @@ const ReportPage = () => {
     };
 
     const handleDeleteSale = (id) => {
-        if (window.confirm("Permanently delete this transaction? This will remove the record and associated items from the database.")) {
-            deleteSaleMutation.mutate(id);
+        // 1. Prompt staff for a deletion reason
+        const reason = window.prompt(
+            "Permanently delete this transaction? This will restore inventory.\n\nPlease enter a reason for deletion:"
+        );
+    
+        // 2. Only proceed if a reason is provided
+        if (reason === null) return; // User cancelled prompt
+        
+        if (!reason.trim()) {
+            alert("A reason is required to delete a confirmed transaction.");
+            return;
         }
+    
+        // 3. Execute mutation with both ID and reason
+        deleteSaleMutation.mutate({ saleId: id, reason: reason.trim() });
     };
 
     // --- Render JSX ---
