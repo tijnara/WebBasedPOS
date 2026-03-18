@@ -1,19 +1,17 @@
 // src/components/pages/DashboardPage.jsx
 import React, { useMemo, useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
-import { Card, CardHeader, CardContent, Button } from '../ui';
-import { Line, Bar } from 'react-chartjs-2';
+import { Card, CardHeader, CardContent } from '../ui';
+import { Line } from 'react-chartjs-2';
 import { Chart, CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Tooltip, Legend, Filler } from 'chart.js';
 import { useSales } from '../../hooks/useSales';
 import { useCustomers } from '../../hooks/useCustomers';
 import { useStore } from '../../store/useStore';
-import { useRouter } from 'next/router';
+import { useQueryClient } from '@tanstack/react-query';
 
 import { useSalesSummary } from '../../hooks/useSalesSummary';
-import { useSalesByDateSummary } from '../../hooks/useSalesByDateSummary';
 import { useNewCustomersByDateSummary } from '../../hooks/useNewCustomersByDateSummary';
 import { useTopProductsSummary } from '../../hooks/useTopProductsSummary';
-import { useInactiveCustomers } from '../../hooks/useInactiveCustomers';
 import { startOfWeek, endOfWeek, parseISO } from 'date-fns';
 import currency from 'currency.js';
 import ReorderReport from '../dashboard/ReorderReport';
@@ -43,12 +41,6 @@ const GlobeIcon = ({ className = "w-6 h-6" }) => (
 const UsersGroupIcon = ({ className = "w-6 h-6" }) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
-    </svg>
-);
-
-const BellAlertIcon = ({ className = "w-6 h-6" }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0M3.124 7.5A8.969 8.969 0 015.292 3m13.416 0a8.969 8.969 0 012.168 4.5" />
     </svg>
 );
 
@@ -114,10 +106,31 @@ const TopProductsList = ({ products }) => {
     );
 };
 
+const NewCustomersList = ({ customers }) => {
+    if (!customers || customers.length === 0) {
+        return <div className="text-center text-sm text-slate-400 py-4">No new customers this week.</div>;
+    }
+
+    return (
+        <div className="space-y-2">
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Newly Registered</p>
+            <ul className="space-y-2 text-sm text-slate-700 overflow-y-auto" style={{ maxHeight: '150px' }}>
+                {customers.slice(0, 10).map((customer) => (
+                    <li key={customer.id} className="flex items-center justify-between p-1.5 bg-slate-50 rounded-md">
+                        <span className="font-medium">{customer.name}</span>
+                        <span className="text-xs text-slate-400">
+                            {new Date(customer.dateAdded).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                        </span>
+                    </li>
+                ))}
+            </ul>
+        </div>
+    );
+};
+
 export default function DashboardPage() {
-    const router = useRouter();
     const user = useStore(s => s.user);
-    const isAdmin = user?.role === 'Admin' || user?.role === 'admin';
+    const queryClient = useQueryClient();
 
     // 1. Fetch Data
     const { data: salesData } = useSales({ page: 1, itemsPerPage: 1000 });
@@ -125,11 +138,9 @@ export default function DashboardPage() {
 
     // Summary Hooks
     const { data: salesSummary } = useSalesSummary(); // Contains totalRevenue and firstTransactionDate
-    const { data: salesByDateData = [] } = useSalesByDateSummary();
     const { data: newCustomersByDateData = [] } = useNewCustomersByDateSummary();
     const { data: topProductsData = [] } = useTopProductsSummary();
 
-    const [totalInactiveCount, setTotalInactiveCount] = useState(0);
     const [viewCount, setViewCount] = useState(null);
     const [recentViews, setRecentViews] = useState([]); // NEW: State for timestamps
 
@@ -177,11 +188,16 @@ export default function DashboardPage() {
         };
     }, [newCustomersByDateData, weekStart, weekEnd]);
 
+    const newCustomersThisWeekList = useMemo(() => {
+        if (!customerData?.customers) return [];
+        return customerData.customers.filter(customer => {
+            const customerDate = customer.dateAdded ? new Date(customer.dateAdded) : null;
+            if (!customerDate) return false;
+            return customerDate >= weekStart && customerDate <= weekEnd;
+        });
+    }, [customerData, weekStart, weekEnd]);
+
     useEffect(() => {
-        const fetchInactiveCount = async () => {
-            const { data, error } = await supabase.rpc('get_inactive_customers', { days_inactive: 14 });
-            if (!error && data) setTotalInactiveCount(data.length);
-        };
         const fetchViewCount = async () => {
             const { data, error } = await supabase.rpc('get_page_views');
             if (!error && data !== null) {
@@ -200,10 +216,22 @@ export default function DashboardPage() {
             }
         };
         
-        fetchInactiveCount();
         fetchViewCount();
         fetchRecentViews(); // Trigger fetch
     }, []);
+
+    useEffect(() => {
+        const client = supabase
+            .channel('any')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'customers' }, () => {
+                queryClient.invalidateQueries(['customers']);
+            })
+            .subscribe();
+    
+        return () => {
+            supabase.removeChannel(client);
+        };
+    }, [queryClient]);
 
     // Chart Data Preparation (Sales Trend)
     const salesByWeek = useMemo(() => {
@@ -282,53 +310,6 @@ export default function DashboardPage() {
         interaction: { mode: 'nearest', axis: 'x', intersect: false }
     };
 
-    // Customer Growth Chart
-    const customersByWeek = useMemo(() => {
-        const map = {};
-        customerData?.customers.forEach(cust => {
-            if (!cust.dateAdded) return;
-            const weekStart = startOfWeek(new Date(cust.dateAdded), { weekStartsOn: 1 });
-            const key = weekStart.toISOString().split('T')[0];
-            map[key] = (map[key] || 0) + 1;
-        });
-        const sortedData = Object.entries(map).sort((a, b) => new Date(a[0]) - new Date(b[0]));
-        return {
-            labels: sortedData.map(([dateKey]) => new Date(dateKey).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })),
-            data: sortedData.map(([, count]) => count)
-        };
-    }, [customerData]);
-
-    const customerChartData = {
-        labels: customersByWeek.labels,
-        datasets: [{
-            label: 'New Customers',
-            data: customersByWeek.data,
-            backgroundColor: '#10b981', // Emerald 500
-            borderRadius: 4,
-            barThickness: 'flex',
-            maxBarThickness: 32
-        }],
-    };
-
-    const customerChartOptions = {
-        maintainAspectRatio: false,
-        responsive: true,
-        plugins: {
-            legend: { display: false },
-            tooltip: {
-                backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                titleColor: '#1f2937',
-                bodyColor: '#10b981',
-                borderColor: '#e5e7eb',
-                borderWidth: 1,
-            }
-        },
-        scales: {
-            x: { grid: { display: false } },
-            y: { grid: { borderDash: [5, 5], color: '#f3f4f6' }, beginAtZero: true, ticks: { stepSize: 1, color: '#6b7280' } }
-        }
-    };
-
     const formattedFirstTx = salesSummary?.firstTransactionDate
         ? new Date(salesSummary.firstTransactionDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
         : "All time";
@@ -355,7 +336,9 @@ export default function DashboardPage() {
                 <SummaryCard className="col-span-1" title="Today's Sales" value={currency(todaySalesSummary?.totalRevenue || 0, { symbol: '₱' }).format()} subtext="Sales today" colorClass="text-[#8BC34A]" icon={<CurrencyDollarIcon />} />
                 <SummaryCard className="col-span-1" title="This Week Sales" value={currency(thisWeekSales || 0, { symbol: '₱' }).format()} subtext="Current week revenue" colorClass="text-blue-600" icon={<TrendingUpIcon />} />
                 <SummaryCard className="col-span-1" title="All Time Sales" value={currency(salesSummary?.totalRevenue || 0, { symbol: '₱' }).format()} subtext={`Since ${formattedFirstTx}`} colorClass="text-emerald-600" icon={<GlobeIcon />} />
-                <SummaryCard className="col-span-3 sm:col-span-2" title="Total Customers" value={customerData?.totalCount || 0} subtext={`${newCustomersThisWeek} new this week`} colorClass="text-orange-600" icon={<UsersGroupIcon />} />
+                <SummaryCard className="col-span-3 sm:col-span-2" title="Total Customers" value={customerData?.totalCount || 0} subtext={`${newCustomersThisWeek} new this week`} colorClass="text-orange-600" icon={<UsersGroupIcon />}>
+                    <NewCustomersList customers={newCustomersThisWeekList} />
+                </SummaryCard>
                 <SummaryCard className="col-span-3 sm:col-span-1" title="Page Views" value={viewCount !== null ? viewCount.toLocaleString() : '...'} subtext="Landing page visits" colorClass="text-purple-600" icon={<EyeIcon />}>
                     {recentViews && recentViews.length > 0 && (
                         <div className="hidden md:block space-y-2 mt-1">
