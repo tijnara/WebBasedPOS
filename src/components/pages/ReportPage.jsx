@@ -14,6 +14,7 @@ import { DeleteIcon } from '../Icons';
 
 import Pagination from '../Pagination';
 import WeeklySalesChart from '../charts/WeeklySalesChart'; // Import the new chart component
+import DeleteConfirmationModal from '../DeleteConfirmationModal'; // Import the modal
 import currency from 'currency.js';
 
 // Utility to format currency
@@ -387,6 +388,10 @@ const ReportPage = () => {
     const SALES_PAGE_SIZE = 10;
     const CUSTOMER_PAGE_SIZE = 5;
 
+    // --- Modal State ---
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [saleToDelete, setSaleToDelete] = useState(null);
+
     // Add delete hook
     const deleteSaleMutation = useDeleteSale();
 
@@ -556,22 +561,21 @@ const ReportPage = () => {
         setCustomerSearch(''); // Clear the customer search input
     };
 
-    const handleDeleteSale = (id) => {
-        // 1. Prompt staff for a deletion reason
-        const reason = window.prompt(
-            "Permanently delete this transaction? This will restore inventory.\n\nPlease enter a reason for deletion:"
-        );
-    
-        // 2. Only proceed if a reason is provided
-        if (reason === null) return; // User cancelled prompt
-        
-        if (!reason.trim()) {
-            alert("A reason is required to delete a confirmed transaction.");
-            return;
+    const openDeleteModal = (id) => {
+        setSaleToDelete(id);
+        setIsModalOpen(true);
+        deleteSaleMutation.reset();
+    };
+
+    const closeDeleteModal = () => {
+        setIsModalOpen(false);
+        setSaleToDelete(null);
+    };
+
+    const handleConfirmDelete = (reason) => {
+        if (saleToDelete) {
+            deleteSaleMutation.mutate({ saleId: saleToDelete, reason });
         }
-    
-        // 3. Execute mutation with both ID and reason
-        deleteSaleMutation.mutate({ saleId: id, reason: reason.trim() });
     };
 
     // --- Render JSX ---
@@ -728,7 +732,7 @@ const ReportPage = () => {
                             currentPage={currentPage}
                             totalPages={totalPages}
                             onPageChange={page => setCurrentPage(page)}
-                            onDelete={handleDeleteSale}
+                            onDelete={openDeleteModal}
                             isAdmin={isAdmin} // Pass the admin state here
                         />
                     )}
@@ -867,6 +871,14 @@ const ReportPage = () => {
                     )}
                 </>
             )}
+
+            <DeleteConfirmationModal
+                isOpen={isModalOpen}
+                onClose={closeDeleteModal}
+                onConfirm={handleConfirmDelete}
+                isMutating={deleteSaleMutation.isPending}
+                isSuccess={deleteSaleMutation.isSuccess}
+            />
         </div>
     );
 };

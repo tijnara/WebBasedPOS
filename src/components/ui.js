@@ -98,7 +98,6 @@ export const DialogContent = ({ children, className, style, closeOnBackdropClick
         style={{
             maxHeight: 'calc(100dvh - 32px)',
             backgroundColor: '#ffffff',
-            isolation: 'isolate',
             ...style
         }}
         onClick={(e) => e.stopPropagation()}

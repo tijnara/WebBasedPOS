@@ -64,8 +64,8 @@ export function useDeleteSale() {
             queryClient.invalidateQueries({ queryKey: ['spoilage-report'] });
             
             addToast({
-                title: 'Transaction Deleted',
-                description: 'Inventory restored and audit log updated.',
+                title: 'Transaction deleted successfully',
+                description: 'Inventory has been updated.',
                 variant: 'success'
             });
         },
