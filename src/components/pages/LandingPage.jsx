@@ -430,7 +430,7 @@ const SeasideWaterLanding = () => {
                                                 alt={galleryItems[currentIndex]?.title || 'Gallery'}
                                                 width={800}
                                                 height={450}
-                                                className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-700"
+                                                className="w-full h-full object-contain cursor-pointer hover:scale-105 transition-transform duration-700"
                                                 onClick={() => setIsLightboxOpen(true)}
                                             />
                                             {/* Info Overlay */}
