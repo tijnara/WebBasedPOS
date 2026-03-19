@@ -145,7 +145,7 @@ export default function App({ Component, pageProps }) {
         <QueryClientProvider client={queryClient}>
             <Head>
                 <link rel="icon" href="/seaside.png" />
-                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+                <meta name="viewport" content="width=device-width, initial-scale=1" />
                 <meta name="google-site-verification" content="kd1wSsNQZCjJmyp4LaQKI9Mr7s6Z9_I5Z3ETpaW1EVc" />
             </Head>
             <AuthGate>

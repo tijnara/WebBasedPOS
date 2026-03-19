@@ -281,7 +281,11 @@ const SeasideWaterLanding = () => {
                                 <Link href="/resources" className="px-4 py-2 rounded-full text-green-700 hover:bg-green-100 active:text-violet-500 transition-all duration-300">RESOURCES</Link>
                             </nav>
                             <div className="md:hidden">
-                                <button onClick={() => setIsMenuOpen(!isMenuOpen)}>
+                                <button 
+                                    onClick={() => setIsMenuOpen(!isMenuOpen)}
+                                    aria-label={isMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+                                    aria-expanded={isMenuOpen}
+                                >
                                     {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
                                 </button>
                             </div>
@@ -487,6 +491,8 @@ const SeasideWaterLanding = () => {
                                                     <button
                                                         key={idx}
                                                         onClick={() => setCurrentIndex(idx)}
+                                                        aria-label={`Go to slide ${idx + 1}`}
+                                                        aria-current={idx === currentIndex ? "true" : "false"}
                                                         className={`h-2.5 rounded-full transition-all duration-300 ${
                                                             idx === currentIndex ? 'w-8 bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]' : 'w-2.5 bg-white/50 hover:bg-white/90'
                                                         }`}
@@ -515,7 +521,16 @@ const SeasideWaterLanding = () => {
                                 <p className="text-2xl md:text-3xl font-bold text-slate-800 drop-shadow-sm mt-4">Navigate to Purity in Labrador, Pangasinan – See Us on the Map!</p>
                             </div>
                             <div className="w-full relative z-30">
-                                <iframe src={settings?.location_embed || "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3834.427589470715!2d120.1322205!3d16.043286199999997!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3393e1d08454d96f%3A0xfd7e1df20c90037d!2sSEASIDE%20Water%20Refilling%20Station!5e0!3m2!1sen!2sph!4v1771921863348!5m2!1sen!2sph"} width="100%" height="450" style={{ border: 0, borderRadius: '1rem', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} allowFullScreen="" loading="lazy" referrerPolicy="no-referrer-when-downgrade"></iframe>
+                                <iframe 
+                                    title="Seaside Water Refilling Station Location Map"
+                                    src={settings?.location_embed || "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3834.427589470715!2d120.1322205!3d16.043286199999997!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3393e1d08454d96f%3A0xfd7e1df20c90037d!2sSEASIDE%20Water%20Refilling%20Station!5e0!3m2!1sen!2sph!4v1771921863348!5m2!1sen!2sph"} 
+                                    width="100%" 
+                                    height="450" 
+                                    style={{ border: 0, borderRadius: '1rem', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} 
+                                    allowFullScreen="" 
+                                    loading="lazy" 
+                                    referrerPolicy="no-referrer-when-downgrade">
+                                </iframe>
                             </div>
                         </div>
                     </motion.div>
@@ -595,12 +610,12 @@ const SeasideWaterLanding = () => {
                                 {/* Column 2: Quick Links */}
                                 <div>
                                     <h3 className="text-cyan-400 text-lg font-bold mb-4">Quick Links</h3>
-                                    <ul className="text-sm space-y-2">
-                                    <li><Link href="#process" className="hover:text-cyan-300 transition">Our 20-Stage Process</Link></li>
-                                    <li><Link href="#location" className="hover:text-cyan-300 transition">Delivery Areas</Link></li>
-                                    <li><Link href="/contact" className="hover:text-cyan-300 transition">Contact Support</Link></li>
-                                    <li><Link href="/terms" className="hover:text-cyan-300 transition">Terms of Service</Link></li>
-                                    <li><Link href="/privacy" className="hover:text-cyan-300 transition">Privacy Policy</Link></li>
+                                    <ul className="text-sm space-y-1">
+                                        <li><Link href="#process" className="inline-block py-2 hover:text-cyan-300 transition">Our 20-Stage Process</Link></li>
+                                        <li><Link href="#location" className="inline-block py-2 hover:text-cyan-300 transition">Delivery Areas</Link></li>
+                                        <li><Link href="/contact" className="inline-block py-2 hover:text-cyan-300 transition">Contact Support</Link></li>
+                                        <li><Link href="/terms" className="inline-block py-2 hover:text-cyan-300 transition">Terms of Service</Link></li>
+                                        <li><Link href="/privacy" className="inline-block py-2 hover:text-cyan-300 transition">Privacy Policy</Link></li>
                                     </ul>
                                 </div>
 
