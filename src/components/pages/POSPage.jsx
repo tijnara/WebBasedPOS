@@ -37,6 +37,7 @@ const BarcodeScannerModal = ({ isOpen, onClose, onScan }) => {
     const [devices, setDevices] = useState([]);
     const [selectedDeviceId, setSelectedDeviceId] = useState('');
 
+    // Fetch all available cameras when the modal opens
     useEffect(() => {
         if (!isOpen) return;
 
@@ -44,7 +45,7 @@ const BarcodeScannerModal = ({ isOpen, onClose, onScan }) => {
 
         const initializeCamera = async () => {
             try {
-                // 1. Force the mobile browser to ask for permission FIRST by requesting the back camera
+                // 1. Force the browser/mobile to ask for permission FIRST by requesting the back camera
                 const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } } });
 
                 // 2. Stop the temporary stream immediately so ZXing can take control
@@ -57,19 +58,17 @@ const BarcodeScannerModal = ({ isOpen, onClose, onScan }) => {
                 if (isMounted) {
                     setDevices(videoDevices);
 
-                    // Default to the back camera if we can identify it by label
-                    const backCamera = videoDevices.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('environment'));
-                    if (backCamera) {
-                        setSelectedDeviceId(backCamera.deviceId);
-                    } else if (videoDevices.length > 0) {
-                        setSelectedDeviceId(videoDevices[0].deviceId);
+                    if (videoDevices.length > 0 && !selectedDeviceId) {
+                        // Attempt to default to the rear camera
+                        const backCamera = videoDevices.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('environment'));
+                        setSelectedDeviceId(backCamera ? backCamera.deviceId : videoDevices[0].deviceId);
                     }
                 }
             } catch (err) {
                 console.error("Camera Init Error:", err);
                 if (isMounted) {
                     setError(err.name === 'NotAllowedError' || err.name === 'NotSupportedError'
-                        ? 'Camera permission denied. Please allow camera access in your browser settings.'
+                        ? 'Camera permission denied. Ensure you are on HTTPS or localhost.'
                         : `Camera Error: ${err.message}`
                     );
                 }
@@ -88,13 +87,15 @@ const BarcodeScannerModal = ({ isOpen, onClose, onScan }) => {
             onScan(result.getText());
         },
         onError(err) {
-            // Ignore normal "no barcode found in frame" errors
+            // Ignore the constant "NotFoundException" (which just means no barcode is in frame yet)
             if (err.name !== 'NotFoundException') {
                 console.error("ZXing Error:", err);
+                // Do not overwrite the main error if it's just a scanning loop fail
+                if (!error) setError(`Camera Error: ${err.message || err.name}`);
             }
         },
         deviceId: selectedDeviceId || undefined,
-        // Fallback to back camera if deviceId isn't loaded yet
+        // Fallback constraint to ensure mobile uses the back camera initially
         constraints: !selectedDeviceId ? { video: { facingMode: { ideal: "environment" } } } : undefined,
     });
 
@@ -102,17 +103,17 @@ const BarcodeScannerModal = ({ isOpen, onClose, onScan }) => {
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-sm bg-black text-white border-gray-800">
+            <DialogContent className="max-w-md">
                 <DialogHeader>
-                    <DialogTitle className="text-white">Scan Barcode</DialogTitle>
-                    <DialogCloseButton onClick={onClose} className="text-white hover:bg-white/20" />
+                    <DialogTitle>Scan Barcode</DialogTitle>
+                    <DialogCloseButton onClick={onClose} />
                 </DialogHeader>
 
-                {/* Camera Switcher Dropdown */}
-                {devices.length > 1 && (
-                    <div className="px-4 mt-2 mb-1">
+                {/* Camera selection dropdown */}
+                <div className="mt-4">
+                    {devices.length > 0 ? (
                         <select
-                            className="w-full bg-gray-900 text-white border border-gray-700 rounded p-2 text-sm focus:ring-primary focus:border-primary outline-none"
+                            className="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2.5"
                             value={selectedDeviceId}
                             onChange={(e) => setSelectedDeviceId(e.target.value)}
                         >
@@ -122,8 +123,12 @@ const BarcodeScannerModal = ({ isOpen, onClose, onScan }) => {
                                 </option>
                             ))}
                         </select>
-                    </div>
-                )}
+                    ) : (
+                        <div className="text-center text-sm text-yellow-600 bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+                            {error ? error : "Requesting camera access..."}
+                        </div>
+                    )}
+                </div>
 
                 <div className="relative aspect-square bg-black rounded-lg overflow-hidden mt-2 flex items-center justify-center">
                     <video
@@ -137,7 +142,7 @@ const BarcodeScannerModal = ({ isOpen, onClose, onScan }) => {
                         <div className="absolute top-1/2 w-full h-0.5 bg-red-500/50"></div>
                     </div>
                 </div>
-                <div className="text-center text-sm text-gray-400 mt-4 min-h-[20px] pb-2">
+                <div className="text-center text-sm text-gray-500 mt-2 min-h-[20px] pb-2">
                     {error || "Point camera at a barcode"}
                 </div>
             </DialogContent>
@@ -369,11 +374,11 @@ export default function POSPage() {
     const user = useStore(s => s.user);
 
     const handleCameraButtonClick = async () => {
-        // CHECK 1: Ensure browser supports camera API (Blocks HTTP requests on mobile devices)
+        // MOBILE FIX: Mobile browsers disable mediaDevices entirely over HTTP.
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
             addToast({
-                title: 'Camera Blocked',
-                description: 'Your browser is blocking the camera. If you are on a phone, you MUST use a secure connection (HTTPS) or localhost.',
+                title: 'Camera Blocked by Browser',
+                description: 'Camera access requires a secure connection. If using a phone, access the site via HTTPS or localhost.',
                 variant: 'destructive',
             });
             return;
