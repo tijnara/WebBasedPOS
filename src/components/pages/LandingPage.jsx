@@ -172,6 +172,7 @@ const SeasideWaterLanding = () => {
                 <meta property="og:image" content="https://seasidepos.vercel.app/seasideHD_.png" />
                 <meta property="og:type" content="website" />
                 <meta property="og:locale" content="en_PH" />
+                <meta property="og:site_name" content="Seaside" />
             </Head>
 
             {/* Only load the script if user is NOT logged in */}
@@ -207,6 +208,20 @@ const SeasideWaterLanding = () => {
                         "sameAs": [
                             "https://www.facebook.com/61587059323111/"
                         ]
+                    })
+                }}
+            />
+            <Script
+                id="website-schema"
+                type="application/ld+json"
+                strategy="afterInteractive"
+                dangerouslySetInnerHTML={{
+                    __html: JSON.stringify({
+                        "@context": "https://schema.org",
+                        "@type": "WebSite",
+                        "name": "Seaside",
+                        "alternateName": "Seaside Purified Water Refilling Station",
+                        "url": "https://seasidepos.vercel.app/"
                     })
                 }}
             />
