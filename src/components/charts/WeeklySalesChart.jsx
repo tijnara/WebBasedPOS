@@ -23,7 +23,7 @@ const WeeklySalesChart = ({ salesData }) => {
             itemsToProcess.forEach(item => {
                 const name = (item.productName || item.product_name || '').trim().replace(/\s+/g, '');
                 const qty = item.quantity || 0;
-                
+
                 if (name === 'Refill(20)') {
                     refill20Data[dayOfWeek] += qty;
                     totalRefillsData[dayOfWeek] += qty;
@@ -84,7 +84,7 @@ const WeeklySalesChart = ({ salesData }) => {
                         const r20 = dataset.refill20Data[index] || 0;
                         const r25 = dataset.refill25Data[index] || 0;
                         const total = dataset.totalRefillsData[index] || 0;
-                        
+
                         return [
                             `Refill(20): ${r20}`,
                             `Refill(25): ${r25}`,

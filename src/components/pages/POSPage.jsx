@@ -6,7 +6,7 @@ import { useCreateSale } from '../../hooks/useCreateSale';
 import { useCreateCustomer } from '../../hooks/useCustomerMutations';
 import { useProductByBarcode } from '../../hooks/useProductByBarcode';
 import { Button, Input, Dialog, DialogContent, DialogHeader, DialogTitle, DialogCloseButton } from '../ui';
-import { useZxing } from 'react-zxing'; // Requires 'npm install react-zxing'
+import { useZxing } from 'react-zxing';
 
 import TabBar from '../TabBar';
 import POSCart from '../pos/POSCart';
@@ -23,7 +23,6 @@ import currency from 'currency.js';
 // --- Helper Functions to Handle Local Timezones correctly ---
 const getLocalDateString = () => {
     const now = new Date();
-    // Adjust for timezone offset so mornings don't register as "yesterday" in UTC
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
     return now.toISOString().slice(0, 10);
 };
@@ -35,48 +34,86 @@ const getLocalTimeString = () => {
 // --- Barcode Scanner Component ---
 const BarcodeScannerModal = ({ isOpen, onClose, onScan }) => {
     const [error, setError] = useState('');
+    const [devices, setDevices] = useState([]);
+    const [selectedDeviceId, setSelectedDeviceId] = useState('');
 
-    // useZxing hook setup
+    // Fetch all available cameras when the modal opens
+    useEffect(() => {
+        if (!isOpen) return;
+        
+        navigator.mediaDevices.enumerateDevices()
+            .then((mediaDevices) => {
+                const videoDevices = mediaDevices.filter((device) => device.kind === 'videoinput');
+                setDevices(videoDevices);
+                
+                if (videoDevices.length > 0 && !selectedDeviceId) {
+                    setSelectedDeviceId(videoDevices[0].deviceId);
+                }
+            })
+            .catch(err => {
+                console.error("Device enumeration error:", err);
+                setError(`Could not detect cameras: ${err.message}`);
+            });
+    }, [isOpen]);
+
     const { ref } = useZxing({
         onDecodeResult(result) {
             onScan(result.getText());
         },
         onError(err) {
-            console.error(err);
-            setError(`Camera Error: ${err.name}`);
-        },
-        constraints: {
-            video: {
-                facingMode: { exact: "environment" },
-                width: { ideal: 1280 },
-                height: { ideal: 720 }
+            // Ignore the constant "NotFoundException" (which just means no barcode is in frame yet)
+            if (err.name !== 'NotFoundException') {
+                console.error("ZXing Error:", err);
+                setError(`Camera Error: ${err.message || err.name}`);
             }
-        }
+        },
+        deviceId: selectedDeviceId || undefined,
     });
 
     if (!isOpen) return null;
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-sm bg-black text-white border-gray-800">
+            <DialogContent className="max-w-md">
                 <DialogHeader>
-                    <DialogTitle className="text-white">Scan Barcode</DialogTitle>
-                    <DialogCloseButton onClick={onClose} className="text-white hover:bg-white/20" />
+                    <DialogTitle>Scan Barcode</DialogTitle>
+                    <DialogCloseButton onClick={onClose} />
                 </DialogHeader>
-                <div className="relative aspect-square bg-black rounded-lg overflow-hidden mt-2">
+
+                {/* Camera selection dropdown */}
+                <div className="mt-4">
+                    {devices.length > 0 ? (
+                        <select
+                            className="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2.5"
+                            value={selectedDeviceId}
+                            onChange={(e) => setSelectedDeviceId(e.target.value)}
+                        >
+                            {devices.map((device, index) => (
+                                <option key={device.deviceId} value={device.deviceId}>
+                                    {device.label || `Camera ${index + 1}`}
+                                </option>
+                            ))}
+                        </select>
+                    ) : (
+                        <div className="text-center text-sm text-yellow-600 bg-yellow-50 p-3 rounded-lg">
+                            No cameras detected by browser.
+                        </div>
+                    )}
+                </div>
+
+                <div className="relative aspect-square bg-black rounded-lg overflow-hidden mt-2 flex items-center justify-center">
                     <video
                         ref={ref}
                         muted
                         playsInline
                         className="w-full h-full object-cover"
                     />
-                    {/* Overlay Target Box */}
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                         <div className="w-64 h-40 border-2 border-red-500 rounded-lg shadow-[0_0_0_999px_rgba(0,0,0,0.5)]"></div>
                         <div className="absolute top-1/2 w-full h-0.5 bg-red-500/50"></div>
                     </div>
                 </div>
-                <div className="text-center text-sm text-gray-400 mt-4 min-h-[20px]">
+                <div className="text-center text-sm text-gray-500 mt-2 min-h-[20px] pb-2">
                     {error || "Point camera at a barcode"}
                 </div>
             </DialogContent>
@@ -96,10 +133,8 @@ export default function POSPage() {
     const [customerSearchTerm, setCustomerSearchTerm] = useState('');
     const [debouncedCustomerSearchTerm, setDebouncedCustomerSearchTerm] = useState('');
 
-    // --- SCANNER STATE ---
     const [isScannerOpen, setIsScannerOpen] = useState(false);
 
-    // Fetch unique categories
     useEffect(() => {
         const fetchCategories = async () => {
             const { data, error } = await supabase
@@ -115,7 +150,6 @@ export default function POSPage() {
         fetchCategories();
     }, []);
 
-    // Debounce Effects
     useEffect(() => {
         const handler = setTimeout(() => {
             if (!/^[0-9]{3,}$/.test(searchTerm)) {
@@ -134,7 +168,6 @@ export default function POSPage() {
         return () => clearTimeout(handler);
     }, [customerSearchTerm]);
 
-    // Data Fetching
     const { data: productsData = { products: [], totalPages: 1 }, isLoading: isLoadingProducts } = useProducts({
         searchTerm: debouncedSearchTerm,
         category: categoryFilter,
@@ -144,7 +177,6 @@ export default function POSPage() {
     const products = productsData.products || [];
     const totalPages = productsData.totalPages || 1;
 
-    // Barcode Lookup logic
     const isBarcodeScan = /^[0-9]{3,}$/.test(searchTerm.trim());
     const { data: scannedProduct } = useProductByBarcode(isBarcodeScan ? searchTerm.trim() : null);
 
@@ -190,28 +222,23 @@ export default function POSPage() {
     };
 
     const subtotal = getTotalAmount();
-
-    // --- Calculate Total Quantity ---
     const totalQty = Object.values(currentSale).reduce((sum, item) => sum + (item.quantity || 0), 0);
 
-    // Handle Barcode Scan Result
     const handleScanResult = (code) => {
-        setIsScannerOpen(false); // Close modal immediately
-        setSearchTerm(code); // Trigger lookup via existing useEffect
+        setIsScannerOpen(false);
+        setSearchTerm(code);
         addToast({ title: 'Scanned', description: `Searching for code: ${code}`, variant: 'info' });
     };
 
-    // Effect to add scanned product
     useEffect(() => {
         if (scannedProduct) {
             handleAdd(scannedProduct);
             addToast({ title: 'Added', description: `${scannedProduct.name} added to cart.`, variant: 'success' });
-            setSearchTerm(''); // Clear to ready next scan
+            setSearchTerm('');
             productSearchInputRef.current?.focus();
         }
     }, [scannedProduct]);
 
-    // Shortcuts
     useEffect(() => {
         const handleKeyDown = (event) => {
             if (event.key === 'F1') {
@@ -223,7 +250,6 @@ export default function POSPage() {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, []);
 
-    // Customer Search Effect
     useEffect(() => {
         if (!(isCustomerModalOpen || isPaymentModalOpen) || !debouncedCustomerSearchTerm) {
             setCustomerSearchResults([]);
@@ -273,7 +299,6 @@ export default function POSPage() {
     const handleDecreaseQuantity = (key) => { const item = currentSale[key]; if (item) addItemToSale({ ...item, id: item.productId }, -1); };
     const handleRemoveItem = (key) => { useStore.getState().removeItemFromSale(key); };
 
-    // --- NEW: Handle Manual Quantity Input ---
     const handleSetQuantity = (key, qty) => {
         const item = currentSale[key];
         if (!item) return;
@@ -309,7 +334,6 @@ export default function POSPage() {
         }
         setAmountReceived(subtotal.toFixed(2));
         setPaymentMethod('Cash');
-        // Instantly capture precise local time & date immediately upon opening payment modal
         setSaleDate(getLocalDateString());
         setSaleTime(getLocalTimeString());
 
@@ -375,13 +399,9 @@ export default function POSPage() {
             const constructedDate = new Date(`${saleDate}T${saleTime}:00`);
             let finalSaleTimestamp;
 
-            // If the time entered in the modal is within 5 minutes of real current time,
-            // assume it's a real-time live transaction. Use the exact millisecond `now`
-            // to prevent the sale from recording *before* the shift start time.
             if (Math.abs(now - constructedDate) < 5 * 60 * 1000) {
                 finalSaleTimestamp = now.toISOString();
             } else {
-                // Otherwise, the user intentionally backdated the transaction.
                 finalSaleTimestamp = constructedDate.toISOString();
             }
 
@@ -427,7 +447,6 @@ export default function POSPage() {
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="flex-1 min-w-0"
                         />
-                        {/* --- CAMERA SCAN BUTTON --- */}
                         <Button
                             variant="secondary"
                             className="px-3"
@@ -446,7 +465,6 @@ export default function POSPage() {
                 </div>
             </div>
 
-            {/* --- CATEGORY BAR --- */}
             <div className="category-bar-container mb-6 overflow-x-auto no-scrollbar">
                 <div className="flex gap-2 pb-2">
                     {availableCategories.map((cat) => (
@@ -554,11 +572,13 @@ export default function POSPage() {
             )}
 
             {/* --- SCANNER MODAL --- */}
-            <BarcodeScannerModal
-                isOpen={isScannerOpen}
-                onClose={() => setIsScannerOpen(false)}
-                onScan={handleScanResult}
-            />
+            {isScannerOpen && (
+                <BarcodeScannerModal
+                    isOpen={isScannerOpen}
+                    onClose={() => setIsScannerOpen(false)}
+                    onScan={handleScanResult}
+                />
+            )}
 
             {/* --- MOBILE CART BAR --- */}
             {!(isCartDrawerOpen || isPaymentModalOpen) && (
