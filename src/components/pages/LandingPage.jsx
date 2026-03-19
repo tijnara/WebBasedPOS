@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Script from 'next/script';
-import { supabase } from '../../lib/supabaseClient'; // <-- Add this import
+import { supabase } from '../../lib/supabaseClient';
 import {
     Facebook, Droplet, Heart,
     Leaf, ShieldCheck, Menu, X, MessageCircle,
@@ -27,14 +27,13 @@ const ProcessSection = () => {
         { stage: '8', process: 'Ultra-Fine Polishing', description: 'A 5-micron filter provides a secondary barrier for absolute clarity.' },
         { stage: '9-12', process: 'Reverse Osmosis (RO) Membrane', description: 'The heart of the system. Four high-pressure membranes force water through a 0.0001-micron barrier, removing bacteria, viruses, and heavy metals.' },
         { stage: '13', process: 'Post-Carbon Refinement', description: 'Polishes the taste of the water after RO, giving it a crisp, clean finish.' },
-        // Removed Alkaline Infusion (Optional) stage
-        { stage: '14', process: 'Mineral Enhancement', description: 'Re-introduces essential trace minerals for health and a refreshing natural taste.' }, // Was 15
-        { stage: '15', process: 'Micro-Filtration Stage 1', description: 'A 1-micron absolute filter acts as a final physical defense.' }, // Was 16
-        { stage: '16', process: 'Micro-Filtration Stage 2', description: 'A 0.5-micron filter ensures even the smallest cysts are removed.' }, // Was 17
-        { stage: '17', process: 'Ultraviolet (UV) Sterilization', description: 'High-intensity UV light scrambles the DNA of any lingering microorganisms, rendering them harmless.' }, // Was 18
-        { stage: '18', process: 'Ozone Injection', description: 'Powerful O3​ oxidation kills bacteria on contact and ensures the water remains sterile inside the bottle.' }, // Was 19
-        { stage: '19', process: 'Final Oxygenation', description: 'Increases dissolved oxygen levels for a lighter, more refreshing mouthfeel.' }, // Was 20
-        { stage: '20', process: 'Container Sanitization', description: 'Before filling, every bottle is rinsed with ozonated water to ensure the vessel is as clean as the product.' } // Was 21
+        { stage: '14', process: 'Mineral Enhancement', description: 'Re-introduces essential trace minerals for health and a refreshing natural taste.' },
+        { stage: '15', process: 'Micro-Filtration Stage 1', description: 'A 1-micron absolute filter acts as a final physical defense.' },
+        { stage: '16', process: 'Micro-Filtration Stage 2', description: 'A 0.5-micron filter ensures even the smallest cysts are removed.' },
+        { stage: '17', process: 'Ultraviolet (UV) Sterilization', description: 'High-intensity UV light scrambles the DNA of any lingering microorganisms, rendering them harmless.' },
+        { stage: '18', process: 'Ozone Injection', description: 'Powerful O3​ oxidation kills bacteria on contact and ensures the water remains sterile inside the bottle.' },
+        { stage: '19', process: 'Final Oxygenation', description: 'Increases dissolved oxygen levels for a lighter, more refreshing mouthfeel.' },
+        { stage: '20', process: 'Container Sanitization', description: 'Before filling, every bottle is rinsed with ozonated water to ensure the vessel is as clean as the product.' }
     ];
 
     return (
@@ -76,28 +75,23 @@ const SeasideWaterLanding = () => {
     const { data: galleryItems = [] } = useGallery();
     const user = useStore(state => state.user);
     const { data: settings } = useSettings();
-    const isAdmin = user?.role === 'Admin' || user?.role === 'admin';
 
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isLightboxOpen, setIsLightboxOpen] = useState(false);
     const [showScrollTop, setShowScrollTop] = useState(false);
-    const [viewCount, setViewCount] = useState(null); // <-- Add this state
+    const [viewCount, setViewCount] = useState(null);
 
-    // <-- Add this useEffect block -->
     useEffect(() => {
         const initCounter = async () => {
-            // Check if they've already been counted in this browser session
             if (!sessionStorage.getItem('has_viewed_seaside')) {
                 const { data, error } = await supabase.rpc('increment_page_view');
                 if (!error && data !== null) {
                     setViewCount(data);
                     sessionStorage.setItem('has_viewed_seaside', 'true');
-                    
-                    // NEW: Log the timestamp of the new unique visit
+
                     await supabase.from('page_views_log').insert([{ viewed_at: new Date().toISOString() }]);
                 }
             } else {
-                // If they already visited, just fetch the current total
                 const { data, error } = await supabase.rpc('get_page_views');
                 if (!error && data !== null) {
                     setViewCount(data);
@@ -107,8 +101,6 @@ const SeasideWaterLanding = () => {
         initCounter();
     }, []);
 
-
-    // Handle scroll for "Back to Top" visibility - Fixed for cross-browser & mobile
     useEffect(() => {
         const handleScroll = () => {
             const scrolled = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
@@ -128,7 +120,6 @@ const SeasideWaterLanding = () => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    // Auto-play logic
     useEffect(() => {
         if (galleryItems.length <= 1 || isLightboxOpen) return;
         const timer = setInterval(() => {
@@ -162,7 +153,6 @@ const SeasideWaterLanding = () => {
                 />
             </div>
             <Head>
-                {/* Only render AdSense metadata if user is NOT logged in */}
                 {!user && <meta name="google-adsense-account" content="ca-pub-3607213315862760" />}
                 <title>Seaside Purified Water Refilling Station | Labrador, Pangasinan</title>
                 <meta name="description" content="Seaside offers 21-stage purified water, walk-in refills, and reliable door-to-door water delivery in Labrador, Pangasinan. Pure water, pure trust." />
@@ -175,7 +165,7 @@ const SeasideWaterLanding = () => {
                 <meta property="og:site_name" content="Seaside" />
             </Head>
 
-            {/* Only load the script if user is NOT logged in */}
+            {/* Changed from afterInteractive to lazyOnload */}
             {!user && (
                 <Script
                     id="adsense-init"
@@ -185,6 +175,7 @@ const SeasideWaterLanding = () => {
                     strategy="lazyOnload"
                 />
             )}
+
             <Script
                 id="local-business-schema"
                 type="application/ld+json"
@@ -231,13 +222,13 @@ const SeasideWaterLanding = () => {
                     <div className="container mx-auto flex justify-between items-center">
                         <div className="flex items-center space-x-3">
                             <div className="p-2 rounded-xl shadow-sm border border-green-100" style={{ backgroundColor: '#FFFFFF80' }}>
-                                <Image 
-                                  src={settings?.logo_url || "/seasidelogo_.png"} 
-                                  alt="SEASIDE Logo" 
-                                  width={100} 
-                                  height={100} 
-                                  className="object-contain w-[100px] h-[100px]" 
-                                  priority // Tells Google to load this immediately
+                                <Image
+                                    src={settings?.logo_url || "/seasidelogo_.png"}
+                                    alt="SEASIDE Logo"
+                                    width={100}
+                                    height={100}
+                                    className="object-contain w-[100px] h-[100px]"
+                                    priority
                                 />
                             </div>
                             <div className="flex flex-col">
@@ -247,7 +238,6 @@ const SeasideWaterLanding = () => {
                                 <span className="text-[8px] tracking-[0.25em] font-bold uppercase leading-tight text-green-800">
                                     {settings?.business_name ? settings.business_name.substring(settings.business_name.indexOf(' ') + 1) : 'Water Refilling Station'}
                                 </span>
-                                {/* SEO Tagline */}
                                 <span className="text-[9px] font-semibold tracking-wide text-green-700 mt-0.5">Proudly hydrating Labrador, Pangasinan</span>
                             </div>
                         </div>
@@ -271,9 +261,7 @@ const SeasideWaterLanding = () => {
                             </div>
                             <nav className="hidden md:flex flex-wrap items-center justify-center lg:justify-end gap-x-1 gap-y-2 text-[12px] font-bold tracking-wide">
                                 <Link href="/" className="px-4 py-2 rounded-full text-green-700 hover:bg-green-100 active:text-violet-500 transition-all duration-300">HOME</Link>
-                                <Link href="#services" className="px-4 py-2 rounded-full text-green-700 hover:bg-green-100 active:text-violet-500 transition-all duration-300">
-                                    SERVICES
-                                </Link>
+                                <Link href="#services" className="px-4 py-2 rounded-full text-green-700 hover:bg-green-100 active:text-violet-500 transition-all duration-300">SERVICES</Link>
                                 <Link href="#process" className="px-4 py-2 rounded-full text-green-700 hover:bg-green-100 active:text-violet-500 transition-all duration-300">PROCESS</Link>
                                 <Link href="#gallery" className="px-4 py-2 rounded-full text-green-700 hover:bg-green-100 active:text-violet-500 transition-all duration-300">GALLERY</Link>
                                 <Link href="#location" className="px-4 py-2 rounded-full text-green-700 hover:bg-green-100 active:text-violet-500 transition-all duration-300">LOCATION</Link>
@@ -281,9 +269,9 @@ const SeasideWaterLanding = () => {
                                 <Link href="/resources" className="px-4 py-2 rounded-full text-green-700 hover:bg-green-100 active:text-violet-500 transition-all duration-300">RESOURCES</Link>
                             </nav>
                             <div className="md:hidden">
-                                <button 
+                                <button
                                     onClick={() => setIsMenuOpen(!isMenuOpen)}
-                                    aria-label={isMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+                                    aria-label={isMenuOpen ? "Close menu" : "Open menu"}
                                     aria-expanded={isMenuOpen}
                                 >
                                     {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -324,12 +312,10 @@ const SeasideWaterLanding = () => {
                     <motion.div variants={sectionVariants} initial="hidden" animate="visible" className="relative pt-6 pb-24 lg:pb-32 overflow-hidden flex-grow">
                         <div className="px-6 mt-16 md:mt-24 relative z-20">
                             <div className="max-w-3xl">
-                                {/* Updated Hero Headline */}
                                 <h1 className="text-4xl md:text-5xl lg:text-[3.25rem] font-light leading-tight mb-6 text-slate-900">
                                     Your Family’s Health in Labrador, Pangasinan,<br/> <span className="font-extrabold text-green-700">Flowing Crystal Clear from Seaside.</span>
                                 </h1>
 
-                                {/* Localized Welcome Paragraph */}
                                 <p className="mb-8 text-base md:text-lg text-slate-800 max-w-2xl font-medium leading-relaxed p-5 rounded-xl border shadow-sm" style={{ backgroundColor: '#FFFFFF80' }}>
                                     Proudly serving the families of Labrador, Pangasinan. At Seaside, we believe our community deserves world-class hydration without leaving town. We combine state-of-the-art 21-stage reverse osmosis with the warm, local service you know and trust.
                                 </p>
@@ -354,7 +340,6 @@ const SeasideWaterLanding = () => {
                                 <p className="text-2xl md:text-3xl font-medium text-slate-800 drop-shadow-sm">Purity you can taste, quality you can trust in Labrador, Pangasinan.</p>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-12 lg:gap-16">
-                                {/* Updated Value Proposition Cards */}
                                 <div className="flex flex-col items-center group p-8 rounded-3xl border shadow-sm hover:shadow-md transition-all duration-300" style={{ backgroundColor: '#FFFFFF80' }}>
                                     <div className="w-20 h-20 rounded-2xl bg-slate-50 border shadow-sm flex items-center justify-center mb-6 transition-transform duration-300 group-hover:-translate-y-2 group-hover:bg-lime-50"><Droplet className="w-8 h-8 text-green-600" /></div>
                                     <h3 className="text-green-950 text-sm font-bold uppercase tracking-wider mb-4 text-center">Zero Doubts, Just Pure Water</h3>
@@ -374,7 +359,6 @@ const SeasideWaterLanding = () => {
                         </div>
                     </motion.div>
 
-                    {/* SERVICES SECTION */}
                     <motion.div id="services" variants={sectionVariants} initial="hidden" whileInView="visible" viewport={{ once: true }} className="bg-transparent relative z-20 border-t">
                         <div className="px-6 py-20 pb-32 max-w-6xl mx-auto">
                             <div className="text-center mb-16">
@@ -386,9 +370,7 @@ const SeasideWaterLanding = () => {
                                 <p className="text-2xl md:text-3xl font-medium text-slate-800 drop-shadow-sm">Convenience and Quality, Delivered in Labrador, Pangasinan.</p>
                             </div>
 
-                            {/* UPDATED: Changed lg:grid-cols-4 to lg:grid-cols-3 to force the 4th box down */}
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-
                                 <div className="flex flex-col items-center text-center p-8 rounded-3xl border shadow-sm hover:shadow-md transition-all duration-300" style={{ backgroundColor: '#FFFFFF80' }}>
                                     <div className="w-20 h-20 rounded-2xl bg-slate-50 border shadow-sm flex items-center justify-center mb-6"><Leaf className="w-8 h-8 text-green-600" /></div>
                                     <h3 className="text-green-950 text-sm font-bold uppercase tracking-wider mb-4">Walk-In Refills</h3>
@@ -407,20 +389,17 @@ const SeasideWaterLanding = () => {
                                     <p className="text-[14px] text-slate-700 leading-relaxed font-medium">Always on the go? Grab our freshly sealed, purified water in convenient PET bottles. Perfect for road trips, family parties, corporate events, or simply stocking up your fridge.</p>
                                 </div>
 
-                                {/* This 4th box will now wrap to the second row on large screens */}
                                 <div className="flex flex-col items-center text-center p-8 rounded-3xl border shadow-sm hover:shadow-md transition-all duration-300" style={{ backgroundColor: '#FFFFFF80' }}>
                                     <div className="w-20 h-20 rounded-2xl bg-slate-50 border shadow-sm flex items-center justify-center mb-6"><Snowflake className="w-8 h-8 text-green-600" /></div>
                                     <h3 className="text-green-950 text-sm font-bold uppercase tracking-wider mb-4">Purified Ice Tubes & Cubes</h3>
                                     <p className="text-[14px] text-slate-700 leading-relaxed font-medium">Keep your drinks perfectly chilled without compromising on safety. Made from our signature 21-stage filtered water, our ice is crystal clear, food-grade safe, and slow-melting—perfect for parties, businesses, and everyday use.</p>
                                 </div>
-
                             </div>
                         </div>
                     </motion.div>
 
                     <ProcessSection />
 
-                    {/* GALLERY SLIDESHOW */}
                     <motion.div id="gallery" variants={sectionVariants} initial="hidden" whileInView="visible" viewport={{ once: true }} className="bg-transparent relative z-20 border-t">
                         <div className="px-6 py-20 pb-32 max-w-5xl mx-auto">
                             <div className="text-center mb-16">
@@ -452,7 +431,6 @@ const SeasideWaterLanding = () => {
                                                 className="w-full h-full object-contain cursor-pointer hover:scale-105 transition-transform duration-700"
                                                 onClick={() => setIsLightboxOpen(true)}
                                             />
-                                            {/* Info Overlay */}
                                             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-white/90 via-white/40 to-transparent p-6 md:p-8 text-black z-20 pointer-events-none">
                                                 <h3 className="text-2xl md:text-3xl font-bold drop-shadow-md">
                                                     {galleryItems[currentIndex]?.title}
@@ -466,7 +444,6 @@ const SeasideWaterLanding = () => {
                                         </motion.div>
                                     </AnimatePresence>
 
-                                    {/* Navigation Arrows */}
                                     {galleryItems.length > 1 && (
                                         <>
                                             <button
@@ -485,7 +462,6 @@ const SeasideWaterLanding = () => {
                                                 <span className="text-xl md:text-2xl font-bold leading-none -mt-1">❯</span>
                                             </button>
 
-                                            {/* Dots Indicator */}
                                             <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3 z-30 bg-black/30 px-4 py-2.5 rounded-full backdrop-blur-md border border-white/10 shadow-lg">
                                                 {galleryItems.map((_, idx) => (
                                                     <button
@@ -511,7 +487,6 @@ const SeasideWaterLanding = () => {
                         </div>
                     </motion.div>
 
-                    {/* LOCATION SECTION */}
                     <motion.div id="location" variants={sectionVariants} initial="hidden" whileInView="visible" viewport={{ once: true }} className="bg-transparent relative z-20 border-t">
                         <div className="px-6 py-20 pb-32 max-w-6xl mx-auto text-center">
                             <div className="mb-16">
@@ -521,21 +496,11 @@ const SeasideWaterLanding = () => {
                                 <p className="text-2xl md:text-3xl font-bold text-slate-800 drop-shadow-sm mt-4">Navigate to Purity in Labrador, Pangasinan – See Us on the Map!</p>
                             </div>
                             <div className="w-full relative z-30">
-                                <iframe 
-                                    title="Seaside Water Refilling Station Location Map"
-                                    src={settings?.location_embed || "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3834.427589470715!2d120.1322205!3d16.043286199999997!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3393e1d08454d96f%3A0xfd7e1df20c90037d!2sSEASIDE%20Water%20Refilling%20Station!5e0!3m2!1sen!2sph!4v1771921863348!5m2!1sen!2sph"} 
-                                    width="100%" 
-                                    height="450" 
-                                    style={{ border: 0, borderRadius: '1rem', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} 
-                                    allowFullScreen="" 
-                                    loading="lazy" 
-                                    referrerPolicy="no-referrer-when-downgrade">
-                                </iframe>
+                                <iframe title="Seaside Water Refilling Station Location Map" src={settings?.location_embed || "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3834.427589470715!2d120.1322205!3d16.043286199999997!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3393e1d08454d96f%3A0xfd7e1df20c90037d!2sSEASIDE%20Water%20Refilling%20Station!5e0!3m2!1sen!2sph!4v1771921863348!5m2!1sen!2sph"} width="100%" height="450" style={{ border: 0, borderRadius: '1rem', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} allowFullScreen="" loading="lazy" referrerPolicy="no-referrer-when-downgrade"></iframe>
                             </div>
                         </div>
                     </motion.div>
 
-                    {/* CONTACT US SECTION */}
                     <motion.div id="contact" variants={sectionVariants} initial="hidden" whileInView="visible" viewport={{ once: true }} className="bg-transparent relative z-20 border-t">
                         <div className="px-6 py-20 pb-32 max-w-4xl mx-auto text-center">
                             <div className="mb-12">
@@ -544,7 +509,7 @@ const SeasideWaterLanding = () => {
                                 </span>
                                 <p className="text-2xl md:text-3xl font-bold text-slate-800 drop-shadow-sm mt-4">We'd love to hear from you</p>
                             </div>
-                            
+
                             <div className="bg-white/80 backdrop-blur-sm p-8 md:p-12 rounded-3xl border shadow-sm text-left">
                                 <div className="mb-6 text-center">
                                     <p className="text-lg font-semibold text-gray-800">Business Hours:</p>
@@ -555,32 +520,32 @@ const SeasideWaterLanding = () => {
                                 <form action="mailto:aranjitarchit@gmail.com" method="POST" encType="text/plain" className="space-y-6">
                                     <div>
                                         <label className="block text-sm font-semibold text-gray-700 mb-2">Your Email Address</label>
-                                        <Input 
-                                            type="email" 
-                                            name="Sender Email" 
-                                            placeholder="example@email.com" 
-                                            required 
-                                            className="w-full bg-white h-12" 
+                                        <Input
+                                            type="email"
+                                            name="Sender Email"
+                                            placeholder="example@email.com"
+                                            required
+                                            className="w-full bg-white h-12"
                                         />
                                     </div>
                                     <div>
                                         <label className="block text-sm font-semibold text-gray-700 mb-2">Message</label>
-                                        <Textarea 
-                                            name="Message Body" 
-                                            rows={6} 
-                                            placeholder="Write your message here..." 
-                                            required 
-                                            className="w-full bg-white p-4" 
+                                        <Textarea
+                                            name="Message Body"
+                                            rows={6}
+                                            placeholder="Write your message here..."
+                                            required
+                                            className="w-full bg-white p-4"
                                         />
                                     </div>
                                     <div className="flex flex-col sm:flex-row items-center justify-between gap-6 pt-6 border-t border-gray-200">
                                         <Button type="submit" className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-black px-10 py-3 rounded-xl font-bold shadow-md">
                                             Send Message
                                         </Button>
-                                        <a 
-                                            href={settings?.facebook_link || "https://www.facebook.com/61587059323111/"} 
-                                            target="_blank" 
-                                            rel="noopener noreferrer" 
+                                        <a
+                                            href={settings?.facebook_link || "https://www.facebook.com/61587059323111/"}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
                                             className="flex items-center text-blue-600 hover:text-blue-800 font-bold transition-colors"
                                         >
                                             <Facebook className="w-6 h-6 mr-2" />
@@ -595,22 +560,20 @@ const SeasideWaterLanding = () => {
                     <footer className="bg-slate-900 text-slate-400 py-12">
                         <div className="container mx-auto px-6">
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-                                
-                                {/* Column 1: About Us (Expanded) */}
+
                                 <div>
                                     <h3 className="text-cyan-400 text-lg font-bold mb-4">Our Labrador, Pangasinan Roots</h3>
                                     <p className="text-sm leading-relaxed">
-                                    Founded on 2020, our station was born from a desire for local
-                                    self-reliance in Labrador, Pangasinan. We provide the community with 
-                                    state-of-the-art 20-stage purification, ensuring every neighbor from the 
-                                    poblacion to the barangays has access to the highest quality hydration.
+                                        Founded on 2020, our station was born from a desire for local
+                                        self-reliance in Labrador, Pangasinan. We provide the community with
+                                        state-of-the-art 20-stage purification, ensuring every neighbor from the
+                                        poblacion to the barangays has access to the highest quality hydration.
                                     </p>
                                 </div>
 
-                                {/* Column 2: Quick Links */}
                                 <div>
                                     <h3 className="text-cyan-400 text-lg font-bold mb-4">Quick Links</h3>
-                                    <ul className="text-sm space-y-1">
+                                    <ul className="text-sm space-y-2">
                                         <li><Link href="#process" className="inline-block py-2 hover:text-cyan-300 transition">Our 20-Stage Process</Link></li>
                                         <li><Link href="#location" className="inline-block py-2 hover:text-cyan-300 transition">Delivery Areas</Link></li>
                                         <li><Link href="/contact" className="inline-block py-2 hover:text-cyan-300 transition">Contact Support</Link></li>
@@ -619,35 +582,34 @@ const SeasideWaterLanding = () => {
                                     </ul>
                                 </div>
 
-                                {/* Column 3: Resources / Knowledge Base (New) */}
                                 <div>
                                     <h3 className="text-cyan-400 text-lg font-bold mb-4">Resources & Health</h3>
                                     <ul className="text-sm space-y-3">
-                                    <li>
-                                        <Link href="/resources/benefits-of-21-stage-purified-water" className="hover:text-cyan-300 transition flex flex-col">
-                                        <span className="font-bold">The Science of 20 Stages</span>
-                                        <span className="text-xs text-slate-500">Why standard filtration isn't enough.</span>
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link href="/resources/staying-hydrated-in-labrador-summer-tips" className="hover:text-cyan-300 transition flex flex-col">
-                                        <span className="font-bold">Beating the Labrador Heat</span>
-                                        <span className="text-xs text-slate-500">Hydration tips for the tropical climate.</span>
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link href="/resources/maintaining-your-water-containers-at-home" className="hover:text-cyan-300 transition flex flex-col">
-                                        <span className="font-bold">Dispenser Maintenance 101</span>
-                                        <span className="text-xs text-slate-500">Keep your water pure at home.</span>
-                                        </Link>
-                                    </li>
+                                        <li>
+                                            <Link href="/resources/benefits-of-21-stage-purified-water" className="inline-block py-2 hover:text-cyan-300 transition flex flex-col">
+                                                <span className="font-bold">The Science of 20 Stages</span>
+                                                <span className="text-xs text-slate-500">Why standard filtration isn't enough.</span>
+                                            </Link>
+                                        </li>
+                                        <li>
+                                            <Link href="/resources/staying-hydrated-in-labrador-summer-tips" className="inline-block py-2 hover:text-cyan-300 transition flex flex-col">
+                                                <span className="font-bold">Beating the Labrador Heat</span>
+                                                <span className="text-xs text-slate-500">Hydration tips for the tropical climate.</span>
+                                            </Link>
+                                        </li>
+                                        <li>
+                                            <Link href="/resources/maintaining-your-water-containers-at-home" className="inline-block py-2 hover:text-cyan-300 transition flex flex-col">
+                                                <span className="font-bold">Dispenser Maintenance 101</span>
+                                                <span className="text-xs text-slate-500">Keep your water pure at home.</span>
+                                            </Link>
+                                        </li>
                                     </ul>
                                 </div>
 
                             </div>
 
                             <div className="border-t border-slate-800 mt-12 pt-8 text-center text-xs">
-                            <p>&copy; {new Date().getFullYear()} Seaside Purified Water. DOH Certified. All Rights Reserved.</p>
+                                <p>© {new Date().getFullYear()} Seaside Purified Water. DOH Certified. All Rights Reserved.</p>
                             </div>
                         </div>
                     </footer>
@@ -671,7 +633,6 @@ const SeasideWaterLanding = () => {
                 )}
             </AnimatePresence>
 
-            {/* LIGHTBOX / ENLARGED IMAGE OVERLAY - Refined for "focus, zoom, blur, and small size" without arrows */}
             <AnimatePresence>
                 {isLightboxOpen && (
                     <motion.div
@@ -679,11 +640,9 @@ const SeasideWaterLanding = () => {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.3 }}
-                        // Intense blur and darker background for absolute focus on the image
                         className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-xl p-4 md:p-10"
                         onClick={() => setIsLightboxOpen(false)}
                     >
-                        {/* Close Button */}
                         <button
                             className="absolute top-4 right-4 md:top-8 md:right-8 text-white/70 hover:text-white bg-black/50 hover:bg-black/80 p-2 rounded-full transition-all z-[110]"
                             onClick={(e) => {
@@ -694,7 +653,6 @@ const SeasideWaterLanding = () => {
                             <X size={32} />
                         </button>
 
-                        {/* Enlarged Image Container - Uses spring scale for "zoom" feel, and strictly limited max-sizes */}
                         <motion.img
                             initial={{ scale: 0.85, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
@@ -702,7 +660,8 @@ const SeasideWaterLanding = () => {
                             transition={{ type: "spring", stiffness: 300, damping: 25 }}
                             src={galleryItems[currentIndex]?.image_url}
                             alt={galleryItems[currentIndex]?.title || 'Enlarged Image'}
-                            // Set width to full, max width to 5xl (same as container), and height limit to prevent overflow
+                            width={1200}
+                            height={800}
                             className="w-full max-w-5xl max-h-[85vh] object-contain cursor-default drop-shadow-[0_20px_40px_rgba(0,0,0,0.4)] rounded-[2rem] bg-transparent"
                             onClick={(e) => e.stopPropagation()}
                         />

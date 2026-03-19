@@ -2,11 +2,11 @@
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    formats: ['image/avif', 'image/webp'], // <-- ADD THIS LINE
+    formats: ['image/avif', 'image/webp'],
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'pdcnryjqrtfotvfpcqgj.supabase.co',
+        hostname: 'pdcnryjqrtfotvfpcqgj.supabase.co', // Your Supabase project URL
         port: '',
         pathname: '/storage/v1/object/public/**',
       },
