@@ -388,10 +388,12 @@ export default function POSPage() {
     };
 
     const handleFinalizeSale = async () => {
-        if (!selectedCustomer) {
-            addToast({ title: 'Customer Required', description: 'Please select a customer.', variant: 'warning' });
+        // Fix: Only block if they are trying to "Charge" without a selected customer
+        if (paymentMethod === 'Charge' && !selectedCustomer) {
+            addToast({ title: 'Customer Required', description: 'Please select a customer for Charge transactions.', variant: 'warning' });
             return;
         }
+
         const items = Object.values(currentSale).map(i => ({
             productId: i.productId,
             productName: i.name,
