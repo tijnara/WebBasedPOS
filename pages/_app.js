@@ -13,6 +13,7 @@ import FloatingNotes from '../src/components/FloatingNotes';
 import { Button } from '../src/components/ui';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import Head from 'next/head';
 
 const queryClient = new QueryClient({
@@ -187,6 +188,7 @@ export default function App({ Component, pageProps }) {
             </AuthGate>
             <div id="modal-root"></div>
             <ReactQueryDevtools initialIsOpen={false} position="bottom" />
+            <SpeedInsights />
         </QueryClientProvider>
     );
 }
