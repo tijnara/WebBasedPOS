@@ -14,6 +14,7 @@ import { Button } from '../src/components/ui';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import Head from 'next/head';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -187,6 +188,7 @@ export default function App({ Component, pageProps }) {
             </AuthGate>
             <div id="modal-root"></div>
             <ReactQueryDevtools initialIsOpen={false} position="bottom" />
+            <SpeedInsights />
         </QueryClientProvider>
     );
 }
