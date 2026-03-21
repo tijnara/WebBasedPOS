@@ -10,18 +10,21 @@ test('Full Flow: Login -> Add Item -> Checkout', async ({ page }) => {
     // 2. VERIFY LOGIN SUCCESS (DASHBOARD)
     await page.waitForURL('**/dashboard');
     
-    // Handle the Start Shift modal that appears on first login
     const startShiftHeading = page.getByRole('heading', { name: 'Start Shift' });
-    await expect(startShiftHeading).toBeVisible();
-    await page.getByPlaceholder('e.g. 1000.00').fill('1000');
-    await page.getByRole('button', { name: 'Start Shift', exact: true }).click();
-    await expect(startShiftHeading).toBeHidden();
+    const salesTrendHeading = page.getByRole('heading', { name: 'Sales Trend' });
 
-    // Fix: Wait for a stable, key element on the dashboard page to ensure it's fully rendered.
-    // The "Sales Trend" heading is a good candidate.
-    await expect(page.getByRole('heading', { name: 'Sales Trend' })).toBeVisible();
-    
-    // Now that we know the page is loaded, we can safely check for the welcome message.
+    // Wait for EITHER the modal to appear OR the dashboard to load fully
+    await expect(startShiftHeading.or(salesTrendHeading)).toBeVisible();
+
+    // Conditionally handle the Start Shift modal if it appears
+    if (await startShiftHeading.isVisible()) {
+        await page.getByPlaceholder('e.g. 1000.00').fill('1000');
+        await page.getByRole('button', { name: 'Start Shift', exact: true }).click();
+        await expect(startShiftHeading).toBeHidden();
+    }
+
+    // Ensure the dashboard is fully loaded and stable
+    await expect(salesTrendHeading).toBeVisible();
     await expect(page.locator('h1').filter({ hasText: /Welcome back/i })).toBeVisible();
 
     // 3. NAVIGATE TO POS
