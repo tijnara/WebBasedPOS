@@ -1,3 +1,4 @@
+// tests/pos-flow.spec.ts
 import { test, expect } from '@playwright/test';
 
 test('Full Flow: Login -> Add Item -> Checkout', async ({ page }) => {
@@ -9,6 +10,13 @@ test('Full Flow: Login -> Add Item -> Checkout', async ({ page }) => {
     // 2. VERIFY LOGIN SUCCESS (DASHBOARD)
     await page.waitForURL('**/dashboard');
     
+    // Handle the Start Shift modal that appears on first login
+    const startShiftHeading = page.getByRole('heading', { name: 'Start Shift' });
+    await expect(startShiftHeading).toBeVisible();
+    await page.getByPlaceholder('e.g. 1000.00').fill('1000');
+    await page.getByRole('button', { name: 'Start Shift', exact: true }).click();
+    await expect(startShiftHeading).toBeHidden();
+
     // Fix: Wait for a stable, key element on the dashboard page to ensure it's fully rendered.
     // The "Sales Trend" heading is a good candidate.
     await expect(page.getByRole('heading', { name: 'Sales Trend' })).toBeVisible();
