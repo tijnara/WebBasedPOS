@@ -70,66 +70,36 @@ const ProcessSection = () => {
     );
 };
 
-// Custom component to safely load Adsterra in React/Next.js
+// Bulletproof Bottom Banner (320x50)
 const AdsterraBanner = () => {
-    const bannerRef = React.useRef(null);
-
-    React.useEffect(() => {
-        // Check if the script is already appended to prevent duplicates on re-renders
-        if (bannerRef.current && !bannerRef.current.firstChild) {
-            const conf = document.createElement('script');
-            conf.type = 'text/javascript';
-            conf.innerHTML = `
-                atOptions = {
-                    'key' : 'c5677f34756199760394679363f2f373',
-                    'format' : 'iframe',
-                    'height' : 50,
-                    'width' : 320,
-                    'params' : {}
-                };
-            `;
-            
-            const script = document.createElement('script');
-            script.type = 'text/javascript';
-            script.async = true;
-            script.src = "https://www.highperformanceformat.com/c5677f34756199760394679363f2f373/invoke.js";
-            
-            bannerRef.current.appendChild(conf);
-            bannerRef.current.appendChild(script);
-        }
-    }, []);
-
-    return <div ref={bannerRef} className="flex justify-center w-full min-h-[50px]"></div>;
+    return (
+        <div className="flex justify-center w-[320px] h-[50px] mx-auto overflow-hidden">
+            <iframe 
+                src="/ad-bottom.html" 
+                width="320" 
+                height="50" 
+                style={{ border: 'none', overflow: 'hidden' }} 
+                scrolling="no"
+                title="Bottom Advertisement"
+            ></iframe>
+        </div>
+    );
 };
 
+// Bulletproof Sidebar Banner (160x600)
 const AdsterraVerticalBanner = () => {
-    const bannerRef = React.useRef(null);
-
-    React.useEffect(() => {
-        if (bannerRef.current && !bannerRef.current.firstChild) {
-            const conf = document.createElement('script');
-            conf.type = 'text/javascript';
-            conf.innerHTML = `
-                atOptions = {
-                    'key' : 'b4db28c2a2a07b5942a94a9c348ba6d6',
-                    'format' : 'iframe',
-                    'height' : 600,
-                    'width' : 160,
-                    'params' : {}
-                };
-            `;
-            
-            const script = document.createElement('script');
-            script.type = 'text/javascript';
-            script.async = true;
-            script.src = "https://www.highperformanceformat.com/b4db28c2a2a07b5942a94a9c348ba6d6/invoke.js";
-            
-            bannerRef.current.appendChild(conf);
-            bannerRef.current.appendChild(script);
-        }
-    }, []);
-
-    return <div ref={bannerRef} className="flex justify-center w-full min-h-[600px]"></div>;
+    return (
+        <div className="flex justify-center w-[160px] h-[600px] overflow-hidden">
+            <iframe 
+                src="/ad-sidebar.html" 
+                width="160" 
+                height="600" 
+                style={{ border: 'none', overflow: 'hidden' }} 
+                scrolling="no"
+                title="Sidebar Advertisement"
+            ></iframe>
+        </div>
+    );
 };
 
 const SeasideWaterLanding = () => {
