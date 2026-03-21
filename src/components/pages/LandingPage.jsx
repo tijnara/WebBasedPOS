@@ -102,6 +102,36 @@ const AdsterraBanner = () => {
     return <div ref={bannerRef} className="flex justify-center w-full min-h-[50px]"></div>;
 };
 
+const AdsterraVerticalBanner = () => {
+    const bannerRef = React.useRef(null);
+
+    React.useEffect(() => {
+        if (bannerRef.current && !bannerRef.current.firstChild) {
+            const conf = document.createElement('script');
+            conf.type = 'text/javascript';
+            conf.innerHTML = `
+                atOptions = {
+                    'key' : 'b4db28c2a2a07b5942a94a9c348ba6d6',
+                    'format' : 'iframe',
+                    'height' : 600,
+                    'width' : 160,
+                    'params' : {}
+                };
+            `;
+            
+            const script = document.createElement('script');
+            script.type = 'text/javascript';
+            script.async = true;
+            script.src = "https://www.highperformanceformat.com/b4db28c2a2a07b5942a94a9c348ba6d6/invoke.js";
+            
+            bannerRef.current.appendChild(conf);
+            bannerRef.current.appendChild(script);
+        }
+    }, []);
+
+    return <div ref={bannerRef} className="flex justify-center w-full min-h-[600px]"></div>;
+};
+
 const SeasideWaterLanding = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const { data: galleryItems = [] } = useGallery();
