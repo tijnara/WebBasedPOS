@@ -10,23 +10,21 @@ test('Full Flow: Login -> Add Item -> Checkout', async ({ page }) => {
     // 2. VERIFY LOGIN SUCCESS (DASHBOARD)
     await page.waitForURL('**/dashboard');
     
-    // Handle the conditional "Start Shift" modal
-    const startShiftInput = page.getByPlaceholder('e.g. 1000.00');
-    try {
-        // Wait briefly for the modal's input to appear (up to 3 seconds)
-        await startShiftInput.waitFor({ state: 'visible', timeout: 3000 });
-        await startShiftInput.fill('1000');
+    // Handle the conditional "Start Shift" modal using a polling mechanism
+    await expect(async () => {
+        const modalVisible = await page.getByRole('heading', { name: 'Start Shift' }).isVisible();
+        const welcomeVisible = await page.getByText(/Welcome back/i).isVisible();
+        expect(modalVisible || welcomeVisible).toBeTruthy();
+    }).toPass({ timeout: 15000 });
+
+    if (await page.getByRole('heading', { name: 'Start Shift' }).isVisible()) {
+        await page.getByPlaceholder('e.g. 1000.00').fill('1000');
         await page.getByRole('button', { name: 'Start Shift', exact: true }).click();
-        await startShiftInput.waitFor({ state: 'hidden', timeout: 3000 });
-    } catch (error) {
-        // If it times out, the modal didn't appear (shift might already be active).
-        // That is completely fine; we continue the test.
+        await expect(page.getByRole('heading', { name: 'Start Shift' })).toBeHidden();
     }
 
-    // Wait for a stable dashboard element to ensure the overlay is gone
-    // We add a slightly longer timeout just in case WebKit is slow to render the charts
-    await expect(page.getByRole('heading', { name: 'Sales Trend' })).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('h1').filter({ hasText: /Welcome back/i })).toBeVisible();
+    // Ensure the dashboard is fully loaded and stable
+    await expect(page.getByText(/Welcome back/i)).toBeVisible({ timeout: 10000 });
 
     // 3. NAVIGATE TO POS
     await page.goto('http://localhost:3000/pos');

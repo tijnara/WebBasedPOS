@@ -70,6 +70,38 @@ const ProcessSection = () => {
     );
 };
 
+// Custom component to safely load Adsterra in React/Next.js
+const AdsterraBanner = () => {
+    const bannerRef = React.useRef(null);
+
+    React.useEffect(() => {
+        // Check if the script is already appended to prevent duplicates on re-renders
+        if (bannerRef.current && !bannerRef.current.firstChild) {
+            const conf = document.createElement('script');
+            conf.type = 'text/javascript';
+            conf.innerHTML = `
+                atOptions = {
+                    'key' : 'c5677f34756199760394679363f2f373',
+                    'format' : 'iframe',
+                    'height' : 50,
+                    'width' : 320,
+                    'params' : {}
+                };
+            `;
+            
+            const script = document.createElement('script');
+            script.type = 'text/javascript';
+            script.async = true;
+            script.src = "https://www.highperformanceformat.com/c5677f34756199760394679363f2f373/invoke.js";
+            
+            bannerRef.current.appendChild(conf);
+            bannerRef.current.appendChild(script);
+        }
+    }, []);
+
+    return <div ref={bannerRef} className="flex justify-center w-full min-h-[50px]"></div>;
+};
+
 const SeasideWaterLanding = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const { data: galleryItems = [] } = useGallery();
@@ -592,22 +624,9 @@ const SeasideWaterLanding = () => {
                             <div className="text-center bg-white/80 backdrop-blur-sm p-4 rounded-xl shadow-sm border border-white/30">
                                 <span className="text-[10px] text-gray-400 uppercase tracking-widest mb-2 block">Advertisement</span>
                                 
-                                <Script id="adsterra-options" strategy="afterInteractive">
-                                    {`
-                                        atOptions = {
-                                            'key' : 'c5677f34756199760394679363f2f373',
-                                            'format' : 'iframe',
-                                            'height' : 50,
-                                            'width' : 320,
-                                            'params' : {}
-                                        };
-                                    `}
-                                </Script>
-                                <Script 
-                                    id="adsterra-banner"
-                                    strategy="afterInteractive"
-                                    src="https://www.highperformanceformat.com/c5677f34756199760394679363f2f373/invoke.js"
-                                />
+                                {/* Safely load Adsterra using our custom component */}
+                                <AdsterraBanner />
+
                             </div>
                         </div>
                     )}
