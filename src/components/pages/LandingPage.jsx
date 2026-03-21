@@ -70,67 +70,76 @@ const ProcessSection = () => {
     );
 };
 
-// Custom component to safely load Adsterra in React/Next.js
+// --- REFACTORED ADSTERRA BOTTOM BANNER (320x50) ---
+// Based on StackOverflow Next.js integration pattern
 const AdsterraBanner = () => {
     const bannerRef = React.useRef(null);
 
     React.useEffect(() => {
-        // Check if the script is already appended to prevent duplicates on re-renders
+        // The !bannerRef.current.firstChild check prevents the GitHub issue 
+        // of scripts duplicating or crashing on Next.js client-side route changes
         if (bannerRef.current && !bannerRef.current.firstChild) {
             const conf = document.createElement('script');
-            conf.type = 'text/javascript';
-            conf.innerHTML = `
-                atOptions = {
-                    'key' : 'c5677f34756199760394679363f2f373',
-                    'format' : 'iframe',
-                    'height' : 50,
-                    'width' : 320,
-                    'params' : {}
-                };
-            `;
-            
             const script = document.createElement('script');
+            
             script.type = 'text/javascript';
             script.async = true;
-            script.src = "https://www.highperformanceformat.com/c5677f34756199760394679363f2f373/invoke.js";
+            script.src = '//www.highperformanceformat.com/c5677f34756199760394679363f2f373/invoke.js';
             
-            bannerRef.current.appendChild(conf);
-            bannerRef.current.appendChild(script);
+            // Safely stringify the config object per StackOverflow recommendation
+            conf.innerHTML = `atOptions = ${JSON.stringify({
+                key: 'c5677f34756199760394679363f2f373',
+                format: 'iframe',
+                height: 50,
+                width: 320,
+                params: {}
+            })}`;
+
+            // Append both scripts to the targeted div safely
+            bannerRef.current.append(conf, script);
         }
     }, []);
 
-    return <div ref={bannerRef} className="flex justify-center w-full min-h-[50px]"></div>;
+    return (
+        <div 
+            ref={bannerRef} 
+            className="flex justify-center items-center w-[320px] h-[50px] mx-auto overflow-hidden bg-slate-50 border border-slate-100 rounded"
+        ></div>
+    );
 };
 
-// Custom component for the 160x600 side banners
+// --- REFACTORED ADSTERRA VERTICAL BANNER (160x600) ---
+// Based on StackOverflow Next.js integration pattern
 const AdsterraVerticalBanner = () => {
     const bannerRef = React.useRef(null);
 
     React.useEffect(() => {
         if (bannerRef.current && !bannerRef.current.firstChild) {
             const conf = document.createElement('script');
-            conf.type = 'text/javascript';
-            conf.innerHTML = `
-                atOptions = {
-                    'key' : 'b4db28c2a2a07b5942a94a9c348ba6d6',
-                    'format' : 'iframe',
-                    'height' : 600,
-                    'width' : 160,
-                    'params' : {}
-                };
-            `;
-            
             const script = document.createElement('script');
+            
             script.type = 'text/javascript';
             script.async = true;
-            script.src = "https://www.highperformanceformat.com/b4db28c2a2a07b5942a94a9c348ba6d6/invoke.js";
+            script.src = '//www.highperformanceformat.com/b4db28c2a2a07b5942a94a9c348ba6d6/invoke.js';
             
-            bannerRef.current.appendChild(conf);
-            bannerRef.current.appendChild(script);
+            conf.innerHTML = `atOptions = ${JSON.stringify({
+                key: 'b4db28c2a2a07b5942a94a9c348ba6d6',
+                format: 'iframe',
+                height: 600,
+                width: 160,
+                params: {}
+            })}`;
+
+            bannerRef.current.append(conf, script);
         }
     }, []);
 
-    return <div ref={bannerRef} className="flex justify-center w-[160px] min-h-[600px] bg-slate-50/50 rounded-lg overflow-hidden border border-slate-200"></div>;
+    return (
+        <div 
+            ref={bannerRef} 
+            className="flex justify-center w-[160px] h-[600px] bg-slate-50/50 rounded-lg overflow-hidden border border-slate-200"
+        ></div>
+    );
 };
 
 const SeasideWaterLanding = () => {
