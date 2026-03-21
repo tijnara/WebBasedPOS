@@ -586,6 +586,33 @@ const SeasideWaterLanding = () => {
                         </div>
                     </motion.div>
 
+                    {/* ADSTERRA BANNER SECTION */}
+                    {!user && (
+                        <div className="bg-transparent relative z-20 border-t py-10 flex justify-center items-center">
+                            <div className="text-center bg-white/80 backdrop-blur-sm p-4 rounded-xl shadow-sm border border-white/30">
+                                <span className="text-[10px] text-gray-400 uppercase tracking-widest mb-2 block">Advertisement</span>
+                                
+                                <Script id="adsterra-options" strategy="afterInteractive">
+                                    {`
+                                        atOptions = {
+                                            'key' : 'c5677f34756199760394679363f2f373',
+                                            'format' : 'iframe',
+                                            'height' : 50,
+                                            'width' : 320,
+                                            'params' : {}
+                                        };
+                                    `}
+                                </Script>
+                                <Script 
+                                    id="adsterra-banner"
+                                    strategy="afterInteractive"
+                                    src="https://www.highperformanceformat.com/c5677f34756199760394679363f2f373/invoke.js"
+                                />
+                            </div>
+                        </div>
+                    )}
+                    {/* END ADSTERRA BANNER SECTION */}
+
                     <footer className="bg-slate-900 text-slate-400 py-12">
                         <div className="container mx-auto px-6">
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
