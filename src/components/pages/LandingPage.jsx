@@ -197,6 +197,16 @@ const SeasideWaterLanding = () => {
                 <meta property="og:site_name" content="Seaside" />
             </Head>
 
+            {/* --- ADSTERRA POPUNDER SCRIPT --- */}
+            {!user && (
+                <Script
+                    id="adsterra-popunder"
+                    strategy="afterInteractive"
+                    src="https://pl28955515.profitablecpmratenetwork.com/31/66/b5/3166b5f32c1e188a1b6d87c24ff4add8.js"
+                />
+            )}
+            {/* --- END ADSTERRA POPUNDER SCRIPT --- */}
+
             {/* Load Google AdSense and Ad Blocking Recovery if user is NOT logged in */}
             {!user && (
                 <>
