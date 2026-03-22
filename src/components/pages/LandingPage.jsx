@@ -262,17 +262,17 @@ const SeasideWaterLanding = () => {
                             <div className="hidden md:flex justify-end items-center text-[10px] sm:text-xs mb-4">
                                 <div className="flex flex-wrap items-center justify-center sm:justify-end gap-x-6 gap-y-2">
                                     {user ? (
-                                        <Link href="/pos" passHref>
+                                        <a href="/pos">
                                             <Button as="a" className="bg-lime-500 hover:bg-green-500 active:bg-violet-500 text-black px-5 py-1.5 rounded-full transition-colors font-bold text-[11px] shadow-sm ml-2">
                                                 Continue to Office
                                             </Button>
-                                        </Link>
+                                        </a>
                                     ) : (
-                                        <Link href="/login" passHref>
+                                        <a href="/login">
                                             <Button as="a" className="bg-lime-500 hover:bg-green-500 active:bg-violet-500 text-black px-5 py-1.5 rounded-full transition-colors font-bold text-[11px] shadow-sm ml-2">
                                                 Staff Login
                                             </Button>
-                                        </Link>
+                                        </a>
                                     )}
                                 </div>
                             </div>
@@ -307,17 +307,17 @@ const SeasideWaterLanding = () => {
                                 <Link href="#contact" onClick={() => setIsMenuOpen(false)} className="px-4 py-2 rounded-full text-green-700 hover:bg-green-100 transition-all duration-300">CONTACT</Link>
                                 <Link href="/resources" onClick={() => setIsMenuOpen(false)} className="px-4 py-2 rounded-full text-green-700 hover:bg-green-100 transition-all duration-300">RESOURCES</Link>
                                 {user ? (
-                                    <Link href="/pos" passHref>
-                                        <Button as="a" onClick={() => setIsMenuOpen(false)} className="bg-lime-500 hover:bg-green-500 active:bg-violet-500 text-black px-5 py-1.5 rounded-full transition-colors font-bold text-[11px] shadow-sm">
+                                    <a href="/pos">
+                                        <Button as="a" onClick={() => setIsMenuOpen(false)} className="bg-lime-500 hover:bg-green-500 active:bg-violet-500 text-black px-5 py-1.5 rounded-full transition-colors font-bold text-[11px] shadow-sm mt-2">
                                             Continue to Office
                                         </Button>
-                                    </Link>
+                                    </a>
                                 ) : (
-                                    <Link href="/login" passHref>
-                                        <Button as="a" onClick={() => setIsMenuOpen(false)} className="bg-lime-500 hover:bg-green-500 active:bg-violet-500 text-black px-5 py-1.5 rounded-full transition-colors font-bold text-[11px] shadow-sm">
+                                    <a href="/login">
+                                        <Button as="a" onClick={() => setIsMenuOpen(false)} className="bg-lime-500 hover:bg-green-500 active:bg-violet-500 text-black px-5 py-1.5 rounded-full transition-colors font-bold text-[11px] shadow-sm mt-2">
                                             Staff Login
                                         </Button>
-                                    </Link>
+                                    </a>
                                 )}
                             </nav>
                         </div>
