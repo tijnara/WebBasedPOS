@@ -39,15 +39,20 @@ const Gallery = () => {
             >
                 <div className="px-6 py-20 pb-32 max-w-5xl mx-auto">
                     <div className="text-center mb-16">
-                        <span className="inline-block py-2 px-6 rounded-full bg-lime-200 mb-4 border border-lime-300 shadow-sm">
-                            <h2 className="text-green-700 text-2xl md:text-3xl font-black tracking-widest uppercase m-0">Gallery</h2>
+                        {/* CHANGED: Replaced lime-200/green-700 with Teal/Emerald matching WhyChooseUs */}
+                        <span className="inline-block py-2 px-6 rounded-full bg-teal-50 border border-teal-100 mb-4">
+                            <h2 className="text-teal-700 text-sm md:text-base font-bold tracking-widest uppercase m-0">
+                                Gallery
+                            </h2>
                         </span>
-                        <p className="text-2xl md:text-3xl font-medium text-slate-800 drop-shadow-sm">A glimpse of our station and services in Labrador, Pangasinan</p>
+                        <p className="text-3xl md:text-4xl font-extrabold text-slate-800 drop-shadow-sm">
+                            A glimpse of our station and services.
+                        </p>
                     </div>
 
                     {items.length > 0 ? (
                         <div
-                            className="relative w-full rounded-[2rem] shadow-2xl border-4 border-white bg-slate-900 group overflow-hidden"
+                            className="relative w-full rounded-[2rem] shadow-[0_8px_32px_0_rgba(31,38,135,0.15)] border-4 border-white/60 bg-slate-900 group overflow-hidden"
                             style={{ height: '450px' }}
                         >
                             <AnimatePresence mode="wait">
@@ -116,9 +121,9 @@ const Gallery = () => {
                             )}
                         </div>
                     ) : (
-                        <div className="text-center py-20 rounded-3xl border border-dashed border-slate-300 bg-white/50">
-                            <ImageIcon className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-                            <p className="text-slate-500 font-medium">No gallery items yet.</p>
+                        <div className="text-center py-20 rounded-[2rem] border border-white/40 bg-white/60 backdrop-blur-md shadow-[0_8px_32px_0_rgba(31,38,135,0.1)]">
+                            <ImageIcon className="w-12 h-12 text-teal-400 mx-auto mb-4" />
+                            <p className="text-slate-600 font-medium">No gallery items yet.</p>
                         </div>
                     )}
                 </div>

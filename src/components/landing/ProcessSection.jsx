@@ -34,25 +34,27 @@ const ProcessSection = () => {
         >
             <div className="px-6 py-20 pb-32 max-w-6xl mx-auto">
                 <div className="text-center mb-16">
-                    <span className="inline-block py-2 px-6 rounded-full bg-lime-100 mb-4 border">
-                        <h2 className="text-green-700 text-2xl md:text-3xl font-bold tracking-widest uppercase m-0">
+                    <span className="inline-block py-2 px-6 rounded-full bg-teal-50 border border-teal-100 mb-4">
+                        <h2 className="text-teal-700 text-sm md:text-base font-bold tracking-widest uppercase m-0">
                             Our 20-Stage Process
                         </h2>
                     </span>
-                    <p className="text-2xl md:text-3xl font-medium text-slate-800 drop-shadow-sm">Pure Water, Guaranteed in Labrador, Pangasinan</p>
+                    <p className="text-3xl md:text-4xl font-extrabold text-slate-800 drop-shadow-sm">
+                        Pure Water, Guaranteed.
+                    </p>
                 </div>
                 <div className="relative">
-                    <div className="absolute left-1/2 -translate-x-1/2 w-1 bg-green-200 h-full rounded-full"></div>
+                    <div className="absolute left-1/2 -translate-x-1/2 w-1 bg-teal-200/50 h-full rounded-full"></div>
                     <div className="space-y-12">
                         {processStages.map((item, index) => (
                             <div key={index} className={`relative flex items-center ${index % 2 === 0 ? 'flex-row' : 'flex-row-reverse'}`}>
                                 <div className="w-1/2 px-4">
-                                    <div className="bg-white/50 backdrop-blur-sm p-6 rounded-xl shadow-md border border-white/30">
-                                        <h3 className="text-lg font-bold text-green-800">{item.process}</h3>
+                                    <div className="p-6 rounded-[1.5rem] border border-white/40 bg-white/60 backdrop-blur-md shadow-[0_8px_32px_0_rgba(31,38,135,0.1)]">
+                                        <h3 className="text-lg font-bold text-teal-900">{item.process}</h3>
                                         <p className="text-sm text-slate-700">{item.description}</p>
                                     </div>
                                 </div>
-                                <div className="absolute left-1/2 -translate-x-1/2 w-10 h-10 bg-lime-500 rounded-full flex items-center justify-center text-green-900 font-bold border-4 border-white shadow-lg">
+                                <div className="absolute left-1/2 -translate-x-1/2 w-12 h-12 bg-gradient-to-br from-teal-400 to-emerald-500 rounded-full flex items-center justify-center text-white font-bold border-4 border-white/80 shadow-lg">
                                     {item.stage}
                                 </div>
                             </div>
