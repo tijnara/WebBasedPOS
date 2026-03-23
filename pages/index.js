@@ -39,7 +39,8 @@ const SeasideWaterLanding = () => {
 
                     {/* Main Content */}
                     <main id="main-content" className="flex-grow">
-                        <div className="container mx-auto flex flex-col flex-grow relative backdrop-blur-sm shadow-lg border border-white/20 bg-white/50">
+                        {/* CHANGED: Used bg-[#ffffffcc] for 20% transparency (80% opacity) */}
+                        <div className="container mx-auto flex flex-col flex-grow relative backdrop-blur-sm shadow-lg border border-white/20 bg-[#ffffffcc]">
                             <Hero />
                             <WhyChooseUs />
                             <Services />
@@ -57,7 +58,7 @@ const SeasideWaterLanding = () => {
                         </div>
                     </aside>
                 </div>
-                
+
                 <Footer />
             </div>
 
