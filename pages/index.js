@@ -39,8 +39,8 @@ const SeasideWaterLanding = () => {
 
                     {/* Main Content */}
                     <main id="main-content" className="flex-grow">
-                        {/* CHANGED: Used bg-[#ffffffcc] for 20% transparency (80% opacity) */}
-                        <div className="container mx-auto flex flex-col flex-grow relative backdrop-blur-sm shadow-lg border border-white/20 bg-[#ffffffcc]">
+                        {/* CHANGED: Used bg-white-75 for 75% opacity */}
+                        <div className="container mx-auto flex flex-col flex-grow relative backdrop-blur-sm shadow-lg border border-white/20 bg-white-75">
                             <Hero />
                             <WhyChooseUs />
                             <Services />

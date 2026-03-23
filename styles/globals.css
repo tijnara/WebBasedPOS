@@ -1020,6 +1020,10 @@ input[type="checkbox"]:focus {
     background-color: var(--primary-soft);
 }
 
+.bg-white-75 {
+    background-color: rgba(255, 255, 255, 0.75);
+}
+
 
 /* --- Specific Component Styles --- */
 
