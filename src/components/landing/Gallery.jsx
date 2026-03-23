@@ -29,19 +29,20 @@ const Gallery = () => {
 
     return (
         <>
-            <motion.div 
+            <motion.section 
                 id="gallery" 
                 ref={ref}
                 initial={{ opacity: 0, y: 50 }}
                 animate={{ opacity: isInView ? 1 : 0, y: isInView ? 0 : 50 }}
                 transition={{ duration: 0.6 }}
                 className="bg-transparent relative z-20 border-t"
+                aria-labelledby="gallery-heading"
             >
                 <div className="px-6 py-20 pb-32 max-w-5xl mx-auto">
                     <div className="text-center mb-16">
                         {/* CHANGED: Replaced lime-200/green-700 with Teal/Emerald matching WhyChooseUs */}
                         <span className="inline-block py-2 px-6 rounded-full bg-teal-50 border border-teal-100 mb-4">
-                            <h2 className="text-teal-700 text-sm md:text-base font-bold tracking-widest uppercase m-0">
+                            <h2 id="gallery-heading" className="text-teal-700 text-sm md:text-base font-bold tracking-widest uppercase m-0">
                                 Gallery
                             </h2>
                         </span>
@@ -127,7 +128,7 @@ const Gallery = () => {
                         </div>
                     )}
                 </div>
-            </motion.div>
+            </motion.section>
             <AnimatePresence>
                 {isLightboxOpen && (
                     <motion.div

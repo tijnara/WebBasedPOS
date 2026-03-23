@@ -7,18 +7,19 @@ const Contact = ({ settings }) => {
     const [ref, isInView] = useInView();
 
     return (
-        <motion.div 
+        <motion.section 
             id="contact" 
             ref={ref}
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: isInView ? 1 : 0, y: isInView ? 0 : 50 }}
             transition={{ duration: 0.6 }}
             className="bg-transparent relative z-20 border-t"
+            aria-labelledby="contact-heading"
         >
             <div className="px-6 py-20 pb-32 max-w-4xl mx-auto text-center">
                 <div className="mb-12">
                     <span className="inline-block py-2 px-6 rounded-full bg-teal-50 border border-teal-100 mb-4">
-                        <h2 className="text-teal-700 text-sm md:text-base font-bold tracking-widest uppercase m-0">
+                        <h2 id="contact-heading" className="text-teal-700 text-sm md:text-base font-bold tracking-widest uppercase m-0">
                             Contact Us
                         </h2>
                     </span>
@@ -37,7 +38,7 @@ const Contact = ({ settings }) => {
                     <ContactForm settings={settings} />
                 </div>
             </div>
-        </motion.div>
+        </motion.section>
     );
 };
 
