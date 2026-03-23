@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import OptimizedImage from './OptimizedImage';
 import { ImageIcon, X } from 'lucide-react';
 import { useInView } from '../../hooks/useInView';
+import { useGallery } from '../../hooks/useGallery';
+import { supabase } from '../../lib/supabaseClient';
 
-const Gallery = ({ items }) => {
+const Gallery = () => {
+    const { data: items = [] } = useGallery();
     const [ref, isInView] = useInView();
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isLightboxOpen, setIsLightboxOpen] = useState(false);
@@ -45,7 +47,8 @@ const Gallery = ({ items }) => {
 
                     {items.length > 0 ? (
                         <div
-                            className="relative w-full rounded-[2rem] shadow-2xl border-4 border-white bg-slate-900 group overflow-hidden h-[450px]"
+                            className="relative w-full rounded-[2rem] shadow-2xl border-4 border-white bg-slate-900 group overflow-hidden"
+                            style={{ height: '450px' }}
                         >
                             <AnimatePresence mode="wait">
                                 <motion.div
@@ -56,11 +59,10 @@ const Gallery = ({ items }) => {
                                     transition={{ duration: 0.5 }}
                                     className="absolute inset-0 w-full h-full"
                                 >
-                                    <OptimizedImage
+                                    {/* CHANGED: Replaced Next.js <Image> with standard <img> to bypass domain restrictions */}
+                                    <img
                                         src={items[currentIndex]?.image_url}
                                         alt={items[currentIndex]?.title || 'Gallery'}
-                                        width={800}
-                                        height={450}
                                         className="w-full h-full object-contain cursor-pointer hover:scale-105 transition-transform duration-700"
                                         onClick={() => setIsLightboxOpen(true)}
                                     />
@@ -77,6 +79,7 @@ const Gallery = ({ items }) => {
                                 </motion.div>
                             </AnimatePresence>
 
+                            {/* Navigation Buttons */}
                             {items.length > 1 && (
                                 <>
                                     <button
@@ -95,6 +98,7 @@ const Gallery = ({ items }) => {
                                         <span className="text-xl md:text-2xl font-bold leading-none -mt-1">❯</span>
                                     </button>
 
+                                    {/* Dots */}
                                     <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3 z-30 bg-black/30 px-4 py-2.5 rounded-full backdrop-blur-md border border-white/10 shadow-lg">
                                         {items.map((_, idx) => (
                                             <button
