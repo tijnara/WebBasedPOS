@@ -16,10 +16,10 @@ const Header = () => {
             <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-4 focus:bg-white focus:text-black">
                 Skip to main content
             </a>
-            <header className="px-6 py-2 relative z-50 sticky top-0 backdrop-blur-sm border-b border-white/20 shadow-sm w-full bg-white/80">
+            <header className="px-6 py-2 relative z-50 sticky top-0 backdrop-blur-sm border-b border-white/20 shadow-sm w-full bg-white/50">
                 <div className="container mx-auto flex justify-between items-center">
                     <div className="flex items-center space-x-3">
-                        <div className="p-2 rounded-xl shadow-sm border border-green-100 bg-white/80">
+                        <div className="p-2 rounded-xl shadow-sm border border-green-100 bg-white/50">
                             <OptimizedImage
                                 src={settings?.logo_url || "/seasidelogo_.png"}
                                 alt="SEASIDE Logo"

@@ -116,7 +116,7 @@ const Gallery = () => {
                             )}
                         </div>
                     ) : (
-                        <div className="text-center py-20 rounded-3xl border border-dashed border-slate-300 bg-white/80">
+                        <div className="text-center py-20 rounded-3xl border border-dashed border-slate-300 bg-white/50">
                             <ImageIcon className="w-12 h-12 text-slate-400 mx-auto mb-4" />
                             <p className="text-slate-500 font-medium">No gallery items yet.</p>
                         </div>

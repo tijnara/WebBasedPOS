@@ -23,7 +23,7 @@ const Contact = ({ settings }) => {
                     <p className="text-2xl md:text-3xl font-bold text-slate-800 drop-shadow-sm mt-4">We'd love to hear from you</p>
                 </div>
 
-                <div className="bg-white/80 backdrop-blur-sm p-8 md:p-12 rounded-3xl border shadow-sm text-left">
+                <div className="bg-white/50 backdrop-blur-sm p-8 md:p-12 rounded-3xl border shadow-sm text-left">
                     <div className="mb-6 text-center">
                         <p className="text-lg font-semibold text-gray-800">Business Hours:</p>
                         <p className="text-gray-700">Monday - Saturday: 8:00 AM - 5:00 PM</p>

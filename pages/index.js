@@ -39,7 +39,7 @@ const SeasideWaterLanding = () => {
 
                     {/* Main Content */}
                     <main id="main-content" className="flex-grow">
-                        <div className="container mx-auto flex flex-col flex-grow relative backdrop-blur-sm shadow-lg border border-white/20 bg-white/80">
+                        <div className="container mx-auto flex flex-col flex-grow relative backdrop-blur-sm shadow-lg border border-white/20 bg-white/50">
                             <Hero />
                             <WhyChooseUs />
                             <Services />

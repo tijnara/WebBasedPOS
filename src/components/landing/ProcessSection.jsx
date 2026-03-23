@@ -47,7 +47,7 @@ const ProcessSection = () => {
                         {processStages.map((item, index) => (
                             <div key={index} className={`relative flex items-center ${index % 2 === 0 ? 'flex-row' : 'flex-row-reverse'}`}>
                                 <div className="w-1/2 px-4">
-                                    <div className="bg-white/80 backdrop-blur-sm p-6 rounded-xl shadow-md border border-white/30">
+                                    <div className="bg-white/50 backdrop-blur-sm p-6 rounded-xl shadow-md border border-white/30">
                                         <h3 className="text-lg font-bold text-green-800">{item.process}</h3>
                                         <p className="text-sm text-slate-700">{item.description}</p>
                                     </div>

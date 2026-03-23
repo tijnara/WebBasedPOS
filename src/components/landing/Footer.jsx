@@ -8,7 +8,7 @@ const Footer = () => {
         <>
             {/* ADSTERRA BANNER SECTION */}
             <div className="bg-transparent relative z-20 border-t py-10 flex justify-center items-center">
-                <div className="text-center bg-white/80 backdrop-blur-sm p-4 rounded-xl shadow-sm border border-white/30">
+                <div className="text-center bg-white/50 backdrop-blur-sm p-4 rounded-xl shadow-sm border border-white/30">
                     <span className="text-[10px] text-gray-400 uppercase tracking-widest mb-2 block">Advertisement</span>
 
                     {/* Safely load Adsterra using our custom component */}
