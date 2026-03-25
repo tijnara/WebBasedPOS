@@ -7,14 +7,14 @@ import { useProducts } from '../../hooks/useProducts';
 import { useInactiveCustomers } from '../../hooks/useInactiveCustomers';
 import { useDeleteSale } from '../../hooks/useDeleteSale';
 import { useDebounce } from '../../hooks/useDebounce';
-import { useStore } from '../../store/useStore'; // Added to get current user
+import { useStore } from '../../store/useStore';
 import { format } from 'date-fns';
 import { Button, Input, Select } from '../ui';
 import { DeleteIcon } from '../Icons';
 
 import Pagination from '../Pagination';
-import WeeklySalesChart from '../charts/WeeklySalesChart'; // Import the new chart component
-import DeleteConfirmationModal from '../DeleteConfirmationModal'; // Import the modal
+import WeeklySalesChart from '../charts/WeeklySalesChart';
+import DeleteConfirmationModal from '../DeleteConfirmationModal';
 import currency from 'currency.js';
 
 // Utility to format currency
@@ -42,10 +42,9 @@ const SaleCard = ({ sale, onDelete, isAdmin }) => (
                         {formatCurrency(sale.totalAmount)}
                     </div>
                     <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${sale.status === 'Completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                        }`}>
+                    }`}>
                         {sale.status || 'Unknown'}
                     </span>
-                    {/* Only show Delete Button if user is an Admin */}
                     {isAdmin && (
                         <Button
                             variant="ghost"
@@ -127,38 +126,38 @@ const CustomerCard = ({ customer }) => (
 const CustomerReportDisplay = ({ customersList, currentPage, totalPages, onPageChange }) => (
     <div className="bg-white rounded-lg border shadow-sm md:overflow-hidden">
         <div className="overflow-x-auto hidden md:block">
-            <table className="min-w-full text-base">
+            <table className="min-w-full text-sm">
                 <thead className="bg-gray-100">
-                    <tr>
-                        <th className="px-4 py-3 text-left font-semibold text-gray-700">Name</th>
-                        <th className="px-4 py-3 text-left font-semibold text-gray-700">Phone</th>
-                        <th className="px-4 py-3 text-left font-semibold text-gray-700">Email</th>
-                        <th className="px-4 py-3 text-left font-semibold text-gray-700">Address</th>
-                        <th className="px-4 py-3 text-left font-semibold text-gray-700">Date Added</th>
-                        <th className="px-4 py-3 text-left font-semibold text-gray-700">Added By</th>
-                    </tr>
+                <tr>
+                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Name</th>
+                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Phone</th>
+                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Email</th>
+                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Address</th>
+                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Date Added</th>
+                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Added By</th>
+                </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                    {customersList.length === 0 ? (
-                        <tr>
-                            <td colSpan="6" className="text-center p-6 text-gray-500 text-lg">
-                                No customers found.
+                {customersList.length === 0 ? (
+                    <tr>
+                        <td colSpan="6" className="text-center p-6 text-gray-500 text-sm">
+                            No customers found.
+                        </td>
+                    </tr>
+                ) : (
+                    customersList.map(customer => (
+                        <tr key={customer.id} className="hover:bg-gray-50">
+                            <td className="px-3 py-3 font-medium text-gray-800">{customer.name}</td>
+                            <td className="px-3 py-3 text-gray-600">{customer.phone || 'N/A'}</td>
+                            <td className="px-3 py-3 text-gray-600">{customer.email || 'N/A'}</td>
+                            <td className="px-3 py-3 text-gray-600">{customer.address || 'N/A'}</td>
+                            <td className="px-3 py-3 text-gray-600">
+                                {customer.dateAdded ? format(customer.dateAdded, 'MMM d, yyyy') : 'N/A'}
                             </td>
+                            <td className="px-3 py-3 text-gray-600">{customer.users?.name || 'N/A'}</td>
                         </tr>
-                    ) : (
-                        customersList.map(customer => (
-                            <tr key={customer.id} className="hover:bg-gray-50">
-                                <td className="px-4 py-3 font-medium text-gray-800">{customer.name}</td>
-                                <td className="px-4 py-3 text-gray-600">{customer.phone || 'N/A'}</td>
-                                <td className="px-4 py-3 text-gray-600">{customer.email || 'N/A'}</td>
-                                <td className="px-4 py-3 text-gray-600">{customer.address || 'N/A'}</td>
-                                <td className="px-4 py-3 text-gray-600">
-                                    {customer.dateAdded ? format(customer.dateAdded, 'MMM d, yyyy') : 'N/A'}
-                                </td>
-                                <td className="px-4 py-3 text-gray-600">{customer.users?.name || 'N/A'}</td>
-                            </tr>
-                        ))
-                    )}
+                    ))
+                )}
                 </tbody>
             </table>
         </div>
@@ -184,8 +183,8 @@ const CustomerReportDisplay = ({ customersList, currentPage, totalPages, onPageC
 // --- Inactive Customers Table ---
 const InactiveCustomersTable = ({ inactiveCustomers, isLoading, error }) => (
     <div className="bg-white rounded-lg border shadow-sm md:overflow-hidden">
-        <div className="bg-primary-soft border-b px-4 py-3">
-            <h3 className="text-base font-semibold text-primary">Inactive Customers (14+ Days)</h3>
+        <div className="bg-primary-soft border-b px-3 py-3">
+            <h3 className="text-sm font-semibold text-primary">Inactive Customers (14+ Days)</h3>
             <p className="text-xs text-gray-600 mt-1">Customers who haven't ordered in the last 2 weeks</p>
         </div>
         <div className="overflow-x-auto hidden md:block">
@@ -194,34 +193,34 @@ const InactiveCustomersTable = ({ inactiveCustomers, isLoading, error }) => (
             ) : error ? (
                 <div className="text-center p-6 text-red-600">Error loading inactive customers</div>
             ) : (
-                <table className="min-w-full text-base">
+                <table className="min-w-full text-sm">
                     <thead className="bg-gray-100">
-                        <tr>
-                            <th className="px-4 py-3 text-left font-semibold text-gray-700">Name</th>
-                            <th className="px-4 py-3 text-left font-semibold text-gray-700">Phone</th>
-                            <th className="px-4 py-3 text-left font-semibold text-gray-700">Last Order</th>
-                        </tr>
+                    <tr>
+                        <th className="px-3 py-3 text-left font-semibold text-gray-700">Name</th>
+                        <th className="px-3 py-3 text-left font-semibold text-gray-700">Phone</th>
+                        <th className="px-3 py-3 text-left font-semibold text-gray-700">Last Order</th>
+                    </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
-                        {inactiveCustomers.length === 0 ? (
-                            <tr>
-                                <td colSpan="3" className="text-center p-6 text-gray-500 text-lg">
-                                    No inactive customers found.
+                    {inactiveCustomers.length === 0 ? (
+                        <tr>
+                            <td colSpan="3" className="text-center p-6 text-gray-500 text-sm">
+                                No inactive customers found.
+                            </td>
+                        </tr>
+                    ) : (
+                        inactiveCustomers.map(customer => (
+                            <tr key={customer.id} className="hover:bg-gray-50">
+                                <td className="px-3 py-3 font-medium text-gray-800">{customer.name}</td>
+                                <td className="px-3 py-3 text-gray-600">{customer.phone || 'N/A'}</td>
+                                <td className="px-3 py-3 text-gray-600">
+                                    {customer.last_order_date
+                                        ? format(new Date(customer.last_order_date), 'MMM d, yyyy')
+                                        : 'Never ordered'}
                                 </td>
                             </tr>
-                        ) : (
-                            inactiveCustomers.map(customer => (
-                                <tr key={customer.id} className="hover:bg-gray-50">
-                                    <td className="px-4 py-3 font-medium text-gray-800">{customer.name}</td>
-                                    <td className="px-4 py-3 text-gray-600">{customer.phone || 'N/A'}</td>
-                                    <td className="px-4 py-3 text-gray-600">
-                                        {customer.last_order_date
-                                            ? format(new Date(customer.last_order_date), 'MMM d, yyyy')
-                                            : 'Never ordered'}
-                                    </td>
-                                </tr>
-                            ))
-                        )}
+                        ))
+                    )}
                     </tbody>
                 </table>
             )}
@@ -242,8 +241,8 @@ const InactiveCustomersTable = ({ inactiveCustomers, isLoading, error }) => (
                         <div className="text-xs text-gray-500 mt-1">{customer.phone || 'No phone'}</div>
                         <div className="text-xs text-gray-600 mt-1">
                             Last Order: {customer.last_order_date
-                                ? format(new Date(customer.last_order_date), 'MMM d, yyyy')
-                                : 'Never'}
+                            ? format(new Date(customer.last_order_date), 'MMM d, yyyy')
+                            : 'Never'}
                         </div>
                     </div>
                 ))
@@ -256,88 +255,86 @@ const InactiveCustomersTable = ({ inactiveCustomers, isLoading, error }) => (
 const SalesReportDisplay = ({ salesList, currentPage, totalPages, onPageChange, onDelete, isAdmin }) => (
     <div className="bg-white rounded-lg border shadow-sm md:overflow-hidden">
         <div className="overflow-x-auto hidden md:block">
-            <table className="min-w-full text-base">
+            <table className="min-w-full text-sm">
                 <thead className="bg-gray-100">
-                    <tr>
-                        <th className="px-4 py-3 text-left font-semibold text-gray-700">Date & Time</th>
-                        <th className="px-4 py-3 text-left font-semibold text-gray-700">Customer</th>
-                        <th className="px-4 py-3 text-left font-semibold text-gray-700">Item(s) & Qty</th>
-                        <th className="px-4 py-3 text-left font-semibold text-gray-700">Price(s)</th>
-                        <th className="px-4 py-3 text-left font-semibold text-gray-700">Discount</th>
-                        <th className="px-4 py-3 text-center font-semibold text-gray-700">Total Qty</th>
-                        <th className="px-4 py-3 text-right font-semibold text-gray-700">Total</th>
-                        <th className="px-4 py-3 text-left font-semibold text-gray-700">Payment</th>
-                        <th className="px-4 py-3 text-left font-semibold text-gray-700">Status</th>
-                        <th className="px-4 py-3 text-left font-semibold text-gray-700">Staff</th>
-                        {/* Only render Action column header if user is Admin */}
-                        {isAdmin && <th className="px-4 py-3 text-right font-semibold text-gray-700">Action</th>}
-                    </tr>
+                <tr>
+                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Date & Time</th>
+                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Customer</th>
+                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Item(s) & Qty</th>
+                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Price(s)</th>
+                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Discount</th>
+                    <th className="px-3 py-3 text-center font-semibold text-gray-700">Total Qty</th>
+                    <th className="px-3 py-3 text-right font-semibold text-gray-700">Total</th>
+                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Payment</th>
+                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Status</th>
+                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Staff</th>
+                    {isAdmin && <th className="px-3 py-3 text-right font-semibold text-gray-700">Action</th>}
+                </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                    {salesList.length === 0 ? (
-                        <tr>
-                            <td colSpan={isAdmin ? "11" : "10"} className="text-center p-6 text-gray-500 text-lg">
-                                No sales found for this period.
-                            </td>
-                        </tr>
-                    ) : (
-                        salesList.map(sale => (
-                            <tr key={sale.id} className="hover:bg-gray-50">
-                                <td className="px-4 py-3 whitespace-nowrap align-top">{format(new Date(sale.saleTimestamp), 'MMM d, yyyy h:mm a')}</td>
-                                <td className="px-4 py-3 whitespace-nowrap align-top">{sale.customerName}</td>
-                                <td className="px-4 py-3 align-top">
-                                    <div className="flex flex-col gap-1">
-                                        {(sale.sale_items || []).map((item, idx) => (
-                                            <span key={idx} className="block truncate" title={item.productName}>
+                {salesList.length === 0 ? (
+                    <tr>
+                        <td colSpan={isAdmin ? "11" : "10"} className="text-center p-6 text-gray-500 text-sm">
+                            No sales found for this period.
+                        </td>
+                    </tr>
+                ) : (
+                    salesList.map(sale => (
+                        <tr key={sale.id} className="hover:bg-gray-50">
+                            <td className="px-3 py-3 whitespace-nowrap align-top">{format(new Date(sale.saleTimestamp), 'MMM d, yyyy h:mm a')}</td>
+                            <td className="px-3 py-3 whitespace-nowrap align-top">{sale.customerName}</td>
+                            <td className="px-3 py-3 align-top">
+                                <div className="flex flex-col gap-1">
+                                    {(sale.sale_items || []).map((item, idx) => (
+                                        <span key={idx} className="block truncate" title={item.productName}>
                                                 {item.productName || 'N/A'} <span className="font-bold text-primary">x{item.quantity || 0}</span>
                                             </span>
-                                        ))}
-                                    </div>
-                                </td>
-                                <td className="px-4 py-3 align-top">
-                                    <div className="flex flex-col gap-1">
-                                        {(sale.sale_items || []).map((item, idx) => (
-                                            <span key={idx} className="block whitespace-nowrap">
+                                    ))}
+                                </div>
+                            </td>
+                            <td className="px-3 py-3 align-top">
+                                <div className="flex flex-col gap-1">
+                                    {(sale.sale_items || []).map((item, idx) => (
+                                        <span key={idx} className="block whitespace-nowrap">
                                                 {formatCurrency(item.productPrice || 0)}
                                             </span>
-                                        ))}
-                                    </div>
-                                </td>
-                                <td className="px-4 py-3 align-top">
-                                    <div className="flex flex-col gap-1">
-                                        {(sale.sale_items || []).map((item, idx) => (
-                                            <span key={idx} className={`block whitespace-nowrap ${item.discount_amount > 0 ? 'text-green-600 font-medium' : 'text-gray-400'}`}>
+                                    ))}
+                                </div>
+                            </td>
+                            <td className="px-3 py-3 align-top">
+                                <div className="flex flex-col gap-1">
+                                    {(sale.sale_items || []).map((item, idx) => (
+                                        <span key={idx} className={`block whitespace-nowrap ${item.discount_amount > 0 ? 'text-green-600 font-medium' : 'text-gray-400'}`}>
                                                 {item.discount_amount > 0 ? `-${formatCurrency(item.discount_amount)}` : '—'}
                                             </span>
-                                        ))}
-                                    </div>
-                                </td>
-                                <td className="px-4 py-3 align-top text-center font-medium text-gray-800">
-                                    {(sale.sale_items || []).reduce((acc, item) => acc + (item.quantity || 0), 0)}
-                                </td>
-                                <td className="px-4 py-3 text-right whitespace-nowrap align-top font-bold text-gray-900">
-                                    {formatCurrency(sale.totalAmount)}
-                                </td>
-                                <td className="px-4 py-3 whitespace-nowrap align-top">{sale.paymentMethod}</td>
-                                <td className="px-4 py-3 whitespace-nowrap align-top">{sale.status}</td>
-                                <td className="px-4 py-3 whitespace-nowrap align-top">{sale.staffName || 'N/A'}</td>
+                                    ))}
+                                </div>
+                            </td>
+                            <td className="px-3 py-3 align-top text-center font-medium text-gray-800">
+                                {(sale.sale_items || []).reduce((acc, item) => acc + (item.quantity || 0), 0)}
+                            </td>
+                            <td className="px-3 py-3 text-right whitespace-nowrap align-top font-bold text-gray-900">
+                                {formatCurrency(sale.totalAmount)}
+                            </td>
+                            <td className="px-3 py-3 whitespace-nowrap align-top">{sale.paymentMethod}</td>
+                            <td className="px-3 py-3 whitespace-nowrap align-top">{sale.status}</td>
+                            <td className="px-3 py-3 whitespace-nowrap align-top">{sale.staffName || 'N/A'}</td>
 
-                                {/* Only render the Delete Action if Admin */}
-                                {isAdmin && (
-                                    <td className="px-4 py-3 text-right align-top">
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="text-red-600 hover:bg-red-50 h-8 w-8"
-                                            onClick={() => onDelete(sale.id)}
-                                        >
-                                            <DeleteIcon className="w-4 h-4" />
-                                        </Button>
-                                    </td>
-                                )}
-                            </tr>
-                        ))
-                    )}
+                            {isAdmin && (
+                                <td className="px-3 py-3 text-right align-top">
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="text-red-600 hover:bg-red-50 h-8 w-8"
+                                        onClick={() => onDelete(sale.id)}
+                                    >
+                                        <DeleteIcon className="w-4 h-4" />
+                                    </Button>
+                                </td>
+                            )}
+                        </tr>
+                    ))
+                )}
                 </tbody>
             </table>
         </div>
@@ -362,7 +359,6 @@ const SalesReportDisplay = ({ salesList, currentPage, totalPages, onPageChange, 
 
 // --- Main Report Page Component ---
 const ReportPage = () => {
-    // Get the currently logged-in user from the store to check for admin privileges
     const user = useStore(state => state.user);
     const isAdmin = user?.role === 'Admin' || user?.role === 'admin';
 
@@ -375,11 +371,9 @@ const ReportPage = () => {
     const [customerSearch, setCustomerSearch] = useState('');
     const debouncedCustomerSearch = useDebounce(customerSearch, 300);
 
-    // Fetch products for the dropdown filter
     const { data: allProductsData } = useProducts({ fetchAll: true });
     const availableProducts = allProductsData?.products || [];
 
-    // Default to today
     const todayStr = new Date().toISOString().slice(0, 10);
     const [fromDate, setFromDate] = useState(todayStr);
     const [toDate, setToDate] = useState(todayStr);
@@ -388,21 +382,17 @@ const ReportPage = () => {
     const SALES_PAGE_SIZE = 10;
     const CUSTOMER_PAGE_SIZE = 5;
 
-    // --- Modal State ---
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [saleToDelete, setSaleToDelete] = useState(null);
 
-    // Add delete hook
     const deleteSaleMutation = useDeleteSale();
 
-    // Elevation on scroll
     React.useEffect(() => {
         const onScroll = () => setElevated(window.scrollY > 8);
         window.addEventListener('scroll', onScroll);
         return () => window.removeEventListener('scroll', onScroll);
     }, []);
 
-    // Calculate interval
     const interval = useMemo(() => {
         const start = fromDate ? new Date(fromDate) : new Date();
         start.setHours(0, 0, 0, 0);
@@ -421,7 +411,6 @@ const ReportPage = () => {
         return `${format(interval.start, 'MMM d, yyyy')} - ${format(interval.end, 'MMM d, yyyy')}`;
     }, [interval]);
 
-    // Pass interval AND pagination to useSales for the list
     const {
         data: salesPageData,
         isLoading: isLoadingList,
@@ -435,7 +424,6 @@ const ReportPage = () => {
         itemsPerPage: SALES_PAGE_SIZE
     });
 
-    // Fetch all sales data for the chart without pagination
     const { data: allSalesData } = useSales({
         startDate: interval.start,
         endDate: interval.end,
@@ -444,7 +432,6 @@ const ReportPage = () => {
         fetchAll: true,
     });
 
-    // Call hook for the total summary (Includes totalRefill20 & totalRefill25)
     const {
         data: summaryData,
         isLoading: isLoadingSummary,
@@ -455,7 +442,6 @@ const ReportPage = () => {
         productName: productSearch
     });
 
-    // Fetch customer data
     const {
         data: customersPageData,
         isLoading: isLoadingCustomers,
@@ -468,14 +454,12 @@ const ReportPage = () => {
         searchTerm: debouncedCustomerSearch
     });
 
-    // Fetch inactive customers (14+ days)
     const {
         data: inactiveCustomersPage,
         isLoading: isLoadingInactive,
         error: inactiveError
     } = useInactiveCustomers(14, { page: inactivePage, itemsPerPage: CUSTOMER_PAGE_SIZE });
 
-    // Combine loading and error states
     const isLoading = activeTab === 'sales'
         ? (isLoadingList || isLoadingSummary)
         : isLoadingCustomers;
@@ -484,16 +468,14 @@ const ReportPage = () => {
         ? (listError || summaryError)
         : customersError;
 
-    // Get data from hooks with fallbacks
     const salesData = salesPageData?.sales || [];
-    const chartSalesData = allSalesData?.sales || []; // Data for the chart
+    const chartSalesData = allSalesData?.sales || [];
     const totalPages = activeTab === 'sales'
         ? (salesPageData?.totalPages || 1)
         : (customersPageData?.totalPages || 1);
     const totalSalesCount = salesPageData?.totalCount || 0;
     const totalRevenue = summaryData?.totalRevenue || 0;
 
-    // --- PULL TARGETED REFILL QUANTITIES ---
     const totalRefill20 = summaryData?.totalRefill20 || 0;
     const totalRefill25 = summaryData?.totalRefill25 || 0;
     const totalRefills = totalRefill20 + totalRefill25;
@@ -503,7 +485,6 @@ const ReportPage = () => {
     const inactiveCustomers = inactiveCustomersPage?.customers || [];
     const inactiveHasMore = !!inactiveCustomersPage?.hasMore;
 
-    // Memoized title
     const reportTitle = useMemo(() => {
         if (format(interval.start, 'yyyy-MM-dd') === format(interval.end, 'yyyy-MM-dd')) {
             return `Daily Report: ${format(interval.start, 'MMMM d, yyyy')}`;
@@ -511,7 +492,6 @@ const ReportPage = () => {
         return `Custom Report: ${format(interval.start, 'MMM d, yyyy')} - ${format(interval.end, 'MMM d, yyyy')}`;
     }, [interval]);
 
-    // Memoized processing for the *paginated* sales list
     const processedSales = useMemo(() => {
         return salesData.map(sale => ({
             ...sale,
@@ -520,7 +500,6 @@ const ReportPage = () => {
         })).sort((a, b) => new Date(b.saleTimestamp) - new Date(a.saleTimestamp));
     }, [salesData]);
 
-    // Memoized processing for customers list
     const processedCustomers = useMemo(() => {
         return customersData.sort((a, b) => {
             const dateA = a.dateAdded ? new Date(a.dateAdded) : new Date(0);
@@ -529,7 +508,6 @@ const ReportPage = () => {
         });
     }, [customersData]);
 
-    // --- Event Handlers ---
     const handleTabChange = (tab) => {
         setActiveTab(tab);
         setCurrentPage(1);
@@ -558,7 +536,7 @@ const ReportPage = () => {
         setCustomerPage(1);
         setInactivePage(1);
         setProductSearch('');
-        setCustomerSearch(''); // Clear the customer search input
+        setCustomerSearch('');
     };
 
     const openDeleteModal = (id) => {
@@ -578,7 +556,6 @@ const ReportPage = () => {
         }
     };
 
-    // --- Render JSX ---
     return (
         <div className="report-page max-w-7xl mx-auto p-2 md:p-4 space-y-4 responsive-page">
             <h1 className="text-2xl font-bold">Reports</h1>
@@ -618,13 +595,12 @@ const ReportPage = () => {
                         </div>
 
                         <div className="flex flex-col gap-4">
-                            {/* Row 1: Dates side-by-side on desktop */}
                             <div className="flex flex-col md:flex-row gap-4 w-full">
                                 <div className="flex-1">
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Date From</label>
                                     <Input
                                         type="date"
-                                        className="text-base md:text-lg h-12 w-full"
+                                        className="text-base md:text-sm h-10 w-full"
                                         value={fromDate || ''}
                                         onChange={handleFromDateChange}
                                     />
@@ -633,14 +609,13 @@ const ReportPage = () => {
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Date To</label>
                                     <Input
                                         type="date"
-                                        className="text-base md:text-lg h-12 w-full"
+                                        className="text-base md:text-sm h-10 w-full"
                                         value={toDate || ''}
                                         onChange={handleToDateChange}
                                     />
                                 </div>
                             </div>
 
-                            {/* Row 2: Product & Customer side-by-side on desktop */}
                             <div className="flex flex-col md:flex-row gap-4 w-full">
                                 <div className="flex-1">
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Product</label>
@@ -650,7 +625,7 @@ const ReportPage = () => {
                                             setProductSearch(e.target.value);
                                             setCurrentPage(1);
                                         }}
-                                        className="text-base md:text-lg w-full h-12"
+                                        className="text-base md:text-sm w-full h-10"
                                     >
                                         <option value="">All Products</option>
                                         {availableProducts.map(p => (
@@ -663,7 +638,7 @@ const ReportPage = () => {
                                     <Input
                                         type="text"
                                         placeholder="Search customer..."
-                                        className="text-base md:text-lg h-12 w-full"
+                                        className="text-base md:text-sm h-10 w-full"
                                         value={customerSearch}
                                         onChange={(e) => {
                                             setCustomerSearch(e.target.value);
@@ -673,7 +648,6 @@ const ReportPage = () => {
                                 </div>
                             </div>
 
-                            {/* Row 3: Clear Button */}
                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mt-2">
                                 <div className="text-xs text-gray-500 italic">
                                     Note: For a single day report, select the same date for Date From and Date To.
@@ -682,7 +656,7 @@ const ReportPage = () => {
                                     <div className="flex-shrink-0">
                                         <Button
                                             onClick={handleClearRange}
-                                            className="px-6 py-2 text-base rounded-md btn--outline w-full md:w-max"
+                                            className="px-6 py-2 text-sm rounded-md btn--outline w-full md:w-max"
                                             title="Clear filters"
                                         >
                                             Clear Filters
@@ -693,12 +667,10 @@ const ReportPage = () => {
                         </div>
                     </div>
 
-                    {/* --- Weekly Sales Chart --- */}
                     <div className="my-4">
                         <WeeklySalesChart salesData={chartSalesData} />
                     </div>
 
-                    {/* --- Report Title & Item Quantities Summary --- */}
                     <div className="px-1 flex flex-col md:flex-row md:items-end md:justify-between gap-1">
                         <div>
                             <h2 className="text-lg font-semibold leading-tight">{reportTitle}</h2>
@@ -733,7 +705,7 @@ const ReportPage = () => {
                             totalPages={totalPages}
                             onPageChange={page => setCurrentPage(page)}
                             onDelete={openDeleteModal}
-                            isAdmin={isAdmin} // Pass the admin state here
+                            isAdmin={isAdmin}
                         />
                     )}
                 </>
@@ -759,13 +731,12 @@ const ReportPage = () => {
                         </div>
 
                         <div className="flex flex-col gap-4">
-                            {/* Row 1: Dates side-by-side on desktop */}
                             <div className="flex flex-col md:flex-row gap-4 w-full">
                                 <div className="flex-1">
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Date From</label>
                                     <Input
                                         type="date"
-                                        className="text-base md:text-lg h-12 w-full"
+                                        className="text-base md:text-sm h-10 w-full"
                                         value={fromDate || ''}
                                         onChange={handleFromDateChange}
                                     />
@@ -774,14 +745,13 @@ const ReportPage = () => {
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Date To</label>
                                     <Input
                                         type="date"
-                                        className="text-base md:text-lg h-12 w-full"
+                                        className="text-base md:text-sm h-10 w-full"
                                         value={toDate || ''}
                                         onChange={handleToDateChange}
                                     />
                                 </div>
                             </div>
 
-                            {/* Row 2: Empty placeholder & Customer side-by-side on desktop */}
                             <div className="flex flex-col md:flex-row gap-4 w-full">
                                 <div className="flex-1 hidden md:block" />
                                 <div className="flex-1">
@@ -789,7 +759,7 @@ const ReportPage = () => {
                                     <Input
                                         type="text"
                                         placeholder="Search customer..."
-                                        className="text-base md:text-lg h-12 w-full"
+                                        className="text-base md:text-sm h-10 w-full"
                                         value={customerSearch}
                                         onChange={(e) => {
                                             setCustomerSearch(e.target.value);
@@ -799,7 +769,6 @@ const ReportPage = () => {
                                 </div>
                             </div>
 
-                            {/* Row 3: Clear Button */}
                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mt-2">
                                 <div className="text-xs text-gray-500 italic">
                                     Note: For a single day report, select the same date for Date From and Date To.
@@ -808,7 +777,7 @@ const ReportPage = () => {
                                     <div className="flex-shrink-0">
                                         <Button
                                             onClick={handleClearRange}
-                                            className="px-6 py-2 text-base rounded-md btn--outline w-full md:w-max"
+                                            className="px-6 py-2 text-sm rounded-md btn--outline w-full md:w-max"
                                             title="Clear filters"
                                         >
                                             Clear Filters
