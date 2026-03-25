@@ -73,55 +73,114 @@ export function useSalesSummary({ startDate, endDate, productName } = {}) {
             }
 
             // --- REAL DATABASE LOGIC ---
-            let query = supabase
-                .from('sale_items')
-                .select(`
-                    price_at_sale,
-                    cost_at_sale,
-                    quantity,
-                    product_name,
-                    sales!inner (saletimestamp)
-                `);
+            if (productName) {
+                // If filtering by product, we MUST use sale_items
+                let query = supabase
+                    .from('sale_items')
+                    .select(`
+                        price_at_sale,
+                        cost_at_sale,
+                        quantity,
+                        product_name,
+                        sales!inner (saletimestamp)
+                    `);
 
-            if (startDate) query = query.gte('sales.saletimestamp', startDate.toISOString());
-            if (endDate) query = query.lte('sales.saletimestamp', endDate.toISOString());
-            if (productName) query = query.ilike('product_name', `%${productName.trim()}%`);
+                if (startDate) query = query.gte('sales.saletimestamp', startDate.toISOString());
+                if (endDate) query = query.lte('sales.saletimestamp', endDate.toISOString());
+                query = query.ilike('product_name', `%${productName.trim()}%`);
 
-            const { data, error } = await query;
-            if (error) throw error;
+                const { data, error } = await query;
+                if (error) throw error;
 
-            let totalRevenue = 0;
-            let totalProfit = 0;
-            let totalRefill20 = 0;
-            let totalRefill25 = 0;
-            let firstTransactionDate = null;
+                let totalRevenue = 0;
+                let totalProfit = 0;
+                let totalRefill20 = 0;
+                let totalRefill25 = 0;
+                let firstTransactionDate = null;
 
-            if (data && Array.isArray(data)) {
-                data.forEach(item => {
-                    const qty = item.quantity || 0;
-                    const revenue = (item.price_at_sale || 0) * qty;
-                    const cost = (item.cost_at_sale || 0) * qty;
+                if (data && Array.isArray(data)) {
+                    data.forEach(item => {
+                        const qty = item.quantity || 0;
+                        const revenue = (item.price_at_sale || 0) * qty;
+                        const cost = (item.cost_at_sale || 0) * qty;
 
-                    totalRevenue += revenue;
-                    totalProfit += (revenue - cost);
+                        totalRevenue += revenue;
+                        totalProfit += (revenue - cost);
 
-                    const name = (item.product_name || '').trim().replace(/\s+/g, '');
-                    if (name === 'Refill(20)') {
-                        totalRefill20 += qty;
-                    } else if (name === 'Refill(25)') {
-                        totalRefill25 += qty;
-                    }
+                        const name = (item.product_name || '').trim().replace(/\s+/g, '');
+                        if (name === 'Refill(20)') {
+                            totalRefill20 += qty;
+                        } else if (name === 'Refill(25)') {
+                            totalRefill25 += qty;
+                        }
 
-                    if (item.sales && item.sales.saletimestamp) {
-                        const sDate = new Date(item.sales.saletimestamp);
+                        if (item.sales && item.sales.saletimestamp) {
+                            const sDate = new Date(item.sales.saletimestamp);
+                            if (!firstTransactionDate || sDate < firstTransactionDate) {
+                                firstTransactionDate = sDate;
+                            }
+                        }
+                    });
+                }
+
+                return { totalRevenue, totalProfit, totalRefill20, totalRefill25, firstTransactionDate };
+            } else {
+                // If NO product filter, query 'sales' table directly for better accuracy
+                let query = supabase
+                    .from('sales')
+                    .select(`
+                        totalamount,
+                        saletimestamp,
+                        sale_items (
+                            product_name,
+                            quantity,
+                            price_at_sale,
+                            cost_at_sale
+                        )
+                    `);
+
+                if (startDate) query = query.gte('saletimestamp', startDate.toISOString());
+                if (endDate) query = query.lte('saletimestamp', endDate.toISOString());
+
+                const { data, error } = await query;
+                if (error) throw error;
+
+                let totalRevenue = 0;
+                let totalProfit = 0;
+                let totalRefill20 = 0;
+                let totalRefill25 = 0;
+                let firstTransactionDate = null;
+
+                if (data && Array.isArray(data)) {
+                    data.forEach(sale => {
+                        totalRevenue += (sale.totalamount || 0);
+                        
+                        const sDate = new Date(sale.saletimestamp);
                         if (!firstTransactionDate || sDate < firstTransactionDate) {
                             firstTransactionDate = sDate;
                         }
-                    }
-                });
-            }
 
-            return { totalRevenue, totalProfit, totalRefill20, totalRefill25, firstTransactionDate };
+                        if (sale.sale_items && Array.isArray(sale.sale_items)) {
+                            sale.sale_items.forEach(item => {
+                                const qty = item.quantity || 0;
+                                const revenue = (item.price_at_sale || 0) * qty;
+                                const cost = (item.cost_at_sale || 0) * qty;
+                                
+                                totalProfit += (revenue - cost);
+
+                                const name = (item.product_name || '').trim().replace(/\s+/g, '');
+                                if (name === 'Refill(20)') {
+                                    totalRefill20 += qty;
+                                } else if (name === 'Refill(25)') {
+                                    totalRefill25 += qty;
+                                }
+                            });
+                        }
+                    });
+                }
+
+                return { totalRevenue, totalProfit, totalRefill20, totalRefill25, firstTransactionDate };
+            }
         },
         staleTime: 1000 * 60 * 3,
     });

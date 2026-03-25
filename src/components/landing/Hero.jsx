@@ -28,12 +28,15 @@ const Hero = () => {
 
         {/* Background Image - ensure full image is visible and not cut off */}
         <div className="absolute inset-0 top-24 md:top-28 z-0 w-full h-full flex items-center justify-center pointer-events-none select-none">
-          <img
-              src="/seaside3d3.png"
-              alt="Crystal clear water"
-              className="w-full h-full object-contain opacity-100"
-              style={{ maxHeight: '80vh', maxWidth: '100vw' }}
-          />
+          <picture>
+            <source media="(min-width: 768px)" srcSet="/seaside3d3.png" />
+            <img
+                src="/seaside3d4.png"
+                alt="Crystal clear water"
+                className="w-full h-full object-contain opacity-100"
+                style={{ maxHeight: '80vh', maxWidth: '100vw' }}
+            />
+          </picture>
         </div>
 
         {/* Content - REMOVED conflicting pt-24 lg:py-20 classes that were causing the cutoff */}
