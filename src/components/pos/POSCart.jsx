@@ -27,8 +27,8 @@ const POSCart = ({
                      openPaymentModal,
                      createSaleMutation,
                      lastCustomer,
-                     onEditItem, // Receive callback
-                     handleSetQuantity // Handle manual quantity input
+                     onEditItem,
+                     handleSetQuantity
                  }) => {
 
     return (
@@ -49,7 +49,7 @@ const POSCart = ({
                         <div
                             className="overflow-y-auto w-full current-order-scroll-area"
                             style={{
-                                height: '14rem' // Approx 4 items (3.5rem each)
+                                height: '14rem'
                             }}
                         >
                             <div className="flex flex-col divide-y divide-gray-100 p-2">
@@ -57,7 +57,7 @@ const POSCart = ({
                                     <div
                                         key={key}
                                         className="flex items-center gap-3 py-2 group hover:bg-gray-50 rounded-lg px-2 transition-colors cursor-pointer"
-                                        onClick={() => onEditItem && onEditItem(key)} // Open modal on row click
+                                        onClick={() => onEditItem && onEditItem(key)}
                                         style={{ minHeight: '3.5rem' }}
                                     >
                                         <div className="flex-shrink-0 w-10 h-10 rounded-md flex items-center justify-center overflow-hidden border border-gray-200 bg-white">
@@ -88,7 +88,6 @@ const POSCart = ({
                                             </div>
                                         </div>
 
-                                        {/* Controls Wrapper - prevent row click propagation */}
                                         <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
                                             <Button
                                                 variant="ghost"
@@ -130,7 +129,6 @@ const POSCart = ({
                                             {currency(item.price * item.quantity, { symbol: '₱', precision: 2 }).format()}
                                         </div>
 
-                                        {/* Edit Button (Visual cue) */}
                                         <Button
                                             variant="ghost"
                                             size="sm"
@@ -173,7 +171,12 @@ const POSCart = ({
                             <span>Total</span>
                             <span className="text-success">₱{currency(subtotal, { symbol: '', precision: 2 }).format()}</span>
                         </div>
-                        <Button variant="primary" className="w-full h-12 text-lg rounded-lg shadow-md font-semibold flex" onClick={openPaymentModal} disabled={Object.keys(currentSale).length === 0 || createSaleMutation.isPending}>
+                        <Button
+                            variant="primary"
+                            className="w-full h-12 text-lg rounded-lg shadow-md font-semibold flex items-center justify-center"
+                            onClick={openPaymentModal}
+                            disabled={Object.keys(currentSale).length === 0 || createSaleMutation.isPending}
+                        >
                             {createSaleMutation.isPending ? 'Processing...' : 'Proceed to Payment'}
                         </Button>
                     </div>

@@ -59,13 +59,13 @@ export const CardFooter = ({ children, className }) => (
 
 // --- UPDATED DIALOG COMPONENT TO USE PORTAL ---
 export const Dialog = ({ open, children, className, style, onOpenChange, closeOnBackdropClick = false }) => {
-    const [portalNode, setPortalNode] = React.useState(null);
+    if (!open) return null;
 
-    React.useEffect(() => {
-        setPortalNode(document.getElementById('modal-root'));
-    }, []);
+    const portalNode = typeof document !== 'undefined'
+        ? (document.getElementById('modal-root') || document.body)
+        : null;
 
-    if (!open || !portalNode) return null;
+    if (!portalNode) return null;
 
     return createPortal(
         <div

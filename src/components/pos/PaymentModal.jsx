@@ -1,36 +1,36 @@
 // src/components/pos/PaymentModal.jsx
 import React, { useMemo, useEffect } from 'react';
 import {
-    Button, Dialog, DialogContent, DialogCloseButton, DialogHeader, DialogTitle, DialogFooter, Input, Label, ScrollArea, Select
+    Button, Dialog, DialogContent, DialogCloseButton, Input, Label, Select
 } from '../ui';
 import { UserIcon } from '../Icons';
 import currency from 'currency.js';
 
 const PaymentModal = ({
-    isOpen,
-    setIsOpen,
-    searchTerm,
-    setSearchTerm,
-    selectedCustomer,
-    handleSelectCustomerInPayment,
-    isSearchingCustomers,
-    customerSearchResults,
-    handleAddCustomer,
-    createCustomerMutation = { isPending: false },
-    lastCustomer,
-    paymentMethod,
-    setPaymentMethod,
-    amountReceived,
-    setAmountReceived,
-    subtotal,
-    saleDate,
-    setSaleDate,
-    saleTime,
-    setSaleTime,
-    handleFinalizeSale,
-    createSaleMutation = { isPending: false },
-    customerPaymentInputRef,
-}) => {
+                          isOpen,
+                          setIsOpen,
+                          searchTerm,
+                          setSearchTerm,
+                          selectedCustomer,
+                          handleSelectCustomerInPayment,
+                          isSearchingCustomers,
+                          customerSearchResults,
+                          handleAddCustomer,
+                          createCustomerMutation = { isPending: false },
+                          lastCustomer,
+                          paymentMethod,
+                          setPaymentMethod,
+                          amountReceived,
+                          setAmountReceived,
+                          subtotal,
+                          saleDate,
+                          setSaleDate,
+                          saleTime,
+                          setSaleTime,
+                          handleFinalizeSale,
+                          createSaleMutation = { isPending: false },
+                          customerPaymentInputRef,
+                      }) => {
 
     const changeDue = useMemo(() => {
         const received = parseFloat(amountReceived) || 0;
@@ -38,38 +38,39 @@ const PaymentModal = ({
         return Math.max(0, received - total);
     }, [amountReceived, subtotal]);
 
-    // Ensure we have a valid array
     const results = Array.isArray(customerSearchResults) ? customerSearchResults : [];
     const showResults = searchTerm && searchTerm.length > 0;
 
-    // Focus the customer search box when the modal opens
     useEffect(() => {
         if (isOpen) {
             const timer = setTimeout(() => {
-                customerPaymentInputRef?.current?.focus();
+                if (customerPaymentInputRef?.current) {
+                    customerPaymentInputRef.current.focus();
+                }
             }, 150);
             return () => clearTimeout(timer);
         }
-    }, [isOpen]);
+    }, [isOpen, customerPaymentInputRef]);
 
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogContent
-                className="sm:max-w-4xl p-0 bg-white overflow-hidden flex flex-col max-h-[90vh] responsive-page"
-                style={{ backgroundColor: '#ffffff', zIndex: 50 }}
+                className="p-0 bg-white overflow-hidden shadow-2xl rounded-2xl"
+                // Safely overriding the default ui.js width limitations using inline styles
+                style={{ zIndex: 50, maxWidth: '900px', width: '95vw' }}
             >
-                <DialogHeader className="px-6 py-4 border-b bg-white flex-shrink-0">
-                    <DialogTitle className="text-xl font-bold text-gray-900">Complete Sale</DialogTitle>
+                {/* Header */}
+                <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-white">
+                    <h2 className="text-xl font-bold text-gray-900">Complete Sale</h2>
                     <DialogCloseButton onClick={() => setIsOpen(false)} />
-                </DialogHeader>
+                </div>
 
-                <div className="flex-1 overflow-y-auto px-6 py-6 bg-white">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 h-full">
+                {/* Body - Replaced fragile flex-1 with block max-height scrolling */}
+                <div className="overflow-y-auto bg-white p-4 sm:p-6" style={{ maxHeight: '70vh' }}>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
 
-                        {/* LEFT COLUMN: Customer Selection */}
-                        <div className="flex flex-col gap-6 border-b md:border-b-0 md:border-r border-gray-100 md:pr-8 pb-6 md:pb-0">
-
-                            {/* SEARCH INPUT */}
+                        {/* LEFT COLUMN: Customer Selection (Displayed First) */}
+                        <div className="flex flex-col gap-6 lg:border-r border-gray-100 lg:pr-8">
                             <div>
                                 <Label htmlFor="customer-search-payment" className="text-sm font-semibold text-gray-700 mb-2">
                                     Select Customer
@@ -93,9 +94,9 @@ const PaymentModal = ({
                                 </div>
                             </div>
 
-                            {/* LAST CUSTOMER BUTTON */}
+                            {/* Last Customer Shortcut */}
                             {lastCustomer && !showResults && (
-                                <div className="mt-2">
+                                <div className="mt-[-10px]">
                                     <Button
                                         variant="outline"
                                         className="w-full justify-start text-left h-auto py-2 px-3 bg-gray-50 hover:bg-gray-100 border-gray-200"
@@ -107,7 +108,7 @@ const PaymentModal = ({
                                 </div>
                             )}
 
-                            {/* RESULTS LIST */}
+                            {/* Search Results */}
                             {showResults && (
                                 <div className="w-full border rounded-lg border-gray-200 bg-gray-50 flex flex-col animate-in fade-in slide-in-from-top-2 duration-200">
                                     <div className="max-h-60 overflow-y-auto p-1">
@@ -162,7 +163,7 @@ const PaymentModal = ({
                                 </div>
                             )}
 
-                            {/* SELECTED CUSTOMER CARD */}
+                            {/* Active Selected Customer */}
                             <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex flex-col justify-center items-center text-center gap-1 mt-auto">
                                 <span className="text-xs font-semibold text-blue-600 uppercase tracking-wide">Selected Customer</span>
                                 <span className="font-bold text-blue-900 text-xl">
@@ -176,9 +177,10 @@ const PaymentModal = ({
 
                         {/* RIGHT COLUMN: Payment Details */}
                         <div className="flex flex-col gap-6">
-                            {/* Total Amount Banner */}
-                            <div className="bg-primary p-6 rounded-2xl text-white shadow-lg text-center flex flex-col justify-center transform transition-transform hover:scale-[1.01]"
-                                style={{ backgroundColor: 'var(--primary)' }}
+
+                            {/* Total Amount Display */}
+                            <div className="bg-primary p-6 rounded-2xl text-white shadow-lg text-center flex flex-col justify-center"
+                                 style={{ backgroundColor: 'var(--primary)' }}
                             >
                                 <span className="text-white/90 text-sm font-medium uppercase tracking-wider opacity-90">Total Amount Due</span>
                                 <span className="text-5xl font-bold mt-1 tracking-tight">
@@ -187,7 +189,7 @@ const PaymentModal = ({
                             </div>
 
                             <div className="space-y-5">
-                                {/* Payment Method */}
+                                {/* Payment Method Selection */}
                                 <div>
                                     <Label htmlFor="paymentMethod" className="text-sm font-semibold text-gray-700">Payment Method</Label>
                                     <Select
@@ -204,7 +206,7 @@ const PaymentModal = ({
                                     </Select>
                                 </div>
 
-                                {/* Payment Input Logic */}
+                                {/* Dynamic Payment Inputs */}
                                 {paymentMethod === 'Cash' ? (
                                     <div className="animate-in fade-in slide-in-from-top-2 duration-300">
                                         <Label htmlFor="amountReceived" className="text-sm font-semibold text-gray-700">Cash Received</Label>
@@ -244,7 +246,6 @@ const PaymentModal = ({
                                         </div>
                                     </div>
                                 ) : paymentMethod === 'Charge' ? (
-                                    /* --- CHARGE UI --- */
                                     <div className="animate-in fade-in slide-in-from-top-2 duration-300 space-y-4">
                                         <div className="p-4 bg-orange-50 border border-orange-100 rounded-xl">
                                             <h4 className="text-orange-800 font-bold flex items-center gap-2">
@@ -277,7 +278,6 @@ const PaymentModal = ({
                                         )}
                                     </div>
                                 ) : (
-                                    /* --- OTHER METHODS --- */
                                     <div className="p-6 bg-gray-50 rounded-xl border border-gray-200 text-center text-gray-500">
                                         Reference / Transaction ID input can go here.
                                     </div>
@@ -298,30 +298,29 @@ const PaymentModal = ({
                     </div>
                 </div>
 
-                <DialogFooter className="px-6 py-4 border-t bg-gray-50 flex-shrink-0">
-                    <div className="flex w-full justify-end gap-3">
-                        <Button
-                            variant="outline"
-                            onClick={() => setIsOpen(false)}
-                            className="px-6 h-12 text-base bg-white border-gray-300 hover:bg-gray-50"
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            onClick={handleFinalizeSale}
-                            disabled={
-                                createSaleMutation.isPending ||
-                                (paymentMethod === 'Cash' && parseFloat(amountReceived || 0) < subtotal) ||
-                                (paymentMethod === 'Cash' && !amountReceived) ||
-                                (paymentMethod === 'Charge' && !selectedCustomer)
-                            }
-                            variant="primary"
-                            className="px-8 h-12 text-base font-bold shadow-md hover:shadow-lg transition-all btn--primary flex-1 sm:flex-none"
-                        >
-                            {createSaleMutation.isPending ? 'Processing...' : `Confirm Sale`}
-                        </Button>
-                    </div>
-                </DialogFooter>
+                {/* Footer Actions */}
+                <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex flex-col sm:flex-row justify-end gap-3 rounded-b-xl">
+                    <Button
+                        variant="outline"
+                        onClick={() => setIsOpen(false)}
+                        className="w-full sm:w-auto px-6 h-12 text-base bg-white border-gray-300"
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        onClick={handleFinalizeSale}
+                        disabled={
+                            createSaleMutation.isPending ||
+                            (paymentMethod === 'Cash' && parseFloat(amountReceived || 0) < parseFloat(subtotal)) ||
+                            (paymentMethod === 'Cash' && !amountReceived) ||
+                            (paymentMethod === 'Charge' && !selectedCustomer)
+                        }
+                        variant="primary"
+                        className="w-full sm:w-auto px-8 h-12 text-base font-bold shadow-md hover:shadow-lg transition-all btn--primary"
+                    >
+                        {createSaleMutation.isPending ? 'Processing...' : `Confirm Sale`}
+                    </Button>
+                </div>
             </DialogContent>
         </Dialog>
     );

@@ -357,11 +357,13 @@ export default function POSPage() {
     };
 
     const openPaymentModal = () => {
+        const currentTotal = getTotalAmount();
         if (Object.keys(currentSale).length === 0) {
             addToast({ title: 'Empty Cart', description: 'Add items before proceeding.', variant: 'warning' });
             return;
         }
-        setAmountReceived(subtotal.toFixed(2));
+
+        setAmountReceived(currentTotal.toFixed(2));
         setPaymentMethod('Cash');
         setSaleDate(getLocalDateString());
         setSaleTime(getLocalTimeString());

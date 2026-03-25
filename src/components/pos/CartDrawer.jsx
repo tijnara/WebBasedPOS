@@ -27,8 +27,8 @@ const CartDrawer = ({
                         openPaymentModal,
                         createSaleMutation,
                         clearSale,
-                        onEditItem, // New Prop
-                        handleSetQuantity // Handle manual quantity input
+                        onEditItem,
+                        handleSetQuantity
                     }) => {
     const cartItems = Object.entries(currentSale);
 
@@ -67,9 +67,8 @@ const CartDrawer = ({
                                 <div
                                     key={key}
                                     className="flex items-center justify-between p-4 bg-white active:bg-gray-50 transition-colors cursor-pointer"
-                                    onClick={() => onEditItem && onEditItem(key)} // Trigger edit on row click
+                                    onClick={() => onEditItem && onEditItem(key)}
                                 >
-                                    {/* Left: Image & Name */}
                                     <div className="flex items-center gap-4 flex-1 min-w-0 mr-2">
                                         <div className="w-12 h-12 flex-shrink-0 rounded-lg overflow-hidden border border-gray-100">
                                             <ProductImage
@@ -93,9 +92,7 @@ const CartDrawer = ({
                                         </div>
                                     </div>
 
-                                    {/* Right: Controls Row */}
                                     <div className="flex items-center gap-2 flex-shrink-0">
-                                        {/* Qty Controls */}
                                         <div className="flex items-center gap-2 text-sm font-medium text-gray-600" onClick={e => e.stopPropagation()}>
                                             <button
                                                 className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-primary active:scale-90 transition-transform text-lg leading-none border border-gray-100 rounded-full"
@@ -128,14 +125,12 @@ const CartDrawer = ({
                                             </button>
                                         </div>
 
-                                        {/* Item Total */}
                                         <div className="flex flex-col items-end w-[60px]">
                                             <span className="font-bold text-gray-900 text-sm">
                                                 {currency(item.price * item.quantity).format({ symbol: '₱' })}
                                             </span>
                                         </div>
 
-                                        {/* Edit Button (Visible) */}
                                         <button
                                             className="text-blue-500 hover:text-blue-700 p-1"
                                             onClick={(e) => {
@@ -167,10 +162,12 @@ const CartDrawer = ({
 
                     <Button
                         variant="primary"
-                        className="w-full h-12 text-base font-bold rounded-xl shadow-lg bg-[#8BC34A] hover:bg-[#7CB342] text-white active:scale-[0.98] transition-transform"
+                        className="w-full h-12 text-base font-bold rounded-xl shadow-lg bg-[#8BC34A] hover:bg-[#7CB342] text-white active:scale-[0.98] transition-transform flex items-center justify-center"
                         onClick={() => {
                             onClose();
-                            openPaymentModal();
+                            setTimeout(() => {
+                                openPaymentModal();
+                            }, 150); // Small delay fixes UI transition context mapping on mobile
                         }}
                         disabled={cartItems.length === 0 || createSaleMutation.isPending}
                     >
