@@ -192,7 +192,7 @@ export default function UserManagementPage() {
     const isMutating = createUser.isPending || updateUser.isPending || deleteUser.isPending;
 
     return (
-        <div className="user-page">
+        <div className="user-page responsive-page">
             <div>
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                     <div>

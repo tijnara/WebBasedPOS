@@ -56,13 +56,7 @@ const articles = [
 export default function ResourcesPage() {
   return (
     <div 
-      className="min-h-screen font-sans"
-      style={{
-        backgroundImage: "url('/seaside_bg2.png')",
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundAttachment: 'fixed'
-      }}
+      className="min-h-screen font-sans responsive-page"
     >
       <div className="max-w-5xl mx-auto p-6 md:p-12">
         <Head>

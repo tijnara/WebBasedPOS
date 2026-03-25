@@ -6,13 +6,7 @@ import { ArrowLeft, AlertTriangle, Sparkles, Droplet, HelpCircle } from 'lucide-
 export default function DispenserCleaningSigns() {
   return (
     <div
-      className="min-h-screen text-slate-800 font-sans selection:bg-lime-200"
-      style={{
-        backgroundImage: "url('/seaside_bg2.png')",
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundAttachment: 'fixed'
-      }}
+      className="min-h-screen text-slate-800 font-sans selection:bg-lime-200 responsive-page"
     >
       <Head>
         <title>6 Signs Your Home Water Dispenser Needs Immediate Cleaning | Seaside</title>

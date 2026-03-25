@@ -6,13 +6,7 @@ import { ArrowLeft, Truck, ShieldCheck, Users, Star, HelpCircle } from 'lucide-r
 export default function WhySeasideTrusted() {
   return (
     <div
-      className="min-h-screen text-slate-800 font-sans selection:bg-lime-200"
-      style={{
-        backgroundImage: "url('/seaside_bg2.png')",
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundAttachment: 'fixed'
-      }}
+      className="min-h-screen text-slate-800 font-sans selection:bg-lime-200 responsive-page"
     >
       <Head>
         <title>Why Seaside is the Most Trusted Water Delivery in Labrador, Pangasinan | Seaside</title>

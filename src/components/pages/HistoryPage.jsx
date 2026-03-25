@@ -220,7 +220,7 @@ export default function HistoryPage() {
     const sortedSales = sales.sort((a, b) => new Date(b.saleTimestamp) - new Date(a.saleTimestamp));
 
     return (
-        <div className="history-page">
+        <div className="history-page responsive-page">
             <div>
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                     <div>

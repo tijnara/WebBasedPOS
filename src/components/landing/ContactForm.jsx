@@ -1,6 +1,6 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
-import { Button, Input, Textarea } from '../ui';
+import { Button, Input, Textarea } from '../ui.js';
 import { Facebook } from 'lucide-react';
 
 const ContactForm = ({ settings }) => {
@@ -25,7 +25,7 @@ const ContactForm = ({ settings }) => {
     };
 
     return (
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 responsive-page">
             {/* Honeypot field */}
             <div className="hidden">
                 <label htmlFor="honeypot">Do not fill this out</label>
@@ -63,7 +63,7 @@ const ContactForm = ({ settings }) => {
                 {errors.message && <p className="text-red-500 text-sm mt-1">{errors.message.message}</p>}
             </div>
             <div className="flex flex-col sm:flex-row items-center justify-between gap-6 pt-6 border-t border-gray-200">
-                <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-black px-10 py-3 rounded-xl font-bold shadow-md">
+                <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto text-white px-10 py-3 rounded-xl font-bold shadow-md" style={{ backgroundColor: '#4CAF50' }}>
                     {isSubmitting ? 'Sending...' : 'Send Message'}
                 </Button>
                 <a

@@ -24,7 +24,7 @@ const SpoilageReport = () => {
     const totalLoss = spoilageData.reduce((acc, curr) => acc + curr.total_loss_value, 0);
 
     return (
-        <Card className="border-l-4 border-l-orange-500 shadow-sm mt-6">
+        <Card className="border-l-4 border-l-orange-500 shadow-sm mt-6 responsive-page">
             <CardHeader className="bg-orange-50 pb-3 border-b border-orange-100">
                 <div className="flex justify-between items-center">
                     <h3 className="font-bold text-lg text-orange-800 flex items-center gap-2">
@@ -71,4 +71,3 @@ const SpoilageReport = () => {
 };
 
 export default SpoilageReport;
-

@@ -9,7 +9,7 @@ const POSProductGrid = ({
                             handleAdd,
                         }) => {
     return (
-        <div className="w-full md:w-2/3 flex-1 pr-2">
+        <div className="w-full md:w-2/3 flex-1 pr-2 responsive-page">
             {isLoading ? (
                 <div className="p-10 text-center text-muted">Loading products...</div>
             ) : !products.length ? (

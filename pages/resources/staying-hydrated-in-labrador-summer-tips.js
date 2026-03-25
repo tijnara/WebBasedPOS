@@ -6,13 +6,7 @@ import { ArrowLeft, Sun, Thermometer, Droplets } from 'lucide-react';
 export default function SummerHydrationTips() {
   return (
     <div
-      className="min-h-screen text-slate-800 font-sans selection:bg-lime-200"
-      style={{
-        backgroundImage: "url('/seaside_bg2.png')",
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundAttachment: 'fixed'
-      }}
+      className="min-h-screen text-slate-800 font-sans selection:bg-lime-200 responsive-page"
     >
       <Head>
         <title>Beat the Heat: Essential Hydration Tips for Labrador Summers | Seaside</title>

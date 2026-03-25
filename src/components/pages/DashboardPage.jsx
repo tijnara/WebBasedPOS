@@ -315,7 +315,7 @@ export default function DashboardPage() {
         : "All time";
 
     return (
-        <div className="p-4 md:p-6 bg-slate-50/50 min-h-screen">
+        <div className="p-4 md:p-6 bg-slate-50/50 min-h-screen responsive-page">
 
             {/* Page Header */}
             <div className="flex flex-col md:flex-row justify-between md:items-end gap-4 mb-6">
@@ -332,14 +332,14 @@ export default function DashboardPage() {
             </div>
 
             {/* KPI Cards Grid */}
-            <div className="grid grid-cols-3 gap-6 mb-6">
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
                 <SummaryCard className="col-span-1" title="Today's Sales" value={currency(todaySalesSummary?.totalRevenue || 0, { symbol: '₱' }).format()} subtext="Sales today" colorClass="text-[#8BC34A]" icon={<CurrencyDollarIcon />} />
                 <SummaryCard className="col-span-1" title="This Week Sales" value={currency(thisWeekSales || 0, { symbol: '₱' }).format()} subtext="Current week revenue" colorClass="text-blue-600" icon={<TrendingUpIcon />} />
-                <SummaryCard className="col-span-1" title="All Time Sales" value={currency(salesSummary?.totalRevenue || 0, { symbol: '₱' }).format()} subtext={`Since ${formattedFirstTx}`} colorClass="text-emerald-600" icon={<GlobeIcon />} />
-                <SummaryCard className="col-span-3 sm:col-span-2" title="Total Customers" value={customerData?.totalCount || 0} subtext={`${newCustomersThisWeek} new this week`} colorClass="text-orange-600" icon={<UsersGroupIcon />}>
+                <SummaryCard className="col-span-2 lg:col-span-1" title="All Time Sales" value={currency(salesSummary?.totalRevenue || 0, { symbol: '₱' }).format()} subtext={`Since ${formattedFirstTx}`} colorClass="text-emerald-600" icon={<GlobeIcon />} />
+                <SummaryCard className="col-span-1 lg:col-span-2" title="Total Customers" value={customerData?.totalCount || 0} subtext={`${newCustomersThisWeek} new this week`} colorClass="text-orange-600" icon={<UsersGroupIcon />}>
                     <NewCustomersList customers={newCustomersThisWeekList} />
                 </SummaryCard>
-                <SummaryCard className="col-span-3 sm:col-span-1" title="Page Views" value={viewCount !== null ? viewCount.toLocaleString() : '...'} subtext="Landing page visits" colorClass="text-purple-600" icon={<EyeIcon />}>
+                <SummaryCard className="col-span-1" title="Page Views" value={viewCount !== null ? viewCount.toLocaleString() : '...'} subtext="Landing page visits" colorClass="text-purple-600" icon={<EyeIcon />}>
                     {recentViews && recentViews.length > 0 && (
                         <div className="hidden md:block space-y-2 mt-1">
                             <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Last 5 Visitors</p>

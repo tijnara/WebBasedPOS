@@ -6,13 +6,7 @@ import { ArrowLeft, Droplet, HeartPulse, ShieldCheck, HelpCircle } from 'lucide-
 export default function ReverseOsmosisKidneys() {
   return (
     <div
-      className="min-h-screen text-slate-800 font-sans selection:bg-lime-200"
-      style={{
-        backgroundImage: "url('/seaside_bg2.png')",
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundAttachment: 'fixed'
-      }}
+      className="min-h-screen text-slate-800 font-sans selection:bg-lime-200 responsive-page"
     >
       <Head>
         <title>How Reverse Osmosis Purified Water Protects Your Kidneys | Seaside</title>
@@ -52,7 +46,8 @@ export default function ReverseOsmosisKidneys() {
               Tap water and water from poorly maintained deep wells can look completely clear while hiding a dangerous secret. Contaminants such as lead, arsenic, cadmium, and excessive calcium or magnesium salts dissolve easily in water. When you consume these substances, they enter your bloodstream and inevitably pass through your kidneys.
             </p>
             <p>
-              Because heavy metals are difficult for the body to excrete, they tend to accumulate in renal tissue. Over time, this toxic build-up causes cellular damage, inflammation, and can severely impair the kidneys' ability to filter waste. Furthermore, extremely "hard" water—water with exceptionally high concentrations of calcium and minerals—significantly increases the risk of developing calcium oxalate kidney stones, a notoriously painful condition.
+              Because heavy metals are difficult for the body to excr
+ete, they tend to accumulate in renal tissue. Over time, this toxic build-up causes cellular damage, inflammation, and can severely impair the kidneys' ability to filter waste. Furthermore, extremely "hard" water—water with exceptionally high concentrations of calcium and minerals—significantly increases the risk of developing calcium oxalate kidney stones, a notoriously painful condition.
             </p>
 
             <div className="bg-blue-50/50 p-6 rounded-2xl border border-blue-100/50 my-8 backdrop-blur-sm">

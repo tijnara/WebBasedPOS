@@ -224,7 +224,7 @@ const LoginPage = () => {
     };
 
     return (
-        <div className="flex min-h-screen w-full items-center justify-center p-8 bg-gray-100 font-inter">
+        <div className="flex min-h-screen w-full items-center justify-center p-8 bg-gray-100 font-inter responsive-page">
             <div className="bg-white rounded-[2rem] shadow-2xl overflow-hidden max-w-6xl w-full flex flex-col md:flex-row border border-gray-100">
                 <CustomerWelcome />
                 <StaffLogin 

@@ -32,7 +32,7 @@ const POSCart = ({
                  }) => {
 
     return (
-        <div className="hidden md:flex w-full h-full flex-shrink-0 flex-col">
+        <div className="hidden md:flex w-full h-full flex-shrink-0 flex-col responsive-page">
             <Card className="flex flex-col shadow-lg border border-gray-200 rounded-xl bg-white overflow-hidden h-full">
                 <CardHeader className="bg-gray-50 border-b border-gray-200 rounded-t-xl flex-shrink-0">
                     <div className="flex justify-between items-center">

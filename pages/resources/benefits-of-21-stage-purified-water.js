@@ -6,13 +6,7 @@ import { ArrowLeft, Droplet, ShieldCheck, Heart, HelpCircle } from 'lucide-react
 export default function BenefitsOf21StageWater() {
   return (
     <div
-      className="min-h-screen text-slate-800 font-sans selection:bg-lime-200"
-      style={{
-        backgroundImage: "url('/seaside_bg2.png')",
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundAttachment: 'fixed'
-      }}
+      className="min-h-screen text-slate-800 font-sans selection:bg-lime-200 responsive-page"
     >
       <Head>
         <title>The Ultimate Guide to the Benefits of 21-Stage Purified Water | Seaside</title>

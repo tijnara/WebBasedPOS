@@ -19,7 +19,7 @@ const CustomerSelectionModal = ({
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogContent
-                className="p-0 overflow-hidden max-h-[calc(100dvh-2rem)] sm:max-w-lg bg-white shadow-xl border border-gray-100"
+                className="p-0 overflow-hidden max-h-[calc(100dvh-2rem)] sm:max-w-lg bg-white shadow-xl border border-gray-100 responsive-page"
                 style={{ backgroundColor: '#ffffff', zIndex: 50 }}
             >
                 <div className="flex flex-col h-full max-h-[calc(100dvh-2rem)] bg-white" style={{ backgroundColor: '#ffffff' }}>

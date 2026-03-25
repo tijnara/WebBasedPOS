@@ -8,7 +8,7 @@ import Header from '../src/components/landing/Header';
 import Hero from '../src/components/landing/Hero';
 import WhyChooseUs from '../src/components/landing/WhyChooseUs';
 import Services from '../src/components/landing/Services';
-import ProcessSection from '../src/components/landing/ProcessSection';
+import { Process as ProcessSection } from '../src/components/landing/ProcessSection';
 import Gallery from '../src/components/landing/Gallery';
 import Location from '../src/components/landing/Location';
 import Contact from '../src/components/landing/Contact';
@@ -21,7 +21,7 @@ const SeasideWaterLanding = () => {
     const { data: settings } = useSettings();
 
     return (
-        <div className="relative min-h-screen w-full font-sans text-slate-800">
+        <div className="relative min-h-screen w-full font-sans text-slate-800 responsive-page">
             <BackgroundImage />
             <Meta />
             <ViewCounter />
@@ -40,7 +40,7 @@ const SeasideWaterLanding = () => {
                     {/* Main Content */}
                     <main id="main-content" className="flex-grow">
                         {/* CHANGED: Used bg-white-75 for 75% opacity */}
-                        <div className="container mx-auto flex flex-col flex-grow relative backdrop-blur-sm shadow-lg border border-white/20 bg-white-75">
+                        <div className="container mx-auto flex flex-col flex-grow relative backdrop-blur-sm shadow-lg bg-white-75">
                             <Hero />
                             <WhyChooseUs />
                             <Services />

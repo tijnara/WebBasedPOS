@@ -55,7 +55,7 @@ const PaymentModal = ({
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogContent
-                className="sm:max-w-4xl p-0 bg-white overflow-hidden flex flex-col max-h-[90vh]"
+                className="sm:max-w-4xl p-0 bg-white overflow-hidden flex flex-col max-h-[90vh] responsive-page"
                 style={{ backgroundColor: '#ffffff', zIndex: 50 }}
             >
                 <DialogHeader className="px-6 py-4 border-b bg-white flex-shrink-0">

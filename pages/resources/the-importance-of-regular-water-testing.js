@@ -6,13 +6,7 @@ import { ArrowLeft, Microscope, ClipboardCheck, ShieldCheck, HelpCircle } from '
 export default function WaterTestingImportance() {
   return (
     <div
-      className="min-h-screen text-slate-800 font-sans selection:bg-lime-200"
-      style={{
-        backgroundImage: "url('/seaside_bg2.png')",
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundAttachment: 'fixed'
-      }}
+      className="min-h-screen text-slate-800 font-sans selection:bg-lime-200 responsive-page"
     >
       <Head>
         <title>The Critical Importance of Regular Water Testing | Seaside</title>

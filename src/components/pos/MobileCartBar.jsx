@@ -9,7 +9,7 @@ const MobileCartBar = ({ itemCount, totalQty, subtotal, onOpenCart }) => {
     }
 
     return (
-        <div className="mobile-cart-bar">
+        <div className="mobile-cart-bar responsive-page">
             <Button
                 variant="primary"
                 className="w-full h-12 text-base font-medium rounded-lg shadow-lg flex items-center justify-between px-4"

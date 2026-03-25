@@ -179,7 +179,7 @@ export default function GalleryManagementPage() {
     };
 
     return (
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-6 responsive-page">
             <div className="flex justify-between items-center">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900">Gallery Management</h1>

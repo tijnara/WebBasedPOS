@@ -6,7 +6,7 @@ import { ShieldCheck, ArrowLeft } from 'lucide-react';
 
 export default function PrivacyPolicy() {
     return (
-        <div className="min-h-screen bg-gray-50 text-slate-800 font-sans selection:bg-lime-200">
+        <div className="min-h-screen bg-gray-50 text-slate-800 font-sans selection:bg-lime-200 responsive-page">
             <Head>
                 <title>Privacy Policy | Seaside Water Refilling Station</title>
                 <meta name="description" content="Privacy Policy for Seaside Purified Water Refilling Station. Learn how we handle and protect your data." />

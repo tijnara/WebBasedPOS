@@ -55,7 +55,7 @@ export default function EditCartItemModal({ isOpen, onClose, item, onSave }) {
             // FIX: Manually set z-index higher than the Mobile Cart Drawer (usually z-50)
             style={{ zIndex: 200 }}
         >
-            <DialogContent className="sm:max-w-md">
+            <DialogContent className="sm:max-w-md responsive-page">
                 <DialogHeader>
                     <DialogTitle>Edit Item: {item?.name}</DialogTitle>
                     <DialogCloseButton onClick={onClose} />

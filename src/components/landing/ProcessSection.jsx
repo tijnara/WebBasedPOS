@@ -1,70 +1,129 @@
 import React from 'react';
-import { motion } from 'framer-motion';
-import { useInView } from '../../hooks/useInView';
+import { Beaker, Filter, Sparkles, ThumbsUp } from 'lucide-react';
 
-const PROCESS_STAGES_DATA = [
-    { stage: '1-3', process: 'Multi-Media Sediment Filtration', description: 'Three layers of specialized media remove sand, silt, rust, and particles down to 40 microns.' },
-    { stage: '4', process: 'Dual-Stage Carbon Filter (A)', description: 'High-grade activated carbon removes chlorine and chemical odors.' },
-    { stage: '5', process: 'Dual-Stage Carbon Filter (B)', description: 'Second pass ensures complete removal of pesticides and volatile organic compounds (VOCs).' },
-    { stage: '6', process: 'Water Softening Resin', description: 'Ion-exchange technology removes calcium and magnesium to prevent "hard water" scale.' },
-    { stage: '7', process: 'Fine Sediment Polishing', description: 'A 10-micron filter catches any remaining microscopic debris from the softening stage.' },
-    { stage: '8', process: 'Ultra-Fine Polishing', description: 'A 5-micron filter provides a secondary barrier for absolute clarity.' },
-    { stage: '9-12', process: 'Reverse Osmosis (RO) Membrane', description: 'The heart of the system. Four high-pressure membranes force water through a 0.0001-micron barrier, removing bacteria, viruses, and heavy metals.' },
-    { stage: '13', process: 'Post-Carbon Refinement', description: 'Polishes the taste of the water after RO, giving it a crisp, clean finish.' },
-    { stage: '14', process: 'Mineral Enhancement', description: 'Re-introduces essential trace minerals for health and a refreshing natural taste.' },
-    { stage: '15', process: 'Micro-Filtration Stage 1', description: 'A 1-micron absolute filter acts as a final physical defense.' },
-    { stage: '16', process: 'Micro-Filtration Stage 2', description: 'A 0.5-micron filter ensures even the smallest cysts are removed.' },
-    { stage: '17', process: 'Ultraviolet (UV) Sterilization', description: 'High-intensity UV light scrambles the DNA of any lingering microorganisms, rendering them harmless.' },
-    { stage: '18', process: 'Ozone Injection', description: 'Powerful O3​ oxidation kills bacteria on contact and ensures the water remains sterile inside the bottle.' },
-    { stage: '19', process: 'Final Oxygenation', description: 'Increases dissolved oxygen levels for a lighter, more refreshing mouthfeel.' },
-    { stage: '20', process: 'Container Sanitization', description: 'Before filling, every bottle is rinsed with ozonated water to ensure the vessel is as clean as the product.' }
-];
-
-const ProcessSection = () => {
-    const [ref, isInView] = useInView();
+export function Process() {
+    const steps = [
+        {
+            icon: Beaker,
+            title: 'Source Water Collection',
+            description: 'We carefully select and collect water from reliable sources, ensuring a clean starting point for our purification process.',
+            gradient: 'from-[#009b70] to-[#84cc16]', // Teal to Apple Green
+        },
+        {
+            icon: Filter,
+            title: '21-Stage Filtration',
+            description: 'Our advanced reverse osmosis system uses 21 stages to remove impurities, contaminants, and unwanted particles.',
+            gradient: 'from-[#84cc16] to-[#009b70]', // Apple Green to Teal
+        },
+        {
+            icon: Sparkles,
+            title: 'Remineralization',
+            description: 'Essential minerals are carefully reintroduced to create perfectly balanced, healthy drinking water.',
+            gradient: 'from-[#009b70] to-[#84cc16]', // Teal to Apple Green
+        },
+        {
+            icon: ThumbsUp,
+            title: 'Quality Testing & Refilling',
+            description: 'Every batch is tested for purity and taste before being ready for your family to enjoy.',
+            gradient: 'from-[#84cc16] to-[#009b70]', // Apple Green to Teal
+        },
+    ];
 
     return (
-        <motion.section 
-            id="process" 
-            ref={ref}
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: isInView ? 1 : 0, y: isInView ? 0 : 50 }}
-            transition={{ duration: 0.6 }}
-            className="bg-transparent relative z-20 border-t"
-            aria-labelledby="process-heading"
-        >
-            <div className="px-6 py-20 pb-32 max-w-6xl mx-auto">
-                <div className="text-center mb-16">
-                    <span className="inline-block py-2 px-6 rounded-full bg-teal-50 border border-teal-100 mb-4">
-                        <h2 id="process-heading" className="text-teal-700 text-sm md:text-base font-bold tracking-widest uppercase m-0">
-                            Our 20-Stage Process
-                        </h2>
-                    </span>
-                    <p className="text-3xl md:text-4xl font-extrabold text-slate-800 drop-shadow-sm">
-                        Pure Water, Guaranteed.
+        <section id="process" className="py-24 bg-white relative overflow-hidden font-sans responsive-page">
+
+            {/* Replicated Faint Dotted Background */}
+            <div className="absolute inset-0 z-0">
+                <div className="absolute inset-0" style={{
+                    backgroundImage: 'radial-gradient(#e5e7eb 1.5px, transparent 1.5px)',
+                    backgroundSize: '48px 48px'
+                }}></div>
+            </div>
+
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+
+                {/* Section Header */}
+                <div className="text-center mb-24">
+                    <h2 className="text-[3rem] sm:text-[4.5rem] lg:text-[6rem] font-bold text-[#0f172a] mb-8 tracking-tight leading-none">
+                        OUR <span style={{
+                        background: 'linear-gradient(to right, #8DB600, #0d9488)', // Apple green to teal
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        backgroundClip: 'text',
+                        color: 'transparent'
+                    }}>PURIFICATION PROCESS</span>
+                    </h2>
+                    <p className="text-xl lg:text-[22px] text-gray-500 max-w-3xl mx-auto font-light leading-relaxed">
+                        From source to your jug, every step is designed to deliver the cleanest,<br className="hidden md:block" /> healthiest water possible.
                     </p>
                 </div>
-                <div className="relative">
-                    <div className="absolute left-1/2 -translate-x-1/2 w-1 bg-teal-200/50 h-full rounded-full"></div>
-                    <div className="space-y-12">
-                        {PROCESS_STAGES_DATA.map((item, index) => (
-                            <div key={index} className={`relative flex items-center ${index % 2 === 0 ? 'flex-row' : 'flex-row-reverse'}`}>
-                                <div className="w-1/2 px-4">
-                                    <div className="p-6 rounded-[1.5rem] border border-white/40 bg-white/60 backdrop-blur-md shadow-[0_8px_32px_0_rgba(31,38,135,0.1)]">
-                                        <h3 className="text-lg font-bold text-teal-900">{item.process}</h3>
-                                        <p className="text-sm text-slate-700">{item.description}</p>
-                                    </div>
-                                 </div>
-                                <div className="absolute left-1/2 -translate-x-1/2 w-12 h-12 bg-gradient-to-br from-teal-400 to-emerald-500 rounded-full flex items-center justify-center text-white font-bold border-4 border-white/80 shadow-lg">
-                                    {item.stage}
+
+                {/* Process Steps */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+                    {steps.map((step, index) => {
+                        const Icon = step.icon;
+
+                        return (
+                            <div key={index} className="group bg-white p-8 rounded-[2rem] flex flex-col items-center text-center">
+
+                                {/* Gradient Icon */}
+                                <div className="mb-6">
+                                    <svg width="0" height="0">
+                                        <linearGradient id={`gradient-${index}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                                            <stop offset="0%" stopColor={index % 2 === 0 ? '#009b70' : '#84cc16'} />
+                                            <stop offset="100%" stopColor={index % 2 === 0 ? '#84cc16' : '#009b70'} />
+                                        </linearGradient>
+                                    </svg>
+                                    <Icon
+                                        className="w-12 h-12 transition-transform duration-300 group-hover:scale-110"
+                                        strokeWidth={1.5}
+                                        style={{ stroke: `url(#gradient-${index})` }}
+                                    />
                                 </div>
+
+                                {/* Title */}
+                                <h3 className="text-[1.1rem] font-bold text-gray-900 mb-4">
+                                    {step.title}
+                                </h3>
+
+                                {/* Description */}
+                                <p className="text-gray-500 text-[15px] leading-relaxed">
+                                    {step.description}
+                                </p>
+
                             </div>
-                        ))}
+                        );
+                    })}
+                </div>
+
+                {/* Bottom Stats Section */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+                    <div className="text-center">
+                        <div className="text-[2.5rem] font-extrabold text-[#009b70] mb-1">21</div>
+                        <div className="text-gray-500 text-sm font-medium tracking-wide">Filtration Stages</div>
+                    </div>
+                    <div className="text-center">
+                        <div className="text-[2.5rem] font-extrabold text-[#009b70] mb-1">99.9%</div>
+                        <div className="text-gray-500 text-sm font-medium tracking-wide">Purity Rate</div>
+                    </div>
+                    <div className="text-center">
+                        <div className="text-[2.5rem] font-extrabold text-[#009b70] mb-1">24/7</div>
+                        <div className="text-gray-500 text-sm font-medium tracking-wide">Quality Monitoring</div>
+                    </div>
+                    <div className="text-center">
+                        <div className="text-[2.5rem] font-extrabold text-[#009b70] mb-1">100%</div>
+                        <div className="text-gray-500 text-sm font-medium tracking-wide">Customer Satisfaction</div>
                     </div>
                 </div>
-            </div>
-        </motion.section>
-    );
-};
 
-export default ProcessSection;
+            </div>
+
+            <br></br>
+            <br></br>
+        </section>
+
+
+    );
+}
+
+export default Process;

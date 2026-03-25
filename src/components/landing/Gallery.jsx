@@ -29,33 +29,39 @@ const Gallery = () => {
 
     return (
         <>
-            <motion.section 
-                id="gallery" 
+            <motion.section
+                id="gallery"
                 ref={ref}
                 initial={{ opacity: 0, y: 50 }}
                 animate={{ opacity: isInView ? 1 : 0, y: isInView ? 0 : 50 }}
                 transition={{ duration: 0.6 }}
-                className="bg-transparent relative z-20 border-t"
+                className="bg-transparent relative z-20 responsive-page"
                 aria-labelledby="gallery-heading"
             >
                 <div className="px-6 py-20 pb-32 max-w-5xl mx-auto">
-                    <div className="text-center mb-16">
-                        {/* CHANGED: Replaced lime-200/green-700 with Teal/Emerald matching WhyChooseUs */}
-                        <span className="inline-block py-2 px-6 rounded-full bg-teal-50 border border-teal-100 mb-4">
-                            <h2 id="gallery-heading" className="text-teal-700 text-sm md:text-base font-bold tracking-widest uppercase m-0">
-                                Gallery
-                            </h2>
-                        </span>
-                        <p className="text-3xl md:text-4xl font-extrabold text-slate-800 drop-shadow-sm">
+                    <div className="text-center mb-12 md:mb-16">
+                        <h2 className="text-[4rem] sm:text-[5.5rem] lg:text-[7rem] font-bold text-[#0f172a] mb-8 tracking-tight leading-none">
+                            <span style={{
+                                background: 'linear-gradient(to right, #8DB600, #0d9488)', // Apple green to teal
+                                WebkitBackgroundClip: 'text',
+                                WebkitTextFillColor: 'transparent',
+                                backgroundClip: 'text',
+                                color: 'transparent'
+                            }}>GALLERY</span> STATION
+                        </h2>
+
+                        <p className="text-xl lg:text-[22px] text-gray-500 max-w-3xl mx-auto font-light leading-relaxed">
                             A glimpse of our station and services.
                         </p>
+
                     </div>
 
                     {items.length > 0 ? (
                         <div
-                            className="relative w-full rounded-[2rem] shadow-[0_8px_32px_0_rgba(31,38,135,0.15)] border-4 border-white/60 bg-slate-900 group overflow-hidden"
+                            className="relative w-full rounded-[2rem] shadow-[0_8px_32px_0_rgba(31,38,135,0.15)] bg-slate-900 group overflow-hidden"
                             style={{ height: '450px' }}
                         >
+                            {/* REMOVED: border-4 border-white/60 */}
                             <AnimatePresence mode="wait">
                                 <motion.div
                                     key={currentIndex}
@@ -164,6 +170,9 @@ const Gallery = () => {
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            <br></br>
+            <br></br>
         </>
     );
 };

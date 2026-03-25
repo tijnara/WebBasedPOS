@@ -580,7 +580,7 @@ const ReportPage = () => {
 
     // --- Render JSX ---
     return (
-        <div className="report-page max-w-7xl mx-auto p-2 md:p-4 space-y-4">
+        <div className="report-page max-w-7xl mx-auto p-2 md:p-4 space-y-4 responsive-page">
             <h1 className="text-2xl font-bold">Reports</h1>
 
             <div className="flex gap-2 border-b">

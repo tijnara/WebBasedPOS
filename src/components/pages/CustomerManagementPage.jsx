@@ -186,7 +186,7 @@ export default function CustomerManagementPage() {
     const isMutating = createCustomer.isPending || updateCustomer.isPending || deleteCustomer.isPending;
 
     return (
-        <div className="customer-page">
+        <div className="customer-page responsive-page">
             <div>
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                     <div>

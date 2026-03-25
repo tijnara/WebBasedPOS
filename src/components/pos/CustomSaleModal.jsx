@@ -68,7 +68,7 @@ const CustomSaleModal = ({ isOpen, onClose, products, onAddItem }) => {
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent>
+            <DialogContent className="responsive-page">
                 <DialogHeader>
                     <DialogTitle>Add Custom Sale Item</DialogTitle>
                     <DialogCloseButton onClick={onClose} />
@@ -130,4 +130,3 @@ const CustomSaleModal = ({ isOpen, onClose, products, onAddItem }) => {
 };
 
 export default CustomSaleModal;
-

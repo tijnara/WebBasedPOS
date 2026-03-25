@@ -2,7 +2,7 @@ import React from 'react';
 
 const ContactUs = () => {
   return (
-    <div>
+    <div className="responsive-page">
       <h1>Contact Us</h1>
       <p>You can reach us through our Facebook page or Messenger:</p>
       <ul>

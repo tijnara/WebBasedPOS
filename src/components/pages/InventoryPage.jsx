@@ -444,7 +444,7 @@ export default function InventoryPage() {
     );
 
     return (
-        <div className="p-4 md:p-6 max-w-6xl mx-auto space-y-6">
+        <div className="p-4 md:p-6 max-w-6xl mx-auto space-y-6 responsive-page">
 
             {/* Header & Navigation */}
             <div className="flex flex-col md:flex-row justify-between items-center gap-4">

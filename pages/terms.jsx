@@ -6,7 +6,7 @@ import { FileText, ArrowLeft } from 'lucide-react';
 
 export default function TermsOfService() {
     return (
-        <div className="min-h-screen bg-gray-50 text-slate-800 font-sans selection:bg-lime-200">
+        <div className="min-h-screen bg-gray-50 text-slate-800 font-sans selection:bg-lime-200 responsive-page">
             <Head>
                 <title>Terms of Service | Seaside Water Refilling Station</title>
                 <meta name="description" content="Terms and conditions for Seaside Purified Water Refilling Station in Labrador, Pangasinan." />

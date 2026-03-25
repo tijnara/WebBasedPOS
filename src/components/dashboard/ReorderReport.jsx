@@ -45,7 +45,7 @@ const ReorderReport = () => {
     if (lowStockProducts.length === 0) return null; // Don't show if nothing to reorder
 
     return (
-        <Card className="border-l-4 border-l-red-500 shadow-sm overflow-hidden">
+        <Card className="border-l-4 border-l-red-500 shadow-sm overflow-hidden responsive-page">
             <CardHeader className="bg-red-50/50 pb-3 border-b border-red-100">
                 <div className="flex items-center justify-between">
                     <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">

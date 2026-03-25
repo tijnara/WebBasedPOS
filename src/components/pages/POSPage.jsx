@@ -446,7 +446,7 @@ export default function POSPage() {
     };
 
     return (
-        <div className="pos-page">
+        <div className="pos-page responsive-page">
 
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
                 <h1 className="text-2xl sm:text-3xl font-bold text-primary tracking-tight">Point of Sale</h1>

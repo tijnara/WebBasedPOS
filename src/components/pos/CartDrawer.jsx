@@ -35,7 +35,7 @@ const CartDrawer = ({
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent
-                className="fixed bottom-0 left-0 right-0 w-full max-w-full rounded-t-2xl rounded-b-none p-0 bg-white shadow-[0_-4px_20px_rgba(0,0,0,0.1)] border-t border-gray-100 flex flex-col h-[85vh] md:hidden z-50"
+                className="fixed bottom-0 left-0 right-0 w-full max-w-full rounded-t-2xl rounded-b-none p-0 bg-white shadow-[0_-4px_20px_rgba(0,0,0,0.1)] border-t border-gray-100 flex flex-col h-[85vh] md:hidden z-50 responsive-page"
                 style={{ margin: 0, transform: 'none', height: '85vh', maxHeight: '85vh' }}
             >
                 <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 bg-white rounded-t-2xl flex-shrink-0">

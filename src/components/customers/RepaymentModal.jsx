@@ -20,7 +20,7 @@ export default function RepaymentModal({ isOpen, onClose, customer, onRepay, isM
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose} className="flex items-center justify-center">
-            <DialogContent className="sm:max-w-sm bg-white" style={{ zIndex: 100 }}>
+            <DialogContent className="sm:max-w-sm bg-white responsive-page" style={{ zIndex: 100 }}>
                 <DialogHeader>
                     <DialogTitle>Repay Credit (Utang)</DialogTitle>
                     <DialogCloseButton onClick={onClose} />

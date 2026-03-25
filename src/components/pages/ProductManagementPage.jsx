@@ -300,7 +300,7 @@ export default function ProductManagementPage() {
     const isMutating = createProduct.isPending || updateProduct.isPending || deleteProduct.isPending || uploading;
 
     return (
-        <div className="product-page">
+        <div className="product-page responsive-page">
             {/* --- FILTER BAR --- */}
             <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6 p-4 border rounded-lg bg-white shadow-sm">
                 <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">

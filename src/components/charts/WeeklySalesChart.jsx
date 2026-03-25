@@ -102,7 +102,7 @@ const WeeklySalesChart = ({ salesData }) => {
     };
 
     return (
-        <div className="bg-white rounded-lg border shadow-sm p-4">
+        <div className="bg-white rounded-lg border shadow-sm p-4 responsive-page">
             <Bar data={data} options={options} />
         </div>
     );

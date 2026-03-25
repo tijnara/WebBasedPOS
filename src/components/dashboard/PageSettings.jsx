@@ -83,7 +83,7 @@ export default function PageSettings() {
     if (isLoading) return <div className="p-4 text-gray-500">Loading settings...</div>;
 
     return (
-        <Card className="border-l-4 border-l-blue-500 shadow-sm mt-6">
+        <Card className="border-l-4 border-l-blue-500 shadow-sm mt-6 responsive-page">
             <CardHeader className="bg-blue-50 pb-3 border-b border-blue-100">
                 <h3 className="font-bold text-lg text-blue-800">⚙️ Page Settings (Admin Only)</h3>
             </CardHeader>

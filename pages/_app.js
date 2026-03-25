@@ -149,7 +149,7 @@ export default function App({ Component, pageProps }) {
                 <meta name="google-site-verification" content="kd1wSsNQZCjJmyp4LaQKI9Mr7s6Z9_I5Z3ETpaW1EVc" />
             </Head>
             <AuthGate>
-                <div className="app bg-gray-100">
+                <div className="app bg-gray-100 responsive-page">
                     {!hideNav && <Navbar />}
                     {!hideNav && <TabBar />}
 
