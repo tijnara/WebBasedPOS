@@ -28,7 +28,7 @@ const formatCurrency = (amount) => {
 
 // --- Mobile Sale Card ---
 const SaleCard = ({ sale, onDelete, isAdmin }) => (
-    <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
+    <div className="bg-white rounded-lg shadow-sm overflow-hidden">
         <div className="p-4 space-y-3">
             <div className="flex justify-between items-start">
                 <div>
@@ -88,7 +88,7 @@ const SaleCard = ({ sale, onDelete, isAdmin }) => (
 
 // --- Customer Card (Mobile) ---
 const CustomerCard = ({ customer }) => (
-    <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
+    <div className="bg-white rounded-lg shadow-sm overflow-hidden">
         <div className="p-4 space-y-3">
             <div className="flex justify-between items-start">
                 <div className="flex-1">
@@ -124,7 +124,7 @@ const CustomerCard = ({ customer }) => (
 
 // --- Customer Report Display ---
 const CustomerReportDisplay = ({ customersList, currentPage, totalPages, onPageChange }) => (
-    <div className="bg-white rounded-lg border shadow-sm md:overflow-hidden">
+    <div className="bg-white rounded-lg shadow-sm md:overflow-hidden">
         <div className="overflow-x-auto hidden md:block">
             <table className="min-w-full text-sm">
                 <thead className="bg-gray-100">
@@ -182,8 +182,8 @@ const CustomerReportDisplay = ({ customersList, currentPage, totalPages, onPageC
 
 // --- Inactive Customers Table ---
 const InactiveCustomersTable = ({ inactiveCustomers, isLoading, error }) => (
-    <div className="bg-white rounded-lg border shadow-sm md:overflow-hidden">
-        <div className="bg-primary-soft border-b px-3 py-3">
+    <div className="bg-white rounded-lg shadow-sm md:overflow-hidden">
+        <div className="bg-primary-soft px-3 py-3">
             <h3 className="text-sm font-semibold text-primary">Inactive Customers (14+ Days)</h3>
             <p className="text-xs text-gray-600 mt-1">Customers who haven't ordered in the last 2 weeks</p>
         </div>
@@ -236,7 +236,7 @@ const InactiveCustomersTable = ({ inactiveCustomers, isLoading, error }) => (
                 </div>
             ) : (
                 inactiveCustomers.map(customer => (
-                    <div key={customer.id} className="bg-white rounded-lg border shadow-sm p-3">
+                    <div key={customer.id} className="bg-white rounded-lg shadow-sm p-3">
                         <div className="font-medium text-gray-800">{customer.name}</div>
                         <div className="text-xs text-gray-500 mt-1">{customer.phone || 'No phone'}</div>
                         <div className="text-xs text-gray-600 mt-1">
@@ -253,7 +253,7 @@ const InactiveCustomersTable = ({ inactiveCustomers, isLoading, error }) => (
 
 // --- Sales Report Table / Cards ---
 const SalesReportDisplay = ({ salesList, currentPage, totalPages, onPageChange, onDelete, isAdmin }) => (
-    <div className="bg-white rounded-lg border shadow-sm md:overflow-hidden">
+    <div className="bg-white rounded-lg shadow-sm md:overflow-hidden">
         <div className="overflow-x-auto hidden md:block">
             <table className="min-w-full text-sm">
                 <thead className="bg-gray-100">
@@ -577,7 +577,7 @@ const ReportPage = () => {
 
             {activeTab === 'sales' && (
                 <>
-                    <div className={`filter-bar bg-white rounded-lg border p-4 transition-shadow sticky top-0 z-20 ${elevated ? 'shadow-md' : 'shadow-sm'}`}>
+                    <div className={`filter-bar bg-white rounded-lg p-4 transition-shadow sticky top-0 z-20 ${elevated ? 'shadow-md' : 'shadow-sm'}`}>
                         <div className="mb-4 pb-3 border-b flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                             <div>
                                 <div className="text-xs font-medium text-gray-500 mb-1">
@@ -713,7 +713,7 @@ const ReportPage = () => {
 
             {activeTab === 'customers' && (
                 <>
-                    <div className={`filter-bar bg-white rounded-lg border p-4 transition-shadow sticky top-0 z-20 ${elevated ? 'shadow-md' : 'shadow-sm'}`}>
+                    <div className={`filter-bar bg-white rounded-lg p-4 transition-shadow sticky top-0 z-20 ${elevated ? 'shadow-md' : 'shadow-sm'}`}>
                         <div className="mb-4 pb-3 border-b flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                             <div>
                                 <div className="text-xs font-medium text-gray-500 mb-1">

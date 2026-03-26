@@ -302,7 +302,7 @@ export default function ProductManagementPage() {
     return (
         <div className="product-page responsive-page">
             {/* --- FILTER BAR --- */}
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6 p-4 border rounded-lg bg-white shadow-sm">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6 p-4 rounded-lg bg-white shadow-sm">
                 <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
                     <div className="w-full md:w-64">
                         <Input
@@ -338,7 +338,7 @@ export default function ProductManagementPage() {
             </div>
 
             {/* --- DESKTOP TABLE --- */}
-            <Card className="hidden md:block">
+            <Card className="hidden md:block border-0">
                 <CardContent className="p-0">
                     <ScrollArea>
                         <Table>
@@ -363,7 +363,7 @@ export default function ProductManagementPage() {
                                             <TableCell>
                                                 <div className="flex items-center gap-3">
                                                     <div
-                                                        className="rounded-lg border border-gray-100 bg-gray-50 flex items-center justify-center overflow-hidden flex-shrink-0"
+                                                        className="rounded-lg bg-gray-50 flex items-center justify-center overflow-hidden flex-shrink-0"
                                                         style={{ width: '48px', height: '48px' }}
                                                     >
                                                         {p.image_url ? (
@@ -394,10 +394,10 @@ export default function ProductManagementPage() {
                                                 </div>
                                             </TableCell>
                                             <TableCell>
-                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
+                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                                                     Number(p.stock) <= Number(p.minStock)
-                                                        ? 'bg-red-50 text-red-700 border-red-100'
-                                                        : 'bg-green-50 text-green-700 border-green-100'
+                                                        ? 'bg-red-50 text-red-700'
+                                                        : 'bg-green-50 text-green-700'
                                                 }`}>
                                                     {p.stock} units
                                                 </span>
@@ -426,15 +426,15 @@ export default function ProductManagementPage() {
                 {isLoading ? (
                     <div className="text-center text-muted p-6">Loading products...</div>
                 ) : filteredProducts.length === 0 ? (
-                    <div className="text-center text-muted p-6 bg-white rounded-lg border border-dashed">
+                    <div className="text-center text-muted p-6 bg-white rounded-lg">
                         No products found.
                     </div>
                 ) : (
                     filteredProducts.map(p => (
-                        <div key={p.id} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex items-start gap-3">
+                        <div key={p.id} className="bg-white p-3 rounded-xl shadow-sm flex items-start gap-3">
                             <div className="flex-shrink-0">
                                 <div
-                                    className="rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center overflow-hidden"
+                                    className="rounded-lg bg-gray-50 flex items-center justify-center overflow-hidden"
                                     style={{ width: '64px', height: '64px' }}
                                 >
                                     {p.image_url ? (
@@ -475,7 +475,7 @@ export default function ProductManagementPage() {
                                 </div>
                             </div>
 
-                            <div className="flex flex-col justify-between pl-2 border-l border-gray-50" style={{ height: '64px' }}>
+                            <div className="flex flex-col justify-between pl-2" style={{ height: '64px' }}>
                                 <button
                                     onClick={() => startEdit(p)}
                                     className="text-blue-600 p-1 hover:bg-blue-50 rounded"
@@ -568,7 +568,7 @@ export default function ProductManagementPage() {
                                     </div>
 
                                     {/* Inventory */}
-                                    <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg border border-gray-100">
+                                    <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
                                         <div className="space-y-1.5">
                                             <Label htmlFor="stock">Current Stock</Label>
                                             <Input

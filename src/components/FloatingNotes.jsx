@@ -70,8 +70,8 @@ export default function FloatingNotes() {
             alignItems: 'flex-end'
         }}>
             {isOpen && (
-                <Card className="w-80 md:w-96 mb-4 shadow-2xl border-gray-200 flex flex-col h-[28rem] bg-white">
-                    <CardHeader className="bg-yellow-100 border-b border-yellow-200 py-3 flex justify-between items-center rounded-t-lg">
+                <Card className="w-80 md:w-96 mb-4 shadow-2xl border-0 flex flex-col h-[28rem] bg-white">
+                    <CardHeader className="bg-yellow-100 py-3 flex justify-between items-center rounded-t-lg">
                         <h3 className="font-bold text-yellow-800 flex items-center gap-2">
                             <StickyNoteIcon /> Scratchpad
                         </h3>
@@ -87,7 +87,7 @@ export default function FloatingNotes() {
                                 <p className="text-center text-sm text-gray-500 mt-10">No notes yet. Add one below!</p>
                             ) : (
                                 notes.map(note => (
-                                    <div key={note.id} className="bg-white p-3 rounded shadow-sm border border-yellow-200 text-sm group">
+                                    <div key={note.id} className="bg-white p-3 rounded shadow-sm text-sm group">
                                         <p className="whitespace-pre-wrap text-gray-800 mb-2">{note.content}</p>
                                         <div className="flex justify-between items-center mt-2 border-t pt-2">
                                             <span className="text-[10px] text-gray-400">
@@ -103,7 +103,7 @@ export default function FloatingNotes() {
                             )}
                         </div>
 
-                        <div className="p-3 bg-white border-t border-yellow-200">
+                        <div className="p-3 bg-white">
                             <Textarea
                                 placeholder="Type a note..."
                                 value={currentContent}
