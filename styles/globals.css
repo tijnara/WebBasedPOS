@@ -295,6 +295,7 @@ input[type="checkbox"]:focus {
 
 .main {
     padding: 1.25rem;
+    padding-top: 5.25rem; /* <--- CHANGED: Added padding to account for fixed navbar */
     width: 100%;
     box-sizing: border-box;
 }
@@ -303,6 +304,7 @@ input[type="checkbox"]:focus {
     .main {
         padding-left: 0.5rem;
         padding-right: 0.5rem;
+        padding-top: 4.5rem; /* <--- CHANGED: Added padding to account for fixed navbar */
         padding-bottom: 6rem;
     }
 }
@@ -311,6 +313,7 @@ input[type="checkbox"]:focus {
     .main {
         padding-left: 0.25rem;
         padding-right: 0.25rem;
+        padding-top: 4.25rem; /* <--- CHANGED: Added padding to account for fixed navbar */
         padding-bottom: 7rem;
     }
 }
@@ -339,8 +342,10 @@ input[type="checkbox"]:focus {
     padding: 0 1rem;
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
-    position: sticky;
+    position: fixed; /* <--- CHANGED: from sticky to fixed */
     top: 0;
+    left: 0; /* <--- CHANGED: added to lock it to the edges */
+    right: 0; /* <--- CHANGED: added to lock it to the edges */
     z-index: 30;
     box-sizing: border-box;
     backdrop-filter: blur(8px);
@@ -1837,13 +1842,13 @@ input[type="checkbox"]:focus {
 /* Force rebuild */
 
 .responsive-page {
-  width: 100%;
-  padding: 1rem;
-  box-sizing: border-box;
+    width: 100%;
+    padding: 1rem;
+    box-sizing: border-box;
 }
 
 @media (max-width: 768px) {
-  .responsive-page {
-    padding: 0.5rem;
-  }
+    .responsive-page {
+        padding: 0.5rem;
+    }
 }
