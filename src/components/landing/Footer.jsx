@@ -48,7 +48,7 @@ const Footer = () => {
                             <ul className="text-sm space-y-3">
                                 <li>
                                     <Link href="/resources/benefits-of-21-stage-purified-water" className="inline-block py-2 hover:text-cyan-300 transition flex flex-col">
-                                        <span className="font-bold">The Science of 20 Stages</span>
+                                        <span className="font-bold">The Science of 21 Stages</span>
                                         <span className="text-xs text-slate-500">Why standard filtration isn't enough.</span>
                                     </Link>
                                 </li>
@@ -60,8 +60,8 @@ const Footer = () => {
                                 </li>
                                 <li>
                                     <Link href="/resources/maintaining-your-water-containers-at-home" className="inline-block py-2 hover:text-cyan-300 transition flex flex-col">
-                                        <span className="font-bold">Dispenser Maintenance 101</span>
-                                        <span className="text-xs text-slate-500">Keep your water pure at home.</span>
+                                        <span className="font-bold">Maintaining Water Containers</span>
+                                        <span className="text-xs text-slate-500">The complete guide for Seaside jugs.</span>
                                     </Link>
                                 </li>
                             </ul>
