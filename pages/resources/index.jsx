@@ -55,62 +55,68 @@ const articles = [
 
 export default function ResourcesPage() {
   return (
-      <div
-          className="min-h-screen font-sans responsive-page bg-cover bg-center bg-no-repeat bg-fixed"
-          style={{ backgroundImage: "url('/resourceswallpaper.png')" }}
-      >
-        <div className="max-w-5xl mx-auto p-6 md:p-12">
-          <Head>
-            <title>Resources | Seaside Purified Water Labrador</title>
-            <meta name="description" content="Explore articles and resources about water purity, health, and local hydration tips from Seaside." />
-          </Head>
+      <>
+        <style>{`
+        .responsive-bg {
+          background-image: url('/resourceswallpapermob.png');
+        }
+        @media (min-width: 768px) {
+          .responsive-bg {
+            background-image: url('/resourceswallpaper.png');
+          }
+        }
+      `}</style>
 
-          <div className="mb-12 text-center bg-white/50 backdrop-blur-sm p-8 rounded-3xl shadow-lg border border-white/20" style={{ backgroundColor: '#FFFFFF80' }}>
-            <Link href="/" className="inline-flex items-center text-green-700 hover:text-green-900 font-semibold mb-4 transition-colors">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Home
-            </Link>
-            <h1 className="text-4xl md:text-5xl font-extrabold text-green-900 mb-3 tracking-tight">
-               <span style={{
-                 background: 'linear-gradient(to right, #8DB600, #0d9488)', // Apple green to teal
-                 WebkitBackgroundClip: 'text',
-                 WebkitTextFillColor: 'transparent',
-                 backgroundClip: 'text',
-                 color: 'transparent'
-               }}>SEASIDE</span> Knowledge Hub
-            </h1>
-            <p className="text-lg text-slate-800 max-w-2xl mx-auto">
-              A collection of articles to help you understand the importance of pure water for your family's health and well-being.
-            </p>
-          </div>
+        <div
+            className="min-h-screen font-sans responsive-page bg-cover bg-center bg-no-repeat bg-fixed responsive-bg"
+        >
+          <div className="max-w-5xl mx-auto p-6 md:p-12">
+            <Head>
+              <title>Resources | Seaside Purified Water Labrador</title>
+              <meta name="description" content="Explore articles and resources about water purity, health, and local hydration tips from Seaside." />
+            </Head>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {articles.map(article => {
-              const Icon = article.icon;
-              return (
-                  <Link
-                      key={article.href}
-                      href={article.href}
-                      className="group block bg-white/50 backdrop-blur-sm p-7 rounded-2xl shadow-md hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300"
-                      style={{ backgroundColor: '#FFFFFF80' }}
-                  >
-                    <div className="mb-4">
-                      <Icon className="w-8 h-8 text-green-500 group-hover:text-green-600 transition-colors" />
-                    </div>
-                    <h2 className="text-xl font-bold text-green-900 mb-2 leading-snug">
-                      {article.title}
-                    </h2>
-                    <p className="text-slate-700 text-sm mb-6">
-                      {article.description}
-                    </p>
-                    <span className="inline-flex items-center text-green-800 font-semibold text-sm">
-                  Read Article <BookOpen className="w-4 h-4 ml-2" />
-                </span>
-                  </Link>
-              )
-            })}
+            <div className="mb-12 text-center bg-white/50 backdrop-blur-sm p-8 rounded-3xl shadow-lg border border-white/20" style={{ backgroundColor: '#FFFFFF80' }}>
+              <Link href="/" className="inline-flex items-center text-green-700 hover:text-green-900 font-semibold mb-4 transition-colors">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Home
+              </Link>
+              <h1 className="text-4xl md:text-5xl font-extrabold text-green-900 mb-3 tracking-tight">
+                Seaside Knowledge Hub
+              </h1>
+              <p className="text-lg text-slate-800 max-w-2xl mx-auto">
+                A collection of articles to help you understand the importance of pure water for your family's health and well-being.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {articles.map(article => {
+                const Icon = article.icon;
+                return (
+                    <Link
+                        key={article.href}
+                        href={article.href}
+                        className="group block bg-white/50 backdrop-blur-sm p-7 rounded-2xl shadow-md hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300"
+                        style={{ backgroundColor: '#FFFFFF80' }}
+                    >
+                      <div className="mb-4">
+                        <Icon className="w-8 h-8 text-green-500 group-hover:text-green-600 transition-colors" />
+                      </div>
+                      <h2 className="text-xl font-bold text-green-900 mb-2 leading-snug">
+                        {article.title}
+                      </h2>
+                      <p className="text-slate-700 text-sm mb-6">
+                        {article.description}
+                      </p>
+                      <span className="inline-flex items-center text-green-800 font-semibold text-sm">
+                    Read Article <BookOpen className="w-4 h-4 ml-2" />
+                  </span>
+                    </Link>
+                )
+              })}
+            </div>
           </div>
         </div>
-      </div>
+      </>
   );
 }
