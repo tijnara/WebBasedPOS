@@ -344,8 +344,10 @@ input[type="checkbox"]:focus {
     flex-shrink: 0;
     position: fixed; /* <--- CHANGED: from sticky to fixed */
     top: 0;
-    left: 0; /* <--- CHANGED: added to lock it to the edges */
-    right: 0; /* <--- CHANGED: added to lock it to the edges */
+    left: 0;
+    /* <--- CHANGED: added to lock it to the edges */
+    right: 0;
+    /* <--- CHANGED: added to lock it to the edges */
     z-index: 30;
     box-sizing: border-box;
     backdrop-filter: blur(8px);
@@ -1851,4 +1853,47 @@ input[type="checkbox"]:focus {
     .responsive-page {
         padding: 0.5rem;
     }
+}
+
+/* --- CMS Article Typography Styles --- */
+.article-content p {
+    margin-bottom: 1.5rem;
+}
+.article-content h2 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #14532d; /* Dark green */
+    margin-top: 2.5rem;
+    margin-bottom: 1rem;
+}
+.article-content h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin-top: 2rem;
+    margin-bottom: 0.75rem;
+}
+.article-content ul {
+    list-style-type: disc;
+    padding-left: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+.article-content ol {
+    list-style-type: decimal;
+    padding-left: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+.article-content li {
+    margin-bottom: 0.5rem;
+}
+.article-content strong {
+    font-weight: 700;
+    color: #0f172a;
+}
+.article-content a {
+    color: #059669; /* Seaside green */
+    text-decoration: underline;
+}
+.article-content a:hover {
+    color: #047857;
 }
