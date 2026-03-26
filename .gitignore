@@ -1,9 +1,19 @@
-.next/
+# dependencies
 node_modules/
+/.pnp
+.pnp.js
+npm-debug.log
+
+# next.js build output
+.next/
+/out/
+
+# environment variables
 .env
 .env.local
+
+# OS & Editor files
 .DS_Store
-npm-debug.log
 .idea/
 .vscode/
 
