@@ -30,10 +30,14 @@ export async function login({ email, password }) {
                 throw new Error('Login succeeded but user data is incomplete.');
             }
 
-            let role = 'User';
+            // Prioritize the actual role column from the database
+            let role = user.role || 'Staff';
+
+            // Fallback for legacy isadmin column just in case
             if (
-                (typeof user.isadmin === 'string' && user.isadmin.trim().toLowerCase() === 'true') ||
-                user.isadmin === true
+                role !== 'Admin' && role !== 'admin' &&
+                ((typeof user.isadmin === 'string' && user.isadmin.trim().toLowerCase() === 'true') ||
+                    user.isadmin === true)
             ) {
                 role = 'Admin';
             }

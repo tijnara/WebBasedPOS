@@ -198,10 +198,11 @@ export const useStore = create((set, get) => ({
                     .single();
 
                 if (userProfile && !error) {
-                    let role = 'Staff';
+                    let role = userProfile.role || 'Staff';
                     if (
-                        (typeof userProfile.isadmin === 'string' && userProfile.isadmin.trim().toLowerCase() === 'true') ||
-                        userProfile.isadmin === true
+                        role !== 'Admin' && role !== 'admin' &&
+                        ((typeof userProfile.isadmin === 'string' && userProfile.isadmin.trim().toLowerCase() === 'true') ||
+                            userProfile.isadmin === true)
                     ) {
                         role = 'Admin';
                     }

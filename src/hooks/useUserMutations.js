@@ -102,7 +102,8 @@ export function useCreateUser() {
                 email: userData.email,
                 phone: userData.phone || null,
                 password: userData.password,
-                role: userData.role || 'Staff', // --- UPDATED: Send role to DB ---
+                role: userData.role || 'Staff',
+                isadmin: userData.role === 'Admin', // ADD THIS LINE to sync legacy column
                 dateadded: new Date().toISOString()
             };
 
@@ -139,7 +140,8 @@ export function useUpdateUser() {
                 name: payload.name,
                 email: payload.email,
                 phone: payload.phone || null,
-                role: payload.role, // --- UPDATED: Allow updating role ---
+                role: payload.role,
+                isadmin: payload.role === 'Admin', // ADD THIS LINE to sync legacy column
             };
 
             if (payload.password && payload.password.trim() !== '') {
