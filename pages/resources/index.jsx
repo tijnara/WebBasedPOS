@@ -82,7 +82,13 @@ export default function ResourcesPage() {
                 Back to Home
               </Link>
               <h1 className="text-4xl md:text-5xl font-extrabold text-green-900 mb-3 tracking-tight">
-                Seaside Knowledge Hub
+                 <span style={{
+                   background: 'linear-gradient(to right, #8DB600, #0d9488)', // Apple green to teal
+                   WebkitBackgroundClip: 'text',
+                   WebkitTextFillColor: 'transparent',
+                   backgroundClip: 'text',
+                   color: 'transparent'
+                 }}>SEASIDE</span> Knowledge Hub
               </h1>
               <p className="text-lg text-slate-800 max-w-2xl mx-auto">
                 A collection of articles to help you understand the importance of pure water for your family's health and well-being.
