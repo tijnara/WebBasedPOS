@@ -4,43 +4,27 @@ import { ArrowLeft } from 'lucide-react';
 import { supabase } from '../../src/lib/supabaseClient';
 import { motion } from 'framer-motion';
 
-// --- High-Fidelity Reality 3D Icon Components ---
+// --- Adsterra Monetization Components ---
+import Meta from '../../src/components/landing/Meta';
+import Footer from '../../src/components/landing/Footer';
+import { AdsterraVerticalBanner, AdsterraBanner } from '../../src/components/landing/AdBanners';
 
+// --- High-Fidelity Reality 3D Icon Components ---
 const IconWrapper = ({ children, index }) => (
     <div className="relative flex items-center justify-center">
-        {/* Dynamic 3D Floor Shadow */}
         <motion.div
             className="absolute -bottom-2 w-12 h-2 bg-black/10 rounded-[100%] blur-md"
-            animate={{
-                scale: [1, 0.7, 1],
-                opacity: [0.3, 0.1, 0.3]
-            }}
-            transition={{
-                duration: 4,
-                repeat: Infinity,
-                ease: "easeInOut",
-                delay: index * 0.15
-            }}
+            animate={{ scale: [1, 0.7, 1], opacity: [0.3, 0.1, 0.3] }}
+            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: index * 0.15 }}
         />
-
-        {/* Floating 3D Glass/Clay Orb */}
         <motion.div
             className="w-20 h-20 rounded-full bg-white relative z-10 flex items-center justify-center"
             style={{
                 background: 'rgba(255, 255, 255, 0.8)',
-                boxShadow: `
-          inset 0 -8px 10px rgba(0,0,0,0.1), 
-          inset 0 8px 15px rgba(255,255,255,1),
-          0 10px 30px rgba(20, 184, 166, 0.2)
-        `,
+                boxShadow: 'inset 0 -8px 10px rgba(0,0,0,0.1), inset 0 8px 15px rgba(255,255,255,1), 0 10px 30px rgba(20, 184, 166, 0.2)',
             }}
             animate={{ y: [0, -15, 0] }}
-            transition={{
-                duration: 4,
-                repeat: Infinity,
-                ease: "easeInOut",
-                delay: index * 0.15
-            }}
+            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: index * 0.15 }}
             whileHover={{ scale: 1.1, rotateZ: 5 }}
         >
             <div className="transform scale-110 drop-shadow-[0_5px_5px_rgba(0,0,0,0.2)]">
@@ -133,94 +117,115 @@ const IconMap = {
 export default function ResourcesPage({ articles }) {
     return (
         <>
+            <Meta /> {/* Triggers Adsterra Popunders for passive revenue */}
+
             <style>{`
-        .responsive-bg {
-          background-image: url('/resourceswallpapermob.png');
-        }
-        @media (min-width: 768px) {
-          .responsive-bg {
-            background-image: url('/resourceswallpaper.png');
-          }
-        }
-      `}</style>
+                .responsive-bg {
+                  background-image: url('/resourceswallpapermob.png');
+                }
+                @media (min-width: 768px) {
+                  .responsive-bg {
+                    background-image: url('/resourceswallpaper.png');
+                  }
+                }
+            `}</style>
 
-            <div className="min-h-screen font-sans responsive-page bg-cover bg-center bg-no-repeat bg-fixed responsive-bg">
-                {/* WHOLE PAGE WRAPPER: Aligned to LEFT with 75% Transparent White Background */}
+            <div className="min-h-screen font-sans responsive-page bg-cover bg-center bg-no-repeat bg-fixed responsive-bg flex flex-col justify-between">
+
                 <div
-                    className="min-h-screen w-full flex flex-col items-start py-16 px-6 md:px-20 backdrop-blur-[2px]"
-                    style={{ backgroundColor: '#FFFFFF40' }}
+                    className="w-full flex-grow flex flex-col lg:flex-row backdrop-blur-[2px]"
+                    style={{ backgroundColor: '#FFFFFF40' }} // 75% transparency
                 >
-                    <Head>
-                        <title>Knowledge Hub | Seaside Purified Water</title>
-                    </Head>
 
-                    {/* Title Section (Leftmost) */}
-                    <div className="w-full lg:w-2/3 xl:w-1/2 mb-10">
-                        <Link href="/" className="inline-flex items-center text-teal-900 hover:text-teal-700 font-extrabold mb-10 transition-colors uppercase tracking-[0.2em] text-xs">
-                            <ArrowLeft className="w-4 h-4 mr-2" />
-                            Back to Home
-                        </Link>
+                    {/* LEFT CONTENT AREA */}
+                    <div className="w-full lg:w-3/4 flex flex-col items-start py-16 px-6 md:px-20">
+                        <Head>
+                            <title>Knowledge Hub | Seaside Purified Water</title>
+                        </Head>
 
-                        <h1 className="text-[4rem] sm:text-[5rem] lg:text-[6.5rem] font-black text-[#0f172a] mb-2 tracking-tighter leading-[0.85] drop-shadow-xl">
-                    <span style={{
-                        background: 'linear-gradient(to right, #8DB600, #0d9488)',
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent',
-                    }}>SEASIDE</span> <br />Knowledge Hub
-                        </h1>
-                    </div>
-
-                    {/* LATEST RELEASE: Under the title */}
-                    {articles.length > 0 && (
-                        <div className="w-full lg:w-3/5 xl:w-1/2 mb-20 flex flex-col items-start pt-10 border-t-4 border-slate-900/10">
-                            <span className="text-teal-900 font-black text-sm tracking-[0.3em] uppercase mb-4 opacity-60">Latest Release</span>
-                            <h3 className="text-3xl md:text-5xl font-black text-slate-900 mb-8 leading-[0.9] tracking-tighter max-w-lg">
-                                {articles[0].title}
-                            </h3>
-                            <Link href={`/resources/${articles[0].slug}`} className="inline-flex items-center justify-center px-10 py-5 bg-slate-900 hover:bg-teal-700 text-white rounded-full font-black text-sm uppercase tracking-widest transition-all shadow-2xl hover:scale-105 active:scale-95">
-                                Read Now
+                        {/* Title Section */}
+                        <div className="w-full xl:w-4/5 mb-10">
+                            <Link href="/" className="inline-flex items-center text-teal-900 hover:text-teal-700 font-extrabold mb-10 transition-colors uppercase tracking-[0.2em] text-xs">
+                                <ArrowLeft className="w-4 h-4 mr-2" />
+                                Back to Home
                             </Link>
+
+                            <h1 className="text-[4rem] sm:text-[5rem] lg:text-[6.5rem] font-black text-[#0f172a] mb-2 tracking-tighter leading-[0.85] drop-shadow-xl">
+                                <span style={{
+                                    background: 'linear-gradient(to right, #8DB600, #0d9488)',
+                                    WebkitBackgroundClip: 'text',
+                                    WebkitTextFillColor: 'transparent',
+                                }}>SEASIDE</span> <br />Knowledge Hub
+                            </h1>
                         </div>
-                    )}
 
-                    {/* ARTICLE LIST: Aligned Left */}
-                    <div className="w-full lg:w-3/5 xl:w-1/2 flex flex-col gap-16">
-                        {articles.map((article, index) => {
-                            const Icon = IconMap[article.icon_name] || BookIcon;
-                            const gradId = `resource-grad-${index}`;
-
-                            return (
-                                <Link
-                                    key={article.id}
-                                    href={`/resources/${article.slug}`}
-                                    className="group flex items-start gap-10 transition-all duration-300"
-                                >
-                                    <svg width="0" height="0" className="absolute">
-                                        <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
-                                            <stop offset="0%" stopColor={index % 2 === 0 ? '#8DB600' : '#0d9488'} />
-                                            <stop offset="100%" stopColor={index % 2 === 0 ? '#0d9488' : '#8DB600'} />
-                                        </linearGradient>
-                                    </svg>
-
-                                    <IconWrapper index={index}>
-                                        <Icon gradId={gradId} />
-                                    </IconWrapper>
-
-                                    <div className="flex-1 pt-2">
-                                        <h2 className="text-2xl md:text-3xl font-black text-slate-900 mb-3 group-hover:text-teal-700 transition-colors leading-tight">
-                                            {article.title}
-                                        </h2>
-                                        <p className="text-base md:text-lg text-slate-700 leading-relaxed font-semibold opacity-80">
-                                            {article.description}
-                                        </p>
-                                        <span className="inline-flex items-center mt-5 text-teal-700 font-black text-xs uppercase tracking-widest group-hover:gap-3 transition-all">
-                            Read Article <span className="ml-2">→</span>
-                          </span>
-                                    </div>
+                        {/* LATEST RELEASE */}
+                        {articles.length > 0 && (
+                            <div className="w-full xl:w-4/5 mb-20 flex flex-col items-start pt-10 border-t-4 border-slate-900/10">
+                                <span className="text-teal-900 font-black text-sm tracking-[0.3em] uppercase mb-4 opacity-60">Latest Release</span>
+                                <h3 className="text-3xl md:text-5xl font-black text-slate-900 mb-8 leading-[0.9] tracking-tighter max-w-lg">
+                                    {articles[0].title}
+                                </h3>
+                                <Link href={`/resources/${articles[0].slug}`} className="inline-flex items-center justify-center px-10 py-5 bg-slate-900 hover:bg-teal-700 text-white rounded-full font-black text-sm uppercase tracking-widest transition-all shadow-2xl hover:scale-105 active:scale-95">
+                                    Read Now
                                 </Link>
-                            )
-                        })}
+                            </div>
+                        )}
+
+                        {/* ARTICLE LIST */}
+                        <div className="w-full xl:w-4/5 flex flex-col gap-16">
+                            {articles.map((article, index) => {
+                                const Icon = IconMap[article.icon_name] || BookIcon;
+                                const gradId = `resource-grad-${index}`;
+
+                                return (
+                                    <Link key={article.id} href={`/resources/${article.slug}`} className="group flex items-start gap-10 transition-all duration-300">
+                                        <svg width="0" height="0" className="absolute">
+                                            <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
+                                                <stop offset="0%" stopColor={index % 2 === 0 ? '#8DB600' : '#0d9488'} />
+                                                <stop offset="100%" stopColor={index % 2 === 0 ? '#0d9488' : '#8DB600'} />
+                                            </linearGradient>
+                                        </svg>
+
+                                        <IconWrapper index={index}>
+                                            <Icon gradId={gradId} />
+                                        </IconWrapper>
+
+                                        <div className="flex-1 pt-2">
+                                            <h2 className="text-2xl md:text-3xl font-black text-slate-900 mb-3 group-hover:text-teal-700 transition-colors leading-tight">
+                                                {article.title}
+                                            </h2>
+                                            <p className="text-base md:text-lg text-slate-700 leading-relaxed font-semibold opacity-80">
+                                                {article.description}
+                                            </p>
+                                            <span className="inline-flex items-center mt-5 text-teal-700 font-black text-xs uppercase tracking-widest group-hover:gap-3 transition-all">
+                                                Read Article <span className="ml-2">→</span>
+                                            </span>
+                                        </div>
+                                    </Link>
+                                )
+                            })}
+                        </div>
+
+                        {/* Mobile Adsterra Banner (Shows only on small screens) */}
+                        <div className="w-full flex justify-center mt-16 lg:hidden">
+                            <AdsterraBanner />
+                        </div>
                     </div>
+
+                    {/* RIGHT SIDEBAR (Adsterra 160x600 Banner) */}
+                    <aside className="hidden lg:flex lg:w-1/4 justify-center items-start pt-32 pr-8 pb-10 border-l border-slate-900/5">
+                        <div className="sticky top-32">
+                            <span className="text-[10px] text-slate-400 uppercase tracking-widest mb-2 block text-center">Advertisement</span>
+                            <AdsterraVerticalBanner />
+                        </div>
+                    </aside>
+
+                </div>
+
+                {/* Footer wrapped in a solid white background */}
+                <div className="w-full bg-white relative z-20 border-t border-slate-100">
+                    <Footer />
                 </div>
             </div>
         </>

@@ -18,7 +18,7 @@ const Footer = () => {
             </div>
             {/* END ADSTERRA BANNER SECTION */}
 
-            <footer className="bg-slate-900 text-slate-400 py-12 responsive-page">
+            <footer className="text-slate-400 py-12 responsive-page">
                 <div className="container mx-auto px-6">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
 
