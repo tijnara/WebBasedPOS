@@ -53,20 +53,6 @@ const StatusBadge = ({ status }) => {
 };
 
 const SaleDetailsModal = ({ sale, isOpen, onClose }) => {
-    useEffect(() => {
-        if (isOpen) {
-            document.documentElement.style.overflow = 'hidden';
-            document.body.style.overflow = 'hidden';
-        } else {
-            document.documentElement.style.overflow = '';
-            document.body.style.overflow = '';
-        }
-        return () => {
-            document.documentElement.style.overflow = '';
-            document.body.style.overflow = '';
-        };
-    }, [isOpen]);
-
     if (!sale) return null;
 
     const handlePrintReceipt = () => {
@@ -76,92 +62,91 @@ const SaleDetailsModal = ({ sale, isOpen, onClose }) => {
     const displayId = sale.id ? String(sale.id).slice(0, 8).toUpperCase() : '---';
 
     return (
-        <Dialog open={isOpen} onOpenChange={onClose} className="!overflow-hidden flex items-center justify-center">
+        <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent
-                className="p-0 overflow-hidden w-full sm:max-w-sm shadow-2xl border border-gray-200 rounded-lg flex flex-col"
-                style={{ backgroundColor: '#ffffff', zIndex: 60, maxHeight: '90vh', margin: '0 auto' }}
+                className="p-0 bg-white overflow-hidden shadow-2xl rounded-2xl"
+                style={{ zIndex: 60, maxWidth: '400px', width: '95vw' }}
             >
-                <div className="flex flex-col h-full w-full relative" style={{ backgroundColor: '#ffffff' }}>
-                    <div className="flex justify-between items-center px-4 py-3 border-b border-gray-100 bg-white">
-                        <h3 className="font-bold text-gray-900">Transaction Receipt</h3>
-                        <DialogCloseButton onClick={onClose} />
+                {/* Header */}
+                <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-white">
+                    <h2 className="text-xl font-bold text-gray-900">Transaction Receipt</h2>
+                    <DialogCloseButton onClick={onClose} />
+                </div>
+
+                {/* Body */}
+                <div className="overflow-y-auto bg-white p-6" style={{ maxHeight: '70vh' }}>
+                    <div className="flex flex-col items-center text-center space-y-2 pb-4 border-b-2 border-dashed border-gray-300">
+                        <div className="relative h-16 w-16 mb-1 grayscale opacity-90">
+                            <img src="/seaside.png" alt="Seaside Logo" className="object-contain w-full h-full" />
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-xl text-gray-900 tracking-tight uppercase">Seaside Water Refilling Station</h3>
+                            <p className="text-xs text-gray-500 mt-1">Loois, Labrador Pangasinan</p>
+                            <p className="text-xs text-gray-500">Tel: 09686786072</p>
+                        </div>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto px-6 py-6 bg-white" style={{ backgroundColor: '#ffffff' }}>
-                        <div className="flex flex-col items-center text-center space-y-2 pb-4 border-b-2 border-dashed border-gray-300">
-                            <div className="relative h-16 w-16 mb-1 grayscale opacity-90">
-                                <img src="/seaside.png" alt="Seaside Logo" className="object-contain w-full h-full" />
-                            </div>
-                            <div>
-                                <h3 className="font-bold text-xl text-gray-900 tracking-tight uppercase">Seaside Water Refilling Station</h3>
-                                <p className="text-xs text-gray-500 mt-1">Loois, Labrador Pangasinan</p>
-                                <p className="text-xs text-gray-500">Tel: 09686786072</p>
-                            </div>
-                        </div>
+                    <div className="text-xs text-gray-600 space-y-1 font-mono mt-4">
+                        <div className="flex justify-between"><span>Date:</span><span>{formatDate(sale.saleTimestamp)}</span></div>
+                        <div className="flex justify-between"><span>Order #:</span><span className="font-bold text-gray-900">{displayId}</span></div>
+                        <div className="flex justify-between"><span>Staff:</span><span>{sale.createdBy || 'N/A'}</span></div>
+                        <div className="flex justify-between"><span>Customer:</span><span className="font-bold">{sale.customerName}</span></div>
+                    </div>
 
-                        <div className="text-xs text-gray-600 space-y-1 font-mono mt-4">
-                            <div className="flex justify-between"><span>Date:</span><span>{formatDate(sale.saleTimestamp)}</span></div>
-                            <div className="flex justify-between"><span>Order #:</span><span className="font-bold text-gray-900">{displayId}</span></div>
-                            <div className="flex justify-between"><span>Staff:</span><span>{sale.createdBy || 'N/A'}</span></div>
-                            <div className="flex justify-between"><span>Customer:</span><span className="font-bold">{sale.customerName}</span></div>
+                    <div className="border-t-2 border-dashed border-gray-300 pt-4 mt-4">
+                        <div className="text-xs font-bold text-gray-900 mb-2 uppercase flex justify-between">
+                            <span>Item</span><span>Total</span>
                         </div>
-
-                        <div className="border-t-2 border-dashed border-gray-300 pt-4 mt-4">
-                            <div className="text-xs font-bold text-gray-900 mb-2 uppercase flex justify-between">
-                                <span>Item</span><span>Total</span>
-                            </div>
-                            <div className="space-y-3">
-                                {(sale.sale_items || []).map((item, idx) => (
-                                    <div key={idx} className="text-sm">
-                                        <div className="flex justify-between items-start">
-                                            <span className="text-gray-800 font-medium">{item.productName}</span>
-                                            <span className="text-gray-900 font-bold font-mono">
-                                                {formatCurrency((item.price_at_sale || 0) * item.quantity)}
-                                            </span>
-                                        </div>
-                                        <div className="text-xs text-gray-500 font-mono mt-0.5">
-                                            {item.quantity} x {formatCurrency(item.price_at_sale)}
-                                            {item.discount_amount > 0 && (
-                                                <span className="text-green-600 ml-1 italic">(Disc: -{formatCurrency(item.discount_amount)})</span>
-                                            )}
-                                        </div>
+                        <div className="space-y-3">
+                            {(sale.sale_items || []).map((item, idx) => (
+                                <div key={idx} className="text-sm">
+                                    <div className="flex justify-between items-start">
+                                        <span className="text-gray-800 font-medium">{item.productName}</span>
+                                        <span className="text-gray-900 font-bold font-mono">
+                                            {formatCurrency((item.price_at_sale || 0) * item.quantity)}
+                                        </span>
                                     </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="border-t-2 border-dashed border-gray-300 pt-4 mt-4 space-y-2">
-                            <div className="flex justify-between items-center text-lg font-bold text-gray-900">
-                                <span>TOTAL</span><span className="font-mono">{formatCurrency(sale.totalAmount)}</span>
-                            </div>
-                            <div className="pt-2 space-y-1 text-xs text-gray-600 font-mono">
-                                <div className="flex justify-between"><span>Payment Method:</span><span className="uppercase">{sale.paymentMethod}</span></div>
-                                {sale.paymentMethod === 'Cash' && (
-                                    <>
-                                        <div className="flex justify-between"><span>Cash Received:</span><span>{formatCurrency(sale.amountReceived || 0)}</span></div>
-                                        <div className="flex justify-between font-bold text-gray-900"><span>Change:</span><span>{formatCurrency(sale.changegiven || 0)}</span></div>
-                                    </>
-                                )}
-                                <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-100">
-                                    <span>Status:</span><StatusBadge status={sale.status} />
+                                    <div className="text-xs text-gray-500 font-mono mt-0.5">
+                                        {item.quantity} x {formatCurrency(item.price_at_sale)}
+                                        {item.discount_amount > 0 && (
+                                            <span className="text-green-600 ml-1 italic">(Disc: -{formatCurrency(item.discount_amount)})</span>
+                                        )}
+                                    </div>
                                 </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="border-t-2 border-dashed border-gray-300 pt-4 mt-4 space-y-2">
+                        <div className="flex justify-between items-center text-lg font-bold text-gray-900">
+                            <span>TOTAL</span><span className="font-mono">{formatCurrency(sale.totalAmount)}</span>
+                        </div>
+                        <div className="pt-2 space-y-1 text-xs text-gray-600 font-mono">
+                            <div className="flex justify-between"><span>Payment Method:</span><span className="uppercase">{sale.paymentMethod}</span></div>
+                            {sale.paymentMethod === 'Cash' && (
+                                <>
+                                    <div className="flex justify-between"><span>Cash Received:</span><span>{formatCurrency(sale.amountReceived || 0)}</span></div>
+                                    <div className="flex justify-between font-bold text-gray-900"><span>Change:</span><span>{formatCurrency(sale.changegiven || 0)}</span></div>
+                                </>
+                            )}
+                            <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-100">
+                                <span>Status:</span><StatusBadge status={sale.status} />
                             </div>
                         </div>
-
-                        <div className="text-center pt-6 pb-2">
-                            <p className="text-xs font-medium text-gray-400 uppercase tracking-widest">Thank You!</p>
-                            <p className="text-[10px] text-gray-300 mt-1">Please keep this receipt for your records.</p>
-                        </div>
                     </div>
 
-                    <div className="p-4 bg-gray-50 border-t border-gray-200" style={{ backgroundColor: '#f9fafb' }}>
-                        <div className="grid grid-cols-2 gap-3">
-                            <Button variant="outline" onClick={onClose} className="w-full text-xs font-semibold bg-white border-gray-300 text-gray-700">Close</Button>
-                            <Button variant="primary" onClick={handlePrintReceipt} className="w-full text-xs font-semibold shadow-sm btn--primary">
-                                <ReceiptIcon className="mr-2 h-3.5 w-3.5" /> Print Receipt
-                            </Button>
-                        </div>
+                    <div className="text-center pt-6 pb-2">
+                        <p className="text-xs font-medium text-gray-400 uppercase tracking-widest">Thank You!</p>
+                        <p className="text-[10px] text-gray-300 mt-1">Please keep this receipt for your records.</p>
                     </div>
+                </div>
+
+                {/* Footer */}
+                <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-3 rounded-b-xl">
+                    <Button variant="outline" onClick={onClose} className="w-full sm:w-auto px-4 py-2 text-sm bg-white">Close</Button>
+                    <Button variant="primary" onClick={handlePrintReceipt} className="w-full sm:w-auto px-4 py-2 text-sm btn--primary">
+                        <ReceiptIcon className="mr-2 h-4 w-4" /> Print Receipt
+                    </Button>
                 </div>
             </DialogContent>
         </Dialog>
@@ -314,6 +299,7 @@ export default function HistoryPage() {
                                                                 >
                                                                     +{remainingCount} more...
                                                                 </div>
+
                                                             )}
                                                         </div>
                                                     </TableCell>
@@ -363,7 +349,7 @@ export default function HistoryPage() {
                                                 </div>
                                             </div>
                                             <div className="flex-shrink-0">
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600"><ViewIcon /></Button>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600" onClick={(e) => { e.stopPropagation(); openModal(s); }}><ViewIcon /></Button>
                                             </div>
                                         </div>
                                     ))}

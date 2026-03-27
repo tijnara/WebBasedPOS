@@ -46,8 +46,8 @@ const UsersGroupIcon = ({ className = "w-6 h-6" }) => (
 
 const EyeIcon = ({ className = "w-6 h-6" }) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639l4.436-7.332a1.012 1.012 0 011.605 0l4.436 7.332a1.012 1.012 0 010 .639l-4.436 7.332a1.012 1.012 0 01-1.605 0l-4.436-7.332z" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639l4.436-7.332a1.012 1.012 0 011.605 0l4.436 7.332a1.012 1.012 0 010 .639l-4.436 7.332a1.012 1.012 0 01-1.605 0l-4.436-7.332z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
     </svg>
 );
 
@@ -215,19 +215,27 @@ export default function DashboardPage() {
                 setRecentViews(data);
             }
         };
-        
+
         fetchViewCount();
         fetchRecentViews(); // Trigger fetch
     }, []);
 
     useEffect(() => {
         const client = supabase
-            .channel('any')
+            .channel('customer_changes') // More specific channel name
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'customers' }, () => {
                 queryClient.invalidateQueries(['customers']);
             })
-            .subscribe();
-    
+            .subscribe((status, err) => {
+                if (status === 'SUBSCRIBED') {
+                    console.log('Connected to Supabase Realtime.');
+                } else if (status === 'CHANNEL_ERROR') {
+                    console.warn('Realtime connection failed. Supabase might be waking up or busy. It will auto-reconnect.');
+                } else if (status === 'CLOSED') {
+                    console.log('Realtime connection closed.');
+                }
+            });
+
         return () => {
             supabase.removeChannel(client);
         };

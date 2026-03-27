@@ -507,7 +507,7 @@ export default function ProductManagementPage() {
                     className="p-0 overflow-hidden w-full !max-w-4xl bg-white shadow-xl border border-gray-100"
                     style={{ backgroundColor: 'white', maxWidth: '900px', zIndex: 50 }}
                 >
-                    <form onSubmit={save} className="flex flex-col h-full max-h-[90vh]">
+                    <form onSubmit={save} className="flex flex-col h-full">
                         <DialogHeader className="px-6 py-4 border-b bg-white flex-shrink-0">
                             <DialogTitle className="text-xl font-bold text-gray-900">
                                 {editing ? 'Edit Product' : 'Add New Product'}
@@ -515,7 +515,7 @@ export default function ProductManagementPage() {
                             <DialogCloseButton onClick={closeModal} />
                         </DialogHeader>
 
-                        <div className="flex-1 overflow-y-auto px-6 py-6 bg-white">
+                        <div className="flex-1 overflow-y-auto px-6 py-6 bg-white" style={{ maxHeight: '70vh' }}>
                             <div className="flex flex-col md:flex-row gap-8">
                                 {/* Left Column: Visuals */}
                                 <div className="w-full md:w-1/3 space-y-4">
