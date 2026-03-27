@@ -116,7 +116,6 @@ export default function ArticleManagementPage() {
             const fileExt = file.name.split('.').pop();
             const fileName = `article-${Date.now()}.${fileExt}`;
             const filePath = `articles/${fileName}`;
-            // We use the existing 'gallery' bucket which is public
             const { error: uploadError } = await supabase.storage.from('gallery').upload(filePath, file);
             if (uploadError) throw uploadError;
             const { data } = supabase.storage.from('gallery').getPublicUrl(filePath);
@@ -190,57 +189,103 @@ export default function ArticleManagementPage() {
             <div className="flex justify-between items-center">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900">Resource Articles</h1>
-                    <p className="text-slate-500">Manage SEO articles and health tips.</p>
+                    <p className="text-slate-500 text-sm md:text-base">Manage SEO articles and health tips.</p>
                 </div>
                 <Button onClick={() => { resetForm(); setIsModalOpen(true); }} className="btn--primary">
-                    + Add New Article
+                    <span className="hidden md:inline">+ Add New Article</span>
+                    <span className="md:hidden">+ Add</span>
                 </Button>
             </div>
 
             <Card>
                 <CardContent className="p-0">
                     <ScrollArea className="h-[calc(100vh-250px)]">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead>Title</TableHead>
-                                    <TableHead>Slug</TableHead>
-                                    <TableHead className="text-right">Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {isLoading ? (
-                                    <TableRow><TableCell colSpan={4} className="text-center py-10">Loading...</TableCell></TableRow>
-                                ) : articles.length === 0 ? (
-                                    <TableRow><TableCell colSpan={4} className="text-center py-10">No articles found.</TableCell></TableRow>
-                                ) : (
-                                    articles.map((item) => (
-                                        <TableRow key={item.id}>
-                                            <TableCell>
-                                                <span className={`px-2 py-1 rounded text-xs font-bold ${item.is_published ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                                                    {item.is_published ? 'Published' : 'Draft'}
-                                                </span>
-                                            </TableCell>
-                                            <TableCell className="font-medium">{item.title}</TableCell>
-                                            <TableCell className="text-gray-500 font-mono text-sm">/{item.slug}</TableCell>
-                                            <TableCell className="text-right space-x-2">
-                                                <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
+                        {/* =========================================
+                            DESKTOP VIEW: STANDARD TABLE
+                        ========================================= */}
+                        <div className="hidden md:block">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Status</TableHead>
+                                        <TableHead>Title</TableHead>
+                                        <TableHead>Slug</TableHead>
+                                        <TableHead className="text-right">Actions</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {isLoading ? (
+                                        <TableRow><TableCell colSpan={4} className="text-center py-10">Loading...</TableCell></TableRow>
+                                    ) : articles.length === 0 ? (
+                                        <TableRow><TableCell colSpan={4} className="text-center py-10">No articles found.</TableCell></TableRow>
+                                    ) : (
+                                        articles.map((item) => (
+                                            <TableRow key={item.id}>
+                                                <TableCell>
+                                                    <span className={`px-2 py-1 rounded text-xs font-bold ${item.is_published ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                                                        {item.is_published ? 'Published' : 'Draft'}
+                                                    </span>
+                                                </TableCell>
+                                                <TableCell className="font-medium">{item.title}</TableCell>
+                                                <TableCell className="text-gray-500 font-mono text-sm">/{item.slug}</TableCell>
+                                                <TableCell className="text-right space-x-2">
+                                                    <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
+                                                        <EditIcon className="w-4 h-4 text-blue-600" />
+                                                    </Button>
+                                                    <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)}>
+                                                        <DeleteIcon className="w-4 h-4 text-red-600" />
+                                                    </Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
+
+                        {/* =========================================
+                            MOBILE VIEW: CARD LAYOUT
+                        ========================================= */}
+                        <div className="block md:hidden p-4 space-y-4">
+                            {isLoading ? (
+                                <div className="text-center py-10 text-gray-500 font-medium">Loading articles...</div>
+                            ) : articles.length === 0 ? (
+                                <div className="text-center py-10 text-gray-500 font-medium">No articles found.</div>
+                            ) : (
+                                articles.map((item) => (
+                                    <div key={item.id} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm flex flex-col gap-3">
+                                        <div className="flex justify-between items-start">
+                                            <span className={`px-2 py-1 rounded text-xs font-bold ${item.is_published ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                                                {item.is_published ? 'Published' : 'Draft'}
+                                            </span>
+
+                                            {/* Action Buttons */}
+                                            <div className="flex gap-2">
+                                                <Button variant="ghost" size="icon" onClick={() => handleEdit(item)} className="h-8 w-8 bg-gray-50 border shadow-sm rounded-lg">
                                                     <EditIcon className="w-4 h-4 text-blue-600" />
                                                 </Button>
-                                                <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)}>
+                                                <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)} className="h-8 w-8 bg-gray-50 border shadow-sm rounded-lg">
                                                     <DeleteIcon className="w-4 h-4 text-red-600" />
                                                 </Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
-                                )}
-                            </TableBody>
-                        </Table>
+                                            </div>
+                                        </div>
+
+                                        <div className="mt-1">
+                                            <h3 className="font-bold text-slate-900 text-lg leading-tight">{item.title}</h3>
+                                            <p className="text-xs text-slate-500 font-mono mt-2 break-all bg-slate-50 p-2 rounded-md">
+                                                /{item.slug}
+                                            </p>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+
                     </ScrollArea>
                 </CardContent>
             </Card>
 
+            {/* Modal remains mostly unchanged */}
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
                 <DialogContent
                     className="p-0 w-full !max-w-4xl"
