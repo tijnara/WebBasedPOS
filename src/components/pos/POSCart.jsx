@@ -47,10 +47,8 @@ const POSCart = ({
                         </div>
                     ) : (
                         <div
-                            className="overflow-y-auto w-full current-order-scroll-area"
-                            style={{
-                                height: '14rem'
-                            }}
+                            className="overflow-y-auto w-full current-order-scroll-area flex-1" // Added flex-1 here
+                            // Removed fixed height style
                         >
                             <div className="flex flex-col divide-y divide-gray-100 p-2">
                                 {Object.entries(currentSale).map(([key, item]) => (

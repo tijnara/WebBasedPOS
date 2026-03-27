@@ -75,7 +75,7 @@ export default function ProductManagementPage() {
     const { data: productsData = { products: [], totalPages: 1 }, isLoading } = useProducts({ page: currentPage, itemsPerPage, searchTerm: debouncedSearchTerm, category: categoryFilter });
     const products = productsData.products;
     const totalPages = productsData.totalPages;
-    //const addToast = useStore(s => s.addToast);
+
     const { addToast, user } = useStore(s => ({ addToast: s.addToast, user: s.user }));
     const isAdmin = user?.role === 'Admin' || user?.role === 'admin';
 
@@ -258,10 +258,7 @@ export default function ProductManagementPage() {
             addToast({ title: 'Deleted', description: `${p.name} deleted`, variant: 'success' });
         } catch (e) {
             console.error(e);
-
-            // --- MODIFIED ERROR HANDLING START ---
             if (e.code === '23503') {
-                // Foreign key violation error code from PostgreSQL
                 addToast({
                     title: 'Cannot Delete Product',
                     description: 'This product is currently in use (e.g., as a Parent Product for other items or in sales history) and cannot be deleted.',
@@ -270,7 +267,6 @@ export default function ProductManagementPage() {
             } else {
                 addToast({ title: 'Error', description: e.message || 'Failed to delete product', variant: 'destructive' });
             }
-            // --- MODIFIED ERROR HANDLING END ---
         }
     };
 
@@ -501,146 +497,174 @@ export default function ProductManagementPage() {
                 </div>
             </div>
 
-            {/* --- MODAL (2-Column Layout) --- */}
+            {/* --- ADD/EDIT PRODUCT MODAL --- */}
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                <DialogContent
-                    className="p-0 overflow-hidden w-full !max-w-4xl bg-white shadow-xl border border-gray-100"
-                    style={{ backgroundColor: 'white', maxWidth: '900px', zIndex: 50 }}
-                >
-                    <form onSubmit={save} className="flex flex-col h-full">
-                        <DialogHeader className="px-6 py-4 border-b bg-white flex-shrink-0">
-                            <DialogTitle className="text-xl font-bold text-gray-900">
-                                {editing ? 'Edit Product' : 'Add New Product'}
-                            </DialogTitle>
-                            <DialogCloseButton onClick={closeModal} />
-                        </DialogHeader>
+                {/* FIX: Forced width and max-width to ensure it expands properly */}
+                <DialogContent className="w-[95vw] max-w-3xl p-0" style={{ maxWidth: '800px', width: '100%' }}>
+                    <form onSubmit={save}>
 
-                        <div className="flex-1 overflow-y-auto px-6 py-6 bg-white" style={{ maxHeight: '70vh' }}>
-                            <div className="flex flex-col md:flex-row gap-8">
-                                {/* Left Column: Visuals */}
-                                <div className="w-full md:w-1/3 space-y-4">
-                                    <Label className="text-sm font-semibold text-gray-700">Product Image</Label>
-                                    <ImageUploader previewUrl={imagePreview} onFileSelect={handleFileSelect} />
-                                    <p className="text-xs text-gray-500 text-center">Allowed: .jpg, .png. Max 2MB.</p>
+                        {/* Header */}
+                        <div className="px-6 py-4 border-b bg-gray-50/50 rounded-t-lg">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <DialogTitle className="text-xl font-bold text-gray-900">
+                                        {editing ? 'Edit Product' : 'Add New Product'}
+                                    </DialogTitle>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        {editing ? `Editing ID: ${editing.id}` : 'Fill in the details to create a new inventory item.'}
+                                    </p>
                                 </div>
+                                <DialogCloseButton onClick={closeModal} />
+                            </div>
+                        </div>
 
-                                {/* Right Column: Details */}
-                                <div className="w-full md:w-2/3 space-y-6">
-                                    {/* General Info */}
-                                    <div className="grid grid-cols-1 gap-4">
-                                        <div className="space-y-1.5">
-                                            <Label htmlFor="productName">Product Name <span className="text-red-500">*</span></Label>
-                                            <Input id="productName" ref={productNameRef} value={name} onChange={e => setName(e.target.value)} required placeholder="e.g. Chips (Large)" className="h-11" />
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <Label>Category</Label>
-                                            <div className="flex gap-2">
-                                                <Select value={category} onChange={e => setCategory(e.target.value)} className="flex-1 h-11">
-                                                    {mergedCategories.map(c => <option key={c} value={c}>{c}</option>)}
-                                                </Select>
-                                                <Button type="button" variant="outline" onClick={() => setIsAddingCategory(prev => !prev)} className="h-11 px-4">+ Add</Button>
-                                            </div>
-                                            {isAddingCategory && (
-                                                <div className="flex gap-2 mt-2 animate-in fade-in slide-in-from-top-1">
-                                                    <Input placeholder="New Category Name" value={newCategoryName} onChange={e => setNewCategoryName(e.target.value)} className="h-10 text-sm" />
-                                                    <Button type="button" size="sm" onClick={addCategory}>Save</Button>
-                                                </div>
-                                            )}
-                                        </div>
+                        {/* Scrollable Body */}
+                        <div className="p-6 max-h-[65vh] overflow-y-auto">
+                            <div className="space-y-8">
+                                {/* Section 1: Basic Info & Media */}
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <div className="md:col-span-1">
+                                        <Label className="text-sm font-semibold mb-2 block">Product Image</Label>
+                                        <ImageUploader previewUrl={imagePreview} onFileSelect={handleFileSelect} />
+                                        <p className="text-[10px] text-gray-400 mt-2 text-center italic">
+                                            Recommended: Square PNG or JPG
+                                        </p>
                                     </div>
 
-                                    {/* Pricing */}
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-1.5 relative">
-                                            <Label htmlFor="price">Selling Price <span className="text-red-500">*</span></Label>
-                                            <div className="relative">
-                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₱</span>
-                                                <Input id="price" type="number" step="0.01" min="0" value={price} onChange={e => setPrice(e.target.value)} className="pl-8 h-11" placeholder="0.00" required />
-                                            </div>
-                                        </div>
-                                        <div className="space-y-1.5 relative">
-                                            <Label htmlFor="cost">Cost Price</Label>
-                                            <div className="relative">
-                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₱</span>
-                                                <Input id="cost" type="number" step="0.01" min="0" value={cost} onChange={e => setCost(e.target.value)} className="pl-8 h-11" placeholder="0.00" />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Inventory */}
-                                    <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
-                                        <div className="space-y-1.5">
-                                            <Label htmlFor="stock">Current Stock</Label>
+                                    <div className="md:col-span-2 space-y-4">
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="name" className="text-sm font-medium">Product Name</Label>
                                             <Input
-                                                id="stock"
-                                                type="number"
-                                                value={stock}
-                                                onChange={e => setStock(e.target.value)}
-                                                className="h-11 bg-white"
-                                                disabled={editing && !isAdmin}
+                                                id="name"
+                                                ref={productNameRef}
+                                                value={name}
+                                                onChange={e => setName(e.target.value)}
+                                                required
+                                                placeholder="e.g. Purified Water (5 Gal)"
                                             />
                                         </div>
-                                        <div className="space-y-1.5">
-                                            <Label htmlFor="minStock">Low Stock Alert</Label>
-                                            <Input id="minStock" type="number" value={minStock} onChange={e => setMinStock(e.target.value)} className="h-11 bg-white" />
-                                        </div>
-                                    </div>
 
-                                    {/* Advanced: Barcode */}
-                                    <div className="space-y-1.5">
-                                        <Label htmlFor="barcode">Barcode / SKU</Label>
-                                        <Input id="barcode" value={barcode} onChange={e => setBarcode(e.target.value)} placeholder="Scan or type code" className="h-11" />
-                                    </div>
-
-                                    {/* Unit Conversion (Restored) */}
-                                    <div className="pt-4 border-t border-gray-100">
-                                        <Label className="mb-2 block text-xs font-semibold uppercase text-gray-500">
-                                            Unit Conversion (Advanced)
-                                        </Label>
                                         <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-1.5">
-                                                <Label htmlFor="parentId" className="text-xs">Parent Product (e.g. Case)</Label>
-                                                <Select
-                                                    id="parentId"
-                                                    value={parentId || ''}
-                                                    onChange={e => setParentId(e.target.value || null)}
-                                                    className="h-10 text-sm"
-                                                >
-                                                    <option value="">-- None --</option>
-                                                    {products
-                                                        .filter(p => p.id !== editing?.id) // Prevent self-selection
-                                                        .map(p => (
-                                                            <option key={p.id} value={p.id}>{p.name}</option>
-                                                        ))
-                                                    }
-                                                </Select>
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="category" className="text-sm font-medium">Category</Label>
+                                                <div className="flex gap-2">
+                                                    <Select value={category} onChange={e => setCategory(e.target.value)} className="w-full">
+                                                        {mergedCategories.map(c => <option key={c} value={c}>{c}</option>)}
+                                                    </Select>
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="icon"
+                                                        className="shrink-0"
+                                                        onClick={() => setIsAddingCategory(prev => !prev)}
+                                                    >
+                                                        +
+                                                    </Button>
+                                                </div>
                                             </div>
-                                            <div className="space-y-1.5">
-                                                <Label htmlFor="conversionRate" className="text-xs">Items per Parent</Label>
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="barcode" className="text-sm font-medium">Barcode / SKU</Label>
                                                 <Input
-                                                    id="conversionRate"
-                                                    type="number"
-                                                    min="1"
-                                                    value={conversionRate}
-                                                    onChange={e => setConversionRate(e.target.value)}
-                                                    placeholder="e.g. 12"
-                                                    className="h-10"
-                                                    disabled={!parentId}
+                                                    id="barcode"
+                                                    value={barcode}
+                                                    onChange={e => setBarcode(e.target.value)}
+                                                    placeholder="Scan code"
                                                 />
                                             </div>
                                         </div>
+
+                                        {isAddingCategory && (
+                                            <div className="flex gap-2 p-3 bg-blue-50 rounded-lg">
+                                                <Input
+                                                    placeholder="New Category Name"
+                                                    value={newCategoryName}
+                                                    onChange={e => setNewCategoryName(e.target.value)}
+                                                    className="bg-white"
+                                                />
+                                                <Button type="button" size="sm" onClick={addCategory}>Add</Button>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <hr className="border-gray-100" />
+
+                                {/* Section 2: Pricing & Inventory */}
+                                <div>
+                                    <h3 className="text-sm font-bold uppercase tracking-wider text-gray-400 mb-4 flex items-center gap-2">
+                                        <span className="w-8 h-[1px] bg-gray-200"></span>
+                                        Inventory & Pricing
+                                    </h3>
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                        <div className="grid gap-2 p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                            <Label htmlFor="cost" className="text-xs text-gray-500 font-bold uppercase">Cost Price</Label>
+                                            <div className="relative">
+                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">₱</span>
+                                                <Input id="cost" type="number" step="0.01" value={cost} onChange={e => setCost(e.target.value)} className="pl-7" />
+                                            </div>
+                                        </div>
+                                        <div className="grid gap-2 p-4 bg-primary/5 rounded-xl border border-primary/10">
+                                            <Label htmlFor="price" className="text-xs text-primary font-bold uppercase">Selling Price</Label>
+                                            <div className="relative">
+                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-primary text-sm font-bold">₱</span>
+                                                <Input id="price" type="number" step="0.01" value={price} onChange={e => setPrice(e.target.value)} className="pl-7 border-primary/20 font-bold" />
+                                            </div>
+                                        </div>
+                                        <div className="grid gap-2 p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                            <Label htmlFor="stock" className="text-xs text-gray-500 font-bold uppercase">Current Stock</Label>
+                                            <Input id="stock" type="number" value={stock} onChange={e => setStock(e.target.value)} disabled={editing && !isAdmin} />
+                                        </div>
                                     </div>
 
+                                    <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div className="flex items-center gap-3 px-1">
+                                            <Label htmlFor="minStock" className="text-sm text-gray-600 whitespace-nowrap">Low Stock Alert at:</Label>
+                                            <Input id="minStock" type="number" value={minStock} onChange={e => setMinStock(e.target.value)} className="w-24" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Section 3: Advanced / Relationships */}
+                                <div className="bg-amber-50/50 p-4 rounded-xl border border-amber-100">
+                                    <h3 className="text-sm font-bold text-amber-800 mb-3 flex items-center gap-2">
+                                        Bulk Conversion (Advanced)
+                                    </h3>
+                                    <div className="grid sm:grid-cols-2 gap-4">
+                                        <div className="grid gap-1.5">
+                                            <Label htmlFor="parentId" className="text-xs text-amber-900">Parent Product</Label>
+                                            <Select id="parentId" value={parentId || ''} onChange={e => setParentId(e.target.value || null)} className="bg-white">
+                                                <option value="">-- No Parent (Individual Item) --</option>
+                                                {products.filter(p => p.id !== editing?.id).map(p => (
+                                                    <option key={p.id} value={p.id}>{p.name}</option>
+                                                ))}
+                                            </Select>
+                                        </div>
+                                        <div className="grid gap-1.5">
+                                            <Label htmlFor="conversionRate" className="text-xs text-amber-900">Conversion Rate</Label>
+                                            <Input
+                                                id="conversionRate"
+                                                type="number"
+                                                value={conversionRate}
+                                                onChange={e => setConversionRate(e.target.value)}
+                                                disabled={!parentId}
+                                                placeholder="e.g. 24 items per case"
+                                                className="bg-white"
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        <DialogFooter className="px-6 py-4 border-t bg-gray-50 flex-shrink-0">
-                            <div className="flex w-full justify-end gap-3">
-                                <Button variant="outline" type="button" onClick={closeModal} disabled={isMutating} className="px-6">Cancel</Button>
-                                <Button type="submit" disabled={isMutating} className="px-8 btn--primary font-semibold">{uploading ? 'Uploading...' : isMutating ? 'Saving...' : 'Save Product'}</Button>
-                            </div>
-                        </DialogFooter>
+                        {/* Footer */}
+                        <div className="p-4 bg-gray-50 border-t flex gap-2 rounded-b-lg">
+                            <Button variant="outline" type="button" onClick={closeModal} disabled={isMutating} className="flex-1 sm:flex-none">
+                                Discard
+                            </Button>
+                            <Button type="submit" disabled={isMutating} className="flex-1 sm:flex-none min-w-[140px] shadow-sm">
+                                {isMutating ? 'Processing...' : (editing ? 'Update Product' : 'Create Product')}
+                            </Button>
+                        </div>
                     </form>
                 </DialogContent>
             </Dialog>
