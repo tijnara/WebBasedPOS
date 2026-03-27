@@ -191,9 +191,9 @@ export default function ArticleManagementPage() {
                     <h1 className="text-2xl font-bold text-slate-900">Resource Articles</h1>
                     <p className="text-slate-500 text-sm md:text-base">Manage SEO articles and health tips.</p>
                 </div>
-                <Button onClick={() => { resetForm(); setIsModalOpen(true); }} className="btn--primary">
-                    <span className="hidden md:inline">+ Add New Article</span>
-                    <span className="md:hidden">+ Add</span>
+                {/* Updated Button Here */}
+                <Button onClick={() => { resetForm(); setIsModalOpen(true); }} className="btn--primary px-4 py-2">
+                    New Article
                 </Button>
             </div>
 
@@ -285,7 +285,6 @@ export default function ArticleManagementPage() {
                 </CardContent>
             </Card>
 
-            {/* Modal remains mostly unchanged */}
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
                 <DialogContent
                     className="p-0 w-full !max-w-4xl"

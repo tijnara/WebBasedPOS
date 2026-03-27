@@ -15,7 +15,7 @@ import {
     useCreateCustomer,
     useUpdateCustomer,
     useDeleteCustomer,
-    useRepayDebt // Newly imported
+    useRepayDebt
 } from '../../hooks/useCustomerMutations';
 import { useCustomers } from '../../hooks/useCustomers';
 
@@ -66,7 +66,13 @@ export default function CustomerManagementPage() {
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
-    const { data: customersData = { customers: [], totalPages: 1 }, isLoading } = useCustomers({ page: currentPage, itemsPerPage, searchTerm: debouncedSearchTerm });
+
+    const { data: customersData = { customers: [], totalPages: 1 }, isLoading } = useCustomers({
+        page: currentPage,
+        itemsPerPage,
+        searchTerm: debouncedSearchTerm
+    });
+
     const customers = customersData.customers;
     const totalPages = customersData.totalPages;
     const addToast = useStore(s => s.addToast);
@@ -94,6 +100,7 @@ export default function CustomerManagementPage() {
         return () => clearTimeout(handler);
     }, [searchTerm]);
 
+    // Global shortcut for search
     useEffect(() => {
         const handleKeyDown = (e) => {
             const activeTag = document.activeElement.tagName;
@@ -188,48 +195,55 @@ export default function CustomerManagementPage() {
     return (
         <div className="customer-page responsive-page">
             <div>
+                {/* Header Section */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                     <div>
-                        <h1 className="text-2xl font-semibold">Customer Management</h1>
-                        <p className="text-muted mt-1">Manage your customer records and credit balances</p>
+                        <h1 className="text-2xl font-bold text-gray-900">Customer Management</h1>
+                        <p className="text-sm text-gray-500 mt-1">Manage your customer records and credit balances</p>
                     </div>
-                    <Button onClick={openModal} variant="primary">Add Customer</Button>
+                    {/* The Add Customer trigger */}
+                    <Button onClick={openModal} variant="primary" className="shadow-sm font-semibold">
+                        + Add Customer
+                    </Button>
                 </div>
 
-                <div className="mb-4 mt-6">
-                    <Input
-                        ref={searchInputRef}
-                        placeholder="Search by name, email, phone, or staff..."
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                        className="w-full max-w-xs mb-2"
-                    />
+                {/* Search Input */}
+                <div className="mb-6">
+                    <div className="relative max-w-md">
+                        <Input
+                            ref={searchInputRef}
+                            placeholder="Search by name, email, phone..."
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                            className="w-full pl-4 pr-10 py-2 rounded-lg bg-white border border-gray-200 shadow-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                        />
+                        <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                        </div>
+                    </div>
                 </div>
 
                 {/* --- DESKTOP TABLE --- */}
-                <Card className="mb-4 hidden md:block">
+                <Card className="mb-4 hidden md:block border border-gray-100 shadow-sm bg-white overflow-hidden rounded-xl">
                     <CardContent className="p-0">
                         <ScrollArea>
                             <Table>
-                                <TableHeader className="sticky top-0 bg-gray-50 z-10">
+                                <TableHeader className="bg-gray-50/80 border-b border-gray-100">
                                     <TableRow>
-                                        <TableHead>Customer Name</TableHead>
-                                        <TableHead>Contact Number</TableHead>
-                                        <TableHead>Address</TableHead>
-                                        {/* ADDED: Date Added Column */}
-                                        <TableHead>Date Added</TableHead>
-                                        {/* FIX: Centered Header for Balance */}
-                                        <TableHead className="text-center">Balance (Utang)</TableHead>
-                                        {/* FIX: Centered Header for Actions */}
-                                        <TableHead className="text-center">Actions</TableHead>
+                                        <TableHead className="font-semibold text-gray-600">Customer Name</TableHead>
+                                        <TableHead className="font-semibold text-gray-600">Contact Number</TableHead>
+                                        <TableHead className="font-semibold text-gray-600">Address</TableHead>
+                                        <TableHead className="font-semibold text-gray-600">Date Added</TableHead>
+                                        <TableHead className="text-center font-semibold text-gray-600">Balance (Utang)</TableHead>
+                                        <TableHead className="text-right font-semibold text-gray-600">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {isLoading ? (
                                         <TableRow>
-                                            <TableCell colSpan={6} className="text-center text-muted py-8">
-                                                <div className="flex justify-center items-center">
-                                                    <svg className="animate-spin h-5 w-5 text-primary mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <TableCell colSpan={6} className="text-center text-muted py-12">
+                                                <div className="flex justify-center items-center text-gray-500">
+                                                    <svg className="animate-spin h-5 w-5 text-blue-600 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                                     </svg>
@@ -239,43 +253,40 @@ export default function CustomerManagementPage() {
                                         </TableRow>
                                     ) : customers.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={6} className="text-center text-muted py-8">
-                                                {debouncedSearchTerm ? `No customers found for "${debouncedSearchTerm}".` : 'No customers found.'}
+                                            <TableCell colSpan={6} className="text-center text-gray-500 py-12">
+                                                {debouncedSearchTerm ? `No customers found matching "${debouncedSearchTerm}".` : 'No customers found.'}
                                             </TableCell>
                                         </TableRow>
                                     ) : (
                                         customers.map(c => (
-                                            <TableRow key={c.id}>
-                                                <TableCell className="font-medium">{c.name}</TableCell>
-                                                <TableCell>{c.phone || 'N/A'}</TableCell>
+                                            <TableRow key={c.id} className="hover:bg-gray-50/50 transition-colors border-b border-gray-50 last:border-0">
+                                                <TableCell className="font-medium text-gray-900">{c.name}</TableCell>
+                                                <TableCell className="text-gray-600">{c.phone || 'N/A'}</TableCell>
                                                 <TableCell className="text-sm text-gray-500 truncate max-w-[200px]" title={c.address}>{c.address || 'N/A'}</TableCell>
-                                                {/* ADDED: Display Date Added */}
                                                 <TableCell className="text-sm text-gray-500">
                                                     {c.dateAdded ? new Date(c.dateAdded).toLocaleDateString() : '-'}
                                                 </TableCell>
-                                                {/* FIX: Centered Cell for Balance */}
                                                 <TableCell className="text-center font-semibold">
-                                                    <span className={c.credit_balance > 0 ? "text-red-600" : "text-green-600"}>
+                                                    <span className={c.credit_balance > 0 ? "text-red-600 bg-red-50 px-2.5 py-1 rounded-md" : "text-green-600"}>
                                                         {currency(c.credit_balance || 0, { symbol: '₱' }).format()}
                                                     </span>
                                                 </TableCell>
-                                                {/* FIX: Centered Cell and Flex container for Actions */}
-                                                <TableCell className="text-center">
-                                                    <div className="flex justify-center space-x-1">
+                                                <TableCell className="text-right">
+                                                    <div className="flex justify-end items-center space-x-2">
                                                         {c.credit_balance > 0 && (
                                                             <Button
                                                                 variant="outline"
                                                                 size="sm"
-                                                                className="h-8 text-xs bg-green-50 text-green-700 border-green-200 hover:bg-green-100 mr-2"
+                                                                className="h-8 text-xs font-semibold bg-green-50 text-green-700 border-green-200 hover:bg-green-100 hover:text-green-800 transition-colors"
                                                                 onClick={() => setRepayCustomer(c)}
                                                             >
                                                                 Pay
                                                             </Button>
                                                         )}
-                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:bg-blue-100" onClick={() => startEdit(c)} title="Edit Customer" disabled={isDemo}>
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" onClick={() => startEdit(c)} title="Edit Customer" disabled={isDemo}>
                                                             <EditIcon />
                                                         </Button>
-                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-red-600 hover:bg-red-100" onClick={() => remove(c)} title="Delete Customer" disabled={isDemo}>
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" onClick={() => remove(c)} title="Delete Customer" disabled={isDemo}>
                                                             <DeleteIcon />
                                                         </Button>
                                                     </div>
@@ -286,54 +297,63 @@ export default function CustomerManagementPage() {
                                 </TableBody>
                             </Table>
                         </ScrollArea>
-                        <Pagination currentPage={currentPage} totalPages={totalPages || 1} onPageChange={page => setCurrentPage(page)} />
+                        <div className="p-4 border-t border-gray-50">
+                            <Pagination currentPage={currentPage} totalPages={totalPages || 1} onPageChange={page => setCurrentPage(page)} />
+                        </div>
                     </CardContent>
                 </Card>
 
                 {/* --- MOBILE LIST VIEW --- */}
                 <div className="block md:hidden">
-                    <Card>
+                    <Card className="border-0 shadow-none bg-transparent">
                         <CardContent className="p-0">
                             {isLoading ? (
                                 <div className="text-center text-muted p-6">Loading customers...</div>
                             ) : customers.length === 0 ? (
-                                <div className="text-center text-muted p-6">
+                                <div className="text-center text-gray-500 p-8 bg-white rounded-2xl shadow-sm border border-gray-100">
                                     {debouncedSearchTerm ? `No customers found for "${debouncedSearchTerm}".` : 'No customers found.'}
                                 </div>
                             ) : (
-                                <div className="divide-y divide-gray-100">
+                                <div className="space-y-4">
                                     {customers.map(c => (
-                                        <div key={c.id} className="p-4 flex flex-col space-y-3">
+                                        <div key={c.id} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col space-y-4">
                                             <div className="flex items-start justify-between">
                                                 <div className="flex items-center space-x-3">
                                                     <div className="flex-shrink-0">
-                                                        <span className="w-10 h-10 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center">
+                                                        <span className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center">
                                                             <UserIcon className="w-6 h-6" />
                                                         </span>
                                                     </div>
                                                     <div>
-                                                        <div className="font-medium text-gray-900">{c.name}</div>
-                                                        <div className="text-sm text-gray-500">{c.phone || 'No phone'}</div>
+                                                        <div className="font-bold text-gray-900 text-lg">{c.name}</div>
+                                                        <div className="text-sm text-gray-500 mt-0.5">{c.phone || 'No phone'}</div>
                                                     </div>
                                                 </div>
-                                                <div className={`font-bold ${c.credit_balance > 0 ? "text-red-600" : "text-green-600"}`}>
+                                            </div>
+
+                                            <div className="flex justify-between items-center bg-gray-50 p-3 rounded-xl">
+                                                <span className="text-sm text-gray-500 font-medium">Balance</span>
+                                                <div className={`font-bold text-lg ${c.credit_balance > 0 ? "text-red-600" : "text-green-600"}`}>
                                                     {currency(c.credit_balance || 0, { symbol: '₱' }).format()}
                                                 </div>
                                             </div>
 
-                                            <div className="flex justify-end space-x-2 pt-2 border-t border-gray-50">
+                                            <div className="flex justify-end items-center gap-2 pt-2">
                                                 {c.credit_balance > 0 && (
                                                     <Button
                                                         variant="outline"
                                                         size="sm"
-                                                        className="h-8 text-xs bg-green-50 text-green-700 border-green-200"
+                                                        className="h-9 text-sm font-semibold bg-green-50 text-green-700 border-green-200 w-full mr-2"
                                                         onClick={() => setRepayCustomer(c)}
                                                     >
                                                         Repay Debt
                                                     </Button>
                                                 )}
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 bg-blue-50" onClick={() => startEdit(c)}>
+                                                <Button variant="ghost" size="icon" className="h-9 w-9 text-gray-500 hover:text-blue-600 bg-gray-50 hover:bg-blue-50 rounded-xl" onClick={() => startEdit(c)} disabled={isDemo}>
                                                     <EditIcon />
+                                                </Button>
+                                                <Button variant="ghost" size="icon" className="h-9 w-9 text-gray-500 hover:text-red-600 bg-gray-50 hover:bg-red-50 rounded-xl" onClick={() => remove(c)} disabled={isDemo}>
+                                                    <DeleteIcon />
                                                 </Button>
                                             </div>
                                         </div>
@@ -342,118 +362,124 @@ export default function CustomerManagementPage() {
                             )}
                         </CardContent>
                     </Card>
-                    <Pagination currentPage={currentPage} totalPages={totalPages || 1} onPageChange={page => setCurrentPage(page)} />
+                    <div className="mt-6 pb-6">
+                        <Pagination currentPage={currentPage} totalPages={totalPages || 1} onPageChange={page => setCurrentPage(page)} />
+                    </div>
                 </div>
 
-                {/* --- MODAL: Add/Edit Customer --- */}
-                <Dialog
-                    open={isModalOpen}
-                    onOpenChange={setIsModalOpen}
-                    className="flex items-center justify-center"
-                >
-                    <DialogContent
-                        className="p-0 w-full sm:max-w-xl bg-white shadow-xl border border-gray-100 flex flex-col"
-                        style={{ backgroundColor: '#ffffff', zIndex: 50, maxHeight: '85vh' }}
-                    >
-                        <form
-                            onSubmit={save}
-                            className="flex flex-col flex-1 min-h-0"
-                            style={{ backgroundColor: '#ffffff' }}
-                        >
-                            <DialogHeader
-                                className="px-6 py-4 border-b bg-white flex-shrink-0 z-10"
-                                style={{ backgroundColor: '#ffffff' }}
-                            >
-                                <DialogTitle className="text-lg font-bold text-gray-900">
-                                    {editing ? 'Edit Customer' : 'Add New Customer'}
+                {/* --- MODAL (Refactored & Modernized) --- */}
+                <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+                    <DialogContent className="p-0 sm:max-w-[500px] w-full bg-white shadow-2xl border-0 overflow-hidden rounded-2xl">
+
+                        {/* Header cleanly separated outside the scrollable area */}
+                        <DialogHeader className="px-6 py-5 border-b border-gray-100 bg-gray-50/80 flex flex-row items-center justify-between">
+                            <div>
+                                <DialogTitle className="text-xl font-bold text-gray-900 tracking-tight">
+                                    {editing ? 'Edit Customer Details' : 'Add New Customer'}
                                 </DialogTitle>
-                                <DialogCloseButton onClick={closeModal} />
-                            </DialogHeader>
+                                <p className="text-sm text-gray-500 mt-1 font-medium">
+                                    {editing ? 'Update the details below.' : 'Enter customer information below.'}
+                                </p>
+                            </div>
+                            <DialogCloseButton onClick={closeModal} className="text-gray-400 hover:text-gray-600 bg-white shadow-sm border border-gray-100 rounded-full p-1.5 transition-colors" />
+                        </DialogHeader>
 
-                            <div className="flex-1 overflow-y-auto px-6 py-6" style={{ backgroundColor: '#ffffff' }}>
-                                <div className="space-y-5">
+                        {/* Form Body wrapping content and footer */}
+                        <form onSubmit={save} className="flex flex-col max-h-[80vh]">
+                            <div className="overflow-y-auto px-6 py-6 space-y-5">
+
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="name" className="text-sm font-semibold text-gray-700">
+                                        Full Name <span className="text-red-500">*</span>
+                                    </Label>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                                            <UserIcon className="w-5 h-5" />
+                                        </div>
+                                        <Input
+                                            id="name"
+                                            value={name}
+                                            onChange={(e) => setName(e.target.value)}
+                                            required
+                                            placeholder="e.g. Juan Dela Cruz"
+                                            autoFocus
+                                            className="w-full pl-11 py-2.5 h-11 rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-gray-900"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                                     <div className="space-y-1.5">
-                                        <Label htmlFor="name" className="text-sm font-semibold text-gray-700">
-                                            Customer Name <span className="text-red-500">*</span>
-                                        </Label>
+                                        <Label htmlFor="phone" className="text-sm font-semibold text-gray-700">Phone Number</Label>
                                         <div className="relative">
                                             <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
-                                                <UserIcon className="w-5 h-5" />
+                                                <PhoneIcon className="w-4 h-4" />
                                             </div>
                                             <Input
-                                                id="name"
-                                                value={name}
-                                                onChange={(e) => setName(e.target.value)}
-                                                required
-                                                placeholder="Enter full name"
-                                                autoFocus
-                                                className="w-full text-base pl-11 py-2.5 border-gray-300 h-11"
+                                                id="phone"
+                                                value={phone}
+                                                onChange={(e) => setPhone(e.target.value)}
+                                                placeholder="0917 123 4567"
+                                                className="w-full pl-10 py-2.5 h-11 rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-mono text-sm"
                                             />
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                        <div className="space-y-1.5">
-                                            <Label htmlFor="email" className="text-sm font-semibold text-gray-700">Email (Optional)</Label>
-                                            <div className="relative">
-                                                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
-                                                    <MailIcon className="w-5 h-5" />
-                                                </div>
-                                                <Input
-                                                    id="email"
-                                                    type="email"
-                                                    value={email}
-                                                    onChange={(e) => setEmail(e.target.value)}
-                                                    placeholder="example@mail.com"
-                                                    className="w-full text-base pl-11 py-2.5 border-gray-300 h-11"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-1.5">
-                                            <Label htmlFor="phone" className="text-sm font-semibold text-gray-700">Phone (Optional)</Label>
-                                            <div className="relative">
-                                                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
-                                                    <PhoneIcon className="w-5 h-5" />
-                                                </div>
-                                                <Input
-                                                    id="phone"
-                                                    value={phone}
-                                                    onChange={(e) => setPhone(e.target.value)}
-                                                    placeholder="0917 123 4567"
-                                                    className="w-full text-base pl-11 py-2.5 border-gray-300 h-11"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-
                                     <div className="space-y-1.5">
-                                        <Label htmlFor="address" className="text-sm font-semibold text-gray-700">Address (Optional)</Label>
+                                        <Label htmlFor="email" className="text-sm font-semibold text-gray-700">Email Address</Label>
                                         <div className="relative">
                                             <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
-                                                <MapPinIcon className="w-5 h-5" />
+                                                <MailIcon className="w-4 h-4" />
                                             </div>
                                             <Input
-                                                id="address"
-                                                value={address}
-                                                onChange={(e) => setAddress(e.target.value)}
-                                                placeholder="House No., Street, Barangay, City"
-                                                className="w-full text-base pl-11 py-2.5 border-gray-300 h-11"
+                                                id="email"
+                                                type="email"
+                                                value={email}
+                                                onChange={(e) => setEmail(e.target.value)}
+                                                placeholder="juan@email.com"
+                                                className="w-full pl-10 py-2.5 h-11 rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                                             />
                                         </div>
                                     </div>
-                                    <div className="h-4 md:hidden"></div>
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="address" className="text-sm font-semibold text-gray-700">Physical Address</Label>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-3.5 top-3 pointer-events-none text-gray-400">
+                                            <MapPinIcon className="w-5 h-5" />
+                                        </div>
+                                        <Input
+                                            id="address"
+                                            value={address}
+                                            onChange={(e) => setAddress(e.target.value)}
+                                            placeholder="House No., Street, Barangay, City"
+                                            className="w-full pl-11 py-2.5 h-11 rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                                        />
+                                    </div>
                                 </div>
                             </div>
 
-                            <DialogFooter className="px-6 py-4 border-t bg-gray-50 flex-shrink-0 z-10" style={{ backgroundColor: '#f9fafb' }}>
-                                <div className="flex w-full justify-end gap-3">
-                                    <Button variant="outline" type="button" onClick={closeModal} disabled={isMutating} className="px-6 bg-white border-gray-300">Cancel</Button>
-                                    <Button type="submit" variant="primary" disabled={isMutating} className="px-6 btn--primary">
-                                        {isMutating ? 'Saving...' : (editing ? 'Update Customer' : 'Create Customer')}
-                                    </Button>
-                                </div>
+                            {/* Sticky Footer */}
+                            <DialogFooter className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex items-center justify-end gap-3 mt-auto">
+                                <Button
+                                    variant="outline"
+                                    type="button"
+                                    onClick={closeModal}
+                                    disabled={isMutating}
+                                    className="px-5 h-10 rounded-lg bg-white shadow-sm font-medium text-gray-600 hover:bg-gray-100 border-gray-200 transition-colors"
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    type="submit"
+                                    disabled={isMutating}
+                                    className="px-6 h-10 rounded-lg shadow-sm btn--primary font-semibold text-sm hover:-translate-y-0.5 transition-transform bg-blue-600 hover:bg-blue-700 text-white"
+                                >
+                                    {isMutating ? 'Saving...' : (editing ? 'Update Customer' : 'Save Customer')}
+                                </Button>
                             </DialogFooter>
+
                         </form>
                     </DialogContent>
                 </Dialog>
