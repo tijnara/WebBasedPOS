@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
@@ -20,14 +21,14 @@ const IconWrapper = ({ children, index }) => (
         <motion.div
             className="w-20 h-20 rounded-full bg-white relative z-10 flex items-center justify-center"
             style={{
-                background: 'rgba(255, 255, 255, 0.8)',
-                boxShadow: 'inset 0 -8px 10px rgba(0,0,0,0.1), inset 0 8px 15px rgba(255,255,255,1), 0 10px 30px rgba(20, 184, 166, 0.2)',
+                background: 'rgba(255, 255, 255, 1)',
+                boxShadow: 'inset 0 -8px 10px rgba(0,0,0,0.05), inset 0 8px 15px rgba(255,255,255,1), 0 10px 30px rgba(0, 0, 0, 0.1)',
             }}
             animate={{ y: [0, -15, 0] }}
             transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: index * 0.15 }}
             whileHover={{ scale: 1.1, rotateZ: 5 }}
         >
-            <div className="transform scale-110 drop-shadow-[0_5px_5px_rgba(0,0,0,0.2)]">
+            <div className="transform scale-110 drop-shadow-[0_5px_5px_rgba(0,0,0,0.15)]">
                 {children}
             </div>
         </motion.div>
@@ -115,96 +116,137 @@ const IconMap = {
 };
 
 export default function ResourcesPage({ articles }) {
+    // Scroll state tracker
+    const [isScrolled, setIsScrolled] = useState(false);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            // Trigger the "scrolled" state when user scrolls past 60px
+            setIsScrolled(window.scrollY > 60);
+        };
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
     return (
         <>
             <Meta /> {/* Triggers Adsterra Popunders for passive revenue */}
 
-            <style>{`
-                .responsive-bg {
-                  background-image: url('/resourceswallpapermob.png');
-                }
-                @media (min-width: 768px) {
-                  .responsive-bg {
-                    background-image: url('/resourceswallpaper.png');
-                  }
-                }
-            `}</style>
+            <div className="min-h-screen font-sans bg-slate-50 flex flex-col justify-between relative">
 
-            <div className="min-h-screen font-sans responsive-page bg-cover bg-center bg-no-repeat bg-fixed responsive-bg flex flex-col justify-between">
-
+                {/* FLOATING & SCALING BACK BUTTON */}
                 <div
-                    className="w-full flex-grow flex flex-col lg:flex-row backdrop-blur-[2px]"
-                    style={{ backgroundColor: '#FFFFFF40' }} // 75% transparency
+                    className={`fixed z-50 transition-all duration-300 ease-out origin-top-left
+                        ${isScrolled
+                        ? 'top-4 left-4 md:top-6 md:left-6 scale-[1.15] shadow-2xl'
+                        : 'top-12 left-8 md:top-24 md:left-[100px] scale-100 shadow-sm'
+                    }
+                    `}
                 >
+                    <Link href="/"
+                          className={`inline-flex items-center w-max backdrop-blur-md rounded-full text-slate-900 hover:text-black font-extrabold uppercase tracking-[0.2em] transition-colors
+                            ${isScrolled ? 'bg-white px-5 py-3 text-[13px] border border-slate-100' : 'bg-white/70 px-4 py-2 text-xs'}
+                        `}
+                    >
+                        <ArrowLeft className={`${isScrolled ? 'w-5 h-5' : 'w-4 h-4'} mr-2 transition-all duration-300`} />
+                        Back to Home
+                    </Link>
+                </div>
+
+                <div className="w-full flex-grow flex flex-col lg:flex-row">
 
                     {/* LEFT CONTENT AREA */}
-                    <div className="w-full lg:w-3/4 flex flex-col items-start py-16 px-6 md:px-20">
+                    <div className="w-full lg:w-3/4 flex flex-col items-start py-8 px-4 md:py-16 md:px-20">
                         <Head>
                             <title>Knowledge Hub | Seaside Purified Water</title>
                         </Head>
 
-                        {/* Title Section */}
-                        <div className="w-full xl:w-4/5 mb-10">
-                            <Link href="/" className="inline-flex items-center text-teal-900 hover:text-teal-700 font-extrabold mb-10 transition-colors uppercase tracking-[0.2em] text-xs">
-                                <ArrowLeft className="w-4 h-4 mr-2" />
-                                Back to Home
-                            </Link>
+                        {/* HERO HEADER SECTION WITH WALLPAPER */}
+                        <div className="relative w-full xl:w-4/5 h-[50vh] min-h-[400px] mb-10 rounded-2xl overflow-hidden shadow-md">
+                            {/* Background Image Layer */}
+                            <div
+                                className="absolute inset-0 bg-cover bg-center md:bg-top"
+                                style={{ backgroundImage: "url('/resourceswallpaper.png')" }}
+                            />
 
-                            <h1 className="text-[4rem] sm:text-[5rem] lg:text-[6.5rem] font-black text-[#0f172a] mb-2 tracking-tighter leading-[0.85] drop-shadow-xl">
-                                <span style={{
-                                    background: 'linear-gradient(to right, #8DB600, #0d9488)',
-                                    WebkitBackgroundClip: 'text',
-                                    WebkitTextFillColor: 'transparent',
-                                }}>SEASIDE</span> <br />Knowledge Hub
-                            </h1>
+                            {/* Slight white gradient at the bottom to ensure text readability */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-white/70 via-white/10 to-transparent" />
+
+                            {/* Content Over the Image */}
+                            <div className="absolute inset-0 flex flex-col p-6 md:p-10">
+                                {/* The back button was removed from here because it is now fixed to the viewport above */}
+
+                                {/* Title Text Wrapper: Bottom on mobile, Center on desktop (md/lg) */}
+                                <div className="flex-1 flex flex-col justify-end md:justify-center">
+                                    <h1 className="text-[3.5rem] sm:text-[4.5rem] lg:text-[6rem] font-black text-black tracking-tighter leading-[0.85] drop-shadow-sm">
+                                        <span style={{
+                                            background: 'linear-gradient(to right, #8DB600, #0d9488)',
+                                            WebkitBackgroundClip: 'text',
+                                            WebkitTextFillColor: 'transparent',
+                                            backgroundClip: 'text',
+                                            color: 'transparent'
+                                        }}>SEASIDE</span> <br />Knowledge Hub
+                                    </h1>
+
+                                    {/* Mobile-only Subtitle */}
+                                    <p className="block md:hidden mt-3 text-sm font-bold text-white leading-tight max-w-[280px] drop-shadow-md">
+                                        A collection of articles to help you understand the importance of pure water for your family's health and well-being.
+                                    </p>
+                                </div>
+                            </div>
                         </div>
 
-                        {/* LATEST RELEASE */}
-                        {articles.length > 0 && (
-                            <div className="w-full xl:w-4/5 mb-20 flex flex-col items-start pt-10 border-t-4 border-slate-900/10">
-                                <span className="text-teal-900 font-black text-sm tracking-[0.3em] uppercase mb-4 opacity-60">Latest Release</span>
-                                <h3 className="text-3xl md:text-5xl font-black text-slate-900 mb-8 leading-[0.9] tracking-tighter max-w-lg">
-                                    {articles[0].title}
-                                </h3>
-                                <Link href={`/resources/${articles[0].slug}`} className="inline-flex items-center justify-center px-10 py-5 bg-slate-900 hover:bg-teal-700 text-white rounded-full font-black text-sm uppercase tracking-widest transition-all shadow-2xl hover:scale-105 active:scale-95">
-                                    Read Now
-                                </Link>
-                            </div>
-                        )}
+                        {/* Article Container (Clean White Box Below the Hero) */}
+                        <div className="w-full xl:w-4/5 bg-white p-6 md:p-10 rounded-2xl shadow-sm border border-slate-100">
 
-                        {/* ARTICLE LIST */}
-                        <div className="w-full xl:w-4/5 flex flex-col gap-16">
-                            {articles.map((article, index) => {
-                                const Icon = IconMap[article.icon_name] || BookIcon;
-                                const gradId = `resource-grad-${index}`;
-
-                                return (
-                                    <Link key={article.id} href={`/resources/${article.slug}`} className="group flex items-start gap-10 transition-all duration-300">
-                                        <svg width="0" height="0" className="absolute">
-                                            <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
-                                                <stop offset="0%" stopColor={index % 2 === 0 ? '#8DB600' : '#0d9488'} />
-                                                <stop offset="100%" stopColor={index % 2 === 0 ? '#0d9488' : '#8DB600'} />
-                                            </linearGradient>
-                                        </svg>
-
-                                        <IconWrapper index={index}>
-                                            <Icon gradId={gradId} />
-                                        </IconWrapper>
-
-                                        <div className="flex-1 pt-2">
-                                            <h2 className="text-2xl md:text-3xl font-black text-slate-900 mb-3 group-hover:text-teal-700 transition-colors leading-tight">
-                                                {article.title}
-                                            </h2>
-                                            <p className="text-base md:text-lg text-slate-700 leading-relaxed font-semibold opacity-80">
-                                                {article.description}
-                                            </p>
-                                            <span className="inline-flex items-center mt-5 text-teal-700 font-black text-xs uppercase tracking-widest group-hover:gap-3 transition-all">
-                                                Read Article <span className="ml-2">→</span>
-                                            </span>
-                                        </div>
+                            {/* LATEST RELEASE */}
+                            {articles.length > 0 && (
+                                <div className="mb-12 flex flex-col items-start pt-2 border-b border-slate-100 pb-12">
+                                    <span className="text-slate-500 font-black text-sm tracking-[0.3em] uppercase mb-4">Latest Release</span>
+                                    <h3 className="text-3xl md:text-4xl font-black text-slate-900 mb-8 leading-[0.9] tracking-tighter max-w-lg">
+                                        {articles[0].title}
+                                    </h3>
+                                    <Link href={`/resources/${articles[0].slug}`} className="inline-flex items-center justify-center px-10 py-4 bg-black hover:bg-slate-800 text-white rounded-full font-black text-sm uppercase tracking-widest transition-all shadow-xl hover:scale-105 active:scale-95">
+                                        Read Now
                                     </Link>
-                                )
-                            })}
+                                </div>
+                            )}
+
+                            {/* ARTICLE LIST */}
+                            <div className="flex flex-col gap-12 mt-6">
+                                {articles.map((article, index) => {
+                                    const Icon = IconMap[article.icon_name] || BookIcon;
+                                    const gradId = `resource-grad-${index}`;
+
+                                    return (
+                                        <Link key={article.id} href={`/resources/${article.slug}`} className="group flex flex-col md:flex-row items-start gap-8 transition-all duration-300">
+                                            {/* UPDATED SVG LINEAR GRADIENT */}
+                                            <svg width="0" height="0" className="absolute">
+                                                <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="0%">
+                                                    <stop offset="0%" stopColor="#8DB600" />
+                                                    <stop offset="100%" stopColor="#0d9488" />
+                                                </linearGradient>
+                                            </svg>
+
+                                            <IconWrapper index={index}>
+                                                <Icon gradId={gradId} />
+                                            </IconWrapper>
+
+                                            <div className="flex-1 pt-2">
+                                                <h2 className="text-2xl md:text-3xl font-black text-slate-900 mb-3 group-hover:text-teal-700 transition-colors leading-tight">
+                                                    {article.title}
+                                                </h2>
+                                                <p className="text-base md:text-lg text-slate-600 leading-relaxed font-medium">
+                                                    {article.description}
+                                                </p>
+                                                <span className="inline-flex items-center mt-4 text-teal-700 font-bold text-xs uppercase tracking-widest group-hover:gap-3 transition-all">
+                                                    Read Article <span className="ml-2">→</span>
+                                                </span>
+                                            </div>
+                                        </Link>
+                                    )
+                                })}
+                            </div>
                         </div>
 
                         {/* Mobile Adsterra Banner (Shows only on small screens) */}
@@ -214,7 +256,7 @@ export default function ResourcesPage({ articles }) {
                     </div>
 
                     {/* RIGHT SIDEBAR (Adsterra 160x600 Banner) */}
-                    <aside className="hidden lg:flex lg:w-1/4 justify-center items-start pt-32 pr-8 pb-10 border-l border-slate-900/5">
+                    <aside className="hidden lg:flex lg:w-1/4 justify-center items-start pt-16 pr-8 pb-10 border-l border-slate-200">
                         <div className="sticky top-32">
                             <span className="text-[10px] text-slate-400 uppercase tracking-widest mb-2 block text-center">Advertisement</span>
                             <AdsterraVerticalBanner />
@@ -223,8 +265,8 @@ export default function ResourcesPage({ articles }) {
 
                 </div>
 
-                {/* Footer wrapped in a solid white background */}
-                <div className="w-full bg-white relative z-20 border-t border-slate-100">
+                {/* Footer */}
+                <div className="w-full bg-white relative z-20 border-t border-slate-200">
                     <Footer />
                 </div>
             </div>
