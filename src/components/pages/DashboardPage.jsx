@@ -12,44 +12,65 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useSalesSummary } from '../../hooks/useSalesSummary';
 import { useNewCustomersByDateSummary } from '../../hooks/useNewCustomersByDateSummary';
 import { useTopProductsSummary } from '../../hooks/useTopProductsSummary';
-import { startOfWeek, endOfWeek, parseISO } from 'date-fns';
+import { startOfWeek, endOfWeek, parseISO, subHours } from 'date-fns';
 import currency from 'currency.js';
 import ReorderReport from '../dashboard/ReorderReport';
 import SpoilageReport from '../dashboard/SpoilageReport';
+import RecentMessages from '../dashboard/RecentMessages';
 
 Chart.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Tooltip, Legend, Filler);
 
 // --- Modern Icons ---
-const CurrencyDollarIcon = ({ className = "w-6 h-6" }) => (
+
+// Today's Sales Icon (Cash Register/Receipt)
+const TodaysSalesIcon = ({ className = "w-6 h-6" }) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a120.48 120.48 0 00-4.5 1.925M14.25 9v1.25M9.75 9v1.25M5.25 9v1.25m4.5 2.5v1.25m4.5-1.25v1.25m-9-1.25v1.25" />
     </svg>
 );
 
-const TrendingUpIcon = ({ className = "w-6 h-6" }) => (
+// This Week Sales Icon (Calendar with Check/Money)
+const ThisWeekSalesIcon = ({ className = "w-6 h-6" }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5m-9-6h.008v.008H12v-.008zM12 15h.008v.008H12V15zm0 2.25h.008v.008H12v-.008zM9.75 15h.008v.008H9.75V15zm0 2.25h.008v.008H9.75v-.008zM7.5 15h.008v.008H7.5V15zm0 2.25h.008v.008H7.5v-.008zm6.75-4.5h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V15zm0 2.25h.008v.008h-.008v-.008zm2.25-4.5h.008v.008H16.5v-.008zm0 2.25h.008v.008H16.5V15z" />
+    </svg>
+);
+
+// All Time Sales Icon (Trophy/Crown)
+const AllTimeSalesIcon = ({ className = "w-6 h-6" }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+         <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M7.73 9.728a6.726 6.726 0 002.748 1.35m8.272-6.842V4.5c0 2.108-.966 3.99-2.48 5.228m2.48-5.492a46.32 46.32 0 012.916.52 6.003 6.003 0 01-5.395 4.972m0 0a6.726 6.726 0 01-2.749 1.35m0 0a6.772 6.772 0 01-3.044 0" />
+    </svg>
+);
+
+// Total Customers Icon (Group of users with a plus)
+const TotalCustomersIcon = ({ className = "w-6 h-6" }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+    </svg>
+);
+
+// Page Views Icon (Eye Focus/Analytics)
+const PageViewsIcon = ({ className = "w-6 h-6" }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5m.75-9l3-3 2.148 2.148A12.061 12.061 0 0116.5 7.605" />
+    </svg>
+);
+
+// Sales Trend Icon (Chart line going up)
+const SalesTrendIcon = ({ className = "w-6 h-6" }) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
     </svg>
 );
 
-const GlobeIcon = ({ className = "w-6 h-6" }) => (
+// Top Selling Products Icon (Shopping bag/Star)
+const TopSellingIcon = ({ className = "w-6 h-6" }) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
     </svg>
 );
 
-const UsersGroupIcon = ({ className = "w-6 h-6" }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
-    </svg>
-);
-
-const EyeIcon = ({ className = "w-6 h-6" }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639l4.436-7.332a1.012 1.012 0 011.605 0l4.436 7.332a1.012 1.012 0 010 .639l-4.436 7.332a1.012 1.012 0 01-1.605 0l-4.436-7.332z" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-    </svg>
-);
 
 // --- UI Components ---
 const SummaryCard = ({ title, value, subtext, icon, colorClass = "text-indigo-600", className = "", children }) => {
@@ -137,12 +158,13 @@ export default function DashboardPage() {
     const { data: customerData } = useCustomers({ page: 1, itemsPerPage: 1000 });
 
     // Summary Hooks
-    const { data: salesSummary } = useSalesSummary(); // Contains totalRevenue and firstTransactionDate
+    const { data: salesSummary } = useSalesSummary(); 
     const { data: newCustomersByDateData = [] } = useNewCustomersByDateSummary();
     const { data: topProductsData = [] } = useTopProductsSummary();
 
     const [viewCount, setViewCount] = useState(null);
-    const [recentViews, setRecentViews] = useState([]); // NEW: State for timestamps
+    const [recentViews, setRecentViews] = useState([]); 
+    const [showRecentMessages, setShowRecentMessages] = useState(false);
 
     // --- Date Ranges for Today & This Week ---
     const { todayStart, todayEnd, weekStart, weekEnd } = useMemo(() => {
@@ -167,7 +189,7 @@ export default function DashboardPage() {
         endDate: todayEnd
     });
 
-    // Fetch This Week's Sales — same hook & datetime precision as the Report page
+    // Fetch This Week's Sales
     const { data: weekSalesSummary } = useSalesSummary({
         startDate: weekStart,
         endDate: weekEnd
@@ -198,46 +220,62 @@ export default function DashboardPage() {
     }, [customerData, weekStart, weekEnd]);
 
     useEffect(() => {
-        const fetchViewCount = async () => {
-            const { data, error } = await supabase.rpc('get_page_views');
-            if (!error && data !== null) {
-                setViewCount(data);
-            }
-        };
-        // NEW: Fetch recent timestamps
-        const fetchRecentViews = async () => {
+        const fetchInitialData = async () => {
+            // Check for recent messages on page load
+            const twentyFourHoursAgo = subHours(new Date(), 24).toISOString();
             const { data, error } = await supabase
+                .from('contact_messages')
+                .select('id')
+                .gte('created_at', twentyFourHoursAgo);
+
+            if (error) {
+                console.error('Error checking recent messages:', error);
+            } else if (data && data.length > 0) {
+                setShowRecentMessages(true);
+            }
+
+            // Fetch page views
+            const { data: viewsData, error: viewsError } = await supabase.rpc('get_page_views');
+            if (!viewsError && viewsData !== null) {
+                setViewCount(viewsData);
+            }
+
+            // Fetch recent views log
+            const { data: recentViewsData, error: recentViewsError } = await supabase
                 .from('page_views_log')
                 .select('viewed_at')
                 .order('viewed_at', { ascending: false })
                 .limit(5);
-            if (!error && data) {
-                setRecentViews(data);
+            if (!recentViewsError && recentViewsData) {
+                setRecentViews(recentViewsData);
             }
         };
 
-        fetchViewCount();
-        fetchRecentViews(); // Trigger fetch
+        fetchInitialData();
     }, []);
 
     useEffect(() => {
-        const client = supabase
-            .channel('customer_changes') // More specific channel name
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'customers' }, () => {
+        const channels = [
+            supabase.channel('customer_changes').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'customers' }, () => {
                 queryClient.invalidateQueries(['customers']);
+            }),
+            supabase.channel('contact_messages_changes').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'contact_messages' }, () => {
+                setShowRecentMessages(true);
             })
-            .subscribe((status, err) => {
+        ];
+
+        channels.forEach(channel => {
+            channel.subscribe((status, err) => {
                 if (status === 'SUBSCRIBED') {
-                    console.log('Connected to Supabase Realtime.');
+                    console.log(`Connected to Supabase Realtime channel: ${channel.topic}`);
                 } else if (status === 'CHANNEL_ERROR') {
-                    console.warn('Realtime connection failed. Supabase might be waking up or busy. It will auto-reconnect.');
-                } else if (status === 'CLOSED') {
-                    console.log('Realtime connection closed.');
+                    console.warn(`Realtime connection failed for ${channel.topic}. It will auto-reconnect.`);
                 }
             });
+        });
 
         return () => {
-            supabase.removeChannel(client);
+            channels.forEach(channel => supabase.removeChannel(channel));
         };
     }, [queryClient]);
 
@@ -341,13 +379,14 @@ export default function DashboardPage() {
 
             {/* KPI Cards Grid */}
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-                <SummaryCard className="col-span-1" title="Today's Sales" value={currency(todaySalesSummary?.totalRevenue || 0, { symbol: '₱' }).format()} subtext="Sales today" colorClass="text-[#8BC34A]" icon={<CurrencyDollarIcon />} />
-                <SummaryCard className="col-span-1" title="This Week Sales" value={currency(thisWeekSales || 0, { symbol: '₱' }).format()} subtext="Current week revenue" colorClass="text-blue-600" icon={<TrendingUpIcon />} />
-                <SummaryCard className="col-span-2 lg:col-span-1" title="All Time Sales" value={currency(salesSummary?.totalRevenue || 0, { symbol: '₱' }).format()} subtext={`Since ${formattedFirstTx}`} colorClass="text-emerald-600" icon={<GlobeIcon />} />
-                <SummaryCard className="col-span-1 lg:col-span-2" title="Total Customers" value={customerData?.totalCount || 0} subtext={`${newCustomersThisWeek} new this week`} colorClass="text-orange-600" icon={<UsersGroupIcon />}>
+                <SummaryCard className="col-span-1" title="Today's Sales" value={currency(todaySalesSummary?.totalRevenue || 0, { symbol: '₱' }).format()} subtext="Sales today" colorClass="text-[#8BC34A]" icon={<TodaysSalesIcon />} />
+                <SummaryCard className="col-span-1" title="This Week Sales" value={currency(thisWeekSales || 0, { symbol: '₱' }).format()} subtext="Current week revenue" colorClass="text-blue-600" icon={<ThisWeekSalesIcon />} />
+                {showRecentMessages && <RecentMessages />}
+                <SummaryCard className="col-span-2 lg:col-span-1" title="All Time Sales" value={currency(salesSummary?.totalRevenue || 0, { symbol: '₱' }).format()} subtext={`Since ${formattedFirstTx}`} colorClass="text-emerald-600" icon={<AllTimeSalesIcon />} />
+                <SummaryCard className="col-span-1 lg:col-span-2" title="Total Customers" value={customerData?.totalCount || 0} subtext={`${newCustomersThisWeek} new this week`} colorClass="text-orange-600" icon={<TotalCustomersIcon />}>
                     <NewCustomersList customers={newCustomersThisWeekList} />
                 </SummaryCard>
-                <SummaryCard className="col-span-1" title="Page Views" value={viewCount !== null ? viewCount.toLocaleString() : '...'} subtext="Landing page visits" colorClass="text-purple-600" icon={<EyeIcon />}>
+                <SummaryCard className="col-span-1" title="Page Views" value={viewCount !== null ? viewCount.toLocaleString() : '...'} subtext="Landing page visits" colorClass="text-purple-600" icon={<PageViewsIcon />}>
                     {recentViews && recentViews.length > 0 && (
                         <div className="hidden md:block space-y-2 mt-1">
                             <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Last 5 Visitors</p>
@@ -374,7 +413,10 @@ export default function DashboardPage() {
                     <div className="lg:col-span-2">
                         <Card className="h-full border-slate-200 shadow-sm">
                             <CardHeader className="bg-white border-b border-slate-100 py-5">
-                                <h3 className="font-semibold text-slate-800 text-lg">Sales Trend</h3>
+                                <h3 className="font-semibold text-slate-800 text-lg flex items-center gap-2">
+                                     <SalesTrendIcon className="w-5 h-5 text-indigo-500"/>
+                                     Sales Trend
+                                </h3>
                             </CardHeader>
                             <CardContent className="p-5">
                                 <div className="h-[350px]">
@@ -386,7 +428,10 @@ export default function DashboardPage() {
                     <div className="lg:col-span-1">
                         <Card className="h-full border-slate-200 shadow-sm">
                             <CardHeader className="bg-white border-b border-slate-100 py-5">
-                                <h3 className="font-semibold text-slate-800 text-lg">Top Selling Products</h3>
+                                <h3 className="font-semibold text-slate-800 text-lg flex items-center gap-2">
+                                     <TopSellingIcon className="w-5 h-5 text-indigo-500"/>
+                                     Top Selling Products
+                                </h3>
                             </CardHeader>
                             <CardContent className="p-5 overflow-y-auto" style={{maxHeight: '350px'}}>
                                 <TopProductsList products={topProductsData} />
