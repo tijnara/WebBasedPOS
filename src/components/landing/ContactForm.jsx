@@ -2,6 +2,7 @@ import React from 'react';
 import { useForm } from 'react-hook-form';
 import { Button, Input, Textarea } from '../ui.js';
 import { Facebook } from 'lucide-react';
+import { supabase } from '../../lib/supabaseClient';
 
 const ContactForm = ({ settings }) => {
     const { register, handleSubmit, formState: { errors, isSubmitting }, reset } = useForm({
@@ -15,10 +16,27 @@ const ContactForm = ({ settings }) => {
         }
 
         try {
-            // Send the email using FormSubmit's AJAX API
+            // 1. Save the message to the Supabase database FIRST
+            const { error: dbError } = await supabase
+                .from('contact_messages')
+                .insert([
+                    {
+                        email: data.email,
+                        message: data.message
+                    }
+                ]);
+
+            // If there's a database error, stop and show it
+            if (dbError) {
+                console.error('Supabase Database Error:', dbError);
+                alert(`Database Error: ${dbError.message}`);
+                return; // Stop execution so it doesn't send the email if DB fails
+            }
+
+            // 2. If DB save is successful, send the email using FormSubmit
             const response = await fetch("https://formsubmit.co/ajax/aranjitarchita@gmail.com", {
                 method: "POST",
-                headers: { 
+                headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json'
                 },
@@ -32,12 +50,13 @@ const ContactForm = ({ settings }) => {
             });
 
             if (response.ok) {
-                alert('Message sent successfully!');
+                alert('Message sent and saved to database successfully!');
                 reset();
             } else {
-                throw new Error("Failed to send");
+                throw new Error("Failed to send email via FormSubmit");
             }
         } catch (error) {
+            console.error(error);
             alert('Failed to send message. Please try again.');
         }
     };
