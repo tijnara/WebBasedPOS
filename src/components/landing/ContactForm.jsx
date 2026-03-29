@@ -25,7 +25,7 @@ const ContactForm = ({ settings }) => {
                 body: JSON.stringify({
                     email: data.email,
                     message: data.message,
-                    _subject: "New Website Contact Form Submission",
+                    _subject: "New Message From Seaside Contact Form",
                     _captcha: "false", // Disables the visual captcha challenge
                     _template: "table" // Formats the email nicely
                 })
