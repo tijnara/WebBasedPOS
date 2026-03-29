@@ -313,180 +313,149 @@ export default function UserManagementPage() {
                     <Pagination currentPage={currentPage} totalPages={totalPages || 1} onPageChange={page => setCurrentPage(page)} />
                 </div>
 
-                {/* --- MODAL: Add/Edit User (Corrected & Replicated from Customer Page) --- */}
-                <Dialog
-                    open={isModalOpen}
-                    onOpenChange={setIsModalOpen}
-                    className="flex items-center justify-center"
-                >
-                    <DialogContent
-                        className="p-0 w-full sm:max-w-xl bg-white shadow-xl border border-gray-100 flex flex-col"
-                        style={{ backgroundColor: '#ffffff', zIndex: 50, maxHeight: '85vh' }}
-                    >
-                        <form
-                            onSubmit={save}
-                            className="flex flex-col flex-1 min-h-0"
-                            style={{ backgroundColor: '#ffffff' }}
-                        >
-                            {/* Header */}
-                            <DialogHeader
-                                className="px-6 py-4 border-b bg-white flex-shrink-0 z-10"
-                                style={{ backgroundColor: '#ffffff' }}
-                            >
-                                <DialogTitle className="text-lg font-bold text-gray-900">
-                                    {editing ? 'Edit User' : 'Add New User'}
-                                </DialogTitle>
-                                <DialogCloseButton onClick={closeModal} />
-                            </DialogHeader>
+                {/* --- MODAL: Add/Edit User (Corrected) --- */}
+                <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+                    <DialogContent className="p-0 sm:max-w-xl w-full bg-white shadow-2xl border-0 overflow-hidden rounded-2xl">
+                        <DialogHeader className="px-6 py-5 border-b border-gray-100 bg-gray-50/80">
+                            <DialogTitle className="text-xl font-bold text-gray-900 tracking-tight">
+                                {editing ? 'Edit User' : 'Add New User'}
+                            </DialogTitle>
+                            <DialogCloseButton onClick={closeModal} />
+                        </DialogHeader>
 
-                            {/* Scrollable Body */}
-                            <div
-                                className="flex-1 overflow-y-auto px-6 py-6"
-                                style={{ backgroundColor: '#ffffff' }}
-                            >
-                                <div className="space-y-6">
+                        <form onSubmit={save} className="flex flex-col max-h-[80vh]">
+                            <div className="overflow-y-auto px-6 py-6 space-y-6">
+                                {/* --- Section 1: Account --- */}
+                                <div className="space-y-5">
+                                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 pb-2 mb-4">
+                                        Account Details
+                                    </h3>
 
-                                    {/* --- Section 1: Account --- */}
-                                    <div className="space-y-5">
-                                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 pb-2 mb-4">
-                                            Account Details
-                                        </h3>
+                                    {/* Full Name */}
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="name" className="text-sm font-semibold text-gray-700">
+                                            Full Name <span className="text-red-500">*</span>
+                                        </Label>
+                                        <div className="relative">
+                                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                                                <UserInputIcon className="w-5 h-5" />
+                                            </div>
+                                            <Input
+                                                id="name"
+                                                value={name}
+                                                onChange={(e) => setName(e.target.value)}
+                                                required
+                                                autoFocus
+                                                placeholder="Enter full name"
+                                                className="w-full text-base pl-11 py-2.5 border-gray-300 h-11"
+                                            />
+                                        </div>
+                                    </div>
 
-                                        {/* Full Name */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                        {/* Email */}
                                         <div className="space-y-1.5">
-                                            <Label htmlFor="name" className="text-sm font-semibold text-gray-700">
-                                                Full Name <span className="text-red-500">*</span>
+                                            <Label htmlFor="email" className="text-sm font-semibold text-gray-700">
+                                                Email <span className="text-red-500">*</span>
                                             </Label>
                                             <div className="relative">
                                                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
-                                                    <UserInputIcon className="w-5 h-5" />
+                                                    <MailIcon className="w-5 h-5" />
                                                 </div>
                                                 <Input
-                                                    id="name"
-                                                    value={name}
-                                                    onChange={(e) => setName(e.target.value)}
+                                                    id="email"
+                                                    type="email"
+                                                    value={email}
+                                                    onChange={(e) => setEmail(e.target.value)}
                                                     required
-                                                    autoFocus
-                                                    placeholder="Enter full name"
+                                                    placeholder="email@example.com"
                                                     className="w-full text-base pl-11 py-2.5 border-gray-300 h-11"
                                                 />
                                             </div>
                                         </div>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                            {/* Email */}
-                                            <div className="space-y-1.5">
-                                                <Label htmlFor="email" className="text-sm font-semibold text-gray-700">
-                                                    Email <span className="text-red-500">*</span>
-                                                </Label>
-                                                <div className="relative">
-                                                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
-                                                        <MailIcon className="w-5 h-5" />
-                                                    </div>
-                                                    <Input
-                                                        id="email"
-                                                        type="email"
-                                                        value={email}
-                                                        onChange={(e) => setEmail(e.target.value)}
-                                                        required
-                                                        placeholder="email@example.com"
-                                                        className="w-full text-base pl-11 py-2.5 border-gray-300 h-11"
-                                                    />
+                                        {/* Role */}
+                                        <div className="space-y-1.5">
+                                            <Label htmlFor="role" className="text-sm font-semibold text-gray-700">
+                                                User Role
+                                            </Label>
+                                            <div className="relative">
+                                                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                                                    <BriefcaseIcon className="w-5 h-5" />
                                                 </div>
-                                            </div>
-
-                                            {/* Role */}
-                                            <div className="space-y-1.5">
-                                                <Label htmlFor="role" className="text-sm font-semibold text-gray-700">
-                                                    User Role
-                                                </Label>
-                                                <div className="relative">
-                                                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
-                                                        <BriefcaseIcon className="w-5 h-5" />
-                                                    </div>
-                                                    <Select
-                                                        id="role"
-                                                        value={role}
-                                                        onChange={(e) => setRole(e.target.value)}
-                                                        className="w-full text-base pl-11 py-2.5 border-gray-300 h-11 appearance-none"
-                                                    >
-                                                        <option value={USER_ROLES.STAFF}>Staff</option>
-                                                        <option value={USER_ROLES.ADMIN}>Admin</option>
-                                                    </Select>
-                                                </div>
+                                                <Select
+                                                    id="role"
+                                                    value={role}
+                                                    onChange={(e) => setRole(e.target.value)}
+                                                    className="w-full text-base pl-11 py-2.5 border-gray-300 h-11 appearance-none"
+                                                >
+                                                    <option value={USER_ROLES.STAFF}>Staff</option>
+                                                    <option value={USER_ROLES.ADMIN}>Admin</option>
+                                                </Select>
                                             </div>
                                         </div>
                                     </div>
+                                </div>
 
-                                    {/* --- Section 2: Security --- */}
-                                    <div className="space-y-5 pt-2">
-                                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 pb-2 mb-4">
-                                            {editing ? 'Change Password (Optional)' : 'Security'}
-                                        </h3>
+                                {/* --- Section 2: Security --- */}
+                                <div className="space-y-5 pt-2">
+                                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 pb-2 mb-4">
+                                        {editing ? 'Change Password (Optional)' : 'Security'}
+                                    </h3>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                            {/* Password */}
-                                            <div className="space-y-1.5">
-                                                <Label htmlFor="password" className="text-sm font-semibold text-gray-700">
-                                                    Password {!editing && <span className="text-red-500">*</span>}
-                                                </Label>
-                                                <div className="relative">
-                                                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
-                                                        <LockIcon className="w-5 h-5" />
-                                                    </div>
-                                                    <Input
-                                                        id="password"
-                                                        type="password"
-                                                        value={password}
-                                                        onChange={(e) => setPassword(e.target.value)}
-                                                        required={!editing}
-                                                        placeholder="••••••••"
-                                                        className="w-full text-base pl-11 py-2.5 border-gray-300 h-11"
-                                                    />
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                        {/* Password */}
+                                        <div className="space-y-1.5">
+                                            <Label htmlFor="password" className="text-sm font-semibold text-gray-700">
+                                                Password {!editing && <span className="text-red-500">*</span>}
+                                            </Label>
+                                            <div className="relative">
+                                                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                                                    <LockIcon className="w-5 h-5" />
                                                 </div>
+                                                <Input
+                                                    id="password"
+                                                    type="password"
+                                                    value={password}
+                                                    onChange={(e) => setPassword(e.target.value)}
+                                                    required={!editing}
+                                                    placeholder="••••••••"
+                                                    className="w-full text-base pl-11 py-2.5 border-gray-300 h-11"
+                                                />
                                             </div>
+                                        </div>
 
-                                            {/* Confirm Password */}
-                                            <div className="space-y-1.5">
-                                                <Label htmlFor="confirmPassword" className="text-sm font-semibold text-gray-700">
-                                                    Confirm Password {!editing && <span className="text-red-500">*</span>}
-                                                </Label>
-                                                <div className="relative">
-                                                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
-                                                        <LockIcon className="w-5 h-5" />
-                                                    </div>
-                                                    <Input
-                                                        id="confirmPassword"
-                                                        type="password"
-                                                        value={confirmPassword}
-                                                        onChange={(e) => setConfirmPassword(e.target.value)}
-                                                        required={!editing}
-                                                        placeholder="••••••••"
-                                                        className="w-full text-base pl-11 py-2.5 border-gray-300 h-11"
-                                                    />
+                                        {/* Confirm Password */}
+                                        <div className="space-y-1.5">
+                                            <Label htmlFor="confirmPassword" className="text-sm font-semibold text-gray-700">
+                                                Confirm Password {!editing && <span className="text-red-500">*</span>}
+                                            </Label>
+                                            <div className="relative">
+                                                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                                                    <LockIcon className="w-5 h-5" />
                                                 </div>
+                                                <Input
+                                                    id="confirmPassword"
+                                                    type="password"
+                                                    value={confirmPassword}
+                                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                                    required={!editing}
+                                                    placeholder="••••••••"
+                                                    className="w-full text-base pl-11 py-2.5 border-gray-300 h-11"
+                                                />
                                             </div>
                                         </div>
                                     </div>
-
-                                    {/* Mobile Spacer */}
-                                    <div className="h-4 md:hidden"></div>
                                 </div>
                             </div>
 
-                            {/* Footer */}
-                            <DialogFooter
-                                className="px-6 py-4 border-t bg-gray-50 flex-shrink-0 z-10"
-                                style={{ backgroundColor: '#f9fafb' }}
-                            >
-                                <div className="flex w-full justify-end gap-3">
-                                    <Button variant="outline" type="button" onClick={closeModal} disabled={isMutating} className="px-6 bg-white border-gray-300">
-                                        Cancel
-                                    </Button>
-                                    <Button type="submit" variant="primary" disabled={isMutating} className="px-6 btn--primary">
-                                        {isMutating ? 'Saving...' : (editing ? 'Update User' : 'Create User')}
-                                    </Button>
-                                </div>
+                            <DialogFooter className="px-6 py-4 border-t bg-gray-50 mt-auto">
+                                <Button variant="outline" type="button" onClick={closeModal} disabled={isMutating}>
+                                    Cancel
+                                </Button>
+                                <Button type="submit" variant="primary" disabled={isMutating}>
+                                    {isMutating ? 'Saving...' : (editing ? 'Update User' : 'Create User')}
+                                </Button>
                             </DialogFooter>
                         </form>
                     </DialogContent>

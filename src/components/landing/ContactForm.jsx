@@ -9,16 +9,34 @@ const ContactForm = ({ settings }) => {
     });
 
     const onSubmit = async (data) => {
-        // Honeypot check
+        // Honeypot check to prevent spam bots
         if (data.honeypot) {
             return;
         }
 
         try {
-            // API call simulation
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            alert('Message sent successfully!');
-            reset();
+            // Send the email using FormSubmit's AJAX API
+            const response = await fetch("https://formsubmit.co/ajax/aranjitarchita@gmail.com", {
+                method: "POST",
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    email: data.email,
+                    message: data.message,
+                    _subject: "New Website Contact Form Submission",
+                    _captcha: "false", // Disables the visual captcha challenge
+                    _template: "table" // Formats the email nicely
+                })
+            });
+
+            if (response.ok) {
+                alert('Message sent successfully!');
+                reset();
+            } else {
+                throw new Error("Failed to send");
+            }
         } catch (error) {
             alert('Failed to send message. Please try again.');
         }
