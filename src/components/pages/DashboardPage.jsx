@@ -16,7 +16,6 @@ import { startOfWeek, endOfWeek, parseISO, subHours } from 'date-fns';
 import currency from 'currency.js';
 import ReorderReport from '../dashboard/ReorderReport';
 import SpoilageReport from '../dashboard/SpoilageReport';
-import RecentMessages from '../dashboard/RecentMessages';
 
 Chart.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Tooltip, Legend, Filler);
 
@@ -164,7 +163,6 @@ export default function DashboardPage() {
 
     const [viewCount, setViewCount] = useState(null);
     const [recentViews, setRecentViews] = useState([]); 
-    const [showRecentMessages, setShowRecentMessages] = useState(false);
 
     // --- Date Ranges for Today & This Week ---
     const { todayStart, todayEnd, weekStart, weekEnd } = useMemo(() => {
@@ -221,19 +219,6 @@ export default function DashboardPage() {
 
     useEffect(() => {
         const fetchInitialData = async () => {
-            // Check for recent messages on page load
-            const twentyFourHoursAgo = subHours(new Date(), 24).toISOString();
-            const { data, error } = await supabase
-                .from('contact_messages')
-                .select('id')
-                .gte('created_at', twentyFourHoursAgo);
-
-            if (error) {
-                console.error('Error checking recent messages:', error);
-            } else if (data && data.length > 0) {
-                setShowRecentMessages(true);
-            }
-
             // Fetch page views
             const { data: viewsData, error: viewsError } = await supabase.rpc('get_page_views');
             if (!viewsError && viewsData !== null) {
@@ -258,9 +243,6 @@ export default function DashboardPage() {
         const channels = [
             supabase.channel('customer_changes').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'customers' }, () => {
                 queryClient.invalidateQueries(['customers']);
-            }),
-            supabase.channel('contact_messages_changes').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'contact_messages' }, () => {
-                setShowRecentMessages(true);
             })
         ];
 
@@ -381,7 +363,6 @@ export default function DashboardPage() {
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
                 <SummaryCard className="col-span-1" title="Today's Sales" value={currency(todaySalesSummary?.totalRevenue || 0, { symbol: '₱' }).format()} subtext="Sales today" colorClass="text-[#8BC34A]" icon={<TodaysSalesIcon />} />
                 <SummaryCard className="col-span-1" title="This Week Sales" value={currency(thisWeekSales || 0, { symbol: '₱' }).format()} subtext="Current week revenue" colorClass="text-blue-600" icon={<ThisWeekSalesIcon />} />
-                {showRecentMessages && <RecentMessages />}
                 <SummaryCard className="col-span-2 lg:col-span-1" title="All Time Sales" value={currency(salesSummary?.totalRevenue || 0, { symbol: '₱' }).format()} subtext={`Since ${formattedFirstTx}`} colorClass="text-emerald-600" icon={<AllTimeSalesIcon />} />
                 <SummaryCard className="col-span-1 lg:col-span-2" title="Total Customers" value={customerData?.totalCount || 0} subtext={`${newCustomersThisWeek} new this week`} colorClass="text-orange-600" icon={<TotalCustomersIcon />}>
                     <NewCustomersList customers={newCustomersThisWeekList} />

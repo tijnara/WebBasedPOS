@@ -10,6 +10,7 @@ import { useRouter } from 'next/router';
 import Navbar from '../src/components/Navbar';
 import TabBar from '../src/components/TabBar';
 import FloatingNotes from '../src/components/FloatingNotes';
+import FloatingMessages from '../src/components/FloatingMessages';
 import { Button } from '../src/components/ui';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
@@ -164,6 +165,7 @@ export default function App({ Component, pageProps }) {
                     )}
 
                     {!isPublicPage && <FloatingNotes />}
+                    {!isPublicPage && <FloatingMessages />}
 
                     <div className="toasts fixed bottom-4 right-4 z-50 flex flex-col items-end gap-3" aria-live="polite">
                         {toasts.map(t => (

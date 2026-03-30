@@ -64,7 +64,7 @@ export default function FloatingNotes() {
             position: 'fixed',
             bottom: '80px',
             right: '20px',
-            zIndex: 999999,
+            zIndex: 2147483647, // Increased z-index to ensure it's on top
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'flex-end'
