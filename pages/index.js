@@ -1,5 +1,6 @@
 // pages/index.js
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useRouter } from 'next/router';
 import { useSettings } from '../src/hooks/useSettings';
 
 import BackgroundImage from '../src/components/landing/BackgroundImage';
@@ -19,6 +20,36 @@ import { AdsterraVerticalBanner } from '../src/components/landing/AdBanners';
 
 const SeasideWaterLanding = () => {
     const { data: settings } = useSettings();
+    const router = useRouter();
+
+    useEffect(() => {
+        const handleScroll = (hash) => {
+            // A small delay to ensure the element is rendered.
+            setTimeout(() => {
+                const element = document.querySelector(hash);
+                if (element) {
+                    element.scrollIntoView({ behavior: 'smooth' });
+                }
+            }, 100);
+        };
+
+        // For initial load
+        if (router.isReady && window.location.hash) {
+            handleScroll(window.location.hash);
+        }
+
+        const handleHashChangeComplete = (url) => {
+            const hash = `#${url.split('#')[1]}`;
+            handleScroll(hash);
+        };
+
+        // For subsequent navigation
+        router.events.on('hashChangeComplete', handleHashChangeComplete);
+
+        return () => {
+            router.events.off('hashChangeComplete', handleHashChangeComplete);
+        };
+    }, [router.isReady, router.events]);
 
     return (
         <div className="relative min-h-screen w-full font-sans text-slate-800 responsive-page">
