@@ -19,6 +19,7 @@ import {
 
 import currency from 'currency.js';
 import { EditIcon, DeleteIcon, PackageIcon } from '../Icons';
+import { Image as ImageIcon, Eye, EyeOff } from 'lucide-react';
 
 // --- Component: Image Uploader UI (Helper) ---
 const ImageUploader = ({ previewUrl, onFileSelect }) => {
@@ -72,7 +73,7 @@ export default function ProductManagementPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
 
-    const { data: productsData = { products: [], totalPages: 1 }, isLoading } = useProducts({ page: currentPage, itemsPerPage, searchTerm: debouncedSearchTerm, category: categoryFilter });
+    const { data: productsData = { products: [], totalPages: 1 }, isLoading, refetch: refetchProducts } = useProducts({ page: currentPage, itemsPerPage, searchTerm: debouncedSearchTerm, category: categoryFilter, isHidden: true });
     const products = productsData.products;
     const totalPages = productsData.totalPages;
 
@@ -98,6 +99,7 @@ export default function ProductManagementPage() {
     const [cost, setCost] = useState('0');
     const [parentId, setParentId] = useState(null);
     const [conversionRate, setConversionRate] = useState('');
+    const [isHidden, setIsHidden] = useState(false);
 
     // UI Refs
     const productNameRef = useRef(null);
@@ -147,6 +149,7 @@ export default function ProductManagementPage() {
         setCost(String(p?.cost ?? 0));
         setParentId(p?.parent_product_id || null);
         setConversionRate(p?.conversion_rate ? String(p.conversion_rate) : '');
+        setIsHidden(p?.is_hidden || false);
         setIsModalOpen(true);
     };
 
@@ -176,6 +179,7 @@ export default function ProductManagementPage() {
         setUploading(false);
         setIsAddingCategory(false);
         setNewCategoryName('');
+        setIsHidden(false);
     };
 
     const handleFileSelect = (file) => {
@@ -232,6 +236,7 @@ export default function ProductManagementPage() {
             category: category || 'General',
             parent_product_id: parentId,
             conversion_rate: conversionRate ? parseInt(conversionRate, 10) : null,
+            is_hidden: isHidden,
         };
 
         try {
@@ -248,6 +253,22 @@ export default function ProductManagementPage() {
             addToast({ title: 'Error', description: e.message, variant: 'destructive' });
         } finally {
             setUploading(false);
+        }
+    };
+    
+    const toggleVisibility = async (p) => {
+        const newVisibility = !p.is_hidden;
+        try {
+            await updateProduct.mutateAsync({ id: p.id, is_hidden: newVisibility });
+            addToast({
+                title: 'Visibility Updated',
+                description: `${p.name} is now ${newVisibility ? 'hidden' : 'visible'}.`,
+                variant: 'success'
+            });
+            refetchProducts();
+        } catch (e) {
+            console.error(e);
+            addToast({ title: 'Error', description: 'Failed to update visibility.', variant: 'destructive' });
         }
     };
 
@@ -290,6 +311,15 @@ export default function ProductManagementPage() {
         const file = e.target.files[0];
         if (!file) return;
         // ... CSV logic
+    };
+
+    const toggleHide = async (p) => {
+        try {
+            await updateProduct.mutateAsync({ ...p, is_hidden: !p.is_hidden });
+            addToast({ title: 'Success', description: `Product is now ${!p.is_hidden ? 'hidden' : 'visible'}.`, variant: 'success' });
+        } catch (e) {
+            addToast({ title: 'Error', description: 'Failed to update visibility.', variant: 'destructive' });
+        }
     };
 
     const filteredProducts = products || [];
@@ -344,18 +374,19 @@ export default function ProductManagementPage() {
                                     <TableHead>Category</TableHead>
                                     <TableHead>Price</TableHead>
                                     <TableHead>Stock</TableHead>
+                                    <TableHead>Status</TableHead>
                                     <TableHead>Last Updated</TableHead>
                                     <TableHead className="text-right">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {isLoading ? (
-                                    <TableRow><TableCell colSpan={6} className="text-center py-8">Loading...</TableCell></TableRow>
+                                    <TableRow><TableCell colSpan={7} className="text-center py-8">Loading...</TableCell></TableRow>
                                 ) : filteredProducts.length === 0 ? (
-                                    <TableRow><TableCell colSpan={6} className="text-center py-8">No products found.</TableCell></TableRow>
+                                    <TableRow><TableCell colSpan={7} className="text-center py-8">No products found.</TableCell></TableRow>
                                 ) : (
                                     filteredProducts.map(p => (
-                                        <TableRow key={p.id}>
+                                        <TableRow key={p.id} className={p.is_hidden ? 'bg-gray-50' : ''}>
                                             <TableCell>
                                                 <div className="flex items-center gap-3">
                                                     <div
@@ -374,7 +405,10 @@ export default function ProductManagementPage() {
                                                         )}
                                                     </div>
                                                     <div className="flex flex-col">
-                                                        <span className="font-semibold text-gray-900">{p.name}</span>
+                                                        <span className="font-semibold text-gray-900">
+                                                            {p.name}
+                                                            {p.is_hidden && <span className="ml-2 text-[10px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-full font-bold">Hidden</span>}
+                                                        </span>
                                                         {p.barcode && <span className="text-xs text-gray-500 font-mono">{p.barcode}</span>}
                                                     </div>
                                                 </div>
@@ -385,7 +419,7 @@ export default function ProductManagementPage() {
                                                 </span>
                                             </TableCell>
                                             <TableCell>
-                                                <div className="font-medium text-gray-900">
+                                                <div className={`font-medium ${p.is_hidden ? 'text-gray-400' : 'text-gray-900'}`}>
                                                     {currency(p.price, { symbol: '₱' }).format()}
                                                 </div>
                                             </TableCell>
@@ -398,11 +432,19 @@ export default function ProductManagementPage() {
                                                     {p.stock} units
                                                 </span>
                                             </TableCell>
+                                            <TableCell>
+                                                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${p.is_hidden ? 'bg-gray-200 text-gray-600' : 'bg-green-100 text-green-800'}`}>
+                                                    {p.is_hidden ? 'Hidden' : 'Visible'}
+                                                </span>
+                                            </TableCell>
                                             <TableCell className="text-gray-500 text-sm">
                                                 {p.updated_at ? new Date(p.updated_at).toLocaleDateString() : '—'}
                                             </TableCell>
                                             <TableCell className="text-right">
                                                 <div className="flex justify-end space-x-1">
+                                                    <Button variant="ghost" size="icon" onClick={() => toggleHide(p)} className="text-gray-500 hover:text-gray-800 hover:bg-gray-100 h-8 w-8" title={p.is_hidden ? "Unhide from POS" : "Hide from POS"}>
+                                                        {p.is_hidden ? <EyeOff className="w-4 h-4 text-orange-500" /> : <Eye className="w-4 h-4" />}
+                                                    </Button>
                                                     <Button variant="ghost" size="icon" onClick={() => startEdit(p)} className="text-blue-600 h-8 w-8"><EditIcon /></Button>
                                                     <Button variant="ghost" size="icon" onClick={() => remove(p)} className="text-red-600 h-8 w-8"><DeleteIcon /></Button>
                                                 </div>
@@ -427,7 +469,7 @@ export default function ProductManagementPage() {
                     </div>
                 ) : (
                     filteredProducts.map(p => (
-                        <div key={p.id} className="bg-white p-3 rounded-xl shadow-sm flex items-start gap-3">
+                        <div key={p.id} className={`bg-white p-3 rounded-xl shadow-sm flex items-start gap-3 ${p.is_hidden ? 'opacity-60' : ''}`}>
                             <div className="flex-shrink-0">
                                 <div
                                     className="rounded-lg bg-gray-50 flex items-center justify-center overflow-hidden"
@@ -448,8 +490,9 @@ export default function ProductManagementPage() {
 
                             <div className="flex-1 min-w-0 flex flex-col justify-between" style={{ height: '64px' }}>
                                 <div>
-                                    <div className="font-semibold text-gray-900 text-sm leading-tight truncate">
+                                    <div className="font-semibold text-gray-900 text-sm leading-tight truncate flex items-center gap-1.5">
                                         {p.name}
+                                        {p.is_hidden && <span className="text-[9px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-full font-bold">Hidden</span>}
                                     </div>
                                     <div className="text-xs text-gray-500 mt-0.5">
                                         {p.category || 'General'}
@@ -472,18 +515,29 @@ export default function ProductManagementPage() {
                             </div>
 
                             <div className="flex flex-col justify-between pl-2" style={{ height: '64px' }}>
-                                <button
-                                    onClick={() => startEdit(p)}
-                                    className="text-blue-600 p-1 hover:bg-blue-50 rounded"
-                                >
-                                    <EditIcon className="w-5 h-5" />
-                                </button>
-                                <button
-                                    onClick={() => remove(p)}
-                                    className="text-red-500 p-1 hover:bg-red-50 rounded"
-                                >
-                                    <DeleteIcon className="w-5 h-5" />
-                                </button>
+                                <div className="flex gap-1">
+                                    <button
+                                        onClick={() => toggleHide(p)}
+                                        className="text-gray-500 p-1 hover:bg-gray-50 rounded"
+                                        title={p.is_hidden ? "Unhide" : "Hide"}
+                                    >
+                                        {p.is_hidden ? <EyeOff className="w-4 h-4 text-orange-500" /> : <Eye className="w-4 h-4" />}
+                                    </button>
+                                    <button
+                                        onClick={() => startEdit(p)}
+                                        className="text-blue-600 p-1 hover:bg-blue-50 rounded"
+                                    >
+                                        <EditIcon className="w-4 h-4" />
+                                    </button>
+                                </div>
+                                <div className="flex justify-end">
+                                    <button
+                                        onClick={() => remove(p)}
+                                        className="text-red-500 p-1 hover:bg-red-50 rounded"
+                                    >
+                                        <DeleteIcon className="w-4 h-4" />
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     ))

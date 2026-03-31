@@ -169,7 +169,8 @@ export default function POSPage() {
             const { data, error } = await supabase
                 .from('products')
                 .select('category')
-                .not('category', 'is', null);
+                .not('category', 'is', null)
+                .eq('is_hidden', false);
 
             if (!error && data) {
                 const uniqueCats = Array.from(new Set(data.map(item => item.category || 'General')));
@@ -201,7 +202,8 @@ export default function POSPage() {
         searchTerm: debouncedSearchTerm,
         category: categoryFilter,
         page: currentPage,
-        itemsPerPage
+        itemsPerPage,
+        excludeHidden: true
     });
     const products = productsData.products || [];
     const totalPages = productsData.totalPages || 1;

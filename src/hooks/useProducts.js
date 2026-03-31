@@ -5,20 +5,20 @@ import currency from 'currency.js';
 
 // --- MOCK DATA (For Demo Mode) ---
 const MOCK_PRODUCTS = [
-    { id: 'mock-p-1', name: 'Mock Alkaline (5 Gal)', price: 35.00, category: 'Water', image_url: null, barcode: '1001', stock_quantity: 50, min_stock_level: 10, cost_price: 25.00 },
-    { id: 'mock-p-2', name: 'Mock Purified (5 Gal)', price: 25.00, category: 'Water', image_url: null, barcode: '1002', stock_quantity: 30, min_stock_level: 10, cost_price: 18.00 },
-    { id: 'mock-p-3', name: 'Mock Mineral (1L)', price: 15.00, category: 'Retail', image_url: null, barcode: '1003', stock_quantity: 100, min_stock_level: 20, cost_price: 10.00 },
-    { id: 'mock-p-4', name: 'Empty Bottle (Slim)', price: 250.00, category: 'Container', image_url: null, barcode: '1004', stock_quantity: 15, min_stock_level: 5, cost_price: 200.00 },
-    { id: 'mock-p-5', name: 'Bottle Cap Seals (100pcs)', price: 50.00, category: 'Supplies', image_url: null, barcode: '1005', stock_quantity: 25, min_stock_level: 5, cost_price: 35.00 },
-    { id: 'mock-p-6', name: 'Mock Product A', price: 10.00, category: 'N/A', image_url: null, barcode: '1006', stock_quantity: 5, min_stock_level: 10, cost_price: 7.00 },
-    { id: 'mock-p-7', name: 'Mock Product B', price: 99.00, category: 'N/A', image_url: null, barcode: '1007', stock_quantity: 8, min_stock_level: 5, cost_price: 75.00 },
+    { id: 'mock-p-1', name: 'Mock Alkaline (5 Gal)', price: 35.00, category: 'Water', image_url: null, barcode: '1001', stock_quantity: 50, min_stock_level: 10, cost_price: 25.00, is_hidden: false },
+    { id: 'mock-p-2', name: 'Mock Purified (5 Gal)', price: 25.00, category: 'Water', image_url: null, barcode: '1002', stock_quantity: 30, min_stock_level: 10, cost_price: 18.00, is_hidden: false },
+    { id: 'mock-p-3', name: 'Mock Mineral (1L)', price: 15.00, category: 'Retail', image_url: null, barcode: '1003', stock_quantity: 100, min_stock_level: 20, cost_price: 10.00, is_hidden: false },
+    { id: 'mock-p-4', name: 'Empty Bottle (Slim)', price: 250.00, category: 'Container', image_url: null, barcode: '1004', stock_quantity: 15, min_stock_level: 5, cost_price: 200.00, is_hidden: false },
+    { id: 'mock-p-5', name: 'Bottle Cap Seals (100pcs)', price: 50.00, category: 'Supplies', image_url: null, barcode: '1005', stock_quantity: 25, min_stock_level: 5, cost_price: 35.00, is_hidden: false },
+    { id: 'mock-p-6', name: 'Mock Product A', price: 10.00, category: 'N/A', image_url: null, barcode: '1006', stock_quantity: 5, min_stock_level: 10, cost_price: 7.00, is_hidden: true },
+    { id: 'mock-p-7', name: 'Mock Product B', price: 99.00, category: 'N/A', image_url: null, barcode: '1007', stock_quantity: 8, min_stock_level: 5, cost_price: 75.00, is_hidden: false },
 ];
 
-export function useProducts({ searchTerm = '', category = '', page = 1, itemsPerPage = 10, fetchAll = false } = {}) {
+export function useProducts({ searchTerm = '', category = '', page = 1, itemsPerPage = 10, fetchAll = false, excludeHidden = false } = {}) {
     const isDemo = useStore(s => s.user?.isDemo);
 
     return useQuery({
-        queryKey: ['products', isDemo, searchTerm, category, page, itemsPerPage, fetchAll],
+        queryKey: ['products', isDemo, searchTerm, category, page, itemsPerPage, fetchAll, excludeHidden],
         queryFn: async () => {
             const term = searchTerm.trim().toLowerCase();
             const cat = (category || '').trim();
@@ -27,6 +27,9 @@ export function useProducts({ searchTerm = '', category = '', page = 1, itemsPer
             if (isDemo) {
                 await new Promise(resolve => setTimeout(resolve, 400));
                 let filtered = MOCK_PRODUCTS;
+                if (excludeHidden) {
+                    filtered = filtered.filter(p => !p.is_hidden);
+                }
                 if (term) {
                     filtered = filtered.filter(p =>
                         (p.name && p.name.toLowerCase().includes(term)) ||
@@ -51,7 +54,7 @@ export function useProducts({ searchTerm = '', category = '', page = 1, itemsPer
                     .select('*', { count: 'exact' })
                     .order('name', { ascending: true });
 
-                // Only paginate if NOT fetching all (e.g. for Inventory Break Bulk we need all to find parents)
+                // Only paginate if NOT fetching all
                 if (!fetchAll) {
                     query = query.range(startIndex, endIndex);
                 }
@@ -62,6 +65,11 @@ export function useProducts({ searchTerm = '', category = '', page = 1, itemsPer
                 }
                 if (cat && cat.toLowerCase() !== 'all') {
                     query = query.eq('category', cat);
+                }
+                
+                // Filter for hidden products if excludeHidden is true
+                if (excludeHidden) {
+                    query = query.eq('is_hidden', false);
                 }
 
                 const { data, error, count } = await query;
@@ -85,6 +93,7 @@ export function useProducts({ searchTerm = '', category = '', page = 1, itemsPer
                         minStock: p.min_stock_level || 0,
                         cost: currency(p.cost_price).value || 0,
                         category: p.category || 'General',
+                        is_hidden: p.is_hidden || false,
 
                         // --- IMPORTANT FIX: Include these fields for Inventory Page ---
                         parent_product_id: p.parent_product_id || null,

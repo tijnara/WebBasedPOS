@@ -21,6 +21,7 @@ export function useCreateProduct() {
                 category: newProduct.category || 'Uncategorized',
                 parent_product_id: newProduct.parent_product_id || null,
                 conversion_rate: newProduct.conversion_rate || 1,
+                is_hidden: newProduct.is_hidden || false,
                 created_at: now,
                 updated_at: now,
             };
@@ -50,14 +51,22 @@ export function useUpdateProduct() {
                 price: payload.price,
                 image_url: payload.image_url,
                 barcode: payload.barcode || null,
-                stock_quantity: payload.stock || 0,
-                min_stock_level: payload.minStock || 5,
-                cost_price: payload.cost || 0,
-                category: payload.category || 'Uncategorized',
-                parent_product_id: payload.parent_product_id || null,
-                conversion_rate: payload.conversion_rate || 1,
+                stock_quantity: payload.stock,
+                min_stock_level: payload.minStock,
+                cost_price: payload.cost,
+                category: payload.category,
+                parent_product_id: payload.parent_product_id,
+                conversion_rate: payload.conversion_rate,
                 updated_at: now,
             };
+
+            if (payload.is_hidden !== undefined) {
+                dbPayload.is_hidden = payload.is_hidden;
+            }
+
+            // Remove undefined fields so they are not sent to Supabase
+            Object.keys(dbPayload).forEach(key => dbPayload[key] === undefined && delete dbPayload[key]);
+
             const { data, error } = await supabase
                 .from('products')
                 .update(dbPayload)
