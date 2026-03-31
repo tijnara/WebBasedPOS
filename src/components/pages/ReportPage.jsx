@@ -668,7 +668,11 @@ const ReportPage = () => {
                     </div>
 
                     <div className="my-4">
-                        <WeeklySalesChart salesData={chartSalesData} />
+                        <WeeklySalesChart 
+                            salesData={chartSalesData} 
+                            startDate={interval.start} 
+                            endDate={interval.end} 
+                        />
                     </div>
 
                     <div className="px-1 flex flex-col md:flex-row md:items-end md:justify-between gap-1">
