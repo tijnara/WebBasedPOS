@@ -505,7 +505,7 @@ export default function POSPage() {
                     setCurrentPage={setCurrentPage}
                 />
 
-                <div className="hidden md:flex w-full md:w-1/3 xl:w-1/4 flex-shrink-0 flex-col sticky top-4" style={{ height: '70vh' }}>
+                <div className="hidden md:flex w-full md:w-1/3 xl:w-1/3 flex-shrink-0 flex-col sticky top-4" style={{ height: '70vh' }}>
                     <POSCart
                         currentSale={currentSale}
                         clearSale={clearSale}
