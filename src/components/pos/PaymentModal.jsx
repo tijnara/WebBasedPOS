@@ -60,7 +60,7 @@ const PaymentModal = ({
                 style={{ zIndex: 50, maxWidth: '900px', width: '95vw' }}
             >
                 {/* Header */}
-                <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-white">
+                <div className="px-6 py-4 flex justify-between items-center bg-white">
                     <h2 className="text-xl font-bold text-gray-900">Complete Sale</h2>
                     <DialogCloseButton onClick={() => setIsOpen(false)} />
                 </div>
@@ -70,7 +70,7 @@ const PaymentModal = ({
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
 
                         {/* LEFT COLUMN: Customer Selection (Displayed First) */}
-                        <div className="flex flex-col gap-6 lg:border-r border-gray-100 lg:pr-8">
+                        <div className="flex flex-col gap-6 lg:pr-8">
                             <div>
                                 <Label htmlFor="customer-search-payment" className="text-sm font-semibold text-gray-700 mb-2">
                                     Select Customer
@@ -82,7 +82,7 @@ const PaymentModal = ({
                                         placeholder="Search name or phone..."
                                         value={searchTerm}
                                         onChange={e => setSearchTerm(e.target.value)}
-                                        className="w-full h-12 text-base py-2.5 pl-10 border-gray-300 focus:ring-primary focus:border-primary"
+                                        className="w-full h-12 text-base py-2.5 pl-10 focus:ring-primary focus:border-primary"
                                         ref={customerPaymentInputRef}
                                         autoComplete="off"
                                     />
@@ -99,7 +99,7 @@ const PaymentModal = ({
                                 <div className="mt-[-10px]">
                                     <Button
                                         variant="outline"
-                                        className="w-full justify-start text-left h-auto py-2 px-3 bg-gray-50 hover:bg-gray-100 border-gray-200"
+                                        className="w-full justify-start text-left h-auto py-2 px-3 bg-gray-50 hover:bg-gray-100"
                                         onClick={() => handleSelectCustomerInPayment(lastCustomer)}
                                     >
                                         <span className="text-xs text-gray-500 mr-2">Last:</span>
@@ -110,11 +110,11 @@ const PaymentModal = ({
 
                             {/* Search Results */}
                             {showResults && (
-                                <div className="w-full border rounded-lg border-gray-200 bg-gray-50 flex flex-col animate-in fade-in slide-in-from-top-2 duration-200">
+                                <div className="w-full rounded-lg bg-gray-50 flex flex-col animate-in fade-in slide-in-from-top-2 duration-200">
                                     <div className="max-h-60 overflow-y-auto p-1">
                                         <Button
                                             variant="ghost"
-                                            className="w-full justify-start text-left h-auto py-3 px-3 text-sm font-medium hover:bg-white border-b border-transparent hover:border-gray-100"
+                                            className="w-full justify-start text-left h-auto py-3 px-3 text-sm font-medium hover:bg-white hover:border-gray-100"
                                             onClick={() => handleSelectCustomerInPayment(null)}
                                         >
                                             <span className="bg-gray-200 p-1 rounded mr-3 text-gray-600">
@@ -164,7 +164,7 @@ const PaymentModal = ({
                             )}
 
                             {/* Active Selected Customer */}
-                            <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex flex-col justify-center items-center text-center gap-1 mt-auto">
+                            <div className="bg-blue-50 p-4 rounded-xl flex flex-col justify-center items-center text-center gap-1 mt-auto">
                                 <span className="text-xs font-semibold text-blue-600 uppercase tracking-wide">Selected Customer</span>
                                 <span className="font-bold text-blue-900 text-xl">
                                     {selectedCustomer ? selectedCustomer.name : 'Walk-in Customer'}
@@ -196,7 +196,7 @@ const PaymentModal = ({
                                         id="paymentMethod"
                                         value={paymentMethod}
                                         onChange={(e) => setPaymentMethod(e.target.value)}
-                                        className="w-full h-12 py-2 text-base border-gray-300 focus:border-primary focus:ring-primary"
+                                        className="w-full h-12 py-2 text-base focus:border-primary focus:ring-primary"
                                     >
                                         <option value="Cash">Cash</option>
                                         <option value="Card">Card</option>
@@ -218,7 +218,7 @@ const PaymentModal = ({
                                                 step="0.01"
                                                 value={amountReceived}
                                                 onChange={e => setAmountReceived(e.target.value)}
-                                                className="w-full h-14 pl-10 text-3xl font-bold text-gray-900 bg-gray-50 border-gray-300 focus:bg-white focus:border-primary transition-all"
+                                                className="w-full h-14 pl-10 text-3xl font-bold text-gray-900 bg-gray-50 focus:bg-white focus:border-primary transition-all"
                                                 placeholder="0.00"
                                             />
                                         </div>
@@ -238,7 +238,7 @@ const PaymentModal = ({
                                             ))}
                                         </div>
 
-                                        <div className="mt-4 flex justify-between items-center p-4 bg-green-50 rounded-xl border border-green-100">
+                                        <div className="mt-4 flex justify-between items-center p-4 bg-green-50 rounded-xl">
                                             <span className="text-green-700 font-semibold text-sm">Change Due</span>
                                             <span className="text-green-700 font-bold text-2xl">
                                                 {currency(changeDue).format({ symbol: '₱' })}
@@ -247,7 +247,7 @@ const PaymentModal = ({
                                     </div>
                                 ) : paymentMethod === 'Charge' ? (
                                     <div className="animate-in fade-in slide-in-from-top-2 duration-300 space-y-4">
-                                        <div className="p-4 bg-orange-50 border border-orange-100 rounded-xl">
+                                        <div className="p-4 bg-orange-50 rounded-xl">
                                             <h4 className="text-orange-800 font-bold flex items-center gap-2">
                                                 <span className="text-lg">📝</span> Store Credit (Utang)
                                             </h4>
@@ -257,7 +257,7 @@ const PaymentModal = ({
                                         </div>
 
                                         {selectedCustomer ? (
-                                            <div className="p-4 bg-white border border-gray-200 rounded-xl space-y-2">
+                                            <div className="p-4 bg-white rounded-xl space-y-2">
                                                 <div className="flex justify-between text-sm">
                                                     <span className="text-gray-500">Current Balance:</span>
                                                     <span className="font-semibold">{currency(selectedCustomer.credit_balance || 0, { symbol: '₱' }).format()}</span>
@@ -266,19 +266,19 @@ const PaymentModal = ({
                                                     <span>+ New Charge:</span>
                                                     <span>{currency(subtotal, { symbol: '₱' }).format()}</span>
                                                 </div>
-                                                <div className="border-t pt-2 mt-2 flex justify-between text-base font-bold text-gray-900">
+                                                <div className="pt-2 mt-2 flex justify-between text-base font-bold text-gray-900">
                                                     <span>New Balance:</span>
                                                     <span>{currency((selectedCustomer.credit_balance || 0) + subtotal, { symbol: '₱' }).format()}</span>
                                                 </div>
                                             </div>
                                         ) : (
-                                            <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm font-medium text-center">
+                                            <div className="p-4 bg-red-50 rounded-xl text-red-700 text-sm font-medium text-center">
                                                 ⚠ Please select a registered customer to charge.
                                             </div>
                                         )}
                                     </div>
                                 ) : (
-                                    <div className="p-6 bg-gray-50 rounded-xl border border-gray-200 text-center text-gray-500">
+                                    <div className="p-6 bg-gray-50 rounded-xl text-center text-gray-500">
                                         Reference / Transaction ID input can go here.
                                     </div>
                                 )}
@@ -299,11 +299,11 @@ const PaymentModal = ({
                 </div>
 
                 {/* Footer Actions */}
-                <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex flex-col sm:flex-row justify-end gap-3 rounded-b-xl">
+                <div className="px-6 py-4 bg-gray-50 flex flex-col sm:flex-row justify-end gap-3 rounded-b-xl">
                     <Button
                         variant="outline"
                         onClick={() => setIsOpen(false)}
-                        className="w-full sm:w-auto px-6 h-12 text-base bg-white border-gray-300"
+                        className="w-full sm:w-auto px-6 h-12 text-base bg-white"
                     >
                         Cancel
                     </Button>

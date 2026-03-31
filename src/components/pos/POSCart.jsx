@@ -33,8 +33,8 @@ const POSCart = ({
 
     return (
         <div className="hidden md:flex w-full h-full flex-shrink-0 flex-col responsive-page">
-            <Card className="flex flex-col shadow-lg border border-gray-200 rounded-xl bg-white overflow-hidden h-full">
-                <CardHeader className="bg-gray-50 border-b border-gray-200 rounded-t-xl flex-shrink-0">
+            <Card className="flex flex-col shadow-lg rounded-xl bg-white overflow-hidden h-full">
+                <CardHeader className="bg-gray-50 rounded-t-xl flex-shrink-0">
                     <div className="flex justify-between items-center">
                         <h3 className="font-semibold text-lg text-primary">Current Order</h3>
                         <Button variant="ghost" size="sm" className="p-1 h-auto text-destructive" onClick={clearSale} title="Clear Sale">✖ Clear</Button>
@@ -50,7 +50,7 @@ const POSCart = ({
                             className="overflow-y-auto w-full current-order-scroll-area flex-1" // Added flex-1 here
                             // Removed fixed height style
                         >
-                            <div className="flex flex-col divide-y divide-gray-100 p-2">
+                            <div className="flex flex-col p-2">
                                 {Object.entries(currentSale).map(([key, item]) => (
                                     <div
                                         key={key}
@@ -58,7 +58,7 @@ const POSCart = ({
                                         onClick={() => onEditItem && onEditItem(key)}
                                         style={{ minHeight: '3.5rem' }}
                                     >
-                                        <div className="flex-shrink-0 w-10 h-10 rounded-md flex items-center justify-center overflow-hidden border border-gray-200 bg-white">
+                                        <div className="flex-shrink-0 w-10 h-10 rounded-md flex items-center justify-center overflow-hidden bg-white">
                                             <ProductImage
                                                 product={item}
                                                 style={{
@@ -99,7 +99,7 @@ const POSCart = ({
                                             <input
                                                 type="number"
                                                 min="1"
-                                                className="w-12 text-center border border-gray-300 rounded text-sm font-medium focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none bg-white py-0.5 mx-1"
+                                                className="w-12 text-center rounded text-sm font-medium focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none bg-white py-0.5 mx-1"
                                                 value={item.quantity}
                                                 onChange={(e) => {
                                                     const val = parseInt(e.target.value, 10);
@@ -159,13 +159,13 @@ const POSCart = ({
                     )}
                 </CardContent>
 
-                <div className="p-3 border-t space-y-1 flex-shrink-0 bg-gray-50 rounded-b-xl mt-auto">
+                <div className="p-3 space-y-1 flex-shrink-0 bg-gray-50 rounded-b-xl mt-auto">
                     <div className="w-full">
                         <div className="flex justify-between mb-1 text-sm">
                             <span>Subtotal</span>
                             <span>₱{currency(subtotal, { symbol: '', precision: 2 }).format()}</span>
                         </div>
-                        <div className="flex justify-between mb-3 font-bold text-lg border-t pt-2 mt-2">
+                        <div className="flex justify-between mb-3 font-bold text-lg pt-2 mt-2">
                             <span>Total</span>
                             <span className="text-success">₱{currency(subtotal, { symbol: '', precision: 2 }).format()}</span>
                         </div>

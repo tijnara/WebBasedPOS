@@ -39,19 +39,19 @@ const MessagesPage = () => {
             <table className="min-w-full bg-white">
               <thead>
                 <tr>
-                  <th className="py-2 px-4 border-b">ID</th>
-                  <th className="py-2 px-4 border-b">Email</th>
-                  <th className="py-2 px-4 border-b">Message</th>
-                  <th className="py-2 px-4 border-b">Date</th>
+                  <th className="py-2 px-4">ID</th>
+                  <th className="py-2 px-4">Email</th>
+                  <th className="py-2 px-4">Message</th>
+                  <th className="py-2 px-4">Date</th>
                 </tr>
               </thead>
               <tbody>
                 {messages.map((message) => (
                   <tr key={message.id}>
-                    <td className="py-2 px-4 border-b">{message.id}</td>
-                    <td className="py-2 px-4 border-b">{message.email}</td>
-                    <td className="py-2 px-4 border-b">{message.message}</td>
-                    <td className="py-2 px-4 border-b">{new Date(message.created_at).toLocaleString()}</td>
+                    <td className="py-2 px-4">{message.id}</td>
+                    <td className="py-2 px-4">{message.email}</td>
+                    <td className="py-2 px-4">{message.message}</td>
+                    <td className="py-2 px-4">{new Date(message.created_at).toLocaleString()}</td>
                   </tr>
                 ))}
               </tbody>

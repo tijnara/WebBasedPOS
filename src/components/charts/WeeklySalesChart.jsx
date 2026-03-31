@@ -68,7 +68,6 @@ const WeeklySalesChart = ({ salesData = [], startDate, endDate }) => {
                     totalRefillsData,
                     backgroundColor: 'rgba(54, 162, 235, 0.6)',
                     borderColor: 'rgba(54, 162, 235, 1)',
-                    borderWidth: 1,
                 },
             ],
         };
@@ -77,7 +76,7 @@ const WeeklySalesChart = ({ salesData = [], startDate, endDate }) => {
     const isMultiWeek = weeks.length > 1;
 
     return (
-        <div className="bg-white rounded-lg border shadow-sm p-4 responsive-page">
+        <div className="bg-white rounded-lg p-4 responsive-page">
             <h2 className="text-center font-bold text-xl text-slate-800 mb-6">Weekly Sales Performance</h2>
             
             <div className={isMultiWeek ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" : "block"}>

@@ -83,8 +83,8 @@ export default function PageSettings() {
     if (isLoading) return <div className="p-4 text-gray-500">Loading settings...</div>;
 
     return (
-        <Card className="border-l-4 border-l-blue-500 shadow-sm mt-6 responsive-page">
-            <CardHeader className="bg-blue-50 pb-3 border-b border-blue-100">
+        <Card className="shadow-sm mt-6 responsive-page">
+            <CardHeader className="bg-blue-50 pb-3">
                 <h3 className="font-bold text-lg text-blue-800">⚙️ Page Settings (Admin Only)</h3>
             </CardHeader>
             <CardContent className="p-6">
@@ -94,7 +94,7 @@ export default function PageSettings() {
                             <Label>Business Logo</Label>
                             <div
                                 onClick={() => fileInputRef.current.click()}
-                                className="cursor-pointer group relative w-48 h-48 bg-gray-50 border-2 border-dashed border-gray-300 hover:border-primary rounded-xl flex flex-col items-center justify-center transition-all overflow-hidden"
+                                className="cursor-pointer group relative w-48 h-48 bg-gray-50 hover:border-primary rounded-xl flex flex-col items-center justify-center transition-all overflow-hidden"
                             >
                                 {imagePreview ? (
                                     <img src={imagePreview} alt="Logo Preview" className="w-full h-full object-contain p-2" />
@@ -148,7 +148,7 @@ export default function PageSettings() {
                         <Input name="location_embed" value={formData.location_embed} onChange={handleInputChange} placeholder="https://www.google.com/maps/embed?pb=..." />
                     </div>
 
-                    <div className="flex justify-end pt-4 border-t">
+                    <div className="flex justify-end pt-4">
                         <Button type="submit" variant="primary" disabled={isSaving}>
                             {isSaving ? 'Saving Changes...' : 'Save Settings'}
                         </Button>

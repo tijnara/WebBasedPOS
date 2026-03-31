@@ -57,7 +57,7 @@ const SaleCard = ({ sale, onDelete, isAdmin }) => (
                     )}
                 </div>
             </div>
-            <div className="space-y-2 pt-2 border-t">
+            <div className="space-y-2 pt-2">
                 <h4 className="text-xs font-medium text-gray-500">Items</h4>
                 {(sale.sale_items || []).map((item, idx) => (
                     <div key={idx} className="flex justify-between items-center text-sm">
@@ -78,7 +78,7 @@ const SaleCard = ({ sale, onDelete, isAdmin }) => (
                     </div>
                 ))}
             </div>
-            <div className="flex justify-between items-center text-xs text-gray-500 pt-3 border-t">
+            <div className="flex justify-between items-center text-xs text-gray-500 pt-3">
                 <span>Staff: <span className="font-medium text-gray-700">{sale.staffName || 'N/A'}</span></span>
                 <span>Payment: <span className="font-medium text-gray-700">{sale.paymentMethod}</span></span>
             </div>
@@ -101,7 +101,7 @@ const CustomerCard = ({ customer }) => (
                     </div>
                 </div>
             </div>
-            <div className="space-y-1 pt-2 border-t">
+            <div className="space-y-1 pt-2">
                 {customer.email && (
                     <div className="text-xs">
                         <span className="text-gray-500">Email: </span>
@@ -115,7 +115,7 @@ const CustomerCard = ({ customer }) => (
                     </div>
                 )}
             </div>
-            <div className="flex justify-between items-center text-xs text-gray-500 pt-3 border-t">
+            <div className="flex justify-between items-center text-xs text-gray-500 pt-3">
                 <span>Added by: <span className="font-medium text-gray-700">{customer.users?.name || 'N/A'}</span></span>
             </div>
         </div>
@@ -137,7 +137,7 @@ const CustomerReportDisplay = ({ customersList, currentPage, totalPages, onPageC
                     <th className="px-3 py-3 text-left font-semibold text-gray-700">Added By</th>
                 </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody className="">
                 {customersList.length === 0 ? (
                     <tr>
                         <td colSpan="6" className="text-center p-6 text-gray-500 text-sm">
@@ -201,7 +201,7 @@ const InactiveCustomersTable = ({ inactiveCustomers, isLoading, error }) => (
                         <th className="px-3 py-3 text-left font-semibold text-gray-700">Last Order</th>
                     </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-200">
+                    <tbody className="">
                     {inactiveCustomers.length === 0 ? (
                         <tr>
                             <td colSpan="3" className="text-center p-6 text-gray-500 text-sm">
@@ -271,7 +271,7 @@ const SalesReportDisplay = ({ salesList, currentPage, totalPages, onPageChange, 
                     {isAdmin && <th className="px-3 py-3 text-right font-semibold text-gray-700">Action</th>}
                 </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody className="">
                 {salesList.length === 0 ? (
                     <tr>
                         <td colSpan={isAdmin ? "11" : "10"} className="text-center p-6 text-gray-500 text-sm">
@@ -560,7 +560,7 @@ const ReportPage = () => {
         <div className="report-page max-w-7xl mx-auto p-2 md:p-4 space-y-4 responsive-page">
             <h1 className="text-2xl font-bold">Reports</h1>
 
-            <div className="flex gap-2 border-b">
+            <div className="flex gap-2">
                 <Button
                     onClick={() => handleTabChange('sales')}
                     className={`px-4 py-2 font-semibold rounded-md ${activeTab === 'sales' ? 'btn--primary' : 'btn--soft'}`}
@@ -578,7 +578,7 @@ const ReportPage = () => {
             {activeTab === 'sales' && (
                 <>
                     <div className={`filter-bar bg-white rounded-lg p-4 transition-shadow sticky top-0 z-20 ${elevated ? 'shadow-md' : 'shadow-sm'}`}>
-                        <div className="mb-4 pb-3 border-b flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                        <div className="mb-4 pb-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                             <div>
                                 <div className="text-xs font-medium text-gray-500 mb-1">
                                     Total Sales for Period
@@ -588,7 +588,7 @@ const ReportPage = () => {
                                 </div>
                             </div>
                             <div className="flex flex-wrap items-center gap-2">
-                                <span className="px-3 py-1 rounded-full text-xs font-medium bg-primary-soft text-primary border border-primary whitespace-nowrap">
+                                <span className="px-3 py-1 rounded-full text-xs font-medium bg-primary-soft text-primary whitespace-nowrap">
                                     {activeRangeLabel}
                                 </span>
                             </div>
@@ -683,13 +683,13 @@ const ReportPage = () => {
                                     {totalSalesCount} sales found
                                 </span>
                                 <span className="text-gray-300">|</span>
-                                <span className="text-sm font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
+                                <span className="text-sm font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded">
                                     Refill(20): {totalRefill20}
                                 </span>
-                                <span className="text-sm font-semibold text-green-700 bg-green-50 px-2 py-0.5 rounded border border-green-100">
+                                <span className="text-sm font-semibold text-green-700 bg-green-50 px-2 py-0.5 rounded">
                                     Refill(25): {totalRefill25}
                                 </span>
-                                <span className="text-sm font-bold text-primary bg-primary-soft px-2 py-0.5 rounded border border-primary/20">
+                                <span className="text-sm font-bold text-primary bg-primary-soft px-2 py-0.5 rounded">
                                     Total Refills: {totalRefills}
                                 </span>
                             </div>
@@ -698,7 +698,7 @@ const ReportPage = () => {
 
                     {isLoading && <div className="text-sm text-gray-500 p-4 text-center">Loading sales data...</div>}
                     {error && (
-                        <div className="text-sm text-red-600 bg-red-50 p-4 rounded-lg border border-red-200">
+                        <div className="text-sm text-red-600 bg-red-50 p-4 rounded-lg">
                             Error loading sales: {error.message}
                         </div>
                     )}
@@ -718,7 +718,7 @@ const ReportPage = () => {
             {activeTab === 'customers' && (
                 <>
                     <div className={`filter-bar bg-white rounded-lg p-4 transition-shadow sticky top-0 z-20 ${elevated ? 'shadow-md' : 'shadow-sm'}`}>
-                        <div className="mb-4 pb-3 border-b flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                        <div className="mb-4 pb-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                             <div>
                                 <div className="text-xs font-medium text-gray-500 mb-1">
                                     Total Customers for Period
@@ -728,7 +728,7 @@ const ReportPage = () => {
                                 </div>
                             </div>
                             <div className="flex flex-wrap items-center gap-2">
-                                <span className="px-3 py-1 rounded-full text-xs font-medium bg-primary-soft text-primary border border-primary whitespace-nowrap">
+                                <span className="px-3 py-1 rounded-full text-xs font-medium bg-primary-soft text-primary whitespace-nowrap">
                                     {activeRangeLabel}
                                 </span>
                             </div>
@@ -801,7 +801,7 @@ const ReportPage = () => {
 
                     {isLoading && <div className="text-sm text-gray-500 p-4 text-center">Loading customer data...</div>}
                     {error && (
-                        <div className="text-sm text-red-600 bg-red-50 p-4 rounded-lg border border-red-200">
+                        <div className="text-sm text-red-600 bg-red-50 p-4 rounded-lg">
                             Error loading customers: {error.message}
                         </div>
                     )}
