@@ -441,7 +441,7 @@ const Navbar = () => {
                         )}
                     </div>
                     <div className="brand">
-                        <Image src="/seaside.png" alt="Seaside Logo" width={80} height={80} />
+                        <Image src="/seaside.png" alt="Seaside Logo" width={80} height={80} loading="eager" />
                         <span className="font-bold text-lg text-primary hidden md:inline">Seaside</span>
                     </div>
                 </div>

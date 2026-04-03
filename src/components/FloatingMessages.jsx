@@ -1,5 +1,5 @@
 // src/components/FloatingMessages.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../lib/supabaseClient';
 import { Card, CardHeader, CardContent } from './ui';
@@ -17,12 +17,29 @@ export default function FloatingMessages() {
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const containerRef = useRef(null);
 
     const user = useStore(s => s.user);
 
     useEffect(() => {
         setMounted(true);
     }, []);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (containerRef.current && !containerRef.current.contains(event.target)) {
+                setIsOpen(false);
+            }
+        };
+
+        if (isOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [isOpen]);
 
     const fetchRecentMessages = async () => {
         setIsLoading(true);
@@ -63,15 +80,18 @@ export default function FloatingMessages() {
     if (!isAdmin) return null;
 
     const floatingUI = (
-        <div style={{
-            position: 'fixed',
-            bottom: '150px', 
-            right: '20px',
-            zIndex: 999999,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'flex-end'
-        }}>
+        <div
+            ref={containerRef}
+            style={{
+                position: 'fixed',
+                bottom: '150px', 
+                right: '20px',
+                zIndex: 999999,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-end'
+            }}
+        >
             {isOpen && (
                 <Card className="w-80 md:w-96 mb-4 shadow-2xl border-0 flex flex-col h-[28rem] bg-white">
                     <CardHeader className="bg-blue-100 py-3 flex justify-between items-center rounded-t-lg">

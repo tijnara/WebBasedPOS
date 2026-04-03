@@ -1,5 +1,5 @@
 // src/components/FloatingNotes.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useNotes, useCreateNote, useUpdateNote, useDeleteNote } from '../hooks/useNotes';
 import { Button, Card, CardHeader, CardContent, Textarea } from './ui';
@@ -17,6 +17,7 @@ export default function FloatingNotes() {
     const [isOpen, setIsOpen] = useState(false);
     const [currentContent, setCurrentContent] = useState('');
     const [editingId, setEditingId] = useState(null);
+    const containerRef = useRef(null);
 
     const user = useStore(s => s.user);
     const { data: notes = [], isLoading } = useNotes();
@@ -27,6 +28,22 @@ export default function FloatingNotes() {
     useEffect(() => {
         setMounted(true);
     }, []);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (containerRef.current && !containerRef.current.contains(event.target)) {
+                setIsOpen(false);
+            }
+        };
+
+        if (isOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [isOpen]);
 
     const handleSave = async () => {
         if (!currentContent.trim() || !user) return;
@@ -60,15 +77,18 @@ export default function FloatingNotes() {
     if (!mounted) return null;
 
     const floatingUI = (
-        <div style={{
-            position: 'fixed',
-            bottom: '80px',
-            right: '20px',
-            zIndex: 2147483647, // Increased z-index to ensure it's on top
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'flex-end'
-        }}>
+        <div
+            ref={containerRef}
+            style={{
+                position: 'fixed',
+                bottom: '80px',
+                right: '20px',
+                zIndex: 2147483647, // Increased z-index to ensure it's on top
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-end'
+            }}
+        >
             {isOpen && (
                 <Card className="w-80 md:w-96 mb-4 shadow-2xl border-0 flex flex-col h-[28rem] bg-white">
                     <CardHeader className="bg-yellow-100 py-3 flex justify-between items-center rounded-t-lg">
