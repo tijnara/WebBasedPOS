@@ -42,10 +42,10 @@ function AuthGate({ children }) {
             const isPublicPage = ['/', '/login', '/terms', '/privacy', '/contact'].includes(router.pathname) || router.pathname.startsWith('/resources');
 
             if (!isLoggedIn && !isPublicPage) {
-                console.log("AuthGate: Not logged in, redirecting to landing page");
+                if (process.env.NODE_ENV === 'development') console.log("AuthGate: Not logged in, redirecting to landing page");
                 router.push('/');
             } else if (isLoggedIn && router.pathname === '/login') {
-                console.log("AuthGate: Logged in, redirecting from login to dashboard");
+                if (process.env.NODE_ENV === 'development') console.log("AuthGate: Logged in, redirecting from login to dashboard");
                 router.replace('/dashboard');
             }
         }
@@ -78,7 +78,7 @@ function AuthGate({ children }) {
             if (needsRedirect) {
                 localStorage.setItem('pos_last_active_time', now.toString()); // Reset to prevent loop
                 if (router.pathname !== '/') {
-                    console.log("User was away/idle. Redirecting to landing page.");
+                    if (process.env.NODE_ENV === 'development') console.log("User was away/idle. Redirecting to landing page.");
                     router.push('/');
                 }
             }
@@ -166,8 +166,7 @@ export default function App({ Component, pageProps }) {
                         </main>
                     )}
 
-                    {!isPublicPage && <FloatingNotes />}
-                    {!isPublicPage && <FloatingMessages />}
+                    {/* Floating components are now rendered only in Dashboard */}
 
                     <div className="toasts fixed bottom-4 right-4 z-50 flex flex-col items-end gap-3" aria-live="polite">
                         {toasts.map(t => (

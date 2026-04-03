@@ -35,8 +35,8 @@ const Footer = () => {
                         <div>
                             <h3 className="text-cyan-400 text-lg font-bold mb-4">Quick Links</h3>
                             <ul className="text-sm space-y-2">
-                                <li><Link href="#process" className="inline-block py-2 hover:text-cyan-300 transition">Our 20-Stage Process</Link></li>
-                                <li><Link href="#location" className="inline-block py-2 hover:text-cyan-300 transition">Delivery Areas</Link></li>
+                                <li><Link href="/#process" className="inline-block py-2 hover:text-cyan-300 transition">Our 20-Stage Process</Link></li>
+                                <li><Link href="/#location" className="inline-block py-2 hover:text-cyan-300 transition">Delivery Areas</Link></li>
                                 <li><Link href="/contact" className="inline-block py-2 hover:text-cyan-300 transition">Contact Support</Link></li>
                                 <li><Link href="/terms" className="inline-block py-2 hover:text-cyan-300 transition">Terms of Service</Link></li>
                                 <li><Link href="/privacy" className="inline-block py-2 hover:text-cyan-300 transition">Privacy Policy</Link></li>

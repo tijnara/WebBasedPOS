@@ -17,7 +17,9 @@ export default function PageSettings() {
         facebook_link: '',
         messenger_link: '',
         about_content: '',
-        location_embed: ''
+        location_embed: '',
+        business_hours: '', // Add this
+        physical_address: '' // Add this
     });
     
     const [imageFile, setImageFile] = useState(null);
@@ -33,7 +35,9 @@ export default function PageSettings() {
                 facebook_link: settings.facebook_link || '',
                 messenger_link: settings.messenger_link || '',
                 about_content: settings.about_content || '',
-                location_embed: settings.location_embed || ''
+                location_embed: settings.location_embed || '',
+                business_hours: settings.business_hours || '', // Add this
+                physical_address: settings.physical_address || '' // Add this
             });
             setImagePreview(settings.logo_url || null);
         }
@@ -120,6 +124,28 @@ export default function PageSettings() {
                         </div>
                     </div>
 
+                    {/* Add this block above the "About Content" section */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <Label>Business Hours</Label>
+                            <Input 
+                                name="business_hours" 
+                                value={formData.business_hours} 
+                                onChange={handleInputChange} 
+                                placeholder="e.g. Mon-Sat: 8AM - 5PM" 
+                            />
+                        </div>
+                        <div>
+                            <Label>Physical Address</Label>
+                            <Input 
+                                name="physical_address" 
+                                value={formData.physical_address} 
+                                onChange={handleInputChange} 
+                                placeholder="Laois, Labrador, Pangasinan" 
+                            />
+                        </div>
+                    </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <Label>Facebook Link</Label>
@@ -127,7 +153,7 @@ export default function PageSettings() {
                         </div>
                         <div>
                             <Label>Messenger Link</Label>
-                            <Input name="messenger_link" value={formData.messenger_link} onChange={handleInputChange} placeholder="http://m.me/..." />
+                            <Input name="messenger_link" value={formData.messenger_link} onChange={handleInputChange} placeholder="https://m.me/..." />
                         </div>
                     </div>
 

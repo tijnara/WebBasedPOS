@@ -16,6 +16,8 @@ import { startOfWeek, endOfWeek, parseISO, subHours } from 'date-fns';
 import currency from 'currency.js';
 import ReorderReport from '../dashboard/ReorderReport';
 import SpoilageReport from '../dashboard/SpoilageReport';
+import FloatingNotes from '../FloatingNotes'; // Added import
+import FloatingMessages from '../FloatingMessages'; // Added import
 
 Chart.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Tooltip, Legend, Filler);
 
@@ -249,9 +251,13 @@ export default function DashboardPage() {
         channels.forEach(channel => {
             channel.subscribe((status, err) => {
                 if (status === 'SUBSCRIBED') {
-                    console.log(`Connected to Supabase Realtime channel: ${channel.topic}`);
+                    if (process.env.NODE_ENV === 'development') {
+                        console.log(`Connected to Supabase Realtime channel: ${channel.topic}`);
+                    }
                 } else if (status === 'CHANNEL_ERROR') {
-                    console.warn(`Realtime connection failed for ${channel.topic}. It will auto-reconnect.`);
+                    if (process.env.NODE_ENV === 'development') {
+                        console.warn(`Realtime connection failed for ${channel.topic}. It will auto-reconnect.`);
+                    }
                 }
             });
         });
@@ -431,7 +437,8 @@ export default function DashboardPage() {
                     </div>
                 </div>
             </div>
-
+            <FloatingNotes />
+            <FloatingMessages />
         </div>
     );
 }

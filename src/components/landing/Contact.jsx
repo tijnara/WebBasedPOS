@@ -5,6 +5,8 @@ import ContactForm from './ContactForm';
 
 const Contact = ({ settings }) => {
     const [ref, isInView] = useInView();
+    const businessHours = settings?.business_hours || 'Monday - Saturday: 8:00 AM - 5:00 PM';
+    const physicalAddress = settings?.physical_address || 'Laois, Labrador, Pangasinan';
 
     return (
         <motion.section 
@@ -36,9 +38,9 @@ const Contact = ({ settings }) => {
                 <div className="p-8 md:p-12 rounded-[2rem] bg-white/60 backdrop-blur-md shadow-[0_8px_32px_0_rgba(31,38,135,0.1)] text-left">
                     <div className="mb-6 text-center">
                         <p className="text-lg font-semibold text-gray-800">Business Hours:</p>
-                        <p className="text-gray-700">Monday - Saturday: 8:00 AM - 5:00 PM</p>
+                        <p className="text-gray-700">{businessHours}</p>
                         <p className="mt-4 text-lg font-semibold text-gray-800">Our Address:</p>
-                        <p className="text-gray-700">Laois, Labrador, Pangasinan</p>
+                        <p className="text-gray-700">{physicalAddress}</p>
                     </div>
                     <ContactForm settings={settings} />
                 </div>
