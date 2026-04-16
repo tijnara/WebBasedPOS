@@ -20,11 +20,11 @@ const MOCK_SALES = [
     }
 ];
 
-export function useSalesSummary({ startDate, endDate, productName } = {}) {
+export function useSalesSummary({ startDate, endDate, productName, productId } = {}) {
     const isDemo = useStore(s => s.user?.isDemo);
 
     return useQuery({
-        queryKey: ['sales-summary', isDemo, startDate, endDate, productName],
+        queryKey: ['sales-summary', isDemo, startDate, endDate, productName, productId],
         queryFn: async () => {
             if (isDemo) {
                 let filtered = MOCK_SALES;
@@ -40,7 +40,8 @@ export function useSalesSummary({ startDate, endDate, productName } = {}) {
                     if (sale.items) {
                         sale.items.forEach(item => {
                             const name = (item.productName || '').trim();
-                            if (productName && !name.toLowerCase().includes(productName.toLowerCase())) return;
+                            if (productId && String(item.product_id) !== String(productId)) return;
+                            else if (!productId && productName && !name.toLowerCase().includes(productName.toLowerCase())) return;
 
                             const qty = item.quantity || 0;
                             const revenue = (item.price_at_sale || 0) * qty;
@@ -119,8 +120,7 @@ export function useSalesSummary({ startDate, endDate, productName } = {}) {
             let firstTransactionDate = null;
 
             allSales.forEach(sale => {
-                // 1. Calculate All-Time Revenue directly from the sales table
-                totalRevenue += (sale.totalamount || 0);
+                const hasFilter = productId || productName;
 
                 const sDate = new Date(sale.saletimestamp);
                 if (!firstTransactionDate || sDate < firstTransactionDate) {
@@ -133,16 +133,22 @@ export function useSalesSummary({ startDate, endDate, productName } = {}) {
                         const revenue = (item.price_at_sale || 0) * qty;
                         const cost = (item.cost_at_sale || 0) * qty;
 
-                        totalProfit += (revenue - cost);
-
-                        // 2. Map the quantities directly to the Products table ID and Name
                         const pid = item.product_id;
                         const name = item.products?.name || 'Unknown Product';
 
-                        // If searching by product name, skip if it doesn't match
-                        if (productName && !name.toLowerCase().includes(productName.toLowerCase())) {
-                            return;
+                        // Apply product filter — skip non-matching items
+                        if (productId) {
+                            if (String(pid) !== String(productId)) return;
+                        } else if (productName) {
+                            if (!name.toLowerCase().includes(productName.toLowerCase())) return;
                         }
+
+                        // When filtered by product, accumulate revenue at item level
+                        if (hasFilter) {
+                            totalRevenue += revenue;
+                        }
+
+                        totalProfit += (revenue - cost);
 
                         if (pid) {
                             if (!productQuantities[pid]) {
@@ -151,8 +157,16 @@ export function useSalesSummary({ startDate, endDate, productName } = {}) {
                             productQuantities[pid].quantity += qty;
                         }
                     });
+
+                    // No filter: use accurate sale-level total (accounts for discounts)
+                    if (!hasFilter) {
+                        totalRevenue += (sale.totalamount || 0);
+                    }
+                } else if (!hasFilter) {
+                    totalRevenue += (sale.totalamount || 0);
                 }
             });
+
 
             return { totalRevenue, totalProfit, productQuantities, firstTransactionDate };
         },

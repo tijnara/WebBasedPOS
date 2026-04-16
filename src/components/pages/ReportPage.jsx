@@ -367,11 +367,11 @@ const ReportPage = () => {
     const [customerPage, setCustomerPage] = useState(1);
     const [inactivePage, setInactivePage] = useState(1);
 
-    const [productSearch, setProductSearch] = useState('');
+    const [selectedProductId, setSelectedProductId] = useState('');
     const [customerSearch, setCustomerSearch] = useState('');
     const debouncedCustomerSearch = useDebounce(customerSearch, 300);
 
-    const { data: allProductsData } = useProducts({ fetchAll: true });
+    const { data: allProductsData } = useProducts({ fetchAll: true, excludeHidden: true });
     const availableProducts = allProductsData?.products || [];
 
     const todayStr = new Date().toISOString().slice(0, 10);
@@ -418,7 +418,7 @@ const ReportPage = () => {
     } = useSales({
         startDate: interval.start,
         endDate: interval.end,
-        productName: productSearch,
+        productId: selectedProductId,
         searchTerm: debouncedCustomerSearch,
         page: currentPage,
         itemsPerPage: SALES_PAGE_SIZE
@@ -427,7 +427,7 @@ const ReportPage = () => {
     const { data: allSalesData } = useSales({
         startDate: interval.start,
         endDate: interval.end,
-        productName: productSearch,
+        productId: selectedProductId,
         searchTerm: debouncedCustomerSearch,
         fetchAll: true,
     });
@@ -439,7 +439,7 @@ const ReportPage = () => {
     } = useSalesSummary({
         startDate: interval.start,
         endDate: interval.end,
-        productName: productSearch
+        productId: selectedProductId
     });
 
     const {
@@ -533,7 +533,7 @@ const ReportPage = () => {
         setCurrentPage(1);
         setCustomerPage(1);
         setInactivePage(1);
-        setProductSearch('');
+        setSelectedProductId('');
         setCustomerSearch('');
     };
 
@@ -618,16 +618,16 @@ const ReportPage = () => {
                                 <div className="flex-1">
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Product</label>
                                     <Select
-                                        value={productSearch}
+                                        value={selectedProductId}
                                         onChange={(e) => {
-                                            setProductSearch(e.target.value);
+                                            setSelectedProductId(e.target.value);
                                             setCurrentPage(1);
                                         }}
                                         className="text-base md:text-sm w-full h-10"
                                     >
                                         <option value="">All Products</option>
                                         {availableProducts.map(p => (
-                                            <option key={p.id} value={p.name}>{p.name}</option>
+                                            <option key={p.id} value={p.id}>{p.name}</option>
                                         ))}
                                     </Select>
                                 </div>
@@ -650,7 +650,7 @@ const ReportPage = () => {
                                 <div className="text-xs text-gray-500 italic">
                                     Note: For a single day report, select the same date for Date From and Date To.
                                 </div>
-                                {(fromDate || toDate || productSearch || customerSearch) && (
+                                {(fromDate || toDate || selectedProductId || customerSearch) && (
                                     <div className="flex-shrink-0">
                                         <Button
                                             onClick={handleClearRange}

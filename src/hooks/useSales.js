@@ -43,10 +43,10 @@ const MOCK_SALES = [
     }
 ];
 
-export function useSales({ searchTerm, startDate, endDate, productName, page = 1, itemsPerPage = 10, fetchAll = false } = {}) {
+export function useSales({ searchTerm, startDate, endDate, productName, productId, page = 1, itemsPerPage = 10, fetchAll = false } = {}) {
     const isDemo = useStore(s => s.user?.isDemo);
     return useQuery({
-        queryKey: ['sales', isDemo, searchTerm, startDate, endDate, productName, page, itemsPerPage, fetchAll],
+        queryKey: ['sales', isDemo, searchTerm, startDate, endDate, productName, productId, page, itemsPerPage, fetchAll],
         queryFn: async () => {
             if (isDemo) {
                 await new Promise(resolve => setTimeout(resolve, 400));
@@ -60,7 +60,11 @@ export function useSales({ searchTerm, startDate, endDate, productName, page = 1
                         (s.createdBy && s.createdBy.toLowerCase().includes(term))
                     );
                 }
-                if (productName) {
+                if (productId) {
+                    filtered = filtered.filter(s =>
+                        s.sale_items && s.sale_items.some(i => String(i.product_id) === String(productId))
+                    );
+                } else if (productName) {
                     const pName = productName.trim().toLowerCase();
                     filtered = filtered.filter(s =>
                         s.sale_items && s.sale_items.some(i => i.productName.toLowerCase().includes(pName))
@@ -84,10 +88,11 @@ export function useSales({ searchTerm, startDate, endDate, productName, page = 1
                 const startIndex = (page - 1) * itemsPerPage;
                 const endIndex = startIndex + itemsPerPage - 1;
 
-                // If filtering by product, we force an INNER JOIN on sale_items
+                // If filtering by productId or productName, force an INNER JOIN on sale_items
+                const hasProductFilter = productId || productName;
                 const selectString = `
                     *,
-                    sale_items${productName ? '!inner' : ''} ( *, product:products ( name, price ) ),
+                    sale_items${hasProductFilter ? '!inner' : ''} ( *, product:products ( name, price ) ),
                     users:created_by ( name )
                 `;
 
@@ -107,7 +112,9 @@ export function useSales({ searchTerm, startDate, endDate, productName, page = 1
                         `customername.ilike.%${term}%,status.ilike.%${term}%,paymentmethod.ilike.%${term}%`
                     );
                 }
-                if (productName) {
+                if (productId) {
+                    query = query.eq('sale_items.product_id', productId);
+                } else if (productName) {
                     const pName = productName.trim().toLowerCase();
                     query = query.ilike('sale_items.product_name', `%${pName}%`);
                 }
