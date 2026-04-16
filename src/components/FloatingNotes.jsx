@@ -5,6 +5,8 @@ import { useNotes, useCreateNote, useUpdateNote, useDeleteNote } from '../hooks/
 import { Button, Card, CardHeader, CardContent, Textarea } from './ui';
 import { format } from 'date-fns';
 import { useStore } from '../store/useStore';
+import { useQueryClient } from '@tanstack/react-query';
+import { supabase } from '../lib/supabaseClient';
 
 const StickyNoteIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
@@ -24,6 +26,15 @@ export default function FloatingNotes() {
     const createNote = useCreateNote();
     const updateNote = useUpdateNote();
     const deleteNote = useDeleteNote();
+    const queryClient = useQueryClient();
+
+    // Track last seen time using localStorage
+    const [lastSeenTime, setLastSeenTime] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return parseInt(localStorage.getItem(`notes_last_seen_${user?.id}`) || '0', 10);
+        }
+        return 0;
+    });
 
     useEffect(() => {
         setMounted(true);
@@ -45,6 +56,29 @@ export default function FloatingNotes() {
         };
     }, [isOpen]);
 
+    // Realtime subscription for notes so the unread counter stays up to date
+    useEffect(() => {
+        if (!user || user.isDemo) return;
+        const channel = supabase.channel('realtime_notes_changes')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'notes' }, () => {
+                queryClient.invalidateQueries({ queryKey: ['notes'] });
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [user, queryClient]);
+
+    // Update last seen time when modal is opened
+    useEffect(() => {
+        if (isOpen && user) {
+            const now = Date.now();
+            setLastSeenTime(now);
+            localStorage.setItem(`notes_last_seen_${user.id}`, now.toString());
+        }
+    }, [isOpen, user]);
+
     const handleSave = async () => {
         if (!currentContent.trim() || !user) return;
 
@@ -52,7 +86,6 @@ export default function FloatingNotes() {
             await updateNote.mutateAsync({ id: editingId, content: currentContent });
             setEditingId(null);
         } else {
-            // Pass only the content, as the hook now handles the user ID
             await createNote.mutateAsync(currentContent);
         }
         setCurrentContent('');
@@ -76,6 +109,13 @@ export default function FloatingNotes() {
 
     if (!mounted) return null;
 
+    // Calculate unread notes within the last 24 hours (not created by current user)
+    const twentyFourHoursAgo = Date.now() - 24 * 60 * 60 * 1000;
+    const unreadCount = notes.filter(note => {
+        const noteTime = new Date(note.created_at).getTime();
+        return noteTime > lastSeenTime && noteTime > twentyFourHoursAgo && String(note.created_by) !== String(user?.id);
+    }).length;
+
     const floatingUI = (
         <div
             ref={containerRef}
@@ -83,14 +123,14 @@ export default function FloatingNotes() {
                 position: 'fixed',
                 bottom: '80px',
                 right: '20px',
-                zIndex: 2147483647, // Increased z-index to ensure it's on top
+                zIndex: 2147483647,
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'flex-end'
             }}
         >
             {isOpen && (
-                <Card className="w-80 md:w-96 mb-4 shadow-2xl border-0 flex flex-col h-[28rem] bg-white">
+                <Card className="w-[85vw] sm:w-[320px] md:w-[340px] mb-4 shadow-2xl border-0 flex flex-col h-[40rem] md:h-[50rem] max-h-[85vh] bg-white">
                     <CardHeader className="bg-yellow-100 py-3 flex justify-between items-center rounded-t-lg">
                         <h3 className="font-bold text-yellow-800 flex items-center gap-2">
                             <StickyNoteIcon /> Scratchpad
@@ -107,10 +147,14 @@ export default function FloatingNotes() {
                                 <p className="text-center text-sm text-gray-500 mt-10">No notes yet. Add one below!</p>
                             ) : (
                                 notes.map(note => (
-                                    <div key={note.id} className="bg-white p-3 rounded shadow-sm text-sm group">
-                                        <p className="whitespace-pre-wrap text-gray-800 mb-2">{note.content}</p>
+                                    <div key={note.id} className="bg-white p-3 rounded shadow-sm text-sm group border border-gray-100">
+                                        <p className="whitespace-pre-wrap text-gray-800 mb-2 text-base">{note.content}</p>
                                         <div className="flex justify-between items-center mt-2 border-t pt-2">
-                                            <span className="text-[10px] text-gray-400">
+                                            <span className="text-xs text-gray-500 font-medium">
+                                                <span className="font-semibold text-gray-700">
+                                                    {note.users?.name || note.created_by || 'Unknown Staff'}
+                                                </span>
+                                                {' • '}
                                                 {note.created_at ? format(new Date(note.created_at), 'MMM d, h:mm a') : 'Just now'}
                                             </span>
                                             <div className="flex gap-2">
@@ -123,12 +167,12 @@ export default function FloatingNotes() {
                             )}
                         </div>
 
-                        <div className="p-3 bg-white">
+                        <div className="p-4 bg-white border-t border-gray-100">
                             <Textarea
                                 placeholder="Type a note..."
                                 value={currentContent}
                                 onChange={(e) => setCurrentContent(e.target.value)}
-                                className="w-full text-sm mb-2 min-h-[60px] bg-yellow-50 focus:ring-yellow-400 focus:border-yellow-400"
+                                className="w-full text-sm mb-3 min-h-[80px] bg-yellow-50 focus:ring-yellow-400 focus:border-yellow-400"
                             />
                             <div className="flex gap-2 justify-end">
                                 {editingId && (
@@ -158,11 +202,37 @@ export default function FloatingNotes() {
                     boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     border: '2px solid #fde047',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    position: 'relative' // Needed to position the badge
                 }}
                 aria-label="Toggle Notes"
             >
                 <StickyNoteIcon />
+
+                {/* Notification Badge */}
+                {!isOpen && unreadCount > 0 && (
+                    <div style={{
+                        position: 'absolute',
+                        top: '-2px',
+                        right: '-2px',
+                        backgroundColor: '#ef4444',
+                        color: 'white',
+                        fontSize: '11px',
+                        fontWeight: 'bold',
+                        height: '22px',
+                        minWidth: '22px',
+                        padding: '0 6px',
+                        borderRadius: '11px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        border: '2px solid white',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                        animation: 'pulse 2s infinite'
+                    }}>
+                        {unreadCount > 9 ? '9+' : unreadCount}
+                    </div>
+                )}
             </button>
         </div>
     );

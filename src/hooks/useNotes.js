@@ -7,8 +7,8 @@ const notesKey = ['notes'];
 
 // Mock data for demo mode
 let MOCK_NOTES = [
-    { id: 'mock-1', content: 'Follow up with supplier for 5-Gal jugs.', created_at: new Date().toISOString() },
-    { id: 'mock-2', content: 'Check inventory for 500ml PET bottles.', created_at: new Date().toISOString() },
+    { id: 'mock-1', content: 'Follow up with supplier for 5-Gal jugs.', created_at: new Date().toISOString(), created_by: 'mock-id', users: { name: 'Demo Staff A' } },
+    { id: 'mock-2', content: 'Check inventory for 500ml PET bottles.', created_at: new Date().toISOString(), created_by: 'mock-id', users: { name: 'Demo Staff B' } },
 ];
 
 export function useNotes() {
@@ -22,7 +22,8 @@ export function useNotes() {
             try {
                 const { data, error } = await supabase
                     .from('notes')
-                    .select('*')
+                    // Join the users table to get the name based on the created_by ID
+                    .select('*, users:created_by(name)')
                     .order('created_at', { ascending: false });
 
                 if (error) {
@@ -40,20 +41,25 @@ export function useNotes() {
 
 export function useCreateNote() {
     const queryClient = useQueryClient();
-    const user = useStore(s => s.user); // Get user from the store
+    const user = useStore(s => s.user);
 
     return useMutation({
         mutationFn: async (content) => {
             if (user?.isDemo) {
-                MOCK_NOTES.push({ id: `mock-${Date.now()}`, content, created_at: new Date().toISOString() });
+                MOCK_NOTES.push({
+                    id: `mock-${Date.now()}`,
+                    content,
+                    created_at: new Date().toISOString(),
+                    created_by: user.id,
+                    users: { name: user.name }
+                });
                 return;
             }
-            
+
             if (!user || !user.id) {
                 throw new Error('User not available for creating a note.');
             }
 
-            // Use the integer ID from the store's user profile
             const { error } = await supabase.from('notes').insert([{ content, created_by: user.id }]);
             if (error) throw error;
         },
