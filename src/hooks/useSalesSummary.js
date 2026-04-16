@@ -2,7 +2,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient';
 import { useStore } from '../store/useStore';
-import currency from 'currency.js';
 
 const MOCK_SALES = [
     {
@@ -10,22 +9,22 @@ const MOCK_SALES = [
         saleTimestamp: new Date('2025-11-03T09:00:00'),
         totalAmount: 60.00,
         costAmount: 40.00,
-        items: [{ productName: 'Refill(20)', quantity: 2, price_at_sale: 30, cost_at_sale: 20 }]
+        items: [{ product_id: 'p1', productName: 'Refill(20)', quantity: 2, price_at_sale: 30, cost_at_sale: 20 }]
     },
     {
         id: 'mock-s-2',
         saleTimestamp: new Date('2025-11-02T15:30:00'),
         totalAmount: 99.00,
         costAmount: 70.00,
-        items: [{ productName: 'Refill(25)', quantity: 3, price_at_sale: 33, cost_at_sale: 23 }]
+        items: [{ product_id: 'p2', productName: 'Refill(25)', quantity: 3, price_at_sale: 33, cost_at_sale: 23 }]
     }
 ];
 
-export function useSalesSummary({ startDate, endDate, productName } = {}) {
+export function useSalesSummary({ startDate, endDate, productName, productId } = {}) {
     const isDemo = useStore(s => s.user?.isDemo);
 
     return useQuery({
-        queryKey: ['sales-summary', isDemo, startDate, endDate, productName],
+        queryKey: ['sales-summary', isDemo, startDate, endDate, productName, productId],
         queryFn: async () => {
             if (isDemo) {
                 let filtered = MOCK_SALES;
@@ -34,34 +33,32 @@ export function useSalesSummary({ startDate, endDate, productName } = {}) {
 
                 let totalRevenue = 0;
                 let totalProfit = 0;
-                let totalRefill20 = 0;
-                let totalRefill25 = 0;
+                let productQuantities = {};
                 let firstTransactionDate = null;
 
                 filtered.forEach(sale => {
-                    let saleRevenue = 0;
-                    let saleCost = 0;
-
                     if (sale.items) {
                         sale.items.forEach(item => {
                             const name = (item.productName || '').trim();
+                            if (productId && String(item.product_id) !== String(productId)) return;
+                            else if (!productId && productName && !name.toLowerCase().includes(productName.toLowerCase())) return;
 
-                            // If filtering by product, skip items that don't match
-                            if (productName && !name.toLowerCase().includes(productName.toLowerCase())) return;
+                            const qty = item.quantity || 0;
+                            const revenue = (item.price_at_sale || 0) * qty;
+                            const cost = (item.cost_at_sale || 0) * qty;
 
-                            saleRevenue += (item.price_at_sale || 0) * (item.quantity || 0);
-                            saleCost += (item.cost_at_sale || 0) * (item.quantity || 0);
+                            totalRevenue += revenue;
+                            totalProfit += (revenue - cost);
 
-                            const normalizedName = name.replace(/\s+/g, '');
-                            if (normalizedName === 'Refill(20)') totalRefill20 += (item.quantity || 0);
-                            if (normalizedName === 'Refill(25)') totalRefill25 += (item.quantity || 0);
+                            const pid = item.product_id || name;
+                            if (pid) {
+                                if (!productQuantities[pid]) {
+                                    productQuantities[pid] = { name: name, quantity: 0 };
+                                }
+                                productQuantities[pid].quantity += qty;
+                            }
                         });
-                    }
 
-                    // Accumulate totals if there was matched revenue (or if no filter was applied)
-                    if (!productName || saleRevenue > 0) {
-                        totalRevenue += saleRevenue;
-                        totalProfit += (saleRevenue - saleCost);
                         const sDate = new Date(sale.saleTimestamp);
                         if (!firstTransactionDate || sDate < firstTransactionDate) {
                             firstTransactionDate = sDate;
@@ -69,75 +66,36 @@ export function useSalesSummary({ startDate, endDate, productName } = {}) {
                     }
                 });
 
-                return { totalRevenue, totalProfit, totalRefill20, totalRefill25, firstTransactionDate };
+                return { totalRevenue, totalProfit, productQuantities, firstTransactionDate };
             }
 
             // --- REAL DATABASE LOGIC ---
-            if (productName) {
-                // If filtering by product, we MUST use sale_items
-                let query = supabase
-                    .from('sale_items')
-                    .select(`
-                        price_at_sale,
-                        cost_at_sale,
-                        quantity,
-                        product_name,
-                        sales!inner (saletimestamp)
-                    `);
+            let allSales = [];
+            let from = 0;
+            const step = 1000;
+            let hasMore = true;
 
-                if (startDate) query = query.gte('sales.saletimestamp', startDate.toISOString());
-                if (endDate) query = query.lte('sales.saletimestamp', endDate.toISOString());
-                query = query.ilike('product_name', `%${productName.trim()}%`);
-
-                const { data, error } = await query;
-                if (error) throw error;
-
-                let totalRevenue = 0;
-                let totalProfit = 0;
-                let totalRefill20 = 0;
-                let totalRefill25 = 0;
-                let firstTransactionDate = null;
-
-                if (data && Array.isArray(data)) {
-                    data.forEach(item => {
-                        const qty = item.quantity || 0;
-                        const revenue = (item.price_at_sale || 0) * qty;
-                        const cost = (item.cost_at_sale || 0) * qty;
-
-                        totalRevenue += revenue;
-                        totalProfit += (revenue - cost);
-
-                        const name = (item.product_name || '').trim().replace(/\s+/g, '');
-                        if (name === 'Refill(20)') {
-                            totalRefill20 += qty;
-                        } else if (name === 'Refill(25)') {
-                            totalRefill25 += qty;
-                        }
-
-                        if (item.sales && item.sales.saletimestamp) {
-                            const sDate = new Date(item.sales.saletimestamp);
-                            if (!firstTransactionDate || sDate < firstTransactionDate) {
-                                firstTransactionDate = sDate;
-                            }
-                        }
-                    });
-                }
-
-                return { totalRevenue, totalProfit, totalRefill20, totalRefill25, firstTransactionDate };
-            } else {
-                // If NO product filter, query 'sales' table directly for better accuracy
+            // Loop to bypass Supabase's 1000 row limit and grab ALL time data
+            while (hasMore) {
                 let query = supabase
                     .from('sales')
                     .select(`
+                        id,
                         totalamount,
                         saletimestamp,
                         sale_items (
-                            product_name,
+                            product_id,
                             quantity,
                             price_at_sale,
-                            cost_at_sale
+                            cost_at_sale,
+                            products (
+                                id,
+                                name
+                            )
                         )
-                    `);
+                    `)
+                    .order('saletimestamp', { ascending: true })
+                    .range(from, from + step - 1);
 
                 if (startDate) query = query.gte('saletimestamp', startDate.toISOString());
                 if (endDate) query = query.lte('saletimestamp', endDate.toISOString());
@@ -145,42 +103,72 @@ export function useSalesSummary({ startDate, endDate, productName } = {}) {
                 const { data, error } = await query;
                 if (error) throw error;
 
-                let totalRevenue = 0;
-                let totalProfit = 0;
-                let totalRefill20 = 0;
-                let totalRefill25 = 0;
-                let firstTransactionDate = null;
-
-                if (data && Array.isArray(data)) {
-                    data.forEach(sale => {
-                        totalRevenue += (sale.totalamount || 0);
-                        
-                        const sDate = new Date(sale.saletimestamp);
-                        if (!firstTransactionDate || sDate < firstTransactionDate) {
-                            firstTransactionDate = sDate;
-                        }
-
-                        if (sale.sale_items && Array.isArray(sale.sale_items)) {
-                            sale.sale_items.forEach(item => {
-                                const qty = item.quantity || 0;
-                                const revenue = (item.price_at_sale || 0) * qty;
-                                const cost = (item.cost_at_sale || 0) * qty;
-                                
-                                totalProfit += (revenue - cost);
-
-                                const name = (item.product_name || '').trim().replace(/\s+/g, '');
-                                if (name === 'Refill(20)') {
-                                    totalRefill20 += qty;
-                                } else if (name === 'Refill(25)') {
-                                    totalRefill25 += qty;
-                                }
-                            });
-                        }
-                    });
+                if (data && data.length > 0) {
+                    allSales.push(...data);
                 }
 
-                return { totalRevenue, totalProfit, totalRefill20, totalRefill25, firstTransactionDate };
+                if (!data || data.length < step) {
+                    hasMore = false;
+                } else {
+                    from += step;
+                }
             }
+
+            let totalRevenue = 0;
+            let totalProfit = 0;
+            let productQuantities = {};
+            let firstTransactionDate = null;
+
+            allSales.forEach(sale => {
+                const hasFilter = productId || productName;
+
+                const sDate = new Date(sale.saletimestamp);
+                if (!firstTransactionDate || sDate < firstTransactionDate) {
+                    firstTransactionDate = sDate;
+                }
+
+                if (sale.sale_items && Array.isArray(sale.sale_items)) {
+                    sale.sale_items.forEach(item => {
+                        const qty = item.quantity || 0;
+                        const revenue = (item.price_at_sale || 0) * qty;
+                        const cost = (item.cost_at_sale || 0) * qty;
+
+                        const pid = item.product_id;
+                        const name = item.products?.name || 'Unknown Product';
+
+                        // Apply product filter — skip non-matching items
+                        if (productId) {
+                            if (String(pid) !== String(productId)) return;
+                        } else if (productName) {
+                            if (!name.toLowerCase().includes(productName.toLowerCase())) return;
+                        }
+
+                        // When filtered by product, accumulate revenue at item level
+                        if (hasFilter) {
+                            totalRevenue += revenue;
+                        }
+
+                        totalProfit += (revenue - cost);
+
+                        if (pid) {
+                            if (!productQuantities[pid]) {
+                                productQuantities[pid] = { name: name, quantity: 0 };
+                            }
+                            productQuantities[pid].quantity += qty;
+                        }
+                    });
+
+                    // No filter: use accurate sale-level total (accounts for discounts)
+                    if (!hasFilter) {
+                        totalRevenue += (sale.totalamount || 0);
+                    }
+                } else if (!hasFilter) {
+                    totalRevenue += (sale.totalamount || 0);
+                }
+            });
+
+
+            return { totalRevenue, totalProfit, productQuantities, firstTransactionDate };
         },
         staleTime: 1000 * 60 * 3,
     });

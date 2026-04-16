@@ -42,7 +42,7 @@ const SaleCard = ({ sale, onDelete, isAdmin }) => (
                         {formatCurrency(sale.totalAmount)}
                     </div>
                     <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${sale.status === 'Completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                    }`}>
+                        }`}>
                         {sale.status || 'Unknown'}
                     </span>
                     {isAdmin && (
@@ -128,36 +128,36 @@ const CustomerReportDisplay = ({ customersList, currentPage, totalPages, onPageC
         <div className="overflow-x-auto hidden md:block">
             <table className="min-w-full text-sm">
                 <thead className="bg-gray-100">
-                <tr>
-                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Name</th>
-                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Phone</th>
-                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Email</th>
-                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Address</th>
-                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Date Added</th>
-                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Added By</th>
-                </tr>
+                    <tr>
+                        <th className="px-3 py-3 text-left font-semibold text-gray-700">Name</th>
+                        <th className="px-3 py-3 text-left font-semibold text-gray-700">Phone</th>
+                        <th className="px-3 py-3 text-left font-semibold text-gray-700">Email</th>
+                        <th className="px-3 py-3 text-left font-semibold text-gray-700">Address</th>
+                        <th className="px-3 py-3 text-left font-semibold text-gray-700">Date Added</th>
+                        <th className="px-3 py-3 text-left font-semibold text-gray-700">Added By</th>
+                    </tr>
                 </thead>
                 <tbody className="">
-                {customersList.length === 0 ? (
-                    <tr>
-                        <td colSpan="6" className="text-center p-6 text-gray-500 text-sm">
-                            No customers found.
-                        </td>
-                    </tr>
-                ) : (
-                    customersList.map(customer => (
-                        <tr key={customer.id} className="hover:bg-gray-50">
-                            <td className="px-3 py-3 font-medium text-gray-800">{customer.name}</td>
-                            <td className="px-3 py-3 text-gray-600">{customer.phone || 'N/A'}</td>
-                            <td className="px-3 py-3 text-gray-600">{customer.email || 'N/A'}</td>
-                            <td className="px-3 py-3 text-gray-600">{customer.address || 'N/A'}</td>
-                            <td className="px-3 py-3 text-gray-600">
-                                {customer.dateAdded ? format(customer.dateAdded, 'MMM d, yyyy') : 'N/A'}
+                    {customersList.length === 0 ? (
+                        <tr>
+                            <td colSpan="6" className="text-center p-6 text-gray-500 text-sm">
+                                No customers found.
                             </td>
-                            <td className="px-3 py-3 text-gray-600">{customer.users?.name || 'N/A'}</td>
                         </tr>
-                    ))
-                )}
+                    ) : (
+                        customersList.map(customer => (
+                            <tr key={customer.id} className="hover:bg-gray-50">
+                                <td className="px-3 py-3 font-medium text-gray-800">{customer.name}</td>
+                                <td className="px-3 py-3 text-gray-600">{customer.phone || 'N/A'}</td>
+                                <td className="px-3 py-3 text-gray-600">{customer.email || 'N/A'}</td>
+                                <td className="px-3 py-3 text-gray-600">{customer.address || 'N/A'}</td>
+                                <td className="px-3 py-3 text-gray-600">
+                                    {customer.dateAdded ? format(customer.dateAdded, 'MMM d, yyyy') : 'N/A'}
+                                </td>
+                                <td className="px-3 py-3 text-gray-600">{customer.users?.name || 'N/A'}</td>
+                            </tr>
+                        ))
+                    )}
                 </tbody>
             </table>
         </div>
@@ -195,32 +195,32 @@ const InactiveCustomersTable = ({ inactiveCustomers, isLoading, error }) => (
             ) : (
                 <table className="min-w-full text-sm">
                     <thead className="bg-gray-100">
-                    <tr>
-                        <th className="px-3 py-3 text-left font-semibold text-gray-700">Name</th>
-                        <th className="px-3 py-3 text-left font-semibold text-gray-700">Phone</th>
-                        <th className="px-3 py-3 text-left font-semibold text-gray-700">Last Order</th>
-                    </tr>
+                        <tr>
+                            <th className="px-3 py-3 text-left font-semibold text-gray-700">Name</th>
+                            <th className="px-3 py-3 text-left font-semibold text-gray-700">Phone</th>
+                            <th className="px-3 py-3 text-left font-semibold text-gray-700">Last Order</th>
+                        </tr>
                     </thead>
                     <tbody className="">
-                    {inactiveCustomers.length === 0 ? (
-                        <tr>
-                            <td colSpan="3" className="text-center p-6 text-gray-500 text-sm">
-                                No inactive customers found.
-                            </td>
-                        </tr>
-                    ) : (
-                        inactiveCustomers.map(customer => (
-                            <tr key={customer.id} className="hover:bg-gray-50">
-                                <td className="px-3 py-3 font-medium text-gray-800">{customer.name}</td>
-                                <td className="px-3 py-3 text-gray-600">{customer.phone || 'N/A'}</td>
-                                <td className="px-3 py-3 text-gray-600">
-                                    {customer.last_order_date
-                                        ? format(new Date(customer.last_order_date), 'MMM d, yyyy')
-                                        : 'Never ordered'}
+                        {inactiveCustomers.length === 0 ? (
+                            <tr>
+                                <td colSpan="3" className="text-center p-6 text-gray-500 text-sm">
+                                    No inactive customers found.
                                 </td>
                             </tr>
-                        ))
-                    )}
+                        ) : (
+                            inactiveCustomers.map(customer => (
+                                <tr key={customer.id} className="hover:bg-gray-50">
+                                    <td className="px-3 py-3 font-medium text-gray-800">{customer.name}</td>
+                                    <td className="px-3 py-3 text-gray-600">{customer.phone || 'N/A'}</td>
+                                    <td className="px-3 py-3 text-gray-600">
+                                        {customer.last_order_date
+                                            ? format(new Date(customer.last_order_date), 'MMM d, yyyy')
+                                            : 'Never ordered'}
+                                    </td>
+                                </tr>
+                            ))
+                        )}
                     </tbody>
                 </table>
             )}
@@ -241,8 +241,8 @@ const InactiveCustomersTable = ({ inactiveCustomers, isLoading, error }) => (
                         <div className="text-xs text-gray-500 mt-1">{customer.phone || 'No phone'}</div>
                         <div className="text-xs text-gray-600 mt-1">
                             Last Order: {customer.last_order_date
-                            ? format(new Date(customer.last_order_date), 'MMM d, yyyy')
-                            : 'Never'}
+                                ? format(new Date(customer.last_order_date), 'MMM d, yyyy')
+                                : 'Never'}
                         </div>
                     </div>
                 ))
@@ -257,84 +257,84 @@ const SalesReportDisplay = ({ salesList, currentPage, totalPages, onPageChange, 
         <div className="overflow-x-auto hidden md:block">
             <table className="min-w-full text-sm">
                 <thead className="bg-gray-100">
-                <tr>
-                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Date & Time</th>
-                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Customer</th>
-                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Item(s) & Qty</th>
-                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Price(s)</th>
-                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Discount</th>
-                    <th className="px-3 py-3 text-center font-semibold text-gray-700">Total Qty</th>
-                    <th className="px-3 py-3 text-right font-semibold text-gray-700">Total</th>
-                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Payment</th>
-                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Status</th>
-                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Staff</th>
-                    {isAdmin && <th className="px-3 py-3 text-right font-semibold text-gray-700">Action</th>}
-                </tr>
+                    <tr>
+                        <th className="px-3 py-3 text-left font-semibold text-gray-700">Date & Time</th>
+                        <th className="px-3 py-3 text-left font-semibold text-gray-700">Customer</th>
+                        <th className="px-3 py-3 text-left font-semibold text-gray-700">Item(s) & Qty</th>
+                        <th className="px-3 py-3 text-left font-semibold text-gray-700">Price(s)</th>
+                        <th className="px-3 py-3 text-left font-semibold text-gray-700">Discount</th>
+                        <th className="px-3 py-3 text-center font-semibold text-gray-700">Total Qty</th>
+                        <th className="px-3 py-3 text-right font-semibold text-gray-700">Total</th>
+                        <th className="px-3 py-3 text-left font-semibold text-gray-700">Payment</th>
+                        <th className="px-3 py-3 text-left font-semibold text-gray-700">Status</th>
+                        <th className="px-3 py-3 text-left font-semibold text-gray-700">Staff</th>
+                        {isAdmin && <th className="px-3 py-3 text-right font-semibold text-gray-700">Action</th>}
+                    </tr>
                 </thead>
                 <tbody className="">
-                {salesList.length === 0 ? (
-                    <tr>
-                        <td colSpan={isAdmin ? "11" : "10"} className="text-center p-6 text-gray-500 text-sm">
-                            No sales found for this period.
-                        </td>
-                    </tr>
-                ) : (
-                    salesList.map(sale => (
-                        <tr key={sale.id} className="hover:bg-gray-50">
-                            <td className="px-3 py-3 whitespace-nowrap align-top">{format(new Date(sale.saleTimestamp), 'MMM d, yyyy h:mm a')}</td>
-                            <td className="px-3 py-3 whitespace-nowrap align-top">{sale.customerName}</td>
-                            <td className="px-3 py-3 align-top">
-                                <div className="flex flex-col gap-1">
-                                    {(sale.sale_items || []).map((item, idx) => (
-                                        <span key={idx} className="block truncate" title={item.productName}>
+                    {salesList.length === 0 ? (
+                        <tr>
+                            <td colSpan={isAdmin ? "11" : "10"} className="text-center p-6 text-gray-500 text-sm">
+                                No sales found for this period.
+                            </td>
+                        </tr>
+                    ) : (
+                        salesList.map(sale => (
+                            <tr key={sale.id} className="hover:bg-gray-50">
+                                <td className="px-3 py-3 whitespace-nowrap align-top">{format(new Date(sale.saleTimestamp), 'MMM d, yyyy h:mm a')}</td>
+                                <td className="px-3 py-3 whitespace-nowrap align-top">{sale.customerName}</td>
+                                <td className="px-3 py-3 align-top">
+                                    <div className="flex flex-col gap-1">
+                                        {(sale.sale_items || []).map((item, idx) => (
+                                            <span key={idx} className="block truncate" title={item.productName}>
                                                 {item.productName || 'N/A'} <span className="font-bold text-primary">x{item.quantity || 0}</span>
                                             </span>
-                                    ))}
-                                </div>
-                            </td>
-                            <td className="px-3 py-3 align-top">
-                                <div className="flex flex-col gap-1">
-                                    {(sale.sale_items || []).map((item, idx) => (
-                                        <span key={idx} className="block whitespace-nowrap">
+                                        ))}
+                                    </div>
+                                </td>
+                                <td className="px-3 py-3 align-top">
+                                    <div className="flex flex-col gap-1">
+                                        {(sale.sale_items || []).map((item, idx) => (
+                                            <span key={idx} className="block whitespace-nowrap">
                                                 {formatCurrency(item.productPrice || 0)}
                                             </span>
-                                    ))}
-                                </div>
-                            </td>
-                            <td className="px-3 py-3 align-top">
-                                <div className="flex flex-col gap-1">
-                                    {(sale.sale_items || []).map((item, idx) => (
-                                        <span key={idx} className={`block whitespace-nowrap ${item.discount_amount > 0 ? 'text-green-600 font-medium' : 'text-gray-400'}`}>
+                                        ))}
+                                    </div>
+                                </td>
+                                <td className="px-3 py-3 align-top">
+                                    <div className="flex flex-col gap-1">
+                                        {(sale.sale_items || []).map((item, idx) => (
+                                            <span key={idx} className={`block whitespace-nowrap ${item.discount_amount > 0 ? 'text-green-600 font-medium' : 'text-gray-400'}`}>
                                                 {item.discount_amount > 0 ? `-${formatCurrency(item.discount_amount)}` : '—'}
                                             </span>
-                                    ))}
-                                </div>
-                            </td>
-                            <td className="px-3 py-3 align-top text-center font-medium text-gray-800">
-                                {(sale.sale_items || []).reduce((acc, item) => acc + (item.quantity || 0), 0)}
-                            </td>
-                            <td className="px-3 py-3 text-right whitespace-nowrap align-top font-bold text-gray-900">
-                                {formatCurrency(sale.totalAmount)}
-                            </td>
-                            <td className="px-3 py-3 whitespace-nowrap align-top">{sale.paymentMethod}</td>
-                            <td className="px-3 py-3 whitespace-nowrap align-top">{sale.status}</td>
-                            <td className="px-3 py-3 whitespace-nowrap align-top">{sale.staffName || 'N/A'}</td>
-
-                            {isAdmin && (
-                                <td className="px-3 py-3 text-right align-top">
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="text-red-600 hover:bg-red-50 h-8 w-8"
-                                        onClick={() => onDelete(sale.id)}
-                                    >
-                                        <DeleteIcon className="w-4 h-4" />
-                                    </Button>
+                                        ))}
+                                    </div>
                                 </td>
-                            )}
-                        </tr>
-                    ))
-                )}
+                                <td className="px-3 py-3 align-top text-center font-medium text-gray-800">
+                                    {(sale.sale_items || []).reduce((acc, item) => acc + (item.quantity || 0), 0)}
+                                </td>
+                                <td className="px-3 py-3 text-right whitespace-nowrap align-top font-bold text-gray-900">
+                                    {formatCurrency(sale.totalAmount)}
+                                </td>
+                                <td className="px-3 py-3 whitespace-nowrap align-top">{sale.paymentMethod}</td>
+                                <td className="px-3 py-3 whitespace-nowrap align-top">{sale.status}</td>
+                                <td className="px-3 py-3 whitespace-nowrap align-top">{sale.staffName || 'N/A'}</td>
+
+                                {isAdmin && (
+                                    <td className="px-3 py-3 text-right align-top">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="text-red-600 hover:bg-red-50 h-8 w-8"
+                                            onClick={() => onDelete(sale.id)}
+                                        >
+                                            <DeleteIcon className="w-4 h-4" />
+                                        </Button>
+                                    </td>
+                                )}
+                            </tr>
+                        ))
+                    )}
                 </tbody>
             </table>
         </div>
@@ -367,11 +367,11 @@ const ReportPage = () => {
     const [customerPage, setCustomerPage] = useState(1);
     const [inactivePage, setInactivePage] = useState(1);
 
-    const [productSearch, setProductSearch] = useState('');
+    const [selectedProductId, setSelectedProductId] = useState('');
     const [customerSearch, setCustomerSearch] = useState('');
     const debouncedCustomerSearch = useDebounce(customerSearch, 300);
 
-    const { data: allProductsData } = useProducts({ fetchAll: true });
+    const { data: allProductsData } = useProducts({ fetchAll: true, excludeHidden: true });
     const availableProducts = allProductsData?.products || [];
 
     const todayStr = new Date().toISOString().slice(0, 10);
@@ -418,7 +418,7 @@ const ReportPage = () => {
     } = useSales({
         startDate: interval.start,
         endDate: interval.end,
-        productName: productSearch,
+        productId: selectedProductId,
         searchTerm: debouncedCustomerSearch,
         page: currentPage,
         itemsPerPage: SALES_PAGE_SIZE
@@ -427,7 +427,7 @@ const ReportPage = () => {
     const { data: allSalesData } = useSales({
         startDate: interval.start,
         endDate: interval.end,
-        productName: productSearch,
+        productId: selectedProductId,
         searchTerm: debouncedCustomerSearch,
         fetchAll: true,
     });
@@ -439,7 +439,7 @@ const ReportPage = () => {
     } = useSalesSummary({
         startDate: interval.start,
         endDate: interval.end,
-        productName: productSearch
+        productId: selectedProductId
     });
 
     const {
@@ -476,9 +476,7 @@ const ReportPage = () => {
     const totalSalesCount = salesPageData?.totalCount || 0;
     const totalRevenue = summaryData?.totalRevenue || 0;
 
-    const totalRefill20 = summaryData?.totalRefill20 || 0;
-    const totalRefill25 = summaryData?.totalRefill25 || 0;
-    const totalRefills = totalRefill20 + totalRefill25;
+
 
     const customersData = customersPageData?.customers || [];
     const totalCustomersCount = customersPageData?.totalCount || 0;
@@ -535,7 +533,7 @@ const ReportPage = () => {
         setCurrentPage(1);
         setCustomerPage(1);
         setInactivePage(1);
-        setProductSearch('');
+        setSelectedProductId('');
         setCustomerSearch('');
     };
 
@@ -620,16 +618,16 @@ const ReportPage = () => {
                                 <div className="flex-1">
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Product</label>
                                     <Select
-                                        value={productSearch}
+                                        value={selectedProductId}
                                         onChange={(e) => {
-                                            setProductSearch(e.target.value);
+                                            setSelectedProductId(e.target.value);
                                             setCurrentPage(1);
                                         }}
                                         className="text-base md:text-sm w-full h-10"
                                     >
                                         <option value="">All Products</option>
                                         {availableProducts.map(p => (
-                                            <option key={p.id} value={p.name}>{p.name}</option>
+                                            <option key={p.id} value={p.id}>{p.name}</option>
                                         ))}
                                     </Select>
                                 </div>
@@ -652,7 +650,7 @@ const ReportPage = () => {
                                 <div className="text-xs text-gray-500 italic">
                                     Note: For a single day report, select the same date for Date From and Date To.
                                 </div>
-                                {(fromDate || toDate || productSearch || customerSearch) && (
+                                {(fromDate || toDate || selectedProductId || customerSearch) && (
                                     <div className="flex-shrink-0">
                                         <Button
                                             onClick={handleClearRange}
@@ -668,10 +666,10 @@ const ReportPage = () => {
                     </div>
 
                     <div className="my-4">
-                        <WeeklySalesChart 
-                            salesData={chartSalesData} 
-                            startDate={interval.start} 
-                            endDate={interval.end} 
+                        <WeeklySalesChart
+                            salesData={chartSalesData}
+                            startDate={interval.start}
+                            endDate={interval.end}
                         />
                     </div>
 
@@ -683,15 +681,13 @@ const ReportPage = () => {
                                     {totalSalesCount} sales found
                                 </span>
                                 <span className="text-gray-300">|</span>
-                                <span className="text-sm font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded">
-                                    Refill(20): {totalRefill20}
-                                </span>
-                                <span className="text-sm font-semibold text-green-700 bg-green-50 px-2 py-0.5 rounded">
-                                    Refill(25): {totalRefill25}
-                                </span>
-                                <span className="text-sm font-bold text-primary bg-primary-soft px-2 py-0.5 rounded">
-                                    Total Refills: {totalRefills}
-                                </span>
+
+                                {/* DYNAMICALLY RENDER ALL PRODUCTS SOLD IN THIS REPORT PERIOD */}
+                                {summaryData?.productQuantities && Object.values(summaryData.productQuantities).map((p, idx) => (
+                                    <span key={idx} className="text-sm font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded">
+                                        {p.name}: {p.quantity}
+                                    </span>
+                                ))}
                             </div>
                         </div>
                     </div>
