@@ -1,7 +1,9 @@
 // pages/index.js
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/router';
+import Head from 'next/head';
 import { useSettings } from '../src/hooks/useSettings';
+import { useStore } from '../src/store/useStore';
 
 import BackgroundImage from '../src/components/landing/BackgroundImage';
 import Meta from '../src/components/landing/Meta';
@@ -21,10 +23,10 @@ import { AdsterraVerticalBanner } from '../src/components/landing/AdBanners';
 const SeasideWaterLanding = () => {
     const { data: settings } = useSettings();
     const router = useRouter();
+    const user = useStore(state => state.user);
 
     useEffect(() => {
         const handleScroll = (hash) => {
-            // A small delay to ensure the element is rendered.
             setTimeout(() => {
                 const element = document.querySelector(hash);
                 if (element) {
@@ -33,7 +35,6 @@ const SeasideWaterLanding = () => {
             }, 100);
         };
 
-        // For initial load
         if (router.isReady && window.location.hash) {
             handleScroll(window.location.hash);
         }
@@ -43,7 +44,6 @@ const SeasideWaterLanding = () => {
             handleScroll(hash);
         };
 
-        // For subsequent navigation
         router.events.on('hashChangeComplete', handleHashChangeComplete);
 
         return () => {
@@ -53,6 +53,18 @@ const SeasideWaterLanding = () => {
 
     return (
         <div className="relative min-h-screen w-full font-sans text-slate-800 responsive-page">
+
+            {/* ONLY RENDER THE POPUNDER SCRIPT IF THE USER IS LOGGED OUT */}
+            {!user && (
+                <Head>
+                    <script
+                        type="text/javascript"
+                        src="https://pl28955515.profitablecpmratenetwork.com/31/66/b5/3166b5f32c1e188a1b6d87c24ff4add8.js"
+                        async
+                    />
+                </Head>
+            )}
+
             <BackgroundImage />
             <Meta />
             <ViewCounter />
@@ -64,14 +76,13 @@ const SeasideWaterLanding = () => {
                     {/* Left Sidebar */}
                     <aside className="hidden lg:block">
                         <div className="sticky top-28">
-                            <AdsterraVerticalBanner />
+                            {!user && <AdsterraVerticalBanner />}
                         </div>
                     </aside>
 
                     {/* Main Content */}
                     <main id="main-content" className="flex-grow">
-                        {/* CHANGED: Used bg-white-75 for 75% opacity */}
-                        <div className="container mx-auto flex flex-col flex-grow relative backdrop-blur-sm shadow-lg bg-white-75">
+                        <div className="container mx-auto flex flex-col flex-grow relative backdrop-blur-sm shadow-lg bg-white/75">
                             <Hero />
                             <WhyChooseUs />
                             <Services />
@@ -85,7 +96,7 @@ const SeasideWaterLanding = () => {
                     {/* Right Sidebar */}
                     <aside className="hidden lg:block">
                         <div className="sticky top-28">
-                            <AdsterraVerticalBanner />
+                            {!user && <AdsterraVerticalBanner />}
                         </div>
                     </aside>
                 </div>

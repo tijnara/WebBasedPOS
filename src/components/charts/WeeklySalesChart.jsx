@@ -18,7 +18,7 @@ const WeeklySalesChart = ({ salesData = [], startDate, endDate }) => {
                 return [startOfWeek(new Date(), weekOptions)];
             }
         } else if (salesData.length > 0) {
-            const dates = salesData.map(s => new Date(s.saleTimestamp));
+            const dates = salesData.map(s => new Date(s.saleTimestamp || s.saletimestamp));
             const minDate = new Date(Math.min(...dates));
             const maxDate = new Date(Math.max(...dates));
             return eachWeekOfInterval({ start: minDate, end: maxDate }, weekOptions);
@@ -29,29 +29,33 @@ const WeeklySalesChart = ({ salesData = [], startDate, endDate }) => {
     const processChartDataForWeek = (sales, weekStart) => {
         const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
         const weeklySales = Array(7).fill(0);
-        const refill20Data = Array(7).fill(0);
-        const refill25Data = Array(7).fill(0);
-        const totalRefillsData = Array(7).fill(0);
+
+        // Array of 7 objects (one for each day) to hold dynamic product quantities
+        const productsSoldPerDay = Array.from({ length: 7 }, () => ({}));
+
         const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
         sales.forEach(sale => {
-            const saleDate = new Date(sale.saleTimestamp);
+            const saleDate = new Date(sale.saleTimestamp || sale.saletimestamp);
             if (saleDate >= weekStart && saleDate <= weekEnd) {
                 let dayOfWeek = getDay(saleDate);
                 dayOfWeek = (dayOfWeek === 0) ? 6 : dayOfWeek - 1; // Adjust Sunday to be the last day
-                weeklySales[dayOfWeek] += sale.totalAmount;
+
+                weeklySales[dayOfWeek] += Number(sale.totalAmount || sale.totalamount || 0);
 
                 const itemsToProcess = sale.sale_items || sale.items || [];
+
                 itemsToProcess.forEach(item => {
-                    const name = (item.productName || item.product_name || '').trim().replace(/\s+/g, '');
+                    // Use product_id from database, fallback to ID from state if offline/mock
+                    const pid = item.product_id || item.productId;
+                    const name = item.product_name || item.productName || 'Unknown Product';
                     const qty = item.quantity || 0;
 
-                    if (name === 'Refill(20)') {
-                        refill20Data[dayOfWeek] += qty;
-                        totalRefillsData[dayOfWeek] += qty;
-                    } else if (name === 'Refill(25)') {
-                        refill25Data[dayOfWeek] += qty;
-                        totalRefillsData[dayOfWeek] += qty;
+                    if (pid) {
+                        if (!productsSoldPerDay[dayOfWeek][pid]) {
+                            productsSoldPerDay[dayOfWeek][pid] = { name, quantity: 0 };
+                        }
+                        productsSoldPerDay[dayOfWeek][pid].quantity += qty;
                     }
                 });
             }
@@ -63,9 +67,7 @@ const WeeklySalesChart = ({ salesData = [], startDate, endDate }) => {
                 {
                     label: 'Total Sales',
                     data: weeklySales,
-                    refill20Data,
-                    refill25Data,
-                    totalRefillsData,
+                    productsSold: productsSoldPerDay, // Attach the dynamic dictionary to the dataset
                     backgroundColor: 'rgba(54, 162, 235, 0.6)',
                     borderColor: 'rgba(54, 162, 235, 1)',
                 },
@@ -110,17 +112,28 @@ const WeeklySalesChart = ({ salesData = [], startDate, endDate }) => {
                                         return label;
                                     },
                                     afterLabel: function (context) {
+                                        // Retrieve our custom dictionary for this specific day (bar)
                                         const dataset = context.dataset;
                                         const index = context.dataIndex;
-                                        const r20 = dataset.refill20Data[index] || 0;
-                                        const r25 = dataset.refill25Data[index] || 0;
-                                        const total = dataset.totalRefillsData[index] || 0;
+                                        const dailyProducts = dataset.productsSold[index] || {};
 
-                                        return [
-                                            `Refill(20): ${r20}`,
-                                            `Refill(25): ${r25}`,
-                                            `Total Refills: ${total}`
-                                        ];
+                                        const productLines = [];
+                                        let totalItems = 0;
+
+                                        // Convert dictionary to an array and sort by top-selling products first
+                                        const sortedProducts = Object.values(dailyProducts).sort((a, b) => b.quantity - a.quantity);
+
+                                        sortedProducts.forEach(p => {
+                                            productLines.push(`${p.name}: ${p.quantity}`);
+                                            totalItems += p.quantity;
+                                        });
+
+                                        if (productLines.length > 0) {
+                                            productLines.push('-------------------');
+                                            productLines.push(`Total Items: ${totalItems}`);
+                                        }
+
+                                        return productLines;
                                     }
                                 }
                             }
@@ -143,4 +156,4 @@ const WeeklySalesChart = ({ salesData = [], startDate, endDate }) => {
     );
 };
 
-export default WeeklySalesChart;
+export default WeeklySalesChart;;

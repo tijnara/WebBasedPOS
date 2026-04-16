@@ -1,3 +1,4 @@
+// src/components/pages/LoginPage.jsx
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
@@ -28,15 +29,15 @@ const LoadingSpinner = () => (
 
 const EyeIcon = () => (
     <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/>
-        <circle cx="12" cy="12" r="3"/>
+        <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" />
+        <circle cx="12" cy="12" r="3" />
     </svg>
 );
 
 const EyeOffIcon = () => (
     <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-7-11-7a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 7 11 7a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
-        <line x1="1" y1="1" x2="23" y2="23"/>
+        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-7-11-7a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 7 11 7a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+        <line x1="1" y1="1" x2="23" y2="23" />
     </svg>
 );
 
@@ -67,7 +68,7 @@ const CustomerWelcome = () => {
         <div className="w-full md:w-3/5 p-12 md:p-16 bg-gradient-to-br from-white to-[#F1F8E9] order-2 md:order-1 overflow-y-auto max-h-full">
             <div className="mb-10">
                 <h1 className="text-4xl md:text-5xl font-black text-primary leading-tight tracking-tighter">
-                    Pure Water. <br/>Pure Trust.
+                    Pure Water. <br />Pure Trust.
                 </h1>
                 <p className="text-gray-500 mt-4 text-lg max-w-md">
                     Delivering fresh, purified water to the families of Labrador.
@@ -98,13 +99,13 @@ const CustomerWelcome = () => {
                     </div>
                 </div>
                 <div className="aspect-w-16 aspect-h-9 rounded-2xl overflow-hidden border border-gray-200">
-                    <iframe 
-                        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3834.4274905503635!2d120.12964557417915!3d16.043291340133674!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3393e1d08454d96f%3A0xfd7e1df20c90037d!2sSEASIDE%20Water%20Refilling%20Station!5e0!3m2!1sen!2sph!4v1770950130024!5m2!1sen!2sph" 
-                        width="100%" 
-                        height="100%" 
-                        style={{ border:0 }} 
-                        allowFullScreen="" 
-                        loading="lazy" 
+                    <iframe
+                        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3834.4274905503635!2d120.12964557417915!3d16.043291340133674!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3393e1d08454d96f%3A0xfd7e1df20c90037d!2sSEASIDE%20Water%20Refilling%20Station!5e0!3m2!1sen!2sph!4v1770950130024!5m2!1sen!2sph"
+                        width="100%"
+                        height="100%"
+                        style={{ border: 0 }}
+                        allowFullScreen=""
+                        loading="lazy"
                         referrerPolicy="no-referrer-when-downgrade">
                     </iframe>
                 </div>
@@ -132,7 +133,7 @@ const StaffLogin = ({ onLogin, onDemoAdmin, onDemoStaff, isLoading }) => {
         <div className="w-full md:w-2/5 p-12 md:p-16 bg-gray-50 flex flex-col justify-center order-1 md:order-2 border-l border-gray-100">
             <div className="mb-8 text-center md:text-left">
                 <div className="flex justify-center md:justify-start mb-4">
-                     <Image src="/seaside.png" alt="Logo" width={50} height={50} />
+                    <Image src="/seaside.png" alt="Logo" width={50} height={50} />
                 </div>
                 <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Staff Portal</h2>
                 <p className="text-gray-500 text-sm">Authorized personnel only</p>
@@ -200,7 +201,9 @@ const LoginPage = () => {
             const userData = await api.login({ email, password });
             setAuth(userData);
             addToast({ title: 'Login Successful', description: `Welcome back, ${userData.name}!`, variant: 'success' });
-            router.push('/dashboard');
+
+            // Replaced router.push with window.location.href to force hard reload
+            window.location.href = '/dashboard';
         } catch (err) {
             setModal({
                 isOpen: true,
@@ -220,14 +223,16 @@ const LoginPage = () => {
         };
         setAuth(user);
         addToast({ title: `Demo ${user.role} Activated`, description: `Welcome, ${user.name}!`, variant: 'success' });
-        router.push('/dashboard');
+
+        // Replaced router.push with window.location.href to force hard reload
+        window.location.href = '/dashboard';
     };
 
     return (
         <div className="flex min-h-screen w-full items-center justify-center p-8 bg-gray-100 font-inter responsive-page">
             <div className="bg-white rounded-[2rem] shadow-2xl overflow-hidden max-w-6xl w-full flex flex-col md:flex-row border border-gray-100">
                 <CustomerWelcome />
-                <StaffLogin 
+                <StaffLogin
                     onLogin={handleLogin}
                     onDemoAdmin={() => handleDemoLogin('Admin')}
                     onDemoStaff={() => handleDemoLogin('Staff')}

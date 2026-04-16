@@ -1,3 +1,4 @@
+// src/components/landing/Meta.jsx
 import React from 'react';
 import Head from 'next/head';
 import Script from 'next/script';
@@ -15,7 +16,7 @@ const Meta = () => {
             "addressRegion": "Pangasinan",
             "addressCountry": "PH"
         },
-        "telephone": "+639123456789", // Replace with actual phone number
+        "telephone": "+639123456789",
         "priceRange": "₱",
         "openingHours": "Mo,Tu,We,Th,Fr,Sa 08:00-17:00"
     };
@@ -39,17 +40,8 @@ const Meta = () => {
                 />
             </Head>
 
-            {/* --- ADSTERRA POPUNDER SCRIPT --- */}
-            <Script
-                id="adsterra-popunder"
-                strategy="afterInteractive"
-                src="https://pl28955515.profitablecpmratenetwork.com/31/66/b5/3166b5f32c1e188a1b6d87c24ff4add8.js"
-            />
-            {/* --- END ADSTERRA POPUNDER SCRIPT --- */}
-
             {/* Load Google AdSense and Ad Blocking Recovery */}
             <>
-                {/* 1. Main AdSense Script */}
                 <Script
                     id="adsense-init"
                     async
@@ -58,7 +50,6 @@ const Meta = () => {
                     strategy="afterInteractive"
                 />
 
-                {/* 2. Ad Blocking Recovery Tag */}
                 <Script
                     id="fundingchoices-messages"
                     async
@@ -66,7 +57,6 @@ const Meta = () => {
                     strategy="lazyOnload"
                 />
 
-                {/* 3. Ad Blocking Signal Script */}
                 <Script
                     id="fundingchoices-signal"
                     strategy="lazyOnload"
