@@ -8,7 +8,7 @@ import { useInactiveCustomers } from '../../hooks/useInactiveCustomers';
 import { useDeleteSale } from '../../hooks/useDeleteSale';
 import { useDebounce } from '../../hooks/useDebounce';
 import { useStore } from '../../store/useStore';
-import { format } from 'date-fns';
+import { format, startOfWeek, endOfWeek } from 'date-fns';
 import { Button, Input, Select } from '../ui';
 import { DeleteIcon } from '../Icons';
 
@@ -374,9 +374,13 @@ const ReportPage = () => {
     const { data: allProductsData } = useProducts({ fetchAll: true, excludeHidden: true });
     const availableProducts = allProductsData?.products || [];
 
-    const todayStr = new Date().toISOString().slice(0, 10);
-    const [fromDate, setFromDate] = useState(todayStr);
-    const [toDate, setToDate] = useState(todayStr);
+    // Default to current week Mon–Sun (Philippines, weekStartsOn: Monday)
+    const _now = new Date();
+    const _weekFrom = format(startOfWeek(_now, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+    const _weekTo   = format(endOfWeek(_now,   { weekStartsOn: 1 }), 'yyyy-MM-dd');
+
+    const [fromDate, setFromDate] = useState(_weekFrom);
+    const [toDate, setToDate] = useState(_weekTo);
     const [elevated, setElevated] = useState(false);
 
     const SALES_PAGE_SIZE = 10;

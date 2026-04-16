@@ -78,7 +78,7 @@ const WeeklySalesChart = ({ salesData = [], startDate, endDate }) => {
     return (
         <div className="bg-white rounded-lg p-4 responsive-page">
             <h2 className="text-center font-bold text-xl text-slate-800 mb-6">Weekly Sales Performance</h2>
-            
+
             <div className={isMultiWeek ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" : "block"}>
                 {weeks.map((weekStart, idx) => {
                     const data = processChartDataForWeek(salesData, weekStart);
@@ -101,7 +101,7 @@ const WeeklySalesChart = ({ salesData = [], startDate, endDate }) => {
                             },
                             tooltip: {
                                 callbacks: {
-                                    label: function(context) {
+                                    label: function (context) {
                                         let label = context.dataset.label || '';
                                         if (label) label += ': ';
                                         if (context.parsed.y !== null) {
@@ -109,7 +109,7 @@ const WeeklySalesChart = ({ salesData = [], startDate, endDate }) => {
                                         }
                                         return label;
                                     },
-                                    afterLabel: function(context) {
+                                    afterLabel: function (context) {
                                         const dataset = context.dataset;
                                         const index = context.dataIndex;
                                         const r20 = dataset.refill20Data[index] || 0;
