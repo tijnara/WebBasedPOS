@@ -369,26 +369,8 @@ export default function DashboardPage() {
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
                 <SummaryCard className="col-span-1" title="Today's Sales" value={currency(todaySalesSummary?.totalRevenue || 0, { symbol: '₱' }).format()} subtext="Sales today" colorClass="text-[#8BC34A]" icon={<TodaysSalesIcon />} />
                 <SummaryCard className="col-span-1" title="This Week Sales" value={currency(thisWeekSales || 0, { symbol: '₱' }).format()} subtext="Current week revenue" colorClass="text-blue-600" icon={<ThisWeekSalesIcon />} />
-                <SummaryCard className="col-span-2 lg:col-span-1" title="All Time Sales" value={currency(salesSummary?.totalRevenue || 0, { symbol: '₱' }).format()} subtext={`Since ${formattedFirstTx}`} colorClass="text-emerald-600" icon={<AllTimeSalesIcon />}>
-                    {salesSummary?.productQuantities && Object.keys(salesSummary.productQuantities).length > 0 && (
-                        <div className="hidden md:block space-y-2 mt-1">
-                            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">All Time Items Sold</p>
-                            <ul className="text-xs text-slate-600 space-y-1.5 overflow-y-auto max-h-[100px]">
-                                {Object.values(salesSummary.productQuantities)
-                                    .sort((a, b) => b.quantity - a.quantity)
-                                    .map((p, idx) => (
-                                        <li key={idx} className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2 truncate pr-2">
-                                                <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full flex-shrink-0"></span>
-                                                <span className="truncate">{p.name}</span>
-                                            </div>
-                                            <span className="font-bold flex-shrink-0">{p.quantity} sold</span>
-                                        </li>
-                                    ))}
-                            </ul>
-                        </div>
-                    )}
-                </SummaryCard>
+                <SummaryCard className="col-span-2 lg:col-span-1" title="All Time Sales" value={currency(salesSummary?.totalRevenue || 0, { symbol: '₱' }).format()} subtext={`Since ${formattedFirstTx}`} colorClass="text-emerald-600" icon={<AllTimeSalesIcon />} />
+
                 <SummaryCard className="col-span-1 lg:col-span-2" title="Total Customers" value={customerData?.totalCount || 0} subtext={`${newCustomersThisWeek} new this week`} colorClass="text-orange-600" icon={<TotalCustomersIcon />}>
                     <NewCustomersList customers={newCustomersThisWeekList} />
                 </SummaryCard>
