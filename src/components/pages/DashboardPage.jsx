@@ -355,7 +355,7 @@ export default function DashboardPage() {
             <div className="flex flex-col md:flex-row justify-between md:items-end gap-4 mb-6">
                 <div>
                     <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
-                        Welcome back, {user?.name?.split(' ')[0] || 'Admin'} 👋
+                        Welcome back, {user?.name?.split(' ')[0] || 'Admin'}
                     </h1>
                     <p className="text-sm text-slate-500 mt-1">Here's what's happening with your store today.</p>
                 </div>
