@@ -11,7 +11,7 @@ npm-debug.log
 # environment variables
 .env
 .env.local
-GEMINI.md
+#GEMINI.md
 
 # OS & Editor files
 .DS_Store

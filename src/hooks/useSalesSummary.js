@@ -35,9 +35,28 @@ export function useSalesSummary({ startDate, endDate, productName, productId } =
                 let totalProfit = 0;
                 let productQuantities = {};
                 let firstTransactionDate = null;
+                let monthlyRevenue = {};
+                let weeklyRevenue = {}; // Add weekly tracking
 
                 filtered.forEach(sale => {
                     if (sale.items) {
+                        const sDate = new Date(sale.saleTimestamp);
+
+                        // Monthly Key
+                        const monthKey = `${sDate.getFullYear()}-${String(sDate.getMonth() + 1).padStart(2, '0')}`;
+                        if (!monthlyRevenue[monthKey]) monthlyRevenue[monthKey] = 0;
+
+                        // Weekly Key (Start of Week - Monday)
+                        const d = new Date(sale.saleTimestamp);
+                        const day = d.getDay();
+                        const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+                        const monday = new Date(d);
+                        monday.setDate(diff);
+                        const weekKey = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
+                        if (!weeklyRevenue[weekKey]) weeklyRevenue[weekKey] = 0;
+
+                        let saleRevenueForPeriod = 0;
+
                         sale.items.forEach(item => {
                             const name = (item.productName || '').trim();
                             if (productId && String(item.product_id) !== String(productId)) return;
@@ -48,6 +67,7 @@ export function useSalesSummary({ startDate, endDate, productName, productId } =
                             const cost = (item.cost_at_sale || 0) * qty;
 
                             totalRevenue += revenue;
+                            saleRevenueForPeriod += revenue;
                             totalProfit += (revenue - cost);
 
                             const pid = item.product_id || name;
@@ -59,14 +79,16 @@ export function useSalesSummary({ startDate, endDate, productName, productId } =
                             }
                         });
 
-                        const sDate = new Date(sale.saleTimestamp);
+                        monthlyRevenue[monthKey] += saleRevenueForPeriod;
+                        weeklyRevenue[weekKey] += saleRevenueForPeriod;
+
                         if (!firstTransactionDate || sDate < firstTransactionDate) {
                             firstTransactionDate = sDate;
                         }
                     }
                 });
 
-                return { totalRevenue, totalProfit, productQuantities, firstTransactionDate };
+                return { totalRevenue, totalProfit, productQuantities, firstTransactionDate, monthlyRevenue, weeklyRevenue };
             }
 
             // --- REAL DATABASE LOGIC ---
@@ -118,6 +140,8 @@ export function useSalesSummary({ startDate, endDate, productName, productId } =
             let totalProfit = 0;
             let productQuantities = {};
             let firstTransactionDate = null;
+            let monthlyRevenue = {};
+            let weeklyRevenue = {}; // Add weekly tracking
 
             allSales.forEach(sale => {
                 const hasFilter = productId || productName;
@@ -126,6 +150,21 @@ export function useSalesSummary({ startDate, endDate, productName, productId } =
                 if (!firstTransactionDate || sDate < firstTransactionDate) {
                     firstTransactionDate = sDate;
                 }
+
+                // Monthly Key
+                const monthKey = `${sDate.getFullYear()}-${String(sDate.getMonth() + 1).padStart(2, '0')}`;
+                if (!monthlyRevenue[monthKey]) monthlyRevenue[monthKey] = 0;
+
+                // Weekly Key (Start of week - Monday)
+                const d = new Date(sale.saletimestamp);
+                const day = d.getDay();
+                const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+                const monday = new Date(d);
+                monday.setDate(diff);
+                const weekKey = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
+                if (!weeklyRevenue[weekKey]) weeklyRevenue[weekKey] = 0;
+
+                let saleRevenueForPeriod = 0;
 
                 if (sale.sale_items && Array.isArray(sale.sale_items)) {
                     sale.sale_items.forEach(item => {
@@ -136,16 +175,15 @@ export function useSalesSummary({ startDate, endDate, productName, productId } =
                         const pid = item.product_id;
                         const name = item.products?.name || 'Unknown Product';
 
-                        // Apply product filter — skip non-matching items
                         if (productId) {
                             if (String(pid) !== String(productId)) return;
                         } else if (productName) {
                             if (!name.toLowerCase().includes(productName.toLowerCase())) return;
                         }
 
-                        // When filtered by product, accumulate revenue at item level
                         if (hasFilter) {
                             totalRevenue += revenue;
+                            saleRevenueForPeriod += revenue;
                         }
 
                         totalProfit += (revenue - cost);
@@ -158,17 +196,20 @@ export function useSalesSummary({ startDate, endDate, productName, productId } =
                         }
                     });
 
-                    // No filter: use accurate sale-level total (accounts for discounts)
                     if (!hasFilter) {
                         totalRevenue += (sale.totalamount || 0);
+                        saleRevenueForPeriod += (sale.totalamount || 0);
                     }
                 } else if (!hasFilter) {
                     totalRevenue += (sale.totalamount || 0);
+                    saleRevenueForPeriod += (sale.totalamount || 0);
                 }
+
+                monthlyRevenue[monthKey] += saleRevenueForPeriod;
+                weeklyRevenue[weekKey] += saleRevenueForPeriod;
             });
 
-
-            return { totalRevenue, totalProfit, productQuantities, firstTransactionDate };
+            return { totalRevenue, totalProfit, productQuantities, firstTransactionDate, monthlyRevenue, weeklyRevenue };
         },
         staleTime: 1000 * 60 * 3,
     });

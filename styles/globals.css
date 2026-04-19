@@ -92,12 +92,12 @@ button:disabled {
     border-radius: var(--radius);
     box-shadow: var(--shadow);
     overflow: hidden;
-    border: 1px solid var(--border);
+    border: none;
 }
 
 .card__header {
     padding: 0.75rem 1rem;
-    border-bottom: 1px solid var(--border);
+    border-bottom: none;
     font-weight: 600;
     background-color: #f9fafb;
 }
@@ -1704,6 +1704,30 @@ input[type="checkbox"]:focus {
     background: linear-gradient(180deg, rgba(127, 0, 255, 0.95), rgba(127, 0, 255, 0.7));
 }
 
+.menu-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(127, 0, 255, 0.55) rgba(127, 0, 255, 0.08);
+}
+
+.menu-scrollbar::-webkit-scrollbar {
+    width: 12px;
+}
+
+.menu-scrollbar::-webkit-scrollbar-track {
+    background: rgba(127, 0, 255, 0.08);
+    border-radius: 12px;
+}
+
+.menu-scrollbar::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, rgba(127, 0, 255, 0.85), rgba(127, 0, 255, 0.55));
+    border-radius: 12px;
+    border: 2px solid rgba(255, 255, 255, 0.6);
+}
+
+.menu-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, rgba(127, 0, 255, 0.95), rgba(127, 0, 255, 0.7));
+}
+
 /* Dialog backdrop fixes for proper centering and scrolling */
 .dialog-backdrop {
     display: flex;
@@ -1821,6 +1845,21 @@ input[type="checkbox"]:focus {
 @media (min-width: 1024px) {
     .lg\:grid-cols-4 {
         grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+    .lg\:grid-cols-2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .lg\:col-span-1 {
+        grid-column: span 1 / span 1;
+    }
+    .lg\:col-span-2 {
+        grid-column: span 2 / span 2;
+    }
+    .lg\:col-span-3 {
+        grid-column: span 3 / span 3;
+    }
+    .lg\:col-span-4 {
+        grid-column: span 4 / span 4;
     }
 }
 

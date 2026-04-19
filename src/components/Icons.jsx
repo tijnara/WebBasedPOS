@@ -122,3 +122,11 @@ export const EyeOffIcon = ({ className }) => (
         <path d="M10 17c4.478 0 8.268-2.943 9.542-7a10.014 10.014 0 00-1.542-2.527l-1.473-1.473A11.958 11.958 0 0110 17z" />
     </svg>
 );
+
+export const SlingshotLogo = () => (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="mr-2 text-red-500">
+        <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="currentColor"/>
+        <path d="M2 17L12 22L22 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M2 12L12 17L22 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+);

@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -n \"col-span\\\\|grid-column\\\\|lg\\\\\\\\\\\\\\\\:col\" \"/c/Users/tijna/Documents/Webstorm/styles/globals.css\")"
+    ]
+  }
+}

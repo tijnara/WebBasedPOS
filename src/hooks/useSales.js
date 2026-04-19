@@ -133,7 +133,7 @@ export function useSales({ searchTerm, startDate, endDate, productName, productI
                 if (!data || !Array.isArray(data)) return { sales: [], totalPages: 1, totalCount: 0 };
                 const sales = data.map(s => ({
                     id: s.id,
-                    saleTimestamp: s.saletimestamp ? new Date(s.saletimestamp) : new Date(s.created_at),
+                    saleTimestamp: s.saletimestamp ? new Date(s.saletimestamp) : new Date(),
                     totalAmount: currency(s.totalamount).value || 0,
                     amountReceived: currency(s.amountreceived).value || 0,
                     customerId: s.customerId,

@@ -4,9 +4,9 @@ import { supabase } from '../lib/supabaseClient';
 import { useStore } from '../store/useStore';
 
 const MOCK_TOP_PRODUCTS = [
-    { id: 'mock-p-1', name: 'Mock Alkaline (5 Gal)', quantity: 42 },
-    { id: 'mock-p-2', name: 'Mock Purified (5 Gal)', quantity: 35 },
-    { id: 'mock-p-3', name: 'Mock Mineral (1L)', quantity: 20 },
+    { id: 'mock-p-1', name: 'Mock Alkaline (5 Gal)', quantity: 42, revenue: 56868.22 },
+    { id: 'mock-p-2', name: 'Mock Purified (5 Gal)', quantity: 35, revenue: 27112.40 },
+    { id: 'mock-p-3', name: 'Mock Mineral (1L)', quantity: 20, revenue: 25125.32 },
 ];
 
 export function useTopProductsSummary(limit = 5) {
@@ -32,6 +32,7 @@ export function useTopProductsSummary(limit = 5) {
                     .select(`
                         product_id,
                         quantity,
+                        subtotal,
                         products (
                             id,
                             name,
@@ -62,18 +63,20 @@ export function useTopProductsSummary(limit = 5) {
 
                 const name = item.products?.name || 'Unknown Product';
                 const qty = item.quantity || 0;
+                const revenue = parseFloat(item.subtotal) || 0;
 
                 if (pid) {
                     if (!productMap[pid]) {
-                        productMap[pid] = { id: pid, name, quantity: 0 };
+                        productMap[pid] = { id: pid, name, quantity: 0, revenue: 0 };
                     }
                     productMap[pid].quantity += qty;
+                    productMap[pid].revenue += revenue;
                 }
             });
 
-            // Sort by total quantity sold (descending) and return top N
+            // Sort by total revenue (descending) and return top N
             return Object.values(productMap)
-                .sort((a, b) => b.quantity - a.quantity)
+                .sort((a, b) => b.revenue - a.revenue)
                 .slice(0, limit);
         },
         staleTime: 1000 * 60 * 5,

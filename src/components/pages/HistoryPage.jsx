@@ -1,11 +1,11 @@
 // src/components/pages/HistoryPage.jsx
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useSales } from '../../hooks/useSales';
-import { useProducts } from '../../hooks/useProducts'; // Added useProducts
+import { useProducts } from '../../hooks/useProducts';
 import { useDebounce } from '../../hooks/useDebounce';
 import {
     Button, Card, CardContent, Table, TableHeader, TableBody, TableRow,
-    TableHead, TableCell, ScrollArea, Input, Select, Dialog, DialogContent, // Added Select
+    TableHead, TableCell, ScrollArea, Input, Select, Dialog, DialogContent,
     DialogHeader, DialogTitle, DialogFooter, DialogCloseButton
 } from '../ui';
 import Pagination from '../Pagination';
@@ -158,17 +158,31 @@ export default function HistoryPage() {
     const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
     const [productSearch, setProductSearch] = useState('');
+    const [fromDate, setFromDate] = useState('');
+    const [toDate, setToDate] = useState('');
 
-    // Fetch products for the dropdown filter
     const { data: allProductsData } = useProducts({ fetchAll: true });
     const availableProducts = allProductsData?.products || [];
 
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
 
+    const interval = useMemo(() => {
+        let start = fromDate ? new Date(fromDate) : null;
+        if (start) start.setHours(0, 0, 0, 0);
+
+        let end = toDate ? new Date(toDate) : null;
+        if (end) end.setHours(23, 59, 59, 999);
+
+        if (start && end && start > end) return { start: end, end: start };
+        return { start, end };
+    }, [fromDate, toDate]);
+
     const { data = { sales: [], totalPages: 1 }, isLoading } = useSales({
         searchTerm: debouncedSearchTerm,
-        productName: productSearch, // Use exact product name for the filter
+        productId: productSearch,
+        startDate: interval.start,
+        endDate: interval.end,
         page: currentPage,
         itemsPerPage
     });
@@ -202,6 +216,14 @@ export default function HistoryPage() {
         setTimeout(() => setSelectedSale(null), 300);
     };
 
+    const handleClearFilters = () => {
+        setSearchTerm('');
+        setProductSearch('');
+        setFromDate('');
+        setToDate('');
+        setCurrentPage(1);
+    };
+
     const sortedSales = sales.sort((a, b) => new Date(b.saleTimestamp) - new Date(a.saleTimestamp));
 
     return (
@@ -214,29 +236,40 @@ export default function HistoryPage() {
                     </div>
                 </div>
 
-                <div className="mb-4 flex flex-col sm:flex-row gap-3">
-                    <Input
-                        ref={searchInputRef}
-                        placeholder="Search by customer, staff, status..."
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                        className="w-full sm:max-w-xs"
-                    />
-
-                    {/* Replaced Input with Select for Products */}
-                    <Select
-                        value={productSearch}
-                        onChange={e => {
-                            setProductSearch(e.target.value);
-                            setCurrentPage(1);
-                        }}
-                        className="w-full sm:max-w-xs"
-                    >
-                        <option value="">All Products</option>
-                        {availableProducts.map(p => (
-                            <option key={p.id} value={p.name}>{p.name}</option>
-                        ))}
-                    </Select>
+                <div className="mb-4 space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                        <Input
+                            ref={searchInputRef}
+                            placeholder="Search customer, staff, status..."
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                        />
+                        <Select
+                            value={productSearch}
+                            onChange={e => {
+                                setProductSearch(e.target.value);
+                                setCurrentPage(1);
+                            }}
+                        >
+                            <option value="">All Products</option>
+                            {availableProducts.map(p => (
+                                <option key={p.id} value={p.id}>{p.name}</option>
+                            ))}
+                        </Select>
+                        <Input
+                            type="date"
+                            value={fromDate}
+                            onChange={e => setFromDate(e.target.value)}
+                        />
+                        <Input
+                            type="date"
+                            value={toDate}
+                            onChange={e => setToDate(e.target.value)}
+                        />
+                    </div>
+                    {(searchTerm || productSearch || fromDate || toDate) && (
+                        <Button variant="outline" onClick={handleClearFilters}>Clear Filters</Button>
+                    )}
                 </div>
 
                 {/* --- DESKTOP TABLE --- */}

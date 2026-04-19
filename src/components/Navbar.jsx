@@ -188,7 +188,7 @@ const Navbar = () => {
     const handleLogout = async () => {
         await router.push('/');
         await supabase.auth.signOut();
-        if (logout) logout();
+        if (logout) await logout();
     };
 
     const checkActiveShift = async () => {
@@ -244,7 +244,7 @@ const Navbar = () => {
                 demo_sales: 0 // Initialize at 0
             }));
             setIsStartShiftModalOpen(false);
-            queryClient.invalidateQueries({ queryKey: ['sales', 'active-shift'] });
+            await queryClient.invalidateQueries({ queryKey: ['sales', 'active-shift'] });
             return;
         }
 
@@ -259,7 +259,7 @@ const Navbar = () => {
             alert("Failed to start shift: " + error.message);
         } else {
             setIsStartShiftModalOpen(false);
-            queryClient.invalidateQueries({ queryKey: ['sales', 'active-shift'] });
+            await queryClient.invalidateQueries({ queryKey: ['sales', 'active-shift'] });
         }
     };
 
@@ -269,7 +269,7 @@ const Navbar = () => {
         if (user.isDemo) {
             const demoShiftStr = sessionStorage.getItem(`demo_shift_${user.id}`);
             if (!demoShiftStr) {
-                handleLogout();
+                await handleLogout();
                 return;
             }
             const demoShift = JSON.parse(demoShiftStr);
@@ -295,7 +295,7 @@ const Navbar = () => {
         const shift = shifts?.[0];
 
         if (!shift) {
-            handleLogout();
+            await handleLogout();
             return;
         }
 
@@ -337,7 +337,7 @@ const Navbar = () => {
             sessionStorage.removeItem(`pos_shift_prompted_${user.id}`);
             setIsShiftModalOpen(false);
             setActualCash('');
-            handleLogout();
+            await handleLogout();
             return;
         }
 
@@ -350,7 +350,7 @@ const Navbar = () => {
         sessionStorage.removeItem(`pos_shift_prompted_${user.id}`);
         setIsShiftModalOpen(false);
         setActualCash('');
-        handleLogout();
+        await handleLogout();
     };
 
     // --- RENDER MOBILE LINKS (Original Design) ---
@@ -363,7 +363,7 @@ const Navbar = () => {
                     key={link.name}
                     variant="ghost"
                     className={`nav-item w-full justify-start gap-3 px-4 py-2.5 transition-colors ${isActive ? ' active text-primary font-bold bg-green-50' : 'text-gray-700 hover:bg-gray-100'}`}
-                    onClick={() => { router.push(link.path); setIsMenuOpen(false); }}
+                    onClick={async () => { await router.push(link.path); setIsMenuOpen(false); }}
                 >
                     {link.icon} <span>{link.name}</span>
                 </Button>
@@ -380,7 +380,7 @@ const Navbar = () => {
                     key={link.name}
                     variant="ghost"
                     className={`nav-item w-full justify-start gap-4 px-6 py-2 transition-colors text-white ${isActive ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}
-                    onClick={() => { router.push(link.path); setIsMenuOpen(false); }}
+                    onClick={async () => { await router.push(link.path); setIsMenuOpen(false); }}
                 >
                     {link.icon} <span className="text-lg">{link.name}</span>
                 </Button>
@@ -400,8 +400,8 @@ const Navbar = () => {
                         {isMenuOpen && (
                             <>
                                 {/* --- MOBILE LAYOUT: FLOATING MENU --- */}
-                                <div className="md:hidden absolute left-0 mt-2 w-56 origin-top-left bg-white border border-gray-200 divide-y divide-gray-100 rounded-2xl shadow-2xl ring-1 ring-black ring-opacity-5 focus:outline-none z-50" id="main-menu-mobile">
-                                    <nav className="flex flex-col px-1 py-1">
+                                <div className="md:hidden absolute left-0 mt-2 w-56 origin-top-left bg-white border border-gray-200 rounded-2xl shadow-2xl ring-1 ring-black ring-opacity-5 focus:outline-none z-50 max-h-[80vh] overflow-y-auto" id="main-menu-mobile">
+                                    <nav className="flex flex-col px-1 py-1 divide-y divide-gray-100">
                                         {renderMobileLinks()}
                                     </nav>
                                 </div>
@@ -414,26 +414,28 @@ const Navbar = () => {
                                     ></div>
 
                                     <div
-                                        className="fixed top-0 left-0 bottom-0 w-[350px] bg-primary text-white z-50 shadow-2xl overflow-y-auto flex flex-col transition-transform duration-300 ease-in-out transform translate-x-0"
+                                        className="fixed top-0 left-0 bottom-0 w-[350px] bg-primary text-white z-50 shadow-2xl flex flex-col transition-transform duration-300 ease-in-out transform translate-x-0"
                                         style={{ backgroundColor: 'var(--primary)', opacity: 1 }}
                                         id="main-menu-desktop"
                                     >
-                                        <div className="flex items-center gap-4 px-6 py-6 border-b border-white/20">
-                                            <Button variant="ghost" onClick={() => setIsMenuOpen(false)} className="text-white hover:bg-white/10 p-2">
-                                                <HamburgerIcon className="h-7 w-7" />
-                                            </Button>
-                                            <span className="font-bold text-xl uppercase tracking-wider">Menu</span>
-                                        </div>
+                                        <div className="overflow-y-auto">
+                                            <div className="flex items-center gap-4 px-6 py-6 border-b border-white/20">
+                                                <Button variant="ghost" onClick={() => setIsMenuOpen(false)} className="text-white hover:bg-white/10 p-2">
+                                                    <HamburgerIcon className="h-7 w-7" />
+                                                </Button>
+                                                <span className="font-bold text-xl uppercase tracking-wider">Menu</span>
+                                            </div>
 
-                                        <nav className="flex flex-col py-2 gap-0">
-                                            {renderDesktopLinks()}
-                                        </nav>
+                                            <nav className="flex flex-col py-2 gap-0">
+                                                {renderDesktopLinks()}
+                                            </nav>
 
-                                        <div className="mt-auto px-6 py-6 border-t border-white/20">
-                                            <div className="text-sm opacity-80 uppercase tracking-widest mb-2 font-semibold">Additional Information</div>
-                                            <Button variant="ghost" onClick={() => { setIsMenuOpen(false); prepareZReading(); }} className="w-full justify-start text-white hover:bg-white/10 px-0 py-2">
-                                                <span className="font-medium text-lg">Sign Out</span>
-                                            </Button>
+                                            <div className="px-6 py-6 border-t border-white/20">
+                                                <div className="text-sm opacity-80 uppercase tracking-widest mb-2 font-semibold">Additional Information</div>
+                                                <Button variant="ghost" onClick={async () => { setIsMenuOpen(false); await prepareZReading(); }} className="w-full justify-start text-white hover:bg-white/10 px-0 py-2">
+                                                    <span className="font-medium text-lg">Sign Out</span>
+                                                </Button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

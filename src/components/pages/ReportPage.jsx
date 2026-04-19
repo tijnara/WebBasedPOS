@@ -1,5 +1,7 @@
 // src/components/pages/ReportPage.jsx
 import React, { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '../../lib/supabaseClient';
 import { useSales } from '../../hooks/useSales';
 import { useSalesSummary } from '../../hooks/useSalesSummary';
 import { useCustomers } from '../../hooks/useCustomers';
@@ -42,7 +44,7 @@ const SaleCard = ({ sale, onDelete, isAdmin }) => (
                         {formatCurrency(sale.totalAmount)}
                     </div>
                     <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${sale.status === 'Completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                        }`}>
+                    }`}>
                         {sale.status || 'Unknown'}
                     </span>
                     {isAdmin && (
@@ -128,36 +130,36 @@ const CustomerReportDisplay = ({ customersList, currentPage, totalPages, onPageC
         <div className="overflow-x-auto hidden md:block">
             <table className="min-w-full text-sm">
                 <thead className="bg-gray-100">
-                    <tr>
-                        <th className="px-3 py-3 text-left font-semibold text-gray-700">Name</th>
-                        <th className="px-3 py-3 text-left font-semibold text-gray-700">Phone</th>
-                        <th className="px-3 py-3 text-left font-semibold text-gray-700">Email</th>
-                        <th className="px-3 py-3 text-left font-semibold text-gray-700">Address</th>
-                        <th className="px-3 py-3 text-left font-semibold text-gray-700">Date Added</th>
-                        <th className="px-3 py-3 text-left font-semibold text-gray-700">Added By</th>
-                    </tr>
+                <tr>
+                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Name</th>
+                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Phone</th>
+                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Email</th>
+                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Address</th>
+                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Date Added</th>
+                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Added By</th>
+                </tr>
                 </thead>
                 <tbody className="">
-                    {customersList.length === 0 ? (
-                        <tr>
-                            <td colSpan="6" className="text-center p-6 text-gray-500 text-sm">
-                                No customers found.
+                {customersList.length === 0 ? (
+                    <tr>
+                        <td colSpan="6" className="text-center p-6 text-gray-500 text-sm">
+                            No customers found.
+                        </td>
+                    </tr>
+                ) : (
+                    customersList.map(customer => (
+                        <tr key={customer.id} className="hover:bg-gray-50">
+                            <td className="px-3 py-3 font-medium text-gray-800">{customer.name}</td>
+                            <td className="px-3 py-3 text-gray-600">{customer.phone || 'N/A'}</td>
+                            <td className="px-3 py-3 text-gray-600">{customer.email || 'N/A'}</td>
+                            <td className="px-3 py-3 text-gray-600">{customer.address || 'N/A'}</td>
+                            <td className="px-3 py-3 text-gray-600">
+                                {customer.dateAdded ? format(customer.dateAdded, 'MMM d, yyyy') : 'N/A'}
                             </td>
+                            <td className="px-3 py-3 text-gray-600">{customer.users?.name || 'N/A'}</td>
                         </tr>
-                    ) : (
-                        customersList.map(customer => (
-                            <tr key={customer.id} className="hover:bg-gray-50">
-                                <td className="px-3 py-3 font-medium text-gray-800">{customer.name}</td>
-                                <td className="px-3 py-3 text-gray-600">{customer.phone || 'N/A'}</td>
-                                <td className="px-3 py-3 text-gray-600">{customer.email || 'N/A'}</td>
-                                <td className="px-3 py-3 text-gray-600">{customer.address || 'N/A'}</td>
-                                <td className="px-3 py-3 text-gray-600">
-                                    {customer.dateAdded ? format(customer.dateAdded, 'MMM d, yyyy') : 'N/A'}
-                                </td>
-                                <td className="px-3 py-3 text-gray-600">{customer.users?.name || 'N/A'}</td>
-                            </tr>
-                        ))
-                    )}
+                    ))
+                )}
                 </tbody>
             </table>
         </div>
@@ -195,32 +197,32 @@ const InactiveCustomersTable = ({ inactiveCustomers, isLoading, error }) => (
             ) : (
                 <table className="min-w-full text-sm">
                     <thead className="bg-gray-100">
-                        <tr>
-                            <th className="px-3 py-3 text-left font-semibold text-gray-700">Name</th>
-                            <th className="px-3 py-3 text-left font-semibold text-gray-700">Phone</th>
-                            <th className="px-3 py-3 text-left font-semibold text-gray-700">Last Order</th>
-                        </tr>
+                    <tr>
+                        <th className="px-3 py-3 text-left font-semibold text-gray-700">Name</th>
+                        <th className="px-3 py-3 text-left font-semibold text-gray-700">Phone</th>
+                        <th className="px-3 py-3 text-left font-semibold text-gray-700">Last Order</th>
+                    </tr>
                     </thead>
                     <tbody className="">
-                        {inactiveCustomers.length === 0 ? (
-                            <tr>
-                                <td colSpan="3" className="text-center p-6 text-gray-500 text-sm">
-                                    No inactive customers found.
+                    {inactiveCustomers.length === 0 ? (
+                        <tr>
+                            <td colSpan="3" className="text-center p-6 text-gray-500 text-sm">
+                                No inactive customers found.
+                            </td>
+                        </tr>
+                    ) : (
+                        inactiveCustomers.map(customer => (
+                            <tr key={customer.id} className="hover:bg-gray-50">
+                                <td className="px-3 py-3 font-medium text-gray-800">{customer.name}</td>
+                                <td className="px-3 py-3 text-gray-600">{customer.phone || 'N/A'}</td>
+                                <td className="px-3 py-3 text-gray-600">
+                                    {customer.last_order_date
+                                        ? format(new Date(customer.last_order_date), 'MMM d, yyyy')
+                                        : 'Never ordered'}
                                 </td>
                             </tr>
-                        ) : (
-                            inactiveCustomers.map(customer => (
-                                <tr key={customer.id} className="hover:bg-gray-50">
-                                    <td className="px-3 py-3 font-medium text-gray-800">{customer.name}</td>
-                                    <td className="px-3 py-3 text-gray-600">{customer.phone || 'N/A'}</td>
-                                    <td className="px-3 py-3 text-gray-600">
-                                        {customer.last_order_date
-                                            ? format(new Date(customer.last_order_date), 'MMM d, yyyy')
-                                            : 'Never ordered'}
-                                    </td>
-                                </tr>
-                            ))
-                        )}
+                        ))
+                    )}
                     </tbody>
                 </table>
             )}
@@ -241,8 +243,8 @@ const InactiveCustomersTable = ({ inactiveCustomers, isLoading, error }) => (
                         <div className="text-xs text-gray-500 mt-1">{customer.phone || 'No phone'}</div>
                         <div className="text-xs text-gray-600 mt-1">
                             Last Order: {customer.last_order_date
-                                ? format(new Date(customer.last_order_date), 'MMM d, yyyy')
-                                : 'Never'}
+                            ? format(new Date(customer.last_order_date), 'MMM d, yyyy')
+                            : 'Never'}
                         </div>
                     </div>
                 ))
@@ -257,84 +259,84 @@ const SalesReportDisplay = ({ salesList, currentPage, totalPages, onPageChange, 
         <div className="overflow-x-auto hidden md:block">
             <table className="min-w-full text-sm">
                 <thead className="bg-gray-100">
-                    <tr>
-                        <th className="px-3 py-3 text-left font-semibold text-gray-700">Date & Time</th>
-                        <th className="px-3 py-3 text-left font-semibold text-gray-700">Customer</th>
-                        <th className="px-3 py-3 text-left font-semibold text-gray-700">Item(s) & Qty</th>
-                        <th className="px-3 py-3 text-left font-semibold text-gray-700">Price(s)</th>
-                        <th className="px-3 py-3 text-left font-semibold text-gray-700">Discount</th>
-                        <th className="px-3 py-3 text-center font-semibold text-gray-700">Total Qty</th>
-                        <th className="px-3 py-3 text-right font-semibold text-gray-700">Total</th>
-                        <th className="px-3 py-3 text-left font-semibold text-gray-700">Payment</th>
-                        <th className="px-3 py-3 text-left font-semibold text-gray-700">Status</th>
-                        <th className="px-3 py-3 text-left font-semibold text-gray-700">Staff</th>
-                        {isAdmin && <th className="px-3 py-3 text-right font-semibold text-gray-700">Action</th>}
-                    </tr>
+                <tr>
+                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Date & Time</th>
+                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Customer</th>
+                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Item(s) & Qty</th>
+                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Price(s)</th>
+                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Discount</th>
+                    <th className="px-3 py-3 text-center font-semibold text-gray-700">Total Qty</th>
+                    <th className="px-3 py-3 text-right font-semibold text-gray-700">Total</th>
+                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Payment</th>
+                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Status</th>
+                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Staff</th>
+                    {isAdmin && <th className="px-3 py-3 text-right font-semibold text-gray-700">Action</th>}
+                </tr>
                 </thead>
                 <tbody className="">
-                    {salesList.length === 0 ? (
-                        <tr>
-                            <td colSpan={isAdmin ? "11" : "10"} className="text-center p-6 text-gray-500 text-sm">
-                                No sales found for this period.
-                            </td>
-                        </tr>
-                    ) : (
-                        salesList.map(sale => (
-                            <tr key={sale.id} className="hover:bg-gray-50">
-                                <td className="px-3 py-3 whitespace-nowrap align-top">{format(new Date(sale.saleTimestamp), 'MMM d, yyyy h:mm a')}</td>
-                                <td className="px-3 py-3 whitespace-nowrap align-top">{sale.customerName}</td>
-                                <td className="px-3 py-3 align-top">
-                                    <div className="flex flex-col gap-1">
-                                        {(sale.sale_items || []).map((item, idx) => (
-                                            <span key={idx} className="block truncate" title={item.productName}>
+                {salesList.length === 0 ? (
+                    <tr>
+                        <td colSpan={isAdmin ? "11" : "10"} className="text-center p-6 text-gray-500 text-sm">
+                            No sales found for this period.
+                        </td>
+                    </tr>
+                ) : (
+                    salesList.map(sale => (
+                        <tr key={sale.id} className="hover:bg-gray-50">
+                            <td className="px-3 py-3 whitespace-nowrap align-top">{format(new Date(sale.saleTimestamp), 'MMM d, yyyy h:mm a')}</td>
+                            <td className="px-3 py-3 whitespace-nowrap align-top">{sale.customerName}</td>
+                            <td className="px-3 py-3 align-top">
+                                <div className="flex flex-col gap-1">
+                                    {(sale.sale_items || []).map((item, idx) => (
+                                        <span key={idx} className="block truncate" title={item.productName}>
                                                 {item.productName || 'N/A'} <span className="font-bold text-primary">x{item.quantity || 0}</span>
                                             </span>
-                                        ))}
-                                    </div>
-                                </td>
-                                <td className="px-3 py-3 align-top">
-                                    <div className="flex flex-col gap-1">
-                                        {(sale.sale_items || []).map((item, idx) => (
-                                            <span key={idx} className="block whitespace-nowrap">
+                                    ))}
+                                </div>
+                            </td>
+                            <td className="px-3 py-3 align-top">
+                                <div className="flex flex-col gap-1">
+                                    {(sale.sale_items || []).map((item, idx) => (
+                                        <span key={idx} className="block whitespace-nowrap">
                                                 {formatCurrency(item.productPrice || 0)}
                                             </span>
-                                        ))}
-                                    </div>
-                                </td>
-                                <td className="px-3 py-3 align-top">
-                                    <div className="flex flex-col gap-1">
-                                        {(sale.sale_items || []).map((item, idx) => (
-                                            <span key={idx} className={`block whitespace-nowrap ${item.discount_amount > 0 ? 'text-green-600 font-medium' : 'text-gray-400'}`}>
+                                    ))}
+                                </div>
+                            </td>
+                            <td className="px-3 py-3 align-top">
+                                <div className="flex flex-col gap-1">
+                                    {(sale.sale_items || []).map((item, idx) => (
+                                        <span key={idx} className={`block whitespace-nowrap ${item.discount_amount > 0 ? 'text-green-600 font-medium' : 'text-gray-400'}`}>
                                                 {item.discount_amount > 0 ? `-${formatCurrency(item.discount_amount)}` : '—'}
                                             </span>
-                                        ))}
-                                    </div>
-                                </td>
-                                <td className="px-3 py-3 align-top text-center font-medium text-gray-800">
-                                    {(sale.sale_items || []).reduce((acc, item) => acc + (item.quantity || 0), 0)}
-                                </td>
-                                <td className="px-3 py-3 text-right whitespace-nowrap align-top font-bold text-gray-900">
-                                    {formatCurrency(sale.totalAmount)}
-                                </td>
-                                <td className="px-3 py-3 whitespace-nowrap align-top">{sale.paymentMethod}</td>
-                                <td className="px-3 py-3 whitespace-nowrap align-top">{sale.status}</td>
-                                <td className="px-3 py-3 whitespace-nowrap align-top">{sale.staffName || 'N/A'}</td>
+                                    ))}
+                                </div>
+                            </td>
+                            <td className="px-3 py-3 align-top text-center font-medium text-gray-800">
+                                {(sale.sale_items || []).reduce((acc, item) => acc + (item.quantity || 0), 0)}
+                            </td>
+                            <td className="px-3 py-3 text-right whitespace-nowrap align-top font-bold text-gray-900">
+                                {formatCurrency(sale.totalAmount)}
+                            </td>
+                            <td className="px-3 py-3 whitespace-nowrap align-top">{sale.paymentMethod}</td>
+                            <td className="px-3 py-3 whitespace-nowrap align-top">{sale.status}</td>
+                            <td className="px-3 py-3 whitespace-nowrap align-top">{sale.staffName || 'N/A'}</td>
 
-                                {isAdmin && (
-                                    <td className="px-3 py-3 text-right align-top">
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="text-red-600 hover:bg-red-50 h-8 w-8"
-                                            onClick={() => onDelete(sale.id)}
-                                        >
-                                            <DeleteIcon className="w-4 h-4" />
-                                        </Button>
-                                    </td>
-                                )}
-                            </tr>
-                        ))
-                    )}
+                            {isAdmin && (
+                                <td className="px-3 py-3 text-right align-top">
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="text-red-600 hover:bg-red-50 h-8 w-8"
+                                        onClick={() => onDelete(sale.id)}
+                                    >
+                                        <DeleteIcon className="w-4 h-4" />
+                                    </Button>
+                                </td>
+                            )}
+                        </tr>
+                    ))
+                )}
                 </tbody>
             </table>
         </div>
@@ -367,6 +369,12 @@ const ReportPage = () => {
     const [customerPage, setCustomerPage] = useState(1);
     const [inactivePage, setInactivePage] = useState(1);
 
+    // States for Frequent Orders tab
+    const [frequentMonth, setFrequentMonth] = useState(format(new Date(), 'yyyy-MM'));
+    const [frequentPage, setFrequentPage] = useState(1);
+    const [frequentSortCol, setFrequentSortCol] = useState('monthly'); // 'monthly' | 'weekly'
+    const [frequentSortDesc, setFrequentSortDesc] = useState(true);
+
     const [selectedProductId, setSelectedProductId] = useState('');
     const [customerSearch, setCustomerSearch] = useState('');
     const debouncedCustomerSearch = useDebounce(customerSearch, 300);
@@ -385,6 +393,7 @@ const ReportPage = () => {
 
     const SALES_PAGE_SIZE = 10;
     const CUSTOMER_PAGE_SIZE = 5;
+    const FREQUENT_PAGE_SIZE = 10;
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [saleToDelete, setSaleToDelete] = useState(null);
@@ -398,21 +407,24 @@ const ReportPage = () => {
     }, []);
 
     const interval = useMemo(() => {
-        const start = fromDate ? new Date(fromDate) : new Date();
-        start.setHours(0, 0, 0, 0);
+        let start = fromDate ? new Date(fromDate) : null;
+        if (start) start.setHours(0, 0, 0, 0);
 
-        const end = toDate ? new Date(toDate) : new Date();
-        end.setHours(23, 59, 59, 999);
+        let end = toDate ? new Date(toDate) : null;
+        if (end) end.setHours(23, 59, 59, 999);
 
-        if (start > end) return { start: end, end: start };
+        if (start && end && start > end) return { start: end, end: start };
         return { start, end };
     }, [fromDate, toDate]);
 
     const activeRangeLabel = useMemo(() => {
-        if (format(interval.start, 'yyyy-MM-dd') === format(interval.end, 'yyyy-MM-dd')) {
+        if (!interval.start && !interval.end) return 'All Time';
+        if (interval.start && interval.end && format(interval.start, 'yyyy-MM-dd') === format(interval.end, 'yyyy-MM-dd')) {
             return format(interval.start, 'MMM d, yyyy');
         }
-        return `${format(interval.start, 'MMM d, yyyy')} - ${format(interval.end, 'MMM d, yyyy')}`;
+        const startStr = interval.start ? format(interval.start, 'MMM d, yyyy') : 'Start';
+        const endStr = interval.end ? format(interval.end, 'MMM d, yyyy') : 'Present';
+        return `${startStr} - ${endStr}`;
     }, [interval]);
 
     const {
@@ -464,23 +476,96 @@ const ReportPage = () => {
         error: inactiveError
     } = useInactiveCustomers(14, { page: inactivePage, itemsPerPage: CUSTOMER_PAGE_SIZE });
 
+    // Fetch Frequent Customers using React Query and Supabase RPC
+    const { data: frequentData, isLoading: isLoadingFrequent } = useQuery({
+        queryKey: ['frequent-customers', user?.isDemo, frequentMonth, frequentPage, frequentSortCol, frequentSortDesc, debouncedCustomerSearch],
+        queryFn: async () => {
+            if (!frequentMonth) return { customers: [], totalPages: 0, totalCount: 0 };
+
+            const [year, month] = frequentMonth.split('-');
+            const startDate = new Date(year, month - 1, 1).toISOString();
+            const endDate = new Date(year, month, 0, 23, 59, 59, 999).toISOString();
+
+            // Calculate Current Week Start and End for the Weekly Column
+            const weekStartIso = startOfWeek(new Date(), { weekStartsOn: 1 }).toISOString();
+            const weekEndIso = endOfWeek(new Date(), { weekStartsOn: 1 }).toISOString();
+
+            const from = (frequentPage - 1) * FREQUENT_PAGE_SIZE;
+            const to = from + FREQUENT_PAGE_SIZE - 1;
+
+            if (user?.isDemo) {
+                // Mock logic for demo accounts
+                let mockCustomers = [
+                    { customername: 'Demo Customer A', monthly_order_count: 12, weekly_order_count: 3 },
+                    { customername: 'Demo Customer B', monthly_order_count: 8, weekly_order_count: 1 },
+                    { customername: 'Demo Customer C', monthly_order_count: 5, weekly_order_count: 0 },
+                ];
+
+                if (debouncedCustomerSearch) {
+                    mockCustomers = mockCustomers.filter(c =>
+                        c.customername.toLowerCase().includes(debouncedCustomerSearch.toLowerCase())
+                    );
+                }
+
+                mockCustomers.sort((a, b) => {
+                    const valA = frequentSortCol === 'monthly' ? a.monthly_order_count : a.weekly_order_count;
+                    const valB = frequentSortCol === 'monthly' ? b.monthly_order_count : b.weekly_order_count;
+                    return frequentSortDesc ? valB - valA : valA - valB;
+                });
+
+                return {
+                    customers: mockCustomers.slice(from, to + 1),
+                    totalPages: Math.ceil(mockCustomers.length / FREQUENT_PAGE_SIZE),
+                    totalCount: mockCustomers.length
+                };
+            }
+
+            // DB-Level Pagination using Supabase RPC
+            const { data, error, count } = await supabase
+                .rpc('get_frequent_customers',
+                    {
+                        month_start: startDate,
+                        month_end: endDate,
+                        week_start: weekStartIso,
+                        week_end: weekEndIso,
+                        sort_column: frequentSortCol,
+                        sort_desc: frequentSortDesc,
+                        search_term: debouncedCustomerSearch || ''
+                    },
+                    { count: 'exact' }
+                )
+                .range(from, to);
+
+            if (error) {
+                console.error("Error fetching frequent customers:", error);
+                throw error;
+            }
+
+            return {
+                customers: data || [],
+                totalPages: Math.ceil((count || 0) / FREQUENT_PAGE_SIZE),
+                totalCount: count || 0
+            };
+        },
+        staleTime: 1000 * 60 * 5,
+    });
+
     const isLoading = activeTab === 'sales'
         ? (isLoadingList || isLoadingSummary)
-        : isLoadingCustomers;
+        : activeTab === 'frequent' ? isLoadingFrequent : isLoadingCustomers;
 
     const error = activeTab === 'sales'
         ? (listError || summaryError)
-        : customersError;
+        : activeTab === 'frequent' ? null : customersError;
 
     const salesData = salesPageData?.sales || [];
     const chartSalesData = allSalesData?.sales || [];
     const totalPages = activeTab === 'sales'
         ? (salesPageData?.totalPages || 1)
-        : (customersPageData?.totalPages || 1);
+        : activeTab === 'frequent' ? (frequentData?.totalPages || 1) : (customersPageData?.totalPages || 1);
+
     const totalSalesCount = salesPageData?.totalCount || 0;
     const totalRevenue = summaryData?.totalRevenue || 0;
-
-
 
     const customersData = customersPageData?.customers || [];
     const totalCustomersCount = customersPageData?.totalCount || 0;
@@ -488,10 +573,13 @@ const ReportPage = () => {
     const inactiveHasMore = !!inactiveCustomersPage?.hasMore;
 
     const reportTitle = useMemo(() => {
-        if (format(interval.start, 'yyyy-MM-dd') === format(interval.end, 'yyyy-MM-dd')) {
+        if (!interval.start && !interval.end) return 'Custom Report: All Time';
+        if (interval.start && interval.end && format(interval.start, 'yyyy-MM-dd') === format(interval.end, 'yyyy-MM-dd')) {
             return `Daily Report: ${format(interval.start, 'MMMM d, yyyy')}`;
         }
-        return `Custom Report: ${format(interval.start, 'MMM d, yyyy')} - ${format(interval.end, 'MMM d, yyyy')}`;
+        const startStr = interval.start ? format(interval.start, 'MMM d, yyyy') : 'Start';
+        const endStr = interval.end ? format(interval.end, 'MMM d, yyyy') : 'End';
+        return `Custom Report: ${startStr} - ${endStr}`;
     }, [interval]);
 
     const processedSales = useMemo(() => {
@@ -515,6 +603,7 @@ const ReportPage = () => {
         setCurrentPage(1);
         setCustomerPage(1);
         setInactivePage(1);
+        setFrequentPage(1);
     };
 
     const handleFromDateChange = (e) => {
@@ -541,6 +630,16 @@ const ReportPage = () => {
         setCustomerSearch('');
     };
 
+    const handleFrequentSort = (col) => {
+        if (frequentSortCol === col) {
+            setFrequentSortDesc(!frequentSortDesc);
+        } else {
+            setFrequentSortCol(col);
+            setFrequentSortDesc(true);
+        }
+        setFrequentPage(1);
+    };
+
     const openDeleteModal = (id) => {
         setSaleToDelete(id);
         setIsModalOpen(true);
@@ -562,7 +661,7 @@ const ReportPage = () => {
         <div className="report-page max-w-7xl mx-auto p-2 md:p-4 space-y-4 responsive-page">
             <h1 className="text-2xl font-bold">Reports</h1>
 
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
                 <Button
                     onClick={() => handleTabChange('sales')}
                     className={`px-4 py-2 font-semibold rounded-md ${activeTab === 'sales' ? 'btn--primary' : 'btn--soft'}`}
@@ -575,8 +674,140 @@ const ReportPage = () => {
                 >
                     Customer Report
                 </Button>
+                <Button
+                    onClick={() => handleTabChange('frequent')}
+                    className={`px-4 py-2 font-semibold rounded-md ${activeTab === 'frequent' ? 'btn--primary' : 'btn--soft'}`}
+                >
+                    Frequent Orders
+                </Button>
             </div>
 
+            {/* --- FREQUENT ORDERS TAB --- */}
+            {activeTab === 'frequent' && (
+                <div className="bg-white rounded-lg shadow-sm p-4 md:p-6">
+                    <div className="flex flex-col md:flex-row justify-between md:items-end mb-6 gap-4">
+                        <div>
+                            <h2 className="text-lg font-semibold text-gray-800">Frequent Customers</h2>
+                            <p className="text-sm text-gray-500">Customers with the most orders for the selected month.</p>
+                        </div>
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full md:w-auto">
+                            <div className="flex-1 w-full sm:w-56">
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Search Customer</label>
+                                <div className="flex items-center gap-2">
+                                    <Input
+                                        type="text"
+                                        placeholder="Search by name..."
+                                        value={customerSearch}
+                                        onChange={(e) => {
+                                            setCustomerSearch(e.target.value);
+                                            setFrequentPage(1);
+                                        }}
+                                        className="h-10 w-full"
+                                    />
+                                    {customerSearch && (
+                                        <Button
+                                            variant="ghost"
+                                            className="text-gray-500 hover:text-gray-700 h-10 px-2 flex-shrink-0"
+                                            onClick={() => {
+                                                setCustomerSearch('');
+                                                setFrequentPage(1);
+                                            }}
+                                            title="Clear search"
+                                        >
+                                            ✕
+                                        </Button>
+                                    )}
+                                </div>
+                            </div>
+                            <div className="flex-shrink-0">
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Select Month</label>
+                                <Input
+                                    type="month"
+                                    value={frequentMonth}
+                                    onChange={(e) => {
+                                        setFrequentMonth(e.target.value);
+                                        setFrequentPage(1);
+                                    }}
+                                    className="h-10 w-full sm:w-auto"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full text-sm">
+                            <thead className="bg-gray-100">
+                            <tr>
+                                <th className="px-4 py-3 text-left font-semibold text-gray-700 w-16">Rank</th>
+                                <th className="px-4 py-3 text-left font-semibold text-gray-700">Customer Name</th>
+                                <th
+                                    className="px-4 py-3 text-center font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 select-none transition-colors"
+                                    onClick={() => handleFrequentSort('monthly')}
+                                    title="Click to sort"
+                                >
+                                    Monthly Orders
+                                    {frequentSortCol === 'monthly' && (
+                                        <span className="ml-1 text-gray-500">
+                                            {frequentSortDesc ? '↓' : '↑'}
+                                        </span>
+                                    )}
+                                </th>
+                                <th
+                                    className="px-4 py-3 text-center font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 select-none transition-colors"
+                                    onClick={() => handleFrequentSort('weekly')}
+                                    title="Click to sort"
+                                >
+                                    Orders This Week
+                                    {frequentSortCol === 'weekly' && (
+                                        <span className="ml-1 text-gray-500">
+                                            {frequentSortDesc ? '↓' : '↑'}
+                                        </span>
+                                    )}
+                                </th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {isLoadingFrequent ? (
+                                <tr><td colSpan="4" className="text-center p-6 text-gray-500">Loading frequent customers...</td></tr>
+                            ) : frequentData?.customers?.length === 0 ? (
+                                <tr><td colSpan="4" className="text-center p-6 text-gray-500">No orders found.</td></tr>
+                            ) : (
+                                frequentData?.customers?.map((c, idx) => (
+                                    <tr key={idx} className="hover:bg-gray-50 border-b border-gray-100 last:border-0">
+                                        <td className="px-4 py-3 font-medium text-gray-500">
+                                            {(frequentPage - 1) * FREQUENT_PAGE_SIZE + idx + 1}
+                                        </td>
+                                        <td className="px-4 py-3 font-semibold text-gray-800">{c.customername}</td>
+                                        <td className="px-4 py-3 text-center">
+                                                <span className="bg-primary-soft text-primary font-bold px-3 py-1 rounded-full">
+                                                    {c.monthly_order_count}
+                                                </span>
+                                        </td>
+                                        <td className="px-4 py-3 text-center">
+                                                <span className="bg-green-100 text-green-700 font-bold px-3 py-1 rounded-full">
+                                                    {c.weekly_order_count}
+                                                </span>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {frequentData?.totalPages > 1 && (
+                        <div className="mt-4">
+                            <Pagination
+                                currentPage={frequentPage}
+                                totalPages={frequentData.totalPages}
+                                onPageChange={setFrequentPage}
+                            />
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* --- SALES REPORT TAB --- */}
             {activeTab === 'sales' && (
                 <>
                     <div className={`filter-bar bg-white rounded-lg p-4 transition-shadow sticky top-0 z-20 ${elevated ? 'shadow-md' : 'shadow-sm'}`}>
@@ -715,6 +946,7 @@ const ReportPage = () => {
                 </>
             )}
 
+            {/* --- CUSTOMER REPORT TAB --- */}
             {activeTab === 'customers' && (
                 <>
                     <div className={`filter-bar bg-white rounded-lg p-4 transition-shadow sticky top-0 z-20 ${elevated ? 'shadow-md' : 'shadow-sm'}`}>
