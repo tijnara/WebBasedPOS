@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabaseClient';
 import { useStore } from '../store/useStore';
 
 const EXPENSES_KEY = ['expenses'];
+const CATEGORIES_KEY = ['expense-categories'];
 
 export function useExpenses() {
     return useQuery({
@@ -51,5 +52,36 @@ export function useExpenseSummary() {
             };
         },
         staleTime: 1000 * 60 * 3,
+    });
+}
+
+// --- NEW CATEGORY HOOKS ---
+
+export function useExpenseCategories() {
+    return useQuery({
+        queryKey: CATEGORIES_KEY,
+        queryFn: async () => {
+            const { data, error } = await supabase.from('expense_categories').select('*').order('name');
+            if (error) throw error;
+            return data || [];
+        },
+    });
+}
+
+export function useCreateExpenseCategory() {
+    const queryClient = useQueryClient();
+    const user = useStore(s => s.user);
+
+    return useMutation({
+        mutationFn: async (categoryName) => {
+            const { error } = await supabase.from('expense_categories').insert([{
+                name: categoryName,
+                created_by: user?.id || null
+            }]);
+            if (error) throw error;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: CATEGORIES_KEY });
+        },
     });
 }
