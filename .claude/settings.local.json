@@ -1,7 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "Bash(grep -n \"col-span\\\\|grid-column\\\\|lg\\\\\\\\\\\\\\\\:col\" \"/c/Users/tijna/Documents/Webstorm/styles/globals.css\")"
+      "Bash(grep -n \"col-span\\\\|grid-column\\\\|lg\\\\\\\\\\\\\\\\:col\" \"/c/Users/tijna/Documents/Webstorm/styles/globals.css\")",
+      "Bash(rm /c/Users/tijna/Documents/Webstorm/.github/workflows/playwright.yml)",
+      "Bash(git -C /c/Users/tijna/Documents/Webstorm status)",
+      "Bash(git -C /c/Users/tijna/Documents/Webstorm add .github/workflows/playwright.yml)",
+      "Bash(git -C /c/Users/tijna/Documents/Webstorm commit -m ' *)",
+      "Bash(git -C /c/Users/tijna/Documents/Webstorm push origin main)"
     ]
   }
 }
