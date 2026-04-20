@@ -14,7 +14,6 @@ This repository contains a full-featured system that handles everything from the
 - **Data Fetching**: TanStack React Query
 - **Styling & UI**: Tailwind CSS with custom utility classes, Framer Motion for animations
 - **Hardware Integration**: `react-zxing` for device camera barcode scanning
-- **Testing**: Playwright for end-to-end flow validation
 - **Charts & Formatting**: Chart.js for business analytics, `currency.js` for reliable financial math
 
 ## Features
@@ -55,7 +54,6 @@ This repository contains a full-featured system that handles everything from the
 - `src/store/`: Zustand store logic for global state and shopping cart.
 - `src/lib/`: API utilities and Supabase client configuration.
 - `public/`: Assets including brand logos, placeholders, and `ads.txt`/`robots.txt`.
-- `tests/`: End-to-end testing scripts using Playwright.
 - `styles/`: Global CSS and Tailwind configurations.
 
 ## Configuration
@@ -101,11 +99,6 @@ npm install
 2. **Run development server**:
 ```bash
 npm run dev
-```
-
-3. **Run E2E tests**:
-```bash
-npx playwright test
 ```
 
 ## Project Roadmap / TODOs

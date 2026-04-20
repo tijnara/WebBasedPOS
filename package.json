@@ -6,9 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "test": "playwright test",
-    "test:install": "playwright install --with-deps"
+    "lint": "next lint"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.101.1",
@@ -39,7 +37,6 @@
     "zustand": "^4.5.4"
   },
   "devDependencies": {
-    "@playwright/test": "^1.57.0",
     "@tailwindcss/postcss": "^4.2.2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
