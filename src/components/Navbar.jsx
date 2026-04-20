@@ -407,7 +407,7 @@ const Navbar = () => {
             <div key={category ?? '__root__'} className="mb-0.5">
                 {category && (
                     <button
-                        className="w-full flex items-center justify-between px-4 py-2.5 font-semibold text-xs uppercase tracking-widest text-white rounded-lg shadow-sm transition-all duration-150 active:scale-[0.98]"
+                        className="w-full flex items-center justify-between px-4 py-2.5 font-semibold text-xs uppercase tracking-widest text-white rounded-lg border-0 outline-none transition-all duration-150 active:scale-[0.98]"
                         style={{ background: 'linear-gradient(90deg, #6abf45 0%, #4e9e2d 100%)' }}
                         onClick={() => toggleCategory(category)}
                     >
@@ -416,14 +416,14 @@ const Navbar = () => {
                     </button>
                 )}
                 {isOpen && (
-                    <div className="pl-2 border-l-2 border-green-300 ml-2 mt-0.5">
+                    <div className="pl-2 ml-2 mt-0.5">
                         {visibleLinks.map(link => {
                             const isActive = router.pathname === link.path;
                             return (
                                 <Button
                                     key={link.name}
                                     variant="ghost"
-                                    className={`nav-item w-full justify-start gap-3 px-3 py-2 transition-all rounded-md ${isActive ? 'text-white font-bold shadow-sm border-l-4 border-green-600' : 'text-gray-700 hover:bg-gray-100'}`}
+                                    className={`nav-item w-full justify-start gap-3 px-3 py-2 transition-all rounded-md border-0 outline-none ${isActive ? 'text-white font-bold' : 'text-gray-700 hover:bg-gray-100'}`}
                                     style={isActive ? { background: 'linear-gradient(90deg, #6abf45 0%, #4e9e2d 100%)' } : {}}
                                     onClick={async () => { if (category) setOpenCategories(new Set([category])); await router.push(link.path); setIsMenuOpen(false); }}
                                 >
@@ -455,14 +455,14 @@ const Navbar = () => {
                     </button>
                 )}
                 {isOpen && (
-                    <div className="pl-3 border-l-2 border-white/20 ml-5 mt-0.5">
+                    <div className="pl-3 ml-5 mt-0.5">
                         {visibleLinks.map(link => {
                             const isActive = router.pathname === link.path;
                             return (
                                 <Button
                                     key={link.name}
                                     variant="ghost"
-                                    className={`nav-item w-full justify-start gap-4 px-4 py-2 transition-all rounded-md ${isActive ? 'text-white font-bold shadow-md border-l-4 border-white' : 'text-white hover:bg-white/10'}`}
+                                    className={`nav-item w-full justify-start gap-4 px-4 py-2 transition-all rounded-md ${isActive ? 'text-white font-bold shadow-md' : 'text-white hover:bg-white/10'}`}
                                     style={isActive ? { background: 'linear-gradient(90deg, rgba(106,191,69,0.55) 0%, rgba(78,158,45,0.35) 100%)' } : {}}
                                     onClick={async () => { if (category) setOpenCategories(new Set([category])); await router.push(link.path); setIsMenuOpen(false); }}
                                 >
@@ -489,8 +489,8 @@ const Navbar = () => {
                         {isMenuOpen && (
                             <>
                                 {/* --- MOBILE LAYOUT: FLOATING MENU --- */}
-                                <div className="md:hidden absolute left-0 mt-2 w-56 origin-top-left bg-white border border-gray-200 rounded-2xl shadow-2xl ring-1 ring-black ring-opacity-5 focus:outline-none z-50 max-h-[80vh] overflow-y-auto" id="main-menu-mobile">
-                                    <nav className="flex flex-col px-1 py-1 divide-y divide-gray-100">
+                                <div className="md:hidden absolute left-0 mt-2 w-56 origin-top-left bg-white rounded-2xl shadow-2xl focus:outline-none z-50 max-h-[80vh] overflow-y-auto" id="main-menu-mobile">
+                                    <nav className="flex flex-col px-1 py-1">
                                         {renderMobileLinks()}
                                     </nav>
                                 </div>
@@ -508,7 +508,7 @@ const Navbar = () => {
                                         id="main-menu-desktop"
                                     >
                                         <div>
-                                            <div className="flex items-center gap-4 px-6 py-6 border-b border-white/20">
+                                            <div className="flex items-center gap-4 px-6 py-6">
                                                 <Button variant="ghost" onClick={() => setIsMenuOpen(false)} className="text-white hover:bg-white/10 p-2">
                                                     <HamburgerIcon className="h-7 w-7" />
                                                 </Button>
@@ -519,7 +519,7 @@ const Navbar = () => {
                                                 {renderDesktopLinks()}
                                             </nav>
 
-                                            <div className="px-6 py-6 border-t border-white/20">
+                                            <div className="px-6 py-6">
                                                 <div className="text-sm opacity-80 uppercase tracking-widest mb-2 font-semibold">Additional Information</div>
                                                 <Button variant="ghost" onClick={async () => { setIsMenuOpen(false); await prepareZReading(); }} className="w-full justify-start text-white hover:bg-white/10 px-0 py-2">
                                                     <span className="font-medium text-lg">Sign Out</span>
