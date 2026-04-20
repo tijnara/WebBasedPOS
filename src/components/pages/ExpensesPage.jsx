@@ -1,9 +1,10 @@
+// Created on Sunday, April 20, 2026
 import React, { useState, useMemo, useEffect } from 'react';
 import { Bar } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip } from 'chart.js';
 import currency from 'currency.js';
 import { startOfWeek, isAfter, parseISO, format } from 'date-fns';
-import { Brain, Plus, Utensils, Car, ShoppingBag, Zap, Receipt } from 'lucide-react';
+import { Plus, Utensils, Car, ShoppingBag, Zap, Receipt } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import { useExpenses, useCreateExpense, useExpenseSummary, useExpenseCategories, useCreateExpenseCategory } from '../../hooks/useExpenses';
 import { useSalesSummary } from '../../hooks/useSalesSummary';
@@ -101,7 +102,10 @@ export default function ExpensesPage() {
                     <div className="bg-white text-gray-800 p-8 rounded-br-[3rem] shadow-md z-10">
                         {/* Modified Header with Current Week Sales included */}
                         <div className="flex justify-between items-start mb-4">
-                            <h1 className="text-2xl font-bold flex items-center gap-2"><Receipt /> Expenses</h1>
+                            <div>
+                                <h1 className="text-2xl font-bold flex items-center gap-2"><Receipt /> Expenses</h1>
+                                <p className="text-xs text-gray-400 mt-1">{new Date().toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                            </div>
                             <div className="text-right">
                                 <p className="text-gray-500 text-xs font-semibold uppercase tracking-wider">Current Week Sales</p>
                                 <p className="text-xl font-bold text-emerald-500">+{currency(salesSummary?.weeklyTotal || 0, { symbol: '₱' }).format()}</p>
@@ -190,24 +194,23 @@ export default function ExpensesPage() {
                         </div>
                     </form>
 
-                    <h3 className="text-xl font-bold text-gray-900 mb-4">Recent Activity</h3>
-                    <div className="space-y-3 overflow-y-auto max-h-[300px] pr-2">
-                        {isLoading ? <p className="text-center py-4">Loading...</p> : expenses.slice(0, 10).map((exp) => {
+                    <h3 className="text-xl font-bold text-gray-900 mb-4">List of Expenses</h3>
+                    <div className="space-y-2 overflow-y-auto max-h-[400px] pr-2">
+                        {isLoading ? <p className="text-center py-4">Loading...</p> : expenses.map((exp) => {
                             // Fallback if custom category doesn't exist in styles object
                             const style = categoryStyles[exp.category] || { icon: Receipt, colorClass: 'bg-slate-100 text-slate-600' };
                             const Icon = style.icon;
                             return (
-                                <div key={exp.id} className="flex justify-between items-center p-4 bg-white rounded-2xl border shadow-sm">
-                                    <div className="flex items-center gap-4">
-                                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${style.colorClass}`}><Icon className="w-6 h-6" /></div>
-                                        <div>
-                                            <h4 className="font-bold">{exp.description}</h4>
-                                            <p className="text-xs text-gray-400">{exp.category}</p>
+                                <div key={exp.id} className="flex justify-between items-center p-3 hover:bg-gray-50 bg-white rounded-xl border border-gray-100 transition-colors">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${style.colorClass}`}><Icon className="w-5 h-5" /></div>
+                                        <div className="flex flex-col">
+                                            <span className="font-semibold text-gray-800 text-sm">{exp.description}</span>
+                                            <span className="text-xs font-medium text-gray-500">{exp.category} &bull; {format(parseISO(exp.expense_date), 'MMM d, yyyy')}</span>
                                         </div>
                                     </div>
-                                    <div className="text-right">
-                                        <div className="font-extrabold">-{currency(exp.amount, { symbol: '₱' }).format()}</div>
-                                        <p className="text-xs text-gray-400">{format(parseISO(exp.expense_date), 'MMM d, yyyy')}</p>
+                                    <div className="text-right flex flex-col items-end">
+                                        <span className="font-bold text-red-500">-{currency(exp.amount, { symbol: '₱' }).format()}</span>
                                     </div>
                                 </div>
                             );
