@@ -180,8 +180,6 @@ export const useStore = create((set, get) => ({
     hydrate: async () => {
         if (typeof window === 'undefined' || get().sessionLoaded) return;
 
-        set({ sessionLoaded: false });
-
         // Get the user from localStorage instead of Supabase Auth
         const storedUser = getUserFromStorage();
 
@@ -216,8 +214,6 @@ export const useStore = create((set, get) => ({
             // No session found
             get().setAuth(null);
         }
-
-        set({ sessionLoaded: true });
     }
 }));
 

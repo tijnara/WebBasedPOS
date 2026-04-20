@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { supabase } from '../lib/supabaseClient';
 import currency from 'currency.js';
 import { CartIcon, PackageIcon, UserIcon, ChartIcon, UsersIcon, GalleryIcon, HomeIcon, SettingsIcon, DocumentReportIcon, MailIcon } from './Icons';
+import { Receipt } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 // Hamburger Icon
@@ -151,6 +152,7 @@ const Navbar = () => {
     const links = [
         { name: 'Dashboard', path: '/dashboard', icon: <ChartIcon className="h-5 w-5 menu-icon" /> },
         { name: 'POS', path: '/pos', icon: <CartIcon className="h-5 w-5 menu-icon" /> },
+        { name: 'Expenses', path: '/expenses', icon: <Receipt className="h-6 w-6" />, adminOnly: false },
         { name: 'Products', path: '/product-management', icon: <PackageIcon className="h-5 w-5 menu-icon" /> },
         { name: 'Inventory', path: '/inventory', icon: <PackageIcon className="h-5 w-5 menu-icon" /> },
         { name: 'Customer', path: '/customer-management', icon: <UserIcon className="h-5 w-5 menu-icon" /> },

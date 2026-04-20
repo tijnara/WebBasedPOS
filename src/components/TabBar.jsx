@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import { cn } from './ui';
 // Removed unused UserIcon, UsersIcon, GalleryIcon
 import { CartIcon, PackageIcon, ChartIcon, DocumentReportIcon } from './Icons';
+import { Receipt } from 'lucide-react';
 
 import { useStore } from '../store/useStore';
 
@@ -14,6 +15,7 @@ const links = [
     { name: 'Inventory', path: '/inventory', icon: <PackageIcon className="h-6 w-6" />, adminOnly: false },
     { name: 'Dashboard', path: '/dashboard', icon: <ChartIcon className="h-6 w-6" />, adminOnly: false },
     { name: 'Sale History', path: '/history', icon: <ChartIcon className="h-6 w-6" />, adminOnly: false },
+    { name: 'Expenses', path: '/expenses', icon: <Receipt className="h-6 w-6" />, adminOnly: false },
     { name: 'Report', path: '/report', icon: <DocumentReportIcon className="h-6 w-6" />, adminOnly: true },
 ];
 
