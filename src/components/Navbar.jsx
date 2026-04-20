@@ -202,6 +202,13 @@ const Navbar = () => {
     const isAdmin = clientUser && (clientUser.role === 'Admin' || clientUser.role === 'admin');
 
     useEffect(() => {
+        const activeCat = navCategories.find(({ links }) =>
+            links.some(link => link.path === router.pathname)
+        )?.category;
+        if (activeCat) setOpenCategories(new Set([activeCat]));
+    }, [router.pathname]);
+
+    useEffect(() => {
         setClientUser(user);
         if (user) {
             checkActiveShift();
@@ -418,7 +425,7 @@ const Navbar = () => {
                                     variant="ghost"
                                     className={`nav-item w-full justify-start gap-3 px-3 py-2 transition-all rounded-md ${isActive ? 'text-white font-bold shadow-sm border-l-4 border-green-600' : 'text-gray-700 hover:bg-gray-100'}`}
                                     style={isActive ? { background: 'linear-gradient(90deg, #6abf45 0%, #4e9e2d 100%)' } : {}}
-                                    onClick={async () => { await router.push(link.path); setIsMenuOpen(false); }}
+                                    onClick={async () => { if (category) setOpenCategories(new Set([category])); await router.push(link.path); setIsMenuOpen(false); }}
                                 >
                                     {link.icon} <span className="text-sm">{link.name}</span>
                                 </Button>
@@ -457,7 +464,7 @@ const Navbar = () => {
                                     variant="ghost"
                                     className={`nav-item w-full justify-start gap-4 px-4 py-2 transition-all rounded-md ${isActive ? 'text-white font-bold shadow-md border-l-4 border-white' : 'text-white hover:bg-white/10'}`}
                                     style={isActive ? { background: 'linear-gradient(90deg, rgba(106,191,69,0.55) 0%, rgba(78,158,45,0.35) 100%)' } : {}}
-                                    onClick={async () => { await router.push(link.path); setIsMenuOpen(false); }}
+                                    onClick={async () => { if (category) setOpenCategories(new Set([category])); await router.push(link.path); setIsMenuOpen(false); }}
                                 >
                                     {link.icon} <span className="text-base">{link.name}</span>
                                 </Button>
