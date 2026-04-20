@@ -44,21 +44,6 @@ ChartJS.register(
     Filler
 );
 
-// --- Icons ---
-const SlingshotLogo = () => (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="mr-2 text-red-500">
-        <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="currentColor"/>
-        <path d="M2 17L12 22L22 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-        <path d="M2 12L12 17L22 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-);
-
-const UserAvatar = ({ src, fallback }) => (
-    <div className="w-8 h-8 rounded-full bg-indigo-100 shadow-sm flex items-center justify-center overflow-hidden">
-        {src ? <img src={src} alt="User" className="w-full h-full object-cover" /> : <span className="text-xs font-bold text-indigo-700">{fallback}</span>}
-    </div>
-);
-
 // --- Reusable Components ---
 const SummaryCard = ({ title, value, percentage, isPositive, comparisonText, isLoading, className }) => (
     <Card className={`h-full shadow-sm flex flex-col justify-center ${className || ''}`}>
@@ -93,6 +78,9 @@ export default function DashboardPage() {
     // Fetch live data from the database
     const { data: summaryData, isLoading: isSummaryLoading } = useSalesSummary();
     const overallSalesTotal = summaryData?.totalRevenue || 0;
+    const firstTransactionDate = summaryData?.firstTransactionDate
+        ? new Date(summaryData.firstTransactionDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
+        : null;
     const { data: topProducts, isLoading: isTopProductsLoading } = useTopProductsSummary(5);
 
     const { data: dailySalesData, isLoading: isTodayLoading } = useDailySales();
@@ -386,20 +374,6 @@ export default function DashboardPage() {
                 <title>Sales Analytics</title>
             </Head>
 
-            {/* Top Navigation */}
-            <nav className="bg-indigo-900 text-white h-14 flex items-center justify-between px-6 shadow-sm sticky top-0 z-50">
-                <div className="flex items-center font-bold text-xl tracking-tight">
-                    <SlingshotLogo />
-                </div>
-                <div className="flex items-center gap-4">
-                    <div className="flex -space-x-2">
-                        <UserAvatar fallback="A" />
-                        <UserAvatar fallback="B" />
-                    </div>
-                    <UserAvatar fallback="ME" />
-                </div>
-            </nav>
-
             <main className="max-w-7xl mx-auto px-4 sm:px-6 mt-6">
                 {/* Main Content Sections */}
                 <div className="flex flex-col gap-6">
@@ -414,9 +388,8 @@ export default function DashboardPage() {
                                     isLoading={isSummaryLoading}
                                     value={`₱${overallSalesTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                                     isPositive={true}
-                                    comparisonText="Lifetime total"
-                                />
-                            </div>
+                                    comparisonText={firstTransactionDate ? `First Transaction: ${firstTransactionDate}` : "Lifetime total"}
+                                />                            </div>
                             <div className="flex-1">
                                 <SummaryCard
                                     title="Recent Sales"

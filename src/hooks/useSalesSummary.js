@@ -35,13 +35,18 @@ export function useSalesSummary({ startDate, endDate, productName, productId } =
                 let totalProfit = 0;
                 let productQuantities = {};
                 let firstTransactionDate = null;
+                let firstTransactionAmount = 0;
                 let monthlyRevenue = {};
-                let weeklyRevenue = {}; // Add weekly tracking
+                let weeklyRevenue = {};
 
                 filtered.forEach(sale => {
-                    if (sale.items) {
-                        const sDate = new Date(sale.saleTimestamp);
+                    const sDate = new Date(sale.saleTimestamp);
+                    if (!firstTransactionDate || sDate < firstTransactionDate) {
+                        firstTransactionDate = sDate;
+                        firstTransactionAmount = sale.totalAmount || 0;
+                    }
 
+                    if (sale.items) {
                         // Monthly Key
                         const monthKey = `${sDate.getFullYear()}-${String(sDate.getMonth() + 1).padStart(2, '0')}`;
                         if (!monthlyRevenue[monthKey]) monthlyRevenue[monthKey] = 0;
@@ -81,14 +86,10 @@ export function useSalesSummary({ startDate, endDate, productName, productId } =
 
                         monthlyRevenue[monthKey] += saleRevenueForPeriod;
                         weeklyRevenue[weekKey] += saleRevenueForPeriod;
-
-                        if (!firstTransactionDate || sDate < firstTransactionDate) {
-                            firstTransactionDate = sDate;
-                        }
                     }
                 });
 
-                return { totalRevenue, totalProfit, productQuantities, firstTransactionDate, monthlyRevenue, weeklyRevenue };
+                return { totalRevenue, totalProfit, productQuantities, firstTransactionDate, firstTransactionAmount, monthlyRevenue, weeklyRevenue };
             }
 
             // --- REAL DATABASE LOGIC ---
@@ -97,7 +98,6 @@ export function useSalesSummary({ startDate, endDate, productName, productId } =
             const step = 1000;
             let hasMore = true;
 
-            // Loop to bypass Supabase's 1000 row limit and grab ALL time data
             while (hasMore) {
                 let query = supabase
                     .from('sales')
@@ -140,15 +140,17 @@ export function useSalesSummary({ startDate, endDate, productName, productId } =
             let totalProfit = 0;
             let productQuantities = {};
             let firstTransactionDate = null;
+            let firstTransactionAmount = 0;
             let monthlyRevenue = {};
-            let weeklyRevenue = {}; // Add weekly tracking
+            let weeklyRevenue = {};
 
             allSales.forEach(sale => {
                 const hasFilter = productId || productName;
-
                 const sDate = new Date(sale.saletimestamp);
+
                 if (!firstTransactionDate || sDate < firstTransactionDate) {
                     firstTransactionDate = sDate;
+                    firstTransactionAmount = sale.totalamount || 0;
                 }
 
                 // Monthly Key
@@ -209,7 +211,7 @@ export function useSalesSummary({ startDate, endDate, productName, productId } =
                 weeklyRevenue[weekKey] += saleRevenueForPeriod;
             });
 
-            return { totalRevenue, totalProfit, productQuantities, firstTransactionDate, monthlyRevenue, weeklyRevenue };
+            return { totalRevenue, totalProfit, productQuantities, firstTransactionDate, firstTransactionAmount, monthlyRevenue, weeklyRevenue };
         },
         staleTime: 1000 * 60 * 3,
     });
