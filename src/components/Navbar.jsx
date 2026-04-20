@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { supabase } from '../lib/supabaseClient';
 import currency from 'currency.js';
 import { CartIcon, PackageIcon, UserIcon, ChartIcon, UsersIcon, GalleryIcon, HomeIcon, SettingsIcon, DocumentReportIcon, MailIcon } from './Icons';
-import { Receipt } from 'lucide-react';
+import { Receipt, ChevronDown } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 // Hamburger Icon
@@ -148,22 +148,58 @@ const Navbar = () => {
     const [isStartShiftModalOpen, setIsStartShiftModalOpen] = useState(false);
     const [startingCash, setStartingCash] = useState('');
 
+    // --- Category Accordion State ---
+    const [openCategories, setOpenCategories] = useState(
+        () => new Set(['Sales & Operations'])
+    );
+    const toggleCategory = (cat) => setOpenCategories(prev => {
+        const next = new Set(prev);
+        next.has(cat) ? next.delete(cat) : next.add(cat);
+        return next;
+    });
+
     // --- ICONS FOR NAVIGATION ---
-    const links = [
-        { name: 'Dashboard', path: '/dashboard', icon: <ChartIcon className="h-5 w-5 menu-icon" /> },
-        { name: 'POS', path: '/pos', icon: <CartIcon className="h-5 w-5 menu-icon" /> },
-        { name: 'Expenses', path: '/expenses', icon: <Receipt className="h-6 w-6" />, adminOnly: false },
-        { name: 'Products', path: '/product-management', icon: <PackageIcon className="h-5 w-5 menu-icon" /> },
-        { name: 'Inventory', path: '/inventory', icon: <PackageIcon className="h-5 w-5 menu-icon" /> },
-        { name: 'Customer', path: '/customer-management', icon: <UserIcon className="h-5 w-5 menu-icon" /> },
-        { name: 'Sale History', path: '/history', icon: <ChartIcon className="h-5 w-5 menu-icon" /> },
-        { name: 'Gallery', path: '/gallery-management', icon: <GalleryIcon className="h-5 w-5 menu-icon" />, adminOnly: true },
-        { name: 'Articles', path: '/article-management', icon: <DocumentReportIcon className="h-5 w-5 menu-icon" />, adminOnly: true },
-        { name: 'Users', path: '/user-management', icon: <UsersIcon className="h-5 w-5 menu-icon" />, adminOnly: true },
-        { name: 'Report', path: '/report', icon: <ChartIcon className="h-5 w-5 menu-icon" />, adminOnly: true },
-        { name: 'Page Settings', path: '/settings', icon: <SettingsIcon className="h-5 w-5 menu-icon" />, adminOnly: true },
-        { name: 'Messages', path: '/messages', icon: <MailIcon className="h-5 w-5 menu-icon" />, adminOnly: true },
+    const navCategories = [
+        {
+            category: null,
+            links: [
+                { name: 'Dashboard', path: '/dashboard', icon: <ChartIcon className="h-5 w-5 menu-icon" /> },
+            ]
+        },
+        {
+            category: 'Sales & Operations',
+            links: [
+                { name: 'POS', path: '/pos', icon: <CartIcon className="h-5 w-5 menu-icon" /> },
+                { name: 'Sale History', path: '/history', icon: <ChartIcon className="h-5 w-5 menu-icon" /> },
+                { name: 'Customer', path: '/customer-management', icon: <UserIcon className="h-5 w-5 menu-icon" /> },
+            ]
+        },
+        {
+            category: 'Catalog & Inventory',
+            links: [
+                { name: 'Products', path: '/product-management', icon: <PackageIcon className="h-5 w-5 menu-icon" /> },
+                { name: 'Inventory', path: '/inventory', icon: <PackageIcon className="h-5 w-5 menu-icon" /> },
+                { name: 'Gallery', path: '/gallery-management', icon: <GalleryIcon className="h-5 w-5 menu-icon" />, adminOnly: true },
+            ]
+        },
+        {
+            category: 'Finance & Analytics',
+            links: [
+                { name: 'Expenses', path: '/expenses', icon: <Receipt className="h-6 w-6" /> },
+                { name: 'Report', path: '/report', icon: <ChartIcon className="h-5 w-5 menu-icon" />, adminOnly: true },
+            ]
+        },
+        {
+            category: 'Administration & Content',
+            links: [
+                { name: 'Users', path: '/user-management', icon: <UsersIcon className="h-5 w-5 menu-icon" />, adminOnly: true },
+                { name: 'Articles', path: '/article-management', icon: <DocumentReportIcon className="h-5 w-5 menu-icon" />, adminOnly: true },
+                { name: 'Page Settings', path: '/settings', icon: <SettingsIcon className="h-5 w-5 menu-icon" />, adminOnly: true },
+                { name: 'Messages', path: '/messages', icon: <MailIcon className="h-5 w-5 menu-icon" />, adminOnly: true },
+            ]
+        },
     ];
+    const isAdmin = clientUser && (clientUser.role === 'Admin' || clientUser.role === 'admin');
 
     useEffect(() => {
         setClientUser(user);
@@ -356,38 +392,82 @@ const Navbar = () => {
     };
 
     // --- RENDER MOBILE LINKS (Original Design) ---
-    const renderMobileLinks = () => links
-        .filter(link => !link.adminOnly || (clientUser && (clientUser.role === 'Admin' || clientUser.role === 'admin')))
-        .map(link => {
-            const isActive = router.pathname === link.path;
-            return (
-                <Button
-                    key={link.name}
-                    variant="ghost"
-                    className={`nav-item w-full justify-start gap-3 px-4 py-2.5 transition-colors ${isActive ? ' active text-primary font-bold bg-green-50' : 'text-gray-700 hover:bg-gray-100'}`}
-                    onClick={async () => { await router.push(link.path); setIsMenuOpen(false); }}
-                >
-                    {link.icon} <span>{link.name}</span>
-                </Button>
-            );
-        });
+    const renderMobileLinks = () => navCategories.map(({ category, links }) => {
+        const visibleLinks = links.filter(link => !link.adminOnly || isAdmin);
+        if (visibleLinks.length === 0) return null;
+        const isOpen = !category || openCategories.has(category);
+        return (
+            <div key={category ?? '__root__'} className="mb-0.5">
+                {category && (
+                    <button
+                        className="w-full flex items-center justify-between px-4 py-2.5 font-semibold text-xs uppercase tracking-widest text-white rounded-lg shadow-sm transition-all duration-150 active:scale-[0.98]"
+                        style={{ background: 'linear-gradient(90deg, #6abf45 0%, #4e9e2d 100%)' }}
+                        onClick={() => toggleCategory(category)}
+                    >
+                        <span className="drop-shadow-sm">{category}</span>
+                        <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                )}
+                {isOpen && (
+                    <div className="pl-2 border-l-2 border-green-300 ml-2 mt-0.5">
+                        {visibleLinks.map(link => {
+                            const isActive = router.pathname === link.path;
+                            return (
+                                <Button
+                                    key={link.name}
+                                    variant="ghost"
+                                    className={`nav-item w-full justify-start gap-3 px-3 py-2 transition-all rounded-md ${isActive ? 'text-white font-bold shadow-sm border-l-4 border-green-600' : 'text-gray-700 hover:bg-gray-100'}`}
+                                    style={isActive ? { background: 'linear-gradient(90deg, #6abf45 0%, #4e9e2d 100%)' } : {}}
+                                    onClick={async () => { await router.push(link.path); setIsMenuOpen(false); }}
+                                >
+                                    {link.icon} <span className="text-sm">{link.name}</span>
+                                </Button>
+                            );
+                        })}
+                    </div>
+                )}
+            </div>
+        );
+    });
 
     // --- RENDER DESKTOP LINKS (Office 2016 Design) ---
-    const renderDesktopLinks = () => links
-        .filter(link => !link.adminOnly || (clientUser && (clientUser.role === 'Admin' || clientUser.role === 'admin')))
-        .map(link => {
-            const isActive = router.pathname === link.path;
-            return (
-                <Button
-                    key={link.name}
-                    variant="ghost"
-                    className={`nav-item w-full justify-start gap-4 px-6 py-2 transition-colors text-white ${isActive ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}
-                    onClick={async () => { await router.push(link.path); setIsMenuOpen(false); }}
-                >
-                    {link.icon} <span className="text-lg">{link.name}</span>
-                </Button>
-            );
-        });
+    const renderDesktopLinks = () => navCategories.map(({ category, links }) => {
+        const visibleLinks = links.filter(link => !link.adminOnly || isAdmin);
+        if (visibleLinks.length === 0) return null;
+        const isOpen = !category || openCategories.has(category);
+        return (
+            <div key={category ?? '__root__'} className="mb-1">
+                {category && (
+                    <button
+                        className="w-full flex items-center justify-between mx-3 px-4 py-2.5 font-semibold text-xs uppercase tracking-widest text-white rounded-lg shadow-md transition-all duration-150 active:scale-[0.98]"
+                        style={{ width: 'calc(100% - 1.5rem)', background: 'linear-gradient(90deg, #6abf45 0%, #4e9e2d 100%)' }}
+                        onClick={() => toggleCategory(category)}
+                    >
+                        <span className="drop-shadow-sm">{category}</span>
+                        <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                )}
+                {isOpen && (
+                    <div className="pl-3 border-l-2 border-white/20 ml-5 mt-0.5">
+                        {visibleLinks.map(link => {
+                            const isActive = router.pathname === link.path;
+                            return (
+                                <Button
+                                    key={link.name}
+                                    variant="ghost"
+                                    className={`nav-item w-full justify-start gap-4 px-4 py-2 transition-all rounded-md ${isActive ? 'text-white font-bold shadow-md border-l-4 border-white' : 'text-white hover:bg-white/10'}`}
+                                    style={isActive ? { background: 'linear-gradient(90deg, rgba(106,191,69,0.55) 0%, rgba(78,158,45,0.35) 100%)' } : {}}
+                                    onClick={async () => { await router.push(link.path); setIsMenuOpen(false); }}
+                                >
+                                    {link.icon} <span className="text-base">{link.name}</span>
+                                </Button>
+                            );
+                        })}
+                    </div>
+                )}
+            </div>
+        );
+    });
 
     return (
         <>
@@ -416,11 +496,11 @@ const Navbar = () => {
                                     ></div>
 
                                     <div
-                                        className="fixed top-0 left-0 bottom-0 w-[350px] bg-primary text-white z-50 shadow-2xl flex flex-col transition-transform duration-300 ease-in-out transform translate-x-0"
+                                        className="fixed top-0 left-0 bottom-0 w-[350px] bg-primary text-white z-50 shadow-2xl flex flex-col overflow-y-auto transition-transform duration-300 ease-in-out transform translate-x-0"
                                         style={{ backgroundColor: 'var(--primary)', opacity: 1 }}
                                         id="main-menu-desktop"
                                     >
-                                        <div className="overflow-y-auto">
+                                        <div>
                                             <div className="flex items-center gap-4 px-6 py-6 border-b border-white/20">
                                                 <Button variant="ghost" onClick={() => setIsMenuOpen(false)} className="text-white hover:bg-white/10 p-2">
                                                     <HamburgerIcon className="h-7 w-7" />

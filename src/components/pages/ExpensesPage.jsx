@@ -104,7 +104,7 @@ export default function ExpensesPage() {
                         <div className="flex justify-between items-start mb-4">
                             <div>
                                 <h1 className="text-2xl font-bold flex items-center gap-2"><Receipt /> Expenses</h1>
-                                <p className="text-xs text-gray-400 mt-1">{new Date().toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                                <p className="text-xs text-gray-400 mt-1">Created on: {new Date().toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
                             </div>
                             <div className="text-right">
                                 <p className="text-gray-500 text-xs font-semibold uppercase tracking-wider">Current Week Sales</p>
