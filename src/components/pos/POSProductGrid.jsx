@@ -23,6 +23,7 @@ const POSProductGrid = ({
                         {products.map((p) => (
                             <button
                                 key={p.id}
+                                data-testid="product-card"
                                 className="product-card no-reload p-2 text-center border rounded-lg shadow-sm hover:border-primary hover:shadow-md transition-all duration-150 bg-white flex flex-col items-center relative"
                                 onClick={() => handleAdd(p)}
                                 disabled={p.stock <= 0}
@@ -54,6 +55,7 @@ const POSProductGrid = ({
                             {products.map((p) => (
                                 <button
                                     key={`mobile-${p.id}`}
+                                    data-testid="product-card"
                                     className="product-card no-reload p-2 border rounded-lg shadow-sm bg-white flex flex-col items-center active:scale-95 transition-transform"
                                     onClick={() => handleAdd(p)}
                                     disabled={p.stock <= 0}

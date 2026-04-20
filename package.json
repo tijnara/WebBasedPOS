@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "playwright test",
+    "test:install": "playwright install --with-deps"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.101.1",

@@ -4,6 +4,7 @@ import { test, expect } from '@playwright/test';
 test('Full Flow: Login -> Add Item -> Checkout', async ({ page }) => {
     // 1. LOGIN PAGE
     await page.goto('http://localhost:3000/login');
+    await page.waitForLoadState('networkidle');
     await expect(page.getByRole('heading', { name: 'Staff Portal' })).toBeVisible();
     await page.getByRole('button', { name: /Log in as Demo Admin/i }).click();
 
@@ -13,8 +14,8 @@ test('Full Flow: Login -> Add Item -> Checkout', async ({ page }) => {
     // Handle the conditional "Start Shift" modal using a polling mechanism
     await expect(async () => {
         const modalVisible = await page.getByRole('heading', { name: 'Start Shift' }).isVisible();
-        const welcomeVisible = await page.getByText(/Welcome back/i).isVisible();
-        expect(modalVisible || welcomeVisible).toBeTruthy();
+        const dashboardVisible = await page.getByText('Overall Sales').isVisible();
+        expect(modalVisible || dashboardVisible).toBeTruthy();
     }).toPass({ timeout: 15000 });
 
     if (await page.getByRole('heading', { name: 'Start Shift' }).isVisible()) {
@@ -24,14 +25,15 @@ test('Full Flow: Login -> Add Item -> Checkout', async ({ page }) => {
     }
 
     // Ensure the dashboard is fully loaded and stable
-    await expect(page.getByText(/Welcome back/i)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('Overall Sales')).toBeVisible({ timeout: 10000 });
 
     // 3. NAVIGATE TO POS
     await page.goto('http://localhost:3000/pos');
+    await page.waitForLoadState('networkidle');
     await expect(page.getByRole('heading', { name: 'Point of Sale' })).toBeVisible({ timeout: 10000 });
 
     // 4. ADD ITEM TO CART
-    const productCard = page.locator('button.product-card').filter({ hasText: 'Mock Alkaline' }).first();
+    const productCard = page.getByTestId('product-card').filter({ hasText: 'Mock Alkaline' }).first();
     await expect(productCard).toBeVisible();
     await productCard.click();
 

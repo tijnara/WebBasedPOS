@@ -53,6 +53,13 @@ function AuthGate({ children }) {
 
     // --- NEW: Navigation Reset & Idle Tracker (No Logout) ---
     useEffect(() => {
+        // Mark the tab as initialized for this session as soon as the app loads.
+        // This ensures that login reloads are recognized as the same tab.
+        const isNewTabSession = typeof window !== 'undefined' && !sessionStorage.getItem('pos_tab_initialized');
+        if (isNewTabSession) {
+            sessionStorage.setItem('pos_tab_initialized', 'true');
+        }
+
         if (!user) return;
 
         const IDLE_TIMEOUT = 15 * 60 * 1000; // 15 minutes of inactivity
@@ -61,15 +68,11 @@ function AuthGate({ children }) {
             const now = Date.now();
             const lastActive = localStorage.getItem('pos_last_active_time');
 
-            // Check if this is a newly opened tab or a return to the site
-            const isNewTabSession = !sessionStorage.getItem('pos_tab_initialized');
-
             let needsRedirect = false;
 
             if (isNewTabSession) {
                 // User closed the tab and came back, or opened a new tab
                 needsRedirect = true;
-                sessionStorage.setItem('pos_tab_initialized', 'true');
             } else if (lastActive && now - parseInt(lastActive, 10) > IDLE_TIMEOUT) {
                 // User left the tab open but was idle for > 15 mins
                 needsRedirect = true;
