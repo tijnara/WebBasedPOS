@@ -518,13 +518,6 @@ const Navbar = () => {
                                             <nav className="flex flex-col py-2 gap-0">
                                                 {renderDesktopLinks()}
                                             </nav>
-
-                                            <div className="px-6 py-6">
-                                                <div className="text-sm opacity-80 uppercase tracking-widest mb-2 font-semibold">Additional Information</div>
-                                                <Button variant="ghost" onClick={async () => { setIsMenuOpen(false); await prepareZReading(); }} className="w-full justify-start text-white hover:bg-white/10 px-0 py-2">
-                                                    <span className="font-medium text-lg">Sign Out</span>
-                                                </Button>
-                                            </div>
                                         </div>
                                     </div>
                                 </div>
