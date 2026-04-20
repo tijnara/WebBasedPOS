@@ -6,6 +6,7 @@ import { startOfWeek, isAfter, parseISO, format } from 'date-fns';
 import { Brain, Plus, Utensils, Car, ShoppingBag, Zap, Receipt } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import { useExpenses, useCreateExpense, useExpenseSummary, useExpenseCategories, useCreateExpenseCategory } from '../../hooks/useExpenses';
+import { useSalesSummary } from '../../hooks/useSalesSummary';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip);
 
@@ -20,6 +21,7 @@ export default function ExpensesPage() {
     const { data: expenses = [], isLoading } = useExpenses();
     const { data: summary } = useExpenseSummary();
     const { data: categories = [] } = useExpenseCategories();
+    const { data: salesSummary } = useSalesSummary(); // Added to fetch weekly sales
 
     const createExpense = useCreateExpense();
     const createCategory = useCreateExpenseCategory();
@@ -97,7 +99,15 @@ export default function ExpensesPage() {
                 {/* Dashboard Panel */}
                 <div className="w-full lg:w-7/12 flex flex-col bg-slate-50">
                     <div className="bg-white text-gray-800 p-8 rounded-br-[3rem] shadow-md z-10">
-                        <h1 className="text-2xl font-bold flex items-center gap-2 mb-4"><Receipt /> Expenses</h1>
+                        {/* Modified Header with Current Week Sales included */}
+                        <div className="flex justify-between items-start mb-4">
+                            <h1 className="text-2xl font-bold flex items-center gap-2"><Receipt /> Expenses</h1>
+                            <div className="text-right">
+                                <p className="text-gray-500 text-xs font-semibold uppercase tracking-wider">Current Week Sales</p>
+                                <p className="text-xl font-bold text-emerald-500">+{currency(salesSummary?.weeklyTotal || 0, { symbol: '₱' }).format()}</p>
+                            </div>
+                        </div>
+
                         <p className="text-gray-500 text-sm font-medium">This Week's Total</p>
                         <h2 className="text-5xl font-extrabold mb-4 text-primary">{currency(summary?.weeklyTotal || 0, { symbol: '₱' }).format()}</h2>
                         <div className="flex gap-12 border-t border-gray-200 pt-4">
