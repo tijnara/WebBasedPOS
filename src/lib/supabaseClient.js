@@ -8,10 +8,7 @@ const supabase = createClient(
             params: {
                 eventsPerSecond: 10,
             },
-            headers: {
-                'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-            },
-            timeout: 15000, // Increase timeout to 15 seconds
+            timeout: 15000, 
         },
     }
 );

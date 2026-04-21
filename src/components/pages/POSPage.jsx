@@ -7,6 +7,8 @@ import { useCreateCustomer } from '../../hooks/useCustomerMutations';
 import { useProductByBarcode } from '../../hooks/useProductByBarcode';
 import { Button, Input, Dialog, DialogContent, DialogHeader, DialogTitle, DialogCloseButton } from '../ui';
 import { useZxing } from 'react-zxing';
+import { usePOSModals } from '../../hooks/usePOSModals';
+import { usePOSCheckout, getLocalDateString, getLocalTimeString } from '../../hooks/usePOSCheckout';
 
 import TabBar from '../TabBar';
 import POSCart from '../pos/POSCart';
@@ -18,18 +20,6 @@ import MobileCartBar from '../pos/MobileCartBar';
 import CartDrawer from '../pos/CartDrawer';
 import EditCartItemModal from '../pos/EditCartItemModal';
 import { supabase } from '../../lib/supabaseClient';
-import currency from 'currency.js';
-
-// --- Helper Functions to Handle Local Timezones correctly ---
-const getLocalDateString = () => {
-    const now = new Date();
-    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-    return now.toISOString().slice(0, 10);
-};
-
-const getLocalTimeString = () => {
-    return new Date().toTimeString().slice(0, 5);
-};
 
 // --- Barcode Scanner Component ---
 const BarcodeScannerModal = ({ isOpen, onClose, onScan }) => {
@@ -203,6 +193,15 @@ const BarcodeScannerModal = ({ isOpen, onClose, onScan }) => {
 };
 
 export default function POSPage() {
+    const {
+        isCustomerModalOpen, closeCustomerModal,
+        isCustomSaleModalOpen, openCustomSale, closeCustomSale,
+        isPaymentModalOpen, openPaymentModal: openPaymentModalHandler, closePaymentModal,
+        isCartDrawerOpen, openCartDrawer, closeCartDrawer,
+        isScannerOpen, openScanner, closeScanner,
+        editItemKey, openEditItem, closeEditItem
+    } = usePOSModals();
+
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 20;
 
@@ -213,8 +212,6 @@ export default function POSPage() {
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
     const [customerSearchTerm, setCustomerSearchTerm] = useState('');
     const [debouncedCustomerSearchTerm, setDebouncedCustomerSearchTerm] = useState('');
-
-    const [isScannerOpen, setIsScannerOpen] = useState(false);
 
     useEffect(() => {
         const fetchCategories = async () => {
@@ -272,15 +269,8 @@ export default function POSPage() {
     const createCustomerMutation = useCreateCustomer();
 
     const [selectedCustomer, setSelectedCustomer] = useState(currentCustomer);
-    const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
     const [customerSearchResults, setCustomerSearchResults] = useState([]);
     const [isSearchingCustomers, setIsSearchingCustomers] = useState(false);
-    const [isCustomSaleModalOpen, setIsCustomSaleModalOpen] = useState(false);
-    const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-    const [paymentMethod, setPaymentMethod] = useState('Cash');
-    const [amountReceived, setAmountReceived] = useState('');
-    const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
-    const [editItemKey, setEditItemKey] = useState(null);
 
     const productSearchInputRef = useRef(null);
     const customerPaymentInputRef = useRef(null);
@@ -291,9 +281,6 @@ export default function POSPage() {
             return stored ? JSON.parse(stored) : null;
         } catch { return null; }
     });
-
-    const [saleDate, setSaleDate] = useState(getLocalDateString());
-    const [saleTime, setSaleTime] = useState(getLocalTimeString());
 
     useEffect(() => {
         setSelectedCustomer(currentCustomer);
@@ -307,8 +294,24 @@ export default function POSPage() {
     const subtotal = getTotalAmount();
     const totalQty = Object.values(currentSale).reduce((sum, item) => sum + (item.quantity || 0), 0);
 
+    const {
+        paymentMethod, setPaymentMethod,
+        amountReceived, setAmountReceived,
+        saleDate, setSaleDate,
+        saleTime, setSaleTime,
+        handleFinalizeSale,
+    } = usePOSCheckout({
+        subtotal,
+        selectedCustomer,
+        createSaleMutation,
+        handleSetSelectedCustomer,
+        setLastCustomer,
+        closePaymentModal,
+        setSearchTerm,
+    });
+
     const handleScanResult = (code) => {
-        setIsScannerOpen(false);
+        closeScanner();
         setSearchTerm(code);
         addToast({ title: 'Scanned', description: `Searching for code: ${code}`, variant: 'info' });
     };
@@ -399,7 +402,7 @@ export default function POSPage() {
         updateCartItem(key, { quantity: finalQty });
     };
 
-    const handleSelectCustomerFromModal = (c) => { handleSetSelectedCustomer(c); setCustomerSearchTerm(''); setIsCustomerModalOpen(false); };
+    const handleSelectCustomerFromModal = (c) => { handleSetSelectedCustomer(c); setCustomerSearchTerm(''); closeCustomerModal(); };
     const handleSelectCustomerInPayment = (c) => { handleSetSelectedCustomer(c); setCustomerSearchTerm(''); setDebouncedCustomerSearchTerm(''); setCustomerSearchResults([]); setIsSearchingCustomers(false); };
     const handleAddCustomer = async (name) => {
         if (!name?.trim()) return;
@@ -424,10 +427,8 @@ export default function POSPage() {
 
         setCustomerSearchTerm('');
         setCustomerSearchResults([]);
-        setIsPaymentModalOpen(true);
+        openPaymentModalHandler();
     };
-
-    const user = useStore(s => s.user);
 
     const handleCameraButtonClick = async () => {
         // MOBILE FIX: Mobile browsers disable mediaDevices entirely over HTTP.
@@ -440,65 +441,7 @@ export default function POSPage() {
             return;
         }
 
-        setIsScannerOpen(true);
-    };
-
-    const handleFinalizeSale = async () => {
-        // Fix: Only block if they are trying to "Charge" without a selected customer
-        if (paymentMethod === 'Charge' && !selectedCustomer) {
-            addToast({ title: 'Customer Required', description: 'Please select a customer for Charge transactions.', variant: 'warning' });
-            return;
-        }
-
-        const items = Object.values(currentSale).map(i => ({
-            productId: i.productId,
-            productName: i.name,
-            quantity: i.quantity,
-            priceAtSale: i.price,
-            cost_at_sale: i.cost || 0,
-            subtotal: currency(i.price).multiply(i.quantity).value,
-            basePrice: i.basePrice,
-            note: i.note
-        }));
-        const received = currency(amountReceived || 0).value;
-        const changeCalculated = currency(received).subtract(subtotal).value;
-
-        try {
-            const now = new Date();
-            const constructedDate = new Date(`${saleDate}T${saleTime}:00`);
-            let finalSaleTimestamp;
-
-            if (Math.abs(now - constructedDate) < 5 * 60 * 1000) {
-                finalSaleTimestamp = now.toISOString();
-            } else {
-                finalSaleTimestamp = constructedDate.toISOString();
-            }
-
-            const payload = {
-                saleTimestamp: finalSaleTimestamp,
-                totalAmount: subtotal,
-                customerId: selectedCustomer?.id || null,
-                customerName: selectedCustomer?.name || 'Walk-in',
-                items,
-                status: 'Completed',
-                paymentMethod: paymentMethod,
-                amountReceived: received,
-                changeGiven: Math.max(0, changeCalculated),
-                created_by: user?.id || null
-            };
-            await createSaleMutation.mutateAsync(payload);
-            addToast({ title: 'Sale Completed', description: `Sale recorded.`, variant: 'success' });
-            clearSale();
-            handleSetSelectedCustomer(null);
-            setLastCustomer(selectedCustomer);
-            localStorage.setItem('lastCustomer', JSON.stringify(selectedCustomer));
-            setAmountReceived('');
-            setPaymentMethod('Cash');
-            setSearchTerm('');
-            setIsPaymentModalOpen(false);
-        } catch (e) {
-            addToast({ title: 'Checkout Error', description: e.message, variant: 'destructive' });
-        }
+        openScanner();
     };
 
     return (
@@ -528,7 +471,7 @@ export default function POSPage() {
                             </svg>
                         </Button>
                     </div>
-                    <Button variant="primary" onClick={() => setIsCustomSaleModalOpen(true)} className="rounded-lg shadow-md font-semibold whitespace-nowrap">
+                    <Button variant="primary" onClick={openCustomSale} className="rounded-lg shadow-md font-semibold whitespace-nowrap">
                         + Custom
                     </Button>
                 </div>
@@ -570,7 +513,7 @@ export default function POSPage() {
                         openPaymentModal={openPaymentModal}
                         createSaleMutation={createSaleMutation}
                         lastCustomer={lastCustomer}
-                        onEditItem={(key) => setEditItemKey(key)}
+                        onEditItem={openEditItem}
                         handleSetQuantity={handleSetQuantity}
                     />
                 </div>
@@ -579,7 +522,7 @@ export default function POSPage() {
             {/* --- MODALS --- */}
             <CustomerSelectionModal
                 isOpen={isCustomerModalOpen}
-                setIsOpen={setIsCustomerModalOpen}
+                setIsOpen={closeCustomerModal}
                 searchTerm={customerSearchTerm}
                 setSearchTerm={setCustomerSearchTerm}
                 selectedCustomer={selectedCustomer}
@@ -593,7 +536,7 @@ export default function POSPage() {
 
             <PaymentModal
                 isOpen={isPaymentModalOpen}
-                setIsOpen={setIsPaymentModalOpen}
+                setIsOpen={closePaymentModal}
                 searchTerm={customerSearchTerm}
                 setSearchTerm={setCustomerSearchTerm}
                 selectedCustomer={selectedCustomer}
@@ -619,7 +562,7 @@ export default function POSPage() {
 
             <CustomSaleModal
                 isOpen={isCustomSaleModalOpen}
-                onClose={() => setIsCustomSaleModalOpen(false)}
+                onClose={closeCustomSale}
                 products={products}
                 onAddItem={(product, quantity, price) => addItemToSale(product, quantity, price)}
             />
@@ -627,7 +570,7 @@ export default function POSPage() {
             {editItemKey && (
                 <EditCartItemModal
                     isOpen={!!editItemKey}
-                    onClose={() => setEditItemKey(null)}
+                    onClose={closeEditItem}
                     item={currentSale[editItemKey]}
                     onSave={(updatedItem) => {
                         const product = products.find(p => p.id === updatedItem.productId);
@@ -636,6 +579,7 @@ export default function POSPage() {
                             updatedItem.quantity = product.stock;
                         }
                         updateCartItem(editItemKey, updatedItem);
+                        closeEditItem();
                     }}
                 />
             )}
@@ -644,7 +588,7 @@ export default function POSPage() {
             {isScannerOpen && (
                 <BarcodeScannerModal
                     isOpen={isScannerOpen}
-                    onClose={() => setIsScannerOpen(false)}
+                    onClose={closeScanner}
                     onScan={handleScanResult}
                 />
             )}
@@ -655,13 +599,13 @@ export default function POSPage() {
                     itemCount={Object.keys(currentSale).length}
                     totalQty={totalQty}
                     subtotal={subtotal}
-                    onOpenCart={() => setIsCartDrawerOpen(true)}
+                    onOpenCart={openCartDrawer}
                 />
             )}
 
             <CartDrawer
                 isOpen={isCartDrawerOpen}
-                onClose={() => setIsCartDrawerOpen(false)}
+                onClose={closeCartDrawer}
                 currentSale={currentSale}
                 subtotal={subtotal}
                 handleIncreaseQuantity={handleIncreaseQuantity}
@@ -670,7 +614,7 @@ export default function POSPage() {
                 openPaymentModal={openPaymentModal}
                 createSaleMutation={createSaleMutation}
                 clearSale={clearSale}
-                onEditItem={(key) => setEditItemKey(key)}
+                onEditItem={openEditItem}
                 handleSetQuantity={handleSetQuantity}
             />
 
