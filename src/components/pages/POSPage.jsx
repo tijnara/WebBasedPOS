@@ -332,16 +332,117 @@ export default function POSPage() {
         }
     }, [scannedProduct]);
 
+    const openPaymentModal = () => {
+        const currentTotal = getTotalAmount();
+        if (Object.keys(currentSale).length === 0) {
+            addToast({ title: 'Empty Cart', description: 'Add items before proceeding.', variant: 'warning' });
+            return;
+        }
+
+        setAmountReceived(currentTotal.toFixed(2));
+        setPaymentMethod('Cash');
+        setSaleDate(getLocalDateString());
+        setSaleTime(getLocalTimeString());
+
+        setCustomerSearchTerm('');
+        setCustomerSearchResults([]);
+        openPaymentModalHandler();
+    };
+
+    const [hotkeyProducts, setHotkeyProducts] = useState({});
+
+    useEffect(() => {
+        const fetchHotkeys = async () => {
+            const { data, error } = await supabase
+                .from('products')
+                .select('*')
+                .in('id', [2, 3, 30]);
+            
+            if (!error && data) {
+                const mapping = {};
+                data.forEach(p => {
+                    mapping[p.id] = {
+                        ...p,
+                        price: Number(p.price) || 0,
+                        stock: p.stock_quantity || 0,
+                    };
+                });
+                setHotkeyProducts(mapping);
+            }
+        };
+        fetchHotkeys();
+    }, []);
+
     useEffect(() => {
         const handleKeyDown = (event) => {
+            // Check if user is typing in an input or textarea
+            const isTyping = ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName) || document.activeElement.isContentEditable;
+
+            // F1: Focus Search
             if (event.key === 'F1') {
                 event.preventDefault();
                 productSearchInputRef.current?.focus();
             }
+            
+            // Quick Add Hotkeys (1, 2, 3) - Only if not typing
+            if (!isTyping && ['1', '2', '3'].includes(event.key)) {
+                const idMap = { '1': 3, '2': 2, '3': 30 };
+                const productId = idMap[event.key];
+                const product = hotkeyProducts[productId];
+                
+                if (product) {
+                    event.preventDefault();
+                    handleAdd(product);
+                    addToast({ 
+                        title: 'Quick Add', 
+                        description: `${product.name} added to cart.`, 
+                        variant: 'success' 
+                    });
+                }
+            }
+
+            // F4: Open Payment Modal
+            if (event.key === 'F4') {
+                event.preventDefault();
+                if (!isPaymentModalOpen) {
+                    openPaymentModal();
+                }
+            }
+
+            // Shift + Delete: Clear Sale
+            if (event.shiftKey && event.key === 'Delete') {
+                event.preventDefault();
+                clearSale();
+            }
+
+            // Escape: Close modals or clear search
+            if (event.key === 'Escape') {
+                if (isPaymentModalOpen) {
+                    closePaymentModal();
+                } else if (isCustomerModalOpen) {
+                    closeCustomerModal();
+                } else if (isCustomSaleModalOpen) {
+                    closeCustomSale();
+                } else if (isScannerOpen) {
+                    closeScanner();
+                } else if (editItemKey) {
+                    closeEditItem();
+                } else if (isCartDrawerOpen) {
+                    closeCartDrawer();
+                } else {
+                    setSearchTerm('');
+                }
+            }
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, []);
+    }, [
+        isPaymentModalOpen, isCustomerModalOpen, isCustomSaleModalOpen, 
+        isScannerOpen, editItemKey, isCartDrawerOpen, 
+        openPaymentModal, clearSale, closePaymentModal, closeCustomerModal, 
+        closeCustomSale, closeScanner, closeEditItem, closeCartDrawer, setSearchTerm,
+        hotkeyProducts
+    ]);
 
     useEffect(() => {
         if (!(isCustomerModalOpen || isPaymentModalOpen) || !debouncedCustomerSearchTerm) {
@@ -423,23 +524,6 @@ export default function POSPage() {
         } catch (e) { addToast({ title: 'Error', description: e.message, variant: 'destructive' }); }
     };
 
-    const openPaymentModal = () => {
-        const currentTotal = getTotalAmount();
-        if (Object.keys(currentSale).length === 0) {
-            addToast({ title: 'Empty Cart', description: 'Add items before proceeding.', variant: 'warning' });
-            return;
-        }
-
-        setAmountReceived(currentTotal.toFixed(2));
-        setPaymentMethod('Cash');
-        setSaleDate(getLocalDateString());
-        setSaleTime(getLocalTimeString());
-
-        setCustomerSearchTerm('');
-        setCustomerSearchResults([]);
-        openPaymentModalHandler();
-    };
-
     const handleCameraButtonClick = async () => {
         // MOBILE FIX: Mobile browsers disable mediaDevices entirely over HTTP.
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -484,6 +568,33 @@ export default function POSPage() {
                     <Button variant="primary" onClick={openCustomSale} className="rounded-lg shadow-md font-semibold whitespace-nowrap">
                         + Custom
                     </Button>
+                </div>
+            </div>
+
+            {/* Quick Keys Legend */}
+            <div className="flex flex-wrap gap-x-6 gap-y-2 mb-4 text-[10px] sm:text-xs font-medium text-gray-500 bg-gray-50/50 p-2 rounded-lg border border-gray-100 items-center">
+                <span className="text-gray-400 uppercase tracking-wider font-bold mr-1">Quick Keys:</span>
+                <span className="flex items-center gap-1.5">
+                    <kbd className="min-w-[1.5rem] h-5 flex items-center justify-center bg-white border border-gray-300 rounded shadow-sm text-gray-700 font-bold">1</kbd> 
+                    <span className="truncate">Refill(30)</span>
+                </span>
+                <span className="flex items-center gap-1.5">
+                    <kbd className="min-w-[1.5rem] h-5 flex items-center justify-center bg-white border border-gray-300 rounded shadow-sm text-gray-700 font-bold">2</kbd> 
+                    <span className="truncate">Refill(35)</span>
+                </span>
+                <span className="flex items-center gap-1.5">
+                    <kbd className="min-w-[1.5rem] h-5 flex items-center justify-center bg-white border border-gray-300 rounded shadow-sm text-gray-700 font-bold">3</kbd> 
+                    <span className="truncate">Refill-Walk-in(25)</span>
+                </span>
+                
+                <div className="hidden sm:flex items-center gap-6 ml-auto">
+                    <div className="h-4 w-px bg-gray-200"></div>
+                    <span className="flex items-center gap-1.5">
+                        <kbd className="px-1.5 h-5 flex items-center justify-center bg-white border border-gray-300 rounded shadow-sm text-gray-700 font-bold">F4</kbd> Payment
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                        <kbd className="px-1.5 h-5 flex items-center justify-center bg-white border border-gray-300 rounded shadow-sm text-gray-700 font-bold">Esc</kbd> Close/Clear
+                    </span>
                 </div>
             </div>
 

@@ -38,7 +38,7 @@ const POSCart = ({
                 <CardHeader className="bg-gray-50 rounded-t-xl flex-shrink-0">
                     <div className="flex justify-between items-center">
                         <h3 className="font-semibold text-lg text-primary">Current Order</h3>
-                        <Button variant="ghost" size="sm" className="p-1 h-auto text-destructive" onClick={clearSale} title="Clear Sale">✖ Clear</Button>
+                        <Button variant="ghost" size="sm" className="p-1 h-auto text-destructive" onClick={clearSale} title="Clear Sale (Shift+Del)">✖ Clear (Shift+Del)</Button>
                     </div>
                 </CardHeader>
                 <CardContent className="p-0 flex-1 relative flex flex-col min-h-0">
@@ -177,7 +177,7 @@ const POSCart = ({
                             onClick={openPaymentModal}
                             disabled={Object.keys(currentSale).length === 0 || createSaleMutation.isPending}
                         >
-                            {createSaleMutation.isPending ? 'Processing...' : 'Proceed to Payment'}
+                            {createSaleMutation.isPending ? 'Processing...' : 'Proceed to Payment (F4)'}
                         </Button>
                     </div>
                 </div>

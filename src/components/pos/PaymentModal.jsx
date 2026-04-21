@@ -42,6 +42,24 @@ const PaymentModal = ({
     const showResults = searchTerm && searchTerm.length > 0;
 
     useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === 'Enter' && isOpen) {
+                const isValid = !createSaleMutation.isPending &&
+                    !(paymentMethod === 'Cash' && parseFloat(amountReceived || 0) < parseFloat(subtotal)) &&
+                    !(paymentMethod === 'Cash' && !amountReceived) &&
+                    !(paymentMethod === 'Charge' && !selectedCustomer);
+                
+                if (isValid) {
+                    e.preventDefault();
+                    handleFinalizeSale();
+                }
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen, createSaleMutation.isPending, paymentMethod, amountReceived, subtotal, selectedCustomer, handleFinalizeSale]);
+
+    useEffect(() => {
         if (isOpen) {
             const timer = setTimeout(() => {
                 if (customerPaymentInputRef?.current) {
@@ -305,7 +323,7 @@ const PaymentModal = ({
                         onClick={() => setIsOpen(false)}
                         className="w-full sm:w-auto px-6 h-12 text-base bg-white"
                     >
-                        Cancel
+                        Cancel (Esc)
                     </Button>
                     <Button
                         onClick={handleFinalizeSale}
@@ -318,7 +336,7 @@ const PaymentModal = ({
                         variant="primary"
                         className="w-full sm:w-auto px-8 h-12 text-base font-bold shadow-md hover:shadow-lg transition-all btn--primary"
                     >
-                        {createSaleMutation.isPending ? 'Processing...' : `Confirm Sale`}
+                        {createSaleMutation.isPending ? 'Processing...' : `Confirm Sale (Enter)`}
                     </Button>
                 </div>
             </DialogContent>
