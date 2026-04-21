@@ -1,4 +1,9 @@
 /** @type {import('next').NextConfig} */
+
+// Safely extract the hostname from the environment variable
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+const supabaseHostname = new URL(supabaseUrl).hostname;
+
 const nextConfig = {
   reactStrictMode: true,
   images: {
@@ -6,7 +11,7 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'pdcnryjqrtfotvfpcqgj.supabase.co', // Your Supabase project URL
+        hostname: supabaseHostname,
         port: '',
         pathname: '/storage/v1/object/public/**',
       },
