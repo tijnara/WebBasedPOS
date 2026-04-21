@@ -11,7 +11,15 @@ const POSProductGrid = ({
     return (
         <div className="w-full md:w-2/3 flex-1 pr-2 responsive-page">
             {isLoading ? (
-                <div className="p-10 text-center text-muted">Loading products...</div>
+                <div className="grid grid-cols-3 md:grid-cols-4 sm:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3">
+                    {Array.from({ length: 16 }).map((_, i) => (
+                        <div key={i} className="animate-pulse bg-white rounded-lg shadow-sm border border-gray-100 flex flex-col items-center p-2 h-36">
+                            <div className="w-full h-14 bg-gray-200 rounded-md mb-1.5" />
+                            <div className="h-3 bg-gray-200 rounded w-3/4 mb-2 mt-1" />
+                            <div className="h-3 bg-gray-200 rounded w-1/2" />
+                        </div>
+                    ))}
+                </div>
             ) : !products.length ? (
                 <div className="p-10 text-center text-muted">
                     No products available.

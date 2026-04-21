@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import Head from 'next/head';
 import { Card, CardHeader, CardContent, Select } from '../ui';
+import SummaryCard from '../ui/SummaryCard'; // Import the global SummaryCard
 import { Line, Bar, Pie } from 'react-chartjs-2';
 import {
     Chart as ChartJS,
@@ -44,28 +45,6 @@ ChartJS.register(
     Filler
 );
 
-// --- Reusable Components ---
-const SummaryCard = ({ title, value, percentage, isPositive, comparisonText, isLoading, className }) => (
-    <Card className={`h-full shadow-sm flex flex-col justify-center ${className || ''}`}>
-        <CardContent className="p-6 flex-1 flex flex-col justify-center">
-            <h3 className="text-sm font-semibold text-slate-700 mb-2">{title}</h3>
-            {isLoading ? (
-                <div className="h-10 w-32 bg-slate-200 animate-pulse rounded mb-2"></div>
-            ) : (
-                <div className="text-3xl sm:text-4xl font-bold text-slate-900 mb-2">{value}</div>
-            )}
-            <div className="flex items-center text-sm">
-                {percentage !== undefined && (
-                    <span className={`font-bold flex items-center ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
-                        {isPositive ? '▲' : '▼'} {percentage}%
-                    </span>
-                )}
-                <span className="text-slate-500 ml-1">{comparisonText}</span>
-            </div>
-        </CardContent>
-    </Card>
-);
-
 export default function DashboardPage() {
     const user = useStore(state => state.user);
 
@@ -81,7 +60,7 @@ export default function DashboardPage() {
     const firstTransactionDate = summaryData?.firstTransactionDate
         ? new Date(summaryData.firstTransactionDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
         : null;
-    const { data: topProducts, isLoading: isTopProductsLoading } = useTopProductsSummary(5);
+    const { data: topProducts, isLoading: isTopProductsLoading, isError: isTopProductsError } = useTopProductsSummary(5);
 
     const { data: dailySalesData, isLoading: isTodayLoading } = useDailySales();
     const todaySales = dailySalesData?.todaySales || 0;
@@ -277,15 +256,21 @@ export default function DashboardPage() {
     };
 
     const pieChartData = useMemo(() => {
-        if (!topProducts || topProducts.length === 0) {
+        if (!Array.isArray(topProducts) || topProducts.length === 0) {
             return { labels: [], datasets: [] };
         }
-        const totalRevenue = topProducts.reduce((sum, p) => sum + p.revenue, 0);
-        const percentages = topProducts.map(p =>
-            totalRevenue > 0 ? parseFloat(((p.revenue / totalRevenue) * 100).toFixed(1)) : 0
-        );
+        const totalRevenue = topProducts.reduce((sum, p) => {
+            const rev = Number(p.total_revenue) || Number(p.revenue) || 0;
+            return sum + rev;
+        }, 0);
+        
+        const percentages = topProducts.map(p => {
+            const rev = Number(p.total_revenue) || Number(p.revenue) || 0;
+            return totalRevenue > 0 ? parseFloat(((rev / totalRevenue) * 100).toFixed(1)) : 0;
+        });
+        
         return {
-            labels: topProducts.map(p => p.name),
+            labels: topProducts.map(p => p.name || 'Unknown'),
             datasets: [{
                 data: percentages,
                 backgroundColor: ['#38bdf8', '#fbbf24', '#f97316', '#78350f', '#a78bfa'],
@@ -299,15 +284,24 @@ export default function DashboardPage() {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-            legend: { position: 'top', labels: { usePointStyle: true, boxWidth: 8, padding: 20, color: '#475569', font: { weight: '500' } } },
+            legend: { 
+                position: 'top', 
+                labels: { 
+                    usePointStyle: true, 
+                    boxWidth: 8, 
+                    padding: 20, 
+                    color: '#475569', 
+                    font: { weight: '500' } 
+                } 
+            },
             tooltip: {
                 callbacks: {
                     label: (context) => {
-                        if (!topProducts || !topProducts[context.dataIndex]) {
+                        if (!Array.isArray(topProducts) || !topProducts[context.dataIndex]) {
                             return ` ${context.label}: ${context.parsed}%`;
                         }
                         const product = topProducts[context.dataIndex];
-                        const revenue = product.revenue || 0;
+                        const revenue = Number(product.total_revenue) || Number(product.revenue) || 0;
                         const revenueFormatted = `₱${revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                         return ` ${context.label}: ${context.parsed}% (${revenueFormatted})`;
                     }
@@ -436,9 +430,15 @@ export default function DashboardPage() {
                                 <div className="flex-1 w-full h-full relative flex justify-center items-center">
                                     {isTopProductsLoading ? (
                                         <div className="text-slate-400 text-sm">Loading...</div>
+                                    ) : isTopProductsError ? (
+                                        <div className="text-red-400 text-sm">Error loading data.</div>
+                                    ) : !Array.isArray(topProducts) || topProducts.length === 0 ? (
+                                        <div className="text-slate-400 text-sm">No sales data available.</div>
                                     ) : (
-                                        <div className="w-full h-full relative">
-                                            <Pie data={pieChartData} options={pieChartOptions} />
+                                        <div className="w-full flex justify-center items-center" style={{ height: '280px' }}>
+                                            <div className="relative h-full w-full max-w-[280px]">
+                                                <Pie data={pieChartData} options={pieChartOptions} />
+                                            </div>
                                         </div>
                                     )}
                                 </div>
