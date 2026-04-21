@@ -213,6 +213,12 @@ export default function POSPage() {
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
     const [customerSearchTerm, setCustomerSearchTerm] = useState('');
     const [debouncedCustomerSearchTerm, setDebouncedCustomerSearchTerm] = useState('');
+    const [stockWarningKey, setStockWarningKey] = useState(null);
+
+    const triggerStockWarning = (key) => {
+        setStockWarningKey(key);
+        setTimeout(() => setStockWarningKey(null), 3000); // Clear after 3 seconds
+    };
 
     useEffect(() => {
         const fetchCategories = async () => {
@@ -366,6 +372,7 @@ export default function POSPage() {
 
         if (currentQtyInCart + 1 > product.stock) {
             addToast({ title: 'Stock Limit', description: `Cannot add more than the ${product.stock} available.`, variant: 'warning' });
+            triggerStockWarning(itemKey);
             return;
         }
 
@@ -378,6 +385,7 @@ export default function POSPage() {
             const product = products.find(p => p.id === item.productId);
             if (product && item.quantity + 1 > product.stock) {
                 addToast({ title: 'Stock Limit', description: `Cannot add more than the ${product.stock} available.`, variant: 'warning' });
+                triggerStockWarning(key);
                 return;
             }
             addItemToSale({ ...item, id: item.productId }, 1);
@@ -396,6 +404,7 @@ export default function POSPage() {
         if (product && product.stock !== null && product.stock !== undefined) {
             if (qty > product.stock) {
                 addToast({ title: 'Stock Limit', description: `Cannot add more than the ${product.stock} available.`, variant: 'warning' });
+                triggerStockWarning(key);
                 finalQty = product.stock;
             }
         }
@@ -516,6 +525,7 @@ export default function POSPage() {
                         lastCustomer={lastCustomer}
                         onEditItem={openEditItem}
                         handleSetQuantity={handleSetQuantity}
+                        stockWarningKey={stockWarningKey}
                     />
                 </div>
             </div>
@@ -617,6 +627,7 @@ export default function POSPage() {
                 clearSale={clearSale}
                 onEditItem={openEditItem}
                 handleSetQuantity={handleSetQuantity}
+                stockWarningKey={stockWarningKey}
             />
 
             <TabBar />

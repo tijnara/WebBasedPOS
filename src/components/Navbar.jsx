@@ -1,5 +1,5 @@
 // src/components/Navbar.jsx
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { Button, Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogCloseButton, Input } from './ui';
 import { useRouter } from 'next/router';
 import { useStore } from '../store/useStore';
@@ -129,9 +129,10 @@ const ActiveShiftIndicator = ({ user, onOpenStartShift }) => {
 const Navbar = () => {
     const router = useRouter();
     const queryClient = useQueryClient();
-    const { user, logout } = useStore(s => ({
+    const { user, logout, isDemo } = useStore(s => ({
         user: s.user,
-        logout: s.logout
+        logout: s.logout,
+        isDemo: s.user?.isDemo
     }));
 
     const [clientUser, setClientUser] = useState(null);
@@ -159,7 +160,7 @@ const Navbar = () => {
     });
 
     // --- ICONS FOR NAVIGATION ---
-    const navCategories = [
+    const navCategoriesSource = [
         {
             category: null,
             links: [
@@ -179,7 +180,7 @@ const Navbar = () => {
             links: [
                 { name: 'Products', path: '/product-management', icon: <PackageIcon className="h-5 w-5 menu-icon" /> },
                 { name: 'Inventory', path: '/inventory', icon: <PackageIcon className="h-5 w-5 menu-icon" /> },
-                { name: 'Gallery', path: '/gallery-management', icon: <GalleryIcon className="h-5 w-5 menu-icon" />, adminOnly: true },
+                { name: 'Gallery', path: '/gallery-management', icon: <GalleryIcon className="h-5 w-5 menu-icon" />, adminOnly: true, hideInDemo: true },
             ]
         },
         {
@@ -199,6 +200,17 @@ const Navbar = () => {
             ]
         },
     ];
+
+    const navCategories = useMemo(() => {
+        if (isDemo) {
+            return navCategoriesSource.map(category => ({
+                ...category,
+                links: category.links.filter(link => !link.hideInDemo)
+            })).filter(category => category.links.length > 0);
+        }
+        return navCategoriesSource;
+    }, [isDemo]);
+
     const isAdmin = clientUser && (clientUser.role === 'Admin' || clientUser.role === 'admin');
 
     useEffect(() => {
@@ -206,7 +218,7 @@ const Navbar = () => {
             links.some(link => link.path === router.pathname)
         )?.category;
         if (activeCat) setOpenCategories(new Set([activeCat]));
-    }, [router.pathname]);
+    }, [router.pathname, navCategories]);
 
     useEffect(() => {
         setClientUser(user);

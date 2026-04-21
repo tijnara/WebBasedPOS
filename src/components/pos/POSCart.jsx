@@ -28,7 +28,8 @@ const POSCart = ({
                      createSaleMutation,
                      lastCustomer,
                      onEditItem,
-                     handleSetQuantity
+                     handleSetQuantity,
+                     stockWarningKey
                  }) => {
 
     return (
@@ -54,7 +55,7 @@ const POSCart = ({
                                 {Object.entries(currentSale).map(([key, item]) => (
                                     <div
                                         key={key}
-                                        className="flex items-center gap-3 py-2 group hover:bg-gray-50 rounded-lg px-2 transition-colors cursor-pointer"
+                                        className={`flex items-center gap-3 py-2 group hover:bg-gray-50 rounded-lg px-2 transition-colors cursor-pointer ${stockWarningKey === key ? 'ring-2 ring-red-500 bg-red-50 transition-all duration-300' : ''}`}
                                         onClick={() => onEditItem && onEditItem(key)}
                                         style={{ minHeight: '3.5rem' }}
                                     >
@@ -121,6 +122,7 @@ const POSCart = ({
                                             >
                                                 +
                                             </Button>
+                                            {stockWarningKey === key && <span className="text-xs text-red-600 font-bold ml-2">Max Stock!</span>}
                                         </div>
 
                                         <div className="text-sm font-medium text-right w-16">

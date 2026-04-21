@@ -28,7 +28,8 @@ const CartDrawer = ({
                         createSaleMutation,
                         clearSale,
                         onEditItem,
-                        handleSetQuantity
+                        handleSetQuantity,
+                        stockWarningKey
                     }) => {
     const cartItems = Object.entries(currentSale);
 
@@ -66,7 +67,7 @@ const CartDrawer = ({
                             {cartItems.map(([key, item]) => (
                                 <div
                                     key={key}
-                                    className="flex items-center justify-between p-4 bg-white active:bg-gray-50 transition-colors cursor-pointer"
+                                    className={`flex items-center justify-between p-4 bg-white active:bg-gray-50 transition-colors cursor-pointer ${stockWarningKey === key ? 'ring-2 ring-red-500 bg-red-50 transition-all duration-300' : ''}`}
                                     onClick={() => onEditItem && onEditItem(key)}
                                 >
                                     <div className="flex items-center gap-4 flex-1 min-w-0 mr-2">
@@ -123,6 +124,7 @@ const CartDrawer = ({
                                             >
                                                 +
                                             </button>
+                                            {stockWarningKey === key && <span className="text-xs text-red-600 font-bold ml-2">Max!</span>}
                                         </div>
 
                                         <div className="flex flex-col items-end w-[60px]">
