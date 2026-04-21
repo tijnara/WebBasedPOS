@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import Head from 'next/head';
+import dynamic from 'next/dynamic';
 import { Card, CardHeader, CardContent, Select } from '../ui';
 import SummaryCard from '../ui/SummaryCard'; // Import the global SummaryCard
-import { Line, Bar, Pie } from 'react-chartjs-2';
 import {
     Chart as ChartJS,
     CategoryScale,
@@ -30,6 +30,27 @@ import { useDailySales } from '../../hooks/useDailySales';
 // Import floating buttons
 import FloatingMessages from '../FloatingMessages';
 import FloatingNotes from '../FloatingNotes';
+
+// Loading placeholder for dynamic charts
+const ChartLoading = () => (
+    <div className="flex items-center justify-center h-full text-slate-400 text-sm">
+        Loading Chart...
+    </div>
+);
+
+// Dynamic imports for Chart components
+const Line = dynamic(() => import('react-chartjs-2').then((mod) => mod.Line), { 
+    ssr: false, 
+    loading: () => <ChartLoading /> 
+});
+const Bar = dynamic(() => import('react-chartjs-2').then((mod) => mod.Bar), { 
+    ssr: false, 
+    loading: () => <ChartLoading /> 
+});
+const Pie = dynamic(() => import('react-chartjs-2').then((mod) => mod.Pie), { 
+    ssr: false, 
+    loading: () => <ChartLoading /> 
+});
 
 // Register Chart.js components
 ChartJS.register(
