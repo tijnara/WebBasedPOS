@@ -77,83 +77,87 @@ const WeeklySalesChart = ({ salesData = [], startDate, endDate }) => {
 
     const isMultiWeek = weeks.length > 1;
 
+    const chartConfigs = useMemo(() => {
+        return weeks.map((weekStart, idx) => {
+            const data = processChartDataForWeek(salesData, weekStart);
+            const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+            const title = `${format(weekStart, 'MMM d')} - ${format(weekEnd, 'MMM d')}`;
+
+            const options = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: !isMultiWeek,
+                        position: 'top',
+                    },
+                    title: {
+                        display: true,
+                        text: title,
+                        font: { size: isMultiWeek ? 13 : 16 },
+                        padding: { bottom: 10 }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                let label = context.dataset.label || '';
+                                if (label) label += ': ';
+                                if (context.parsed.y !== null) {
+                                    label += `₱${context.parsed.y.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                                }
+                                return label;
+                            },
+                            afterLabel: function (context) {
+                                // Retrieve our custom dictionary for this specific day (bar)
+                                const dataset = context.dataset;
+                                const index = context.dataIndex;
+                                const dailyProducts = dataset.productsSold[index] || {};
+
+                                const productLines = [];
+                                let totalItems = 0;
+
+                                // Convert dictionary to an array and sort by top-selling products first
+                                const sortedProducts = Object.values(dailyProducts).sort((a, b) => b.quantity - a.quantity);
+
+                                sortedProducts.forEach(p => {
+                                    productLines.push(`${p.name}: ${p.quantity}`);
+                                    totalItems += p.quantity;
+                                });
+
+                                if (productLines.length > 0) {
+                                    productLines.push('-------------------');
+                                    productLines.push(`Total Items: ${totalItems}`);
+                                }
+
+                                return productLines;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                    },
+                },
+            };
+
+            return { key: idx, data, options };
+        });
+    }, [weeks, salesData, isMultiWeek]);
+
     return (
         <div className="bg-white rounded-lg p-4 responsive-page">
             <h2 className="text-center font-bold text-xl text-slate-800 mb-6">Weekly Sales Performance</h2>
 
             <div className={isMultiWeek ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" : "block"}>
-                {weeks.map((weekStart, idx) => {
-                    const data = processChartDataForWeek(salesData, weekStart);
-                    const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
-                    const title = `${format(weekStart, 'MMM d')} - ${format(weekEnd, 'MMM d')}`;
-
-                    const options = {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                display: !isMultiWeek,
-                                position: 'top',
-                            },
-                            title: {
-                                display: true,
-                                text: title,
-                                font: { size: isMultiWeek ? 13 : 16 },
-                                padding: { bottom: 10 }
-                            },
-                            tooltip: {
-                                callbacks: {
-                                    label: function (context) {
-                                        let label = context.dataset.label || '';
-                                        if (label) label += ': ';
-                                        if (context.parsed.y !== null) {
-                                            label += `₱${context.parsed.y.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                                        }
-                                        return label;
-                                    },
-                                    afterLabel: function (context) {
-                                        // Retrieve our custom dictionary for this specific day (bar)
-                                        const dataset = context.dataset;
-                                        const index = context.dataIndex;
-                                        const dailyProducts = dataset.productsSold[index] || {};
-
-                                        const productLines = [];
-                                        let totalItems = 0;
-
-                                        // Convert dictionary to an array and sort by top-selling products first
-                                        const sortedProducts = Object.values(dailyProducts).sort((a, b) => b.quantity - a.quantity);
-
-                                        sortedProducts.forEach(p => {
-                                            productLines.push(`${p.name}: ${p.quantity}`);
-                                            totalItems += p.quantity;
-                                        });
-
-                                        if (productLines.length > 0) {
-                                            productLines.push('-------------------');
-                                            productLines.push(`Total Items: ${totalItems}`);
-                                        }
-
-                                        return productLines;
-                                    }
-                                }
-                            }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                            },
-                        },
-                    };
-
-                    return (
-                        <div key={idx} className={isMultiWeek ? "h-[250px] w-full" : "h-[500px] w-full"}>
-                            <Bar data={data} options={options} />
-                        </div>
-                    );
-                })}
+                {chartConfigs.map((config) => (
+                    <div key={config.key} className={isMultiWeek ? "h-[250px] w-full" : "h-[500px] w-full"}>
+                        <Bar data={config.data} options={config.options} />
+                    </div>
+                ))}
             </div>
         </div>
     );
 };
 
-export default WeeklySalesChart;;
+export default WeeklySalesChart;
