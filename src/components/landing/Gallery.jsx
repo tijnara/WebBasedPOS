@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ImageIcon, X } from 'lucide-react';
 import { useInView } from '../../hooks/useInView';
@@ -71,12 +72,15 @@ const Gallery = () => {
                                     transition={{ duration: 0.5 }}
                                     className="absolute inset-0 w-full h-full"
                                 >
-                                    {/* CHANGED: Replaced Next.js <Image> with standard <img> to bypass domain restrictions */}
-                                    <img
+                                    {/* CHANGED: Restored Next.js <Image> now that domain restrictions are resolved */}
+                                    <Image
                                         src={items[currentIndex]?.image_url}
-                                        alt={items[currentIndex]?.title || 'Gallery'}
-                                        className="w-full h-full object-contain cursor-pointer hover:scale-105 transition-transform duration-700"
+                                        alt={items[currentIndex]?.title || 'Gallery image'}
+                                        fill
+                                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                        className="object-cover transition-transform duration-500 hover:scale-105 cursor-pointer"
                                         onClick={() => setIsLightboxOpen(true)}
+                                        loading="lazy"
                                     />
                                     <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-white/90 via-white/40 to-transparent p-6 md:p-8 text-black z-20 pointer-events-none">
                                         <h3 className="text-2xl md:text-3xl font-bold drop-shadow-md">
