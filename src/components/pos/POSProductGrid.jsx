@@ -21,8 +21,14 @@ const POSProductGrid = ({
                     ))}
                 </div>
             ) : !products.length ? (
-                <div className="p-10 text-center text-muted">
-                    No products available.
+                <div className="flex flex-col items-center justify-center h-64 sm:h-80 text-gray-500 bg-white rounded-xl shadow-sm border border-gray-100 p-6 mx-2 mt-4 md:mt-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-16 h-16 mb-4 text-gray-300">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+                    </svg>
+                    <h3 className="text-lg font-bold text-gray-700">No products found</h3>
+                    <p className="text-sm text-gray-400 text-center mt-2 max-w-sm">
+                        We couldn't find any products matching your search or category filter. Try adjusting your search criteria.
+                    </p>
                 </div>
             ) : (
                 <>
