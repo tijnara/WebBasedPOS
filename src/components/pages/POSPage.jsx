@@ -9,6 +9,7 @@ import { Button, Input, Dialog, DialogContent, DialogHeader, DialogTitle, Dialog
 import { useZxing } from 'react-zxing';
 import { usePOSModals } from '../../hooks/usePOSModals';
 import { usePOSCheckout, getLocalDateString, getLocalTimeString } from '../../hooks/usePOSCheckout';
+import { DEBOUNCE_DELAY_MS, DEFAULT_ITEMS_PER_PAGE, CUSTOMER_SEARCH_LIMIT } from '../../config/constants';
 
 import TabBar from '../TabBar';
 import POSCart from '../pos/POSCart';
@@ -203,7 +204,7 @@ export default function POSPage() {
     } = usePOSModals();
 
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 20;
+    const itemsPerPage = DEFAULT_ITEMS_PER_PAGE;
 
     const [categoryFilter, setCategoryFilter] = useState('All');
     const [availableCategories, setAvailableCategories] = useState(['All']);
@@ -236,14 +237,14 @@ export default function POSPage() {
             } else {
                 setDebouncedSearchTerm('');
             }
-        }, 300);
+        }, DEBOUNCE_DELAY_MS);
         return () => clearTimeout(handler);
     }, [searchTerm]);
 
     useEffect(() => {
         const handler = setTimeout(() => {
             setDebouncedCustomerSearchTerm(customerSearchTerm);
-        }, 300);
+        }, DEBOUNCE_DELAY_MS);
         return () => clearTimeout(handler);
     }, [customerSearchTerm]);
 
@@ -349,7 +350,7 @@ export default function POSPage() {
                     .from('customers')
                     .select('*')
                     .or(`name.ilike.%${debouncedCustomerSearchTerm}%,phone.ilike.%${debouncedCustomerSearchTerm}%`)
-                    .limit(10);
+                    .limit(CUSTOMER_SEARCH_LIMIT);
                 if (!error) setCustomerSearchResults(data || []);
             } finally {
                 setIsSearchingCustomers(false);

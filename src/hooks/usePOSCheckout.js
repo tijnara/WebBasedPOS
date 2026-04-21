@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useStore } from '../store/useStore';
 import currency from 'currency.js';
+import { SALE_TIMESTAMP_TOLERANCE_MS } from '../config/constants';
 
 export const getLocalDateString = () => {
     const now = new Date();
@@ -52,7 +53,7 @@ export function usePOSCheckout({
             const constructedDate = new Date(`${saleDate}T${saleTime}:00`);
             let finalSaleTimestamp;
 
-            if (Math.abs(now - constructedDate) < 5 * 60 * 1000) {
+            if (Math.abs(now - constructedDate) < SALE_TIMESTAMP_TOLERANCE_MS) {
                 finalSaleTimestamp = now.toISOString();
             } else {
                 finalSaleTimestamp = constructedDate.toISOString();
