@@ -4,9 +4,9 @@ import { Bar } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip } from 'chart.js';
 import currency from 'currency.js';
 import { startOfWeek, isAfter, parseISO, format } from 'date-fns';
-import { Plus, Utensils, Car, ShoppingBag, Zap, Receipt } from 'lucide-react';
+import { Plus, Utensils, Car, ShoppingBag, Zap, Receipt, Edit, Trash2, X } from 'lucide-react';
 import { useStore } from '../../store/useStore';
-import { useExpenses, useCreateExpense, useExpenseSummary, useExpenseCategories, useCreateExpenseCategory } from '../../hooks/useExpenses';
+import { useExpenses, useCreateExpense, useUpdateExpense, useDeleteExpense, useExpenseSummary, useExpenseCategories, useCreateExpenseCategory } from '../../hooks/useExpenses';
 import { useSalesSummary } from '../../hooks/useSalesSummary';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip);
@@ -24,7 +24,20 @@ export default function ExpensesPage() {
     const { data: categories = [] } = useExpenseCategories();
     const { data: salesSummary } = useSalesSummary(); // Added to fetch weekly sales
 
+    const currentWeekSales = useMemo(() => {
+        if (!salesSummary?.weeklyRevenue) return 0;
+        const d = new Date();
+        const day = d.getDay();
+        const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+        const monday = new Date(d);
+        monday.setDate(diff);
+        const weekKey = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
+        return (salesSummary.weeklyRevenue[weekKey] || 0) - (summary?.weeklyTotal || 0);
+    }, [salesSummary, summary]);
+
     const createExpense = useCreateExpense();
+    const updateExpense = useUpdateExpense();
+    const deleteExpense = useDeleteExpense();
     const createCategory = useCreateExpenseCategory();
     const addToast = useStore((state) => state.addToast);
 
@@ -32,6 +45,7 @@ export default function ExpensesPage() {
     const [amount, setAmount] = useState('');
     const [category, setCategory] = useState('');
     const [description, setDescription] = useState('');
+    const [editingExpense, setEditingExpense] = useState(null);
 
     // Custom Category States
     const [isAddingCategory, setIsAddingCategory] = useState(false);
@@ -39,10 +53,10 @@ export default function ExpensesPage() {
 
     // Auto-select first category when loaded if none is selected
     useEffect(() => {
-        if (categories.length > 0 && !category) {
+        if (categories.length > 0 && !category && !editingExpense) {
             setCategory(categories[0].name);
         }
-    }, [categories, category]);
+    }, [categories, category, editingExpense]);
 
     const weeklyChartData = useMemo(() => {
         const totals = [0, 0, 0, 0, 0, 0, 0];
@@ -85,12 +99,52 @@ export default function ExpensesPage() {
         e.preventDefault();
         if (!amount || !description || !category) return;
         try {
-            await createExpense.mutateAsync({ amount, category, description });
-            setAmount(''); setDescription('');
-            addToast({ title: 'Expense Added', message: 'Transaction saved.', type: 'success' });
+            if (editingExpense) {
+                await updateExpense.mutateAsync({
+                    id: editingExpense.id,
+                    amount,
+                    category,
+                    description,
+                    expense_date: editingExpense.expense_date
+                });
+                setEditingExpense(null);
+                addToast({ title: 'Expense Updated', message: 'Transaction updated.', type: 'success' });
+            } else {
+                await createExpense.mutateAsync({ amount, category, description });
+                addToast({ title: 'Expense Added', message: 'Transaction saved.', type: 'success' });
+            }
+            setAmount('');
+            setDescription('');
+            if (categories.length > 0) setCategory(categories[0].name);
         } catch (error) {
             addToast({ title: 'Error', message: error.message, type: 'error' });
         }
+    };
+
+    const handleEditClick = (exp) => {
+        setEditingExpense(exp);
+        setAmount(exp.amount);
+        setCategory(exp.category);
+        setDescription(exp.description);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const handleDeleteClick = async (id) => {
+        if (window.confirm('Are you sure you want to delete this expense?')) {
+            try {
+                await deleteExpense.mutateAsync(id);
+                addToast({ title: 'Deleted', message: 'Expense removed.', type: 'success' });
+            } catch (error) {
+                addToast({ title: 'Error', message: error.message, type: 'error' });
+            }
+        }
+    };
+
+    const cancelEdit = () => {
+        setEditingExpense(null);
+        setAmount('');
+        setDescription('');
+        if (categories.length > 0) setCategory(categories[0].name);
     };
 
     return (
@@ -108,7 +162,9 @@ export default function ExpensesPage() {
                             </div>
                             <div className="text-right">
                                 <p className="text-gray-500 text-xs font-semibold uppercase tracking-wider">Current Week Sales</p>
-                                <p className="text-xl font-bold text-emerald-500">+{currency(salesSummary?.weeklyTotal || 0, { symbol: '₱' }).format()}</p>
+                                <p className="text-xl font-bold" style={{ color: currentWeekSales >= 0 ? '#8DB600' : '#dc2626' }}>
+                                    {currentWeekSales >= 0 ? '+' : ''}{currency(currentWeekSales, { symbol: '₱' }).format()}
+                                </p>
                             </div>
                         </div>
 
@@ -131,8 +187,15 @@ export default function ExpensesPage() {
 
                 {/* Actions Panel */}
                 <div className="w-full lg:w-5/12 bg-white flex flex-col p-6 lg:border-l border-gray-100">
-                    <h3 className="text-xl font-bold text-gray-900 mb-4">Quick Add</h3>
-                    <form onSubmit={handleManualSubmit} className="bg-gray-50 p-4 rounded-3xl border border-gray-100 mb-8">
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-xl font-bold text-gray-900">{editingExpense ? 'Edit Expense' : 'Quick Add'}</h3>
+                        {editingExpense && (
+                            <button onClick={cancelEdit} className="text-gray-400 hover:text-gray-600 flex items-center gap-1 text-sm font-medium">
+                                <X className="w-4 h-4" /> Cancel
+                            </button>
+                        )}
+                    </div>
+                    <form onSubmit={handleManualSubmit} className={`${editingExpense ? 'bg-amber-50 border-amber-200' : 'bg-gray-50 border-gray-100'} p-4 rounded-3xl border mb-8 transition-colors`}>
                         <div className="flex flex-col sm:flex-row gap-3 mb-3 items-stretch">
                             <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="₱0.00" required step="0.01" className="input flex-[1]" />
 
@@ -188,8 +251,8 @@ export default function ExpensesPage() {
                         </div>
                         <div className="flex flex-col sm:flex-row gap-3">
                             <input type="text" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What did you buy?" required className="input flex-[2]" />
-                            <button type="submit" disabled={createExpense.isPending} className="btn btn--primary flex-1 flex justify-center items-center gap-2">
-                                {createExpense.isPending ? '...' : 'Add'} <Plus className="w-4 h-4" />
+                            <button type="submit" disabled={createExpense.isPending || updateExpense.isPending} className="btn btn--primary flex-1 flex justify-center items-center gap-2">
+                                {createExpense.isPending || updateExpense.isPending ? '...' : (editingExpense ? 'Update' : 'Add')} {editingExpense ? <Edit className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                             </button>
                         </div>
                     </form>
@@ -201,16 +264,35 @@ export default function ExpensesPage() {
                             const style = categoryStyles[exp.category] || { icon: Receipt, colorClass: 'bg-slate-100 text-slate-600' };
                             const Icon = style.icon;
                             return (
-                                <div key={exp.id} className="flex justify-between items-center p-3 hover:bg-gray-50 bg-white rounded-xl border border-gray-100 transition-colors">
-                                    <div className="flex items-center gap-3">
+                                <div key={exp.id} className={`flex justify-between items-center p-3 hover:bg-gray-50 bg-white rounded-xl border transition-colors ${editingExpense?.id === exp.id ? 'border-primary ring-1 ring-primary' : 'border-gray-300'}`}>
+                                    <div className="flex items-center gap-3 flex-1 pr-3 border-r border-gray-300">
                                         <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${style.colorClass}`}><Icon className="w-5 h-5" /></div>
                                         <div className="flex flex-col">
                                             <span className="font-semibold text-gray-800 text-sm">{exp.description}</span>
-                                            <span className="text-xs font-medium text-gray-500">{exp.category} &bull; {format(parseISO(exp.expense_date), 'MMM d, yyyy')}</span>
+                                            <span className="text-xs font-medium text-gray-500">
+                                                {exp.category} &bull; {format(parseISO(exp.expense_date), 'EEEE, MMM d, yyyy')}
+                                                {exp.users?.name && <span className="ml-1 text-primary font-bold italic opacity-70">by {exp.users.name}</span>}
+                                            </span>
                                         </div>
                                     </div>
-                                    <div className="text-right flex flex-col items-end">
+                                    <div className="text-right flex flex-col items-end pl-3 min-w-[120px]">
                                         <span className="font-bold text-red-500">-{currency(exp.amount, { symbol: '₱' }).format()}</span>
+                                        <div className="flex gap-2 mt-1">
+                                            <button
+                                                onClick={() => handleEditClick(exp)}
+                                                className="p-1 text-gray-400 hover:text-blue-500 transition-colors"
+                                                title="Edit"
+                                            >
+                                                <Edit className="w-3.5 h-3.5" />
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeleteClick(exp.id)}
+                                                className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+                                                title="Delete"
+                                            >
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             );

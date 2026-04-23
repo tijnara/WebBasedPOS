@@ -9,7 +9,10 @@ export function useExpenses() {
     return useQuery({
         queryKey: EXPENSES_KEY,
         queryFn: async () => {
-            const { data, error } = await supabase.from('expenses').select('*').order('expense_date', { ascending: false });
+            const { data, error } = await supabase
+                .from('expenses')
+                .select('*, users:created_by(name)')
+                .order('expense_date', { ascending: false });
             if (error) throw error;
             return data || [];
         },
@@ -82,6 +85,44 @@ export function useCreateExpenseCategory() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: CATEGORIES_KEY });
+        },
+    });
+}
+
+export function useUpdateExpense() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ id, ...expenseData }) => {
+            const { error } = await supabase
+                .from('expenses')
+                .update({
+                    amount: parseFloat(expenseData.amount),
+                    category: expenseData.category,
+                    description: expenseData.description,
+                    expense_date: expenseData.expense_date,
+                })
+                .eq('id', id);
+            if (error) throw error;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: EXPENSES_KEY });
+            queryClient.invalidateQueries({ queryKey: ['expense-summary'] });
+        },
+    });
+}
+
+export function useDeleteExpense() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (id) => {
+            const { error } = await supabase.from('expenses').delete().eq('id', id);
+            if (error) throw error;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: EXPENSES_KEY });
+            queryClient.invalidateQueries({ queryKey: ['expense-summary'] });
         },
     });
 }
