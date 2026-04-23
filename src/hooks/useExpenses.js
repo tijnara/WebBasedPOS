@@ -5,14 +5,19 @@ import { useStore } from '../store/useStore';
 const EXPENSES_KEY = ['expenses'];
 const CATEGORIES_KEY = ['expense-categories'];
 
-export function useExpenses() {
+export function useExpenses({ startDate, endDate } = {}) {
     return useQuery({
-        queryKey: EXPENSES_KEY,
+        queryKey: [...EXPENSES_KEY, startDate, endDate],
         queryFn: async () => {
-            const { data, error } = await supabase
+            let query = supabase
                 .from('expenses')
                 .select('*, users:created_by(name)')
                 .order('expense_date', { ascending: false });
+
+            if (startDate) query = query.gte('expense_date', startDate);
+            if (endDate) query = query.lte('expense_date', endDate);
+
+            const { data, error } = await query;
             if (error) throw error;
             return data || [];
         },

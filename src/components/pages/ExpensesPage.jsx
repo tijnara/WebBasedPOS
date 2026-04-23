@@ -1,15 +1,11 @@
 // Created on Sunday, April 20, 2026
 import React, { useState, useMemo, useEffect } from 'react';
-import { Bar } from 'react-chartjs-2';
-import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip } from 'chart.js';
 import currency from 'currency.js';
-import { startOfWeek, isAfter, parseISO, format } from 'date-fns';
-import { Plus, Utensils, Car, ShoppingBag, Zap, Receipt, Edit, Trash2, X } from 'lucide-react';
+import { startOfWeek, endOfWeek, parseISO, format } from 'date-fns';
+import { Plus, Utensils, Car, ShoppingBag, Zap, Receipt, Edit, Trash2, X, Calendar } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import { useExpenses, useCreateExpense, useUpdateExpense, useDeleteExpense, useExpenseSummary, useExpenseCategories, useCreateExpenseCategory } from '../../hooks/useExpenses';
 import { useSalesSummary } from '../../hooks/useSalesSummary';
-
-ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip);
 
 const categoryStyles = {
     'Food': { icon: Utensils, colorClass: 'bg-orange-100 text-orange-600' },
@@ -19,10 +15,17 @@ const categoryStyles = {
 };
 
 export default function ExpensesPage() {
-    const { data: expenses = [], isLoading } = useExpenses();
+    // Filter States
+    const [dateFrom, setDateFrom] = useState(format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd'));
+    const [dateTo, setDateTo] = useState(format(endOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd'));
+
+    const { data: expenses = [], isLoading } = useExpenses({ startDate: dateFrom, endDate: dateTo });
     const { data: summary } = useExpenseSummary();
     const { data: categories = [] } = useExpenseCategories();
-    const { data: salesSummary } = useSalesSummary(); // Added to fetch weekly sales
+    const { data: salesSummary } = useSalesSummary({
+        startDate: dateFrom ? parseISO(dateFrom) : undefined,
+        endDate: dateTo ? parseISO(dateTo) : undefined
+    });
 
     const currentWeekSales = useMemo(() => {
         if (!salesSummary?.weeklyRevenue) return 0;
@@ -57,19 +60,6 @@ export default function ExpensesPage() {
             setCategory(categories[0].name);
         }
     }, [categories, category, editingExpense]);
-
-    const weeklyChartData = useMemo(() => {
-        const totals = [0, 0, 0, 0, 0, 0, 0];
-        const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
-        expenses.forEach(exp => {
-            const expDate = parseISO(exp.expense_date);
-            if (isAfter(expDate, weekStart)) {
-                let dayIndex = expDate.getDay();
-                totals[dayIndex === 0 ? 6 : dayIndex - 1] += parseFloat(exp.amount);
-            }
-        });
-        return totals;
-    }, [expenses]);
 
     const handleCreateCategory = async () => {
         const trimmedName = newCategoryName.trim();
@@ -175,90 +165,112 @@ export default function ExpensesPage() {
                             <div><p className="text-xs uppercase font-semibold text-gray-500">All Time</p><p className="text-lg font-bold">{currency(summary?.grandTotal || 0, { symbol:'₱' }).format()}</p></div>
                         </div>
                     </div>
-                    <div className="p-6 -mt-6">
-                        <div className="bg-white rounded-3xl shadow-sm p-6 pt-10 border border-gray-100 h-[250px]">
-                            <Bar
-                                data={{ labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'], datasets: [{ data: weeklyChartData, backgroundColor: '#8DB600', borderRadius: 8 }] }}
-                                options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { display: false }, x: { grid: { display: false } } } }}
-                            />
+
+                    <div className="p-6">
+                        {/* Quick Add Section */}
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-xl font-bold text-gray-900">{editingExpense ? 'Edit Expense' : 'Quick Add'}</h3>
+                            {editingExpense && (
+                                <button onClick={cancelEdit} className="text-gray-400 hover:text-gray-600 flex items-center gap-1 text-sm font-medium">
+                                    <X className="w-4 h-4" /> Cancel
+                                </button>
+                            )}
+                        </div>
+                        <form onSubmit={handleManualSubmit} className={`${editingExpense ? 'bg-amber-50 border-amber-200' : 'bg-white border-gray-100'} p-4 rounded-3xl border shadow-sm mb-6 transition-colors`}>
+                            <div className="flex flex-col sm:flex-row gap-3 mb-3 items-stretch">
+                                <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="₱0.00" required step="0.01" className="input flex-[1]" />
+
+                                {/* Category Input / Toggle */}
+                                <div className="flex-[1.5]">
+                                    {isAddingCategory ? (
+                                        <div className="flex gap-2 h-full">
+                                            <input
+                                                type="text"
+                                                value={newCategoryName}
+                                                onChange={(e) => setNewCategoryName(e.target.value)}
+                                                placeholder="Category..."
+                                                className="input flex-1 text-sm py-0"
+                                                autoFocus
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={handleCreateCategory}
+                                                disabled={createCategory.isPending || !newCategoryName.trim()}
+                                                className="btn btn--primary text-sm px-3 shrink-0"
+                                            >
+                                                {createCategory.isPending ? '...' : 'Save'}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setIsAddingCategory(false);
+                                                    setNewCategoryName('');
+                                                    if(categories.length > 0) setCategory(categories[0].name);
+                                                }}
+                                                className="btn bg-gray-200 text-gray-600 hover:bg-gray-300 text-sm px-3 shrink-0"
+                                            >
+                                                Cancel
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <select
+                                            value={category}
+                                            onChange={(e) => {
+                                                if(e.target.value === 'ADD_NEW') { setIsAddingCategory(true); setCategory(''); }
+                                                else { setCategory(e.target.value); }
+                                            }}
+                                            className="input w-full h-full cursor-pointer"
+                                        >
+                                            {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                                            {categories.length === 0 && <option value="Food">Food</option>}
+                                            <option disabled>──────────</option>
+                                            <option value="ADD_NEW" className="font-bold text-primary">➕ Add New Category</option>
+                                        </select>
+                                    )}
+                                </div>
+
+                            </div>
+                            <div className="flex flex-col sm:flex-row gap-3">
+                                <input type="text" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What did you buy?" required className="input flex-[2]" />
+                                <button type="submit" disabled={createExpense.isPending || updateExpense.isPending} className="btn btn--primary flex-1 flex justify-center items-center gap-2">
+                                    {createExpense.isPending || updateExpense.isPending ? '...' : (editingExpense ? 'Update' : 'Add')} {editingExpense ? <Edit className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                                </button>
+                            </div>
+                        </form>
+
+                        {/* Filter Section */}
+                        <div className="bg-white rounded-3xl p-4 shadow-sm border border-gray-100 mb-6 flex flex-col sm:flex-row gap-4 items-center">
+                            <div className="flex items-center gap-2 text-gray-500 font-bold">
+                                <Calendar className="w-5 h-5 text-primary" /> Filter
+                            </div>
+                            <div className="flex items-center gap-3 w-full sm:w-auto">
+                                <div className="flex flex-col flex-1">
+                                    <span className="text-[10px] uppercase font-bold text-gray-400 ml-2 mb-1">From</span>
+                                    <input 
+                                        type="date" 
+                                        value={dateFrom} 
+                                        onChange={(e) => setDateFrom(e.target.value)}
+                                        className="input text-xs py-2 h-10" 
+                                    />
+                                </div>
+                                <div className="flex flex-col flex-1">
+                                    <span className="text-[10px] uppercase font-bold text-gray-400 ml-2 mb-1">To</span>
+                                    <input 
+                                        type="date" 
+                                        value={dateTo} 
+                                        onChange={(e) => setDateTo(e.target.value)}
+                                        className="input text-xs py-2 h-10" 
+                                    />
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 {/* Actions Panel */}
                 <div className="w-full lg:w-5/12 bg-white flex flex-col p-6 lg:border-l border-gray-100">
-                    <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-xl font-bold text-gray-900">{editingExpense ? 'Edit Expense' : 'Quick Add'}</h3>
-                        {editingExpense && (
-                            <button onClick={cancelEdit} className="text-gray-400 hover:text-gray-600 flex items-center gap-1 text-sm font-medium">
-                                <X className="w-4 h-4" /> Cancel
-                            </button>
-                        )}
-                    </div>
-                    <form onSubmit={handleManualSubmit} className={`${editingExpense ? 'bg-amber-50 border-amber-200' : 'bg-gray-50 border-gray-100'} p-4 rounded-3xl border mb-8 transition-colors`}>
-                        <div className="flex flex-col sm:flex-row gap-3 mb-3 items-stretch">
-                            <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="₱0.00" required step="0.01" className="input flex-[1]" />
-
-                            {/* Category Input / Toggle */}
-                            <div className="flex-[1.5]">
-                                {isAddingCategory ? (
-                                    <div className="flex gap-2 h-full">
-                                        <input
-                                            type="text"
-                                            value={newCategoryName}
-                                            onChange={(e) => setNewCategoryName(e.target.value)}
-                                            placeholder="Category..."
-                                            className="input flex-1 text-sm py-0"
-                                            autoFocus
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={handleCreateCategory}
-                                            disabled={createCategory.isPending || !newCategoryName.trim()}
-                                            className="btn btn--primary text-sm px-3 shrink-0"
-                                        >
-                                            {createCategory.isPending ? '...' : 'Save'}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setIsAddingCategory(false);
-                                                setNewCategoryName('');
-                                                if(categories.length > 0) setCategory(categories[0].name);
-                                            }}
-                                            className="btn bg-gray-200 text-gray-600 hover:bg-gray-300 text-sm px-3 shrink-0"
-                                        >
-                                            Cancel
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <select
-                                        value={category}
-                                        onChange={(e) => {
-                                            if(e.target.value === 'ADD_NEW') { setIsAddingCategory(true); setCategory(''); }
-                                            else { setCategory(e.target.value); }
-                                        }}
-                                        className="input w-full h-full cursor-pointer"
-                                    >
-                                        {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                                        {categories.length === 0 && <option value="Food">Food</option>}
-                                        <option disabled>──────────</option>
-                                        <option value="ADD_NEW" className="font-bold text-primary">➕ Add New Category</option>
-                                    </select>
-                                )}
-                            </div>
-
-                        </div>
-                        <div className="flex flex-col sm:flex-row gap-3">
-                            <input type="text" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What did you buy?" required className="input flex-[2]" />
-                            <button type="submit" disabled={createExpense.isPending || updateExpense.isPending} className="btn btn--primary flex-1 flex justify-center items-center gap-2">
-                                {createExpense.isPending || updateExpense.isPending ? '...' : (editingExpense ? 'Update' : 'Add')} {editingExpense ? <Edit className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-                            </button>
-                        </div>
-                    </form>
-
                     <h3 className="text-xl font-bold text-gray-900 mb-4">List of Expenses</h3>
-                    <div className="space-y-2 overflow-y-auto max-h-[400px] pr-2">
+                    <div className="space-y-2 overflow-y-auto max-h-[800px] pr-2">
                         {isLoading ? <p className="text-center py-4">Loading...</p> : expenses.map((exp) => {
                             // Fallback if custom category doesn't exist in styles object
                             const style = categoryStyles[exp.category] || { icon: Receipt, colorClass: 'bg-slate-100 text-slate-600' };
