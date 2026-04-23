@@ -1,6 +1,7 @@
 import React from 'react';
 import { CheckCircle2, Sparkles } from 'lucide-react';
 import { useCustomers } from '../../hooks/useCustomers'; // Import the hook
+import { AdsterraBanner } from './AdBanners';
 
 const Hero = () => {
   const { data: customersData, isLoading } = useCustomers(); // Use the hook to fetch customers
@@ -46,14 +47,15 @@ const Hero = () => {
             {/* A soft white card behind the text to guarantee contrast on smaller screens where the image spans full width */}
             <div className="bg-white/80 lg:bg-transparent backdrop-blur-sm lg:backdrop-blur-none p-6 lg:p-0 rounded-3xl">
 
-              {/* Premium Badge */}
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-teal-50 to-emerald-50 border border-teal-200/50 rounded-full mb-6 shadow-sm">
-                <Sparkles className="w-4 h-4 text-teal-600" />
-                <span className="text-sm font-semibold text-teal-700">Premium Water Purification Since 2020</span>
+              {/* Adsterra Banner Section */}
+              <div className="mb-6 overflow-hidden rounded-xl shadow-sm border border-gray-100 flex justify-center items-center bg-white/50 backdrop-blur-sm p-3">
+                <div className="flex flex-col items-center">
+                  <span className="text-[10px] text-gray-400 uppercase tracking-widest mb-2 block text-center">Advertisement</span>
+                  <AdsterraBanner />
+                </div>
               </div>
 
-              {/* Main Heading */}
-              <h1 className="text-4xl sm:text-5xl lg:text-5xl xl:text-6xl font-extrabold tracking-tight text-gray-900 mb-6 leading-tight">
+               {/* Main Heading */}              <h1 className="text-4xl sm:text-5xl lg:text-5xl xl:text-6xl font-extrabold tracking-tight text-gray-900 mb-6 leading-tight">
                 Your Family's Health in Labrador, Pangasinan,<br />{' '}
                 <span style={{
                   background: 'linear-gradient(to right, #8DB600, #0d9488)', // Apple green to teal

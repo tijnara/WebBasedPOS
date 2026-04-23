@@ -5,21 +5,30 @@ import { useStore } from '../store/useStore';
 const EXPENSES_KEY = ['expenses'];
 const CATEGORIES_KEY = ['expense-categories'];
 
-export function useExpenses({ startDate, endDate } = {}) {
+export function useExpenses({ startDate, endDate, page = 1, pageSize = 20 } = {}) {
     return useQuery({
-        queryKey: [...EXPENSES_KEY, startDate, endDate],
+        queryKey: [...EXPENSES_KEY, startDate, endDate, page, pageSize],
         queryFn: async () => {
+            const from = (page - 1) * pageSize;
+            const to = from + pageSize - 1;
+
             let query = supabase
                 .from('expenses')
-                .select('*, users:created_by(name)')
-                .order('expense_date', { ascending: false });
+                .select('*, users:created_by(name)', { count: 'exact' })
+                .order('expense_date', { ascending: false })
+                .range(from, to);
 
             if (startDate) query = query.gte('expense_date', startDate);
             if (endDate) query = query.lte('expense_date', endDate);
 
-            const { data, error } = await query;
+            const { data, error, count } = await query;
             if (error) throw error;
-            return data || [];
+            
+            return {
+                expenses: data || [],
+                totalCount: count || 0,
+                totalPages: Math.ceil((count || 0) / pageSize)
+            };
         },
     });
 }

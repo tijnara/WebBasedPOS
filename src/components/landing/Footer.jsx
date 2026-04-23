@@ -1,22 +1,33 @@
 import React from 'react';
 import Link from 'next/link';
 import { Heart } from 'lucide-react';
-import { AdsterraBanner } from './AdBanners';
 
 const Footer = () => {
     return (
         <>
-            {/* ADSTERRA BANNER SECTION */}
+            {/* ADSTERRA SMARTLINK SECTION */}
             <div className="bg-transparent relative z-20 py-10 flex justify-center items-center">
-                <div className="text-center bg-white/50 backdrop-blur-sm p-4 rounded-xl shadow-sm">
-                    <span className="text-[10px] text-gray-400 uppercase tracking-widest mb-2 block">Advertisement</span>
+                <div className="text-center bg-white/50 backdrop-blur-sm p-4 rounded-xl shadow-sm w-full max-w-lg mx-auto">
+                    <span className="text-[10px] text-gray-400 uppercase tracking-widest mb-2 block text-center">Sponsored Link</span>
 
-                    {/* Safely load Adsterra using our custom component */}
-                    <AdsterraBanner />
+                    {/* Smartlink Iframe */}
+                    <div className="overflow-hidden rounded-xl flex justify-center items-center">
+                        <iframe 
+                            src="https://undergocutlery.com/j47pjxwivi?key=db53a6d0c7a065d345ee8cc620b07b04" 
+                            width="100%" 
+                            height="150" 
+                            frameBorder="0" 
+                            scrolling="no"
+                            title="Undergo Cutlery"
+                            className="mx-auto"
+                            sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                            allow="accelerometer; border-color; border-style; border-width; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        ></iframe>
+                    </div>
 
                 </div>
             </div>
-            {/* END ADSTERRA BANNER SECTION */}
+            {/* END ADSTERRA SMARTLINK SECTION */}
 
             <footer className="text-slate-400 py-12 responsive-page">
                 <div className="container mx-auto px-6">

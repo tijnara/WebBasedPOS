@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import currency from 'currency.js';
 import { startOfWeek, endOfWeek, parseISO, format } from 'date-fns';
-import { Plus, Utensils, Car, ShoppingBag, Zap, Receipt, Edit, Trash2, X, Calendar } from 'lucide-react';
+import { Plus, Utensils, Car, ShoppingBag, Zap, Receipt, Edit, Trash2, X, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import { useExpenses, useCreateExpense, useUpdateExpense, useDeleteExpense, useExpenseSummary, useExpenseCategories, useCreateExpenseCategory } from '../../hooks/useExpenses';
 import { useSalesSummary } from '../../hooks/useSalesSummary';
@@ -18,8 +18,15 @@ export default function ExpensesPage() {
     // Filter States
     const [dateFrom, setDateFrom] = useState(format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd'));
     const [dateTo, setDateTo] = useState(format(endOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd'));
+    const [page, setPage] = useState(1);
+    const pageSize = 15;
 
-    const { data: expenses = [], isLoading } = useExpenses({ startDate: dateFrom, endDate: dateTo });
+    const { data: { expenses = [], totalCount = 0, totalPages = 1 } = {}, isLoading } = useExpenses({ 
+        startDate: dateFrom, 
+        endDate: dateTo,
+        page,
+        pageSize
+    });
     const { data: summary } = useExpenseSummary();
     const { data: categories = [] } = useExpenseCategories();
     const { data: salesSummary } = useSalesSummary({
@@ -136,6 +143,17 @@ export default function ExpensesPage() {
         setDescription('');
         if (categories.length > 0) setCategory(categories[0].name);
     };
+
+    const handlePageChange = (newPage) => {
+        setPage(newPage);
+        const listContainer = document.querySelector('.overflow-y-auto');
+        if (listContainer) listContainer.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    // Reset to page 1 when filters change
+    useEffect(() => {
+        setPage(1);
+    }, [dateFrom, dateTo]);
 
     return (
         <div className="responsive-page min-h-screen bg-slate-100">
@@ -268,9 +286,13 @@ export default function ExpensesPage() {
                 </div>
 
                 {/* Actions Panel */}
-                <div className="w-full lg:w-5/12 bg-white flex flex-col p-6 lg:border-l border-gray-100">
-                    <h3 className="text-xl font-bold text-gray-900 mb-4">List of Expenses</h3>
-                    <div className="space-y-2 overflow-y-auto max-h-[800px] pr-2">
+                <div className="w-full lg:w-5/12 bg-white flex flex-col p-6 lg:border-l border-gray-100 h-full min-h-[600px] lg:h-auto">
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-xl font-bold text-gray-900">List of Expenses</h3>
+                        <span className="text-xs font-medium text-gray-400">{totalCount} total</span>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto pr-2 space-y-2 mb-4 max-h-[600px]">
                         {isLoading ? <p className="text-center py-4">Loading...</p> : expenses.map((exp) => {
                             // Fallback if custom category doesn't exist in styles object
                             const style = categoryStyles[exp.category] || { icon: Receipt, colorClass: 'bg-slate-100 text-slate-600' };
@@ -316,6 +338,27 @@ export default function ExpensesPage() {
                             </div>
                         )}
                     </div>
+
+                    {/* Pagination Controls */}
+                    {totalPages > 1 && (
+                        <div className="flex items-center justify-between border-t border-gray-100 pt-4 mt-auto">
+                            <button
+                                onClick={() => handlePageChange(page - 1)}
+                                disabled={page === 1}
+                                className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-primary disabled:opacity-30 transition-colors"
+                            >
+                                <ChevronLeft className="w-4 h-4" /> Prev
+                            </button>
+                            <span className="text-xs font-bold text-gray-400">Page {page} of {totalPages}</span>
+                            <button
+                                onClick={() => handlePageChange(page + 1)}
+                                disabled={page === totalPages}
+                                className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-primary disabled:opacity-30 transition-colors"
+                            >
+                                Next <ChevronRight className="w-4 h-4" />
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
