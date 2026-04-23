@@ -541,10 +541,7 @@ export default function POSPage() {
     return (
         <div className="pos-page responsive-page">
             
-            {/* Mobile Title */}
-            <div className="md:hidden mb-4 pt-2">
-                <h1 className="text-2xl font-bold text-primary tracking-tight">Point of Sale</h1>
-            </div>
+            {/* Mobile Title Removed */}
 
             {/* Quick Keys Legend */}
             <div className="flex flex-wrap gap-x-6 gap-y-2 mb-4 text-[10px] sm:text-xs font-medium text-gray-500 bg-gray-50/50 p-2 rounded-lg border border-gray-100 items-center">

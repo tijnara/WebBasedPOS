@@ -539,11 +539,11 @@ const Navbar = () => {
                     <div className="brand flex items-center min-w-0 flex-shrink-0">
                         <Image src="/seaside.png" alt="Seaside Logo" width={80} height={80} loading="eager" className="flex-shrink-0" />
                         {router.pathname.includes('/pos') ? (
-                            <span className="ml-2 text-xl font-bold text-primary block md:inline whitespace-nowrap">
+                            <span className="ml-2 text-xl font-bold text-primary hidden md:block whitespace-nowrap">
                                 Point of Sale
                             </span>
                         ) : (
-                            <span className="font-bold text-lg text-primary hidden md:inline whitespace-nowrap">Seaside</span>
+                            <span className="font-bold text-lg text-primary hidden md:block whitespace-nowrap ml-2">Seaside</span>
                         )}
                     </div>
                 </div>
