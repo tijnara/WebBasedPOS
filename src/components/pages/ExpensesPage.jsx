@@ -1,7 +1,7 @@
 // Created on Sunday, April 20, 2026
 import React, { useState, useMemo, useEffect } from 'react';
 import currency from 'currency.js';
-import { startOfWeek, endOfWeek, parseISO, format } from 'date-fns';
+import { startOfWeek, endOfWeek, parseISO, format, subWeeks, addWeeks } from 'date-fns';
 import { Plus, Utensils, Car, ShoppingBag, Zap, Receipt, Edit, Trash2, X, Calendar, ChevronLeft, ChevronRight, Search, RotateCcw } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import { useExpenses, useCreateExpense, useUpdateExpense, useDeleteExpense, useExpenseSummary, useExpenseCategories, useCreateExpenseCategory } from '../../hooks/useExpenses';
@@ -30,12 +30,12 @@ export default function ExpensesPage() {
     const debouncedSearch = useDebounce(searchTerm, 400);
 
     const [page, setPage] = useState(1);
-    const pageSize = 15;
+    const pageSize = 1000;
 
-    const { data: { expenses = [], totalCount = 0, totalPages = 1, totalSum = 0 } = {}, isLoading } = useExpenses({
+    const { data: { expenses = [], totalCount = 0, totalSum = 0 } = {}, isLoading } = useExpenses({
         startDate: dateFrom, 
         endDate: dateTo,
-        page,
+        page: 1,
         pageSize,
         searchTerm: debouncedSearch,
         category: filterCategory
@@ -161,8 +161,23 @@ export default function ExpensesPage() {
         if (categories.length > 0) setCategory(categories[0].name);
     };
 
-    const handlePageChange = (newPage) => {
-        setPage(newPage);
+    const handleNextPage = () => {
+        setPage(prev => prev + 1);
+        const newFrom = format(subWeeks(parseISO(dateFrom), 1), 'yyyy-MM-dd');
+        const newTo = format(subWeeks(parseISO(dateTo), 1), 'yyyy-MM-dd');
+        setDateFrom(newFrom);
+        setDateTo(newTo);
+        const listContainer = document.querySelector('.overflow-y-auto');
+        if (listContainer) listContainer.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const handlePrevPage = () => {
+        if (page <= 1) return;
+        setPage(prev => prev - 1);
+        const newFrom = format(addWeeks(parseISO(dateFrom), 1), 'yyyy-MM-dd');
+        const newTo = format(addWeeks(parseISO(dateTo), 1), 'yyyy-MM-dd');
+        setDateFrom(newFrom);
+        setDateTo(newTo);
         const listContainer = document.querySelector('.overflow-y-auto');
         if (listContainer) listContainer.scrollTo({ top: 0, behavior: 'smooth' });
     };
@@ -174,11 +189,6 @@ export default function ExpensesPage() {
         setFilterCategory(initialFilterCategory);
         setPage(1); // Reset page to 1 when filters are reset
     };
-
-    // Reset to page 1 when filters change
-    useEffect(() => {
-        setPage(1);
-    }, [dateFrom, dateTo, debouncedSearch, filterCategory]);
 
     return (
         <div className="responsive-page min-h-screen bg-slate-100">
@@ -335,7 +345,7 @@ export default function ExpensesPage() {
                                     <input 
                                         type="date" 
                                         value={dateFrom} 
-                                        onChange={(e) => setDateFrom(e.target.value)}
+                                        onChange={(e) => { setDateFrom(e.target.value); setPage(1); }}
                                         className="input text-sm h-10 w-full" 
                                     />
                                 </div>
@@ -344,7 +354,7 @@ export default function ExpensesPage() {
                                     <input 
                                         type="date" 
                                         value={dateTo} 
-                                        onChange={(e) => setDateTo(e.target.value)}
+                                        onChange={(e) => { setDateTo(e.target.value); setPage(1); }}
                                         className="input text-sm h-10 w-full"
                                     />
                                 </div>
@@ -416,25 +426,25 @@ export default function ExpensesPage() {
                     </div>
 
                     {/* Pagination Controls */}
-                    {totalPages > 1 && (
-                        <div className="flex items-center justify-between border-t border-gray-100 pt-4 mt-auto">
-                            <button
-                                onClick={() => handlePageChange(page - 1)}
-                                disabled={page === 1}
-                                className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-primary disabled:opacity-30 transition-colors"
-                            >
-                                <ChevronLeft className="w-4 h-4" /> Prev
-                            </button>
-                            <span className="text-xs font-bold text-gray-400">Page {page} of {totalPages}</span>
-                            <button
-                                onClick={() => handlePageChange(page + 1)}
-                                disabled={page === totalPages}
-                                className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-primary disabled:opacity-30 transition-colors"
-                            >
-                                Next <ChevronRight className="w-4 h-4" />
-                            </button>
+                    <div className="flex items-center justify-between border-t border-gray-100 pt-4 mt-auto">
+                        <button
+                            onClick={handlePrevPage}
+                            disabled={page === 1}
+                            className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-primary disabled:opacity-30 transition-colors"
+                        >
+                            <ChevronLeft className="w-4 h-4" /> Prev
+                        </button>
+                        <div className="flex flex-col items-center">
+                            <span className="text-[10px] uppercase font-bold text-gray-400">Page {page}</span>
+                            <span className="text-xs font-bold text-gray-600">Week of {format(parseISO(dateFrom), 'MMM d')}</span>
                         </div>
-                    )}
+                        <button
+                            onClick={handleNextPage}
+                            className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-primary transition-colors"
+                        >
+                            Next <ChevronRight className="w-4 h-4" />
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
