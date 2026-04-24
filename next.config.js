@@ -13,6 +13,10 @@ const supabaseHostname = new URL(supabaseUrl).hostname;
 const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ['recharts'],
+  // Silence Turbopack warning as requested by Next.js 16+
+  experimental: {
+    turbopack: {},
+  },
   images: {
     formats: ['image/avif', 'image/webp'],
     remotePatterns: [
