@@ -3,10 +3,11 @@ import React, { useMemo } from 'react';
 import { Bar } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
 import { getDay, eachWeekOfInterval, startOfWeek, endOfWeek, format } from 'date-fns';
+import { utcToZonedTime } from 'date-fns-tz'; // Import utcToZonedTime for timezone conversion
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
-const WeeklySalesChart = ({ salesData = [], startDate, endDate }) => {
+const WeeklySalesChart = ({ salesData = [], startDate, endDate, isLoading }) => {
     // Determine the weeks to display based on the selected date range
     const weeks = useMemo(() => {
         const weekOptions = { weekStartsOn: 1 }; // Monday
@@ -36,9 +37,12 @@ const WeeklySalesChart = ({ salesData = [], startDate, endDate }) => {
         const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
         sales.forEach(sale => {
-            const saleDate = new Date(sale.saleTimestamp || sale.saletimestamp);
-            if (saleDate >= weekStart && saleDate <= weekEnd) {
-                let dayOfWeek = getDay(saleDate);
+            const utcSaleDate = new Date(sale.saleTimestamp || sale.saletimestamp);
+            // Convert UTC sale date to 'Asia/Manila' timezone for accurate day grouping
+            const zonedSaleDate = utcToZonedTime(utcSaleDate, 'Asia/Manila');
+
+            if (zonedSaleDate >= weekStart && zonedSaleDate <= weekEnd) {
+                let dayOfWeek = getDay(zonedSaleDate);
                 dayOfWeek = (dayOfWeek === 0) ? 6 : dayOfWeek - 1; // Adjust Sunday to be the last day
 
                 weeklySales[dayOfWeek] += Number(sale.totalAmount || sale.totalamount || 0);
@@ -144,6 +148,16 @@ const WeeklySalesChart = ({ salesData = [], startDate, endDate }) => {
             return { key: idx, data, options };
         });
     }, [weeks, salesData, isMultiWeek]);
+
+    if (isLoading) {
+        return (
+            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm h-96 animate-pulse flex flex-col">
+                <div className="h-6 w-48 bg-gray-200 rounded mb-2"></div>
+                <div className="h-4 w-64 bg-gray-100 rounded mb-8"></div>
+                <div className="flex-1 w-full bg-gray-50 rounded-xl"></div>
+            </div>
+        );
+    }
 
     return (
         <div className="bg-white rounded-lg p-4 responsive-page">

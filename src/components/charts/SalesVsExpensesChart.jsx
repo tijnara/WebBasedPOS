@@ -4,53 +4,10 @@ import {
     BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid
 } from 'recharts';
 import { eachDayOfInterval, format, parseISO } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 import { supabase } from '../../lib/supabaseClient';
 import { useStore } from '../../store/useStore';
-
-// Helper for currency formatting
-const formatCurrency = (value) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'PHP' }).format(value);
-};
-
-const CustomTooltip = ({ active, payload, label }) => {
-    if (active && payload && payload.length) {
-        const data = payload[0].payload; // This contains the daily aggregated data
-        const totalSales = data.sales || 0;
-        const totalExpenses = data.expenses || 0;
-        const expenseList = data.expenseList || [];
-
-        return (
-            <div className="bg-white p-4 rounded-xl shadow-xl border border-gray-200 text-sm">
-                <p className="font-bold text-slate-800 mb-2">{label}</p>
-                <p className="text-emerald-600 mb-1">
-                    Total Sales: <span className="font-semibold">{formatCurrency(totalSales)}</span>
-                </p>
-                <p className="text-red-600 mb-3">
-                    Total Expenses: <span className="font-semibold">{formatCurrency(totalExpenses)}</span>
-                </p>
-
-                {expenseList.length > 0 && (
-                    <>
-                        <p className="font-semibold text-slate-700 mb-2">Itemized Expenses:</p>
-                        <div className="max-h-40 overflow-y-auto pr-2 custom-scrollbar">
-                            <ul className="list-disc list-inside space-y-1">
-                                {expenseList.map((expense, index) => (
-                                    <li key={index} className="text-gray-700">
-                                        {expense.name}: <span className="font-medium">{formatCurrency(expense.amount)}</span>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    </>
-                )}
-                {expenseList.length === 0 && totalExpenses > 0 && (
-                    <p className="text-gray-500 italic">No detailed expense items available.</p>
-                )}
-            </div>
-        );
-    }
-    return null;
-};
+import ExpenseTooltip from './ExpenseTooltip';
 
 const SalesVsExpensesChart = ({ dateFrom, dateTo }) => {
     const isDemo = useStore(state => state.user?.isDemo);
@@ -129,7 +86,7 @@ const SalesVsExpensesChart = ({ dateFrom, dateTo }) => {
                 (salesData || []).forEach(sale => {
                     const ts = sale.saletimestamp || sale.created_at;
                     if (!ts) return;
-                    const dateKey = format(parseISO(ts), 'yyyy-MM-dd');
+                    const dateKey = formatInTimeZone(ts, 'Asia/Manila', 'yyyy-MM-dd');
                     if (dataMap[dateKey]) {
                         dataMap[dateKey].sales += (Number(sale.totalamount) || 0);
                     }
@@ -138,7 +95,7 @@ const SalesVsExpensesChart = ({ dateFrom, dateTo }) => {
                 (expensesData || []).forEach(expense => {
                     const ts = expense.expense_date;
                     if (!ts) return;
-                    const dateKey = format(parseISO(ts), 'yyyy-MM-dd');
+                    const dateKey = formatInTimeZone(ts, 'Asia/Manila', 'yyyy-MM-dd');
                     if (dataMap[dateKey]) {
                         dataMap[dateKey].expenses += (Number(expense.amount) || 0);
                         dataMap[dateKey].expenseList.push({
@@ -160,9 +117,10 @@ const SalesVsExpensesChart = ({ dateFrom, dateTo }) => {
 
     if (isLoadingSales || isLoadingExpenses) {
         return (
-            <div className="h-96 flex flex-col items-center justify-center bg-white rounded-xl shadow-sm text-slate-400">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500 mb-4"></div>
-                <p>Loading Sales vs Expenses Chart...</p>
+            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm h-96 animate-pulse flex flex-col">
+                <div className="h-6 w-48 bg-gray-200 rounded mb-2"></div>
+                <div className="h-4 w-64 bg-gray-100 rounded mb-8"></div>
+                <div className="flex-1 w-full bg-gray-50 rounded-xl"></div>
             </div>
         );
     }
@@ -216,7 +174,7 @@ const SalesVsExpensesChart = ({ dateFrom, dateTo }) => {
                                 }}
                                 style={{ fontSize: '11px', fill: '#64748b' }}
                             />
-                            <Tooltip cursor={{ fill: 'rgba(0,0,0,0.05)' }} content={<CustomTooltip />} />
+                            <Tooltip cursor={{ fill: 'rgba(0,0,0,0.05)' }} content={<ExpenseTooltip />} />
                             <Legend wrapperStyle={{ paddingTop: '10px' }} />
                             <Bar dataKey="sales" name="Daily Sales" fill="#10B981" barSize={12} radius={[4, 4, 0, 0]} />
                             <Bar dataKey="expenses" name="Daily Expenses" fill="#EF4444" barSize={12} radius={[4, 4, 0, 0]} />
