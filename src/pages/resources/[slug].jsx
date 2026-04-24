@@ -3,12 +3,12 @@ import React from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
-import { supabase } from '../../src/lib/supabaseClient';
+import { supabase } from '../../lib/supabaseClient';
 
 // --- Adsterra Monetization Components ---
-import Meta from '../../src/components/landing/Meta';
-import Footer from '../../src/components/landing/Footer';
-import { AdsterraVerticalBanner, AdsterraBanner } from '../../src/components/landing/AdBanners';
+import Meta from '../../components/landing/Meta';
+import Footer from '../../components/landing/Footer';
+import { AdsterraVerticalBanner, AdsterraBanner } from '../../components/landing/AdBanners';
 
 export default function DynamicArticle({ article }) {
     if (!article) return <div className="p-20 text-center">Article not found.</div>;

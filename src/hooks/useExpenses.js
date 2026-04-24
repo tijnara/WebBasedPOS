@@ -43,6 +43,7 @@ export function useCreateExpense() {
                 amount: parseFloat(expenseData.amount),
                 category: expenseData.category,
                 description: expenseData.description,
+                expense_date: expenseData.expense_date || new Date().toISOString(),
                 created_by: user?.id || null,
             };
             const { error } = await supabase.from('expenses').insert([payload]);

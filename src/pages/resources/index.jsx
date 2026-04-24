@@ -2,13 +2,13 @@ import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
-import { supabase } from '../../src/lib/supabaseClient';
+import { supabase } from '../../lib/supabaseClient';
 import { motion } from 'framer-motion';
 
 // --- Adsterra Monetization Components ---
-import Meta from '../../src/components/landing/Meta';
-import Footer from '../../src/components/landing/Footer';
-import { AdsterraVerticalBanner, AdsterraBanner } from '../../src/components/landing/AdBanners';
+import Meta from '../../components/landing/Meta';
+import Footer from '../../components/landing/Footer';
+import { AdsterraVerticalBanner, AdsterraBanner } from '../../components/landing/AdBanners';
 
 // --- High-Fidelity Reality 3D Icon Components ---
 const IconWrapper = ({ children, index }) => (

@@ -55,6 +55,7 @@ export default function ExpensesPage() {
     const [amount, setAmount] = useState('');
     const [category, setCategory] = useState('');
     const [description, setDescription] = useState('');
+    const [expenseDate, setExpenseDate] = useState(format(new Date(), 'yyyy-MM-dd'));
     const [editingExpense, setEditingExpense] = useState(null);
 
     // Custom Category States
@@ -94,7 +95,7 @@ export default function ExpensesPage() {
 
     const handleManualSubmit = async (e) => {
         e.preventDefault();
-        if (!amount || !description || !category) return;
+        if (!amount || !description || !category || !expenseDate) return;
         try {
             if (editingExpense) {
                 await updateExpense.mutateAsync({
@@ -102,16 +103,17 @@ export default function ExpensesPage() {
                     amount,
                     category,
                     description,
-                    expense_date: editingExpense.expense_date
+                    expense_date: expenseDate
                 });
                 setEditingExpense(null);
                 addToast({ title: 'Expense Updated', message: 'Transaction updated.', type: 'success' });
             } else {
-                await createExpense.mutateAsync({ amount, category, description });
+                await createExpense.mutateAsync({ amount, category, description, expense_date: expenseDate });
                 addToast({ title: 'Expense Added', message: 'Transaction saved.', type: 'success' });
             }
             setAmount('');
             setDescription('');
+            setExpenseDate(format(new Date(), 'yyyy-MM-dd'));
             if (categories.length > 0) setCategory(categories[0].name);
         } catch (error) {
             addToast({ title: 'Error', message: error.message, type: 'error' });
@@ -123,6 +125,7 @@ export default function ExpensesPage() {
         setAmount(exp.amount);
         setCategory(exp.category);
         setDescription(exp.description);
+        setExpenseDate(format(parseISO(exp.expense_date), 'yyyy-MM-dd'));
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
@@ -141,6 +144,7 @@ export default function ExpensesPage() {
         setEditingExpense(null);
         setAmount('');
         setDescription('');
+        setExpenseDate(format(new Date(), 'yyyy-MM-dd'));
         if (categories.length > 0) setCategory(categories[0].name);
     };
 
@@ -197,6 +201,17 @@ export default function ExpensesPage() {
                         <form onSubmit={handleManualSubmit} className={`${editingExpense ? 'bg-amber-50 border-amber-200' : 'bg-white border-gray-100'} p-4 rounded-3xl border shadow-sm mb-6 transition-colors`}>
                             <div className="flex flex-col sm:flex-row gap-3 mb-3 items-stretch">
                                 <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="₱0.00" required step="0.01" className="input flex-[1]" />
+
+                                <div className="flex-[1] flex flex-col">
+                                    <span className="text-[10px] uppercase font-bold text-gray-400 ml-2 mb-1">Date</span>
+                                    <input 
+                                        type="date" 
+                                        value={expenseDate} 
+                                        onChange={(e) => setExpenseDate(e.target.value)} 
+                                        required 
+                                        className="input" 
+                                    />
+                                </div>
 
                                 {/* Category Input / Toggle */}
                                 <div className="flex-[1.5]">

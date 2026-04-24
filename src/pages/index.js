@@ -2,23 +2,23 @@
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { useSettings } from '../src/hooks/useSettings';
-import { useStore } from '../src/store/useStore';
+import { useSettings } from '../hooks/useSettings';
+import { useStore } from '../store/useStore';
 
-import BackgroundImage from '../src/components/landing/BackgroundImage';
-import Meta from '../src/components/landing/Meta';
-import Header from '../src/components/landing/Header';
-import Hero from '../src/components/landing/Hero';
-import WhyChooseUs from '../src/components/landing/WhyChooseUs';
-import Services from '../src/components/landing/Services';
-import { Process as ProcessSection } from '../src/components/landing/ProcessSection';
-import Gallery from '../src/components/landing/Gallery';
-import Location from '../src/components/landing/Location';
-import Contact from '../src/components/landing/Contact';
-import Footer from '../src/components/landing/Footer';
-import ScrollToTop from '../src/components/landing/ScrollToTop';
-import ViewCounter from '../src/components/landing/ViewCounter';
-import { AdsterraVerticalBanner } from '../src/components/landing/AdBanners';
+import BackgroundImage from '../components/landing/BackgroundImage';
+import Meta from '../components/landing/Meta';
+import Header from '../components/landing/Header';
+import Hero from '../components/landing/Hero';
+import WhyChooseUs from '../components/landing/WhyChooseUs';
+import Services from '../components/landing/Services';
+import { Process as ProcessSection } from '../components/landing/ProcessSection';
+import Gallery from '../components/landing/Gallery';
+import Location from '../components/landing/Location';
+import Contact from '../components/landing/Contact';
+import Footer from '../components/landing/Footer';
+import ScrollToTop from '../components/landing/ScrollToTop';
+import ViewCounter from '../components/landing/ViewCounter';
+import { AdsterraVerticalBanner } from '../components/landing/AdBanners';
 
 const SeasideWaterLanding = () => {
     const { data: settings } = useSettings();

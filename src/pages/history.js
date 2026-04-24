@@ -1,6 +1,6 @@
-import HistoryPage from '../src/components/pages/HistoryPage';
+import HistoryPage from '../components/pages/HistoryPage';
 import { QueryClient, dehydrate } from '@tanstack/react-query';
-import { supabase } from '../src/lib/supabaseClient';
+import { supabase } from '../lib/supabaseClient';
 
 export default HistoryPage;
 

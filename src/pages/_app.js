@@ -1,17 +1,17 @@
 // pages/_app.js
-import '../styles/globals.css';
-import '../styles/navbar.css';
+import '../../styles/globals.css';
+import '../../styles/navbar.css';
 import 'react-day-picker/dist/style.css';
-import '../src/components/pages/POSPage.css';
+import '../components/pages/POSPage.css';
 
 import React, { useState, useEffect } from 'react';
-import { useStore } from '../src/store/useStore';
+import { useStore } from '../store/useStore';
 import { useRouter } from 'next/router';
-import Navbar from '../src/components/Navbar';
-import TabBar from '../src/components/TabBar';
-import FloatingNotes from '../src/components/FloatingNotes';
-import FloatingMessages from '../src/components/FloatingMessages';
-import { Button } from '../src/components/ui';
+import Navbar from '../components/Navbar';
+import TabBar from '../components/TabBar';
+import FloatingNotes from '../components/FloatingNotes';
+import FloatingMessages from '../components/FloatingMessages';
+import { Button } from '../components/ui';
 // 1. Import HydrationBoundary
 import { QueryClient, QueryClientProvider, HydrationBoundary } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
