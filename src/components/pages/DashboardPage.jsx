@@ -30,9 +30,6 @@ import { useDailySales } from '../../hooks/useDailySales';
 // Import date-fns for date range management
 import { subDays, startOfDay, endOfDay, formatISO } from 'date-fns';
 
-// Import custom chart components
-import SalesVsExpensesChart from '../charts/SalesVsExpensesChart';
-
 // Import floating buttons
 import FloatingMessages from '../FloatingMessages';
 import FloatingNotes from '../FloatingNotes';
@@ -45,6 +42,10 @@ const ChartLoading = () => (
 );
 
 // Dynamic imports for Chart components
+const SalesVsExpensesChart = dynamic(() => import('../charts/SalesVsExpensesChart'), {
+    ssr: false,
+    loading: () => <ChartLoading />
+});
 const Line = dynamic(() => import('react-chartjs-2').then((mod) => mod.Line), { 
     ssr: false, 
     loading: () => <ChartLoading /> 
