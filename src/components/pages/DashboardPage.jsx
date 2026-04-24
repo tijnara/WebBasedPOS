@@ -27,6 +27,12 @@ import { useSalesSummary } from '../../hooks/useSalesSummary';
 import { useTopProductsSummary } from '../../hooks/useTopProductsSummary';
 import { useDailySales } from '../../hooks/useDailySales';
 
+// Import date-fns for date range management
+import { subDays, startOfDay, endOfDay, formatISO } from 'date-fns';
+
+// Import custom chart components
+import SalesVsExpensesChart from '../charts/SalesVsExpensesChart';
+
 // Import floating buttons
 import FloatingMessages from '../FloatingMessages';
 import FloatingNotes from '../FloatingNotes';
@@ -71,6 +77,10 @@ export default function DashboardPage() {
 
     const [dateFilter, setDateFilter] = useState('Trailing 12 Months');
     const [territory, setTerritory] = useState('All');
+
+    // Default date range for Sales vs Expenses: Last 30 days
+    const [dateFrom, setDateFrom] = useState(formatISO(startOfDay(subDays(new Date(), 30))));
+    const [dateTo, setDateTo] = useState(formatISO(endOfDay(new Date())));
 
     // Toggle for Monthly vs Weekly chart view
     const [salesView, setSalesView] = useState('Monthly');
@@ -438,6 +448,11 @@ export default function DashboardPage() {
                                 </CardContent>
                             </Card>
                         </div>
+                    </div>
+
+                    {/* --- SALES VS EXPENSES CHART --- */}
+                    <div className="w-full">
+                        <SalesVsExpensesChart dateFrom={dateFrom} dateTo={dateTo} />
                     </div>
 
                     {/* --- BOTTOM ROW (2 Columns) --- */}
