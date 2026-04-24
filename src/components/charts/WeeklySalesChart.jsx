@@ -3,7 +3,7 @@ import React, { useMemo } from 'react';
 import { Bar } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
 import { getDay, eachWeekOfInterval, startOfWeek, endOfWeek, format } from 'date-fns';
-import { utcToZonedTime } from 'date-fns-tz'; // Import utcToZonedTime for timezone conversion
+import { toZonedTime } from 'date-fns-tz'; // Corrected import for date-fns-tz v3+
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
@@ -38,8 +38,8 @@ const WeeklySalesChart = ({ salesData = [], startDate, endDate, isLoading }) => 
 
         sales.forEach(sale => {
             const utcSaleDate = new Date(sale.saleTimestamp || sale.saletimestamp);
-            // Convert UTC sale date to 'Asia/Manila' timezone for accurate day grouping
-            const zonedSaleDate = utcToZonedTime(utcSaleDate, 'Asia/Manila');
+            // Convert UTC sale date to 'Asia/Manila' timezone for accurate day grouping using toZonedTime (date-fns-tz v3+)
+            const zonedSaleDate = toZonedTime(utcSaleDate, 'Asia/Manila');
 
             if (zonedSaleDate >= weekStart && zonedSaleDate <= weekEnd) {
                 let dayOfWeek = getDay(zonedSaleDate);
