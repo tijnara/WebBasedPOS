@@ -32,6 +32,7 @@
     "react-dom": "^19.2.1",
     "react-hook-form": "^7.72.0",
     "react-zxing": "^2.1.0",
+    "recharts": "^2.12.0",
     "tailwind-merge": "^3.3.1",
     "uuid": "^13.0.0",
     "zustand": "^4.5.4"
