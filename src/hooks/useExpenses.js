@@ -12,30 +12,45 @@ export function useExpenses({ startDate, endDate, page = 1, pageSize = 20, searc
             const from = (page - 1) * pageSize;
             const to = from + pageSize - 1;
 
-            let query = supabase
+            const applyFilters = (query) => {
+                if (startDate) query = query.gte('expense_date', startDate);
+                if (endDate) query = query.lte('expense_date', endDate);
+                
+                if (category && category !== 'All') {
+                    query = query.eq('category', category);
+                }
+
+                if (searchTerm) {
+                    query = query.ilike('description', `%${searchTerm}%`);
+                }
+                return query;
+            };
+
+            let mainQuery = supabase
                 .from('expenses')
                 .select('*, users:created_by(name)', { count: 'exact' })
                 .order('expense_date', { ascending: false })
                 .range(from, to);
 
-            if (startDate) query = query.gte('expense_date', startDate);
-            if (endDate) query = query.lte('expense_date', endDate);
-            
-            if (category && category !== 'All') {
-                query = query.eq('category', category);
-            }
+            let sumQuery = supabase
+                .from('expenses')
+                .select('amount');
 
-            if (searchTerm) {
-                query = query.ilike('description', `%${searchTerm}%`);
-            }
+            mainQuery = applyFilters(mainQuery);
+            sumQuery = applyFilters(sumQuery);
 
-            const { data, error, count } = await query;
-            if (error) throw error;
+            const [mainRes, sumRes] = await Promise.all([mainQuery, sumQuery]);
+
+            if (mainRes.error) throw mainRes.error;
+            if (sumRes.error) throw sumRes.error;
+
+            const totalSum = (sumRes.data || []).reduce((acc, curr) => acc + Number(curr.amount), 0);
 
             return {
-                expenses: data || [],
-                totalCount: count || 0,
-                totalPages: Math.ceil((count || 0) / pageSize)
+                expenses: mainRes.data || [],
+                totalCount: mainRes.count || 0,
+                totalPages: Math.ceil((mainRes.count || 0) / pageSize),
+                totalSum
             };
         },
     });

@@ -32,7 +32,7 @@ export default function ExpensesPage() {
     const [page, setPage] = useState(1);
     const pageSize = 15;
 
-    const { data: { expenses = [], totalCount = 0, totalPages = 1 } = {}, isLoading } = useExpenses({
+    const { data: { expenses = [], totalCount = 0, totalPages = 1, totalSum = 0 } = {}, isLoading } = useExpenses({
         startDate: dateFrom, 
         endDate: dateTo,
         page,
@@ -355,9 +355,17 @@ export default function ExpensesPage() {
 
                 {/* Actions Panel */}
                 <div className="w-full lg:w-5/12 bg-white flex flex-col p-6 lg:border-l border-gray-100 h-full min-h-[600px] lg:h-auto">
-                    <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-xl font-bold text-gray-900">List of Expenses</h3>
-                        <span className="text-xs font-medium text-gray-400">{totalCount} total</span>
+                    <div className="flex justify-between items-end mb-4">
+                        <div>
+                            <h3 className="text-xl font-bold text-gray-900">List of Expenses</h3>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                                <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Filtered Total:</span>
+                                <span className="text-sm font-semibold text-red-500">
+                                    {currency(totalSum, { symbol: '₱' }).format()}
+                                </span>
+                            </div>
+                        </div>
+                        <span className="text-xs font-medium text-gray-400 pb-1">{totalCount} total</span>
                     </div>
 
                     <div className="flex-1 overflow-y-auto pr-2 space-y-2 mb-4 max-h-[600px]">
