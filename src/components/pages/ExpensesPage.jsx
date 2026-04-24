@@ -2,10 +2,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import currency from 'currency.js';
 import { startOfWeek, endOfWeek, parseISO, format } from 'date-fns';
-import { Plus, Utensils, Car, ShoppingBag, Zap, Receipt, Edit, Trash2, X, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Utensils, Car, ShoppingBag, Zap, Receipt, Edit, Trash2, X, Calendar, ChevronLeft, ChevronRight, Search, RotateCcw } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import { useExpenses, useCreateExpense, useUpdateExpense, useDeleteExpense, useExpenseSummary, useExpenseCategories, useCreateExpenseCategory } from '../../hooks/useExpenses';
 import { useSalesSummary } from '../../hooks/useSalesSummary';
+import { useDebounce } from '../../hooks/useDebounce';
 
 const categoryStyles = {
     'Food': { icon: Utensils, colorClass: 'bg-orange-100 text-orange-600' },
@@ -15,17 +16,29 @@ const categoryStyles = {
 };
 
 export default function ExpensesPage() {
+    // Initial filter states
+    const initialDateFrom = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
+    const initialDateTo = format(endOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
+    const initialSearchTerm = '';
+    const initialFilterCategory = 'All';
+
     // Filter States
-    const [dateFrom, setDateFrom] = useState(format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd'));
-    const [dateTo, setDateTo] = useState(format(endOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd'));
+    const [dateFrom, setDateFrom] = useState(initialDateFrom);
+    const [dateTo, setDateTo] = useState(initialDateTo);
+    const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
+    const [filterCategory, setFilterCategory] = useState(initialFilterCategory);
+    const debouncedSearch = useDebounce(searchTerm, 400);
+
     const [page, setPage] = useState(1);
     const pageSize = 15;
 
-    const { data: { expenses = [], totalCount = 0, totalPages = 1 } = {}, isLoading } = useExpenses({ 
+    const { data: { expenses = [], totalCount = 0, totalPages = 1 } = {}, isLoading } = useExpenses({
         startDate: dateFrom, 
         endDate: dateTo,
         page,
-        pageSize
+        pageSize,
+        searchTerm: debouncedSearch,
+        category: filterCategory
     });
     const { data: summary } = useExpenseSummary();
     const { data: categories = [] } = useExpenseCategories();
@@ -154,10 +167,18 @@ export default function ExpensesPage() {
         if (listContainer) listContainer.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
+    const handleResetFilters = () => {
+        setDateFrom(initialDateFrom);
+        setDateTo(initialDateTo);
+        setSearchTerm(initialSearchTerm);
+        setFilterCategory(initialFilterCategory);
+        setPage(1); // Reset page to 1 when filters are reset
+    };
+
     // Reset to page 1 when filters change
     useEffect(() => {
         setPage(1);
-    }, [dateFrom, dateTo]);
+    }, [dateFrom, dateTo, debouncedSearch, filterCategory]);
 
     return (
         <div className="responsive-page min-h-screen bg-slate-100">
@@ -272,27 +293,59 @@ export default function ExpensesPage() {
                         </form>
 
                         {/* Filter Section */}
-                        <div className="bg-white rounded-3xl p-4 shadow-sm border border-gray-100 mb-6 flex flex-col sm:flex-row gap-4 items-center">
-                            <div className="flex items-center gap-2 text-gray-500 font-bold">
-                                <Calendar className="w-5 h-5 text-primary" /> Filter
+                        <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 mb-6">
+                            <div className="flex justify-between items-center mb-4">
+                                <div className="flex items-center gap-2 text-gray-500 font-bold">
+                                    <Calendar className="w-5 h-5 text-primary" /> Filter & Search
+                                </div>
+                                <button
+                                    onClick={handleResetFilters}
+                                    className="btn bg-gray-200 text-gray-600 hover:bg-gray-300 text-sm px-3 py-2 flex items-center gap-1 rounded-lg"
+                                >
+                                    <RotateCcw className="w-4 h-4" /> Reset
+                                </button>
                             </div>
-                            <div className="flex items-center gap-3 w-full sm:w-auto">
-                                <div className="flex flex-col flex-1">
+                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] uppercase font-bold text-gray-400 ml-2 mb-1">Search Description</span>
+                                    <div className="relative">
+                                        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                        <input 
+                                            type="text" 
+                                            value={searchTerm} 
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                            placeholder="Search expenses..."
+                                            className="input text-sm pl-10 h-10 w-full" 
+                                        />
+                                    </div>
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] uppercase font-bold text-gray-400 ml-2 mb-1">Category</span>
+                                    <select 
+                                        value={filterCategory} 
+                                        onChange={(e) => setFilterCategory(e.target.value)}
+                                        className="input text-sm h-10 w-full cursor-pointer"
+                                    >
+                                        <option value="All">All Categories</option>
+                                        {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                                    </select>
+                                </div>
+                                <div className="flex flex-col">
                                     <span className="text-[10px] uppercase font-bold text-gray-400 ml-2 mb-1">From</span>
                                     <input 
                                         type="date" 
                                         value={dateFrom} 
                                         onChange={(e) => setDateFrom(e.target.value)}
-                                        className="input text-xs py-2 h-10" 
+                                        className="input text-sm h-10 w-full" 
                                     />
                                 </div>
-                                <div className="flex flex-col flex-1">
+                                <div className="flex flex-col">
                                     <span className="text-[10px] uppercase font-bold text-gray-400 ml-2 mb-1">To</span>
                                     <input 
                                         type="date" 
                                         value={dateTo} 
                                         onChange={(e) => setDateTo(e.target.value)}
-                                        className="input text-xs py-2 h-10" 
+                                        className="input text-sm h-10 w-full"
                                     />
                                 </div>
                             </div>

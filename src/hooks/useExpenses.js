@@ -5,9 +5,9 @@ import { useStore } from '../store/useStore';
 const EXPENSES_KEY = ['expenses'];
 const CATEGORIES_KEY = ['expense-categories'];
 
-export function useExpenses({ startDate, endDate, page = 1, pageSize = 20 } = {}) {
+export function useExpenses({ startDate, endDate, page = 1, pageSize = 20, searchTerm = '', category = 'All' } = {}) {
     return useQuery({
-        queryKey: [...EXPENSES_KEY, startDate, endDate, page, pageSize],
+        queryKey: [...EXPENSES_KEY, startDate, endDate, page, pageSize, searchTerm, category],
         queryFn: async () => {
             const from = (page - 1) * pageSize;
             const to = from + pageSize - 1;
@@ -20,10 +20,18 @@ export function useExpenses({ startDate, endDate, page = 1, pageSize = 20 } = {}
 
             if (startDate) query = query.gte('expense_date', startDate);
             if (endDate) query = query.lte('expense_date', endDate);
+            
+            if (category && category !== 'All') {
+                query = query.eq('category', category);
+            }
+
+            if (searchTerm) {
+                query = query.ilike('description', `%${searchTerm}%`);
+            }
 
             const { data, error, count } = await query;
             if (error) throw error;
-            
+
             return {
                 expenses: data || [],
                 totalCount: count || 0,
