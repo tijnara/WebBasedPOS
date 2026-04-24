@@ -114,11 +114,34 @@ export function useCreateExpenseCategory() {
     const user = useStore(s => s.user);
 
     return useMutation({
-        mutationFn: async (categoryName) => {
+        mutationFn: async ({ name, default_amount, default_description }) => {
             const { error } = await supabase.from('expense_categories').insert([{
-                name: categoryName,
+                name,
+                default_amount: default_amount ? parseFloat(default_amount) : null,
+                default_description: default_description || null,
                 created_by: user?.id || null
             }]);
+            if (error) throw error;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: CATEGORIES_KEY });
+        },
+    });
+}
+
+export function useUpdateExpenseCategory() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ id, name, default_amount, default_description }) => {
+            const { error } = await supabase
+                .from('expense_categories')
+                .update({
+                    name,
+                    default_amount: default_amount ? parseFloat(default_amount) : null,
+                    default_description: default_description || null,
+                })
+                .eq('id', id);
             if (error) throw error;
         },
         onSuccess: () => {

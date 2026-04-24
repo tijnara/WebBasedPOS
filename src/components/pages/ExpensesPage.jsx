@@ -4,7 +4,7 @@ import currency from 'currency.js';
 import { startOfWeek, endOfWeek, parseISO, format, subWeeks, addWeeks } from 'date-fns';
 import { Plus, Utensils, Car, ShoppingBag, Zap, Receipt, Edit, Trash2, X, Calendar, ChevronLeft, ChevronRight, Search, RotateCcw } from 'lucide-react';
 import { useStore } from '../../store/useStore';
-import { useExpenses, useCreateExpense, useUpdateExpense, useDeleteExpense, useExpenseSummary, useExpenseCategories, useCreateExpenseCategory } from '../../hooks/useExpenses';
+import { useExpenses, useCreateExpense, useUpdateExpense, useDeleteExpense, useExpenseSummary, useExpenseCategories, useCreateExpenseCategory, useUpdateExpenseCategory } from '../../hooks/useExpenses';
 import { useSalesSummary } from '../../hooks/useSalesSummary';
 import { useDebounce } from '../../hooks/useDebounce';
 
@@ -62,6 +62,7 @@ export default function ExpensesPage() {
     const updateExpense = useUpdateExpense();
     const deleteExpense = useDeleteExpense();
     const createCategory = useCreateExpenseCategory();
+    const updateCategory = useUpdateExpenseCategory();
     const addToast = useStore((state) => state.addToast);
 
     // Form States
@@ -72,37 +73,68 @@ export default function ExpensesPage() {
     const [editingExpense, setEditingExpense] = useState(null);
 
     // Custom Category States
-    const [isAddingCategory, setIsAddingCategory] = useState(false);
-    const [newCategoryName, setNewCategoryName] = useState('');
+    const [showCategoryModal, setShowCategoryModal] = useState(false);
+    const [catForm, setCatForm] = useState({ id: null, name: '', default_amount: '', default_description: '' });
 
     // Auto-select first category when loaded if none is selected
     useEffect(() => {
         if (categories.length > 0 && !category && !editingExpense) {
-            setCategory(categories[0].name);
+            const firstCat = categories[0];
+            setCategory(firstCat.name);
+            setAmount(firstCat.default_amount ? firstCat.default_amount.toString() : '');
+            setDescription(firstCat.default_description || '');
         }
     }, [categories, category, editingExpense]);
 
-    const handleCreateCategory = async () => {
-        const trimmedName = newCategoryName.trim();
-        if (!trimmedName) return;
-
-        // Prevent duplicate submissions
-        if (categories.some(c => c.name.toLowerCase() === trimmedName.toLowerCase())) {
-            addToast({ title: 'Notice', message: 'Category already exists.', type: 'error' });
-            setCategory(categories.find(c => c.name.toLowerCase() === trimmedName.toLowerCase()).name);
-            setIsAddingCategory(false);
-            setNewCategoryName('');
+    const handleCategoryChange = (val) => {
+        if (val === 'ADD_NEW') {
+            setCatForm({ id: null, name: '', default_amount: '', default_description: '' });
+            setShowCategoryModal(true);
             return;
         }
+        setCategory(val);
+        const selectedCat = categories.find(c => c.name === val);
+        if (selectedCat) {
+            setAmount(selectedCat.default_amount ? selectedCat.default_amount.toString() : '');
+            setDescription(selectedCat.default_description || '');
+        }
+    };
+
+    const handleSaveCategory = async () => {
+        const { id, name, default_amount, default_description } = catForm;
+        if (!name.trim()) return;
 
         try {
-            await createCategory.mutateAsync(trimmedName);
-            setCategory(trimmedName); // Auto-select newly created category
-            setNewCategoryName('');
-            setIsAddingCategory(false);
-            addToast({ title: 'Success', message: 'New category saved.', type: 'success' });
+            if (id) {
+                await updateCategory.mutateAsync({ id, name, default_amount, default_description });
+                addToast({ title: 'Success', message: 'Category updated.', type: 'success' });
+            } else {
+                if (categories.some(c => c.name.toLowerCase() === name.trim().toLowerCase())) {
+                    addToast({ title: 'Error', message: 'Category already exists.', type: 'error' });
+                    return;
+                }
+                await createCategory.mutateAsync({ name, default_amount, default_description });
+                addToast({ title: 'Success', message: 'Category created.', type: 'success' });
+            }
+            setCategory(name);
+            setAmount(default_amount ? default_amount.toString() : '');
+            setDescription(default_description || '');
+            setShowCategoryModal(false);
         } catch (error) {
             addToast({ title: 'Error', message: error.message, type: 'error' });
+        }
+    };
+
+    const handleEditCategory = () => {
+        const selectedCat = categories.find(c => c.name === category);
+        if (selectedCat) {
+            setCatForm({
+                id: selectedCat.id,
+                name: selectedCat.name,
+                default_amount: selectedCat.default_amount || '',
+                default_description: selectedCat.default_description || ''
+            });
+            setShowCategoryModal(true);
         }
     };
 
@@ -245,52 +277,25 @@ export default function ExpensesPage() {
                                 </div>
 
                                 {/* Category Input / Toggle */}
-                                <div className="flex-[1.5]">
-                                    {isAddingCategory ? (
-                                        <div className="flex gap-2 h-full">
-                                            <input
-                                                type="text"
-                                                value={newCategoryName}
-                                                onChange={(e) => setNewCategoryName(e.target.value)}
-                                                placeholder="Category..."
-                                                className="input flex-1 text-sm py-0"
-                                                autoFocus
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={handleCreateCategory}
-                                                disabled={createCategory.isPending || !newCategoryName.trim()}
-                                                className="btn btn--primary text-sm px-3 shrink-0"
-                                            >
-                                                {createCategory.isPending ? '...' : 'Save'}
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    setIsAddingCategory(false);
-                                                    setNewCategoryName('');
-                                                    if(categories.length > 0) setCategory(categories[0].name);
-                                                }}
-                                                className="btn bg-gray-200 text-gray-600 hover:bg-gray-300 text-sm px-3 shrink-0"
-                                            >
-                                                Cancel
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <select
-                                            value={category}
-                                            onChange={(e) => {
-                                                if(e.target.value === 'ADD_NEW') { setIsAddingCategory(true); setCategory(''); }
-                                                else { setCategory(e.target.value); }
-                                            }}
-                                            className="input w-full h-full cursor-pointer"
-                                        >
-                                            {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                                            {categories.length === 0 && <option value="Food">Food</option>}
-                                            <option disabled>──────────</option>
-                                            <option value="ADD_NEW" className="font-bold text-primary">➕ Add New Category</option>
-                                        </select>
-                                    )}
+                                <div className="flex-[1.5] flex gap-2">
+                                    <select
+                                        value={category}
+                                        onChange={(e) => handleCategoryChange(e.target.value)}
+                                        className="input w-full h-full cursor-pointer"
+                                    >
+                                        {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                                        {categories.length === 0 && <option value="Food">Food</option>}
+                                        <option disabled>──────────</option>
+                                        <option value="ADD_NEW" className="font-bold text-primary">➕ Add New Category</option>
+                                    </select>
+                                    <button
+                                        type="button"
+                                        onClick={handleEditCategory}
+                                        className="btn bg-gray-100 text-gray-500 hover:bg-gray-200 p-2 shrink-0"
+                                        title="Edit Category Defaults"
+                                    >
+                                        <Edit className="w-4 h-4" />
+                                    </button>
                                 </div>
 
                             </div>
@@ -447,6 +452,69 @@ export default function ExpensesPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Category Management Modal */}
+            {showCategoryModal && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
+                        <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-slate-50">
+                            <h3 className="text-xl font-bold text-gray-900">{catForm.id ? 'Edit Category' : 'New Category'}</h3>
+                            <button onClick={() => setShowCategoryModal(false)} className="text-gray-400 hover:text-gray-600 transition-colors"><X className="w-6 h-6" /></button>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <div>
+                                <label className="text-[10px] uppercase font-bold text-gray-400 ml-1 mb-1 block">Category Name</label>
+                                <input
+                                    type="text"
+                                    value={catForm.name}
+                                    onChange={(e) => setCatForm(prev => ({ ...prev, name: e.target.value }))}
+                                    placeholder="e.g. Fuel, Maintenance"
+                                    className="input w-full"
+                                    autoFocus
+                                />
+                            </div>
+                            <div className="grid grid-cols-1 gap-4">
+                                <div>
+                                    <label className="text-[10px] uppercase font-bold text-gray-400 ml-1 mb-1 block">Default Amount</label>
+                                    <input
+                                        type="number"
+                                        value={catForm.default_amount}
+                                        onChange={(e) => setCatForm(prev => ({ ...prev, default_amount: e.target.value }))}
+                                        placeholder="0.00"
+                                        step="0.01"
+                                        className="input w-full"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] uppercase font-bold text-gray-400 ml-1 mb-1 block">Default Description</label>
+                                    <input
+                                        type="text"
+                                        value={catForm.default_description}
+                                        onChange={(e) => setCatForm(prev => ({ ...prev, default_description: e.target.value }))}
+                                        placeholder="e.g. Weekly Fuel Refill"
+                                        className="input w-full"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                        <div className="p-6 bg-slate-50 border-t border-gray-100 flex gap-3">
+                            <button
+                                onClick={() => setShowCategoryModal(false)}
+                                className="btn flex-1 bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 font-semibold"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleSaveCategory}
+                                disabled={createCategory.isPending || updateCategory.isPending || !catForm.name.trim()}
+                                className="btn btn--primary flex-1 font-bold shadow-lg shadow-primary/20"
+                            >
+                                {createCategory.isPending || updateCategory.isPending ? 'Saving...' : 'Save Category'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
