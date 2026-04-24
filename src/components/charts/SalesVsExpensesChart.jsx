@@ -1,30 +1,56 @@
 import React, { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Bar } from 'react-chartjs-2';
 import {
-    Chart as ChartJS,
-    CategoryScale,
-    LinearScale,
-    BarElement,
-    Title,
-    Tooltip as ChartTooltip,
-    Legend,
-    Filler
-} from 'chart.js';
+    BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid
+} from 'recharts';
 import { eachDayOfInterval, format, parseISO } from 'date-fns';
 import { supabase } from '../../lib/supabaseClient';
 import { useStore } from '../../store/useStore';
 
-// Register Chart.js components
-ChartJS.register(
-    CategoryScale,
-    LinearScale,
-    BarElement,
-    Title,
-    ChartTooltip,
-    Legend,
-    Filler
-);
+// Helper for currency formatting
+const formatCurrency = (value) => {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'PHP' }).format(value);
+};
+
+const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+        const data = payload[0].payload; // This contains the daily aggregated data
+        const totalSales = data.sales || 0;
+        const totalExpenses = data.expenses || 0;
+        const expenseList = data.expenseList || [];
+
+        return (
+            <div className="bg-white p-4 rounded-xl shadow-xl border border-gray-200 text-sm">
+                <p className="font-bold text-slate-800 mb-2">{label}</p>
+                <p className="text-emerald-600 mb-1">
+                    Total Sales: <span className="font-semibold">{formatCurrency(totalSales)}</span>
+                </p>
+                <p className="text-red-600 mb-3">
+                    Total Expenses: <span className="font-semibold">{formatCurrency(totalExpenses)}</span>
+                </p>
+
+                {expenseList.length > 0 && (
+                    <>
+                        <p className="font-semibold text-slate-700 mb-2">Itemized Expenses:</p>
+                        <div className="max-h-40 overflow-y-auto pr-2 custom-scrollbar">
+                            <ul className="list-disc list-inside space-y-1">
+                                {expenseList.map((expense, index) => (
+                                    <li key={index} className="text-gray-700">
+                                        {expense.name}: <span className="font-medium">{formatCurrency(expense.amount)}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    </>
+                )}
+                {expenseList.length === 0 && totalExpenses > 0 && (
+                    <p className="text-gray-500 italic">No detailed expense items available.</p>
+                )}
+            </div>
+        );
+    }
+    return null;
+};
 
 const SalesVsExpensesChart = ({ dateFrom, dateTo }) => {
     const isDemo = useStore(state => state.user?.isDemo);
@@ -56,7 +82,7 @@ const SalesVsExpensesChart = ({ dateFrom, dateTo }) => {
             if (isDemo) return [];
             const { data, error } = await supabase
                 .from('expenses')
-                .select('amount, expense_date')
+                .select('amount, expense_date, description, category')
                 .gte('expense_date', dateFrom)
                 .lte('expense_date', dateTo)
                 .order('expense_date', { ascending: true });
@@ -68,23 +94,35 @@ const SalesVsExpensesChart = ({ dateFrom, dateTo }) => {
     });
 
     const chartData = useMemo(() => {
-        if (!parsedDateFrom || !parsedDateTo) return { labels: [], datasets: [] };
+        if (!parsedDateFrom || !parsedDateTo) return [];
 
         try {
             const dateRange = eachDayOfInterval({ start: parsedDateFrom, end: parsedDateTo });
             
-            let aggregatedSales = {};
-            let aggregatedExpenses = {};
+            const dataMap = {};
+
+            dateRange.forEach(date => {
+                const dateKey = format(date, 'yyyy-MM-dd');
+                dataMap[dateKey] = {
+                    date: format(date, 'MMM dd'),
+                    sales: 0,
+                    expenses: 0,
+                    expenseList: [],
+                };
+            });
 
             if (isDemo) {
-                // Generate mock data for demo mode
                 dateRange.forEach((date, index) => {
                     const dateKey = format(date, 'yyyy-MM-dd');
                     const dayMod = (index % 7);
-                    aggregatedSales[dateKey] = 2000 + (dayMod * 500) + (Math.sin(index) * 300);
-                    // Mock expenses only on certain days (e.g., every 3 days)
+                    dataMap[dateKey].sales = 2000 + (dayMod * 500) + (Math.sin(index) * 300);
                     if (index % 3 === 0) {
-                        aggregatedExpenses[dateKey] = 1500 + (dayMod * 100) + (Math.cos(index) * 200);
+                        const expenseAmount = 1500 + (dayMod * 100) + (Math.cos(index) * 200);
+                        dataMap[dateKey].expenses = expenseAmount;
+                        dataMap[dateKey].expenseList.push(
+                            { name: 'Mock Expense A', amount: expenseAmount * 0.6 },
+                            { name: 'Mock Expense B', amount: expenseAmount * 0.4 }
+                        );
                     }
                 });
             } else {
@@ -92,111 +130,33 @@ const SalesVsExpensesChart = ({ dateFrom, dateTo }) => {
                     const ts = sale.saletimestamp || sale.created_at;
                     if (!ts) return;
                     const dateKey = format(parseISO(ts), 'yyyy-MM-dd');
-                    aggregatedSales[dateKey] = (aggregatedSales[dateKey] || 0) + (Number(sale.totalamount) || 0);
+                    if (dataMap[dateKey]) {
+                        dataMap[dateKey].sales += (Number(sale.totalamount) || 0);
+                    }
                 });
 
                 (expensesData || []).forEach(expense => {
                     const ts = expense.expense_date;
                     if (!ts) return;
                     const dateKey = format(parseISO(ts), 'yyyy-MM-dd');
-                    aggregatedExpenses[dateKey] = (aggregatedExpenses[dateKey] || 0) + (Number(expense.amount) || 0);
+                    if (dataMap[dateKey]) {
+                        dataMap[dateKey].expenses += (Number(expense.amount) || 0);
+                        dataMap[dateKey].expenseList.push({
+                            name: expense.description || expense.category || 'Uncategorized Expense',
+                            amount: Number(expense.amount) || 0,
+                        });
+                    }
                 });
             }
 
             // FILTER: Only include days where there are expenses
-            const filteredDates = dateRange.filter(date => {
-                const dateKey = format(date, 'yyyy-MM-dd');
-                return (aggregatedExpenses[dateKey] || 0) > 0;
-            });
+            return Object.values(dataMap).filter(day => day.expenses > 0);
 
-            const labels = filteredDates.map(date => format(date, 'MMM dd'));
-            const salesValues = filteredDates.map(date => aggregatedSales[format(date, 'yyyy-MM-dd')] || 0);
-            const expensesValues = filteredDates.map(date => aggregatedExpenses[format(date, 'yyyy-MM-dd')] || 0);
-
-            return {
-                labels,
-                datasets: [
-                    {
-                        label: 'Daily Sales',
-                        data: salesValues,
-                        backgroundColor: '#10B981',
-                        borderColor: '#10B981',
-                        borderWidth: 0,
-                        borderRadius: 4,
-                        barThickness: 12,
-                    },
-                    {
-                        label: 'Daily Expenses',
-                        data: expensesValues,
-                        backgroundColor: '#EF4444',
-                        borderColor: '#EF4444',
-                        borderWidth: 0,
-                        borderRadius: 4,
-                        barThickness: 12,
-                    }
-                ]
-            };
         } catch (e) {
             console.error("Error generating chart data:", e);
-            return { labels: [], datasets: [] };
+            return [];
         }
     }, [salesData, expensesData, parsedDateFrom, parsedDateTo, isDemo]);
-
-    const options = {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                position: 'top',
-                align: 'end',
-                labels: {
-                    usePointStyle: true,
-                    pointStyle: 'circle',
-                    font: { size: 12, weight: '600' },
-                    padding: 20
-                }
-            },
-            tooltip: {
-                backgroundColor: '#fff',
-                titleColor: '#1e293b',
-                bodyColor: '#64748b',
-                borderColor: '#e2e8f0',
-                borderWidth: 0,
-                padding: 12,
-                boxPadding: 4,
-                usePointStyle: true,
-                callbacks: {
-                    label: function(context) {
-                        let label = context.dataset.label || '';
-                        if (label) label += ': ';
-                        if (context.parsed.y !== null) {
-                            label += new Intl.NumberFormat('en-US', { style: 'currency', currency: 'PHP' }).format(context.parsed.y);
-                        }
-                        return label;
-                    }
-                }
-            }
-        },
-        scales: {
-            x: {
-                grid: { display: false },
-                border: { display: false },
-                ticks: { font: { size: 11, weight: '500' }, color: '#64748b' }
-            },
-            y: {
-                grid: { display: false },
-                border: { display: false },
-                ticks: {
-                    font: { size: 11, weight: '500' },
-                    color: '#64748b',
-                    callback: function(value) {
-                        if (value >= 1000) return (value / 1000).toFixed(0) + 'k';
-                        return value;
-                    }
-                }
-            }
-        }
-    };
 
     if (isLoadingSales || isLoadingExpenses) {
         return (
@@ -218,7 +178,7 @@ const SalesVsExpensesChart = ({ dateFrom, dateTo }) => {
         );
     }
 
-    const hasData = chartData.labels.length > 0;
+    const hasData = chartData.length > 0;
 
     return (
         <div className="bg-white p-6 rounded-xl shadow-sm h-96 flex flex-col">
@@ -229,7 +189,7 @@ const SalesVsExpensesChart = ({ dateFrom, dateTo }) => {
                 )}
             </div>
             
-            <div className="flex-1 min-h-0">
+            <div className="flex-1 min-h-[300px] w-full relative">
                 {!hasData ? (
                     <div className="h-full flex flex-col items-center justify-center text-slate-400 bg-slate-50/50 rounded-lg">
                         <svg className="w-12 h-12 mb-3 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -238,7 +198,30 @@ const SalesVsExpensesChart = ({ dateFrom, dateTo }) => {
                         <p>No expenses found for the selected period.</p>
                     </div>
                 ) : (
-                    <Bar data={chartData} options={options} />
+                    <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                            data={chartData}
+                            margin={{
+                                top: 20, right: 30, left: 20, bottom: 5,
+                            }}
+                        >
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e0e0e0" />
+                            <XAxis dataKey="date" axisLine={false} tickLine={false} style={{ fontSize: '11px', fill: '#64748b' }} />
+                            <YAxis
+                                axisLine={false}
+                                tickLine={false}
+                                tickFormatter={(value) => {
+                                    if (value >= 1000) return (value / 1000).toFixed(0) + 'k';
+                                    return value;
+                                }}
+                                style={{ fontSize: '11px', fill: '#64748b' }}
+                            />
+                            <Tooltip cursor={{ fill: 'rgba(0,0,0,0.05)' }} content={<CustomTooltip />} />
+                            <Legend wrapperStyle={{ paddingTop: '10px' }} />
+                            <Bar dataKey="sales" name="Daily Sales" fill="#10B981" barSize={12} radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="expenses" name="Daily Expenses" fill="#EF4444" barSize={12} radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                    </ResponsiveContainer>
                 )}
             </div>
         </div>
