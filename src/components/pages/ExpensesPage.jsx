@@ -15,6 +15,11 @@ const categoryStyles = {
     'Bills': { icon: Zap, colorClass: 'bg-emerald-100 text-emerald-600' }
 };
 
+// Helper function to capitalize each word
+const capitalizeWords = (str) => {
+    return str.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+};
+
 export default function ExpensesPage() {
     // Initial filter states
     const initialDateFrom = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
@@ -94,21 +99,24 @@ export default function ExpensesPage() {
         const { id, name, default_amount, default_description } = catForm;
         if (!name.trim()) return;
 
+        const capitalizedName = capitalizeWords(name);
+        const capitalizedDescription = capitalizeWords(default_description);
+
         try {
             if (id) {
-                await updateCategory.mutateAsync({ id, name, default_amount, default_description });
+                await updateCategory.mutateAsync({ id, name: capitalizedName, default_amount, default_description: capitalizedDescription });
                 addToast({ title: 'Success', message: 'Category updated.', type: 'success' });
             } else {
-                if (categories.some(c => c.name.toLowerCase() === name.trim().toLowerCase())) {
+                if (categories.some(c => c.name.toLowerCase() === capitalizedName.toLowerCase())) {
                     addToast({ title: 'Error', message: 'Category already exists.', type: 'error' });
                     return;
                 }
-                await createCategory.mutateAsync({ name, default_amount, default_description });
+                await createCategory.mutateAsync({ name: capitalizedName, default_amount, default_description: capitalizedDescription });
                 addToast({ title: 'Success', message: 'Category created.', type: 'success' });
             }
-            setCategory(name);
+            setCategory(capitalizedName);
             setAmount(default_amount ? default_amount.toString() : '');
-            setDescription(default_description || '');
+            setDescription(capitalizedDescription || '');
             setShowCategoryModal(false);
         } catch (error) {
             addToast({ title: 'Error', message: error.message, type: 'error' });
@@ -131,19 +139,22 @@ export default function ExpensesPage() {
     const handleManualSubmit = async (e) => {
         e.preventDefault();
         if (!amount || !description || !category || !expenseDate) return;
+
+        const capitalizedDescription = capitalizeWords(description);
+
         try {
             if (editingExpense) {
                 await updateExpense.mutateAsync({
                     id: editingExpense.id,
                     amount,
                     category,
-                    description,
+                    description: capitalizedDescription,
                     expense_date: expenseDate
                 });
                 setEditingExpense(null);
                 addToast({ title: 'Expense Updated', message: 'Transaction updated.', type: 'success' });
             } else {
-                await createExpense.mutateAsync({ amount, category, description, expense_date: expenseDate });
+                await createExpense.mutateAsync({ amount, category, description: capitalizedDescription, expense_date: expenseDate });
                 addToast({ title: 'Expense Added', message: 'Transaction saved.', type: 'success' });
             }
             setAmount('');

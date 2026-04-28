@@ -61,6 +61,12 @@ const DeleteIcon = () => (
     </svg>
 );
 
+// Helper function to capitalize each word
+const capitalizeWords = (str) => {
+    if (!str) return '';
+    return str.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+};
+
 export default function CustomerManagementPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
@@ -148,8 +154,10 @@ export default function CustomerManagementPage() {
             return;
         }
 
+        const capitalizedName = capitalizeWords(name.trim());
+
         const payload = {
-            name: name.trim(),
+            name: capitalizedName,
             email: email.trim() || null,
             phone: phone.trim() || null,
             address: address.trim() || null,
@@ -158,10 +166,10 @@ export default function CustomerManagementPage() {
         try {
             if (editing) {
                 await updateCustomer.mutateAsync({ ...payload, id: editing.id, dateAdded: editing.dateAdded });
-                addToast({ title: 'Updated', description: `Customer ${name} updated`, variant: 'success' });
+                addToast({ title: 'Updated', description: `Customer ${capitalizedName} updated`, variant: 'success' });
             } else {
                 await createCustomer.mutateAsync(payload);
-                addToast({ title: 'Created', description: `Customer ${name} created`, variant: 'success' });
+                addToast({ title: 'Created', description: `Customer ${capitalizedName} created`, variant: 'success' });
             }
             closeModal();
         } catch (e) {
