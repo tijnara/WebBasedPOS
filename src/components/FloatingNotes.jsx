@@ -121,7 +121,7 @@ export default function FloatingNotes() {
             ref={containerRef}
             style={{
                 position: 'fixed',
-                bottom: '80px',
+                bottom: '20px',
                 right: '20px',
                 zIndex: 2147483647,
                 display: 'flex',
@@ -130,7 +130,7 @@ export default function FloatingNotes() {
             }}
         >
             {isOpen && (
-                <Card className="w-[85vw] sm:w-[320px] md:w-[340px] mb-4 shadow-2xl border-0 flex flex-col h-[40rem] md:h-[50rem] max-h-[85vh] bg-white">
+                <Card className="w-[85vw] sm:w-[300px] md:w-[320px] mb-4 shadow-2xl border-0 flex flex-col h-[28rem] md:h-[32rem] max-h-[70vh] bg-white">
                     <CardHeader className="bg-yellow-100 py-3 flex justify-between items-center rounded-t-lg">
                         <h3 className="font-bold text-yellow-800 flex items-center gap-2">
                             <StickyNoteIcon /> Scratchpad
@@ -172,7 +172,7 @@ export default function FloatingNotes() {
                                 placeholder="Type a note..."
                                 value={currentContent}
                                 onChange={(e) => setCurrentContent(e.target.value)}
-                                className="w-full text-sm mb-3 min-h-[80px] bg-yellow-50 focus:ring-yellow-400 focus:border-yellow-400"
+                                className="w-full text-sm mb-3 min-h-[60px] bg-yellow-50 focus:ring-yellow-400 focus:border-yellow-400"
                             />
                             <div className="flex gap-2 justify-end">
                                 {editingId && (
@@ -184,7 +184,7 @@ export default function FloatingNotes() {
                                     className="bg-yellow-400 hover:bg-yellow-500 text-yellow-900 border-none font-bold"
                                     disabled={!user}
                                 >
-                                    {editingId ? 'Update Note' : 'Add Note'}
+                                    {editingId ? 'Update' : 'Add'}
                                 </Button>
                             </div>
                         </div>
@@ -195,7 +195,7 @@ export default function FloatingNotes() {
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 style={{
-                    height: '56px', width: '56px',
+                    height: '48px', width: '48px',
                     backgroundColor: '#facc15',
                     color: '#713f12',
                     borderRadius: '9999px',
@@ -203,11 +203,13 @@ export default function FloatingNotes() {
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     border: '2px solid #fde047',
                     cursor: 'pointer',
-                    position: 'relative' // Needed to position the badge
+                    position: 'relative'
                 }}
                 aria-label="Toggle Notes"
             >
-                <StickyNoteIcon />
+                <div className="scale-90">
+                    <StickyNoteIcon />
+                </div>
 
                 {/* Notification Badge */}
                 {!isOpen && unreadCount > 0 && (
@@ -217,12 +219,12 @@ export default function FloatingNotes() {
                         right: '-2px',
                         backgroundColor: '#ef4444',
                         color: 'white',
-                        fontSize: '11px',
+                        fontSize: '10px',
                         fontWeight: 'bold',
-                        height: '22px',
-                        minWidth: '22px',
-                        padding: '0 6px',
-                        borderRadius: '11px',
+                        height: '18px',
+                        minWidth: '18px',
+                        padding: '0 4px',
+                        borderRadius: '9px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',

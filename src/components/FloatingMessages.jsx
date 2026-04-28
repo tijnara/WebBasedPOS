@@ -16,7 +16,7 @@ export default function FloatingMessages() {
     const [mounted, setMounted] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(true); // Corrected: useState(true)
     const containerRef = useRef(null);
 
     const user = useStore(s => s.user);
@@ -84,16 +84,16 @@ export default function FloatingMessages() {
             ref={containerRef}
             style={{
                 position: 'fixed',
-                bottom: '150px', 
+                bottom: '80px', // Adjusted to avoid overlap with FloatingNotes
                 right: '20px',
-                zIndex: 999999,
+                zIndex: 2147483646, // Slightly lower z-index than FloatingNotes
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'flex-end'
             }}
         >
             {isOpen && (
-                <Card className="w-80 md:w-96 mb-4 shadow-2xl border-0 flex flex-col h-[28rem] bg-white">
+                <Card className="w-[85vw] sm:w-[300px] md:w-[320px] mb-4 shadow-2xl border-0 flex flex-col h-[28rem] md:h-[32rem] max-h-[70vh] bg-white">
                     <CardHeader className="bg-blue-100 py-3 flex justify-between items-center rounded-t-lg">
                         <h3 className="font-bold text-blue-800 flex items-center gap-2">
                             <MailIcon /> Recent Messages ({messages.length})
@@ -129,7 +129,7 @@ export default function FloatingMessages() {
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 style={{
-                    height: '56px', width: '56px',
+                    height: '48px', width: '48px', // Reduced size
                     backgroundColor: '#3b82f6',
                     color: '#ffffff',
                     borderRadius: '9999px',
@@ -141,7 +141,9 @@ export default function FloatingMessages() {
                 }}
                 aria-label="Toggle Recent Messages"
             >
-                <MailIcon />
+                <div className="scale-90"> {/* Scale down icon slightly */}
+                    <MailIcon />
+                </div>
                 
                 {/* --- NOTIFICATION BADGE --- */}
                 {!isOpen && messages.length > 0 && (
@@ -151,18 +153,18 @@ export default function FloatingMessages() {
                         right: '-2px',
                         backgroundColor: '#ef4444', // Red-500
                         color: 'white',
-                        fontSize: '11px',
+                        fontSize: '10px', // Reduced font size
                         fontWeight: 'bold',
-                        height: '22px',
-                        minWidth: '22px',
-                        padding: '0 6px',
-                        borderRadius: '11px',
+                        height: '18px', // Reduced height
+                        minWidth: '18px', // Reduced min-width
+                        padding: '0 4px', // Reduced padding
+                        borderRadius: '9px', // Reduced border radius
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         border: '2px solid white',
                         boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                        animation: 'pulse 2s infinite' // Optional: subtle pulse
+                        animation: 'pulse 2s infinite'
                     }}>
                         {messages.length > 9 ? '9+' : messages.length}
                     </div>
