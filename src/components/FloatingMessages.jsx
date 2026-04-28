@@ -16,7 +16,7 @@ export default function FloatingMessages() {
     const [mounted, setMounted] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState([]);
-    const [isLoading, setIsLoading] = useState(true); // Corrected: useState(true)
+    const [isLoading, setIsLoading] = useState(true);
     const containerRef = useRef(null);
 
     const user = useStore(s => s.user);
@@ -84,9 +84,9 @@ export default function FloatingMessages() {
             ref={containerRef}
             style={{
                 position: 'fixed',
-                bottom: '80px', // Adjusted to avoid overlap with FloatingNotes
+                bottom: '130px', // Adjusted to avoid overlap with FloatingNotes AND TabBar
                 right: '20px',
-                zIndex: 2147483646, // Slightly lower z-index than FloatingNotes
+                zIndex: 2147483646,
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'flex-end'
@@ -129,7 +129,7 @@ export default function FloatingMessages() {
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 style={{
-                    height: '48px', width: '48px', // Reduced size
+                    height: '48px', width: '48px',
                     backgroundColor: '#3b82f6',
                     color: '#ffffff',
                     borderRadius: '9999px',
@@ -141,7 +141,7 @@ export default function FloatingMessages() {
                 }}
                 aria-label="Toggle Recent Messages"
             >
-                <div className="scale-90"> {/* Scale down icon slightly */}
+                <div className="scale-90">
                     <MailIcon />
                 </div>
                 
@@ -151,14 +151,14 @@ export default function FloatingMessages() {
                         position: 'absolute',
                         top: '-2px',
                         right: '-2px',
-                        backgroundColor: '#ef4444', // Red-500
+                        backgroundColor: '#ef4444',
                         color: 'white',
-                        fontSize: '10px', // Reduced font size
+                        fontSize: '10px',
                         fontWeight: 'bold',
-                        height: '18px', // Reduced height
-                        minWidth: '18px', // Reduced min-width
-                        padding: '0 4px', // Reduced padding
-                        borderRadius: '9px', // Reduced border radius
+                        height: '18px',
+                        minWidth: '18px',
+                        padding: '0 4px',
+                        borderRadius: '9px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',

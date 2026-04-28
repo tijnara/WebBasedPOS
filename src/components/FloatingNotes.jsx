@@ -121,7 +121,7 @@ export default function FloatingNotes() {
             ref={containerRef}
             style={{
                 position: 'fixed',
-                bottom: '20px',
+                bottom: '70px', // Adjusted to avoid overlap with TabBar
                 right: '20px',
                 zIndex: 2147483647,
                 display: 'flex',
