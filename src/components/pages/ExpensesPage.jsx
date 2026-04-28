@@ -386,7 +386,7 @@ export default function ExpensesPage() {
                         <span className="text-xs font-medium text-gray-400 pb-1">{totalCount} total</span>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto pr-2 space-y-2 mb-4 max-h-[600px]">
+                    <div className="flex-1 space-y-2 mb-8">
                         {isLoading ? <p className="text-center py-4">Loading...</p> : expenses.map((exp) => {
                             // Fallback if custom category doesn't exist in styles object
                             const style = categoryStyles[exp.category] || { icon: Receipt, colorClass: 'bg-slate-100 text-slate-600' };
