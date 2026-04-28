@@ -54,14 +54,20 @@ export default function ExpensesPage() {
 
     const currentWeekSales = useMemo(() => {
         if (!salesSummary?.weeklyRevenue) return 0;
-        const d = new Date();
-        const day = d.getDay();
-        const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-        const monday = new Date(d);
-        monday.setDate(diff);
-        const weekKey = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
-        return (salesSummary.weeklyRevenue[weekKey] || 0) - (summary?.weeklyTotal || 0);
-    }, [salesSummary, summary]);
+
+        /** * Use dateFrom as the weekKey. Since pagination uses startOfWeek, 
+         * dateFrom always represents the Monday of the week being viewed, 
+         * matching the key format in useSalesSummary.
+         */
+        const weekKey = dateFrom;
+        const weeklySales = salesSummary.weeklyRevenue[weekKey] || 0;
+
+        /** * Subtract totalSum instead of summary.weeklyTotal. 
+         * totalSum represents the total expenses for the currently viewed 
+         * date range (dateFrom to dateTo).
+         */
+        return weeklySales - (totalSum || 0);
+    }, [salesSummary, dateFrom, totalSum]);
 
     const createExpense = useCreateExpense();
     const updateExpense = useUpdateExpense();
