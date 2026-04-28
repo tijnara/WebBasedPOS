@@ -458,6 +458,20 @@ const ReportPage = () => {
         productId: selectedProductId
     });
 
+    const totalGallonsSold = useMemo(() => {
+        if (!summaryData?.productQuantities) return 0;
+        
+        // Target Product IDs based on database: 3 (Refill 30), 2 (Refill 35), 30 (Refill Walk-in 25)
+        const targetRefillIds = ["3", "2", "30"];
+        
+        return Object.entries(summaryData.productQuantities).reduce((sum, [pid, p]) => {
+            if (targetRefillIds.includes(String(pid))) { // Convert pid to string for comparison
+                return sum + (p.quantity || 0);
+            }
+            return sum;
+        }, 0);
+    }, [summaryData?.productQuantities]);
+
     const {
         data: customersPageData,
         isLoading: isLoadingCustomers,
@@ -578,7 +592,7 @@ const ReportPage = () => {
             return `Daily Report: ${format(interval.start, 'MMMM d, yyyy')}`;
         }
         const startStr = interval.start ? format(interval.start, 'MMM d, yyyy') : 'Start';
-        const endStr = interval.end ? format(interval.end, 'MMM d, yyyy') : 'End';
+        const endStr = interval.end ? format(interval.end, 'MMM d, yyyy') : 'Present';
         return `Custom Report: ${startStr} - ${endStr}`;
     }, [interval]);
 
@@ -917,7 +931,17 @@ const ReportPage = () => {
                                 </span>
                                 <span className="text-gray-300">|</span>
 
-                                {/* DYNAMICALLY RENDER ALL PRODUCTS SOLD IN THIS REPORT PERIOD */}
+                                {/* NEW TOTAL GALLONS LABEL */}
+                                {totalGallonsSold > 0 && (
+                                    <>
+                                        <span className="text-sm font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded border border-teal-200">
+                                            Total Gallons sold: {totalGallonsSold}
+                                        </span>
+                                        <span className="text-gray-300">|</span>
+                                    </>
+                                )}
+
+                                {/* DYNAMICALLY RENDER ALL PRODUCTS SOLD */}
                                 {summaryData?.productQuantities && Object.values(summaryData.productQuantities).map((p, idx) => (
                                     <span key={idx} className="text-sm font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded">
                                         {p.name}: {p.quantity}

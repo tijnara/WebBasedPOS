@@ -546,17 +546,23 @@ export default function POSPage() {
             {/* Quick Keys Legend */}
             <div className="flex flex-wrap gap-x-6 gap-y-2 mb-4 text-[10px] sm:text-xs font-medium text-gray-500 bg-gray-50/50 p-2 rounded-lg border border-gray-100 items-center">
                 <span className="text-gray-400 uppercase tracking-wider font-bold mr-1">Quick Keys:</span>
+                
+                {/* Dynamic Hotkey 1 (Product ID 3) */}
                 <span className="flex items-center gap-1.5">
                     <kbd className="min-w-[1.5rem] h-5 flex items-center justify-center bg-white border border-gray-300 rounded shadow-sm text-gray-700 font-bold">1</kbd> 
-                    <span className="truncate">Refill(30)</span>
+                    <span className="truncate">{hotkeyProducts[3]?.name || 'Loading...'}</span>
                 </span>
+
+                {/* Dynamic Hotkey 2 (Product ID 2) */}
                 <span className="flex items-center gap-1.5">
                     <kbd className="min-w-[1.5rem] h-5 flex items-center justify-center bg-white border border-gray-300 rounded shadow-sm text-gray-700 font-bold">2</kbd> 
-                    <span className="truncate">Refill(35)</span>
+                    <span className="truncate">{hotkeyProducts[2]?.name || 'Loading...'}</span>
                 </span>
+
+                {/* Dynamic Hotkey 3 (Product ID 30) */}
                 <span className="flex items-center gap-1.5">
                     <kbd className="min-w-[1.5rem] h-5 flex items-center justify-center bg-white border border-gray-300 rounded shadow-sm text-gray-700 font-bold">3</kbd> 
-                    <span className="truncate">Refill-Walk-in(25)</span>
+                    <span className="truncate">{hotkeyProducts[30]?.name || 'Loading...'}</span>
                 </span>
                 
                 <div className="hidden sm:flex items-center gap-6 ml-auto">
