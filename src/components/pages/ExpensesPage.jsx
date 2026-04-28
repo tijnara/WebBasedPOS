@@ -69,22 +69,12 @@ export default function ExpensesPage() {
     const [amount, setAmount] = useState('');
     const [category, setCategory] = useState('');
     const [description, setDescription] = useState('');
-    const [expenseDate, setExpenseDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+    const [expenseDate, setExpenseDate] = useState('');
     const [editingExpense, setEditingExpense] = useState(null);
 
     // Custom Category States
     const [showCategoryModal, setShowCategoryModal] = useState(false);
     const [catForm, setCatForm] = useState({ id: null, name: '', default_amount: '', default_description: '' });
-
-    // Auto-select first category when loaded if none is selected
-    useEffect(() => {
-        if (categories.length > 0 && !category && !editingExpense) {
-            const firstCat = categories[0];
-            setCategory(firstCat.name);
-            setAmount(firstCat.default_amount ? firstCat.default_amount.toString() : '');
-            setDescription(firstCat.default_description || '');
-        }
-    }, [categories, category, editingExpense]);
 
     const handleCategoryChange = (val) => {
         if (val === 'ADD_NEW') {
@@ -158,8 +148,8 @@ export default function ExpensesPage() {
             }
             setAmount('');
             setDescription('');
-            setExpenseDate(format(new Date(), 'yyyy-MM-dd'));
-            if (categories.length > 0) setCategory(categories[0].name);
+            setExpenseDate('');
+            setCategory('');
         } catch (error) {
             addToast({ title: 'Error', message: error.message, type: 'error' });
         }
@@ -189,8 +179,8 @@ export default function ExpensesPage() {
         setEditingExpense(null);
         setAmount('');
         setDescription('');
-        setExpenseDate(format(new Date(), 'yyyy-MM-dd'));
-        if (categories.length > 0) setCategory(categories[0].name);
+        setExpenseDate('');
+        setCategory('');
     };
 
     const handleNextPage = () => {
@@ -282,7 +272,9 @@ export default function ExpensesPage() {
                                         value={category}
                                         onChange={(e) => handleCategoryChange(e.target.value)}
                                         className="input w-full h-full cursor-pointer"
+                                        required
                                     >
+                                        <option value="" disabled>Select Category</option>
                                         {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                                         {categories.length === 0 && <option value="Food">Food</option>}
                                         <option disabled>──────────</option>

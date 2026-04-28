@@ -52,33 +52,61 @@ export default function PrivacyPolicy() {
                         </section>
 
                         <section>
-                            <h2 className="text-xl font-bold text-green-950 mb-3">3. Google AdSense & DoubleClick DART Cookie</h2>
+                            <h2 className="text-xl font-bold text-green-950 mb-3">3. Advertising Partners</h2>
                             <p>
-                                Google is one of a third-party vendor on our site. It also uses cookies, known as DART cookies, to serve ads to our site visitors based upon their visit to our site and other sites on the internet. However, visitors may choose to decline the use of DART cookies by visiting the Google ad and content network Privacy Policy at the following URL – <a href="https://policies.google.com/technologies/ads" target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">https://policies.google.com/technologies/ads</a>.
+                                We work with third-party advertising partners to help support our community station. These partners use cookies, web beacons, and similar technologies to serve advertisements that are relevant to you.
                             </p>
-                            <ul className="list-disc pl-5 space-y-2 mt-3">
-                                <li>Third party vendors, including Google, use cookies to serve ads based on a user's prior visits to your website or other websites.</li>
-                                <li>Google's use of advertising cookies enables it and its partners to serve ads to your users based on their visit to your sites and/or other sites on the Internet.</li>
-                                <li>Users may opt out of personalized advertising by visiting <a href="https://myadcenter.google.com/" target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">Ads Settings</a>.</li>
-                            </ul>
+                            
+                            <div className="mt-4 space-y-6">
+                                {/* Google AdSense Subsection */}
+                                <div>
+                                    <h3 className="font-bold text-slate-900 mb-2">Google AdSense & DoubleClick DART Cookie</h3>
+                                    <p className="mb-2">
+                                        Google is a third-party vendor on our site. It uses DART cookies to serve ads based on your visit to <code>seasidepos.vercel.app</code> and other sites on the internet.
+                                    </p>
+                                    <ul className="list-disc pl-5 space-y-1">
+                                        <li>Users may opt out of personalized advertising by visiting <a href="https://myadcenter.google.com/" target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">Google Ad Settings</a>.</li>
+                                        <li>For more details, visit <a href="https://policies.google.com/technologies/ads" target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">Google’s Advertising Privacy Policy</a>.</li>
+                                    </ul>
+                                </div>
+
+                                {/* Adsterra Subsection */}
+                                <div>
+                                    <h3 className="font-bold text-slate-900 mb-2">Adsterra Advertising Network</h3>
+                                    <p className="mb-2">
+                                        We utilize Adsterra for display banners and sponsored links. Adsterra and its advertisers may use cookies and scripts to collect data such as your IP address, browser type, and interaction with advertisements to measure ad effectiveness.
+                                    </p>
+                                    <ul className="list-disc pl-5 space-y-1">
+                                        <li>Data collected by Adsterra is subject to their own privacy standards.</li>
+                                        <li>You can manage your cookie preferences through your individual browser settings.</li>
+                                    </ul>
+                                </div>
+                            </div>
                         </section>
 
                         <section>
-                            <h2 className="text-xl font-bold text-green-950 mb-3">4. Security of Your Data</h2>
+                            <h2 className="text-xl font-bold text-green-950 mb-3">4. Third-Party Privacy Policies</h2>
+                            <p>
+                                Seaside's Privacy Policy does not apply to other advertisers or websites. Thus, we are advising you to consult the respective Privacy Policies of these third-party ad servers for more detailed information. It may include their practices and instructions about how to opt-out of certain options.
+                            </p>
+                        </section>
+
+                        <section>
+                            <h2 className="text-xl font-bold text-green-950 mb-3">5. Security of Your Data</h2>
                             <p>
                                 Our customer database and POS backend are strictly restricted to authorized Seaside personnel requiring login credentials. We do not sell, trade, or rent your personal identification information to others.
                             </p>
                         </section>
 
                         <section>
-                            <h2 className="text-xl font-bold text-green-950 mb-3">5. Consent</h2>
+                            <h2 className="text-xl font-bold text-green-950 mb-3">6. Consent</h2>
                             <p>
                                 By using our website, you hereby consent to our Privacy Policy and agree to its Terms and Conditions.
                             </p>
                         </section>
 
                         <section>
-                            <h2 className="text-xl font-bold text-green-950 mb-3">6. Contact Us</h2>
+                            <h2 className="text-xl font-bold text-green-950 mb-3">7. Contact Us</h2>
                             <p>
                                 If you have additional questions or require more information about our Privacy Policy, do not hesitate to contact us at our physical station in Loois, Labrador, Pangasinan, or via our official Facebook page.
                             </p>
