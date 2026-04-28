@@ -21,7 +21,7 @@ const Footer = () => {
                             title="Undergo Cutlery"
                             className="mx-auto"
                             sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-                            allow="accelerometer; border-color; border-style; border-width; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                         ></iframe>
                     </div>
 

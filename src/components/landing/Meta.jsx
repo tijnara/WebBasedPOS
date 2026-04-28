@@ -38,18 +38,15 @@ const Meta = () => {
                     type="application/ld+json"
                     dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
                 />
+                <script
+                    async
+                    src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3607213315862760"
+                    crossOrigin="anonymous"
+                ></script>
             </Head>
 
             {/* Load Google AdSense and Ad Blocking Recovery */}
             <>
-                <Script
-                    id="adsense-init"
-                    async
-                    src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3607213315862760"
-                    crossOrigin="anonymous"
-                    strategy="afterInteractive"
-                />
-
                 <Script
                     id="fundingchoices-messages"
                     async
