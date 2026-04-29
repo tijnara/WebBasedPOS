@@ -7,6 +7,8 @@ import { useStore } from '../../store/useStore';
 import { useExpenses, useCreateExpense, useUpdateExpense, useDeleteExpense, useExpenseSummary, useExpenseCategories, useCreateExpenseCategory, useUpdateExpenseCategory } from '../../hooks/useExpenses';
 import { useSalesSummary } from '../../hooks/useSalesSummary';
 import { useDebounce } from '../../hooks/useDebounce';
+import { useQueryClient } from '@tanstack/react-query';
+import { supabase } from '../../lib/supabaseClient';
 
 const categoryStyles = {
     'Food': { icon: Utensils, colorClass: 'bg-orange-100 text-orange-600' },
@@ -21,6 +23,8 @@ const capitalizeWords = (str) => {
 };
 
 export default function ExpensesPage() {
+    const queryClient = useQueryClient();
+    const { user } = useStore(s => ({ user: s.user }));
     // Initial filter states
     const initialDateFrom = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
     const initialDateTo = format(endOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
@@ -85,11 +89,79 @@ export default function ExpensesPage() {
 
     // Custom Category States
     const [showCategoryModal, setShowCategoryModal] = useState(false);
-    const [catForm, setCatForm] = useState({ id: null, name: '', default_amount: '', default_description: '' });
+    const [catForm, setCatForm] = useState({ id: null, name: '', default_amount: '', default_description: '', is_recurring: false });
+
+    // AUTO-SYNC WEEKLY EXPENSES EFFECT
+    useEffect(() => {
+        const syncWeeklyExpenses = async () => {
+            // Only run for logged-in staff, not in demo mode
+            if (!categories.length || !user || user.isDemo) return;
+
+            // 1. Identify the Monday of the current week
+            const currentMonday = startOfWeek(new Date(), { weekStartsOn: 1 });
+            const mondayStr = format(currentMonday, 'yyyy-MM-dd');
+
+            // 2. Prevent redundant checks in the same browser session
+            const syncKey = `synced_weekly_${mondayStr}`;
+            if (sessionStorage.getItem(syncKey)) return;
+
+            try {
+                // 3. Find categories marked as 'is_recurring' in your database
+                const recurringCategories = categories.filter(cat => cat.is_recurring);
+                if (recurringCategories.length === 0) return;
+
+                // 4. Check which recurring items already exist in the 'expenses' table for THIS Monday
+                const { data: existing, error } = await supabase
+                    .from('expenses')
+                    .select('category')
+                    .eq('expense_date', mondayStr);
+
+                if (error) throw error;
+
+                const existingCategoryNames = existing?.map(e => e.category) || [];
+
+                // 5. Filter for categories that haven't been added yet for this Monday
+                const missingCategories = recurringCategories.filter(
+                    cat => !existingCategoryNames.includes(cat.name)
+                );
+
+                if (missingCategories.length > 0) {
+                    // 6. Batch add the missing expenses using their database defaults
+                    const insertPromises = missingCategories.map(cat => 
+                        createExpense.mutateAsync({
+                            amount: cat.default_amount || 0,
+                            category: cat.name,
+                            description: cat.default_description || `Weekly ${cat.name}`,
+                            expense_date: mondayStr
+                        })
+                    );
+
+                    await Promise.all(insertPromises);
+                    
+                    // Force a refresh of the list and summary
+                    queryClient.invalidateQueries({ queryKey: ['expenses'] });
+                    queryClient.invalidateQueries({ queryKey: ['expense-summary'] });
+                    
+                    addToast({ 
+                        title: 'Weekly Sync', 
+                        message: `Automatically added ${missingCategories.length} recurring expenses.`, 
+                        type: 'success' 
+                    });
+                }
+
+                // Mark as synced for this session
+                sessionStorage.setItem(syncKey, 'true');
+            } catch (err) {
+                console.error("Auto-expense sync failed:", err);
+            }
+        };
+
+        syncWeeklyExpenses();
+    }, [categories, user, createExpense, queryClient, addToast]);
 
     const handleCategoryChange = (val) => {
         if (val === 'ADD_NEW') {
-            setCatForm({ id: null, name: '', default_amount: '', default_description: '' });
+            setCatForm({ id: null, name: '', default_amount: '', default_description: '', is_recurring: false });
             setShowCategoryModal(true);
             return;
         }
@@ -102,7 +174,7 @@ export default function ExpensesPage() {
     };
 
     const handleSaveCategory = async () => {
-        const { id, name, default_amount, default_description } = catForm;
+        const { id, name, default_amount, default_description, is_recurring } = catForm;
         if (!name.trim()) return;
 
         const capitalizedName = capitalizeWords(name);
@@ -110,14 +182,14 @@ export default function ExpensesPage() {
 
         try {
             if (id) {
-                await updateCategory.mutateAsync({ id, name: capitalizedName, default_amount, default_description: capitalizedDescription });
+                await updateCategory.mutateAsync({ id, name: capitalizedName, default_amount, default_description: capitalizedDescription, is_recurring });
                 addToast({ title: 'Success', message: 'Category updated.', type: 'success' });
             } else {
                 if (categories.some(c => c.name.toLowerCase() === capitalizedName.toLowerCase())) {
                     addToast({ title: 'Error', message: 'Category already exists.', type: 'error' });
                     return;
                 }
-                await createCategory.mutateAsync({ name: capitalizedName, default_amount, default_description: capitalizedDescription });
+                await createCategory.mutateAsync({ name: capitalizedName, default_amount, default_description: capitalizedDescription, is_recurring });
                 addToast({ title: 'Success', message: 'Category created.', type: 'success' });
             }
             setCategory(capitalizedName);
@@ -136,7 +208,8 @@ export default function ExpensesPage() {
                 id: selectedCat.id,
                 name: selectedCat.name,
                 default_amount: selectedCat.default_amount || '',
-                default_description: selectedCat.default_description || ''
+                default_description: selectedCat.default_description || '',
+                is_recurring: selectedCat.is_recurring || false
             });
             setShowCategoryModal(true);
         }
@@ -504,6 +577,18 @@ export default function ExpensesPage() {
                                         className="input w-full"
                                     />
                                 </div>
+                            </div>
+                            <div className="flex items-center gap-2 px-1 mt-2">
+                                <input
+                                    type="checkbox"
+                                    id="is_recurring"
+                                    checked={catForm.is_recurring}
+                                    onChange={(e) => setCatForm(prev => ({ ...prev, is_recurring: e.target.checked }))}
+                                    className="w-4 h-4 text-primary rounded focus:ring-primary"
+                                />
+                                <label htmlFor="is_recurring" className="text-sm font-medium text-gray-700">
+                                    Auto-add every Monday
+                                </label>
                             </div>
                         </div>
                         <div className="p-6 bg-slate-50 border-t border-gray-100 flex gap-3">
