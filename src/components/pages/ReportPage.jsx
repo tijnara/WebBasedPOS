@@ -59,28 +59,31 @@ const SaleCard = ({ sale, onDelete, isAdmin }) => (
                     )}
                 </div>
             </div>
-            <div className="space-y-2 pt-2">
-                <h4 className="text-xs font-medium text-gray-500">Items</h4>
+            <div className="pt-2">
+                <h4 className="text-xs font-medium text-gray-500 mb-2">Items</h4>
                 {(sale.sale_items || []).map((item, idx) => (
-                    <div key={idx} className="flex justify-between items-center text-sm">
-                        <div className="flex-1 truncate pr-2">
-                            <span className="font-medium text-gray-800">{item.productName || 'N/A'}</span>
-                            <span className="text-primary font-bold ml-2">x{item.quantity || 0}</span>
-                        </div>
-                        <div className="text-right">
-                            <div className="text-gray-700 whitespace-nowrap">
-                                {formatCurrency(item.productPrice || 0)}
+                    <React.Fragment key={idx}>
+                        {idx > 0 && <hr className="border-t border-gray-100 my-2" />}
+                        <div className="flex justify-between items-center text-sm">
+                            <div className="flex-1 truncate pr-2">
+                                <span className="font-medium text-gray-800">{item.productName || 'N/A'}</span>
+                                <span className="text-primary font-bold ml-2">x{item.quantity || 0}</span>
                             </div>
-                            {item.discount_amount > 0 && (
-                                <div className="text-xs text-green-600">
-                                    -{formatCurrency(item.discount_amount)}
+                            <div className="text-right">
+                                <div className="text-gray-700 whitespace-nowrap">
+                                    {formatCurrency(item.productPrice || 0)}
                                 </div>
-                            )}
+                                {item.discount_amount > 0 && (
+                                    <div className="text-xs text-green-600">
+                                        -{formatCurrency(item.discount_amount)}
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                    </div>
+                    </React.Fragment>
                 ))}
             </div>
-            <div className="flex justify-between items-center text-xs text-gray-500 pt-3">
+            <div className="flex justify-between items-center text-xs text-gray-500 pt-3 border-t border-gray-100 mt-3">
                 <span>Staff: <span className="font-medium text-gray-700">{sale.staffName || 'N/A'}</span></span>
                 <span>Payment: <span className="font-medium text-gray-700">{sale.paymentMethod}</span></span>
             </div>
@@ -117,7 +120,7 @@ const CustomerCard = ({ customer }) => (
                     </div>
                 )}
             </div>
-            <div className="flex justify-between items-center text-xs text-gray-500 pt-3">
+            <div className="flex justify-between items-center text-xs text-gray-500 pt-3 border-t border-gray-100 mt-3">
                 <span>Added by: <span className="font-medium text-gray-700">{customer.users?.name || 'N/A'}</span></span>
             </div>
         </div>
@@ -131,24 +134,24 @@ const CustomerReportDisplay = ({ customersList, currentPage, totalPages, onPageC
             <table className="min-w-full text-sm">
                 <thead className="bg-gray-100">
                 <tr>
-                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Name</th>
-                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Phone</th>
-                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Email</th>
-                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Address</th>
-                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Date Added</th>
-                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Added By</th>
+                    <th className="px-3 py-3 text-left font-semibold text-gray-700 border-b border-gray-200">Name</th>
+                    <th className="px-3 py-3 text-left font-semibold text-gray-700 border-b border-gray-200">Phone</th>
+                    <th className="px-3 py-3 text-left font-semibold text-gray-700 border-b border-gray-200">Email</th>
+                    <th className="px-3 py-3 text-left font-semibold text-gray-700 border-b border-gray-200">Address</th>
+                    <th className="px-3 py-3 text-left font-semibold text-gray-700 border-b border-gray-200">Date Added</th>
+                    <th className="px-3 py-3 text-left font-semibold text-gray-700 border-b border-gray-200">Added By</th>
                 </tr>
                 </thead>
                 <tbody className="">
                 {customersList.length === 0 ? (
                     <tr>
-                        <td colSpan="6" className="text-center p-6 text-gray-500 text-sm">
+                        <td colSpan="6" className="text-center p-6 text-gray-500 text-sm border-b border-gray-200">
                             No customers found.
                         </td>
                     </tr>
                 ) : (
                     customersList.map(customer => (
-                        <tr key={customer.id} className="hover:bg-gray-50">
+                        <tr key={customer.id} className="border-b border-gray-200 last:border-0">
                             <td className="px-3 py-3 font-medium text-gray-800">{customer.name}</td>
                             <td className="px-3 py-3 text-gray-600">{customer.phone || 'N/A'}</td>
                             <td className="px-3 py-3 text-gray-600">{customer.email || 'N/A'}</td>
@@ -163,14 +166,17 @@ const CustomerReportDisplay = ({ customersList, currentPage, totalPages, onPageC
                 </tbody>
             </table>
         </div>
-        <div className="md:hidden p-2 space-y-3 bg-gray-50">
+        <div className="md:hidden p-2 bg-gray-50">
             {customersList.length === 0 ? (
                 <div className="text-center p-6 text-gray-500">
                     No customers found.
                 </div>
             ) : (
-                customersList.map(customer => (
-                    <CustomerCard key={customer.id} customer={customer} />
+                customersList.map((customer, index) => (
+                    <div key={customer.id}>
+                        {index > 0 && <hr className="border-t border-gray-200 my-3" />}
+                        <CustomerCard customer={customer} />
+                    </div>
                 ))
             )}
         </div>
@@ -185,7 +191,7 @@ const CustomerReportDisplay = ({ customersList, currentPage, totalPages, onPageC
 // --- Inactive Customers Table ---
 const InactiveCustomersTable = ({ inactiveCustomers, isLoading, error }) => (
     <div className="bg-white rounded-lg shadow-sm md:overflow-hidden">
-        <div className="bg-primary-soft px-3 py-3">
+        <div className="bg-primary-soft px-3 py-3 border-b border-gray-200">
             <h3 className="text-sm font-semibold text-primary">Inactive Customers (14+ Days)</h3>
             <p className="text-xs text-gray-600 mt-1">Customers who haven't ordered in the last 2 weeks</p>
         </div>
@@ -198,21 +204,21 @@ const InactiveCustomersTable = ({ inactiveCustomers, isLoading, error }) => (
                 <table className="min-w-full text-sm">
                     <thead className="bg-gray-100">
                     <tr>
-                        <th className="px-3 py-3 text-left font-semibold text-gray-700">Name</th>
-                        <th className="px-3 py-3 text-left font-semibold text-gray-700">Phone</th>
-                        <th className="px-3 py-3 text-left font-semibold text-gray-700">Last Order</th>
+                        <th className="px-3 py-3 text-left font-semibold text-gray-700 border-b border-gray-200">Name</th>
+                        <th className="px-3 py-3 text-left font-semibold text-gray-700 border-b border-gray-200">Phone</th>
+                        <th className="px-3 py-3 text-left font-semibold text-gray-700 border-b border-gray-200">Last Order</th>
                     </tr>
                     </thead>
                     <tbody className="">
                     {inactiveCustomers.length === 0 ? (
                         <tr>
-                            <td colSpan="3" className="text-center p-6 text-gray-500 text-sm">
+                            <td colSpan="3" className="text-center p-6 text-gray-500 text-sm border-b border-gray-200">
                                 No inactive customers found.
                             </td>
                         </tr>
                     ) : (
                         inactiveCustomers.map(customer => (
-                            <tr key={customer.id} className="hover:bg-gray-50">
+                            <tr key={customer.id} className="border-b border-gray-200 last:border-0">
                                 <td className="px-3 py-3 font-medium text-gray-800">{customer.name}</td>
                                 <td className="px-3 py-3 text-gray-600">{customer.phone || 'N/A'}</td>
                                 <td className="px-3 py-3 text-gray-600">
@@ -227,7 +233,7 @@ const InactiveCustomersTable = ({ inactiveCustomers, isLoading, error }) => (
                 </table>
             )}
         </div>
-        <div className="md:hidden p-2 space-y-3 bg-gray-50">
+        <div className="md:hidden p-2 bg-gray-50">
             {isLoading ? (
                 <div className="text-center p-6 text-gray-500">Loading...</div>
             ) : error ? (
@@ -237,14 +243,17 @@ const InactiveCustomersTable = ({ inactiveCustomers, isLoading, error }) => (
                     No inactive customers found.
                 </div>
             ) : (
-                inactiveCustomers.map(customer => (
-                    <div key={customer.id} className="bg-white rounded-lg shadow-sm p-3">
-                        <div className="font-medium text-gray-800">{customer.name}</div>
-                        <div className="text-xs text-gray-500 mt-1">{customer.phone || 'No phone'}</div>
-                        <div className="text-xs text-gray-600 mt-1">
-                            Last Order: {customer.last_order_date
-                            ? format(new Date(customer.last_order_date), 'MMM d, yyyy')
-                            : 'Never'}
+                inactiveCustomers.map((customer, index) => (
+                    <div key={customer.id}>
+                        {index > 0 && <hr className="border-t border-gray-200 my-3" />}
+                        <div className="bg-white rounded-lg shadow-sm p-3">
+                            <div className="font-medium text-gray-800">{customer.name}</div>
+                            <div className="text-xs text-gray-500 mt-1">{customer.phone || 'No phone'}</div>
+                            <div className="text-xs text-gray-600 mt-1">
+                                Last Order: {customer.last_order_date
+                                ? format(new Date(customer.last_order_date), 'MMM d, yyyy')
+                                : 'Never'}
+                            </div>
                         </div>
                     </div>
                 ))
@@ -260,55 +269,61 @@ const SalesReportDisplay = ({ salesList, currentPage, totalPages, onPageChange, 
             <table className="min-w-full text-sm">
                 <thead className="bg-gray-100">
                 <tr>
-                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Date & Time</th>
-                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Customer</th>
-                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Item(s) & Qty</th>
-                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Price(s)</th>
-                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Discount</th>
-                    <th className="px-3 py-3 text-center font-semibold text-gray-700">Total Qty</th>
-                    <th className="px-3 py-3 text-right font-semibold text-gray-700">Total</th>
-                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Payment</th>
-                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Status</th>
-                    <th className="px-3 py-3 text-left font-semibold text-gray-700">Staff</th>
-                    {isAdmin && <th className="px-3 py-3 text-right font-semibold text-gray-700">Action</th>}
+                    <th className="px-3 py-3 text-left font-semibold text-gray-700 border-b border-gray-200">Date & Time</th>
+                    <th className="px-3 py-3 text-left font-semibold text-gray-700 border-b border-gray-200">Customer</th>
+                    <th className="px-3 py-3 text-left font-semibold text-gray-700 border-b border-gray-200">Item(s) & Qty</th>
+                    <th className="px-3 py-3 text-left font-semibold text-gray-700 border-b border-gray-200">Price(s)</th>
+                    <th className="px-3 py-3 text-left font-semibold text-gray-700 border-b border-gray-200">Discount</th>
+                    <th className="px-3 py-3 text-center font-semibold text-gray-700 border-b border-gray-200">Total Qty</th>
+                    <th className="px-3 py-3 text-right font-semibold text-gray-700 border-b border-gray-200">Total</th>
+                    <th className="px-3 py-3 text-left font-semibold text-gray-700 border-b border-gray-200">Payment</th>
+                    <th className="px-3 py-3 text-left font-semibold text-gray-700 border-b border-gray-200">Status</th>
+                    <th className="px-3 py-3 text-left font-semibold text-gray-700 border-b border-gray-200">Staff</th>
+                    {isAdmin && <th className="px-3 py-3 text-right font-semibold text-gray-700 border-b border-gray-200">Action</th>}
                 </tr>
                 </thead>
                 <tbody className="">
                 {salesList.length === 0 ? (
                     <tr>
-                        <td colSpan={isAdmin ? "11" : "10"} className="text-center p-6 text-gray-500 text-sm">
+                        <td colSpan={isAdmin ? "11" : "10"} className="text-center p-6 text-gray-500 text-sm border-b border-gray-200">
                             No sales found for this period.
                         </td>
                     </tr>
                 ) : (
                     salesList.map(sale => (
-                        <tr key={sale.id} className="hover:bg-gray-50">
+                        <tr key={sale.id} className="border-b border-gray-200 last:border-0">
                             <td className="px-3 py-3 whitespace-nowrap align-top">{format(new Date(sale.saleTimestamp), 'MMM d, yyyy h:mm a')}</td>
                             <td className="px-3 py-3 whitespace-nowrap align-top">{sale.customerName}</td>
                             <td className="px-3 py-3 align-top">
-                                <div className="flex flex-col gap-1">
+                                <div className="flex flex-col">
                                     {(sale.sale_items || []).map((item, idx) => (
-                                        <span key={idx} className="block truncate" title={item.productName}>
+                                        <div key={idx} className={`py-1 ${idx > 0 ? 'border-t border-gray-200' : ''}`}>
+                                            <span className="block truncate" title={item.productName}>
                                                 {item.productName || 'N/A'} <span className="font-bold text-primary">x{item.quantity || 0}</span>
                                             </span>
+                                        </div>
                                     ))}
                                 </div>
                             </td>
                             <td className="px-3 py-3 align-top">
-                                <div className="flex flex-col gap-1">
+                                <div className="flex flex-col">
                                     {(sale.sale_items || []).map((item, idx) => (
-                                        <span key={idx} className="block whitespace-nowrap">
+                                        <div key={idx} className={`py-1 ${idx > 0 ? 'border-t border-gray-200' : ''}`}>
+                                            <span className="block whitespace-nowrap">
                                                 {formatCurrency(item.productPrice || 0)}
                                             </span>
+                                        </div>
                                     ))}
                                 </div>
                             </td>
                             <td className="px-3 py-3 align-top">
-                                <div className="flex flex-col gap-1">
+                                <div className="flex flex-col">
                                     {(sale.sale_items || []).map((item, idx) => (
-                                        <span key={idx} className={`block whitespace-nowrap ${item.discount_amount > 0 ? 'text-green-600 font-medium' : 'text-gray-400'}`}>
+                                        <div key={idx} className={`py-1 ${idx > 0 ? 'border-t border-gray-200' : ''}`}>
+                                            <span className={`block whitespace-nowrap ${item.discount_amount > 0 ? 'text-green-600 font-medium' : 'text-gray-400'}`}>
                                                 {item.discount_amount > 0 ? `-${formatCurrency(item.discount_amount)}` : '—'}
                                             </span>
+                                        </div>
                                     ))}
                                 </div>
                             </td>
@@ -340,14 +355,17 @@ const SalesReportDisplay = ({ salesList, currentPage, totalPages, onPageChange, 
                 </tbody>
             </table>
         </div>
-        <div className="md:hidden p-2 space-y-3 bg-gray-50">
+        <div className="md:hidden p-2 bg-gray-50">
             {salesList.length === 0 ? (
                 <div className="text-center p-6 text-gray-500">
                     No sales found for this period.
                 </div>
             ) : (
-                salesList.map(sale => (
-                    <SaleCard key={sale.id} sale={sale} onDelete={onDelete} isAdmin={isAdmin} />
+                salesList.map((sale, index) => (
+                    <div key={sale.id}>
+                        {index > 0 && <hr className="border-t border-gray-200 my-3" />}
+                        <SaleCard sale={sale} onDelete={onDelete} isAdmin={isAdmin} />
+                    </div>
                 ))
             )}
         </div>
@@ -787,7 +805,7 @@ const ReportPage = () => {
                                 <tr><td colSpan="4" className="text-center p-6 text-gray-500">No orders found.</td></tr>
                             ) : (
                                 frequentData?.customers?.map((c, idx) => (
-                                    <tr key={idx} className="hover:bg-gray-50 border-b border-gray-100 last:border-0">
+                                    <tr key={idx} className="border-b border-gray-200 last:border-0">
                                         <td className="px-4 py-3 font-medium text-gray-500">
                                             {(frequentPage - 1) * FREQUENT_PAGE_SIZE + idx + 1}
                                         </td>

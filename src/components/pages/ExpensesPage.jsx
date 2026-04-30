@@ -304,7 +304,7 @@ export default function ExpensesPage() {
 
     return (
         <div className="responsive-page min-h-screen bg-background">
-            <div className="w-full max-w-7xl mx-auto bg-surface shadow-xl flex flex-col lg:flex-row rounded-3xl border border-border overflow-hidden">
+            <div className="w-full max-w-7xl mx-auto bg-surface shadow-xl flex flex-col lg:flex-row rounded-3xl border-transparent overflow-hidden">
 
                 {/* Dashboard Panel */}
                 <div className="w-full lg:w-7/12 flex flex-col bg-surface">
@@ -325,7 +325,7 @@ export default function ExpensesPage() {
 
                         <p className="text-text-muted text-sm font-medium">This Week's Total</p>
                         <h2 className="text-5xl font-extrabold mb-4 text-primary">{currency(summary?.weeklyTotal || 0, { symbol: '₱' }).format()}</h2>
-                        <div className="flex gap-12 border-t border-border pt-4">
+                        <div className="flex gap-12 border-t-transparent pt-4">
                             <div><p className="text-xs uppercase font-semibold text-text-muted">Monthly</p><p className="text-lg font-bold text-text">{currency(summary?.monthlyTotal || 0, { symbol: '₱' }).format()}&nbsp;&nbsp;&nbsp;&nbsp;</p></div>
                             <div><p className="text-xs uppercase font-semibold text-text-muted">All Time</p><p className="text-lg font-bold text-text">{currency(summary?.grandTotal || 0, { symbol:'₱' }).format()}</p></div>
                         </div>
@@ -341,7 +341,7 @@ export default function ExpensesPage() {
                                 </button>
                             )}
                         </div>
-                        <form onSubmit={handleManualSubmit} className={`${editingExpense ? 'bg-amber-50 border-amber-200' : 'bg-surface border-border'} p-4 rounded-3xl border shadow-sm mb-6 transition-colors`}>
+                        <form onSubmit={handleManualSubmit} className={`${editingExpense ? 'bg-amber-50 border-transparent' : 'bg-surface border-transparent'} p-4 rounded-3xl border-transparent shadow-sm mb-6 transition-colors`}>
                             <div className="flex flex-col sm:flex-row gap-3 mb-3 items-stretch">
                                 <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="₱0.00" required step="0.01" className="input flex-[1]" />
 
@@ -390,7 +390,7 @@ export default function ExpensesPage() {
                         </form>
 
                         {/* Filter Section */}
-                        <div className="bg-surface rounded-3xl p-6 shadow-sm border border-border mb-6">
+                        <div className="bg-surface rounded-3xl p-6 shadow-sm border border-transparent mb-6">
                             <div className="flex justify-between items-center mb-4">
                                 <div className="flex items-center gap-2 text-text-muted font-bold">
                                     <Calendar className="w-5 h-5 text-primary" /> Filter & Search
@@ -451,7 +451,7 @@ export default function ExpensesPage() {
                 </div>
 
                 {/* Actions Panel */}
-                <div className="w-full lg:w-5/12 bg-surface flex flex-col p-6 lg:border-l border-border h-full min-h-[600px] lg:h-auto">
+                <div className="w-full lg:w-5/12 bg-surface flex flex-col p-6 lg:border-l-transparent h-full min-h-[600px] lg:h-auto">
                     <div className="flex justify-between items-end mb-4">
                         <div>
                             <h3 className="text-xl font-bold text-text">List of Expenses</h3>
@@ -466,39 +466,42 @@ export default function ExpensesPage() {
                     </div>
 
                     <div className="flex-1 space-y-2 mb-8">
-                        {isLoading ? <p className="text-center py-4 text-text-muted">Loading...</p> : expenses.map((exp) => {
+                        {isLoading ? <p className="text-center py-4 text-text-muted">Loading...</p> : expenses.map((exp, index) => {
                             // Fallback if custom category doesn't exist in styles object
                             const style = categoryStyles[exp.category] || { icon: Receipt, colorClass: 'bg-background text-text-muted' };
                             const Icon = style.icon;
                             return (
-                                <div key={exp.id} className={`flex justify-between items-center p-3 hover:bg-background bg-surface rounded-xl border transition-colors ${editingExpense?.id === exp.id ? 'border-primary ring-1 ring-primary' : 'border-border'}`}>
-                                    <div className="flex items-center gap-3 flex-1 pr-3 border-r border-border">
-                                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${style.colorClass}`}><Icon className="w-5 h-5" /></div>
-                                        <div className="flex flex-col">
-                                            <span className="font-semibold text-text text-sm">{exp.description}</span>
-                                            <span className="text-xs font-medium text-text-muted">
-                                                {exp.category} &bull; {format(parseISO(exp.expense_date), 'EEEE, MMM d, yyyy')}
-                                                {exp.users?.name && <span className="ml-1 text-primary font-bold italic opacity-70">by {exp.users.name}</span>}
-                                            </span>
+                                <div key={exp.id}>
+                                    {index > 0 && <hr className="border-t border-gray-100 my-2 dark:border-gray-800" />}
+                                    <div className={`flex justify-between items-center p-3 hover:bg-background bg-surface rounded-xl border-transparent transition-colors ${editingExpense?.id === exp.id ? 'border-primary ring-1 ring-primary' : 'border-transparent'}`}>
+                                        <div className="flex items-center gap-3 flex-1 pr-3 border-r-transparent">
+                                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${style.colorClass}`}><Icon className="w-5 h-5" /></div>
+                                            <div className="flex flex-col">
+                                                <span className="font-semibold text-text text-sm">{exp.description}</span>
+                                                <span className="text-xs font-medium text-text-muted">
+                                                    {exp.category} &bull; {format(parseISO(exp.expense_date), 'EEEE, MMM d, yyyy')}
+                                                    {exp.users?.name && <span className="ml-1 text-primary font-bold italic opacity-70">by {exp.users.name}</span>}
+                                                </span>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="text-right flex flex-col items-end pl-3 min-w-[120px]">
-                                        <span className="font-bold text-red-500">-{currency(exp.amount, { symbol: '₱' }).format()}</span>
-                                        <div className="flex gap-2 mt-1">
-                                            <button
-                                                onClick={() => handleEditClick(exp)}
-                                                className="p-1 text-text-muted hover:text-blue-500 transition-colors"
-                                                title="Edit"
-                                            >
-                                                <Edit className="w-3.5 h-3.5" />
-                                            </button>
-                                            <button
-                                                onClick={() => handleDeleteClick(exp.id)}
-                                                className="p-1 text-text-muted hover:text-red-500 transition-colors"
-                                                title="Delete"
-                                            >
-                                                <Trash2 className="w-3.5 h-3.5" />
-                                            </button>
+                                        <div className="text-right flex flex-col items-end pl-3 min-w-[120px]">
+                                            <span className="font-bold text-red-500">-{currency(exp.amount, { symbol: '₱' }).format()}</span>
+                                            <div className="flex gap-2 mt-1">
+                                                <button
+                                                    onClick={() => handleEditClick(exp)}
+                                                    className="p-1 text-text-muted hover:text-blue-500 transition-colors"
+                                                    title="Edit"
+                                                >
+                                                    <Edit className="w-3.5 h-3.5" />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteClick(exp.id)}
+                                                    className="p-1 text-text-muted hover:text-red-500 transition-colors"
+                                                    title="Delete"
+                                                >
+                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -513,7 +516,7 @@ export default function ExpensesPage() {
                     </div>
 
                     {/* Pagination Controls */}
-                    <div className="flex items-center justify-between border-t border-border pt-4 mt-auto">
+                    <div className="flex items-center justify-between border-t-transparent pt-4 mt-auto">
                         <button
                             onClick={handlePrevPage}
                             disabled={page === 1}
@@ -539,7 +542,7 @@ export default function ExpensesPage() {
             {showCategoryModal && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
                     <div className="bg-surface rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
-                        <div className="p-6 border-b border-border flex justify-between items-center bg-background">
+                        <div className="p-6 border-b-transparent flex justify-between items-center bg-background">
                             <h3 className="text-xl font-bold text-text">{catForm.id ? 'Edit Category' : 'New Category'}</h3>
                             <button onClick={() => setShowCategoryModal(false)} className="text-text-muted hover:text-text transition-colors"><X className="w-6 h-6" /></button>
                         </div>
@@ -584,24 +587,24 @@ export default function ExpensesPage() {
                                     id="is_recurring"
                                     checked={catForm.is_recurring}
                                     onChange={(e) => setCatForm(prev => ({ ...prev, is_recurring: e.target.checked }))}
-                                    className="w-4 h-4 text-primary rounded focus:ring-primary"
+                                    className="w-4 h-4 text-primary rounded focus:ring-primary border-transparent"
                                 />
                                 <label htmlFor="is_recurring" className="text-sm font-medium text-text-muted">
                                     Auto-add every Monday
                                 </label>
                             </div>
                         </div>
-                        <div className="p-6 bg-background border-t border-border flex gap-3">
+                        <div className="p-6 bg-background border-t-transparent flex gap-3">
                             <button
                                 onClick={() => setShowCategoryModal(false)}
-                                className="btn flex-1 bg-surface border border-border text-text-muted hover:bg-background font-semibold"
+                                className="btn flex-1 bg-surface border border-transparent text-text-muted hover:bg-background font-semibold"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={handleSaveCategory}
                                 disabled={createCategory.isPending || updateCategory.isPending || !catForm.name.trim()}
-                                className="btn btn--primary flex-1 font-bold shadow-lg shadow-primary/20"
+                                className="btn btn--primary flex-1 font-bold shadow-lg shadow-primary/20 border-transparent"
                             >
                                 {createCategory.isPending || updateCategory.isPending ? 'Saving...' : 'Save Category'}
                             </button>

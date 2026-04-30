@@ -1,5 +1,4 @@
 // src/components/pages/ProductManagementPage.jsx
-// Force rebuild
 import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../../store/useStore';
 import { supabase } from '../../lib/supabaseClient';
@@ -40,7 +39,7 @@ const ImageUploader = ({ previewUrl, onFileSelect }) => {
     return (
         <div
             onClick={handleDivClick}
-            className="cursor-pointer group relative w-full aspect-square bg-gray-50 dark:bg-gray-800 border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-primary rounded-xl flex flex-col items-center justify-center transition-all overflow-hidden"
+            className="cursor-pointer group relative w-full aspect-square bg-gray-50 dark:bg-slate-800 border-2 border-dashed border-gray-300 dark:border-slate-700 hover:border-primary rounded-xl flex flex-col items-center justify-center transition-all overflow-hidden"
         >
             {previewUrl ? (
                 <>
@@ -50,10 +49,10 @@ const ImageUploader = ({ previewUrl, onFileSelect }) => {
                     </div>
                 </>
             ) : (
-                <div className="flex flex-col items-center text-gray-400 dark:text-gray-500 group-hover:text-primary transition-colors">
+                <div className="flex flex-col items-center text-gray-400 group-hover:text-primary transition-colors">
                     <PackageIcon className="w-12 h-12 mb-2" />
                     <span className="text-sm font-medium">Upload Image</span>
-                    <span className="text-xs text-gray-400 dark:text-gray-500 mt-1">Click to browse</span>
+                    <span className="text-xs text-gray-400 mt-1">Click to browse</span>
                 </div>
             )}
             <input
@@ -256,7 +255,7 @@ export default function ProductManagementPage() {
             setUploading(false);
         }
     };
-    
+
     const toggleVisibility = async (p) => {
         const newVisibility = !p.is_hidden;
         try {
@@ -327,9 +326,14 @@ export default function ProductManagementPage() {
     const isMutating = createProduct.isPending || updateProduct.isPending || deleteProduct.isPending || uploading;
 
     return (
-        <div className="product-page responsive-page dark:text-white">
+        <div className="product-page responsive-page">
+            <div className="mb-6">
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Product Management</h1>
+                <p className="text-sm text-gray-500 dark:text-slate-300 mt-1">Manage your inventory items, pricing, and availability</p>
+            </div>
+
             {/* --- FILTER BAR --- */}
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6 p-4 rounded-lg bg-white dark:bg-gray-800 shadow-sm">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6 p-4 rounded-xl bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 shadow-sm transition-colors">
                 <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
                     <div className="w-full md:w-64">
                         <Input
@@ -337,10 +341,15 @@ export default function ProductManagementPage() {
                             placeholder="Search products... (F)"
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
+                            className="bg-gray-50 dark:bg-slate-900 border-gray-200 dark:border-slate-700 dark:text-white h-11 rounded-xl"
                         />
                     </div>
                     <div className="w-full md:w-48">
-                        <Select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}>
+                        <Select
+                            value={categoryFilter}
+                            onChange={e => setCategoryFilter(e.target.value)}
+                            className="bg-gray-50 dark:bg-slate-900 border-gray-200 dark:border-slate-700 dark:text-white h-11 rounded-xl"
+                        >
                             {categories.map(c => <option key={c} value={c}>{c}</option>)}
                         </Select>
                     </div>
@@ -349,7 +358,7 @@ export default function ProductManagementPage() {
                     <Button
                         variant="outline"
                         onClick={() => fileInputRef.current && fileInputRef.current.click()}
-                        className="hidden md:inline-flex"
+                        className="hidden md:inline-flex h-11 rounded-xl dark:border-slate-700 dark:text-slate-200"
                     >
                         Import CSV
                     </Button>
@@ -360,94 +369,84 @@ export default function ProductManagementPage() {
                         style={{ display: 'none' }}
                         onChange={handleCSVUpload}
                     />
-                    <Button variant="primary" onClick={openModal} className="w-full md:w-auto">Add Product</Button>
+                    <Button variant="primary" onClick={openModal} className="w-full md:w-auto h-11 rounded-xl shadow-md font-semibold">Add Product</Button>
                 </div>
             </div>
 
             {/* --- DESKTOP TABLE --- */}
-            <Card className="hidden md:block border-0">
+            <Card className="hidden md:block border-0 shadow-sm bg-white dark:bg-slate-900 overflow-hidden rounded-2xl">
                 <CardContent className="p-0">
                     <ScrollArea>
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead className="w-[40%] dark:text-white">Product</TableHead>
-                                    <TableHead className="dark:text-white">Category</TableHead>
-                                    <TableHead className="dark:text-white">Price</TableHead>
-                                    <TableHead className="dark:text-white">Stock</TableHead>
-                                    <TableHead className="dark:text-white">Status</TableHead>
-                                    <TableHead className="dark:text-white">Last Updated</TableHead>
-                                    <TableHead className="text-right dark:text-white">Actions</TableHead>
+                                    <TableHead className="w-[40%]">Product</TableHead>
+                                    <TableHead>Category</TableHead>
+                                    <TableHead>Price</TableHead>
+                                    <TableHead>Stock</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead>Last Updated</TableHead>
+                                    <TableHead className="text-right">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {isLoading ? (
-                                    <TableRow><TableCell colSpan={7} className="text-center py-8">Loading...</TableCell></TableRow>
+                                    <TableRow><TableCell colSpan={7} className="text-center py-12">Loading inventory...</TableCell></TableRow>
                                 ) : filteredProducts.length === 0 ? (
-                                    <TableRow><TableCell colSpan={7} className="text-center py-8">No products found.</TableCell></TableRow>
+                                    <TableRow><TableCell colSpan={7} className="text-center py-12">No products found.</TableCell></TableRow>
                                 ) : (
                                     filteredProducts.map(p => (
-                                        <TableRow key={p.id} className={p.is_hidden ? 'bg-gray-50 dark:bg-gray-800' : ''}>
-                                            <TableCell className="dark:text-white">
+                                        <TableRow key={p.id} className={p.is_hidden ? 'bg-gray-50 dark:bg-slate-800/50' : ''}>
+                                            <TableCell>
                                                 <div className="flex items-center gap-3">
-                                                    <div
-                                                        className="rounded-lg bg-gray-50 dark:bg-gray-700 flex items-center justify-center overflow-hidden flex-shrink-0"
-                                                        style={{ width: '48px', height: '48px' }}
-                                                    >
-                                                        {p.image_url ? (
-                                                            <img
-                                                                src={p.image_url}
-                                                                alt={p.name}
-                                                                className="object-cover"
-                                                                style={{ width: '100%', height: '100%' }}
-                                                            />
-                                                        ) : (
-                                                            <PackageIcon className="h-6 w-6 text-gray-300 dark:text-gray-500" />
-                                                        )}
-                                                    </div>
+                                                    
                                                     <div className="flex flex-col">
-                                                        <span className="font-semibold text-gray-900 dark:text-white">
+                                                        <span className="font-semibold">
                                                             {p.name}
                                                             {p.is_hidden && <span className="ml-2 text-[10px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-full font-bold">Hidden</span>}
                                                         </span>
-                                                        {p.barcode && <span className="text-xs text-gray-500 dark:text-gray-400 font-mono">{p.barcode}</span>}
+                                                        {p.barcode && <span className="text-xs font-mono">{p.barcode}</span>}
                                                     </div>
                                                 </div>
                                             </TableCell>
-                                            <TableCell className="dark:text-white">
-                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
+                                            <TableCell>
+                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700">
                                                     {p.category || 'General'}
                                                 </span>
                                             </TableCell>
-                                            <TableCell className="dark:text-white">
-                                                <div className={`font-medium ${p.is_hidden ? 'text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-white'}`}>
+                                            <TableCell>
+                                                <div className={`font-medium ${p.is_hidden ? '' : ''}`}>
                                                     {currency(p.price, { symbol: '₱' }).format()}
                                                 </div>
                                             </TableCell>
-                                            <TableCell className="dark:text-white">
-                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                            <TableCell>
+                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${
                                                     Number(p.stock) <= Number(p.minStock)
-                                                        ? 'bg-red-50 text-red-700'
-                                                        : 'bg-green-50 text-green-700'
+                                                        ? 'bg-red-50 dark:bg-red-900/50 text-red-700 dark:text-red-400'
+                                                        : 'bg-green-50 dark:bg-green-900/50 text-green-700 dark:text-green-400'
                                                 }`}>
                                                     {p.stock} units
                                                 </span>
                                             </TableCell>
                                             <TableCell>
-                                                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${p.is_hidden ? 'bg-gray-200 text-gray-600' : 'bg-green-100 text-green-800'}`}>
+                                                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${
+                                                    p.is_hidden 
+                                                        ? 'bg-gray-200' 
+                                                        : 'bg-green-100'
+                                                }`}>
                                                     {p.is_hidden ? 'Hidden' : 'Visible'}
                                                 </span>
                                             </TableCell>
-                                            <TableCell className="text-gray-500 dark:text-gray-400 text-sm">
+                                            <TableCell className="text-sm">
                                                 {p.updated_at ? new Date(p.updated_at).toLocaleDateString() : '—'}
                                             </TableCell>
                                             <TableCell className="text-right">
                                                 <div className="flex justify-end space-x-1">
-                                                    <Button variant="ghost" size="icon" onClick={() => toggleHide(p)} className="text-gray-500 hover:text-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 h-8 w-8" title={p.is_hidden ? "Unhide from POS" : "Hide from POS"}>
+                                                    <Button variant="ghost" size="icon" onClick={() => toggleHide(p)} className="hover:bg-slate-800 h-8 w-8" title={p.is_hidden ? "Unhide from POS" : "Hide from POS"}>
                                                         {p.is_hidden ? <EyeOff className="w-4 h-4 text-orange-500" /> : <Eye className="w-4 h-4" />}
                                                     </Button>
-                                                    <Button variant="ghost" size="icon" onClick={() => startEdit(p)} className="text-blue-600 h-8 w-8"><EditIcon /></Button>
-                                                    <Button variant="ghost" size="icon" onClick={() => remove(p)} className="text-red-600 h-8 w-8"><DeleteIcon /></Button>
+                                                    <Button variant="ghost" size="icon" onClick={() => startEdit(p)} className="text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/50 h-8 w-8"><EditIcon /></Button>
+                                                    <Button variant="ghost" size="icon" onClick={() => remove(p)} className="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/50 h-8 w-8"><DeleteIcon /></Button>
                                                 </div>
                                             </TableCell>
                                         </TableRow>
@@ -456,7 +455,9 @@ export default function ProductManagementPage() {
                             </TableBody>
                         </Table>
                     </ScrollArea>
-                    <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+                    <div className="p-4 border-t border-gray-50 dark:border-slate-800 bg-white dark:bg-slate-900">
+                        <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+                    </div>
                 </CardContent>
             </Card>
 
@@ -465,15 +466,15 @@ export default function ProductManagementPage() {
                 {isLoading ? (
                     <div className="text-center text-muted p-6">Loading products...</div>
                 ) : filteredProducts.length === 0 ? (
-                    <div className="text-center text-muted p-6 bg-white dark:bg-gray-800 rounded-lg">
+                    <div className="text-center text-muted p-6 bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm">
                         No products found.
                     </div>
                 ) : (
                     filteredProducts.map(p => (
-                        <div key={p.id} className={`bg-white dark:bg-gray-800 p-3 rounded-xl shadow-sm flex items-start gap-3 ${p.is_hidden ? 'opacity-60' : ''}`}>
+                        <div key={p.id} className={`bg-white dark:bg-slate-900 p-3 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800 flex items-start gap-3 transition-colors ${p.is_hidden ? 'opacity-70' : ''}`}>
                             <div className="flex-shrink-0">
                                 <div
-                                    className="rounded-lg bg-gray-50 dark:bg-gray-700 flex items-center justify-center overflow-hidden"
+                                    className="rounded-xl bg-gray-50 dark:bg-slate-800 flex items-center justify-center overflow-hidden"
                                     style={{ width: '64px', height: '64px' }}
                                 >
                                     {p.image_url ? (
@@ -484,34 +485,26 @@ export default function ProductManagementPage() {
                                             style={{ width: '100%', height: '100%' }}
                                         />
                                     ) : (
-                                        <PackageIcon className="h-8 w-8 text-gray-300 dark:text-gray-500" />
+                                        <PackageIcon className="h-8 w-8" />
                                     )}
                                 </div>
                             </div>
 
                             <div className="flex-1 min-w-0 flex flex-col justify-between" style={{ height: '64px' }}>
                                 <div>
-                                    <div className="font-semibold text-gray-900 dark:text-white text-sm leading-tight truncate flex items-center gap-1.5">
+                                    <div className="font-semibold text-sm leading-tight truncate flex items-center gap-1.5">
                                         {p.name}
                                         {p.is_hidden && <span className="text-[9px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-full font-bold">Hidden</span>}
                                     </div>
-                                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                    <div className="text-xs mt-0.5">
                                         {p.category || 'General'}
                                     </div>
                                 </div>
-
                                 <div className="flex items-center justify-between mt-1">
-                                    <div className="font-bold text-primary text-sm">
+                                    <div className="font-bold text-sm">
                                         {currency(p.price || 0, { symbol: '₱' }).format()}
                                     </div>
-
-                                    <div className={`text-xs font-medium px-2 py-0.5 rounded-md ${
-                                        Number(p.stock) <= Number(p.minStock)
-                                            ? 'bg-red-50 text-red-600'
-                                            : 'bg-green-50 text-green-600'
-                                    }`}>
-                                        {p.stock} in stock
-                                    </div>
+                                    
                                 </div>
                             </div>
 
@@ -519,14 +512,14 @@ export default function ProductManagementPage() {
                                 <div className="flex gap-1">
                                     <button
                                         onClick={() => toggleHide(p)}
-                                        className="text-gray-500 p-1 hover:bg-gray-50 dark:hover:bg-gray-700 rounded"
+                                        className="p-1.5 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
                                         title={p.is_hidden ? "Unhide" : "Hide"}
                                     >
                                         {p.is_hidden ? <EyeOff className="w-4 h-4 text-orange-500" /> : <Eye className="w-4 h-4" />}
                                     </button>
                                     <button
                                         onClick={() => startEdit(p)}
-                                        className="text-blue-600 p-1 hover:bg-blue-50 dark:hover:bg-blue-800 rounded"
+                                        className="text-blue-600 dark:text-blue-400 p-1.5 hover:bg-blue-50 dark:hover:bg-blue-900/50 rounded-lg transition-colors"
                                     >
                                         <EditIcon className="w-4 h-4" />
                                     </button>
@@ -534,7 +527,7 @@ export default function ProductManagementPage() {
                                 <div className="flex justify-end">
                                     <button
                                         onClick={() => remove(p)}
-                                        className="text-red-500 p-1 hover:bg-red-50 dark:hover:bg-red-800 rounded"
+                                        className="text-red-500 dark:text-red-400 p-1.5 hover:bg-red-50 dark:hover:bg-red-900/50 rounded-lg transition-colors"
                                     >
                                         <DeleteIcon className="w-4 h-4" />
                                     </button>
@@ -543,7 +536,7 @@ export default function ProductManagementPage() {
                         </div>
                     ))
                 )}
-                <div className="mt-4">
+                <div className="mt-4 pb-12">
                     <Pagination
                         currentPage={currentPage}
                         totalPages={totalPages || 1}
@@ -554,41 +547,38 @@ export default function ProductManagementPage() {
 
             {/* --- ADD/EDIT PRODUCT MODAL --- */}
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                {/* FIX: Forced width and max-width to ensure it expands properly */}
-                <DialogContent className="w-[95vw] max-w-3xl p-0" style={{ maxWidth: '800px', width: '100%' }}>
+                <DialogContent className="p-0 sm:max-w-[700px] w-full bg-white dark:bg-slate-900 shadow-2xl border-0 overflow-hidden rounded-2xl">
                     <form onSubmit={save}>
 
                         {/* Header */}
-                        <div className="px-6 py-4 border-b bg-gray-50/50 dark:bg-gray-800/50 rounded-t-lg">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">
-                                        {editing ? 'Edit Product' : 'Add New Product'}
-                                    </DialogTitle>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                        {editing ? `Editing ID: ${editing.id}` : 'Fill in the details to create a new inventory item.'}
-                                    </p>
-                                </div>
-                                <DialogCloseButton onClick={closeModal} />
+                        <div className="px-6 py-5 border-b border-gray-100 dark:border-slate-800 bg-gray-50/80 dark:bg-slate-800/80 flex flex-row items-center justify-between">
+                            <div>
+                                <DialogTitle className="text-xl font-bold tracking-tight">
+                                    {editing ? 'Edit Product Details' : 'Add New Inventory Item'}
+                                </DialogTitle>
+                                <p className="text-xs mt-1 font-medium">
+                                    {editing ? `Updating SKU/ID: ${editing.id}` : 'Fill in the details to create a new inventory item.'}
+                                </p>
                             </div>
+                            <DialogCloseButton onClick={closeModal} className="text-gray-400 hover:text-gray-600 dark:text-slate-400 dark:hover:text-white bg-white dark:bg-slate-800 shadow-sm border border-gray-100 dark:border-slate-700 rounded-full p-1.5 transition-colors" />
                         </div>
 
                         {/* Scrollable Body */}
-                        <div className="p-6 max-h-[65vh] overflow-y-auto">
+                        <div className="p-6 max-h-[70vh] overflow-y-auto space-y-8 custom-scrollbar">
                             <div className="space-y-8">
                                 {/* Section 1: Basic Info & Media */}
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                                     <div className="md:col-span-1">
-                                        <Label className="text-sm font-semibold mb-2 block">Product Image</Label>
+                                        <Label className="text-sm font-bold mb-2 block uppercase tracking-wide">Product Image</Label>
                                         <ImageUploader previewUrl={imagePreview} onFileSelect={handleFileSelect} />
-                                        <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-2 text-center italic">
-                                            Recommended: Square PNG or JPG
+                                        <p className="text-[10px] mt-3 text-center italic leading-tight">
+                                            Recommended: Square (1:1) PNG or JPG format
                                         </p>
                                     </div>
 
-                                    <div className="md:col-span-2 space-y-4">
+                                    <div className="md:col-span-2 space-y-6">
                                         <div className="grid gap-2">
-                                            <Label htmlFor="name" className="text-sm font-medium">Product Name</Label>
+                                            <Label htmlFor="name" className="text-sm font-semibold">Product Name <span className="text-red-500">*</span></Label>
                                             <Input
                                                 id="name"
                                                 ref={productNameRef}
@@ -596,21 +586,22 @@ export default function ProductManagementPage() {
                                                 onChange={e => setName(e.target.value)}
                                                 required
                                                 placeholder="e.g. Purified Water (5 Gal)"
+                                                className="bg-gray-50/50 dark:bg-slate-900/50 border-gray-200 dark:border-slate-700 h-11 rounded-xl focus:bg-white dark:focus:bg-slate-900 transition-all"
                                             />
                                         </div>
 
-                                        <div className="grid grid-cols-2 gap-4">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             <div className="grid gap-2">
-                                                <Label htmlFor="category" className="text-sm font-medium">Category</Label>
+                                                <Label htmlFor="category" className="text-sm font-semibold">Category</Label>
                                                 <div className="flex gap-2">
-                                                    <Select value={category} onChange={e => setCategory(e.target.value)} className="w-full">
+                                                    <Select value={category} onChange={e => setCategory(e.target.value)} className="w-full bg-gray-50/50 dark:bg-slate-900/50 border-gray-200 dark:border-slate-700 h-11 rounded-xl">
                                                         {mergedCategories.map(c => <option key={c} value={c}>{c}</option>)}
                                                     </Select>
                                                     <Button
                                                         type="button"
                                                         variant="outline"
                                                         size="icon"
-                                                        className="shrink-0"
+                                                        className="shrink-0 h-11 w-11 rounded-xl border-gray-200 dark:border-slate-700"
                                                         onClick={() => setIsAddingCategory(prev => !prev)}
                                                     >
                                                         +
@@ -618,92 +609,93 @@ export default function ProductManagementPage() {
                                                 </div>
                                             </div>
                                             <div className="grid gap-2">
-                                                <Label htmlFor="barcode" className="text-sm font-medium">Barcode / SKU</Label>
+                                                <Label htmlFor="barcode" className="text-sm font-semibold">Barcode / SKU</Label>
                                                 <Input
                                                     id="barcode"
                                                     value={barcode}
                                                     onChange={e => setBarcode(e.target.value)}
-                                                    placeholder="Scan code"
+                                                    placeholder="Scan or enter code"
+                                                    className="bg-gray-50/50 dark:bg-slate-900/50 border-gray-200 dark:border-slate-700 h-11 font-mono text-sm rounded-xl"
                                                 />
                                             </div>
                                         </div>
 
                                         {isAddingCategory && (
-                                            <div className="flex gap-2 p-3 bg-blue-50 dark:bg-blue-900/50 rounded-lg">
+                                            <div className="flex gap-2 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900/50 rounded-2xl animate-in fade-in slide-in-from-top-2">
                                                 <Input
                                                     placeholder="New Category Name"
                                                     value={newCategoryName}
                                                     onChange={e => setNewCategoryName(e.target.value)}
-                                                    className="bg-white dark:bg-gray-800"
+                                                    className="bg-white dark:bg-slate-900 h-10 border-blue-200 dark:border-blue-800 rounded-xl"
                                                 />
-                                                <Button type="button" size="sm" onClick={addCategory}>Add</Button>
+                                                <Button type="button" size="sm" onClick={addCategory} className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-4">Add</Button>
                                             </div>
                                         )}
                                     </div>
                                 </div>
 
-                                <hr className="border-gray-100 dark:border-gray-700" />
+                                <div className="h-px bg-gray-100 dark:bg-slate-800" />
 
                                 {/* Section 2: Pricing & Inventory */}
                                 <div>
-                                    <h3 className="text-sm font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-4 flex items-center gap-2">
-                                        <span className="w-8 h-[1px] bg-gray-200 dark:bg-gray-700"></span>
+                                    <h3 className="text-xs font-black uppercase tracking-widest mb-5 flex items-center gap-3">
+                                        <span className="w-8 h-0.5 bg-gray-200 dark:bg-slate-700"></span>
                                         Inventory & Pricing
                                     </h3>
-                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                        <div className="grid gap-2 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
-                                            <Label htmlFor="cost" className="text-xs text-gray-500 dark:text-gray-400 font-bold uppercase">Cost Price</Label>
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                                        <div className="grid gap-2 p-5 bg-gray-50 dark:bg-slate-800/40 rounded-2xl border border-gray-100 dark:border-slate-800 transition-colors">
+                                            <Label htmlFor="cost" className="text-[10px] font-black uppercase tracking-widest">Cost Price</Label>
                                             <div className="relative">
-                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 text-sm">₱</span>
-                                                <Input id="cost" type="number" step="0.01" value={cost} onChange={e => setCost(e.target.value)} className="pl-7" />
+                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold">₱</span>
+                                                <Input id="cost" type="number" step="0.01" value={cost} onChange={e => setCost(e.target.value)} className="pl-8 bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-700 h-10 rounded-xl" />
                                             </div>
                                         </div>
-                                        <div className="grid gap-2 p-4 bg-primary/5 rounded-xl border border-primary/10">
-                                            <Label htmlFor="price" className="text-xs text-primary font-bold uppercase">Selling Price</Label>
+                                        <div className="grid gap-2 p-5 bg-primary/5 dark:bg-green-500/5 rounded-2xl border border-primary/20 dark:border-green-500/20 transition-colors">
+                                            <Label htmlFor="price" className="text-[10px] text-primary dark:text-green-500 font-black uppercase tracking-widest">Selling Price</Label>
                                             <div className="relative">
-                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-primary text-sm font-bold">₱</span>
-                                                <Input id="price" type="number" step="0.01" value={price} onChange={e => setPrice(e.target.value)} className="pl-7 border-primary/20 font-bold" />
+                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-primary dark:text-green-500 font-black">₱</span>
+                                                <Input id="price" type="number" step="0.01" value={price} onChange={e => setPrice(e.target.value)} className="pl-8 bg-white dark:bg-slate-900 border-primary/20 dark:border-green-500/30 h-10 font-black rounded-xl" />
                                             </div>
                                         </div>
-                                        <div className="grid gap-2 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
-                                            <Label htmlFor="stock" className="text-xs text-gray-500 dark:text-gray-400 font-bold uppercase">Current Stock</Label>
-                                            <Input id="stock" type="number" value={stock} onChange={e => setStock(e.target.value)} disabled={editing && !isAdmin} />
+                                        <div className="grid gap-2 p-5 bg-gray-50 dark:bg-slate-800/40 rounded-2xl border border-gray-100 dark:border-slate-800 transition-colors">
+                                            <Label htmlFor="stock" className="text-[10px] font-black uppercase tracking-widest">Stock Level</Label>
+                                            <Input id="stock" type="number" value={stock} onChange={e => setStock(e.target.value)} disabled={editing && !isAdmin} className="bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-700 h-10 rounded-xl font-bold" />
                                         </div>
                                     </div>
 
-                                    <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div className="flex items-center gap-3 px-1">
-                                            <Label htmlFor="minStock" className="text-sm text-gray-600 dark:text-gray-300 whitespace-nowrap">Low Stock Alert at:</Label>
-                                            <Input id="minStock" type="number" value={minStock} onChange={e => setMinStock(e.target.value)} className="w-24" />
+                                    <div className="mt-6 flex flex-col sm:flex-row sm:items-center gap-4 px-1">
+                                        <div className="flex items-center gap-3">
+                                            <Label htmlFor="minStock" className="text-sm font-semibold whitespace-nowrap italic">Low stock alert threshold:</Label>
+                                            <Input id="minStock" type="number" value={minStock} onChange={e => setMinStock(e.target.value)} className="w-24 bg-gray-50/50 dark:bg-slate-900 h-10 border-gray-200 dark:border-slate-700 rounded-xl text-center font-bold" />
                                         </div>
                                     </div>
                                 </div>
 
                                 {/* Section 3: Advanced / Relationships */}
-                                <div className="bg-amber-50/50 p-4 rounded-xl border border-amber-100">
-                                    <h3 className="text-sm font-bold text-amber-800 mb-3 flex items-center gap-2">
+                                <div className="bg-amber-50/40 dark:bg-amber-900/10 p-6 rounded-2xl border border-amber-100 dark:border-amber-900/30 transition-colors">
+                                    <h3 className="text-sm font-black text-amber-800 dark:text-amber-500 mb-4 flex items-center gap-3">
                                         Bulk Conversion (Advanced)
                                     </h3>
-                                    <div className="grid sm:grid-cols-2 gap-4">
-                                        <div className="grid gap-1.5">
-                                            <Label htmlFor="parentId" className="text-xs text-amber-900">Parent Product</Label>
-                                            <Select id="parentId" value={parentId || ''} onChange={e => setParentId(e.target.value || null)} className="bg-white dark:bg-gray-800">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="parentId" className="text-xs font-bold text-amber-900/70 dark:text-amber-600 uppercase tracking-wider">Parent Product</Label>
+                                            <Select id="parentId" value={parentId || ''} onChange={e => setParentId(e.target.value || null)} className="bg-white dark:bg-slate-900 border-amber-200/50 dark:border-amber-900/50 h-10 rounded-xl text-sm">
                                                 <option value="">-- No Parent (Individual Item) --</option>
                                                 {products.filter(p => p.id !== editing?.id).map(p => (
                                                     <option key={p.id} value={p.id}>{p.name}</option>
                                                 ))}
                                             </Select>
                                         </div>
-                                        <div className="grid gap-1.5">
-                                            <Label htmlFor="conversionRate" className="text-xs text-amber-900">Conversion Rate</Label>
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="conversionRate" className="text-xs font-bold text-amber-900/70 dark:text-amber-600 uppercase tracking-wider">Items per Case</Label>
                                             <Input
                                                 id="conversionRate"
                                                 type="number"
                                                 value={conversionRate}
                                                 onChange={e => setConversionRate(e.target.value)}
                                                 disabled={!parentId}
-                                                placeholder="e.g. 24 items per case"
-                                                className="bg-white dark:bg-gray-800"
+                                                placeholder="e.g. 24"
+                                                className="bg-white dark:bg-slate-900 border-amber-200/50 dark:border-amber-900/50 h-10 rounded-xl text-center font-mono"
                                             />
                                         </div>
                                     </div>
@@ -712,11 +704,21 @@ export default function ProductManagementPage() {
                         </div>
 
                         {/* Footer */}
-                        <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border-t flex gap-2 rounded-b-lg">
-                            <Button variant="outline" type="button" onClick={closeModal} disabled={isMutating} className="flex-1 sm:flex-none">
+                        <div className="px-6 py-4 border-t border-gray-100 dark:border-slate-800 bg-gray-50/80 dark:bg-slate-800/80 flex items-center justify-end gap-3 mt-auto">
+                            <Button
+                                variant="outline"
+                                type="button"
+                                onClick={closeModal}
+                                disabled={isMutating}
+                                className="px-6 h-10 rounded-xl bg-white dark:bg-slate-700 shadow-sm font-medium hover:bg-gray-100 dark:hover:bg-slate-600 border-gray-200 dark:border-slate-600 transition-colors"
+                            >
                                 Discard
                             </Button>
-                            <Button type="submit" disabled={isMutating} className="flex-1 sm:flex-none min-w-[140px] shadow-sm">
+                            <Button
+                                type="submit"
+                                disabled={isMutating}
+                                className="px-8 h-10 rounded-xl shadow-md btn--primary font-bold text-sm hover:-translate-y-0.5 transition-transform"
+                            >
                                 {isMutating ? 'Processing...' : (editing ? 'Update Product' : 'Create Product')}
                             </Button>
                         </div>

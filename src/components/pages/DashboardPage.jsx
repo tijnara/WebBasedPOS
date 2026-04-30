@@ -395,7 +395,7 @@ export default function DashboardPage() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 font-sans responsive-page pb-12">
+        <div className="min-h-screen bg-slate-50 dark:bg-transparent font-sans responsive-page pb-12">
             <Head>
                 <title>Dashboard</title>
             </Head>
@@ -436,7 +436,7 @@ export default function DashboardPage() {
                                     <Select
                                         value={salesView}
                                         onChange={(e) => setSalesView(e.target.value)}
-                                        className="w-32 h-8 py-1 px-3 text-sm bg-slate-50 rounded-md font-medium text-slate-700 cursor-pointer hover:bg-slate-100 shadow-sm transition-colors outline-none focus:ring-2 focus:ring-indigo-500"
+                                        className="w-32 h-8 py-1 px-3 text-sm bg-slate-50 dark:bg-transparent rounded-md font-medium text-slate-700 cursor-pointer hover:bg-slate-100 shadow-sm transition-colors outline-none focus:ring-2 focus:ring-indigo-500"
                                     >
                                         <option value="Monthly">Monthly</option>
                                         <option value="Weekly">Weekly</option>

@@ -57,13 +57,26 @@
     --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
 }
 
+/* HIGH READABILITY DARK MODE */
 .dark {
-    --background: #0f172a;
-    --surface: #1e293b;
-    --text: #f8fafc;
-    --text-muted: #94a3b8;
-    --border: #334155;
-    --primary-soft: #14532d;
+    --background: #020617;
+    --surface: #0f172a;
+    --text: #ffffff;
+    --text-muted: #cbd5e1;
+    --border: #1e293b;
+    --primary-soft: #064e3b;
+}
+.dark body {
+    background-color: var(--background);
+    color: var(--text);
+}
+.dark .card {
+    background-color: var(--surface);
+    border-color: var(--border);
+}
+.dark .menu-scrollbar::-webkit-scrollbar-thumb {
+    background: #4ade80 !important;
+    border-radius: 10px;
 }
 .card, .navbar, .dialog-content {
     background-color: var(--surface);
@@ -1965,5 +1978,8 @@ input[type="checkbox"]:focus {
 
 .dark .table__td,
 .dark .table__th {
+    color: white;
+}
+.dark * {
     color: white;
 }
