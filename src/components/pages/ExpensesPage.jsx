@@ -303,50 +303,50 @@ export default function ExpensesPage() {
     };
 
     return (
-        <div className="responsive-page min-h-screen bg-slate-100">
-            <div className="w-full max-w-7xl mx-auto bg-white shadow-xl flex flex-col lg:flex-row rounded-3xl border border-gray-200 overflow-hidden">
+        <div className="responsive-page min-h-screen bg-background">
+            <div className="w-full max-w-7xl mx-auto bg-surface shadow-xl flex flex-col lg:flex-row rounded-3xl border border-border overflow-hidden">
 
                 {/* Dashboard Panel */}
-                <div className="w-full lg:w-7/12 flex flex-col bg-slate-50">
-                    <div className="bg-white text-gray-800 p-8 rounded-br-[3rem] shadow-md z-10">
+                <div className="w-full lg:w-7/12 flex flex-col bg-surface">
+                    <div className="bg-surface text-text p-8 rounded-br-[3rem] shadow-md z-10">
                         {/* Modified Header with Current Week Sales included */}
                         <div className="flex justify-between items-start mb-4">
                             <div>
-                                <h1 className="text-2xl font-bold flex items-center gap-2"><Receipt /> Expenses</h1>
-                                <p className="text-xs text-gray-400 mt-1">Created on: April 19, 2026 Sunday</p>
+                                <h1 className="text-2xl font-bold flex items-center gap-2 text-text"><Receipt /> Expenses</h1>
+                                <p className="text-xs text-text-muted mt-1">Created on: April 19, 2026 Sunday</p>
                             </div>
                             <div className="text-right">
-                                <p className="text-gray-500 text-xs font-semibold uppercase tracking-wider">Current Week Sales</p>
+                                <p className="text-text-muted text-xs font-semibold uppercase tracking-wider">Current Week Sales</p>
                                 <p className="text-xl font-bold" style={{ color: currentWeekSales >= 0 ? '#8DB600' : '#dc2626' }}>
                                     {currentWeekSales >= 0 ? '+' : ''}{currency(currentWeekSales, { symbol: '₱' }).format()}
                                 </p>
                             </div>
                         </div>
 
-                        <p className="text-gray-500 text-sm font-medium">This Week's Total</p>
+                        <p className="text-text-muted text-sm font-medium">This Week's Total</p>
                         <h2 className="text-5xl font-extrabold mb-4 text-primary">{currency(summary?.weeklyTotal || 0, { symbol: '₱' }).format()}</h2>
-                        <div className="flex gap-12 border-t border-gray-200 pt-4">
-                            <div><p className="text-xs uppercase font-semibold text-gray-500">Monthly</p><p className="text-lg font-bold">{currency(summary?.monthlyTotal || 0, { symbol: '₱' }).format()}&nbsp;&nbsp;&nbsp;&nbsp;</p></div>
-                            <div><p className="text-xs uppercase font-semibold text-gray-500">All Time</p><p className="text-lg font-bold">{currency(summary?.grandTotal || 0, { symbol:'₱' }).format()}</p></div>
+                        <div className="flex gap-12 border-t border-border pt-4">
+                            <div><p className="text-xs uppercase font-semibold text-text-muted">Monthly</p><p className="text-lg font-bold text-text">{currency(summary?.monthlyTotal || 0, { symbol: '₱' }).format()}&nbsp;&nbsp;&nbsp;&nbsp;</p></div>
+                            <div><p className="text-xs uppercase font-semibold text-text-muted">All Time</p><p className="text-lg font-bold text-text">{currency(summary?.grandTotal || 0, { symbol:'₱' }).format()}</p></div>
                         </div>
                     </div>
 
                     <div className="p-6">
                         {/* Quick Add Section */}
                         <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-xl font-bold text-gray-900">{editingExpense ? 'Edit Expense' : 'Quick Add'}</h3>
+                            <h3 className="text-xl font-bold text-text">{editingExpense ? 'Edit Expense' : 'Quick Add'}</h3>
                             {editingExpense && (
-                                <button onClick={cancelEdit} className="text-gray-400 hover:text-gray-600 flex items-center gap-1 text-sm font-medium">
+                                <button onClick={cancelEdit} className="text-text-muted hover:text-text flex items-center gap-1 text-sm font-medium">
                                     <X className="w-4 h-4" /> Cancel
                                 </button>
                             )}
                         </div>
-                        <form onSubmit={handleManualSubmit} className={`${editingExpense ? 'bg-amber-50 border-amber-200' : 'bg-white border-gray-100'} p-4 rounded-3xl border shadow-sm mb-6 transition-colors`}>
+                        <form onSubmit={handleManualSubmit} className={`${editingExpense ? 'bg-amber-50 border-amber-200' : 'bg-surface border-border'} p-4 rounded-3xl border shadow-sm mb-6 transition-colors`}>
                             <div className="flex flex-col sm:flex-row gap-3 mb-3 items-stretch">
                                 <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="₱0.00" required step="0.01" className="input flex-[1]" />
 
                                 <div className="flex-[1] flex flex-col">
-                                    <span className="text-[10px] uppercase font-bold text-gray-400 ml-2 mb-1">Date</span>
+                                    <span className="text-[10px] uppercase font-bold text-text-muted ml-2 mb-1">Date</span>
                                     <input 
                                         type="date" 
                                         value={expenseDate} 
@@ -373,7 +373,7 @@ export default function ExpensesPage() {
                                     <button
                                         type="button"
                                         onClick={handleEditCategory}
-                                        className="btn bg-gray-100 text-gray-500 hover:bg-gray-200 p-2 shrink-0"
+                                        className="btn bg-background text-text-muted hover:bg-border p-2 shrink-0"
                                         title="Edit Category Defaults"
                                     >
                                         <Edit className="w-4 h-4" />
@@ -390,23 +390,23 @@ export default function ExpensesPage() {
                         </form>
 
                         {/* Filter Section */}
-                        <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 mb-6">
+                        <div className="bg-surface rounded-3xl p-6 shadow-sm border border-border mb-6">
                             <div className="flex justify-between items-center mb-4">
-                                <div className="flex items-center gap-2 text-gray-500 font-bold">
+                                <div className="flex items-center gap-2 text-text-muted font-bold">
                                     <Calendar className="w-5 h-5 text-primary" /> Filter & Search
                                 </div>
                                 <button
                                     onClick={handleResetFilters}
-                                    className="btn bg-gray-200 text-gray-600 hover:bg-gray-300 text-sm px-3 py-2 flex items-center gap-1 rounded-lg"
+                                    className="btn bg-background text-text-muted hover:bg-border text-sm px-3 py-2 flex items-center gap-1 rounded-lg"
                                 >
                                     <RotateCcw className="w-4 h-4" /> Reset
                                 </button>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                                 <div className="flex flex-col">
-                                    <span className="text-[10px] uppercase font-bold text-gray-400 ml-2 mb-1">Search Description</span>
+                                    <span className="text-[10px] uppercase font-bold text-text-muted ml-2 mb-1">Search Description</span>
                                     <div className="relative">
-                                        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
                                         <input 
                                             type="text" 
                                             value={searchTerm} 
@@ -417,7 +417,7 @@ export default function ExpensesPage() {
                                     </div>
                                 </div>
                                 <div className="flex flex-col">
-                                    <span className="text-[10px] uppercase font-bold text-gray-400 ml-2 mb-1">Category</span>
+                                    <span className="text-[10px] uppercase font-bold text-text-muted ml-2 mb-1">Category</span>
                                     <select 
                                         value={filterCategory} 
                                         onChange={(e) => setFilterCategory(e.target.value)}
@@ -428,7 +428,7 @@ export default function ExpensesPage() {
                                     </select>
                                 </div>
                                 <div className="flex flex-col">
-                                    <span className="text-[10px] uppercase font-bold text-gray-400 ml-2 mb-1">From</span>
+                                    <span className="text-[10px] uppercase font-bold text-text-muted ml-2 mb-1">From</span>
                                     <input 
                                         type="date" 
                                         value={dateFrom} 
@@ -437,7 +437,7 @@ export default function ExpensesPage() {
                                     />
                                 </div>
                                 <div className="flex flex-col">
-                                    <span className="text-[10px] uppercase font-bold text-gray-400 ml-2 mb-1">To</span>
+                                    <span className="text-[10px] uppercase font-bold text-text-muted ml-2 mb-1">To</span>
                                     <input 
                                         type="date" 
                                         value={dateTo} 
@@ -451,32 +451,32 @@ export default function ExpensesPage() {
                 </div>
 
                 {/* Actions Panel */}
-                <div className="w-full lg:w-5/12 bg-white flex flex-col p-6 lg:border-l border-gray-100 h-full min-h-[600px] lg:h-auto">
+                <div className="w-full lg:w-5/12 bg-surface flex flex-col p-6 lg:border-l border-border h-full min-h-[600px] lg:h-auto">
                     <div className="flex justify-between items-end mb-4">
                         <div>
-                            <h3 className="text-xl font-bold text-gray-900">List of Expenses</h3>
+                            <h3 className="text-xl font-bold text-text">List of Expenses</h3>
                             <div className="flex items-center gap-1.5 mt-0.5">
-                                <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Filtered Total:</span>
+                                <span className="text-[10px] uppercase font-bold text-text-muted tracking-wider">Filtered Total:</span>
                                 <span className="text-sm font-semibold text-red-500">
                                     {currency(totalSum, { symbol: '₱' }).format()}
                                 </span>
                             </div>
                         </div>
-                        <span className="text-xs font-medium text-gray-400 pb-1">{totalCount} total</span>
+                        <span className="text-xs font-medium text-text-muted pb-1">{totalCount} total</span>
                     </div>
 
                     <div className="flex-1 space-y-2 mb-8">
-                        {isLoading ? <p className="text-center py-4">Loading...</p> : expenses.map((exp) => {
+                        {isLoading ? <p className="text-center py-4 text-text-muted">Loading...</p> : expenses.map((exp) => {
                             // Fallback if custom category doesn't exist in styles object
-                            const style = categoryStyles[exp.category] || { icon: Receipt, colorClass: 'bg-slate-100 text-slate-600' };
+                            const style = categoryStyles[exp.category] || { icon: Receipt, colorClass: 'bg-background text-text-muted' };
                             const Icon = style.icon;
                             return (
-                                <div key={exp.id} className={`flex justify-between items-center p-3 hover:bg-gray-50 bg-white rounded-xl border transition-colors ${editingExpense?.id === exp.id ? 'border-primary ring-1 ring-primary' : 'border-gray-300'}`}>
-                                    <div className="flex items-center gap-3 flex-1 pr-3 border-r border-gray-300">
+                                <div key={exp.id} className={`flex justify-between items-center p-3 hover:bg-background bg-surface rounded-xl border transition-colors ${editingExpense?.id === exp.id ? 'border-primary ring-1 ring-primary' : 'border-border'}`}>
+                                    <div className="flex items-center gap-3 flex-1 pr-3 border-r border-border">
                                         <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${style.colorClass}`}><Icon className="w-5 h-5" /></div>
                                         <div className="flex flex-col">
-                                            <span className="font-semibold text-gray-800 text-sm">{exp.description}</span>
-                                            <span className="text-xs font-medium text-gray-500">
+                                            <span className="font-semibold text-text text-sm">{exp.description}</span>
+                                            <span className="text-xs font-medium text-text-muted">
                                                 {exp.category} &bull; {format(parseISO(exp.expense_date), 'EEEE, MMM d, yyyy')}
                                                 {exp.users?.name && <span className="ml-1 text-primary font-bold italic opacity-70">by {exp.users.name}</span>}
                                             </span>
@@ -487,14 +487,14 @@ export default function ExpensesPage() {
                                         <div className="flex gap-2 mt-1">
                                             <button
                                                 onClick={() => handleEditClick(exp)}
-                                                className="p-1 text-gray-400 hover:text-blue-500 transition-colors"
+                                                className="p-1 text-text-muted hover:text-blue-500 transition-colors"
                                                 title="Edit"
                                             >
                                                 <Edit className="w-3.5 h-3.5" />
                                             </button>
                                             <button
                                                 onClick={() => handleDeleteClick(exp.id)}
-                                                className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+                                                className="p-1 text-text-muted hover:text-red-500 transition-colors"
                                                 title="Delete"
                                             >
                                                 <Trash2 className="w-3.5 h-3.5" />
@@ -507,27 +507,27 @@ export default function ExpensesPage() {
 
                         {!isLoading && expenses.length === 0 && (
                             <div className="text-center py-10">
-                                <p className="text-gray-400 font-medium">No expenses yet.</p>
+                                <p className="text-text-muted font-medium">No expenses yet.</p>
                             </div>
                         )}
                     </div>
 
                     {/* Pagination Controls */}
-                    <div className="flex items-center justify-between border-t border-gray-100 pt-4 mt-auto">
+                    <div className="flex items-center justify-between border-t border-border pt-4 mt-auto">
                         <button
                             onClick={handlePrevPage}
                             disabled={page === 1}
-                            className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-primary disabled:opacity-30 transition-colors"
+                            className="flex items-center gap-1 text-sm font-medium text-text-muted hover:text-primary disabled:opacity-30 transition-colors"
                         >
                             <ChevronLeft className="w-4 h-4" /> Prev
                         </button>
                         <div className="flex flex-col items-center">
-                            <span className="text-[10px] uppercase font-bold text-gray-400">Page {page}</span>
-                            <span className="text-xs font-bold text-gray-600">Week of {format(parseISO(dateFrom), 'MMM d')}</span>
+                            <span className="text-[10px] uppercase font-bold text-text-muted">Page {page}</span>
+                            <span className="text-xs font-bold text-text-muted">Week of {format(parseISO(dateFrom), 'MMM d')}</span>
                         </div>
                         <button
                             onClick={handleNextPage}
-                            className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-primary transition-colors"
+                            className="flex items-center gap-1 text-sm font-medium text-text-muted hover:text-primary transition-colors"
                         >
                             Next <ChevronRight className="w-4 h-4" />
                         </button>
@@ -538,14 +538,14 @@ export default function ExpensesPage() {
             {/* Category Management Modal */}
             {showCategoryModal && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
-                        <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-slate-50">
-                            <h3 className="text-xl font-bold text-gray-900">{catForm.id ? 'Edit Category' : 'New Category'}</h3>
-                            <button onClick={() => setShowCategoryModal(false)} className="text-gray-400 hover:text-gray-600 transition-colors"><X className="w-6 h-6" /></button>
+                    <div className="bg-surface rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
+                        <div className="p-6 border-b border-border flex justify-between items-center bg-background">
+                            <h3 className="text-xl font-bold text-text">{catForm.id ? 'Edit Category' : 'New Category'}</h3>
+                            <button onClick={() => setShowCategoryModal(false)} className="text-text-muted hover:text-text transition-colors"><X className="w-6 h-6" /></button>
                         </div>
                         <div className="p-6 space-y-4">
                             <div>
-                                <label className="text-[10px] uppercase font-bold text-gray-400 ml-1 mb-1 block">Category Name</label>
+                                <label className="text-[10px] uppercase font-bold text-text-muted ml-1 mb-1 block">Category Name</label>
                                 <input
                                     type="text"
                                     value={catForm.name}
@@ -557,7 +557,7 @@ export default function ExpensesPage() {
                             </div>
                             <div className="grid grid-cols-1 gap-4">
                                 <div>
-                                    <label className="text-[10px] uppercase font-bold text-gray-400 ml-1 mb-1 block">Default Amount</label>
+                                    <label className="text-[10px] uppercase font-bold text-text-muted ml-1 mb-1 block">Default Amount</label>
                                     <input
                                         type="number"
                                         value={catForm.default_amount}
@@ -568,7 +568,7 @@ export default function ExpensesPage() {
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-[10px] uppercase font-bold text-gray-400 ml-1 mb-1 block">Default Description</label>
+                                    <label className="text-[10px] uppercase font-bold text-text-muted ml-1 mb-1 block">Default Description</label>
                                     <input
                                         type="text"
                                         value={catForm.default_description}
@@ -586,15 +586,15 @@ export default function ExpensesPage() {
                                     onChange={(e) => setCatForm(prev => ({ ...prev, is_recurring: e.target.checked }))}
                                     className="w-4 h-4 text-primary rounded focus:ring-primary"
                                 />
-                                <label htmlFor="is_recurring" className="text-sm font-medium text-gray-700">
+                                <label htmlFor="is_recurring" className="text-sm font-medium text-text-muted">
                                     Auto-add every Monday
                                 </label>
                             </div>
                         </div>
-                        <div className="p-6 bg-slate-50 border-t border-gray-100 flex gap-3">
+                        <div className="p-6 bg-background border-t border-border flex gap-3">
                             <button
                                 onClick={() => setShowCategoryModal(false)}
-                                className="btn flex-1 bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 font-semibold"
+                                className="btn flex-1 bg-surface border border-border text-text-muted hover:bg-background font-semibold"
                             >
                                 Cancel
                             </button>

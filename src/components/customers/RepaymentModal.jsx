@@ -20,15 +20,15 @@ export default function RepaymentModal({ isOpen, onClose, customer, onRepay, isM
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose} className="flex items-center justify-center">
-            <DialogContent className="sm:max-w-sm bg-white responsive-page" style={{ zIndex: 100 }}>
+            <DialogContent className="sm:max-w-sm bg-white dark:bg-gray-900 responsive-page" style={{ zIndex: 100 }}>
                 <DialogHeader>
                     <DialogTitle>Repay Credit (Utang)</DialogTitle>
                     <DialogCloseButton onClick={onClose} />
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="p-4 space-y-4">
-                    <div className="bg-red-50 p-4 rounded-lg border border-red-100 text-center">
-                        <div className="text-sm text-red-600 font-medium uppercase tracking-wide">Current Balance</div>
-                        <div className="text-3xl font-bold text-red-700 mt-1">
+                    <div className="bg-red-50 dark:bg-red-900/50 p-4 rounded-lg border border-red-100 dark:border-red-800 text-center">
+                        <div className="text-sm text-red-600 dark:text-red-400 font-medium uppercase tracking-wide">Current Balance</div>
+                        <div className="text-3xl font-bold text-red-700 dark:text-red-300 mt-1">
                             {currency(balance, { symbol: '₱' }).format()}
                         </div>
                     </div>
@@ -49,7 +49,7 @@ export default function RepaymentModal({ isOpen, onClose, customer, onRepay, isM
                             required
                         />
                         {amount && !isNaN(amount) && (
-                            <p className="text-sm text-gray-500 text-right">
+                            <p className="text-sm text-gray-500 dark:text-gray-400 text-right">
                                 Remaining: <span className="font-bold">{currency(balance - amount, { symbol: '₱' }).format()}</span>
                             </p>
                         )}

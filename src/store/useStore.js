@@ -12,6 +12,7 @@ export const useStore = create(
             currentSale: {},
             currentCustomer: null,
             toasts: [],
+            darkMode: false,
 
             setCurrentCustomer: (cust) => set({ currentCustomer: cust }),
 
@@ -164,12 +165,13 @@ export const useStore = create(
                 } else {
                     set({ user: null, sessionLoaded: true });
                 }
-            }
+            },
+            toggleDarkMode: () => set((state) => ({ darkMode: !state.darkMode })),
         }),
         {
             name: 'pos_custom_user', 
             storage: createJSONStorage(() => localStorage),
-            partialize: (state) => ({ user: state.user }), 
+            partialize: (state) => ({ user: state.user, darkMode: state.darkMode }),
         }
     )
 );

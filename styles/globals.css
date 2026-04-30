@@ -47,14 +47,37 @@
     /* Gray-50 */
     --surface: #ffffff;
     /* White */
-    --text: #1f2937;
-    /* Gray-800 */
-    --text-muted: #6b7280;
-    /* Gray-500 */
+    --text: #374151;
+    /* Gray-700 */
+    --text-muted: #94a3b8;
+    /* Gray-400 */
     --radius: 6px;
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
     --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
     --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+}
+
+.dark {
+    --background: #0f172a;
+    --surface: #1e293b;
+    --text: #f8fafc;
+    --text-muted: #94a3b8;
+    --border: #334155;
+    --primary-soft: #14532d;
+}
+.card, .navbar, .dialog-content {
+    background-color: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+}
+.input, select.input {
+    background-color: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+}
+body {
+    background-color: var(--background);
+    color: var(--text);
 }
 
 html,
@@ -99,7 +122,8 @@ button:disabled {
     padding: 0.75rem 1rem;
     border-bottom: none;
     font-weight: 600;
-    background-color: #f9fafb;
+    background-color: var(--background);
+    color: var(--text);
 }
 
 .card__content {
@@ -113,7 +137,8 @@ button:disabled {
 .card__footer {
     padding: 0.75rem 1rem;
     border-top: 1px solid var(--border);
-    background-color: #f9fafb;
+    background-color: var(--background);
+    color: var(--text);
 }
 
 /* --- Button Styles --- */
@@ -396,7 +421,7 @@ input[type="checkbox"]:focus {
     font-family: 'Courier New', Courier, monospace;
     font-size: 0.95rem;
     font-weight: 700;
-    color: #1e293b;
+    color: var(--text);
     letter-spacing: -0.01em;
     font-variant-numeric: tabular-nums;
 }
@@ -465,7 +490,6 @@ input[type="checkbox"]:focus {
 }
 
 .navbar .meta-container .btn.text-destructive:hover {
-    color: var(--danger-hover);
     background-color: var(--background);
 }
 
@@ -498,6 +522,7 @@ input[type="checkbox"]:focus {
 .toast__title {
     font-weight: 600;
     margin-bottom: 4px;
+    color: var(--text);
 }
 
 .toast__desc {
@@ -531,7 +556,8 @@ input[type="checkbox"]:focus {
 .dialog-header {
     padding: 0.5rem 1rem;
     border-bottom: 1px solid var(--border);
-    background-color: #f9fafb;
+    background-color: var(--background);
+    color: var(--text);
 }
 
 .dialog-title {
@@ -542,7 +568,8 @@ input[type="checkbox"]:focus {
 .dialog-footer {
     padding: 0.5rem 1rem;
     border-top: 1px solid var(--border);
-    background-color: #f9fafb;
+    background-color: var(--background);
+    color: var(--text);
 }
 
 .dialog-close-button {
@@ -848,7 +875,7 @@ input[type="checkbox"]:focus {
 }
 
 .shadow-md {
-    box-shadow: var(--shadow-md);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
 }
 
 .shadow-lg {
@@ -1064,6 +1091,7 @@ input[type="checkbox"]:focus {
     align-items: center;
     justify-content: center;
     margin-bottom: 0.75rem;
+    background-color: var(--background);
 }
 
 .product-card .font-medium {
@@ -1122,11 +1150,11 @@ input[type="checkbox"]:focus {
 .table {
     border-collapse: collapse;
     width: 100%;
-    background: #fff;
+    background: var(--surface);
 }
 
 .table__head th {
-    background: #f3f4f6;
+    background: var(--background);
     border-bottom: 2px solid #e5e7eb;
 }
 
@@ -1143,12 +1171,7 @@ input[type="checkbox"]:focus {
 
 .table__th {
     font-weight: 600;
-    color: #6b7280;
     text-transform: uppercase;
-}
-
-.table__td {
-    color: #1f2937;
 }
 
 .table__td.text-right {
@@ -1160,7 +1183,7 @@ input[type="checkbox"]:focus {
 }
 
 .table__row:hover {
-    background: #f9fafb;
+    background: var(--background);
 }
 
 @media (max-width: 767px) {
@@ -1613,9 +1636,10 @@ input[type="checkbox"]:focus {
     padding: 4px 16px 8px;
     position: sticky;
     top: 0;
-    background: #fff;
+    background: var(--surface);
     z-index: 10;
     border-bottom: 1px solid var(--border);
+    color: var(--text);
 }
 
 .mobile-modal .modal-title {
@@ -1623,6 +1647,7 @@ input[type="checkbox"]:focus {
     font-weight: 600;
     letter-spacing: -.015em;
     margin: 0;
+    color: var(--text);
 }
 
 @media (min-width:640px) {
@@ -1642,11 +1667,12 @@ input[type="checkbox"]:focus {
 .mobile-modal .modal-footer {
     position: sticky;
     bottom: 0;
-    background: #fff;
+    background: var(--surface);
     padding: 12px 16px calc(env(safe-area-inset-bottom, 0) + 12px);
     border-top: 1px solid var(--border);
     display: flex;
     gap: 12px;
+    color: var(--text);
 }
 
 .mobile-modal .modal-footer .btn {
@@ -1675,7 +1701,7 @@ input[type="checkbox"]:focus {
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
     position: relative;
-    background-color: #ffffff;
+    background-color: var(--surface);
     isolation: isolate;
     z-index: 1;
 }
@@ -1901,14 +1927,14 @@ input[type="checkbox"]:focus {
 .article-content h2 {
     font-size: 1.75rem;
     font-weight: 700;
-    color: #14532d; /* Dark green */
+    color: var(--primary);
     margin-top: 2.5rem;
     margin-bottom: 1rem;
 }
 .article-content h3 {
     font-size: 1.25rem;
     font-weight: 600;
-    color: #1e293b;
+    color: var(--text);
     margin-top: 2rem;
     margin-bottom: 0.75rem;
 }
@@ -1927,7 +1953,7 @@ input[type="checkbox"]:focus {
 }
 .article-content strong {
     font-weight: 700;
-    color: #0f172a;
+    color: var(--text);
 }
 .article-content a {
     color: #059669; /* Seaside green */
@@ -1935,4 +1961,9 @@ input[type="checkbox"]:focus {
 }
 .article-content a:hover {
     color: #047857;
+}
+
+.dark .table__td,
+.dark .table__th {
+    color: white;
 }

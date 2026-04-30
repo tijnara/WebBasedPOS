@@ -35,19 +35,19 @@ const StatusBadge = ({ status }) => {
     let className = 'px-2 py-0.5 rounded-full text-xs font-medium ';
     switch (status) {
         case 'Completed':
-            className += 'bg-green-100 text-green-800';
+            className += 'bg-green-100 text-green-700';
             break;
         case 'Pending':
-            className += 'bg-yellow-100 text-yellow-800';
+            className += 'bg-yellow-100 text-yellow-700';
             break;
         case 'Cancelled':
-            className += 'bg-red-100 text-red-800';
+            className += 'bg-red-100 text-red-700';
             break;
         case 'Unpaid':
-            className += 'bg-orange-100 text-orange-800';
+            className += 'bg-orange-100 text-orange-700';
             break;
         default:
-            className += 'bg-gray-100 text-gray-800';
+            className += 'bg-gray-100 text-gray-700';
     }
     return <span className={className}>{status}</span>;
 };
@@ -69,7 +69,7 @@ const SaleDetailsModal = ({ sale, isOpen, onClose }) => {
             >
                 {/* Header */}
                 <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-white">
-                    <h2 className="text-xl font-bold text-gray-900">Transaction Receipt</h2>
+                    <h2 className="text-xl font-bold text-gray-600">Transaction Receipt</h2>
                     <DialogCloseButton onClick={onClose} />
                 </div>
 
@@ -80,33 +80,33 @@ const SaleDetailsModal = ({ sale, isOpen, onClose }) => {
                             <img src="/seaside.png" alt="Seaside Logo" className="object-contain w-full h-full" />
                         </div>
                         <div>
-                            <h3 className="font-bold text-xl text-gray-900 tracking-tight uppercase">Seaside Water Refilling Station</h3>
-                            <p className="text-xs text-gray-500 mt-1">Loois, Labrador Pangasinan</p>
-                            <p className="text-xs text-gray-500">Tel: 09686786072</p>
+                            <h3 className="font-bold text-xl text-gray-600 tracking-tight uppercase">Seaside Water Refilling Station</h3>
+                            <p className="text-xs text-gray-300 mt-1">Loois, Labrador Pangasinan</p>
+                            <p className="text-xs text-gray-300">Tel: 09686786072</p>
                         </div>
                     </div>
 
-                    <div className="text-xs text-gray-600 space-y-1 font-mono mt-4">
+                    <div className="text-xs text-gray-400 space-y-1 font-mono mt-4">
                         <div className="flex justify-between"><span>Date:</span><span>{formatDate(sale.saleTimestamp)}</span></div>
-                        <div className="flex justify-between"><span>Order #:</span><span className="font-bold text-gray-900">{displayId}</span></div>
+                        <div className="flex justify-between"><span>Order #:</span><span className="font-bold text-gray-600">{displayId}</span></div>
                         <div className="flex justify-between"><span>Staff:</span><span>{sale.createdBy || 'N/A'}</span></div>
                         <div className="flex justify-between"><span>Customer:</span><span className="font-bold">{sale.customerName}</span></div>
                     </div>
 
                     <div className="border-t-2 border-dashed border-gray-300 pt-4 mt-4">
-                        <div className="text-xs font-bold text-gray-900 mb-2 uppercase flex justify-between">
+                        <div className="text-xs font-bold text-gray-600 mb-2 uppercase flex justify-between">
                             <span>Item</span><span>Total</span>
                         </div>
                         <div className="space-y-3">
                             {(sale.sale_items || []).map((item, idx) => (
                                 <div key={idx} className="text-sm">
                                     <div className="flex justify-between items-start">
-                                        <span className="text-gray-800 font-medium">{item.productName}</span>
-                                        <span className="text-gray-900 font-bold font-mono">
+                                        <span className="text-gray-600 font-medium">{item.productName}</span>
+                                        <span className="text-gray-600 font-bold font-mono">
                                             {formatCurrency((item.price_at_sale || 0) * item.quantity)}
                                         </span>
                                     </div>
-                                    <div className="text-xs text-gray-500 font-mono mt-0.5">
+                                    <div className="text-xs text-gray-300 font-mono mt-0.5">
                                         {item.quantity} x {formatCurrency(item.price_at_sale)}
                                         {item.discount_amount > 0 && (
                                             <span className="text-green-600 ml-1 italic">(Disc: -{formatCurrency(item.discount_amount)})</span>
@@ -118,15 +118,15 @@ const SaleDetailsModal = ({ sale, isOpen, onClose }) => {
                     </div>
 
                     <div className="border-t-2 border-dashed border-gray-300 pt-4 mt-4 space-y-2">
-                        <div className="flex justify-between items-center text-lg font-bold text-gray-900">
+                        <div className="flex justify-between items-center text-lg font-bold text-gray-600">
                             <span>TOTAL</span><span className="font-mono">{formatCurrency(sale.totalAmount)}</span>
                         </div>
-                        <div className="pt-2 space-y-1 text-xs text-gray-600 font-mono">
+                        <div className="pt-2 space-y-1 text-xs text-gray-400 font-mono">
                             <div className="flex justify-between"><span>Payment Method:</span><span className="uppercase">{sale.paymentMethod}</span></div>
                             {sale.paymentMethod === 'Cash' && (
                                 <>
                                     <div className="flex justify-between"><span>Cash Received:</span><span>{formatCurrency(sale.amountReceived || 0)}</span></div>
-                                    <div className="flex justify-between font-bold text-gray-900"><span>Change:</span><span>{formatCurrency(sale.changegiven || 0)}</span></div>
+                                    <div className="flex justify-between font-bold text-gray-600"><span>Change:</span><span>{formatCurrency(sale.changegiven || 0)}</span></div>
                                 </>
                             )}
                             <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-100">
@@ -136,8 +136,8 @@ const SaleDetailsModal = ({ sale, isOpen, onClose }) => {
                     </div>
 
                     <div className="text-center pt-6 pb-2">
-                        <p className="text-xs font-medium text-gray-400 uppercase tracking-widest">Thank You!</p>
-                        <p className="text-[10px] text-gray-300 mt-1">Please keep this receipt for your records.</p>
+                        <p className="text-xs font-medium text-gray-200 uppercase tracking-widest">Thank You!</p>
+                        <p className="text-[10px] text-gray-100 mt-1">Please keep this receipt for your records.</p>
                     </div>
                 </div>
 
@@ -286,7 +286,7 @@ export default function HistoryPage() {
                                         <TableHead>Payment</TableHead>
                                         <TableHead className="w-[100px] text-center">Quantity</TableHead>
                                         <TableHead className="w-[150px]">Unit Price (Sold)</TableHead>
-                                        <TableHead>Total</TableHead>
+                                        <TableHead className="text-green-600">Total</TableHead>
                                         <TableHead className="text-right">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -312,7 +312,7 @@ export default function HistoryPage() {
                                                         <div className="flex flex-col space-y-1 items-center">
                                                             {displayItems.map((item, idx) => (
                                                                 <div key={idx} className="text-xs pb-1 border-b border-dashed border-gray-100 last:border-0 last:pb-0">
-                                                                    <span className="font-medium text-gray-700 bg-gray-50 px-2 py-0.5 rounded">{item.quantity}</span>
+                                                                    <span className="font-medium text-gray-600 bg-gray-50 px-2 py-0.5 rounded">{item.quantity}</span>
                                                                 </div>
                                                             ))}
                                                             {remainingCount > 0 && <div className="h-[15px]"></div>}
@@ -322,7 +322,7 @@ export default function HistoryPage() {
                                                         <div className="flex flex-col space-y-1">
                                                             {displayItems.map((item, idx) => (
                                                                 <div key={idx} className="text-xs pb-1 border-b border-dashed border-gray-100 last:border-0 last:pb-0">
-                                                                    <span className="font-medium text-gray-700 bg-gray-50 px-2 py-0.5 rounded">{formatCurrency(item.price_at_sale)}</span>
+                                                                    <span className="font-medium text-gray-600 bg-gray-50 px-2 py-0.5 rounded">{formatCurrency(item.price_at_sale)}</span>
                                                                 </div>
                                                             ))}
                                                             {remainingCount > 0 && (
@@ -336,7 +336,7 @@ export default function HistoryPage() {
                                                             )}
                                                         </div>
                                                     </TableCell>
-                                                    <TableCell className="font-bold">{formatCurrency(s.totalAmount)}</TableCell>
+                                                    <TableCell className="font-bold text-green-600">{formatCurrency(s.totalAmount)}</TableCell>
                                                     <TableCell className="text-right">
                                                         <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:bg-blue-100" onClick={() => openModal(s)} title="View Details">
                                                             <ViewIcon />
@@ -372,12 +372,12 @@ export default function HistoryPage() {
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex justify-between items-center">
-                                                    <span className="font-medium text-gray-900 truncate">{s.customerName}</span>
-                                                    <span className="font-semibold text-gray-900 ml-2">{formatCurrency(s.totalAmount)}</span>
+                                                    <span className="font-medium text-gray-600 truncate">{s.customerName}</span>
+                                                    <span className="font-semibold text-gray-600 ml-2">{formatCurrency(s.totalAmount)}</span>
                                                 </div>
-                                                <div className="text-sm text-gray-500">{formatDate(s.saleTimestamp)}</div>
+                                                <div className="text-sm text-gray-300">{formatDate(s.saleTimestamp)}</div>
                                                 <div className="flex justify-between items-center mt-1">
-                                                    <span className="text-xs text-gray-500">Staff: {s.createdBy || 'N/A'}</span>
+                                                    <span className="text-xs text-gray-300">Staff: {s.createdBy || 'N/A'}</span>
                                                     <StatusBadge status={s.status} />
                                                 </div>
                                             </div>

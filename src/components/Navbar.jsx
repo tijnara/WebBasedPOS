@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { supabase } from '../lib/supabaseClient';
 import currency from 'currency.js';
 import { CartIcon, PackageIcon, UserIcon, ChartIcon, UsersIcon, GalleryIcon, HomeIcon, SettingsIcon, DocumentReportIcon, MailIcon } from './Icons';
-import { Receipt, ChevronDown } from 'lucide-react';
+import { Receipt, ChevronDown, Sun, Moon } from 'lucide-react'; // Import Sun and Moon
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 // Hamburger Icon
@@ -129,10 +129,12 @@ const ActiveShiftIndicator = ({ user, onOpenStartShift }) => {
 const Navbar = () => {
     const router = useRouter();
     const queryClient = useQueryClient();
-    const { user, logout, isDemo } = useStore(s => ({
+    const { user, logout, isDemo, darkMode, toggleDarkMode } = useStore(s => ({ // Extract darkMode and toggleDarkMode
         user: s.user,
         logout: s.logout,
-        isDemo: s.user?.isDemo
+        isDemo: s.user?.isDemo,
+        darkMode: s.darkMode,
+        toggleDarkMode: s.toggleDarkMode
     }));
 
     const [clientUser, setClientUser] = useState(null);
@@ -572,7 +574,14 @@ const Navbar = () => {
                             <Button variant="ghost" onClick={() => router.push('/')} className="sm:hidden p-2 hover:text-primary transition-colors" title="Landing Page">
                                 <HomeIcon className="w-5 h-5" />
                             </Button>
-
+                            <Button 
+                                variant="ghost" 
+                                onClick={toggleDarkMode} 
+                                className="p-2 hover:text-primary transition-colors"
+                                title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+                            >
+                                {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                            </Button>
                             <Button variant="ghost" className="text-destructive" onClick={prepareZReading} title="Logout">Logout</Button>
                         </>
                     ) : <div className="user-info-text">Loading...</div>}

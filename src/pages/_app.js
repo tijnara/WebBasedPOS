@@ -110,7 +110,7 @@ function AuthGate({ children }) {
 
     if (!sessionLoaded) {
         return (
-            <div className="flex items-center justify-center min-h-screen bg-gray-100 text-gray-600">
+            <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-300">
                 Loading application...
             </div>
         );
@@ -121,14 +121,14 @@ function AuthGate({ children }) {
     }
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-gray-100 text-gray-600">
+        <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-300">
             Checking authentication...
         </div>
     );
 }
 
 export default function App({ Component, pageProps }) {
-    const { toasts, dismissToast } = useStore();
+    const { toasts, dismissToast, darkMode } = useStore();
     const router = useRouter();
 
     // 2. Initialize QueryClient inside the component using useState
@@ -146,6 +146,14 @@ export default function App({ Component, pageProps }) {
         useStore.getState().hydrate();
     }, []);
 
+    useEffect(() => {
+        if (darkMode) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    }, [darkMode]);
+
     const isPublicPage = ['/', '/login', '/terms', '/privacy', '/contact'].includes(router.pathname) || router.pathname.startsWith('/resources');
     const hideNav = isPublicPage;
 
@@ -162,7 +170,7 @@ export default function App({ Component, pageProps }) {
                     <meta name="google-site-verification" content="kd1wSsNQZCjJmyp4LaQKI9Mr7s6Z9_I5Z3ETpaW1EVc" />
                 </Head>
                 <AuthGate>
-                    <div className="app bg-gray-100 responsive-page">
+                    <div className="app responsive-page">
                         {!hideNav && <Navbar />}
                         {!hideNav && <TabBar />}
 
@@ -178,15 +186,15 @@ export default function App({ Component, pageProps }) {
 
                         <div className="toasts fixed bottom-4 right-4 z-50 flex flex-col items-end gap-3" aria-live="polite">
                             {toasts.map(t => (
-                                <div key={t.id} className={`toast bg-white border border-gray-200 p-4 rounded-lg shadow-xl w-80 max-w-[calc(100vw-2rem)] flex items-start gap-3 ${t.variant === 'destructive' ? 'border-l-4 border-red-500' :
+                                <div key={t.id} className={`toast bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4 rounded-lg shadow-xl w-80 max-w-[calc(100vw-2rem)] flex items-start gap-3 ${t.variant === 'destructive' ? 'border-l-4 border-red-500' :
                                     t.variant === 'success' ? 'border-l-4 border-green-500' :
                                         t.variant === 'warning' ? 'border-l-4 border-yellow-500' : 'border-l-4 border-blue-500'
                                 }`}>
                                     <div className="flex-1">
-                                        <div className="toast__title font-semibold text-gray-800">{t.title}</div>
-                                        {t.description && <div className="toast__desc text-sm text-gray-600 mt-1">{t.description}</div>}
+                                        <div className="toast__title font-semibold text-gray-800 dark:text-gray-100">{t.title}</div>
+                                        {t.description && <div className="toast__desc text-sm text-gray-600 dark:text-gray-300 mt-1">{t.description}</div>}
                                     </div>
-                                    <Button variant="ghost" size="sm" className="p-1 -mr-2 -mt-2 h-auto text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full" onClick={() => dismissToast(t.id)} aria-label="Dismiss toast">
+                                    <Button variant="ghost" size="sm" className="p-1 -mr-2 -mt-2 h-auto text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full" onClick={() => dismissToast(t.id)} aria-label="Dismiss toast">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                                             <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" />
                                         </svg>

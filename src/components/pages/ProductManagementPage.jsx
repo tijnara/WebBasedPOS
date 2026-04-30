@@ -1,4 +1,5 @@
 // src/components/pages/ProductManagementPage.jsx
+// Force rebuild
 import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../../store/useStore';
 import { supabase } from '../../lib/supabaseClient';
@@ -39,7 +40,7 @@ const ImageUploader = ({ previewUrl, onFileSelect }) => {
     return (
         <div
             onClick={handleDivClick}
-            className="cursor-pointer group relative w-full aspect-square bg-gray-50 border-2 border-dashed border-gray-300 hover:border-primary rounded-xl flex flex-col items-center justify-center transition-all overflow-hidden"
+            className="cursor-pointer group relative w-full aspect-square bg-gray-50 dark:bg-gray-800 border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-primary rounded-xl flex flex-col items-center justify-center transition-all overflow-hidden"
         >
             {previewUrl ? (
                 <>
@@ -49,10 +50,10 @@ const ImageUploader = ({ previewUrl, onFileSelect }) => {
                     </div>
                 </>
             ) : (
-                <div className="flex flex-col items-center text-gray-400 group-hover:text-primary transition-colors">
+                <div className="flex flex-col items-center text-gray-400 dark:text-gray-500 group-hover:text-primary transition-colors">
                     <PackageIcon className="w-12 h-12 mb-2" />
                     <span className="text-sm font-medium">Upload Image</span>
-                    <span className="text-xs text-gray-400 mt-1">Click to browse</span>
+                    <span className="text-xs text-gray-400 dark:text-gray-500 mt-1">Click to browse</span>
                 </div>
             )}
             <input
@@ -326,9 +327,9 @@ export default function ProductManagementPage() {
     const isMutating = createProduct.isPending || updateProduct.isPending || deleteProduct.isPending || uploading;
 
     return (
-        <div className="product-page responsive-page">
+        <div className="product-page responsive-page dark:text-white">
             {/* --- FILTER BAR --- */}
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6 p-4 rounded-lg bg-white shadow-sm">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6 p-4 rounded-lg bg-white dark:bg-gray-800 shadow-sm">
                 <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
                     <div className="w-full md:w-64">
                         <Input
@@ -370,13 +371,13 @@ export default function ProductManagementPage() {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead className="w-[40%]">Product</TableHead>
-                                    <TableHead>Category</TableHead>
-                                    <TableHead>Price</TableHead>
-                                    <TableHead>Stock</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead>Last Updated</TableHead>
-                                    <TableHead className="text-right">Actions</TableHead>
+                                    <TableHead className="w-[40%] dark:text-white">Product</TableHead>
+                                    <TableHead className="dark:text-white">Category</TableHead>
+                                    <TableHead className="dark:text-white">Price</TableHead>
+                                    <TableHead className="dark:text-white">Stock</TableHead>
+                                    <TableHead className="dark:text-white">Status</TableHead>
+                                    <TableHead className="dark:text-white">Last Updated</TableHead>
+                                    <TableHead className="text-right dark:text-white">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -386,11 +387,11 @@ export default function ProductManagementPage() {
                                     <TableRow><TableCell colSpan={7} className="text-center py-8">No products found.</TableCell></TableRow>
                                 ) : (
                                     filteredProducts.map(p => (
-                                        <TableRow key={p.id} className={p.is_hidden ? 'bg-gray-50' : ''}>
-                                            <TableCell>
+                                        <TableRow key={p.id} className={p.is_hidden ? 'bg-gray-50 dark:bg-gray-800' : ''}>
+                                            <TableCell className="dark:text-white">
                                                 <div className="flex items-center gap-3">
                                                     <div
-                                                        className="rounded-lg bg-gray-50 flex items-center justify-center overflow-hidden flex-shrink-0"
+                                                        className="rounded-lg bg-gray-50 dark:bg-gray-700 flex items-center justify-center overflow-hidden flex-shrink-0"
                                                         style={{ width: '48px', height: '48px' }}
                                                     >
                                                         {p.image_url ? (
@@ -401,29 +402,29 @@ export default function ProductManagementPage() {
                                                                 style={{ width: '100%', height: '100%' }}
                                                             />
                                                         ) : (
-                                                            <PackageIcon className="h-6 w-6 text-gray-300" />
+                                                            <PackageIcon className="h-6 w-6 text-gray-300 dark:text-gray-500" />
                                                         )}
                                                     </div>
                                                     <div className="flex flex-col">
-                                                        <span className="font-semibold text-gray-900">
+                                                        <span className="font-semibold text-gray-900 dark:text-white">
                                                             {p.name}
                                                             {p.is_hidden && <span className="ml-2 text-[10px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-full font-bold">Hidden</span>}
                                                         </span>
-                                                        {p.barcode && <span className="text-xs text-gray-500 font-mono">{p.barcode}</span>}
+                                                        {p.barcode && <span className="text-xs text-gray-500 dark:text-gray-400 font-mono">{p.barcode}</span>}
                                                     </div>
                                                 </div>
                                             </TableCell>
-                                            <TableCell>
-                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                            <TableCell className="dark:text-white">
+                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
                                                     {p.category || 'General'}
                                                 </span>
                                             </TableCell>
-                                            <TableCell>
-                                                <div className={`font-medium ${p.is_hidden ? 'text-gray-400' : 'text-gray-900'}`}>
+                                            <TableCell className="dark:text-white">
+                                                <div className={`font-medium ${p.is_hidden ? 'text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-white'}`}>
                                                     {currency(p.price, { symbol: '₱' }).format()}
                                                 </div>
                                             </TableCell>
-                                            <TableCell>
+                                            <TableCell className="dark:text-white">
                                                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                                                     Number(p.stock) <= Number(p.minStock)
                                                         ? 'bg-red-50 text-red-700'
@@ -437,12 +438,12 @@ export default function ProductManagementPage() {
                                                     {p.is_hidden ? 'Hidden' : 'Visible'}
                                                 </span>
                                             </TableCell>
-                                            <TableCell className="text-gray-500 text-sm">
+                                            <TableCell className="text-gray-500 dark:text-gray-400 text-sm">
                                                 {p.updated_at ? new Date(p.updated_at).toLocaleDateString() : '—'}
                                             </TableCell>
                                             <TableCell className="text-right">
                                                 <div className="flex justify-end space-x-1">
-                                                    <Button variant="ghost" size="icon" onClick={() => toggleHide(p)} className="text-gray-500 hover:text-gray-800 hover:bg-gray-100 h-8 w-8" title={p.is_hidden ? "Unhide from POS" : "Hide from POS"}>
+                                                    <Button variant="ghost" size="icon" onClick={() => toggleHide(p)} className="text-gray-500 hover:text-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 h-8 w-8" title={p.is_hidden ? "Unhide from POS" : "Hide from POS"}>
                                                         {p.is_hidden ? <EyeOff className="w-4 h-4 text-orange-500" /> : <Eye className="w-4 h-4" />}
                                                     </Button>
                                                     <Button variant="ghost" size="icon" onClick={() => startEdit(p)} className="text-blue-600 h-8 w-8"><EditIcon /></Button>
@@ -464,15 +465,15 @@ export default function ProductManagementPage() {
                 {isLoading ? (
                     <div className="text-center text-muted p-6">Loading products...</div>
                 ) : filteredProducts.length === 0 ? (
-                    <div className="text-center text-muted p-6 bg-white rounded-lg">
+                    <div className="text-center text-muted p-6 bg-white dark:bg-gray-800 rounded-lg">
                         No products found.
                     </div>
                 ) : (
                     filteredProducts.map(p => (
-                        <div key={p.id} className={`bg-white p-3 rounded-xl shadow-sm flex items-start gap-3 ${p.is_hidden ? 'opacity-60' : ''}`}>
+                        <div key={p.id} className={`bg-white dark:bg-gray-800 p-3 rounded-xl shadow-sm flex items-start gap-3 ${p.is_hidden ? 'opacity-60' : ''}`}>
                             <div className="flex-shrink-0">
                                 <div
-                                    className="rounded-lg bg-gray-50 flex items-center justify-center overflow-hidden"
+                                    className="rounded-lg bg-gray-50 dark:bg-gray-700 flex items-center justify-center overflow-hidden"
                                     style={{ width: '64px', height: '64px' }}
                                 >
                                     {p.image_url ? (
@@ -483,18 +484,18 @@ export default function ProductManagementPage() {
                                             style={{ width: '100%', height: '100%' }}
                                         />
                                     ) : (
-                                        <PackageIcon className="h-8 w-8 text-gray-300" />
+                                        <PackageIcon className="h-8 w-8 text-gray-300 dark:text-gray-500" />
                                     )}
                                 </div>
                             </div>
 
                             <div className="flex-1 min-w-0 flex flex-col justify-between" style={{ height: '64px' }}>
                                 <div>
-                                    <div className="font-semibold text-gray-900 text-sm leading-tight truncate flex items-center gap-1.5">
+                                    <div className="font-semibold text-gray-900 dark:text-white text-sm leading-tight truncate flex items-center gap-1.5">
                                         {p.name}
                                         {p.is_hidden && <span className="text-[9px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-full font-bold">Hidden</span>}
                                     </div>
-                                    <div className="text-xs text-gray-500 mt-0.5">
+                                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                                         {p.category || 'General'}
                                     </div>
                                 </div>
@@ -518,14 +519,14 @@ export default function ProductManagementPage() {
                                 <div className="flex gap-1">
                                     <button
                                         onClick={() => toggleHide(p)}
-                                        className="text-gray-500 p-1 hover:bg-gray-50 rounded"
+                                        className="text-gray-500 p-1 hover:bg-gray-50 dark:hover:bg-gray-700 rounded"
                                         title={p.is_hidden ? "Unhide" : "Hide"}
                                     >
                                         {p.is_hidden ? <EyeOff className="w-4 h-4 text-orange-500" /> : <Eye className="w-4 h-4" />}
                                     </button>
                                     <button
                                         onClick={() => startEdit(p)}
-                                        className="text-blue-600 p-1 hover:bg-blue-50 rounded"
+                                        className="text-blue-600 p-1 hover:bg-blue-50 dark:hover:bg-blue-800 rounded"
                                     >
                                         <EditIcon className="w-4 h-4" />
                                     </button>
@@ -533,7 +534,7 @@ export default function ProductManagementPage() {
                                 <div className="flex justify-end">
                                     <button
                                         onClick={() => remove(p)}
-                                        className="text-red-500 p-1 hover:bg-red-50 rounded"
+                                        className="text-red-500 p-1 hover:bg-red-50 dark:hover:bg-red-800 rounded"
                                     >
                                         <DeleteIcon className="w-4 h-4" />
                                     </button>
@@ -558,13 +559,13 @@ export default function ProductManagementPage() {
                     <form onSubmit={save}>
 
                         {/* Header */}
-                        <div className="px-6 py-4 border-b bg-gray-50/50 rounded-t-lg">
+                        <div className="px-6 py-4 border-b bg-gray-50/50 dark:bg-gray-800/50 rounded-t-lg">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <DialogTitle className="text-xl font-bold text-gray-900">
+                                    <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">
                                         {editing ? 'Edit Product' : 'Add New Product'}
                                     </DialogTitle>
-                                    <p className="text-xs text-gray-500 mt-1">
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                                         {editing ? `Editing ID: ${editing.id}` : 'Fill in the details to create a new inventory item.'}
                                     </p>
                                 </div>
@@ -580,7 +581,7 @@ export default function ProductManagementPage() {
                                     <div className="md:col-span-1">
                                         <Label className="text-sm font-semibold mb-2 block">Product Image</Label>
                                         <ImageUploader previewUrl={imagePreview} onFileSelect={handleFileSelect} />
-                                        <p className="text-[10px] text-gray-400 mt-2 text-center italic">
+                                        <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-2 text-center italic">
                                             Recommended: Square PNG or JPG
                                         </p>
                                     </div>
@@ -628,12 +629,12 @@ export default function ProductManagementPage() {
                                         </div>
 
                                         {isAddingCategory && (
-                                            <div className="flex gap-2 p-3 bg-blue-50 rounded-lg">
+                                            <div className="flex gap-2 p-3 bg-blue-50 dark:bg-blue-900/50 rounded-lg">
                                                 <Input
                                                     placeholder="New Category Name"
                                                     value={newCategoryName}
                                                     onChange={e => setNewCategoryName(e.target.value)}
-                                                    className="bg-white"
+                                                    className="bg-white dark:bg-gray-800"
                                                 />
                                                 <Button type="button" size="sm" onClick={addCategory}>Add</Button>
                                             </div>
@@ -641,19 +642,19 @@ export default function ProductManagementPage() {
                                     </div>
                                 </div>
 
-                                <hr className="border-gray-100" />
+                                <hr className="border-gray-100 dark:border-gray-700" />
 
                                 {/* Section 2: Pricing & Inventory */}
                                 <div>
-                                    <h3 className="text-sm font-bold uppercase tracking-wider text-gray-400 mb-4 flex items-center gap-2">
-                                        <span className="w-8 h-[1px] bg-gray-200"></span>
+                                    <h3 className="text-sm font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-4 flex items-center gap-2">
+                                        <span className="w-8 h-[1px] bg-gray-200 dark:bg-gray-700"></span>
                                         Inventory & Pricing
                                     </h3>
                                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                        <div className="grid gap-2 p-4 bg-gray-50 rounded-xl border border-gray-100">
-                                            <Label htmlFor="cost" className="text-xs text-gray-500 font-bold uppercase">Cost Price</Label>
+                                        <div className="grid gap-2 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
+                                            <Label htmlFor="cost" className="text-xs text-gray-500 dark:text-gray-400 font-bold uppercase">Cost Price</Label>
                                             <div className="relative">
-                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">₱</span>
+                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 text-sm">₱</span>
                                                 <Input id="cost" type="number" step="0.01" value={cost} onChange={e => setCost(e.target.value)} className="pl-7" />
                                             </div>
                                         </div>
@@ -664,15 +665,15 @@ export default function ProductManagementPage() {
                                                 <Input id="price" type="number" step="0.01" value={price} onChange={e => setPrice(e.target.value)} className="pl-7 border-primary/20 font-bold" />
                                             </div>
                                         </div>
-                                        <div className="grid gap-2 p-4 bg-gray-50 rounded-xl border border-gray-100">
-                                            <Label htmlFor="stock" className="text-xs text-gray-500 font-bold uppercase">Current Stock</Label>
+                                        <div className="grid gap-2 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
+                                            <Label htmlFor="stock" className="text-xs text-gray-500 dark:text-gray-400 font-bold uppercase">Current Stock</Label>
                                             <Input id="stock" type="number" value={stock} onChange={e => setStock(e.target.value)} disabled={editing && !isAdmin} />
                                         </div>
                                     </div>
 
                                     <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div className="flex items-center gap-3 px-1">
-                                            <Label htmlFor="minStock" className="text-sm text-gray-600 whitespace-nowrap">Low Stock Alert at:</Label>
+                                            <Label htmlFor="minStock" className="text-sm text-gray-600 dark:text-gray-300 whitespace-nowrap">Low Stock Alert at:</Label>
                                             <Input id="minStock" type="number" value={minStock} onChange={e => setMinStock(e.target.value)} className="w-24" />
                                         </div>
                                     </div>
@@ -686,7 +687,7 @@ export default function ProductManagementPage() {
                                     <div className="grid sm:grid-cols-2 gap-4">
                                         <div className="grid gap-1.5">
                                             <Label htmlFor="parentId" className="text-xs text-amber-900">Parent Product</Label>
-                                            <Select id="parentId" value={parentId || ''} onChange={e => setParentId(e.target.value || null)} className="bg-white">
+                                            <Select id="parentId" value={parentId || ''} onChange={e => setParentId(e.target.value || null)} className="bg-white dark:bg-gray-800">
                                                 <option value="">-- No Parent (Individual Item) --</option>
                                                 {products.filter(p => p.id !== editing?.id).map(p => (
                                                     <option key={p.id} value={p.id}>{p.name}</option>
@@ -702,7 +703,7 @@ export default function ProductManagementPage() {
                                                 onChange={e => setConversionRate(e.target.value)}
                                                 disabled={!parentId}
                                                 placeholder="e.g. 24 items per case"
-                                                className="bg-white"
+                                                className="bg-white dark:bg-gray-800"
                                             />
                                         </div>
                                     </div>
@@ -711,7 +712,7 @@ export default function ProductManagementPage() {
                         </div>
 
                         {/* Footer */}
-                        <div className="p-4 bg-gray-50 border-t flex gap-2 rounded-b-lg">
+                        <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border-t flex gap-2 rounded-b-lg">
                             <Button variant="outline" type="button" onClick={closeModal} disabled={isMutating} className="flex-1 sm:flex-none">
                                 Discard
                             </Button>
