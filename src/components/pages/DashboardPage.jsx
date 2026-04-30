@@ -395,7 +395,7 @@ export default function DashboardPage() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-transparent font-sans responsive-page pb-12">
+        <div className="flex-1 min-h-screen bg-transparent font-sans responsive-page pb-12 transition-colors duration-300">
             <Head>
                 <title>Dashboard</title>
             </Head>
@@ -430,13 +430,13 @@ export default function DashboardPage() {
 
                         {/* Right Column: Line Chart */}
                         <div className="lg:col-span-3 min-h-[400px]">
-                            <Card className="h-full shadow-sm flex flex-col">
+                            <Card className="h-full shadow-sm flex flex-col bg-white dark:bg-slate-900 border-none">
                                 <CardHeader className="bg-transparent pb-0 flex flex-row items-center justify-between">
-                                    <h3 className="font-bold text-slate-800 text-xl">Sales Performance Over Time</h3>
+                                    <h3 className="font-bold text-slate-800 dark:text-white text-xl">Sales Performance Over Time</h3>
                                     <Select
                                         value={salesView}
                                         onChange={(e) => setSalesView(e.target.value)}
-                                        className="w-32 h-8 py-1 px-3 text-sm bg-slate-50 dark:bg-transparent rounded-md font-medium text-slate-700 cursor-pointer hover:bg-slate-100 shadow-sm transition-colors outline-none focus:ring-2 focus:ring-indigo-500"
+                                        className="w-32 h-8 py-1 px-3 text-sm bg-slate-50 dark:bg-slate-800 dark:text-white rounded-md font-medium text-slate-700 cursor-pointer hover:bg-slate-100 shadow-sm transition-colors outline-none focus:ring-2 focus:ring-indigo-500"
                                     >
                                         <option value="Monthly">Monthly</option>
                                         <option value="Weekly">Weekly</option>
@@ -457,11 +457,11 @@ export default function DashboardPage() {
                     </div>
 
                     {/* --- BOTTOM ROW (2 Columns) --- */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-6">
                         {/* Bottom Middle: Pie Chart */}
-                        <Card className="shadow-sm h-[400px] flex flex-col">
+                        <Card className="shadow-sm h-[400px] flex flex-col bg-white dark:bg-slate-900 border-none">
                             <CardHeader className="bg-transparent pb-0 shrink-0">
-                                <h3 className="font-semibold text-slate-800 text-lg">New Sales by Product</h3>
+                                <h3 className="font-semibold text-slate-800 dark:text-white text-lg">New Sales by Product</h3>
                             </CardHeader>
                             <CardContent className="p-4 flex-1 flex flex-col w-full h-full">
                                 <div className="flex-1 w-full h-full relative flex justify-center items-center">
@@ -483,12 +483,12 @@ export default function DashboardPage() {
                         </Card>
 
                         {/* Bottom Right: Top 10 All-Time Customers */}
-                        <Card className="shadow-sm h-[400px] flex flex-col">
+                        <Card className="shadow-sm h-[400px] flex flex-col bg-white dark:bg-slate-900 border-none">
                             <CardHeader className="bg-transparent pb-0 shrink-0">
-                                <h3 className="font-semibold text-slate-800 text-lg">Top 10 All-Time Customers</h3>
+                                <h3 className="font-semibold text-slate-800 dark:text-white text-lg">Top 10 All-Time Customers</h3>
                             </CardHeader>
                             <CardContent className="p-4 pt-0 flex-1 flex flex-col w-full h-full">
-                                <div className="flex items-center gap-2 mb-2 ml-4 text-sm text-slate-600 font-medium shrink-0">
+                                <div className="flex items-center gap-2 mb-2 ml-4 text-sm text-slate-600 dark:text-slate-400 font-medium shrink-0">
                                     <div className="w-3 h-3 bg-[#8DB600] rounded-sm"></div>
                                     Total Revenue
                                 </div>

@@ -117,17 +117,17 @@ const SalesVsExpensesChart = ({ dateFrom, dateTo }) => {
 
     if (isLoadingSales || isLoadingExpenses) {
         return (
-            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm h-96 animate-pulse flex flex-col">
-                <div className="h-6 w-48 bg-gray-200 rounded mb-2"></div>
-                <div className="h-4 w-64 bg-gray-100 rounded mb-8"></div>
-                <div className="flex-1 w-full bg-gray-50 rounded-xl"></div>
+            <div className="bg-white dark:bg-slate-900 border border-transparent dark:border-slate-800 transition-colors p-6 rounded-2xl shadow-sm h-96 animate-pulse flex flex-col">
+                <div className="h-6 w-48 bg-gray-200 dark:bg-slate-700 rounded mb-2"></div>
+                <div className="h-4 w-64 bg-gray-100 dark:bg-slate-800 rounded mb-8"></div>
+                <div className="flex-1 w-full bg-gray-50 dark:bg-slate-800/50 rounded-xl"></div>
             </div>
         );
     }
 
     if (salesError || expensesError) {
         return (
-            <div className="h-96 flex items-center justify-center bg-white rounded-xl shadow-sm text-red-500 p-6 text-center">
+            <div className="h-96 flex items-center justify-center bg-white dark:bg-slate-900 border border-transparent dark:border-slate-800 transition-colors rounded-xl shadow-sm text-red-500 p-6 text-center">
                 <div>
                     <p className="font-bold mb-2">Error loading chart data</p>
                     <p className="text-sm opacity-80">{salesError?.message || expensesError?.message}</p>
@@ -139,9 +139,9 @@ const SalesVsExpensesChart = ({ dateFrom, dateTo }) => {
     const hasData = chartData.length > 0;
 
     return (
-        <div className="bg-white p-6 rounded-xl shadow-sm h-96 flex flex-col">
+        <div className="bg-white dark:bg-slate-900 border border-transparent dark:border-slate-800 transition-colors p-6 rounded-xl shadow-sm h-96 flex flex-col">
             <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-slate-800">Daily Sales vs. Expenses</h2>
+                <h2 className="text-xl font-bold text-slate-800 dark:text-white">Daily Sales vs. Expenses</h2>
                 {isDemo && (
                     <span className="px-2 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded uppercase tracking-wider">Demo Data</span>
                 )}
@@ -149,11 +149,8 @@ const SalesVsExpensesChart = ({ dateFrom, dateTo }) => {
             
             <div className="flex-1 min-h-[300px] w-full relative">
                 {!hasData ? (
-                    <div className="h-full flex flex-col items-center justify-center text-slate-400 bg-slate-50/50 rounded-lg">
-                        <svg className="w-12 h-12 mb-3 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                        </svg>
-                        <p>No expenses found for the selected period.</p>
+                    <div className="h-full flex items-center justify-center text-slate-400 dark:text-slate-500">
+                        <p>No data found for the selected period.</p>
                     </div>
                 ) : (
                     <ResponsiveContainer width="100%" height="100%">
@@ -163,8 +160,8 @@ const SalesVsExpensesChart = ({ dateFrom, dateTo }) => {
                                 top: 20, right: 30, left: 20, bottom: 5,
                             }}
                         >
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e0e0e0" />
-                            <XAxis dataKey="date" axisLine={false} tickLine={false} style={{ fontSize: '11px', fill: '#64748b' }} />
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" />
+                            <XAxis dataKey="date" axisLine={false} tickLine={false} style={{ fontSize: '11px', fill: '#94a3b8' }} />
                             <YAxis
                                 axisLine={false}
                                 tickLine={false}
@@ -172,9 +169,9 @@ const SalesVsExpensesChart = ({ dateFrom, dateTo }) => {
                                     if (value >= 1000) return (value / 1000).toFixed(0) + 'k';
                                     return value;
                                 }}
-                                style={{ fontSize: '11px', fill: '#64748b' }}
+                                style={{ fontSize: '11px', fill: '#94a3b8' }}
                             />
-                            <Tooltip cursor={{ fill: 'rgba(0,0,0,0.05)' }} content={<ExpenseTooltip />} />
+                            <Tooltip cursor={{ fill: 'rgba(255,255,255,0.05)' }} content={<ExpenseTooltip />} />
                             <Legend wrapperStyle={{ paddingTop: '10px' }} />
                             <Bar dataKey="sales" name="Daily Sales" fill="#10B981" barSize={12} radius={[4, 4, 0, 0]} />
                             <Bar dataKey="expenses" name="Daily Expenses" fill="#EF4444" barSize={12} radius={[4, 4, 0, 0]} />
