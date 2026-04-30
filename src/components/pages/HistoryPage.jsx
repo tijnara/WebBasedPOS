@@ -32,22 +32,22 @@ const formatDate = (dateString) => {
 }
 
 const StatusBadge = ({ status }) => {
-    let className = 'px-2 py-0.5 rounded-full text-xs font-medium ';
+    let className = 'text-xs font-medium uppercase tracking-wider ';
     switch (status) {
         case 'Completed':
-            className += 'bg-green-100 text-green-700';
+            className += 'text-green-600';
             break;
         case 'Pending':
-            className += 'bg-yellow-100 text-yellow-700';
+            className += 'text-yellow-600';
             break;
         case 'Cancelled':
-            className += 'bg-red-100 text-red-700';
+            className += 'text-red-600';
             break;
         case 'Unpaid':
-            className += 'bg-orange-100 text-orange-700';
+            className += 'text-orange-600';
             break;
         default:
-            className += 'bg-gray-100 text-gray-700';
+            className += 'text-gray-600';
     }
     return <span className={className}>{status}</span>;
 };
@@ -90,7 +90,7 @@ const SaleDetailsModal = ({ sale, isOpen, onClose }) => {
                         <div className="flex justify-between"><span>Date:</span><span>{formatDate(sale.saleTimestamp)}</span></div>
                         <div className="flex justify-between"><span>Order #:</span><span className="font-bold text-gray-600">{displayId}</span></div>
                         <div className="flex justify-between"><span>Staff:</span><span>{sale.createdBy || 'N/A'}</span></div>
-                        <div className="flex justify-between"><span>Customer:</span><span className="font-bold">{sale.customerName}</span></div>
+                        <div className="flex justify-between"><span>Customer:</span><span className="font-bold text-green-600">{sale.customerName}</span></div>
                     </div>
 
                     <div className="border-t-2 border-dashed border-gray-300 pt-4 mt-4">
@@ -119,7 +119,7 @@ const SaleDetailsModal = ({ sale, isOpen, onClose }) => {
 
                     <div className="border-t-2 border-dashed border-gray-300 pt-4 mt-4 space-y-2">
                         <div className="flex justify-between items-center text-lg font-bold text-gray-600">
-                            <span>TOTAL</span><span className="font-mono">{formatCurrency(sale.totalAmount)}</span>
+                            <span>TOTAL</span><span className="font-mono text-red-600">{formatCurrency(sale.totalAmount)}</span>
                         </div>
                         <div className="pt-2 space-y-1 text-xs text-gray-400 font-mono">
                             <div className="flex justify-between"><span>Payment Method:</span><span className="uppercase">{sale.paymentMethod}</span></div>
@@ -165,7 +165,7 @@ export default function HistoryPage() {
     const availableProducts = allProductsData?.products || [];
 
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 10;
+    const itemsPerPage = 20;
 
     const interval = useMemo(() => {
         let start = fromDate ? new Date(fromDate) : null;
@@ -275,80 +275,78 @@ export default function HistoryPage() {
                 {/* --- DESKTOP TABLE --- */}
                 <Card className="mb-4 hidden md:block">
                     <CardContent className="p-0">
-                        <ScrollArea className="max-h-[calc(100vh-280px)]">
-                            <Table>
-                                <TableHeader className="sticky top-0 bg-gray-50 z-10">
-                                    <TableRow>
-                                        <TableHead>Date & Time</TableHead>
-                                        <TableHead>Customer</TableHead>
-                                        <TableHead>Staff</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead>Payment</TableHead>
-                                        <TableHead className="w-[100px] text-center">Quantity</TableHead>
-                                        <TableHead className="w-[150px]">Unit Price (Sold)</TableHead>
-                                        <TableHead className="text-green-600">Total</TableHead>
-                                        <TableHead className="text-right">Actions</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {isLoading ? (
-                                        <TableRow><TableCell colSpan={9} className="text-center text-muted py-8">Loading sales...</TableCell></TableRow>
-                                    ) : sortedSales.length === 0 ? (
-                                        <TableRow><TableCell colSpan={9} className="text-center text-muted py-8">No sales found.</TableCell></TableRow>
-                                    ) : (
-                                        sortedSales.map(s => {
-                                            const items = s.sale_items || [];
-                                            const displayItems = items.slice(0, 2);
-                                            const remainingCount = items.length - 2;
+                        <Table>
+                            <TableHeader className="sticky top-0 bg-gray-50 z-10">
+                                <TableRow>
+                                    <TableHead>Date & Time</TableHead>
+                                    <TableHead>Customer</TableHead>
+                                    <TableHead>Staff</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead>Payment</TableHead>
+                                    <TableHead className="w-[100px] text-center">Quantity</TableHead>
+                                    <TableHead className="w-[150px]">Unit Price (Sold)</TableHead>
+                                    <TableHead className="text-right">Total</TableHead>
+                                    <TableHead className="text-right">Actions</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {isLoading ? (
+                                    <TableRow><TableCell colSpan={9} className="text-center text-muted py-8">Loading sales...</TableCell></TableRow>
+                                ) : sortedSales.length === 0 ? (
+                                    <TableRow><TableCell colSpan={9} className="text-center text-muted py-8">No sales found.</TableCell></TableRow>
+                                ) : (
+                                    sortedSales.map(s => {
+                                        const items = s.sale_items || [];
+                                        const displayItems = items.slice(0, 2);
+                                        const remainingCount = items.length - 2;
 
-                                            return (
-                                                <TableRow key={s.id}>
-                                                    <TableCell className="font-medium text-xs whitespace-nowrap">{formatDate(s.saleTimestamp)}</TableCell>
-                                                    <TableCell>{s.customerName}</TableCell>
-                                                    <TableCell>{s.createdBy || 'N/A'}</TableCell>
-                                                    <TableCell><StatusBadge status={s.status} /></TableCell>
-                                                    <TableCell>{s.paymentMethod}</TableCell>
-                                                    <TableCell>
-                                                        <div className="flex flex-col space-y-1 items-center">
-                                                            {displayItems.map((item, idx) => (
-                                                                <div key={idx} className="text-xs pb-1 border-b border-dashed border-gray-100 last:border-0 last:pb-0">
-                                                                    <span className="font-medium text-gray-600 bg-gray-50 px-2 py-0.5 rounded">{item.quantity}</span>
-                                                                </div>
-                                                            ))}
-                                                            {remainingCount > 0 && <div className="h-[15px]"></div>}
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <div className="flex flex-col space-y-1">
-                                                            {displayItems.map((item, idx) => (
-                                                                <div key={idx} className="text-xs pb-1 border-b border-dashed border-gray-100 last:border-0 last:pb-0">
-                                                                    <span className="font-medium text-gray-600 bg-gray-50 px-2 py-0.5 rounded">{formatCurrency(item.price_at_sale)}</span>
-                                                                </div>
-                                                            ))}
-                                                            {remainingCount > 0 && (
-                                                                <div
-                                                                    className="text-[10px] text-blue-500 font-medium cursor-pointer hover:underline mt-1"
-                                                                    onClick={(e) => { e.stopPropagation(); openModal(s); }}
-                                                                >
-                                                                    +{remainingCount} more...
-                                                                </div>
+                                        return (
+                                            <TableRow key={s.id}>
+                                                <TableCell className="font-medium text-xs whitespace-nowrap">{formatDate(s.saleTimestamp)}</TableCell>
+                                                <TableCell className="text-green-600 font-medium">{s.customerName}</TableCell>
+                                                <TableCell>{s.createdBy || 'N/A'}</TableCell>
+                                                <TableCell><StatusBadge status={s.status} /></TableCell>
+                                                <TableCell>{s.paymentMethod}</TableCell>
+                                                <TableCell>
+                                                    <div className="flex flex-col space-y-1 items-center">
+                                                        {displayItems.map((item, idx) => (
+                                                            <div key={idx} className="text-xs pb-1 border-b border-dashed border-gray-100 last:border-0 last:pb-0">
+                                                                <span className="font-medium text-gray-600 bg-gray-50 px-2 py-0.5 rounded">{item.quantity}</span>
+                                                            </div>
+                                                        ))}
+                                                        {remainingCount > 0 && <div className="h-[15px]"></div>}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex flex-col space-y-1">
+                                                        {displayItems.map((item, idx) => (
+                                                            <div key={idx} className="text-xs pb-1 border-b border-dashed border-gray-100 last:border-0 last:pb-0">
+                                                                <span className="font-medium text-gray-600 bg-gray-50 px-2 py-0.5 rounded">{formatCurrency(item.price_at_sale)}</span>
+                                                            </div>
+                                                        ))}
+                                                        {remainingCount > 0 && (
+                                                            <div
+                                                                className="text-[10px] text-blue-500 font-medium cursor-pointer hover:underline mt-1"
+                                                                onClick={(e) => { e.stopPropagation(); openModal(s); }}
+                                                            >
+                                                                +{remainingCount} more...
+                                                            </div>
 
-                                                            )}
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell className="font-bold text-green-600">{formatCurrency(s.totalAmount)}</TableCell>
-                                                    <TableCell className="text-right">
-                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:bg-blue-100" onClick={() => openModal(s)} title="View Details">
-                                                            <ViewIcon />
-                                                        </Button>
-                                                    </TableCell>
-                                                </TableRow>
-                                            );
-                                        })
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </ScrollArea>
+                                                        )}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="text-right font-bold text-red-600">{formatCurrency(s.totalAmount)}</TableCell>
+                                                <TableCell className="text-right">
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:bg-blue-100" onClick={() => openModal(s)} title="View Details">
+                                                        <ViewIcon />
+                                                    </Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        );
+                                    })
+                                )}
+                            </TableBody>
+                        </Table>
                         <Pagination currentPage={currentPage} totalPages={totalPages || 1} onPageChange={page => setCurrentPage(page)} />
                     </CardContent>
                 </Card>
@@ -372,12 +370,12 @@ export default function HistoryPage() {
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex justify-between items-center">
-                                                    <span className="font-medium text-gray-600 truncate">{s.customerName}</span>
-                                                    <span className="font-semibold text-gray-600 ml-2">{formatCurrency(s.totalAmount)}</span>
+                                                    <span className="font-medium text-green-600 truncate">{s.customerName}</span>
+                                                    <span className="font-semibold text-red-600 ml-2">{formatCurrency(s.totalAmount)}</span>
                                                 </div>
-                                                <div className="text-sm text-gray-300">{formatDate(s.saleTimestamp)}</div>
+                                                <div className="text-sm text-gray-400">{formatDate(s.saleTimestamp)}</div>
                                                 <div className="flex justify-between items-center mt-1">
-                                                    <span className="text-xs text-gray-300">Staff: {s.createdBy || 'N/A'}</span>
+                                                    <span className="text-xs text-gray-500">Staff: {s.createdBy || 'N/A'}</span>
                                                     <StatusBadge status={s.status} />
                                                 </div>
                                             </div>
