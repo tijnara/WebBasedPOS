@@ -11,20 +11,12 @@ const Gallery = () => {
     const [[currentIndex, direction], setCurrentIndex] = useState([0, 0]);
     const [isLightboxOpen, setIsLightboxOpen] = useState(false);
 
-    useEffect(() => {
-        if (items.length <= 1 || isLightboxOpen) return;
-        const timer = setInterval(() => {
-            nextSlide();
-        }, 2000);
-        return () => clearInterval(timer);
-    }, [items.length, isLightboxOpen]);
-
     const nextSlide = () => {
-        setCurrentIndex([(currentIndex + 1) % items.length, 1]);
+        setCurrentIndex(prev => [(prev[0] + 1) % items.length, 1]);
     };
 
     const prevSlide = () => {
-        setCurrentIndex([(currentIndex - 1 + items.length) % items.length, -1]);
+        setCurrentIndex(prev => [(prev[0] - 1 + items.length) % items.length, -1]);
     };
 
     const variants = {
