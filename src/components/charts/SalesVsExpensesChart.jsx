@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
     BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid
 } from 'recharts';
-import { eachDayOfInterval, format, parseISO } from 'date-fns';
+import { eachWeekOfInterval, format, parseISO, startOfWeek, endOfWeek, isSameWeek } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import { supabase } from '../../lib/supabaseClient';
 import { useStore } from '../../store/useStore';
@@ -16,7 +16,7 @@ const SalesVsExpensesChart = ({ dateFrom, dateTo }) => {
 
     // Fetch sales data
     const { data: salesData, isLoading: isLoadingSales, error: salesError } = useQuery({
-        queryKey: ['dailySales', dateFrom, dateTo, isDemo],
+        queryKey: ['weeklySales', dateFrom, dateTo, isDemo],
         queryFn: async () => {
             if (isDemo) return [];
             const { data, error } = await supabase
@@ -34,7 +34,7 @@ const SalesVsExpensesChart = ({ dateFrom, dateTo }) => {
 
     // Fetch expenses data
     const { data: expensesData, isLoading: isLoadingExpenses, error: expensesError } = useQuery({
-        queryKey: ['dailyExpenses', dateFrom, dateTo, isDemo],
+        queryKey: ['weeklyExpenses', dateFrom, dateTo, isDemo],
         queryFn: async () => {
             if (isDemo) return [];
             const { data, error } = await supabase
@@ -54,14 +54,17 @@ const SalesVsExpensesChart = ({ dateFrom, dateTo }) => {
         if (!parsedDateFrom || !parsedDateTo) return [];
 
         try {
-            const dateRange = eachDayOfInterval({ start: parsedDateFrom, end: parsedDateTo });
+            const dateRange = eachWeekOfInterval({ start: parsedDateFrom, end: parsedDateTo }, { weekStartsOn: 1 });
             
             const dataMap = {};
 
             dateRange.forEach(date => {
-                const dateKey = format(date, 'yyyy-MM-dd');
+                const weekStart = startOfWeek(date, { weekStartsOn: 1 });
+                const weekEnd = endOfWeek(date, { weekStartsOn: 1 });
+                const dateKey = format(weekStart, 'yyyy-MM-dd');
                 dataMap[dateKey] = {
-                    date: format(date, 'MMM dd'),
+                    dateKey: dateKey,
+                    date: `${format(weekStart, 'MMM dd')} - ${format(weekEnd, 'MMM dd')}`,
                     sales: 0,
                     expenses: 0,
                     expenseList: [],
@@ -70,23 +73,25 @@ const SalesVsExpensesChart = ({ dateFrom, dateTo }) => {
 
             if (isDemo) {
                 dateRange.forEach((date, index) => {
-                    const dateKey = format(date, 'yyyy-MM-dd');
-                    const dayMod = (index % 7);
-                    dataMap[dateKey].sales = 2000 + (dayMod * 500) + (Math.sin(index) * 300);
-                    if (index % 3 === 0) {
-                        const expenseAmount = 1500 + (dayMod * 100) + (Math.cos(index) * 200);
-                        dataMap[dateKey].expenses = expenseAmount;
-                        dataMap[dateKey].expenseList.push(
-                            { name: 'Mock Expense A', amount: expenseAmount * 0.6 },
-                            { name: 'Mock Expense B', amount: expenseAmount * 0.4 }
-                        );
+                    const dateKey = format(startOfWeek(date, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+                    if(dataMap[dateKey]) {
+                        dataMap[dateKey].sales = 14000 + (index * 500) + (Math.sin(index) * 2000);
+                        if (index % 2 === 0) {
+                            const expenseAmount = 10000 + (index * 200) + (Math.cos(index) * 1000);
+                            dataMap[dateKey].expenses = expenseAmount;
+                            dataMap[dateKey].expenseList.push(
+                                { name: 'Mock Expense A', amount: expenseAmount * 0.6 },
+                                { name: 'Mock Expense B', amount: expenseAmount * 0.4 }
+                            );
+                        }
                     }
                 });
             } else {
                 (salesData || []).forEach(sale => {
                     const ts = sale.saletimestamp || sale.created_at;
                     if (!ts) return;
-                    const dateKey = formatInTimeZone(ts, 'Asia/Manila', 'yyyy-MM-dd');
+                    const dateObj = new Date(formatInTimeZone(ts, 'Asia/Manila', 'yyyy-MM-dd HH:mm:ss'));
+                    const dateKey = format(startOfWeek(dateObj, { weekStartsOn: 1 }), 'yyyy-MM-dd');
                     if (dataMap[dateKey]) {
                         dataMap[dateKey].sales += (Number(sale.totalamount) || 0);
                     }
@@ -95,7 +100,8 @@ const SalesVsExpensesChart = ({ dateFrom, dateTo }) => {
                 (expensesData || []).forEach(expense => {
                     const ts = expense.expense_date;
                     if (!ts) return;
-                    const dateKey = formatInTimeZone(ts, 'Asia/Manila', 'yyyy-MM-dd');
+                    const dateObj = new Date(formatInTimeZone(ts, 'Asia/Manila', 'yyyy-MM-dd HH:mm:ss'));
+                    const dateKey = format(startOfWeek(dateObj, { weekStartsOn: 1 }), 'yyyy-MM-dd');
                     if (dataMap[dateKey]) {
                         dataMap[dateKey].expenses += (Number(expense.amount) || 0);
                         dataMap[dateKey].expenseList.push({
@@ -106,8 +112,12 @@ const SalesVsExpensesChart = ({ dateFrom, dateTo }) => {
                 });
             }
 
-            // FILTER: Only include days where there are expenses
-            return Object.values(dataMap).filter(day => day.expenses > 0);
+            const currentWeekKey = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
+            
+            // FILTER: Only include weeks where there are expenses OR it's the current week
+            return Object.values(dataMap).filter(week => {
+                 return week.expenses > 0 || week.dateKey === currentWeekKey || week.sales > 0;
+            });
 
         } catch (e) {
             console.error("Error generating chart data:", e);
@@ -141,7 +151,7 @@ const SalesVsExpensesChart = ({ dateFrom, dateTo }) => {
     return (
         <div className="bg-white dark:bg-slate-900 border border-transparent dark:border-slate-800 transition-colors p-6 rounded-xl shadow-sm h-96 flex flex-col">
             <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-slate-800 dark:text-white">Daily Sales vs. Expenses</h2>
+                <h2 className="text-xl font-bold text-slate-800 dark:text-white">Weekly Sales vs. Expenses</h2>
                 {isDemo && (
                     <span className="px-2 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded uppercase tracking-wider">Demo Data</span>
                 )}
@@ -173,8 +183,8 @@ const SalesVsExpensesChart = ({ dateFrom, dateTo }) => {
                             />
                             <Tooltip cursor={{ fill: 'rgba(255,255,255,0.05)' }} content={<ExpenseTooltip />} />
                             <Legend wrapperStyle={{ paddingTop: '10px' }} />
-                            <Bar dataKey="sales" name="Daily Sales" fill="#10B981" barSize={12} radius={[4, 4, 0, 0]} />
-                            <Bar dataKey="expenses" name="Daily Expenses" fill="#EF4444" barSize={12} radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="sales" name="Weekly Sales" fill="#10B981" barSize={24} radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="expenses" name="Weekly Expenses" fill="#EF4444" barSize={24} radius={[4, 4, 0, 0]} />
                         </BarChart>
                     </ResponsiveContainer>
                 )}
