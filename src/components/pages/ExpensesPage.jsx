@@ -324,7 +324,7 @@ export default function ExpensesPage() {
                         </div>
 
                         <p className="text-text-muted text-sm font-medium">This Week's Total</p>
-                        <h2 className="text-5xl font-extrabold mb-4 text-primary">{currency(summary?.weeklyTotal || 0, { symbol: '₱' }).format()}</h2>
+                        <h2 className="text-5xl font-extrabold mb-4 text-red-600">{currency(summary?.weeklyTotal || 0, { symbol: '₱' }).format()}</h2>
                         <div className="flex gap-12 border-t-transparent pt-4">
                             <div><p className="text-xs uppercase font-semibold text-text-muted">Monthly</p><p className="text-lg font-bold text-text">{currency(summary?.monthlyTotal || 0, { symbol: '₱' }).format()}&nbsp;&nbsp;&nbsp;&nbsp;</p></div>
                             <div><p className="text-xs uppercase font-semibold text-text-muted">All Time</p><p className="text-lg font-bold text-text">{currency(summary?.grandTotal || 0, { symbol:'₱' }).format()}</p></div>
@@ -457,7 +457,7 @@ export default function ExpensesPage() {
                             <h3 className="text-xl font-bold text-text">List of Expenses</h3>
                             <div className="flex items-center gap-1.5 mt-0.5">
                                 <span className="text-[10px] uppercase font-bold text-text-muted tracking-wider">Filtered Total:</span>
-                                <span className="text-sm font-semibold text-red-500">
+                                <span className="text-sm font-semibold text-red-600">
                                     {currency(totalSum, { symbol: '₱' }).format()}
                                 </span>
                             </div>
@@ -485,7 +485,7 @@ export default function ExpensesPage() {
                                             </div>
                                         </div>
                                         <div className="text-right flex flex-col items-end pl-3 min-w-[120px]">
-                                            <span className="font-bold text-red-500">-{currency(exp.amount, { symbol: '₱' }).format()}</span>
+                                            <span className="font-bold text-red-600">-{currency(exp.amount, { symbol: '₱' }).format()}</span>
                                             <div className="flex gap-2 mt-1">
                                                 <button
                                                     onClick={() => handleEditClick(exp)}

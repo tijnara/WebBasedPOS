@@ -40,7 +40,7 @@ const SaleCard = ({ sale, onDelete, isAdmin }) => (
                     <div className="text-xs text-gray-500">{sale.customerName}</div>
                 </div>
                 <div className="text-right flex flex-col items-end gap-2">
-                    <div className="text-lg font-bold text-gray-900">
+                    <div className="text-lg font-bold text-green-600">
                         {formatCurrency(sale.totalAmount)}
                     </div>
                     <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${sale.status === 'Completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
@@ -330,7 +330,7 @@ const SalesReportDisplay = ({ salesList, currentPage, totalPages, onPageChange, 
                             <td className="px-3 py-3 align-top text-center font-medium text-gray-800">
                                 {(sale.sale_items || []).reduce((acc, item) => acc + (item.quantity || 0), 0)}
                             </td>
-                            <td className="px-3 py-3 text-right whitespace-nowrap align-top font-bold text-gray-900">
+                            <td className="px-3 py-3 text-right whitespace-nowrap align-top font-bold text-green-600">
                                 {formatCurrency(sale.totalAmount)}
                             </td>
                             <td className="px-3 py-3 whitespace-nowrap align-top">{sale.paymentMethod}</td>
@@ -805,7 +805,7 @@ const ReportPage = () => {
                                 <tr><td colSpan="4" className="text-center p-6 text-gray-500">No orders found.</td></tr>
                             ) : (
                                 frequentData?.customers?.map((c, idx) => (
-                                    <tr key={idx} className="border-b border-gray-200 last:border-0">
+                                    <tr key={idx} className="border-b border-gray-100 last:border-0">
                                         <td className="px-4 py-3 font-medium text-gray-500">
                                             {(frequentPage - 1) * FREQUENT_PAGE_SIZE + idx + 1}
                                         </td>

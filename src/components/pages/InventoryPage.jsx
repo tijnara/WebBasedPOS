@@ -525,11 +525,11 @@ export default function InventoryPage() {
                                                         </td>
                                                         <td className="px-4 py-3">
                                                             {isOut ? (
-                                                                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700">Out</span>
+                                                                <span className="inline-flex items-center text-[11px] font-black uppercase tracking-wider text-red-600 dark:text-red-500">Out</span>
                                                             ) : isLow ? (
                                                                 <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700">Low</span>
                                                             ) : (
-                                                                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700">OK</span>
+                                                                <span className="inline-flex items-center text-[11px] font-black uppercase tracking-wider text-green-600 dark:text-green-500">OK</span>
                                                             )}
                                                         </td>
                                                         <td className={`px-4 py-3 text-right font-mono font-bold ${isLow ? 'text-red-600' : 'text-gray-700'}`}>
