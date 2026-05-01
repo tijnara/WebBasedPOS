@@ -396,14 +396,13 @@ export default function ProductManagementPage() {
                                     <TableRow><TableCell colSpan={7} className="text-center py-12">No products found.</TableCell></TableRow>
                                 ) : (
                                     filteredProducts.map(p => (
-                                        <TableRow key={p.id} className={p.is_hidden ? 'bg-gray-50 dark:bg-slate-800/50' : ''}>
+                                        <TableRow key={p.id}>
                                             <TableCell>
                                                 <div className="flex items-center gap-3">
                                                     
                                                     <div className="flex flex-col">
                                                         <span className="font-semibold">
                                                             {p.name}
-                                                            {p.is_hidden && <span className="ml-2 text-[10px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-full font-bold">Hidden</span>}
                                                         </span>
                                                         {p.barcode && <span className="text-xs font-mono">{p.barcode}</span>}
                                                     </div>
@@ -415,25 +414,21 @@ export default function ProductManagementPage() {
                                                 </span>
                                             </TableCell>
                                             <TableCell>
-                                                <div className={`font-medium ${p.is_hidden ? '' : ''}`}>
+                                                <div className="font-black text-[16px] text-green-600 dark:text-green-400">
                                                     {currency(p.price, { symbol: '₱' }).format()}
                                                 </div>
                                             </TableCell>
                                             <TableCell>
                                                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${
                                                     Number(p.stock) <= Number(p.minStock)
-                                                        ? 'bg-red-50 dark:bg-red-900/50 text-red-700 dark:text-red-400'
-                                                        : 'bg-green-50 dark:bg-green-900/50 text-green-700 dark:text-green-400'
+                                                        ? 'bg-red-50 text-black dark:bg-red-900/80 dark:text-red-300'
+                                                        : 'bg-green-50 text-black dark:bg-green-900/80 dark:text-green-400'
                                                 }`}>
                                                     {p.stock} units
                                                 </span>
                                             </TableCell>
-                                            <TableCell>
-                                                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${
-                                                    p.is_hidden 
-                                                        ? 'bg-gray-200' 
-                                                        : 'bg-green-100'
-                                                }`}>
+                                            <TableCell className={`transition-colors ${p.is_hidden ? 'bg-red-600 dark:bg-red-900' : ''}`}>
+                                                <span className={`text-[11px] font-black uppercase tracking-wider ${p.is_hidden ? 'text-white' : 'text-black dark:text-green-400'}`}>
                                                     {p.is_hidden ? 'Hidden' : 'Visible'}
                                                 </span>
                                             </TableCell>
@@ -471,7 +466,7 @@ export default function ProductManagementPage() {
                     </div>
                 ) : (
                     filteredProducts.map(p => (
-                        <div key={p.id} className={`bg-white dark:bg-slate-900 p-3 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800 flex items-start gap-3 transition-colors ${p.is_hidden ? 'opacity-70' : ''}`}>
+                        <div key={p.id} className={`bg-white dark:bg-slate-900 p-3 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800 flex items-start gap-3 transition-colors ${p.is_hidden ? 'opacity-70 bg-red-50 dark:bg-red-900' : ''}`}>
                             <div className="flex-shrink-0">
                                 <div
                                     className="rounded-xl bg-gray-50 dark:bg-slate-800 flex items-center justify-center overflow-hidden"
@@ -494,17 +489,17 @@ export default function ProductManagementPage() {
                                 <div>
                                     <div className="font-semibold text-sm leading-tight truncate flex items-center gap-1.5">
                                         {p.name}
-                                        {p.is_hidden && <span className="text-[9px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-full font-bold">Hidden</span>}
+                                        {p.is_hidden && <span className="text-[9px] text-red-600 dark:text-red-400 font-bold uppercase tracking-wider">Hidden</span>}
                                     </div>
                                     <div className="text-xs mt-0.5">
                                         {p.category || 'General'}
                                     </div>
                                 </div>
                                 <div className="flex items-center justify-between mt-1">
-                                    <div className="font-bold text-sm">
+                                    <div className="font-bold text-sm text-green-600 dark:text-green-400">
                                         {currency(p.price || 0, { symbol: '₱' }).format()}
                                     </div>
-                                    
+
                                 </div>
                             </div>
 
