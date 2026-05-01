@@ -88,7 +88,7 @@ const ContactForm = ({ settings }) => {
             <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Message</label>
                 <Textarea
-                    rows={6}
+                    rows={4}
                     placeholder="Write your message here..."
                     {...register('message', {
                         required: 'Message is required',

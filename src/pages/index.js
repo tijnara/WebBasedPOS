@@ -19,6 +19,7 @@ import Footer from '../components/landing/Footer';
 import ScrollToTop from '../components/landing/ScrollToTop';
 import ViewCounter from '../components/landing/ViewCounter';
 import { AdsterraVerticalBanner } from '../components/landing/AdBanners';
+import { Button } from '../components/ui';
 
 const SeasideWaterLanding = () => {
     const { data: settings } = useSettings();
@@ -105,6 +106,15 @@ const SeasideWaterLanding = () => {
             </div>
 
             <ScrollToTop />
+
+            <div className="fixed bottom-0 left-0 right-0 p-3 bg-white border-t border-gray-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] flex gap-3 z-50 md:hidden">
+                <Button className="flex-1 bg-primary text-white font-bold h-12 rounded-xl" onClick={() => window.location.href = 'tel:+639602196388'}>
+                    Call Now
+                </Button>
+                <Button className="flex-1 bg-blue-600 text-white font-bold h-12 rounded-xl" onClick={() => window.open('https://m.me/61587059323111', '_blank')}>
+                    Messenger
+                </Button>
+            </div>
         </div>
     );
 };

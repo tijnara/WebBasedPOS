@@ -41,7 +41,7 @@ const Header = () => {
                         <div className="flex flex-col items-start gap-0">
                             <span className="text-xl md:text-2xl lg:text-3xl font-black text-teal-700 tracking-wider leading-tight">SEASIDE</span>
                             <span className="text-[10px] md:text-xs font-bold uppercase text-gray-700 tracking-widest leading-tight">Purified Water Refilling Station</span>
-                            <span className="text-[10px] md:text-xs italic text-green-700 font-medium leading-tight">Proudly hydrating Labrador, Pangasinan</span>
+                            <span className="text-[10px] md:text-xs italic text-green-700 font-medium leading-tight hidden sm:block">Proudly hydrating Labrador, Pangasinan</span>
                         </div>
                     </div>
 

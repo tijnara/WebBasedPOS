@@ -21,7 +21,7 @@ const Contact = ({ settings }) => {
             <div className="px-6 py-20 pb-32 max-w-4xl mx-auto text-center">
                 <div className="mb-12">
                     <span className="inline-block py-2 px-6 rounded-full bg-teal-50 mb-4">
-                        <h2 className="text-[4rem] sm:text-[5.5rem] lg:text-[7rem] font-bold text-[#0f172a] mb-8 tracking-tight leading-none">
+                        <h2 className="text-3xl lg:text-[4rem] sm:text-[5.5rem] lg:text-[7rem] font-bold text-[#0f172a] mb-8 tracking-tight leading-none">
                             <span style={{
                                 background: 'linear-gradient(to right, #8DB600, #0d9488)', // Apple green to teal
                                 WebkitBackgroundClip: 'text',

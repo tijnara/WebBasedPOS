@@ -111,7 +111,7 @@ const WhyChooseUs = () => {
                             Our Commitment to Excellence
                         </span>
                     </div>
-                    <h2 className="text-[4rem] sm:text-[6rem] lg:text-[10rem] font-bold text-[#0f172a] mb-8 tracking-tight leading-none drop-shadow-sm">
+                    <h2 className="text-3xl lg:text-[4rem] sm:text-[6rem] lg:text-[10rem] font-bold text-[#0f172a] mb-8 tracking-tight leading-none drop-shadow-sm">
                         WHY CHOOSE{' '}
                         <span style={{
                             background: 'linear-gradient(to right, #8DB600, #0d9488)',
