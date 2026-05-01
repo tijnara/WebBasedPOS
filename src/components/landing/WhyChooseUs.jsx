@@ -129,8 +129,7 @@ const WhyChooseUs = () => {
                     </p>
                 </div>
 
-                {/* FIXED: Changed to grid-cols-1 md:grid-cols-3 to force the 3 column layout */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div className="flex overflow-x-auto pb-4 snap-x snap-mandatory gap-4 md:grid md:grid-cols-2 lg:grid-cols-3 md:overflow-visible md:pb-0">
                     {reasons.map((reason, index) => {
                         const Icon = reason.icon;
                         const gradId = `why-grad-${index}`;
@@ -138,7 +137,7 @@ const WhyChooseUs = () => {
                         return (
                             <div
                                 key={index}
-                                className="group p-8 bg-white rounded-[2rem] shadow-[0_4px_20px_rgba(0,0,0,0.05)] hover:shadow-[0_20px_40px_rgba(20,184,166,0.15)] transition-all duration-500 border border-gray-100 hover:border-teal-200 flex flex-col items-center text-center relative"
+                                className="w-5/6 snap-center shrink-0 md:w-auto group p-8 bg-white rounded-[2rem] shadow-[0_4px_20px_rgba(0,0,0,0.05)] hover:shadow-[0_20px_40px_rgba(20,184,166,0.15)] transition-all duration-500 border border-gray-100 hover:border-teal-200 flex flex-col items-center text-center relative"
                             >
                                 <svg width="0" height="0" className="absolute">
                                     <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">

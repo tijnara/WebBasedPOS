@@ -80,7 +80,7 @@ const SERVICES_DATA = [
 
 const ServiceCard = memo(({ icon, title, description, index }) => (
     <div
-        className="p-8 rounded-[2rem] bg-gradient-to-br from-lime-300 to-teal-400 backdrop-blur-md shadow-[0_8px_32px_0_rgba(31,38,135,0.1)] text-center flex flex-col items-center transition-all duration-300 hover:shadow-[0_20px_40px_0_rgba(31,38,135,0.3)] hover:-translate-y-2 relative"
+        className="w-5/6 snap-center shrink-0 md:w-auto p-8 rounded-[2rem] bg-gradient-to-br from-lime-300 to-teal-400 backdrop-blur-md shadow-[0_8px_32px_0_rgba(31,38,135,0.1)] text-center flex flex-col items-center transition-all duration-300 hover:shadow-[0_20px_40px_0_rgba(31,38,135,0.3)] hover:-translate-y-2 relative"
     >
         {/* Animated 3D Floating Icon Container */}
         <motion.div
@@ -145,7 +145,7 @@ const Services = () => {
                     </div>
                     <h2
                         id="services-heading"
-                        className="text-[5rem] sm:text-[7rem] lg:text-[11rem] font-bold text-[#0f172a] mb-8 tracking-tight leading-none drop-shadow-sm"
+                        className="text-3xl lg:text-[4rem] sm:text-[6rem] lg:text-[10rem] font-bold text-[#0f172a] mb-8 tracking-tight leading-none drop-shadow-sm"
                     >
                         Our <span style={{
                         background: 'linear-gradient(to right, #8DB600, #0d9488)', // Apple green to teal
@@ -157,7 +157,7 @@ const Services = () => {
                     </h2>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div className="flex overflow-x-auto pb-4 snap-x snap-mandatory gap-4 md:grid md:grid-cols-2 lg:grid-cols-4 md:overflow-visible md:pb-0">
                     {SERVICES_DATA.map((service, index) => (
                         <ServiceCard
                             key={index}

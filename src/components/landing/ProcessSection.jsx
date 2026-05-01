@@ -109,7 +109,7 @@ export function Process() {
 
                 {/* Section Header */}
                 <div className="text-center mb-24">
-                    <h2 className="text-[3rem] sm:text-[4.5rem] lg:text-[6rem] font-bold text-[#0f172a] mb-8 tracking-tight leading-none drop-shadow-sm">
+                    <h2 className="text-3xl lg:text-[4rem] sm:text-[6rem] lg:text-[10rem] font-bold text-[#0f172a] mb-8 tracking-tight leading-none drop-shadow-sm">
                         OUR <span style={{
                         background: 'linear-gradient(to right, #8DB600, #0d9488)',
                         WebkitBackgroundClip: 'text',
@@ -124,7 +124,7 @@ export function Process() {
                 </div>
 
                 {/* Process Steps with 3D Hover Animation - FIXED: Increased gap to gap-8 lg:gap-10 */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-10 mb-16">
+                <div className="flex overflow-x-auto pb-4 snap-x snap-mandatory gap-4 md:grid md:grid-cols-2 lg:grid-cols-4 md:overflow-visible md:pb-0 mb-16">
                     {steps.map((step, index) => {
                         const Icon = step.icon;
                         const gradId = `process-grad-${index}`;
@@ -132,7 +132,7 @@ export function Process() {
                         return (
                             <div
                                 key={index}
-                                className="group bg-white p-8 rounded-[2rem] flex flex-col items-center text-center shadow-[0_4px_20px_rgba(0,0,0,0.05)] hover:shadow-[0_20px_40px_rgba(20,184,166,0.15)] transition-all duration-500 border border-gray-100 hover:border-teal-200 relative"
+                                className="w-5/6 snap-center shrink-0 md:w-auto group bg-white p-8 rounded-[2rem] flex flex-col items-center text-center shadow-[0_4px_20px_rgba(0,0,0,0.05)] hover:shadow-[0_20px_40px_rgba(20,184,166,0.15)] transition-all duration-500 border border-gray-100 hover:border-teal-200 relative"
                             >
                                 {/* Hide the SVG gradient definition */}
                                 <svg width="0" height="0" className="absolute">

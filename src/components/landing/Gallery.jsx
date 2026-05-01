@@ -8,23 +8,38 @@ import { useGallery } from '../../hooks/useGallery';
 const Gallery = () => {
     const { data: items = [] } = useGallery();
     const [ref, isInView] = useInView();
-    const [currentIndex, setCurrentIndex] = useState(0);
+    const [[currentIndex, direction], setCurrentIndex] = useState([0, 0]);
     const [isLightboxOpen, setIsLightboxOpen] = useState(false);
 
     useEffect(() => {
         if (items.length <= 1 || isLightboxOpen) return;
         const timer = setInterval(() => {
-            setCurrentIndex((prev) => (prev === items.length - 1 ? 0 : prev + 1));
-        }, 5000);
+            nextSlide();
+        }, 2000);
         return () => clearInterval(timer);
     }, [items.length, isLightboxOpen]);
 
     const nextSlide = () => {
-        setCurrentIndex((prev) => (prev === items.length - 1 ? 0 : prev + 1));
+        setCurrentIndex([(currentIndex + 1) % items.length, 1]);
     };
 
     const prevSlide = () => {
-        setCurrentIndex((prev) => (prev === 0 ? items.length - 1 : prev - 1));
+        setCurrentIndex([(currentIndex - 1 + items.length) % items.length, -1]);
+    };
+
+    const variants = {
+        enter: (direction) => ({
+            x: direction > 0 ? '100%' : '-100%',
+            opacity: 0,
+        }),
+        center: {
+            x: 0,
+            opacity: 1,
+        },
+        exit: (direction) => ({
+            x: direction < 0 ? '100%' : '-100%',
+            opacity: 0,
+        }),
     };
 
     return (
@@ -40,7 +55,6 @@ const Gallery = () => {
             >
                 <div className="px-6 py-20 pb-32 max-w-5xl mx-auto">
                     <div className="text-center mb-12 md:mb-16">
-                        {/* UI/UX FIX: Scaled down mobile font size to avoid overflow */}
                         <h2 className="text-4xl md:text-6xl lg:text-7xl font-bold text-[#0f172a] mb-8 tracking-tight leading-none">
                             <span style={{
                                 background: 'linear-gradient(to right, #8DB600, #0d9488)',
@@ -50,26 +64,27 @@ const Gallery = () => {
                                 color: 'transparent'
                             }}>GALLERY</span>
                         </h2>
-
                         <p className="text-lg md:text-xl text-gray-500 max-w-3xl mx-auto font-light leading-relaxed">
                             A glimpse of our station and services.
                         </p>
                     </div>
 
                     {items.length > 0 ? (
-                        /* FIX: Added min-h-[300px] and h-[350px] for mobile.
-                           This ensures the Next.js 'fill' image has a parent with a calculated height.
-                        */
                         <div
                             className="relative w-full rounded-[2rem] shadow-[0_8px_32px_0_rgba(31,38,135,0.15)] bg-slate-900 group overflow-hidden h-[350px] md:h-[500px]"
                         >
-                            <AnimatePresence mode="wait">
+                            <AnimatePresence initial={false} custom={direction}>
                                 <motion.div
                                     key={currentIndex}
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    exit={{ opacity: 0 }}
-                                    transition={{ duration: 0.5 }}
+                                    custom={direction}
+                                    variants={variants}
+                                    initial="enter"
+                                    animate="center"
+                                    exit="exit"
+                                    transition={{
+                                        x: { type: 'spring', stiffness: 300, damping: 30 },
+                                        opacity: { duration: 0.2 },
+                                    }}
                                     className="absolute inset-0 w-full h-full"
                                 >
                                     <Image
@@ -96,10 +111,9 @@ const Gallery = () => {
 
                             {items.length > 1 && (
                                 <>
-                                    {/* UI/UX: Larger touch targets for mobile navigation */}
                                     <button
                                         onClick={prevSlide}
-                                        className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 z-30 flex items-center justify-center w-10 h-10 md:w-14 md:h-14 bg-black/20 hover:bg-white/40 text-white rounded-full backdrop-blur-md transition-all md:opacity-0 group-hover:opacity-100"
+                                        className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 z-30 flex items-center justify-center w-10 h-10 md:w-14 md:h-14 bg-black/20 hover:bg-white/40 text-white rounded-full backdrop-blur-md transition-all md:opacity-0 group-hover:opacity-100 min-w-[48px] min-h-[48px] p-2"
                                         aria-label="Previous image"
                                     >
                                         <ChevronLeft size={24} />
@@ -107,7 +121,7 @@ const Gallery = () => {
 
                                     <button
                                         onClick={nextSlide}
-                                        className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 z-30 flex items-center justify-center w-10 h-10 md:w-14 md:h-14 bg-black/20 hover:bg-white/40 text-white rounded-full backdrop-blur-md transition-all md:opacity-0 group-hover:opacity-100"
+                                        className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 z-30 flex items-center justify-center w-10 h-10 md:w-14 md:h-14 bg-black/20 hover:bg-white/40 text-white rounded-full backdrop-blur-md transition-all md:opacity-0 group-hover:opacity-100 min-w-[48px] min-h-[48px] p-2"
                                         aria-label="Next image"
                                     >
                                         <ChevronRight size={24} />
@@ -117,7 +131,7 @@ const Gallery = () => {
                                         {items.map((_, idx) => (
                                             <button
                                                 key={idx}
-                                                onClick={() => setCurrentIndex(idx)}
+                                                onClick={() => setCurrentIndex([idx, idx > currentIndex ? 1 : -1])}
                                                 className={`h-1.5 rounded-full transition-all duration-300 ${
                                                     idx === currentIndex ? 'w-6 bg-white' : 'w-1.5 bg-white/50'
                                                 }`}
@@ -136,7 +150,6 @@ const Gallery = () => {
                 </div>
             </motion.section>
 
-            {/* Lightbox remain largely the same, but ensured z-index and padding for mobile */}
             <AnimatePresence>
                 {isLightboxOpen && (
                     <motion.div
@@ -159,7 +172,7 @@ const Gallery = () => {
                                 alt="Enlarged Image"
                                 fill
                                 className="object-contain"
-                                unoptimized={true} // Bypasses Next.js optimization for the large lightbox view if needed
+                                unoptimized={true}
                             />
                         </div>
                     </motion.div>
