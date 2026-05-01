@@ -55,7 +55,7 @@ const SalesVsExpensesChart = ({ dateFrom, dateTo }) => {
 
         try {
             const dateRange = eachWeekOfInterval({ start: parsedDateFrom, end: parsedDateTo }, { weekStartsOn: 1 });
-            
+
             const dataMap = {};
 
             dateRange.forEach(date => {
@@ -113,10 +113,13 @@ const SalesVsExpensesChart = ({ dateFrom, dateTo }) => {
             }
 
             const currentWeekKey = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
-            
+            const START_CUTOFF_DATE_STR = '2026-04-20';
+
             // FILTER: Only include weeks where there are expenses OR it's the current week
+            // Ensure no weeks BEFORE April 20, 2026, are rendered
             return Object.values(dataMap).filter(week => {
-                 return week.expenses > 0 || week.dateKey === currentWeekKey || week.sales > 0;
+                const hasActivityOrCurrent = week.expenses > 0 || week.dateKey === currentWeekKey || week.sales > 0;
+                return week.dateKey >= START_CUTOFF_DATE_STR && hasActivityOrCurrent;
             });
 
         } catch (e) {
@@ -156,7 +159,7 @@ const SalesVsExpensesChart = ({ dateFrom, dateTo }) => {
                     <span className="px-2 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded uppercase tracking-wider">Demo Data</span>
                 )}
             </div>
-            
+
             <div className="flex-1 min-h-[300px] w-full relative">
                 {!hasData ? (
                     <div className="h-full flex items-center justify-center text-slate-400 dark:text-slate-500">

@@ -28,7 +28,7 @@ import { useTopProductsSummary } from '../../hooks/useTopProductsSummary';
 import { useDailySales } from '../../hooks/useDailySales';
 
 // Import date-fns for date range management
-import { subDays, startOfDay, endOfDay, formatISO } from 'date-fns';
+import { startOfDay, endOfDay, formatISO } from 'date-fns';
 
 // Import floating buttons
 import FloatingMessages from '../FloatingMessages';
@@ -46,17 +46,17 @@ const SalesVsExpensesChart = dynamic(() => import('../charts/SalesVsExpensesChar
     ssr: false,
     loading: () => <ChartLoading />
 });
-const Line = dynamic(() => import('react-chartjs-2').then((mod) => mod.Line), { 
-    ssr: false, 
-    loading: () => <ChartLoading /> 
+const Line = dynamic(() => import('react-chartjs-2').then((mod) => mod.Line), {
+    ssr: false,
+    loading: () => <ChartLoading />
 });
-const Bar = dynamic(() => import('react-chartjs-2').then((mod) => mod.Bar), { 
-    ssr: false, 
-    loading: () => <ChartLoading /> 
+const Bar = dynamic(() => import('react-chartjs-2').then((mod) => mod.Bar), {
+    ssr: false,
+    loading: () => <ChartLoading />
 });
-const Pie = dynamic(() => import('react-chartjs-2').then((mod) => mod.Pie), { 
-    ssr: false, 
-    loading: () => <ChartLoading /> 
+const Pie = dynamic(() => import('react-chartjs-2').then((mod) => mod.Pie), {
+    ssr: false,
+    loading: () => <ChartLoading />
 });
 
 // Register Chart.js components
@@ -79,8 +79,11 @@ export default function DashboardPage() {
     const [dateFilter, setDateFilter] = useState('Trailing 12 Months');
     const [territory, setTerritory] = useState('All');
 
-    // Default date range for Sales vs Expenses: Last 30 days
-    const [dateFrom, setDateFrom] = useState(formatISO(startOfDay(subDays(new Date(), 30))));
+    // Apply strict cutoff date: DO NOT fetch/display anything before April 20, 2026
+    const START_CUTOFF_DATE = new Date('2026-04-20T00:00:00');
+
+    // Default date range for Sales vs Expenses: from Cutoff Date to Now
+    const [dateFrom, setDateFrom] = useState(formatISO(startOfDay(START_CUTOFF_DATE)));
     const [dateTo, setDateTo] = useState(formatISO(endOfDay(new Date())));
 
     // Toggle for Monthly vs Weekly chart view
@@ -295,12 +298,12 @@ export default function DashboardPage() {
             const rev = Number(p.total_revenue) || Number(p.revenue) || 0;
             return sum + rev;
         }, 0);
-        
+
         const percentages = topProducts.map(p => {
             const rev = Number(p.total_revenue) || Number(p.revenue) || 0;
             return totalRevenue > 0 ? parseFloat(((rev / totalRevenue) * 100).toFixed(1)) : 0;
         });
-        
+
         return {
             labels: topProducts.map(p => p.name || 'Unknown'),
             datasets: [{
@@ -316,15 +319,15 @@ export default function DashboardPage() {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-            legend: { 
-                position: 'top', 
-                labels: { 
-                    usePointStyle: true, 
-                    boxWidth: 8, 
-                    padding: 20, 
-                    color: '#475569', 
-                    font: { weight: '500' } 
-                } 
+            legend: {
+                position: 'top',
+                labels: {
+                    usePointStyle: true,
+                    boxWidth: 8,
+                    padding: 20,
+                    color: '#475569',
+                    font: { weight: '500' }
+                }
             },
             tooltip: {
                 callbacks: {
@@ -348,8 +351,6 @@ export default function DashboardPage() {
             return { labels: [], datasets: [] };
         }
 
-        // topCustomers is already sorted from highest to lowest revenue.
-        // Removed .reverse() so the #1 customer shows up at the top of the chart.
         const labels = topCustomers.map((c, index) => `${index + 1}. ${c.name}`);
         const data = topCustomers.map(c => c.revenue);
 
@@ -401,7 +402,6 @@ export default function DashboardPage() {
             </Head>
 
             <main className="max-w-7xl mx-auto px-4 sm:px-6 mt-6">
-                {/* Main Content Sections */}
                 <div className="flex flex-col gap-6">
 
                     {/* --- TOP ROW --- */}
