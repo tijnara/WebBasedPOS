@@ -13,6 +13,9 @@ import { useStore } from '../../store/useStore';
 import { format, startOfWeek, endOfWeek } from 'date-fns';
 import { Button, Input, Select } from '../ui';
 import { DeleteIcon } from '../Icons';
+import { useExpenses } from '../../hooks/useExpenses';
+import { PackageIcon, Receipt } from 'lucide-react';
+
 
 import Pagination from '../Pagination';
 import WeeklySalesChart from '../charts/WeeklySalesChart';
@@ -630,6 +633,39 @@ const ReportPage = () => {
         });
     }, [customersData]);
 
+    // 1. Reference date for "Real Sales" calculation
+    const REFERENCE_DATE = useMemo(() => new Date('2026-04-20T00:00:00'), []);
+
+    // 2. Fetch All-Time Sales Summary for Gallon calculation
+    const { data: allTimeSales } = useSalesSummary({ startDate: undefined });
+
+    // 3. Fetch Sales Summary since April 20 for Real Sales
+    const { data: sinceRefSales } = useSalesSummary({ startDate: REFERENCE_DATE });
+
+    // 4. Fetch Expenses since April 20
+    const { data: sinceRefExpensesData } = useExpenses({ 
+        startDate: format(REFERENCE_DATE, 'yyyy-MM-dd'),
+        endDate: format(new Date(), 'yyyy-MM-dd'),
+        page: 1,
+        pageSize: 1000 
+    });
+
+    // --- CALCULATIONS ---
+    // Total Gallons Sold (All Time)
+    const allTimeGallons = useMemo(() => {
+        if (!allTimeSales?.productQuantities) return 0;
+        const targetRefills = ["Refill(30)", "Refill(35)", "Refill-Walk-in(25)"];
+        return Object.values(allTimeSales.productQuantities).reduce((sum, p) => 
+            targetRefills.includes(p.name) ? sum + (p.quantity || 0) : sum, 0);
+    }, [allTimeSales?.productQuantities]);
+
+    // Total Real Sales (Revenue - Expenses) since April 20
+    const totalRealSales = useMemo(() => {
+        const revenue = sinceRefSales?.totalRevenue || 0;
+        const expenses = sinceRefExpensesData?.totalSum || 0;
+        return revenue - expenses;
+    }, [sinceRefSales?.totalRevenue, sinceRefExpensesData?.totalSum]);
+
     const handleTabChange = (tab) => {
         setActiveTab(tab);
         setCurrentPage(1);
@@ -691,7 +727,36 @@ const ReportPage = () => {
 
     return (
         <div className="report-page max-w-7xl mx-auto p-2 md:p-4 space-y-4 responsive-page">
-            <h1 className="text-2xl font-bold">Reports</h1>
+            <h1 className="text-2xl font-bold dark:text-white">Reports</h1>
+
+            {/* --- NEW SECTION: BUSINESS OVERVIEW --- */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                
+                <div className="bg-blue-100 text-blue-900 dark:bg-blue-600 dark:text-white p-6 rounded-2xl shadow-lg flex flex-col justify-between overflow-hidden relative">
+                    <div className="relative z-10">
+                        <h3 className="text-sm font-bold uppercase tracking-wider opacity-80">Total Galons Sold</h3>
+                        <p className="text-xs mb-4 italic">(All-Time Aggregate)</p>
+                        <div className="text-4xl font-black">{allTimeGallons.toLocaleString()} <span className="text-lg">GAL</span></div>
+                    </div>
+                    <div className="absolute right-[-10px] bottom-[-10px] opacity-10 rotate-12">
+                        <PackageIcon className="w-32 h-32"/>
+                    </div>
+                </div>
+
+                
+                <div className="bg-emerald-100 text-emerald-900 dark:bg-emerald-600 dark:text-white p-6 rounded-2xl shadow-lg flex flex-col justify-between overflow-hidden relative">
+                    <div className="relative z-10">
+                        <h3 className="text-sm font-bold uppercase tracking-wider opacity-80">Total Real Sales</h3>
+                        <p className="text-xs mb-4 italic">(Net Profit since April 20, 2026)</p>
+                        <div className="text-4xl font-black">
+                            {currency(totalRealSales, { symbol: '₱' }).format()}
+                        </div>
+                    </div>
+                    <div className="absolute right-[-10px] bottom-[-10px] opacity-10 -rotate-12">
+                        <Receipt className="w-32 h-32"/>
+                    </div>
+                </div>
+            </div>
 
             <div className="flex gap-2 flex-wrap">
                 <Button
