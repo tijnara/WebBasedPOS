@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { supabase } from '../lib/supabaseClient';
 import currency from 'currency.js';
 import { CartIcon, PackageIcon, UserIcon, ChartIcon, UsersIcon, GalleryIcon, HomeIcon, SettingsIcon, DocumentReportIcon, MailIcon } from './Icons';
-import { Receipt, ChevronDown, Sun, Moon } from 'lucide-react'; // Import Sun and Moon
+import { Receipt, ChevronDown, Sun, Moon, LogOut } from 'lucide-react'; // Import Sun and Moon
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 // Hamburger Icon
@@ -118,10 +118,10 @@ const ActiveShiftIndicator = ({ user, onOpenStartShift }) => {
     return (
         <div className="flex items-center gap-2 bg-green-50 text-green-700 px-3 py-1 rounded-lg border border-green-200 text-xs font-bold md:mr-2 shadow-sm whitespace-nowrap" title="Expected Cash in Drawer">
             <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
             </span>
-            Active Shift: ₱{shiftStats.expected.toFixed(2)}
+            <span className="hidden sm:inline">Active Shift: </span>₱{shiftStats.expected.toFixed(2)}
         </div>
     );
 };
@@ -582,7 +582,10 @@ const Navbar = () => {
                             >
                                 {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
                             </Button>
-                            <Button variant="ghost" className="text-destructive" onClick={prepareZReading} title="Logout">Logout</Button>
+                            <Button variant="ghost" className="p-2 sm:px-3 text-destructive hover:bg-red-50 transition-colors flex items-center gap-2" onClick={prepareZReading} title="Logout">
+                                <LogOut className="w-5 h-5"/>
+                                <span className="hidden sm:inline">Logout</span>
+                            </Button>
                         </>
                     ) : <div className="user-info-text">Loading...</div>}
                 </div>
