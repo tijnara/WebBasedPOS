@@ -114,11 +114,12 @@ export function useCreateExpenseCategory() {
     const user = useStore(s => s.user);
 
     return useMutation({
-        mutationFn: async ({ name, default_amount, default_description }) => {
+        mutationFn: async ({ name, default_amount, default_description, is_recurring }) => {
             const { error } = await supabase.from('expense_categories').insert([{
                 name,
                 default_amount: default_amount ? parseFloat(default_amount) : null,
                 default_description: default_description || null,
+                is_recurring: !!is_recurring,
                 created_by: user?.id || null
             }]);
             if (error) throw error;
@@ -133,13 +134,14 @@ export function useUpdateExpenseCategory() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async ({ id, name, default_amount, default_description }) => {
+        mutationFn: async ({ id, name, default_amount, default_description, is_recurring }) => {
             const { error } = await supabase
                 .from('expense_categories')
                 .update({
                     name,
                     default_amount: default_amount ? parseFloat(default_amount) : null,
                     default_description: default_description || null,
+                    is_recurring: !!is_recurring
                 })
                 .eq('id', id);
             if (error) throw error;
