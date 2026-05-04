@@ -3,7 +3,7 @@ const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ['recharts'],
   experimental: {
-    turbopack: {},
+    // turbopack: {}, // Removed as it's an invalid experimental key
   },
   images: {
     remotePatterns: [

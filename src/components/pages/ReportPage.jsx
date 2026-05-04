@@ -614,7 +614,7 @@ const ReportPage = () => {
         }
         const startStr = interval.start ? format(interval.start, 'MMM d, yyyy') : 'Start';
         const endStr = interval.end ? format(interval.end, 'MMM d, yyyy') : 'Present';
-        return `Custom Report: ${startStr} - ${endStr}`;
+        return `${startStr} - ${endStr}`;
     }, [interval]);
 
     const processedSales = useMemo(() => {
@@ -636,16 +636,24 @@ const ReportPage = () => {
     // 1. Reference date for "Real Sales" calculation
     const REFERENCE_DATE = useMemo(() => new Date('2026-04-20T00:00:00'), []);
 
+    const lastCompletedWeekEnd = useMemo(() => {
+        const currentMonday = startOfWeek(new Date(), { weekStartsOn: 1 });
+        return new Date(currentMonday.getTime() - 1);
+    }, []);
+
     // 2. Fetch All-Time Sales Summary for Gallon calculation
     const { data: allTimeSales } = useSalesSummary({ startDate: undefined });
 
     // 3. Fetch Sales Summary since April 20 for Real Sales
-    const { data: sinceRefSales } = useSalesSummary({ startDate: REFERENCE_DATE });
+    const { data: sinceRefSales } = useSalesSummary({ 
+        startDate: REFERENCE_DATE,
+        endDate: lastCompletedWeekEnd
+    });
 
     // 4. Fetch Expenses since April 20
     const { data: sinceRefExpensesData } = useExpenses({ 
         startDate: format(REFERENCE_DATE, 'yyyy-MM-dd'),
-        endDate: format(new Date(), 'yyyy-MM-dd'),
+        endDate: format(lastCompletedWeekEnd, 'yyyy-MM-dd'),
         page: 1,
         pageSize: 1000 
     });
