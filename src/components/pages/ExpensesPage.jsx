@@ -2,7 +2,7 @@
     import React, { useState, useMemo, useEffect, useRef } from 'react';
     import currency from 'currency.js';
     import { startOfWeek, endOfWeek, parseISO, format, subWeeks, addWeeks, getDay } from 'date-fns';
-    import { Plus, Utensils, Car, ShoppingBag, Zap, Receipt, Edit, Trash2, X, Calendar, ChevronLeft, ChevronRight, Search, RotateCcw } from 'lucide-react';
+    import { Plus, Utensils, Car, ShoppingBag, Zap, Receipt, Edit, Trash2, X, Calendar, ChevronLeft, ChevronRight, Search, RotateCcw, XCircle, AlertTriangle } from 'lucide-react';
     import { useStore } from '../../store/useStore';
     import { useExpenses, useCreateExpense, useUpdateExpense, useDeleteExpense, useExpenseSummary, useExpenseCategories, useCreateExpenseCategory, useUpdateExpenseCategory } from '../../hooks/useExpenses';
     import { useSalesSummary } from '../../hooks/useSalesSummary';
@@ -94,6 +94,10 @@
         // Custom Category States
         const [showCategoryModal, setShowCategoryModal] = useState(false);
         const [catForm, setCatForm] = useState({ id: null, name: '', default_amount: '', default_description: '', is_recurring: false });
+
+        // State for skip reason modal
+        const [reasonModal, setReasonModal] = useState({ show: false, expense: null });
+        const [reasonText, setReasonText] = useState('');
 
         // Optimistic locking ref
         const isSyncing = useRef(false);
@@ -273,6 +277,30 @@
                 } catch (error) {
                     addToast({ title: 'Error', message: error.message, type: 'error' });
                 }
+            }
+        };
+
+        const handleConfirmSkip = async () => {
+            if (!reasonText.trim() || !reasonModal.expense) return;
+
+            try {
+                await updateExpense.mutateAsync({
+                    id: reasonModal.expense.id,
+                    amount: 0,
+                    category: reasonModal.expense.category,
+                    description: `[SKIPPED] ${reasonText} (Was: ${reasonModal.expense.description})`,
+                    expense_date: reasonModal.expense.expense_date
+                });
+                
+                addToast({ 
+                    title: 'Item Skipped', 
+                    message: 'Recurring item voided for this week.', 
+                    type: 'success' 
+                });
+                setReasonModal({ show: false, expense: null });
+                setReasonText('');
+            } catch (error) {
+                addToast({ title: 'Error', message: error.message, type: 'error' });
             }
         };
 
@@ -481,6 +509,8 @@
                                 // Fallback if custom category doesn't exist in styles object
                                 const style = categoryStyles[exp.category] || { icon: Receipt, colorClass: 'bg-background text-text-muted' };
                                 const Icon = style.icon;
+                                const isRecurring = categories.find(c => c.name === exp.category)?.is_recurring;
+                                const isVoided = exp.amount === 0 || exp.amount === "0.00";
                                 return (
                                     <div key={exp.id}>
                                         {index > 0 && <hr className="border-t border-gray-100 my-2 dark:border-gray-800" />}
@@ -496,22 +526,32 @@
                                                 </div>
                                             </div>
                                             <div className="text-right flex flex-col items-end pl-3 min-w-[120px]">
-                                                <span className="font-bold text-red-600">-{currency(exp.amount, { symbol: '₱' }).format()}</span>
+                                                <span className={`font-bold ${isVoided ? 'text-text-muted line-through' : 'text-red-600'}`}>
+                                                    -{currency(exp.amount, { symbol: '₱' }).format()}
+                                                </span>
                                                 <div className="flex gap-2 mt-1">
-                                                    <button
-                                                        onClick={() => handleEditClick(exp)}
-                                                        className="p-1 text-text-muted hover:text-blue-500 transition-colors"
-                                                        title="Edit"
-                                                    >
-                                                        <Edit className="w-3.5 h-3.5" />
+                                                    {!isVoided && (
+                                                        <button onClick={() => handleEditClick(exp)} className="p-1 text-text-muted hover:text-blue-500 transition-colors" title="Edit">
+                                                            <Edit className="w-3.5 h-3.5"/>
+                                                        </button>
+                                                    )}
+                                                    
+                                                    <button onClick={() => handleDeleteClick(exp.id)} className="p-1 text-text-muted hover:text-red-500 transition-colors" title="Delete">
+                                                        <Trash2 className="w-3.5 h-3.5"/>
                                                     </button>
-                                                    <button
-                                                        onClick={() => handleDeleteClick(exp.id)}
-                                                        className="p-1 text-text-muted hover:text-red-500 transition-colors"
-                                                        title="Delete"
-                                                    >
-                                                        <Trash2 className="w-3.5 h-3.5" />
-                                                    </button>
+
+                                                    {isRecurring && !isVoided && (
+                                                        <button
+                                                            onClick={() => {
+                                                                setReasonModal({ show: true, expense: exp });
+                                                                setReasonText('');
+                                                            }}
+                                                            className="p-1 text-text-muted hover:text-orange-600 transition-colors"
+                                                            title="Skip/Void this recurring item"
+                                                        >
+                                                            <XCircle className="w-3.5 h-3.5"/>
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -618,6 +658,54 @@
                                 className="btn btn--primary flex-1 font-bold shadow-lg shadow-primary/20 border-transparent"
                             >
                                 {createCategory.isPending || updateCategory.isPending ? 'Saving...' : 'Save Category'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {reasonModal.show && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
+                    <div className="bg-surface rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
+                        <div className="p-6 bg-orange-50 border-b border-orange-100 flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600">
+                                <AlertTriangle className="w-6 h-6"/>
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-bold text-orange-900">Skip Recurring Entry</h3>
+                                <p className="text-xs text-orange-700">This will void the item for this week.</p>
+                            </div>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <p className="text-sm text-text-muted font-medium italic">
+                                "{reasonModal.expense?.description}"
+                            </p>
+                            <div>
+                                <label className="text-[10px] uppercase font-bold text-text-muted block mb-1.5 ml-1">
+                                    Reason for skipping
+                                </label>
+                                <textarea
+                                    value={reasonText}
+                                    onChange={(e) => setReasonText(e.target.value)}
+                                    placeholder="e.g. Supplier out of stock, already paid last week..."
+                                    className="input w-full min-h-[100px] resize-none py-3 text-sm"
+                                    autoFocus
+                                />
+                            </div>
+                        </div>
+                        <div className="p-4 bg-background flex gap-3">
+                            <button 
+                                onClick={() => setReasonModal({ show: false, expense: null })}
+                                className="btn flex-1 bg-surface text-text-muted font-semibold"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleConfirmSkip}
+                                disabled={!reasonText.trim()}
+                                className="btn flex-1 bg-orange-600 text-white font-bold disabled:opacity-50"
+                            >
+                                Skip Item
                             </button>
                         </div>
                     </div>
