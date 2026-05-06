@@ -27,6 +27,8 @@ const Meta = () => {
                 <meta name="google-adsense-account" content="ca-pub-3607213315862760" />
                 <title>Seaside Purified Water Refilling Station | Labrador, Pangasinan</title>
                 <meta name="description" content="Seaside offers 21-stage purified water, walk-in refills, and reliable door-to-door water delivery in Labrador, Pangasinan. Pure water, pure trust." />
+                {/* Monetag Verification */}
+                <meta name="monetag" content="4ef9f931b5a5d11abba4f21e5717e3a7" />
                 <meta name="keywords" content="water refilling station, Labrador Pangasinan, water delivery, purified water, Seaside water, ice tubes, alkaline water" />
                 <meta property="og:title" content="Seaside Water Refilling Station | Labrador" />
                 <meta property="og:description" content="Fast, clean, and reliable water delivery in Labrador, Pangasinan. Your family's health, flowing crystal clear." />
