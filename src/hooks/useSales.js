@@ -1,5 +1,5 @@
 // src/hooks/useSales.js
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient';
 import { useStore } from '../store/useStore';
 import currency from 'currency.js';
@@ -156,5 +156,41 @@ export function useSales({ searchTerm, startDate, endDate, productName, productI
             }
         },
         staleTime: 1000 * 60 * 3,
+    });
+}
+
+export function useSettleSale() {
+    const queryClient = useQueryClient();
+    const { addToast } = useStore();
+
+    return useMutation({
+        mutationFn: async ({ saleId, customerId, amount }) => {
+            // 1. Update Sale Status
+            const { error: saleError } = await supabase
+                .from('sales')
+                .update({ 
+                    status: 'Completed', 
+                    amountreceived: amount, 
+                    changegiven: 0 
+                })
+                .eq('id', saleId);
+
+            if (saleError) throw saleError;
+
+            // 2. Reduce Customer Debt
+            if (customerId) {
+                const { error: creditError } = await supabase.rpc('update_customer_credit', {
+                    p_customer_id: customerId,
+                    p_amount: -Math.abs(amount) // Negative reduces debt
+                });
+                if (creditError) throw creditError;
+            }
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['sales'] });
+            queryClient.invalidateQueries({ queryKey: ['sales-summary'] });
+            queryClient.invalidateQueries({ queryKey: ['customers'] });
+            addToast({ title: 'Payment Settled', description: 'Transaction updated to Completed.', type: 'success' });
+        }
     });
 }

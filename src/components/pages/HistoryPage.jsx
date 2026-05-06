@@ -1,6 +1,6 @@
 // src/components/pages/HistoryPage.jsx
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { useSales } from '../../hooks/useSales';
+import { useSales, useSettleSale } from '../../hooks/useSales';
 import { useProducts } from '../../hooks/useProducts';
 import { useDebounce } from '../../hooks/useDebounce';
 import {
@@ -33,6 +33,7 @@ const formatDate = (dateString) => {
 
 const StatusBadge = ({ status }) => {
     let className = 'text-xs font-medium uppercase tracking-wider ';
+    let style = {};
     switch (status) {
         case 'Completed':
             className += 'text-green-600';
@@ -44,12 +45,12 @@ const StatusBadge = ({ status }) => {
             className += 'text-red-600';
             break;
         case 'Unpaid':
-            className += 'text-orange-600';
+            style = { color: '#EA580C' };
             break;
         default:
             className += 'text-gray-600';
     }
-    return <span className={className}>{status}</span>;
+    return <span className={className} style={style}>{status}</span>;
 };
 
 const SaleDetailsModal = ({ sale, isOpen, onClose }) => {
@@ -186,6 +187,18 @@ export default function HistoryPage() {
         page: currentPage,
         itemsPerPage
     });
+
+    const settleSale = useSettleSale();
+
+    const handleSettle = (sale) => {
+        if (window.confirm(`Settle ₱${sale.totalAmount} for ${sale.customerName}?`)) {
+            settleSale.mutate({
+                saleId: sale.id,
+                customerId: sale.customerid,
+                amount: sale.totalamount
+            });
+        }
+    };
 
     const sales = data.sales;
     const totalPages = data.totalPages;
@@ -336,10 +349,21 @@ export default function HistoryPage() {
                                                     </div>
                                                 </TableCell>
                                                 <TableCell className="text-right font-bold text-red-600">{formatCurrency(s.totalAmount)}</TableCell>
-                                                <TableCell className="text-right">
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:bg-blue-100" onClick={() => openModal(s)} title="View Details">
-                                                        <ViewIcon />
-                                                    </Button>
+                                                <TableCell>
+                                                    <div className="flex gap-2 justify-end">
+                                                        <Button variant="ghost" size="icon" onClick={() => openModal(s)}><ViewIcon/></Button>
+                                                        
+                                                        {s.status === 'Unpaid' && (
+                                                            <Button 
+                                                                size="sm" 
+                                                                className="text-white text-[10px] px-2 h-7" 
+                                                                style={{backgroundColor: '#EA580C'}}
+                                                                onClick={() => handleSettle(s)}
+                                                            >
+                                                                Settle
+                                                            </Button>
+                                                        )}
+                                                    </div>
                                                 </TableCell>
                                             </TableRow>
                                         );
@@ -380,7 +404,19 @@ export default function HistoryPage() {
                                                 </div>
                                             </div>
                                             <div className="flex-shrink-0">
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600" onClick={(e) => { e.stopPropagation(); openModal(s); }}><ViewIcon /></Button>
+                                                <div className="flex flex-col items-end gap-2">
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600" onClick={(e) => { e.stopPropagation(); openModal(s); }}><ViewIcon /></Button>
+                                                    {s.status === 'Unpaid' && (
+                                                        <Button 
+                                                            size="sm" 
+                                                            className="text-white text-[10px] px-2 h-7"
+                                                            style={{backgroundColor: '#EA580C'}}
+                                                            onClick={(e) => { e.stopPropagation(); handleSettle(s); }}
+                                                        >
+                                                            Settle
+                                                        </Button>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     ))}

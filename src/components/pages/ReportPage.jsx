@@ -47,7 +47,7 @@ const SaleCard = ({ sale, onDelete, isAdmin }) => (
                         {formatCurrency(sale.totalAmount)}
                     </div>
                     <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${sale.status === 'Completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                    }`}>
+                    }`} style={sale.status === 'Unpaid' ? { color: '#EA580C' } : {}}>
                         {sale.status || 'Unknown'}
                     </span>
                     {isAdmin && (
@@ -337,7 +337,7 @@ const SalesReportDisplay = ({ salesList, currentPage, totalPages, onPageChange, 
                                 {formatCurrency(sale.totalAmount)}
                             </td>
                             <td className="px-3 py-3 whitespace-nowrap align-top">{sale.paymentMethod}</td>
-                            <td className="px-3 py-3 whitespace-nowrap align-top">{sale.status}</td>
+                            <td className="px-3 py-3 whitespace-nowrap align-top" style={sale.status === 'Unpaid' ? { color: '#EA580C' } : {}}>{sale.status}</td>
                             <td className="px-3 py-3 whitespace-nowrap align-top">{sale.staffName || 'N/A'}</td>
 
                             {isAdmin && (
