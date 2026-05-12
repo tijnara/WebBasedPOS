@@ -30,3 +30,20 @@ CREATE POLICY "Allow all for demo" ON public.gallery
 -- 4. Set up storage (if not already set up)
 -- The app uses the 'products' bucket for gallery images as well.
 -- Ensure the 'products' bucket is public.
+-- Create incentives table with bigint primary key
+CREATE TABLE IF NOT EXISTS public.incentives (
+    id BIGSERIAL PRIMARY KEY,
+    payout_date TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    base_weekly_sales NUMERIC(12,2) NOT NULL, -- The "Current Week Sales" value
+    pool_amount NUMERIC(12,2) NOT NULL,        -- The calculated 25% pool
+    staff_name TEXT NOT NULL,
+    staff_percentage NUMERIC(5,2) NOT NULL,    -- Staff share percentage (e.g. 50%)
+    final_amount NUMERIC(12,2) NOT NULL,       -- Final payout amount
+    created_by BIGINT REFERENCES public.users(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Enable RLS
+ALTER TABLE public.incentives ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all access for staff" ON public.incentives FOR ALL USING (true) WITH CHECK (true);
+
