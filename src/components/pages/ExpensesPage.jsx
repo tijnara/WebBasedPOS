@@ -1,7 +1,7 @@
     // Created on Sunday, April 20, 2026
     import React, { useState, useMemo, useEffect, useRef } from 'react';
     import currency from 'currency.js';
-    import { startOfWeek, endOfWeek, parseISO, format, subWeeks, addWeeks, getDay } from 'date-fns';
+    import { startOfWeek, endOfWeek, parseISO, format, subWeeks, addWeeks, getDay, startOfToday } from 'date-fns';
     import { Plus, Utensils, Car, ShoppingBag, Zap, Receipt, Edit, Trash2, X, Calendar, ChevronLeft, ChevronRight, Search, RotateCcw, XCircle, AlertTriangle } from 'lucide-react';
     import { useStore } from '../../store/useStore';
     import { useExpenses, useCreateExpense, useUpdateExpense, useDeleteExpense, useExpenseSummary, useExpenseCategories, useCreateExpenseCategory, useUpdateExpenseCategory } from '../../hooks/useExpenses';
@@ -63,17 +63,9 @@
         const currentWeekSales = useMemo(() => {
             if (!salesSummary?.weeklyRevenue) return 0;
 
-            /** * Use dateFrom as the weekKey. Since pagination uses startOfWeek,
-             * dateFrom always represents the Monday of the week being viewed,
-             * matching the key format in useSalesSummary.
-             */
             const weekKey = dateFrom;
             const weeklySales = salesSummary.weeklyRevenue[weekKey] || 0;
 
-            /** * Subtract totalSum instead of summary.weeklyTotal.
-             * totalSum represents the total expenses for the currently viewed
-             * date range (dateFrom to dateTo).
-             */
             return weeklySales - (totalSum || 0);
         }, [salesSummary, dateFrom, totalSum]);
 
@@ -93,7 +85,7 @@
 
         // Custom Category States
         const [showCategoryModal, setShowCategoryModal] = useState(false);
-        const [catForm, setCatForm] = useState({ id: null, name: '', default_amount: '', default_description: '', is_recurring: false });
+        const [catForm, setCatForm] = useState({ id: null, name: '', default_amount: '', default_description: '', is_recurring: false, is_recurring_daily: false });
 
         // State for skip reason modal
         const [reasonModal, setReasonModal] = useState({ show: false, expense: null });
@@ -102,20 +94,78 @@
         // Optimistic locking ref
         const isSyncing = useRef(false);
 
+        // AUTO-SYNC DAILY EXPENSES EFFECT
+        useEffect(() => {
+            const syncDailyExpenses = async () => {
+                const today = new Date();
+                if (!categories.length || !user || user.isDemo || isSyncing.current || isFetching) return;
+
+                const todayStr = format(today, 'yyyy-MM-dd');
+                isSyncing.current = true;
+
+                try {
+                    const recurringDailyCategories = categories.filter(cat => cat.is_recurring_daily);
+                    if (recurringDailyCategories.length === 0) {
+                        isSyncing.current = false;
+                        return;
+                    }
+
+                    const { data: existing, error } = await supabase
+                        .from('expenses')
+                        .select('category')
+                        .eq('expense_date', todayStr);
+
+                    if (error) throw error;
+
+                    const existingCategoryNames = existing?.map(e => e.category) || [];
+                    const missingCategories = recurringDailyCategories.filter(
+                        cat => !existingCategoryNames.includes(cat.name)
+                    );
+
+                    if (missingCategories.length > 0) {
+                        const insertPromises = missingCategories.map(cat => 
+                            createExpense.mutateAsync({
+                                amount: cat.default_amount || 0,
+                                category: cat.name,
+                                description: cat.default_description || `Daily ${cat.name}`,
+                                expense_date: todayStr
+                            })
+                        );
+
+                        await Promise.all(insertPromises);
+                        
+                        queryClient.invalidateQueries({ queryKey: ['expenses'] });
+                        queryClient.invalidateQueries({ queryKey: ['expense-summary'] });
+                        
+                        addToast({ 
+                            title: 'Daily Sync', 
+                            message: `Automatically synced ${missingCategories.length} recurring daily expenses.`, 
+                            type: 'success' 
+                        });
+                    }
+                } catch (err) {
+                    console.error("Auto-daily-expense sync failed:", err);
+                } finally {
+                    setTimeout(() => {
+                        isSyncing.current = false;
+                    }, 2000);
+                }
+            };
+
+            syncDailyExpenses();
+        }, [categories, user, isFetching, createExpense, queryClient, addToast]);
+
         // AUTO-SYNC WEEKLY EXPENSES EFFECT
         useEffect(() => {
             const syncWeeklyExpenses = async () => {
                 const today = new Date();
-                // Only run on Mondays (1)
                 if (getDay(today) !== 1) return;
 
-                // Guards: Don't run if demo, already syncing, or if the query is currently fetching
                 if (!categories.length || !user || user.isDemo || isSyncing.current || isFetching) return;
 
                 const currentMonday = startOfWeek(today, { weekStartsOn: 1 });
                 const mondayStr = format(currentMonday, 'yyyy-MM-dd');
 
-                // LOCK IMMEDIATELY
                 isSyncing.current = true;
 
                 try {
@@ -125,8 +175,6 @@
                         return;
                     }
 
-                    // Check DB directly (not the filtered 'expenses' state) 
-                    // to avoid false-positives when viewing other weeks/filters
                     const { data: existing, error } = await supabase
                         .from('expenses')
                         .select('category')
@@ -163,7 +211,6 @@
                 } catch (err) {
                     console.error("Auto-expense sync failed:", err);
                 } finally {
-                    // Short cool-down (2s) to let the cache update before unlocking
                     setTimeout(() => {
                         isSyncing.current = false;
                     }, 2000);
@@ -176,7 +223,7 @@
 
         const handleCategoryChange = (val) => {
             if (val === 'ADD_NEW') {
-                setCatForm({ id: null, name: '', default_amount: '', default_description: '', is_recurring: false });
+                setCatForm({ id: null, name: '', default_amount: '', default_description: '', is_recurring: false, is_recurring_daily: false });
                 setShowCategoryModal(true);
                 return;
             }
@@ -189,7 +236,7 @@
         };
 
         const handleSaveCategory = async () => {
-            const { id, name, default_amount, default_description, is_recurring } = catForm;
+            const { id, name, default_amount, default_description, is_recurring, is_recurring_daily } = catForm;
             if (!name.trim()) return;
 
             const capitalizedName = capitalizeWords(name);
@@ -197,14 +244,14 @@
 
             try {
                 if (id) {
-                    await updateCategory.mutateAsync({ id, name: capitalizedName, default_amount, default_description: capitalizedDescription, is_recurring });
+                    await updateCategory.mutateAsync({ id, name: capitalizedName, default_amount, default_description: capitalizedDescription, is_recurring, is_recurring_daily });
                     addToast({ title: 'Success', message: 'Category updated.', type: 'success' });
                 } else {
                     if (categories.some(c => c.name.toLowerCase() === capitalizedName.toLowerCase())) {
                         addToast({ title: 'Error', message: 'Category already exists.', type: 'error' });
                         return;
                     }
-                    await createCategory.mutateAsync({ name: capitalizedName, default_amount, default_description: capitalizedDescription, is_recurring });
+                    await createCategory.mutateAsync({ name: capitalizedName, default_amount, default_description: capitalizedDescription, is_recurring, is_recurring_daily });
                     addToast({ title: 'Success', message: 'Category created.', type: 'success' });
                 }
                 setCategory(capitalizedName);
@@ -224,7 +271,8 @@
                     name: selectedCat.name,
                     default_amount: selectedCat.default_amount || '',
                     default_description: selectedCat.default_description || '',
-                    is_recurring: selectedCat.is_recurring || false
+                    is_recurring: selectedCat.is_recurring || false,
+                    is_recurring_daily: selectedCat.is_recurring_daily || false
                 });
                 setShowCategoryModal(true);
             }
@@ -506,10 +554,10 @@
 
                         <div className="flex-1 space-y-2 mb-8">
                             {isLoading ? <p className="text-center py-4 text-text-muted">Loading...</p> : expenses.map((exp, index) => {
-                                // Fallback if custom category doesn't exist in styles object
                                 const style = categoryStyles[exp.category] || { icon: Receipt, colorClass: 'bg-background text-text-muted' };
                                 const Icon = style.icon;
-                                const isRecurring = categories.find(c => c.name === exp.category)?.is_recurring;
+                                const categoryInfo = categories.find(c => c.name === exp.category);
+                                const isRecurring = categoryInfo?.is_recurring || categoryInfo?.is_recurring_daily;
                                 const isVoided = exp.amount === 0 || exp.amount === "0.00";
                                 return (
                                     <div key={exp.id}>
@@ -639,17 +687,31 @@
                                         />
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-3 pt-2">
-                                    <input
-                                        type="checkbox"
-                                        id="is_recurring"
-                                        checked={catForm.is_recurring}
-                                        onChange={(e) => setCatForm(prev => ({ ...prev, is_recurring: e.target.checked }))}
-                                        className="w-4 h-4 text-primary rounded border-gray-300 focus:ring-primary"
-                                    />
-                                    <label htmlFor="is_recurring" className="text-sm font-medium text-gray-800">
-                                        Auto-add every Monday
-                                    </label>
+                                <div className="space-y-3 pt-2">
+                                    <div className="flex items-center gap-3">
+                                        <input
+                                            type="checkbox"
+                                            id="is_recurring"
+                                            checked={catForm.is_recurring}
+                                            onChange={(e) => setCatForm(prev => ({ ...prev, is_recurring: e.target.checked, is_recurring_daily: e.target.checked ? false : prev.is_recurring_daily }))}
+                                            className="w-4 h-4 text-primary rounded border-gray-300 focus:ring-primary"
+                                        />
+                                        <label htmlFor="is_recurring" className="text-sm font-medium text-gray-800">
+                                            Auto-add every Monday
+                                        </label>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <input
+                                            type="checkbox"
+                                            id="is_recurring_daily"
+                                            checked={catForm.is_recurring_daily}
+                                            onChange={(e) => setCatForm(prev => ({ ...prev, is_recurring_daily: e.target.checked, is_recurring: e.target.checked ? false : prev.is_recurring }))}
+                                            className="w-4 h-4 text-primary rounded border-gray-300 focus:ring-primary"
+                                        />
+                                        <label htmlFor="is_recurring_daily" className="text-sm font-medium text-gray-800">
+                                            Auto-add everyday
+                                        </label>
+                                    </div>
                                 </div>
                                 <div className="pt-2 flex gap-3">
                                     <button
