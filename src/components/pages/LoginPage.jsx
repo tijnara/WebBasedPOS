@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
 import { useStore } from '../../store/useStore';
-import api from '../../lib/api';
+import { supabase } from '../../lib/supabaseClient'; // Use Supabase client directly
 import {
     Button,
     Input,
@@ -198,12 +198,28 @@ const LoginPage = () => {
         if (isLoading) return;
         setIsLoading(true);
         try {
-            const userData = await api.login({ email, password });
-            setAuth(userData);
-            addToast({ title: 'Login Successful', description: `Welcome back, ${userData.name}!`, variant: 'success' });
+            const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password });
+            if (authError) throw authError;
 
-            // Replaced router.push with window.location.href to force hard reload
+            const { data: userProfile, error: profileError } = await supabase
+                .from('users')
+                .select('*')
+                .eq('id', authData.user.id)
+                .single();
+            
+            if (profileError) throw new Error('Could not find user profile.');
+
+            const fullUser = {
+                ...authData.user,
+                ...userProfile,
+                isDemo: userProfile.is_demo || authData.user.email?.includes('demo'),
+                role: userProfile.role || 'Staff'
+            };
+
+            setAuth(fullUser);
+            addToast({ title: 'Login Successful', description: `Welcome back, ${fullUser.name || fullUser.email}!`, variant: 'success' });
             window.location.href = '/dashboard';
+
         } catch (err) {
             setModal({
                 isOpen: true,
@@ -216,16 +232,9 @@ const LoginPage = () => {
     };
 
     const handleDemoLogin = (role) => {
-        const user = role === 'Admin' ? {
-            id: 99999, name: 'Demo Admin', email: 'demo.admin@seaside.com', role: 'Admin', isDemo: true
-        } : {
-            id: 88888, name: 'Demo Staff', email: 'demo.staff@seaside.com', role: 'Staff', isDemo: true
-        };
-        setAuth(user);
-        addToast({ title: `Demo ${user.role} Activated`, description: `Welcome, ${user.name}!`, variant: 'success' });
-
-        // Replaced router.push with window.location.href to force hard reload
-        window.location.href = '/dashboard';
+        const email = role === 'Admin' ? 'demo.admin@seaside.com' : 'demo.staff@seaside.com';
+        const password = 'password'; // Assuming a default password for demo accounts
+        handleLogin(email, password);
     };
 
     return (

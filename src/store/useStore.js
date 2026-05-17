@@ -139,28 +139,34 @@ export const useStore = create(
             hydrate: async () => {
                 if (typeof window === 'undefined' || get().sessionLoaded) return;
                 
-                const storedUser = get().user;
-                if (storedUser) {
-                    if (storedUser.isDemo) {
-                        set({ sessionLoaded: true });
-                        return;
-                    }
+                const { data: { session } } = await supabase.auth.getSession();
+                const storedUser = session?.user;
 
+                if (storedUser) {
                     const { data: userProfile, error } = await supabase
                         .from('users')
                         .select('*')
-                        .eq('email', storedUser.email)
+                        .eq('id', storedUser.id)
                         .single();
 
                     if (userProfile && !error) {
-                        let role = userProfile.role || 'Staff';
-                        if (role !== 'Admin' && role !== 'admin' && 
-                           (String(userProfile.isadmin).trim().toLowerCase() === 'true' || userProfile.isadmin === true)) {
-                            role = 'Admin';
-                        }
-                        set({ user: { ...userProfile, role }, sessionLoaded: true });
+                        // Combine auth user data with public user profile
+                        const fullUser = {
+                            ...storedUser,
+                            ...userProfile,
+                            isDemo: userProfile.is_demo || storedUser.email?.includes('demo'),
+                            role: userProfile.role || 'Staff'
+                        };
+                        set({ user: fullUser, sessionLoaded: true });
                     } else {
-                        set({ user: null, sessionLoaded: true });
+                        // If profile doesn't exist, use auth data but flag as demo if email matches
+                        set({ 
+                            user: { 
+                                ...storedUser, 
+                                isDemo: storedUser.email?.includes('demo') 
+                            }, 
+                            sessionLoaded: true 
+                        });
                     }
                 } else {
                     set({ user: null, sessionLoaded: true });

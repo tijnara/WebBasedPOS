@@ -12,12 +12,12 @@ import TabBar from '../components/TabBar';
 import FloatingNotes from '../components/FloatingNotes';
 import FloatingMessages from '../components/FloatingMessages';
 import { Button } from '../components/ui';
-// 1. Import HydrationBoundary
-import { QueryClient, QueryClientProvider, HydrationBoundary } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, HydrationBoundary, MutationCache } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import Head from 'next/head';
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import { Analytics } from "@vercel/analytics/next";
+import { supabase } from '../lib/supabaseClient'; // Import Supabase client
 
 function AuthGate({ children }) {
     const { user, sessionLoaded } = useStore(s => ({
@@ -42,10 +42,8 @@ function AuthGate({ children }) {
         }
     }, [user, sessionLoaded, router]);
 
-    // --- NEW: Navigation Reset & Idle Tracker (No Logout) ---
+    // --- Navigation Reset & Idle Tracker ---
     useEffect(() => {
-        // Mark the tab as initialized for this session as soon as the app loads.
-        // This ensures that login reloads are recognized as the same tab.
         const isNewTabSession = typeof window !== 'undefined' && !sessionStorage.getItem('pos_tab_initialized');
         if (isNewTabSession) {
             sessionStorage.setItem('pos_tab_initialized', 'true');
@@ -53,26 +51,22 @@ function AuthGate({ children }) {
 
         if (!user) return;
 
-        const IDLE_TIMEOUT = 15 * 60 * 1000; // 15 minutes of inactivity
+        const IDLE_TIMEOUT = 15 * 60 * 1000;
 
         const checkNavigationState = () => {
             const now = Date.now();
             const lastActive = localStorage.getItem('pos_last_active_time');
-
             let needsRedirect = false;
 
             if (isNewTabSession) {
-                // User closed the tab and came back, or opened a new tab
                 needsRedirect = true;
             } else if (lastActive && now - parseInt(lastActive, 10) > IDLE_TIMEOUT) {
-                // User left the tab open but was idle for > 15 mins
                 needsRedirect = true;
             }
 
             if (needsRedirect) {
-                localStorage.setItem('pos_last_active_time', now.toString()); // Reset to prevent loop
+                localStorage.setItem('pos_last_active_time', now.toString());
                 if (router.pathname !== '/') {
-                    if (process.env.NODE_ENV === 'development') console.log("User was away/idle. Redirecting to landing page.");
                     router.push('/');
                 }
             }
@@ -85,12 +79,10 @@ function AuthGate({ children }) {
         checkNavigationState();
         resetTimer();
 
-        // Track interactions to prevent idle timeout
         const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
         events.forEach(e => document.addEventListener(e, resetTimer, true));
         window.addEventListener('focus', checkNavigationState);
 
-        // Background checker for idleness
         const intervalId = setInterval(() => {
             const lastActive = localStorage.getItem('pos_last_active_time');
             if (lastActive && Date.now() - parseInt(lastActive, 10) > IDLE_TIMEOUT) {
@@ -131,7 +123,6 @@ export default function App({ Component, pageProps }) {
     const { toasts, dismissToast, darkMode } = useStore();
     const router = useRouter();
 
-    // 2. Initialize QueryClient inside the component using useState
     const [queryClient] = useState(() => new QueryClient({
         defaultOptions: {
             queries: {
@@ -140,6 +131,33 @@ export default function App({ Component, pageProps }) {
                 refetchOnWindowFocus: true,
             },
         },
+        mutationCache: new MutationCache({
+            onMutate: async (variables) => { // Correctly include variables
+                const { data: { session } } = await supabase.auth.getSession();
+                
+                if (!session) return;
+
+                const { data: userProfile } = await supabase
+                    .from('users')
+                    .select('is_demo')
+                    .eq('id', session.user.id)
+                    .single();
+
+                const isDemoUser = userProfile?.is_demo === true || session.user.email?.includes('demo');
+
+                if (isDemoUser) {
+                    setTimeout(() => {
+                        useStore.getState().addToast({
+                            title: 'Demo Mode Active',
+                            message: 'Adding, editing, and deleting is disabled.',
+                            type: 'error'
+                        });
+                    }, 0);
+                    
+                    return Promise.reject(new Error('Action blocked: Demo Mode is strictly read-only.'));
+                }
+            }
+        })
     }));
 
     useEffect(() => {
@@ -159,7 +177,6 @@ export default function App({ Component, pageProps }) {
 
     return (
         <QueryClientProvider client={queryClient}>
-            {/* 3. Wrap the app in HydrationBoundary and pass pageProps.dehydratedState */}
             <HydrationBoundary state={pageProps.dehydratedState}>
                 <Head>
                     <link rel="icon" href="/seaside.png" />
