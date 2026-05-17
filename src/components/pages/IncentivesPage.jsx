@@ -13,24 +13,17 @@ export default function IncentivesPage() {
     const [currentDate, setCurrentDate] = useState(new Date());
 
     // --- WEEKLY CALCULATION LOGIC ---
-    // Extract the Start (Monday) and End (Sunday) of the currently selected week
     const monday = format(startOfWeek(currentDate, { weekStartsOn: 1 }), 'yyyy-MM-dd');
     const sunday = format(endOfWeek(currentDate, { weekStartsOn: 1 }), 'yyyy-MM-dd');
 
-    // Fetch Incentives specific ONLY to this selected week
-    const { history, createIncentive, isLoading: historyLoading } = useIncentives({
-        startDate: monday,
-        endDate: sunday
-    });
+    const { history, createIncentive, isLoading: historyLoading } = useIncentives();
 
-    // Fetch Expenses specific to this week
     const { data: { totalSum: weeklyExpenses = 0 } = {} } = useExpenses({
         startDate: monday,
         endDate: sunday,
         pageSize: 1000
     });
 
-    // Fetch Sales specific to this week (Appended with exact times to avoid JS Date timezone mismatches)
     const { data: salesSummary } = useSalesSummary({
         startDate: new Date(`${monday}T00:00:00`),
         endDate: new Date(`${sunday}T23:59:59.999`)
@@ -38,11 +31,16 @@ export default function IncentivesPage() {
 
     const currentWeekSales = useMemo(() => {
         const revenue = salesSummary?.totalRevenue || 0;
-        // Current Week Net Profit = Revenue - Expenses (Prevents negative incentive pools)
         return Math.max(0, revenue - weeklyExpenses); 
     }, [salesSummary, weeklyExpenses]);
 
-    const incentivePool = currentWeekSales * 0.25; // 25% of Net Profit
+    const incentivePool = currentWeekSales * 0.25;
+
+    // Filter history to only show entries for the currently selected week
+    const filteredHistory = useMemo(() => {
+        if (!history) return [];
+        return history.filter(item => item.payout_date.startsWith(monday));
+    }, [history, monday]);
 
     // --- FORM STATES ---
     const [staffName, setStaffName] = useState('');
@@ -65,7 +63,7 @@ export default function IncentivesPage() {
                 staff_name: staffName,
                 staff_percentage: perc,
                 final_amount: finalAmount,
-                payout_date: new Date(`${monday}T12:00:00Z`) // Save payout corresponding to the Week's Monday
+                payout_date: new Date(`${monday}T12:00:00Z`)
             });
             addToast({ title: 'Incentive Recorded', message: `Saved share for ${staffName}.`, type: 'success' });
             setStaffName('');
@@ -90,7 +88,6 @@ export default function IncentivesPage() {
                                     <TrendingUp /> Staff Incentives
                                 </h1>
                                 
-                                {/* COMBINED DATE CONTROLS */}
                                 <div className="flex flex-col items-start md:items-end gap-2">
                                     <div className="flex items-center gap-2 bg-black/10 dark:bg-white/20 p-1.5 rounded-2xl backdrop-blur-md">
                                         <Button onClick={() => setCurrentDate(subDays(currentDate, 7))} variant="ghost" className="p-2 rounded-xl hover:bg-black/10 dark:hover:bg-white/20"><ChevronLeft size={18} /></Button>
@@ -100,7 +97,7 @@ export default function IncentivesPage() {
                                                 type="date" 
                                                 value={format(currentDate, 'yyyy-MM-dd')}
                                                 onChange={(e) => {
-                                                    if (e.target.value) setCurrentDate(new Date(e.target.value));
+                                                    if (e.target.value) setCurrentDate(new Date(`${e.target.value}T00:00:00`));
                                                 }}
                                                 title="Select a date to jump to that week"
                                                 className="bg-transparent text-sm font-bold pl-8 pr-2 py-1 outline-none cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:w-full"
@@ -109,7 +106,7 @@ export default function IncentivesPage() {
                                         <Button onClick={() => setCurrentDate(addDays(currentDate, 7))} variant="ghost" className="p-2 rounded-xl hover:bg-black/10 dark:hover:bg-white/20"><ChevronRight size={18} /></Button>
                                     </div>
                                     <p className="text-[11px] text-black/80 dark:text-white/80 font-bold uppercase tracking-widest md:pr-2">
-                                        {format(new Date(monday), 'MMMM dd')} - {format(new Date(sunday), 'MMMM dd, yyyy')} (Monday - Sunday)
+                                        {format(new Date(`${monday}T00:00:00`), 'MMMM dd')} - {format(new Date(`${sunday}T00:00:00`), 'MMMM dd, yyyy')} (Monday - Sunday)
                                     </p>
                                 </div>
                             </div>
@@ -189,34 +186,20 @@ export default function IncentivesPage() {
                 <div className="w-full lg:w-5/12 bg-surface p-8 border-l border-transparent flex flex-col max-h-[800px]">
                     <div className="flex items-center justify-between mb-6 shrink-0">
                         <h3 className="text-xl font-bold text-black dark:text-white flex items-center gap-2"><History size={20} /> Payout History</h3>
-                        <span className="text-[10px] bg-slate-100 px-2 py-1 rounded-full font-bold text-slate-500 uppercase">{history.length} Entries</span>
+                        <span className="text-[10px] bg-slate-100 px-2 py-1 rounded-full font-bold text-slate-500 uppercase">{filteredHistory.length} Entries</span>
                     </div>
 
                     <div className="flex-1 overflow-y-auto pr-2 menu-scrollbar space-y-3">
                         {historyLoading ? (
                             <p className="text-center py-10 text-gray-500 dark:text-gray-400 animate-pulse">Loading records...</p>
-                        ) : history.length === 0 ? (
+                        ) : filteredHistory.length === 0 ? (
                             <div className="text-center py-20 border-2 border-dashed border-transparent rounded-3xl text-gray-500 dark:text-gray-400">
-                                No incentives recorded for this week yet.
+                                No incentives recorded for this week.
                             </div>
-                        ) : history.map((item, idx) => (
-                            <div key={item.id} className="group relative">
-                                {idx > 0 && <div className="w-px h-4 bg-transparent mx-auto my-1" />}
-                                <div className="bg-background hover:bg-white p-4 rounded-2xl border border-transparent hover:border-primary/20 hover:shadow-xl transition-all duration-300">
-                                    <div className="flex justify-between items-start">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-black">{item.staff_name[0]}</div>
-                                            <div>
-                                                <p className="font-bold text-black dark:text-white">{item.staff_name}</p>
-                                                <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase">{format(new Date(item.payout_date), 'MMM dd, yyyy')}</p>
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="text-lg font-black text-primary">{currency(item.final_amount, { symbol: '₱' }).format()}</p>
-                                            <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase">{item.staff_percentage}% of Pool</p>
-                                        </div>
-                                    </div>
-                                </div>
+                        ) : filteredHistory.map((item) => (
+                            // --- SIMPLIFIED RENDER FOR DEBUGGING ---
+                            <div key={item.id} className="p-2 border border-dashed border-primary">
+                               <p>Item: {item.staff_name} - {item.final_amount}</p>
                             </div>
                         ))}
                     </div>
