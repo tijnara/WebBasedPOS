@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { startOfWeek, endOfWeek, format, addDays, subDays } from 'date-fns';
 import currency from 'currency.js';
 import { Wallet, History, Plus, Info, TrendingUp, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
@@ -7,16 +7,32 @@ import { useSalesSummary } from '../../hooks/useSalesSummary';
 import { useExpenses } from '../../hooks/useExpenses';
 import { useIncentives } from '../../hooks/useIncentives';
 import { Button, Label } from '../ui';
+import Pagination from '../Pagination';
 
 export default function IncentivesPage() {
     const { addToast } = useStore();
     const [currentDate, setCurrentDate] = useState(new Date());
 
+    // --- PAGINATION STATE ---
+    const [page, setPage] = useState(1);
+    const pageSize = 10;
+
     // --- WEEKLY CALCULATION LOGIC ---
     const monday = format(startOfWeek(currentDate, { weekStartsOn: 1 }), 'yyyy-MM-dd');
     const sunday = format(endOfWeek(currentDate, { weekStartsOn: 1 }), 'yyyy-MM-dd');
 
-    const { history, createIncentive, isLoading: historyLoading } = useIncentives();
+    // Reset pagination to Page 1 whenever the selected Week changes
+    useEffect(() => {
+        setPage(1);
+    }, [monday, sunday]);
+
+    // Use DB Pagination and DB Filtering
+    const { history, totalCount, createIncentive, isLoading: historyLoading } = useIncentives({
+        startDate: monday,
+        endDate: sunday,
+        page,
+        pageSize
+    });
 
     const { data: { totalSum: weeklyExpenses = 0 } = {} } = useExpenses({
         startDate: monday,
@@ -35,19 +51,6 @@ export default function IncentivesPage() {
     }, [salesSummary, weeklyExpenses]);
 
     const incentivePool = currentWeekSales * 0.25;
-
-    // Filter history to only show entries for the currently selected week
-    const filteredHistory = useMemo(() => {
-        if (!history) return [];
-        return history.filter(item => {
-            if (!item.payout_date) return false;
-            // Safely check if the payout date falls within the selected week's range
-            const payoutDate = new Date(item.payout_date);
-            const start = new Date(`${monday}T00:00:00`);
-            const end = new Date(`${sunday}T23:59:59`);
-            return payoutDate >= start && payoutDate <= end;
-        });
-    }, [history, monday, sunday]);
 
     // --- FORM STATES ---
     const [staffName, setStaffName] = useState('');
@@ -81,7 +84,7 @@ export default function IncentivesPage() {
     };
 
     return (
-        <div className="responsive-page min-h-screen bg-background">
+        <div className="responsive-page min-h-screen bg-background pb-12">
             <div className="w-full max-w-7xl mx-auto bg-surface shadow-xl flex flex-col lg:flex-row rounded-3xl overflow-hidden border border-transparent">
 
                 {/* Main Dashboard (Left) */}
@@ -189,22 +192,22 @@ export default function IncentivesPage() {
                     </div>
                 </div>
 
-                {/* History Panel (Right) */}
-                <div className="w-full lg:w-5/12 bg-surface p-8 border-l border-transparent flex flex-col max-h-[800px]">
-                    <div className="flex items-center justify-between mb-6 shrink-0">
+                {/* History Panel (Right) - Removed 'flex flex-col' so the height expands naturally */}
+                <div className="w-full lg:w-5/12 bg-surface p-8 border-l border-transparent">
+                    <div className="flex items-center justify-between mb-6">
                         <h3 className="text-xl font-bold text-black dark:text-white flex items-center gap-2"><History size={20} /> Payout History</h3>
-                        <span className="text-[10px] bg-slate-100 px-2 py-1 rounded-full font-bold text-slate-500 uppercase">{filteredHistory.length} Entries</span>
+                        <span className="text-[10px] bg-slate-100 px-2 py-1 rounded-full font-bold text-slate-500 uppercase">{totalCount} Entries</span>
                     </div>
 
-                    {/* Added min-h to force space even if empty, making sure map has room to render */}
-                    <div className="flex-1 overflow-y-auto pr-2 menu-scrollbar space-y-4 min-h-[200px]">
+                    {/* Removed 'flex-1' constraint so items push the page down without getting squashed */}
+                    <div className="space-y-4 min-h-[200px]">
                         {historyLoading ? (
                             <p className="text-center py-10 text-gray-500 dark:text-gray-400 animate-pulse">Loading records...</p>
-                        ) : filteredHistory.length === 0 ? (
+                        ) : history.length === 0 ? (
                             <div className="text-center py-20 border-2 border-dashed border-transparent rounded-3xl text-gray-500 dark:text-gray-400">
                                 No incentives recorded for this week.
                             </div>
-                        ) : filteredHistory.map((item, idx) => (
+                        ) : history.map((item, idx) => (
                             <div
                                 key={item.id || idx}
                                 className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md hover:border-primary/50 transition-all duration-300"
@@ -219,7 +222,6 @@ export default function IncentivesPage() {
                                                 {item.staff_name || 'Unknown'}
                                             </p>
                                             <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase mt-0.5">
-                                                {/* Safely formats date natively so it avoids date-fns crash edge-cases */}
                                                 {item.payout_date ? new Date(item.payout_date).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : 'No Date'}
                                             </p>
                                         </div>
@@ -236,6 +238,18 @@ export default function IncentivesPage() {
                             </div>
                         ))}
                     </div>
+
+                    {/* Pagination Output */}
+                    {totalCount > pageSize && (
+                        <div className="mt-6 border-t border-transparent pt-4">
+                            <Pagination
+                                currentPage={page}
+                                totalCount={totalCount}
+                                pageSize={pageSize}
+                                onPageChange={setPage}
+                            />
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

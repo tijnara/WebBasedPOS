@@ -2,22 +2,36 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient';
 import { useStore } from '../store/useStore';
 
-export function useIncentives() {
+export function useIncentives({ startDate, endDate, page = 1, pageSize = 10 } = {}) {
     const queryClient = useQueryClient();
     const user = useStore(s => s.user);
 
-    const { data: history = [], isLoading } = useQuery({
-        // Removed date filters from query key
-        queryKey: ['incentives-history'],
+    const { data, isLoading } = useQuery({
+        // Include pagination and date filters in query key so it refetches automatically
+        queryKey: ['incentives-history', startDate, endDate, page, pageSize],
         queryFn: async () => {
-            // Fetch ALL historical records so the ledger is never empty
-            const { data, error } = await supabase
+            let query = supabase
                 .from('incentives')
-                .select('*')
-                .order('created_at', { ascending: false });
+                .select('*', { count: 'exact' }); // Fetch exact count for pagination
+
+            // DB-side filtering for the specific week
+            if (startDate) {
+                query = query.gte('payout_date', `${startDate}T00:00:00.000Z`);
+            }
+            if (endDate) {
+                query = query.lte('payout_date', `${endDate}T23:59:59.999Z`);
+            }
+
+            // DB-side pagination logic
+            const from = (page - 1) * pageSize;
+            const to = from + pageSize - 1;
+
+            const { data, error, count } = await query
+                .order('created_at', { ascending: false })
+                .range(from, to);
 
             if (error) throw error;
-            return data;
+            return { history: data, totalCount: count };
         }
     });
 
@@ -34,5 +48,10 @@ export function useIncentives() {
         }
     });
 
-    return { history, isLoading, createIncentive };
+    return { 
+        history: data?.history || [], 
+        totalCount: data?.totalCount || 0,
+        isLoading, 
+        createIncentive 
+    };
 }
