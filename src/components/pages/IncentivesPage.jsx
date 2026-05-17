@@ -31,7 +31,7 @@ export default function IncentivesPage() {
 
     const currentWeekSales = useMemo(() => {
         const revenue = salesSummary?.totalRevenue || 0;
-        return Math.max(0, revenue - weeklyExpenses); 
+        return Math.max(0, revenue - weeklyExpenses);
     }, [salesSummary, weeklyExpenses]);
 
     const incentivePool = currentWeekSales * 0.25;
@@ -39,8 +39,15 @@ export default function IncentivesPage() {
     // Filter history to only show entries for the currently selected week
     const filteredHistory = useMemo(() => {
         if (!history) return [];
-        return history.filter(item => item.payout_date.startsWith(monday));
-    }, [history, monday]);
+        return history.filter(item => {
+            if (!item.payout_date) return false;
+            // Safely check if the payout date falls within the selected week's range
+            const payoutDate = new Date(item.payout_date);
+            const start = new Date(`${monday}T00:00:00`);
+            const end = new Date(`${sunday}T23:59:59`);
+            return payoutDate >= start && payoutDate <= end;
+        });
+    }, [history, monday, sunday]);
 
     // --- FORM STATES ---
     const [staffName, setStaffName] = useState('');
@@ -82,19 +89,19 @@ export default function IncentivesPage() {
                     <div className="bg-primary text-black dark:text-white p-8 rounded-br-[3rem] shadow-lg z-10 relative overflow-hidden">
                         <div className="absolute -top-10 -right-10 opacity-10 rotate-12"><Wallet size={200} /></div>
                         <div className="relative z-10">
-                            
+
                             <div className="flex flex-col md:flex-row justify-between items-start mb-6 gap-4">
                                 <h1 className="text-2xl font-bold flex items-center gap-2 mt-2">
                                     <TrendingUp /> Staff Incentives
                                 </h1>
-                                
+
                                 <div className="flex flex-col items-start md:items-end gap-2">
                                     <div className="flex items-center gap-2 bg-black/10 dark:bg-white/20 p-1.5 rounded-2xl backdrop-blur-md">
                                         <Button onClick={() => setCurrentDate(subDays(currentDate, 7))} variant="ghost" className="p-2 rounded-xl hover:bg-black/10 dark:hover:bg-white/20"><ChevronLeft size={18} /></Button>
                                         <div className="relative flex items-center">
                                             <Calendar className="absolute left-2 w-4 h-4 opacity-50 pointer-events-none" />
-                                            <input 
-                                                type="date" 
+                                            <input
+                                                type="date"
                                                 value={format(currentDate, 'yyyy-MM-dd')}
                                                 onChange={(e) => {
                                                     if (e.target.value) setCurrentDate(new Date(`${e.target.value}T00:00:00`));
@@ -189,17 +196,43 @@ export default function IncentivesPage() {
                         <span className="text-[10px] bg-slate-100 px-2 py-1 rounded-full font-bold text-slate-500 uppercase">{filteredHistory.length} Entries</span>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto pr-2 menu-scrollbar space-y-3">
+                    {/* Added min-h to force space even if empty, making sure map has room to render */}
+                    <div className="flex-1 overflow-y-auto pr-2 menu-scrollbar space-y-4 min-h-[200px]">
                         {historyLoading ? (
                             <p className="text-center py-10 text-gray-500 dark:text-gray-400 animate-pulse">Loading records...</p>
                         ) : filteredHistory.length === 0 ? (
                             <div className="text-center py-20 border-2 border-dashed border-transparent rounded-3xl text-gray-500 dark:text-gray-400">
                                 No incentives recorded for this week.
                             </div>
-                        ) : filteredHistory.map((item) => (
-                            // --- SIMPLIFIED RENDER FOR DEBUGGING ---
-                            <div key={item.id} className="p-2 border border-dashed border-primary">
-                               <p>Item: {item.staff_name} - {item.final_amount}</p>
+                        ) : filteredHistory.map((item, idx) => (
+                            <div
+                                key={item.id || idx}
+                                className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md hover:border-primary/50 transition-all duration-300"
+                            >
+                                <div className="flex justify-between items-center gap-2">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-black shrink-0">
+                                            {item.staff_name ? item.staff_name.charAt(0).toUpperCase() : '?'}
+                                        </div>
+                                        <div>
+                                            <p className="font-bold text-black dark:text-white truncate max-w-[120px] sm:max-w-[150px]">
+                                                {item.staff_name || 'Unknown'}
+                                            </p>
+                                            <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase mt-0.5">
+                                                {/* Safely formats date natively so it avoids date-fns crash edge-cases */}
+                                                {item.payout_date ? new Date(item.payout_date).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : 'No Date'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="text-right shrink-0">
+                                        <p className="text-lg font-black text-primary">
+                                            {currency(item.final_amount || 0, { symbol: '₱' }).format()}
+                                        </p>
+                                        <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase mt-0.5">
+                                            {item.staff_percentage || 0}% of Pool
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
                         ))}
                     </div>
