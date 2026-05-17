@@ -10,8 +10,11 @@ import { Button, Input, Label, Card, CardContent } from '../ui';
 
 export default function IncentivesPage() {
     const { addToast } = useStore();
-    const { history, createIncentive, isLoading: historyLoading } = useIncentives();
     const [currentDate, setCurrentDate] = useState(new Date());
+    const [page, setPage] = useState(1);
+    const pageSize = 10;
+
+    const { history, count, createIncentive, isLoading: historyLoading } = useIncentives({ page, pageSize });
 
     // --- WEEKLY CALCULATION LOGIC ---
     const monday = format(startOfWeek(currentDate, { weekStartsOn: 1 }), 'yyyy-MM-dd');
@@ -65,6 +68,8 @@ export default function IncentivesPage() {
             addToast({ title: 'Error', message: err.message, type: 'error' });
         }
     };
+    
+    const totalPages = Math.ceil(count / pageSize);
 
     return (
         <div className="responsive-page min-h-screen bg-background">
@@ -153,13 +158,13 @@ export default function IncentivesPage() {
                 </div>
 
                 {/* History Panel (Right) */}
-                <div className="w-full lg:w-5/12 bg-surface p-8 border-l border-transparent">
+                <div className="w-full lg:w-5/12 bg-surface p-8 border-l border-transparent flex flex-col">
                     <div className="flex items-center justify-between mb-6">
                         <h3 className="text-xl font-bold text-black dark:text-white flex items-center gap-2"><History size={20} /> Payout History</h3>
-                        <span className="text-[10px] bg-slate-100 px-2 py-1 rounded-full font-bold text-slate-500 uppercase">{history.length} Entries</span>
+                        <span className="text-[10px] bg-slate-100 px-2 py-1 rounded-full font-bold text-slate-500 uppercase">{count} Entries</span>
                     </div>
 
-                    <div className="space-y-3 overflow-y-auto max-h-[600px] pr-2 menu-scrollbar">
+                    <div className="space-y-3 overflow-y-auto max-h-[600px] pr-2 menu-scrollbar flex-grow">
                         {historyLoading ? (
                             <p className="text-center py-10 text-gray-500 dark:text-gray-400 animate-pulse">Loading records...</p>
                         ) : history.length === 0 ? (
@@ -175,7 +180,7 @@ export default function IncentivesPage() {
                                             <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-black">{item.staff_name[0]}</div>
                                             <div>
                                                 <p className="font-bold text-black dark:text-white">{item.staff_name}</p>
-                                                <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase">{format(new Date(item.payout_date), 'MMM dd, yyyy')}</p>
+                                                <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase">{format(new Date(item.payout_date), 'EEEE, MMM dd, yyyy')}</p>
                                             </div>
                                         </div>
                                         <div className="text-right">
@@ -187,6 +192,13 @@ export default function IncentivesPage() {
                             </div>
                         ))}
                     </div>
+                    {totalPages > 1 && (
+                        <div className="flex justify-between items-center pt-4">
+                            <Button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} variant="ghost">Previous</Button>
+                            <span className="text-sm text-gray-500">{page} of {totalPages}</span>
+                            <Button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} variant="ghost">Next</Button>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
