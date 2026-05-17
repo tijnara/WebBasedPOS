@@ -1,4 +1,4 @@
-    // Created on Sunday, April 20, 2026
+// Created on Sunday, April 20, 2026
     import React, { useState, useMemo, useEffect, useRef } from 'react';
     import currency from 'currency.js';
     import { startOfWeek, endOfWeek, parseISO, format, subWeeks, addWeeks, getDay, startOfToday } from 'date-fns';
@@ -79,7 +79,7 @@
         // Form States
         const [amount, setAmount] = useState('');
         const [category, setCategory] = useState('');
-        const [description, setDescription] = useState('');
+        const [description, setDescription] = useState('Payment for ');
         const [expenseDate, setExpenseDate] = useState('');
         const [editingExpense, setEditingExpense] = useState(null);
 
@@ -231,7 +231,7 @@
             const selectedCat = categories.find(c => c.name === val);
             if (selectedCat) {
                 setAmount(selectedCat.default_amount ? selectedCat.default_amount.toString() : '');
-                setDescription(selectedCat.default_description || '');
+                setDescription(selectedCat.default_description || 'Payment for ');
             }
         };
 
@@ -256,7 +256,7 @@
                 }
                 setCategory(capitalizedName);
                 setAmount(default_amount ? default_amount.toString() : '');
-                setDescription(capitalizedDescription || '');
+                setDescription(capitalizedDescription || 'Payment for ');
                 setShowCategoryModal(false);
             } catch (error) {
                 addToast({ title: 'Error', message: error.message, type: 'error' });
@@ -300,7 +300,7 @@
                     addToast({ title: 'Expense Added', message: 'Transaction saved.', type: 'success' });
                 }
                 setAmount('');
-                setDescription('');
+                setDescription('Payment for ');
                 setExpenseDate('');
                 setCategory('');
             } catch (error) {
@@ -355,7 +355,7 @@
         const cancelEdit = () => {
             setEditingExpense(null);
             setAmount('');
-            setDescription('');
+            setDescription('Payment for ');
             setExpenseDate('');
             setCategory('');
         };
