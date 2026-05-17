@@ -1,42 +1,48 @@
 import React, { useState, useMemo } from 'react';
 import { startOfWeek, endOfWeek, format, addDays, subDays } from 'date-fns';
 import currency from 'currency.js';
-import { Wallet, Users, History, Percent, Plus, Info, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Wallet, History, Plus, Info, TrendingUp, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import { useSalesSummary } from '../../hooks/useSalesSummary';
 import { useExpenses } from '../../hooks/useExpenses';
 import { useIncentives } from '../../hooks/useIncentives';
-import { Button, Input, Label, Card, CardContent } from '../ui';
+import { Button, Label } from '../ui';
 
 export default function IncentivesPage() {
     const { addToast } = useStore();
     const [currentDate, setCurrentDate] = useState(new Date());
-    const [page, setPage] = useState(1);
-    const pageSize = 10;
-
-    const { history, count, createIncentive, isLoading: historyLoading } = useIncentives({ page, pageSize });
 
     // --- WEEKLY CALCULATION LOGIC ---
+    // Extract the Start (Monday) and End (Sunday) of the currently selected week
     const monday = format(startOfWeek(currentDate, { weekStartsOn: 1 }), 'yyyy-MM-dd');
     const sunday = format(endOfWeek(currentDate, { weekStartsOn: 1 }), 'yyyy-MM-dd');
 
+    // Fetch Incentives specific ONLY to this selected week
+    const { history, createIncentive, isLoading: historyLoading } = useIncentives({
+        startDate: monday,
+        endDate: sunday
+    });
+
+    // Fetch Expenses specific to this week
     const { data: { totalSum: weeklyExpenses = 0 } = {} } = useExpenses({
         startDate: monday,
         endDate: sunday,
         pageSize: 1000
     });
 
+    // Fetch Sales specific to this week (Appended with exact times to avoid JS Date timezone mismatches)
     const { data: salesSummary } = useSalesSummary({
-        startDate: new Date(monday),
-        endDate: new Date(sunday)
+        startDate: new Date(`${monday}T00:00:00`),
+        endDate: new Date(`${sunday}T23:59:59.999`)
     });
 
     const currentWeekSales = useMemo(() => {
-        const revenue = salesSummary?.weeklyRevenue?.[monday] || 0;
-        return revenue - weeklyExpenses; // Net Profit
-    }, [salesSummary, weeklyExpenses, monday]);
+        const revenue = salesSummary?.totalRevenue || 0;
+        // Current Week Net Profit = Revenue - Expenses (Prevents negative incentive pools)
+        return Math.max(0, revenue - weeklyExpenses); 
+    }, [salesSummary, weeklyExpenses]);
 
-    const incentivePool = currentWeekSales * 0.25; // 25% of Net
+    const incentivePool = currentWeekSales * 0.25; // 25% of Net Profit
 
     // --- FORM STATES ---
     const [staffName, setStaffName] = useState('');
@@ -59,7 +65,7 @@ export default function IncentivesPage() {
                 staff_name: staffName,
                 staff_percentage: perc,
                 final_amount: finalAmount,
-                payout_date: new Date(monday)
+                payout_date: new Date(`${monday}T12:00:00Z`) // Save payout corresponding to the Week's Monday
             });
             addToast({ title: 'Incentive Recorded', message: `Saved share for ${staffName}.`, type: 'success' });
             setStaffName('');
@@ -68,8 +74,6 @@ export default function IncentivesPage() {
             addToast({ title: 'Error', message: err.message, type: 'error' });
         }
     };
-    
-    const totalPages = Math.ceil(count / pageSize);
 
     return (
         <div className="responsive-page min-h-screen bg-background">
@@ -80,19 +84,43 @@ export default function IncentivesPage() {
                     <div className="bg-primary text-black dark:text-white p-8 rounded-br-[3rem] shadow-lg z-10 relative overflow-hidden">
                         <div className="absolute -top-10 -right-10 opacity-10 rotate-12"><Wallet size={200} /></div>
                         <div className="relative z-10">
-                            <div className="flex justify-between items-center mb-2">
-                                <h1 className="text-2xl font-bold flex items-center gap-2"><TrendingUp /> Staff Incentives</h1>
-                                <div className="flex items-center gap-2">
-                                    <Button onClick={() => setCurrentDate(subDays(currentDate, 7))} variant="ghost" className="p-2 rounded-full hover:bg-white/20"><ChevronLeft /></Button>
-                                    <Button onClick={() => setCurrentDate(addDays(currentDate, 7))} variant="ghost" className="p-2 rounded-full hover:bg-white/20"><ChevronRight /></Button>
+                            
+                            <div className="flex flex-col md:flex-row justify-between items-start mb-6 gap-4">
+                                <h1 className="text-2xl font-bold flex items-center gap-2 mt-2">
+                                    <TrendingUp /> Staff Incentives
+                                </h1>
+                                
+                                {/* COMBINED DATE CONTROLS */}
+                                <div className="flex flex-col items-start md:items-end gap-2">
+                                    <div className="flex items-center gap-2 bg-black/10 dark:bg-white/20 p-1.5 rounded-2xl backdrop-blur-md">
+                                        <Button onClick={() => setCurrentDate(subDays(currentDate, 7))} variant="ghost" className="p-2 rounded-xl hover:bg-black/10 dark:hover:bg-white/20"><ChevronLeft size={18} /></Button>
+                                        <div className="relative flex items-center">
+                                            <Calendar className="absolute left-2 w-4 h-4 opacity-50 pointer-events-none" />
+                                            <input 
+                                                type="date" 
+                                                value={format(currentDate, 'yyyy-MM-dd')}
+                                                onChange={(e) => {
+                                                    if (e.target.value) setCurrentDate(new Date(e.target.value));
+                                                }}
+                                                title="Select a date to jump to that week"
+                                                className="bg-transparent text-sm font-bold pl-8 pr-2 py-1 outline-none cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:w-full"
+                                            />
+                                        </div>
+                                        <Button onClick={() => setCurrentDate(addDays(currentDate, 7))} variant="ghost" className="p-2 rounded-xl hover:bg-black/10 dark:hover:bg-white/20"><ChevronRight size={18} /></Button>
+                                    </div>
+                                    <p className="text-[11px] text-black/80 dark:text-white/80 font-bold uppercase tracking-widest md:pr-2">
+                                        {format(new Date(monday), 'MMMM dd')} - {format(new Date(sunday), 'MMMM dd, yyyy')} (Monday - Sunday)
+                                    </p>
                                 </div>
                             </div>
-                            <p className="text-xs text-black/80 dark:text-white/80 font-medium uppercase tracking-widest">Week of {format(new Date(monday), 'MMMM dd')}</p>
 
                             <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div>
-                                    <p className="text-xs font-bold text-black/90 dark:text-primary-soft uppercase">Current Week Sales (Net)</p>
+                                    <p className="text-xs font-bold text-black/90 dark:text-primary-soft uppercase">Current Week Net Sales</p>
                                     <h2 className="text-4xl font-black">{currency(currentWeekSales, { symbol: '₱' }).format()}</h2>
+                                    <p className="text-[10px] opacity-70 mt-1 uppercase">
+                                        Revenue: {currency(salesSummary?.totalRevenue || 0, { symbol: '₱' }).format()} | Expenses: {currency(weeklyExpenses, { symbol: '₱' }).format()}
+                                    </p>
                                 </div>
                                 <div className="md:text-right">
                                     <p className="text-xs font-bold text-black uppercase">Incentive Pool (25%)</p>
@@ -148,8 +176,8 @@ export default function IncentivesPage() {
 
                             <Button
                                 type="submit"
-                                disabled={createIncentive.isPending}
-                                className="btn--primary w-full h-12 rounded-xl font-bold text-lg shadow-lg shadow-primary/20"
+                                disabled={createIncentive.isPending || incentivePool <= 0}
+                                className="btn--primary w-full h-12 rounded-xl font-bold text-lg shadow-lg shadow-primary/20 disabled:opacity-50"
                             >
                                 {createIncentive.isPending ? 'Saving...' : 'Record Payout'}
                             </Button>
@@ -158,18 +186,18 @@ export default function IncentivesPage() {
                 </div>
 
                 {/* History Panel (Right) */}
-                <div className="w-full lg:w-5/12 bg-surface p-8 border-l border-transparent flex flex-col">
-                    <div className="flex items-center justify-between mb-6">
+                <div className="w-full lg:w-5/12 bg-surface p-8 border-l border-transparent flex flex-col max-h-[800px]">
+                    <div className="flex items-center justify-between mb-6 shrink-0">
                         <h3 className="text-xl font-bold text-black dark:text-white flex items-center gap-2"><History size={20} /> Payout History</h3>
-                        <span className="text-[10px] bg-slate-100 px-2 py-1 rounded-full font-bold text-slate-500 uppercase">{count} Entries</span>
+                        <span className="text-[10px] bg-slate-100 px-2 py-1 rounded-full font-bold text-slate-500 uppercase">{history.length} Entries</span>
                     </div>
 
-                    <div className="space-y-3 overflow-y-auto max-h-[600px] pr-2 menu-scrollbar flex-grow">
+                    <div className="flex-1 overflow-y-auto pr-2 menu-scrollbar space-y-3">
                         {historyLoading ? (
                             <p className="text-center py-10 text-gray-500 dark:text-gray-400 animate-pulse">Loading records...</p>
                         ) : history.length === 0 ? (
                             <div className="text-center py-20 border-2 border-dashed border-transparent rounded-3xl text-gray-500 dark:text-gray-400">
-                                No incentives recorded yet.
+                                No incentives recorded for this week yet.
                             </div>
                         ) : history.map((item, idx) => (
                             <div key={item.id} className="group relative">
@@ -180,7 +208,7 @@ export default function IncentivesPage() {
                                             <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-black">{item.staff_name[0]}</div>
                                             <div>
                                                 <p className="font-bold text-black dark:text-white">{item.staff_name}</p>
-                                                <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase">{format(new Date(item.payout_date), 'EEEE, MMM dd, yyyy')}</p>
+                                                <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase">{format(new Date(item.payout_date), 'MMM dd, yyyy')}</p>
                                             </div>
                                         </div>
                                         <div className="text-right">
@@ -192,13 +220,6 @@ export default function IncentivesPage() {
                             </div>
                         ))}
                     </div>
-                    {totalPages > 1 && (
-                        <div className="flex justify-between items-center pt-4">
-                            <Button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} variant="ghost">Previous</Button>
-                            <span className="text-sm text-gray-500">{page} of {totalPages}</span>
-                            <Button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} variant="ghost">Next</Button>
-                        </div>
-                    )}
                 </div>
             </div>
         </div>
