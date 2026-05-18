@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../../lib/supabaseClient';
 import { useStore } from '../../store/useStore';
-import { Mail, Lock, LogIn } from 'lucide-react';
+import { Mail, Lock, LogIn, User } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -10,19 +10,17 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isDemoLoading, setIsDemoLoading] = useState(false);
   const setAuth = useStore(state => state.setAuth);
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
+  const performLogin = async (loginEmail, loginPassword) => {
     setError(null);
-    setIsLoading(true);
-
     try {
       const { data: userPayload, error: authError } = await supabase.rpc(
         'authenticate_user',
         {
-          p_email: email,
-          p_password: password,
+          p_email: loginEmail,
+          p_password: loginPassword,
         }
       );
 
@@ -38,9 +36,23 @@ export default function LoginPage() {
     } catch (err) {
       console.error('Login exception:', err.message);
       setError('An error occurred during login. Please try again.');
-    } finally {
-      setIsLoading(false);
     }
+  };
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    await performLogin(email, password);
+    setIsLoading(false);
+  };
+
+  const handleDemoLogin = async () => {
+    setIsDemoLoading(true);
+    // Replace with your actual demo credentials
+    const demoEmail = 'demo@example.com';
+    const demoPassword = 'demopassword';
+    await performLogin(demoEmail, demoPassword);
+    setIsDemoLoading(false);
   };
 
   return (
@@ -84,17 +96,34 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
-            </div>
-            <br></br>
-
+            </div><br></br>
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || isDemoLoading}
               className="flex w-full items-center justify-center gap-3 rounded-xl bg-blue-600 px-4 py-4 text-lg font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-blue-400"
             >
               {isLoading ? 'Verifying...' : <> <LogIn className="h-6 w-6" /> Sign In </>}
             </button>
           </form>
+          
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-white px-2 text-muted-foreground">
+                Or continue with
+              </span>
+            </div>
+          </div>
+
+          <button
+            onClick={handleDemoLogin}
+            disabled={isLoading || isDemoLoading}
+            className="flex w-full items-center justify-center gap-3 rounded-xl border border-gray-300 bg-white px-4 py-4 text-lg font-semibold text-gray-700 transition-colors hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-2 disabled:opacity-50"
+          >
+            {isDemoLoading ? 'Logging in...' : <> <User className="h-6 w-6" /> Continue as Demo User </>}
+          </button>
         </div>
       </div>
       <div className="hidden bg-gray-100 lg:flex items-center justify-center p-8">
