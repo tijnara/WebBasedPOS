@@ -46,13 +46,27 @@ export default function LoginPage() {
     setIsLoading(false);
   };
 
-  const handleDemoLogin = async () => {
+  const handleDemoLogin = () => {
     setIsDemoLoading(true);
-    // Replace with your actual demo credentials
-    const demoEmail = 'demo@example.com';
-    const demoPassword = 'demopassword';
-    await performLogin(demoEmail, demoPassword);
-    setIsDemoLoading(false);
+    
+    // Create a mock user object for the demo session
+    const demoUser = {
+      id: 'demo-user',
+      name: 'Demo User',
+      email: 'demo@example.com',
+      role: 'Admin',
+      isadmin: true,
+      is_demo: true, // This flag is crucial for read-only mode
+    };
+
+    // Set the mock user in the global state
+    setAuth(demoUser);
+    localStorage.setItem('custom_session', JSON.stringify(demoUser));
+    
+    // Redirect to the main application
+    router.push('/pos');
+    
+    // No need to set isDemoLoading to false as the page will redirect
   };
 
   return (
@@ -72,7 +86,7 @@ export default function LoginPage() {
               </div>
             )}
             <div className="relative">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" /><br></br><br></br><br></br>
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" /><br></br>
               <input
                 id="email"
                 name="email"
@@ -85,7 +99,7 @@ export default function LoginPage() {
               />
             </div>
             <div className="relative">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" /><br></br><br></br><br></br>
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" /><br></br>
               <input
                 id="password"
                 name="password"
