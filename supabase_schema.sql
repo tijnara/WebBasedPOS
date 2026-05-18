@@ -47,3 +47,25 @@ CREATE TABLE IF NOT EXISTS public.incentives (
 ALTER TABLE public.incentives ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow all access for staff" ON public.incentives FOR ALL USING (true) WITH CHECK (true);
 
+CREATE OR REPLACE FUNCTION authenticate_user(p_email TEXT, p_password TEXT)
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  found_user RECORD;
+BEGIN
+  -- Query the custom users table for a matching email and password
+  SELECT id, name, email, phone, role, isadmin
+  INTO found_user
+  FROM public.users
+  WHERE email = p_email AND password = p_password;
+
+  -- Return user payload if credentials match, otherwise return null
+  IF FOUND THEN
+    RETURN row_to_json(found_user);
+  ELSE
+    RETURN NULL;
+  END IF;
+END;
+$$;
