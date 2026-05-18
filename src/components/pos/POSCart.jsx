@@ -29,7 +29,8 @@ const POSCart = ({
                      lastCustomer,
                      onEditItem,
                      handleSetQuantity,
-                     stockWarningKey
+                     stockWarningKey,
+                     isDemo
                  }) => {
 
     return (
@@ -38,7 +39,7 @@ const POSCart = ({
                 <CardHeader className="bg-gray-50 rounded-t-xl flex-shrink-0">
                     <div className="flex justify-between items-center">
                         <h3 className="font-semibold text-lg text-primary">Current Order</h3>
-                        <Button variant="ghost" size="sm" className="p-1 h-auto text-destructive" onClick={clearSale} title="Clear Sale (Shift+Del)">✖ Clear (Shift+Del)</Button>
+                        <Button variant="ghost" size="sm" className="p-1 h-auto text-destructive" onClick={clearSale} title="Clear Sale (Shift+Del)" disabled={isDemo}>✖ Clear (Shift+Del)</Button>
                     </div>
                 </CardHeader>
                 <CardContent className="p-0 flex-1 relative flex flex-col min-h-0">
@@ -93,7 +94,7 @@ const POSCart = ({
                                                 size="sm"
                                                 className="p-1 h-auto text-gray-500 hover:text-primary"
                                                 onClick={() => handleDecreaseQuantity(key)}
-                                                disabled={item.quantity <= 1}
+                                                disabled={item.quantity <= 1 || isDemo}
                                             >
                                                 -
                                             </Button>
@@ -113,12 +114,14 @@ const POSCart = ({
                                                     e.target.select();
                                                 }}
                                                 onFocus={(e) => e.target.select()}
+                                                disabled={isDemo}
                                             />
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
                                                 className="p-1 h-auto text-gray-500 hover:text-primary"
                                                 onClick={() => handleIncreaseQuantity(key)}
+                                                disabled={isDemo}
                                             >
                                                 +
                                             </Button>
@@ -138,6 +141,7 @@ const POSCart = ({
                                                 onEditItem && onEditItem(key);
                                             }}
                                             title="Edit"
+                                            disabled={isDemo}
                                         >
                                             <EditIcon />
                                         </Button>
@@ -151,6 +155,7 @@ const POSCart = ({
                                                 handleRemoveItem(key);
                                             }}
                                             title="Remove"
+                                            disabled={isDemo}
                                         >
                                             <TrashIcon />
                                         </Button>
@@ -175,7 +180,7 @@ const POSCart = ({
                             variant="primary"
                             className="w-full h-12 text-lg rounded-lg shadow-md font-semibold flex items-center justify-center"
                             onClick={openPaymentModal}
-                            disabled={Object.keys(currentSale).length === 0 || createSaleMutation.isPending}
+                            disabled={Object.keys(currentSale).length === 0 || createSaleMutation.isPending || isDemo}
                         >
                             {createSaleMutation.isPending ? 'Processing...' : 'Proceed to Payment (F4)'}
                         </Button>

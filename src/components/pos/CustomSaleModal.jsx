@@ -13,7 +13,7 @@ import {
 } from '../ui';
 import { useStore } from '../../store/useStore';
 
-const CustomSaleModal = ({ isOpen, onClose, products, onAddItem }) => {
+const CustomSaleModal = ({ isOpen, onClose, products, onAddItem, isDemo }) => {
     const [customSaleProduct, setCustomSaleProduct] = useState('');
     const [customSalePrice, setCustomSalePrice] = useState('');
     const [customSaleQuantity, setCustomSaleQuantity] = useState('1');
@@ -83,6 +83,7 @@ const CustomSaleModal = ({ isOpen, onClose, products, onAddItem }) => {
                                 value={customSaleProduct}
                                 onChange={(e) => handleCustomProductChange(e.target.value)}
                                 required
+                                disabled={isDemo}
                             >
                                 <option value="" disabled>-- Select Product --</option>
                                 {products.map(p => (
@@ -103,6 +104,7 @@ const CustomSaleModal = ({ isOpen, onClose, products, onAddItem }) => {
                                 onChange={e => setCustomSalePrice(e.target.value)}
                                 required
                                 className="w-full"
+                                disabled={isDemo}
                             />
                         </div>
                         <div>
@@ -116,12 +118,13 @@ const CustomSaleModal = ({ isOpen, onClose, products, onAddItem }) => {
                                 onChange={e => setCustomSaleQuantity(e.target.value)}
                                 required
                                 className="w-full"
+                                disabled={isDemo}
                             />
                         </div>
                     </div>
                     <DialogFooter>
                         <Button variant="outline" type="button" onClick={onClose}>Cancel</Button>
-                        <Button type="submit" variant="primary">Add to Order</Button>
+                        <Button type="submit" variant="primary" disabled={isDemo}>Add to Order</Button>
                     </DialogFooter>
                 </form>
             </DialogContent>

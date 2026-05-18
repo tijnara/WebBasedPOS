@@ -25,6 +25,7 @@
     export default function ExpensesPage() {
         const queryClient = useQueryClient();
         const { user } = useStore(s => ({ user: s.user }));
+        const isDemo = user?.isDemo;
         // Initial filter states
         const initialDateFrom = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
         const initialDateTo = format(endOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
@@ -430,7 +431,7 @@
                             </div>
                             <form onSubmit={handleManualSubmit} className={`${editingExpense ? 'bg-amber-50 border-transparent' : 'bg-surface border-transparent'} p-4 rounded-3xl border-transparent shadow-sm mb-6 transition-colors`}>
                                 <div className="flex flex-col sm:flex-row gap-3 mb-3 items-stretch">
-                                    <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="₱0.00" required step="0.01" className="input flex-[1]" />
+                                    <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="₱0.00" required step="0.01" className="input flex-[1]" disabled={isDemo} />
 
                                     <div className="flex-[1] flex flex-col">
                                         <span className="text-[10px] uppercase font-bold text-text-muted ml-2 mb-1">Date</span>
@@ -440,6 +441,7 @@
                                             onChange={(e) => setExpenseDate(e.target.value)}
                                             required
                                             className="input"
+                                            disabled={isDemo}
                                         />
                                     </div>
 
@@ -450,6 +452,7 @@
                                             onChange={(e) => handleCategoryChange(e.target.value)}
                                             className="input w-full h-full cursor-pointer"
                                             required
+                                            disabled={isDemo}
                                         >
                                             <option value="" disabled>Select Category</option>
                                             {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
@@ -462,6 +465,7 @@
                                             onClick={handleEditCategory}
                                             className="btn bg-background text-text-muted hover:bg-border p-2 shrink-0"
                                             title="Edit Category Defaults"
+                                            disabled={isDemo}
                                         >
                                             <Edit className="w-4 h-4" />
                                         </button>
@@ -469,8 +473,8 @@
 
                                 </div>
                                 <div className="flex flex-col sm:flex-row gap-3">
-                                    <input type="text" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What did you buy?" required className="input flex-[2]" />
-                                    <button type="submit" disabled={createExpense.isPending || updateExpense.isPending} className="btn btn--primary flex-1 flex justify-center items-center gap-2">
+                                    <input type="text" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What did you buy?" required className="input flex-[2]" disabled={isDemo} />
+                                    <button type="submit" disabled={createExpense.isPending || updateExpense.isPending || isDemo} className="btn btn--primary flex-1 flex justify-center items-center gap-2">
                                         {createExpense.isPending || updateExpense.isPending ? '...' : (editingExpense ? 'Update' : 'Add')} {editingExpense ? <Edit className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                                     </button>
                                 </div>
@@ -579,12 +583,12 @@
                                                 </span>
                                                 <div className="flex gap-2 mt-1">
                                                     {!isVoided && (
-                                                        <button onClick={() => handleEditClick(exp)} className="p-1 text-text-muted hover:text-blue-500 transition-colors" title="Edit">
+                                                        <button onClick={() => handleEditClick(exp)} className="p-1 text-text-muted hover:text-blue-500 transition-colors" title="Edit" disabled={isDemo}>
                                                             <Edit className="w-3.5 h-3.5"/>
                                                         </button>
                                                     )}
                                                     
-                                                    <button onClick={() => handleDeleteClick(exp.id)} className="p-1 text-text-muted hover:text-red-500 transition-colors" title="Delete">
+                                                    <button onClick={() => handleDeleteClick(exp.id)} className="p-1 text-text-muted hover:text-red-500 transition-colors" title="Delete" disabled={isDemo}>
                                                         <Trash2 className="w-3.5 h-3.5"/>
                                                     </button>
 
@@ -596,6 +600,7 @@
                                                             }}
                                                             className="p-1 text-text-muted hover:text-orange-600 transition-colors"
                                                             title="Skip/Void this recurring item"
+                                                            disabled={isDemo}
                                                         >
                                                             <XCircle className="w-3.5 h-3.5"/>
                                                         </button>
@@ -662,6 +667,7 @@
                                         placeholder="e.g. Fuel, Maintenance"
                                         className="input w-full h-10 text-sm"
                                         autoFocus
+                                        disabled={isDemo}
                                     />
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -674,6 +680,7 @@
                                             placeholder="0.00"
                                             step="0.01"
                                             className="input w-full h-10 text-sm"
+                                            disabled={isDemo}
                                         />
                                     </div>
                                     <div className="space-y-1.5">
@@ -684,6 +691,7 @@
                                             onChange={(e) => setCatForm(prev => ({ ...prev, default_description: e.target.value }))}
                                             placeholder="e.g. Weekly Fuel Refill"
                                             className="input w-full h-10 text-sm"
+                                            disabled={isDemo}
                                         />
                                     </div>
                                 </div>
@@ -695,6 +703,7 @@
                                             checked={catForm.is_recurring}
                                             onChange={(e) => setCatForm(prev => ({ ...prev, is_recurring: e.target.checked, is_recurring_daily: e.target.checked ? false : prev.is_recurring_daily }))}
                                             className="w-4 h-4 text-primary rounded border-gray-300 focus:ring-primary"
+                                            disabled={isDemo}
                                         />
                                         <label htmlFor="is_recurring" className="text-sm font-medium text-gray-800">
                                             Auto-add every Monday
@@ -707,6 +716,7 @@
                                             checked={catForm.is_recurring_daily}
                                             onChange={(e) => setCatForm(prev => ({ ...prev, is_recurring_daily: e.target.checked, is_recurring: e.target.checked ? false : prev.is_recurring }))}
                                             className="w-4 h-4 text-primary rounded border-gray-300 focus:ring-primary"
+                                            disabled={isDemo}
                                         />
                                         <label htmlFor="is_recurring_daily" className="text-sm font-medium text-gray-800">
                                             Auto-add everyday
@@ -722,7 +732,7 @@
                                     </button>
                                     <button
                                         onClick={handleSaveCategory}
-                                        disabled={createCategory.isPending || updateCategory.isPending || !catForm.name.trim()}
+                                        disabled={createCategory.isPending || updateCategory.isPending || !catForm.name.trim() || isDemo}
                                         className="btn btn--primary flex-1 h-10 text-sm"
                                     >
                                         {createCategory.isPending || updateCategory.isPending ? 'Saving...' : 'Save Category'}
@@ -759,6 +769,7 @@
                                     placeholder="e.g. Supplier out of stock, already paid last week..."
                                     className="input w-full min-h-[100px] resize-none py-3 text-sm"
                                     autoFocus
+                                    disabled={isDemo}
                                  />
                             </div>
                         </div>
@@ -771,7 +782,7 @@
                             </button>
                             <button
                                 onClick={handleConfirmSkip}
-                                disabled={!reasonText.trim()}
+                                disabled={!reasonText.trim() || isDemo}
                                 className="btn flex-1 bg-orange-600 text-white font-bold disabled:opacity-50"
                             >
                                 Skip Item

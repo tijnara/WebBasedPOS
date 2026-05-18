@@ -30,6 +30,7 @@ const PaymentModal = ({
                           handleFinalizeSale,
                           createSaleMutation = { isPending: false },
                           customerPaymentInputRef,
+                          isDemo
                       }) => {
 
     const changeDue = useMemo(() => {
@@ -103,6 +104,7 @@ const PaymentModal = ({
                                         className="w-full h-12 text-base py-2.5 pl-10 focus:ring-primary focus:border-primary"
                                         ref={customerPaymentInputRef}
                                         autoComplete="off"
+                                        disabled={isDemo}
                                     />
                                     <div className="absolute left-3 top-3.5 text-gray-400">
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -119,6 +121,7 @@ const PaymentModal = ({
                                         variant="outline"
                                         className="w-full justify-start text-left h-auto py-2 px-3 bg-gray-50 hover:bg-gray-100"
                                         onClick={() => handleSelectCustomerInPayment(lastCustomer)}
+                                        disabled={isDemo}
                                     >
                                         <span className="text-xs text-gray-500 mr-2">Last:</span>
                                         <span className="font-medium text-gray-800">{lastCustomer.name}</span>
@@ -134,6 +137,7 @@ const PaymentModal = ({
                                             variant="ghost"
                                             className="w-full justify-start text-left h-auto py-3 px-3 text-sm font-medium hover:bg-white hover:border-gray-100"
                                             onClick={() => handleSelectCustomerInPayment(null)}
+                                            disabled={isDemo}
                                         >
                                             <span className="bg-gray-200 p-1 rounded mr-3 text-gray-600">
                                                 <UserIcon className="w-4 h-4" />
@@ -155,6 +159,7 @@ const PaymentModal = ({
                                                         variant="ghost"
                                                         className="w-full justify-start text-left h-auto py-2.5 px-3 hover:bg-white hover:shadow-sm transition-all group"
                                                         onClick={() => handleSelectCustomerInPayment(customer)}
+                                                        disabled={isDemo}
                                                     >
                                                         <div className="flex flex-col items-start">
                                                             <span className="font-medium text-gray-900 group-hover:text-blue-700">{customer.name}</span>
@@ -171,7 +176,7 @@ const PaymentModal = ({
                                                     size="sm"
                                                     className="w-full"
                                                     onClick={() => handleAddCustomer(searchTerm)}
-                                                    disabled={createCustomerMutation.isPending}
+                                                    disabled={createCustomerMutation.isPending || isDemo}
                                                 >
                                                     {createCustomerMutation.isPending ? 'Creating...' : `+ Add "${searchTerm}"`}
                                                 </Button>
@@ -215,6 +220,7 @@ const PaymentModal = ({
                                         value={paymentMethod}
                                         onChange={(e) => setPaymentMethod(e.target.value)}
                                         className="w-full h-12 py-2 text-base focus:border-primary focus:ring-primary"
+                                        disabled={isDemo}
                                     >
                                         <option value="Cash">Cash</option>
                                         <option value="Card">Card</option>
@@ -238,11 +244,12 @@ const PaymentModal = ({
                                                 onChange={e => setAmountReceived(e.target.value)}
                                                 className="w-full h-14 pl-10 text-3xl font-bold text-gray-900 bg-gray-50 focus:bg-white focus:border-primary transition-all"
                                                 placeholder="0.00"
+                                                disabled={isDemo}
                                             />
                                         </div>
 
                                         <div className="grid grid-cols-4 gap-2 mt-3">
-                                            <Button variant="outline" size="sm" onClick={() => setAmountReceived(subtotal.toFixed(2))} className="text-xs h-9 bg-white hover:bg-gray-50">Exact</Button>
+                                            <Button variant="outline" size="sm" onClick={() => setAmountReceived(subtotal.toFixed(2))} className="text-xs h-9 bg-white hover:bg-gray-50" disabled={isDemo}>Exact</Button>
                                             {[100, 500, 1000].map(amt => (
                                                 <Button
                                                     key={amt}
@@ -250,6 +257,7 @@ const PaymentModal = ({
                                                     size="sm"
                                                     onClick={() => setAmountReceived(amt.toString())}
                                                     className="text-xs h-9 font-medium bg-white hover:bg-gray-50"
+                                                    disabled={isDemo}
                                                 >
                                                     ₱{amt}
                                                 </Button>
@@ -304,11 +312,11 @@ const PaymentModal = ({
                                 <div className="grid grid-cols-2 gap-4 pt-2">
                                     <div>
                                         <Label className="text-xs text-gray-500 mb-1 block">Date</Label>
-                                        <Input type="date" value={saleDate} onChange={e => setSaleDate(e.target.value)} className="h-9 text-sm bg-white" />
+                                        <Input type="date" value={saleDate} onChange={e => setSaleDate(e.target.value)} className="h-9 text-sm bg-white" disabled={isDemo} />
                                     </div>
                                     <div>
                                         <Label className="text-xs text-gray-500 mb-1 block">Time</Label>
-                                        <Input type="time" value={saleTime} onChange={e => setSaleTime(e.target.value)} className="h-9 text-sm bg-white" />
+                                        <Input type="time" value={saleTime} onChange={e => setSaleTime(e.target.value)} className="h-9 text-sm bg-white" disabled={isDemo} />
                                     </div>
                                 </div>
                             </div>
@@ -331,7 +339,8 @@ const PaymentModal = ({
                             createSaleMutation.isPending ||
                             (paymentMethod === 'Cash' && parseFloat(amountReceived || 0) < parseFloat(subtotal)) ||
                             (paymentMethod === 'Cash' && !amountReceived) ||
-                            (paymentMethod === 'Charge' && !selectedCustomer)
+                            (paymentMethod === 'Charge' && !selectedCustomer) ||
+                            isDemo
                         }
                         variant="primary"
                         className="w-full sm:w-auto px-8 h-12 text-base font-bold shadow-md hover:shadow-lg transition-all btn--primary"

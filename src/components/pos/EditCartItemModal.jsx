@@ -5,7 +5,7 @@ import {
 } from '../ui';
 import currency from 'currency.js';
 
-export default function EditCartItemModal({ isOpen, onClose, item, onSave }) {
+export default function EditCartItemModal({ isOpen, onClose, item, onSave, isDemo }) {
     const [quantity, setQuantity] = useState(1);
     const [discountType, setDiscountType] = useState('none');
     const [discountValue, setDiscountValue] = useState(0);
@@ -72,6 +72,7 @@ export default function EditCartItemModal({ isOpen, onClose, item, onSave }) {
                             onChange={(e) => setQuantity(e.target.value)}
                             className="h-11"
                             required
+                            disabled={isDemo}
                         />
                     </div>
 
@@ -84,6 +85,7 @@ export default function EditCartItemModal({ isOpen, onClose, item, onSave }) {
                                 value={discountType}
                                 onChange={(e) => setDiscountType(e.target.value)}
                                 className="h-11"
+                                disabled={isDemo}
                             >
                                 <option value="none">None</option>
                                 <option value="fixed">Fixed Amount (₱)</option>
@@ -99,7 +101,7 @@ export default function EditCartItemModal({ isOpen, onClose, item, onSave }) {
                                 step="0.01"
                                 value={discountValue}
                                 onChange={(e) => setDiscountValue(e.target.value)}
-                                disabled={discountType === 'none'}
+                                disabled={discountType === 'none' || isDemo}
                                 className="h-11"
                             />
                         </div>
@@ -127,12 +129,13 @@ export default function EditCartItemModal({ isOpen, onClose, item, onSave }) {
                             onChange={(e) => setNote(e.target.value)}
                             placeholder="e.g. Damaged, Employee Meal"
                             className="h-11"
+                            disabled={isDemo}
                         />
                     </div>
 
                     <DialogFooter className="pt-2">
                         <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-                        <Button type="submit" variant="primary">Update Item</Button>
+                        <Button type="submit" variant="primary" disabled={isDemo}>Update Item</Button>
                     </DialogFooter>
                 </form>
             </DialogContent>

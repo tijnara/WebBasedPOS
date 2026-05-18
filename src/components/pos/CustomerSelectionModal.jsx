@@ -15,6 +15,7 @@ const CustomerSelectionModal = ({
     debouncedSearchTerm,
     handleAddCustomer,
     createCustomerMutation,
+    isDemo
 }) => {
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -82,7 +83,7 @@ const CustomerSelectionModal = ({
                                                     variant="primary"
                                                     size="sm"
                                                     onClick={() => handleAddCustomer(debouncedSearchTerm)}
-                                                    disabled={createCustomerMutation.isPending}
+                                                    disabled={createCustomerMutation.isPending || isDemo}
                                                     className="px-4"
                                                 >
                                                     {createCustomerMutation.isPending ? 'Adding...' : `+ Add "${debouncedSearchTerm}"`}
@@ -102,6 +103,7 @@ const CustomerSelectionModal = ({
                         className="px-6 py-4 border-t bg-gray-50 flex-shrink-0"
                         style={{ backgroundColor: '#f9fafb' }}
                     >
+
                         <div className="flex w-full justify-end">
                             <Button variant="outline" onClick={() => setIsOpen(false)} className="px-6">Close</Button>
                         </div>

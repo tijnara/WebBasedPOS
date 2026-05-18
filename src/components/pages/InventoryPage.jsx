@@ -23,7 +23,7 @@ const ArrowRightIcon = ({ className }) => (
 );
 
 // --- Sub-Component: Adjustment Form (Compact) ---
-function InventoryAdjustment({ product, onAdjust, onCancel }) {
+function InventoryAdjustment({ product, onAdjust, onCancel, isDemo }) {
     const [quantity, setQuantity] = useState('');
     const [reason, setReason] = useState('damaged');
     const { addToast } = useStore();
@@ -74,6 +74,7 @@ function InventoryAdjustment({ product, onAdjust, onCancel }) {
                                 onChange={e => setQuantity(e.target.value)}
                                 autoFocus
                                 className="text-base font-medium h-10"
+                                disabled={isDemo}
                             />
                         </div>
                         <div className="space-y-1.5">
@@ -82,6 +83,7 @@ function InventoryAdjustment({ product, onAdjust, onCancel }) {
                                 value={reason}
                                 onChange={e => setReason(e.target.value)}
                                 className="h-10 text-sm"
+                                disabled={isDemo}
                             >
                                 <option value="damaged">Damaged / Broken</option>
                                 <option value="expired">Expired</option>
@@ -94,7 +96,7 @@ function InventoryAdjustment({ product, onAdjust, onCancel }) {
 
                     <div className="pt-2 flex gap-3">
                         <Button onClick={onCancel} variant="outline" className="flex-1 h-10 text-sm">Cancel</Button>
-                        <Button onClick={handleAdjust} className="flex-1 h-10 text-sm btn--danger shadow-sm">
+                        <Button onClick={handleAdjust} className="flex-1 h-10 text-sm btn--danger shadow-sm" disabled={isDemo}>
                             Confirm Removal
                         </Button>
                     </div>
@@ -105,7 +107,7 @@ function InventoryAdjustment({ product, onAdjust, onCancel }) {
 }
 
 // --- Sub-Component: Restock Form (Compact) ---
-function RestockForm({ product, onRestock, onCancel }) {
+function RestockForm({ product, onRestock, onCancel, isDemo }) {
     const [addQty, setAddQty] = useState('');
     const [expiry, setExpiry] = useState('');
     const { addToast } = useStore();
@@ -156,6 +158,7 @@ function RestockForm({ product, onRestock, onCancel }) {
                                 onChange={e => setAddQty(e.target.value)}
                                 autoFocus
                                 className="text-base font-medium h-10"
+                                disabled={isDemo}
                             />
                         </div>
                         <div className="space-y-1.5">
@@ -165,13 +168,14 @@ function RestockForm({ product, onRestock, onCancel }) {
                                 value={expiry}
                                 onChange={e => setExpiry(e.target.value)}
                                 className="h-10 text-sm"
+                                disabled={isDemo}
                             />
                         </div>
                     </div>
 
                     <div className="pt-2 flex gap-3">
                         <Button onClick={onCancel} variant="outline" className="flex-1 h-10 text-sm">Cancel</Button>
-                        <Button onClick={handleConfirm} className="flex-1 h-10 text-sm btn--success shadow-sm">
+                        <Button onClick={handleConfirm} className="flex-1 h-10 text-sm btn--success shadow-sm" disabled={isDemo}>
                             Confirm Restock
                         </Button>
                     </div>
@@ -182,7 +186,7 @@ function RestockForm({ product, onRestock, onCancel }) {
 }
 
 // --- Sub-Component: Break Bulk Grid (Compact) ---
-function BreakBulk({ products, onSuccess }) {
+function BreakBulk({ products, onSuccess, isDemo }) {
     const childProducts = products.filter(p => p.parent_product_id && p.conversion_rate > 1);
     const { user, addToast } = useStore();
     const queryClient = useQueryClient();
@@ -278,7 +282,7 @@ function BreakBulk({ products, onSuccess }) {
                                 <div className="px-4 pb-4">
                                     <Button
                                         onClick={() => handleBreak(child)}
-                                        disabled={!canBreak}
+                                        disabled={!canBreak || isDemo}
                                         className={`w-full h-9 text-sm shadow-sm ${canBreak ? 'btn--primary' : 'bg-gray-200 text-gray-400 cursor-not-allowed hover:bg-gray-200'}`}
                                     >
                                         {canBreak ? (
@@ -311,6 +315,7 @@ export default function InventoryPage() {
 
     const [selectedProduct, setSelectedProduct] = useState(null);
     const { user, addToast } = useStore();
+    const isDemo = user?.isDemo;
     const [mode, setMode] = useState('restock'); // 'restock', 'adjust', 'convert'
 
     const { restockProductId } = router.query;
@@ -465,7 +470,7 @@ export default function InventoryPage() {
 
             {/* 1. BREAK BULK MODE (Uses fetchAll=true) */}
             {mode === 'convert' && (
-                <BreakBulk products={products} onSuccess={refetch} />
+                <BreakBulk products={products} onSuccess={refetch} isDemo={isDemo} />
             )}
 
             {/* 2. RESTOCK & ADJUST MODES (Paginated) */}
@@ -541,6 +546,7 @@ export default function InventoryPage() {
                                                                 variant={mode === 'restock' ? 'primary' : 'outline'}
                                                                 onClick={() => setSelectedProduct(product)}
                                                                 className={`h-8 text-xs px-3 ${mode === 'adjust' ? 'text-red-600 border-red-200 hover:bg-red-50' : 'btn--primary shadow-sm'}`}
+                                                                disabled={isDemo}
                                                             >
                                                                 {mode === 'restock' ? 'Select' : 'Adjust'}
                                                             </Button>
@@ -568,6 +574,7 @@ export default function InventoryPage() {
                             product={selectedProduct}
                             onRestock={handleRestock}
                             onCancel={() => setSelectedProduct(null)}
+                            isDemo={isDemo}
                         />
                     )}
 
@@ -576,6 +583,7 @@ export default function InventoryPage() {
                             product={selectedProduct}
                             onAdjust={handleAdjustment}
                             onCancel={() => setSelectedProduct(null)}
+                            isDemo={isDemo}
                         />
                     )}
                 </>

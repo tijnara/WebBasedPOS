@@ -72,6 +72,8 @@ export default function CustomerManagementPage() {
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
+    const { user } = useStore();
+    const isDemo = user?.isDemo;
 
     const { data: customersData = { customers: [], totalPages: 1 }, isLoading } = useCustomers({
         page: currentPage,
@@ -82,7 +84,6 @@ export default function CustomerManagementPage() {
     const customers = customersData.customers;
     const totalPages = customersData.totalPages;
     const addToast = useStore(s => s.addToast);
-    const isDemo = useStore(s => s.user?.isDemo);
 
     const createCustomer = useCreateCustomer();
     const updateCustomer = useUpdateCustomer();
@@ -214,7 +215,7 @@ export default function CustomerManagementPage() {
                         </p>
                     </div>
                     {/* The Add Customer trigger */}
-                    <Button onClick={openModal} variant="primary" className="shadow-sm font-semibold">
+                    <Button onClick={openModal} variant="primary" className="shadow-sm font-semibold" disabled={isDemo}>
                         + Add Customer
                     </Button>
                 </div>
@@ -291,6 +292,7 @@ export default function CustomerManagementPage() {
                                                                 size="sm"
                                                                 className="h-8 text-xs font-semibold bg-green-50 text-green-700 border-green-200 hover:bg-green-100 hover:text-green-800 dark:bg-green-900/50 dark:text-green-300 dark:border-green-800 dark:hover:bg-green-800/50 dark:hover:text-green-200 transition-colors"
                                                                 onClick={() => setRepayCustomer(c)}
+                                                                disabled={isDemo}
                                                             >
                                                                 Pay
                                                             </Button>
@@ -357,6 +359,7 @@ export default function CustomerManagementPage() {
                                                         size="sm"
                                                         className="h-9 text-sm font-semibold bg-green-50 text-green-700 border-green-200 w-full mr-2 dark:bg-green-900/50 dark:text-green-300 dark:border-green-800"
                                                         onClick={() => setRepayCustomer(c)}
+                                                        disabled={isDemo}
                                                     >
                                                         Repay Debt
                                                     </Button>
@@ -415,6 +418,7 @@ export default function CustomerManagementPage() {
                                             required
                                             placeholder="e.g. Juan Dela Cruz"
                                             autoFocus
+                                            disabled={isDemo}
                                             className="w-full pl-11 py-2.5 h-11 rounded-xl bg-gray-50/50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-gray-900 dark:text-gray-100"
                                         />
                                     </div>
@@ -432,6 +436,7 @@ export default function CustomerManagementPage() {
                                                 value={phone}
                                                 onChange={(e) => setPhone(e.target.value)}
                                                 placeholder="0917 123 4567"
+                                                disabled={isDemo}
                                                 className="w-full pl-10 py-2.5 h-11 rounded-xl bg-gray-50/50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-mono text-sm"
                                             />
                                         </div>
@@ -449,6 +454,7 @@ export default function CustomerManagementPage() {
                                                 value={email}
                                                 onChange={(e) => setEmail(e.target.value)}
                                                 placeholder="juan@email.com"
+                                                disabled={isDemo}
                                                 className="w-full pl-10 py-2.5 h-11 rounded-xl bg-gray-50/50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                                             />
                                         </div>
@@ -466,6 +472,7 @@ export default function CustomerManagementPage() {
                                             value={address}
                                             onChange={(e) => setAddress(e.target.value)}
                                             placeholder="House No., Street, Barangay, City"
+                                            disabled={isDemo}
                                             className="w-full pl-11 py-2.5 h-11 rounded-xl bg-gray-50/50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                                         />
                                     </div>
@@ -485,7 +492,7 @@ export default function CustomerManagementPage() {
                                 </Button>
                                 <Button
                                     type="submit"
-                                    disabled={isMutating}
+                                    disabled={isMutating || isDemo}
                                     className="px-6 h-10 rounded-lg shadow-sm btn--primary font-semibold text-sm hover:-translate-y-0.5 transition-transform bg-blue-600 hover:bg-blue-700 text-white"
                                 >
                                     {isMutating ? 'Saving...' : (editing ? 'Update Customer' : 'Save Customer')}
@@ -504,6 +511,7 @@ export default function CustomerManagementPage() {
                         customer={repayCustomer}
                         onRepay={handleRepayment}
                         isMutating={repayDebt.isPending}
+                        isDemo={isDemo}
                     />
                 )}
             </div>

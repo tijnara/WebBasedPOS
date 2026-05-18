@@ -22,10 +22,11 @@ import { EditIcon, DeleteIcon, PackageIcon } from '../Icons';
 import { Image as ImageIcon, Eye, EyeOff } from 'lucide-react';
 
 // --- Component: Image Uploader UI (Helper) ---
-const ImageUploader = ({ previewUrl, onFileSelect }) => {
+const ImageUploader = ({ previewUrl, onFileSelect, disabled }) => {
     const fileInputRef = useRef(null);
 
     const handleDivClick = () => {
+        if (disabled) return;
         fileInputRef.current.click();
     };
 
@@ -39,7 +40,7 @@ const ImageUploader = ({ previewUrl, onFileSelect }) => {
     return (
         <div
             onClick={handleDivClick}
-            className="cursor-pointer group relative w-full aspect-square bg-gray-50 dark:bg-slate-800 border-2 border-dashed border-gray-300 dark:border-slate-700 hover:border-primary rounded-xl flex flex-col items-center justify-center transition-all overflow-hidden"
+            className={`cursor-pointer group relative w-full aspect-square bg-gray-50 dark:bg-slate-800 border-2 border-dashed border-gray-300 dark:border-slate-700 hover:border-primary rounded-xl flex flex-col items-center justify-center transition-all overflow-hidden ${disabled ? 'cursor-not-allowed' : ''}`}
         >
             {previewUrl ? (
                 <>
@@ -61,6 +62,7 @@ const ImageUploader = ({ previewUrl, onFileSelect }) => {
                 className="hidden"
                 accept="image/*"
                 onChange={handleFileChange}
+                disabled={disabled}
             />
         </div>
     );
@@ -79,6 +81,7 @@ export default function ProductManagementPage() {
 
     const { addToast, user } = useStore(s => ({ addToast: s.addToast, user: s.user }));
     const isAdmin = user?.role === 'Admin' || user?.role === 'admin';
+    const isDemo = user?.isDemo;
 
     const createProduct = useCreateProduct();
     const updateProduct = useUpdateProduct();
@@ -359,6 +362,7 @@ export default function ProductManagementPage() {
                         variant="outline"
                         onClick={() => fileInputRef.current && fileInputRef.current.click()}
                         className="hidden md:inline-flex h-11 rounded-xl dark:border-slate-700 dark:text-slate-200"
+                        disabled={isDemo}
                     >
                         Import CSV
                     </Button>
@@ -368,8 +372,9 @@ export default function ProductManagementPage() {
                         ref={fileInputRef}
                         style={{ display: 'none' }}
                         onChange={handleCSVUpload}
+                        disabled={isDemo}
                     />
-                    <Button variant="primary" onClick={openModal} className="w-full md:w-auto h-11 rounded-xl shadow-md font-semibold">Add Product</Button>
+                    <Button variant="primary" onClick={openModal} className="w-full md:w-auto h-11 rounded-xl shadow-md font-semibold" disabled={isDemo}>Add Product</Button>
                 </div>
             </div>
 
@@ -437,11 +442,11 @@ export default function ProductManagementPage() {
                                             </TableCell>
                                             <TableCell className="text-right">
                                                 <div className="flex justify-end space-x-1">
-                                                    <Button variant="ghost" size="icon" onClick={() => toggleHide(p)} className="hover:bg-slate-800 h-8 w-8" title={p.is_hidden ? "Unhide from POS" : "Hide from POS"}>
+                                                    <Button variant="ghost" size="icon" onClick={() => toggleHide(p)} className="hover:bg-slate-800 h-8 w-8" title={p.is_hidden ? "Unhide from POS" : "Hide from POS"} disabled={isDemo}>
                                                         {p.is_hidden ? <EyeOff className="w-4 h-4 text-orange-500" /> : <Eye className="w-4 h-4" />}
                                                     </Button>
-                                                    <Button variant="ghost" size="icon" onClick={() => startEdit(p)} className="text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/50 h-8 w-8"><EditIcon /></Button>
-                                                    <Button variant="ghost" size="icon" onClick={() => remove(p)} className="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/50 h-8 w-8"><DeleteIcon /></Button>
+                                                    <Button variant="ghost" size="icon" onClick={() => startEdit(p)} className="text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/50 h-8 w-8" disabled={isDemo}><EditIcon /></Button>
+                                                    <Button variant="ghost" size="icon" onClick={() => remove(p)} className="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/50 h-8 w-8" disabled={isDemo}><DeleteIcon /></Button>
                                                 </div>
                                             </TableCell>
                                         </TableRow>
@@ -509,12 +514,14 @@ export default function ProductManagementPage() {
                                         onClick={() => toggleHide(p)}
                                         className="p-1.5 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
                                         title={p.is_hidden ? "Unhide" : "Hide"}
+                                        disabled={isDemo}
                                     >
                                         {p.is_hidden ? <EyeOff className="w-4 h-4 text-orange-500" /> : <Eye className="w-4 h-4" />}
                                     </button>
                                     <button
                                         onClick={() => startEdit(p)}
                                         className="text-blue-600 dark:text-blue-400 p-1.5 hover:bg-blue-50 dark:hover:bg-blue-900/50 rounded-lg transition-colors"
+                                        disabled={isDemo}
                                     >
                                         <EditIcon className="w-4 h-4" />
                                     </button>
@@ -523,6 +530,7 @@ export default function ProductManagementPage() {
                                     <button
                                         onClick={() => remove(p)}
                                         className="text-red-500 dark:text-red-400 p-1.5 hover:bg-red-50 dark:hover:bg-red-900/50 rounded-lg transition-colors"
+                                        disabled={isDemo}
                                     >
                                         <DeleteIcon className="w-4 h-4" />
                                     </button>
@@ -565,7 +573,7 @@ export default function ProductManagementPage() {
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                                     <div className="md:col-span-1">
                                         <Label className="text-sm font-bold mb-2 block uppercase tracking-wide">Product Image</Label>
-                                        <ImageUploader previewUrl={imagePreview} onFileSelect={handleFileSelect} />
+                                        <ImageUploader previewUrl={imagePreview} onFileSelect={handleFileSelect} disabled={isDemo} />
                                         <p className="text-[10px] mt-3 text-center italic leading-tight">
                                             Recommended: Square (1:1) PNG or JPG format
                                         </p>
@@ -582,6 +590,7 @@ export default function ProductManagementPage() {
                                                 required
                                                 placeholder="e.g. Purified Water (5 Gal)"
                                                 className="bg-gray-50/50 dark:bg-slate-900/50 border-gray-200 dark:border-slate-700 h-11 rounded-xl focus:bg-white dark:focus:bg-slate-900 transition-all"
+                                                disabled={isDemo}
                                             />
                                         </div>
 
@@ -589,7 +598,7 @@ export default function ProductManagementPage() {
                                             <div className="grid gap-2">
                                                 <Label htmlFor="category" className="text-sm font-semibold">Category</Label>
                                                 <div className="flex gap-2">
-                                                    <Select value={category} onChange={e => setCategory(e.target.value)} className="w-full bg-gray-50/50 dark:bg-slate-900/50 border-gray-200 dark:border-slate-700 h-11 rounded-xl">
+                                                    <Select value={category} onChange={e => setCategory(e.target.value)} className="w-full bg-gray-50/50 dark:bg-slate-900/50 border-gray-200 dark:border-slate-700 h-11 rounded-xl" disabled={isDemo}>
                                                         {mergedCategories.map(c => <option key={c} value={c}>{c}</option>)}
                                                     </Select>
                                                     <Button
@@ -598,6 +607,7 @@ export default function ProductManagementPage() {
                                                         size="icon"
                                                         className="shrink-0 h-11 w-11 rounded-xl border-gray-200 dark:border-slate-700"
                                                         onClick={() => setIsAddingCategory(prev => !prev)}
+                                                        disabled={isDemo}
                                                     >
                                                         +
                                                     </Button>
@@ -611,6 +621,7 @@ export default function ProductManagementPage() {
                                                     onChange={e => setBarcode(e.target.value)}
                                                     placeholder="Scan or enter code"
                                                     className="bg-gray-50/50 dark:bg-slate-900/50 border-gray-200 dark:border-slate-700 h-11 font-mono text-sm rounded-xl"
+                                                    disabled={isDemo}
                                                 />
                                             </div>
                                         </div>
@@ -622,8 +633,9 @@ export default function ProductManagementPage() {
                                                     value={newCategoryName}
                                                     onChange={e => setNewCategoryName(e.target.value)}
                                                     className="bg-white dark:bg-slate-900 h-10 border-blue-200 dark:border-blue-800 rounded-xl"
+                                                    disabled={isDemo}
                                                 />
-                                                <Button type="button" size="sm" onClick={addCategory} className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-4">Add</Button>
+                                                <Button type="button" size="sm" onClick={addCategory} className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-4" disabled={isDemo}>Add</Button>
                                             </div>
                                         )}
                                     </div>
@@ -642,26 +654,26 @@ export default function ProductManagementPage() {
                                             <Label htmlFor="cost" className="text-[10px] font-black uppercase tracking-widest">Cost Price</Label>
                                             <div className="relative">
                                                 <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold">₱</span>
-                                                <Input id="cost" type="number" step="0.01" value={cost} onChange={e => setCost(e.target.value)} className="pl-8 bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-700 h-10 rounded-xl" />
+                                                <Input id="cost" type="number" step="0.01" value={cost} onChange={e => setCost(e.target.value)} className="pl-8 bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-700 h-10 rounded-xl" disabled={isDemo} />
                                             </div>
                                         </div>
                                         <div className="grid gap-2 p-5 bg-primary/5 dark:bg-green-500/5 rounded-2xl border border-primary/20 dark:border-green-500/20 transition-colors">
                                             <Label htmlFor="price" className="text-[10px] text-primary dark:text-green-500 font-black uppercase tracking-widest">Selling Price</Label>
                                             <div className="relative">
                                                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-primary dark:text-green-500 font-black">₱</span>
-                                                <Input id="price" type="number" step="0.01" value={price} onChange={e => setPrice(e.target.value)} className="pl-8 bg-white dark:bg-slate-900 border-primary/20 dark:border-green-500/30 h-10 font-black rounded-xl" />
+                                                <Input id="price" type="number" step="0.01" value={price} onChange={e => setPrice(e.target.value)} className="pl-8 bg-white dark:bg-slate-900 border-primary/20 dark:border-green-500/30 h-10 font-black rounded-xl" disabled={isDemo} />
                                             </div>
                                         </div>
                                         <div className="grid gap-2 p-5 bg-gray-50 dark:bg-slate-800/40 rounded-2xl border border-gray-100 dark:border-slate-800 transition-colors">
                                             <Label htmlFor="stock" className="text-[10px] font-black uppercase tracking-widest">Stock Level</Label>
-                                            <Input id="stock" type="number" value={stock} onChange={e => setStock(e.target.value)} disabled={editing && !isAdmin} className="bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-700 h-10 rounded-xl font-bold" />
+                                            <Input id="stock" type="number" value={stock} onChange={e => setStock(e.target.value)} disabled={editing && !isAdmin || isDemo} className="bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-700 h-10 rounded-xl font-bold" />
                                         </div>
                                     </div>
 
                                     <div className="mt-6 flex flex-col sm:flex-row sm:items-center gap-4 px-1">
                                         <div className="flex items-center gap-3">
                                             <Label htmlFor="minStock" className="text-sm font-semibold whitespace-nowrap italic">Low stock alert threshold:</Label>
-                                            <Input id="minStock" type="number" value={minStock} onChange={e => setMinStock(e.target.value)} className="w-24 bg-gray-50/50 dark:bg-slate-900 h-10 border-gray-200 dark:border-slate-700 rounded-xl text-center font-bold" />
+                                            <Input id="minStock" type="number" value={minStock} onChange={e => setMinStock(e.target.value)} className="w-24 bg-gray-50/50 dark:bg-slate-900 h-10 border-gray-200 dark:border-slate-700 rounded-xl text-center font-bold" disabled={isDemo} />
                                         </div>
                                     </div>
                                 </div>
@@ -674,7 +686,7 @@ export default function ProductManagementPage() {
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                         <div className="grid gap-2">
                                             <Label htmlFor="parentId" className="text-xs font-bold text-amber-900/70 dark:text-amber-600 uppercase tracking-wider">Parent Product</Label>
-                                            <Select id="parentId" value={parentId || ''} onChange={e => setParentId(e.target.value || null)} className="bg-white dark:bg-slate-900 border-amber-200/50 dark:border-amber-900/50 h-10 rounded-xl text-sm">
+                                            <Select id="parentId" value={parentId || ''} onChange={e => setParentId(e.target.value || null)} className="bg-white dark:bg-slate-900 border-amber-200/50 dark:border-amber-900/50 h-10 rounded-xl text-sm" disabled={isDemo}>
                                                 <option value="">-- No Parent (Individual Item) --</option>
                                                 {products.filter(p => p.id !== editing?.id).map(p => (
                                                     <option key={p.id} value={p.id}>{p.name}</option>
@@ -688,7 +700,7 @@ export default function ProductManagementPage() {
                                                 type="number"
                                                 value={conversionRate}
                                                 onChange={e => setConversionRate(e.target.value)}
-                                                disabled={!parentId}
+                                                disabled={!parentId || isDemo}
                                                 placeholder="e.g. 24"
                                                 className="bg-white dark:bg-slate-900 border-amber-200/50 dark:border-amber-900/50 h-10 rounded-xl text-center font-mono"
                                             />
@@ -711,7 +723,7 @@ export default function ProductManagementPage() {
                             </Button>
                             <Button
                                 type="submit"
-                                disabled={isMutating}
+                                disabled={isMutating || isDemo}
                                 className="px-8 h-10 rounded-xl shadow-md btn--primary font-bold text-sm hover:-translate-y-0.5 transition-transform"
                             >
                                 {isMutating ? 'Processing...' : (editing ? 'Update Product' : 'Create Product')}

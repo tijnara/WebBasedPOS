@@ -348,6 +348,7 @@ export default function UserManagementPage() {
                                                 autoFocus
                                                 placeholder="Enter full name"
                                                 className="w-full text-base pl-11 py-2.5 border-gray-300 h-11"
+                                                disabled={isDemo}
                                             />
                                         </div>
                                     </div>
@@ -370,6 +371,7 @@ export default function UserManagementPage() {
                                                     required
                                                     placeholder="email@example.com"
                                                     className="w-full text-base pl-11 py-2.5 border-gray-300 h-11"
+                                                    disabled={isDemo}
                                                 />
                                             </div>
                                         </div>
@@ -388,6 +390,7 @@ export default function UserManagementPage() {
                                                     value={role}
                                                     onChange={(e) => setRole(e.target.value)}
                                                     className="w-full text-base pl-11 py-2.5 border-gray-300 h-11 appearance-none"
+                                                    disabled={isDemo}
                                                 >
                                                     <option value={USER_ROLES.STAFF}>Staff</option>
                                                     <option value={USER_ROLES.ADMIN}>Admin</option>
@@ -421,6 +424,7 @@ export default function UserManagementPage() {
                                                     required={!editing}
                                                     placeholder="••••••••"
                                                     className="w-full text-base pl-11 py-2.5 border-gray-300 h-11"
+                                                    disabled={isDemo}
                                                 />
                                             </div>
                                         </div>
@@ -442,6 +446,7 @@ export default function UserManagementPage() {
                                                     required={!editing}
                                                     placeholder="••••••••"
                                                     className="w-full text-base pl-11 py-2.5 border-gray-300 h-11"
+                                                    disabled={isDemo}
                                                 />
                                             </div>
                                         </div>
@@ -453,7 +458,7 @@ export default function UserManagementPage() {
                                 <Button variant="outline" type="button" onClick={closeModal} disabled={isMutating}>
                                     Cancel
                                 </Button>
-                                <Button type="submit" variant="primary" disabled={isMutating}>
+                                <Button type="submit" variant="primary" disabled={isMutating || isDemo}>
                                     {isMutating ? 'Saving...' : (editing ? 'Update User' : 'Create User')}
                                 </Button>
                             </DialogFooter>

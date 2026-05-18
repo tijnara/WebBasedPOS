@@ -6,7 +6,7 @@ import {
 } from '../ui';
 import currency from 'currency.js';
 
-export default function RepaymentModal({ isOpen, onClose, customer, onRepay, isMutating }) {
+export default function RepaymentModal({ isOpen, onClose, customer, onRepay, isMutating, isDemo }) {
     const [amount, setAmount] = useState('');
     const balance = customer?.credit_balance || 0;
 
@@ -47,6 +47,7 @@ export default function RepaymentModal({ isOpen, onClose, customer, onRepay, isM
                             className="text-lg py-3 h-12 font-medium"
                             autoFocus
                             required
+                            disabled={isDemo}
                         />
                         {amount && !isNaN(amount) && (
                             <p className="text-sm text-gray-500 dark:text-gray-400 text-right">
@@ -60,7 +61,7 @@ export default function RepaymentModal({ isOpen, onClose, customer, onRepay, isM
                         <Button
                             type="submit"
                             variant="success"
-                            disabled={isMutating || !amount || parseFloat(amount) <= 0}
+                            disabled={isMutating || !amount || parseFloat(amount) <= 0 || isDemo}
                             className="btn--success"
                         >
                             {isMutating ? 'Processing...' : 'Confirm Payment'}

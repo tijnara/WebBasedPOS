@@ -214,6 +214,8 @@ export default function POSPage() {
     const [customerSearchTerm, setCustomerSearchTerm] = useState('');
     const [debouncedCustomerSearchTerm, setDebouncedCustomerSearchTerm] = useState('');
     const [stockWarningKey, setStockWarningKey] = useState(null);
+    const { user } = useStore();
+    const isDemo = user?.isDemo;
 
     const triggerStockWarning = (key) => {
         setStockWarningKey(key);
@@ -624,6 +626,7 @@ export default function POSPage() {
                         variant="primary" 
                         onClick={openCustomSale} 
                         className="w-full rounded-lg shadow-md font-semibold whitespace-nowrap h-11"
+                        disabled={isDemo}
                     >
                         + Custom
                     </Button>
@@ -654,6 +657,7 @@ export default function POSPage() {
                         onEditItem={openEditItem}
                         handleSetQuantity={handleSetQuantity}
                         stockWarningKey={stockWarningKey}
+                        isDemo={isDemo}
                     />
                 </div>
             </div>
@@ -671,6 +675,7 @@ export default function POSPage() {
                 debouncedSearchTerm={debouncedCustomerSearchTerm}
                 handleAddCustomer={handleAddCustomer}
                 createCustomerMutation={createCustomerMutation}
+                isDemo={isDemo}
             />
 
             <PaymentModal
@@ -697,6 +702,7 @@ export default function POSPage() {
                 handleFinalizeSale={handleFinalizeSale}
                 createSaleMutation={createSaleMutation}
                 customerPaymentInputRef={customerPaymentInputRef}
+                isDemo={isDemo}
             />
 
             <CustomSaleModal
@@ -704,6 +710,7 @@ export default function POSPage() {
                 onClose={closeCustomSale}
                 products={products}
                 onAddItem={(product, quantity, price) => addItemToSale(product, quantity, price)}
+                isDemo={isDemo}
             />
 
             {editItemKey && (
@@ -720,6 +727,7 @@ export default function POSPage() {
                         updateCartItem(editItemKey, updatedItem);
                         closeEditItem();
                     }}
+                    isDemo={isDemo}
                 />
             )}
 
@@ -756,6 +764,7 @@ export default function POSPage() {
                 onEditItem={openEditItem}
                 handleSetQuantity={handleSetQuantity}
                 stockWarningKey={stockWarningKey}
+                isDemo={isDemo}
             />
 
             <TabBar />

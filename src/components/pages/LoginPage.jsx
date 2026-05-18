@@ -13,22 +13,34 @@ export default function LoginPage() {
   const [isDemoLoading, setIsDemoLoading] = useState(false);
   const setAuth = useStore(state => state.setAuth);
 
-  const performLogin = async (loginEmail, loginPassword) => {
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
     setError(null);
+
+    // Demo user credentials check
+    if (email === 'demo@gmail.com' && password === 'demodemo') {
+      handleDemoLogin();
+      setIsLoading(false);
+      return;
+    }
+
+    // Regular user login
     try {
       const { data: userPayload, error: authError } = await supabase.rpc(
         'authenticate_user',
         {
-          p_email: loginEmail,
-          p_password: loginPassword,
+          p_email: email,
+          p_password: password,
         }
       );
 
       if (authError) throw authError;
 
       if (userPayload) {
-        setAuth(userPayload);
-        localStorage.setItem('custom_session', JSON.stringify(userPayload));
+        // Ensure isDemo is false for real users
+        const finalPayload = { ...userPayload, isDemo: false };
+        setAuth(finalPayload);
         router.push('/pos');
       } else {
         setError('Invalid email or password.');
@@ -36,37 +48,25 @@ export default function LoginPage() {
     } catch (err) {
       console.error('Login exception:', err.message);
       setError('An error occurred during login. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
-  };
-
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
-    await performLogin(email, password);
-    setIsLoading(false);
   };
 
   const handleDemoLogin = () => {
     setIsDemoLoading(true);
     
-    // Create a mock user object for the demo session
     const demoUser = {
       id: 'demo-user',
       name: 'Demo User',
-      email: 'demo@example.com',
+      email: 'demo@gmail.com',
       role: 'Admin',
       isadmin: true,
-      is_demo: true, // This flag is crucial for read-only mode
+      isDemo: true,
     };
 
-    // Set the mock user in the global state
     setAuth(demoUser);
-    localStorage.setItem('custom_session', JSON.stringify(demoUser));
-    
-    // Redirect to the main application
     router.push('/pos');
-    
-    // No need to set isDemoLoading to false as the page will redirect
   };
 
   return (
@@ -86,7 +86,7 @@ export default function LoginPage() {
               </div>
             )}
             <div className="relative">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" /><br></br>
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
               <input
                 id="email"
                 name="email"
@@ -99,7 +99,7 @@ export default function LoginPage() {
               />
             </div>
             <div className="relative">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" /><br></br>
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
               <input
                 id="password"
                 name="password"
@@ -110,7 +110,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
-            </div><br></br>
+            </div>
             <button
               type="submit"
               disabled={isLoading || isDemoLoading}

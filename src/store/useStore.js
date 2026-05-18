@@ -14,6 +14,9 @@ export const useStore = create(
             toasts: [],
             darkMode: false,
 
+            // Internal action to be called by the persist middleware once hydration is complete
+            _setSessionLoaded: () => set({ sessionLoaded: true }),
+
             setCurrentCustomer: (cust) => set({ currentCustomer: cust }),
 
             addItemToSale: (product, quantity = 1, overridePrice = null) =>
@@ -118,66 +121,27 @@ export const useStore = create(
             dismissToast: (id) => set((s) => ({ toasts: s.toasts.filter(x => x.id !== id) })),
 
             setAuth: (user) => {
-                set({ user, sessionLoaded: true });
+                set({ user });
             },
 
             logout: async () => {
                 try {
-                    const currentUser = get().user;
                     await supabase.auth.signOut();
-                    
-                    if (currentUser) {
-                        sessionStorage.removeItem(`pos_shift_prompted_${currentUser.id}`);
-                    }
-                    
-                    set({ user: null, sessionLoaded: true, currentSale: {}, currentCustomer: null });
+                    set({ user: null, currentSale: {}, currentCustomer: null });
                 } catch (error) {
                     get().addToast({ title: 'Logout Error', description: error.message, variant: 'destructive' });
                 }
             },
             
-            hydrate: async () => {
-                if (typeof window === 'undefined' || get().sessionLoaded) return;
-                
-                const { data: { session } } = await supabase.auth.getSession();
-                const storedUser = session?.user;
-
-                if (storedUser) {
-                    const { data: userProfile, error } = await supabase
-                        .from('users')
-                        .select('*')
-                        .eq('id', storedUser.id)
-                        .single();
-
-                    if (userProfile && !error) {
-                        // Combine auth user data with public user profile
-                        const fullUser = {
-                            ...storedUser,
-                            ...userProfile,
-                            isDemo: userProfile.is_demo || storedUser.email?.includes('demo'),
-                            role: userProfile.role || 'Staff'
-                        };
-                        set({ user: fullUser, sessionLoaded: true });
-                    } else {
-                        // If profile doesn't exist, use auth data but flag as demo if email matches
-                        set({ 
-                            user: { 
-                                ...storedUser, 
-                                isDemo: storedUser.email?.includes('demo') 
-                            }, 
-                            sessionLoaded: true 
-                        });
-                    }
-                } else {
-                    set({ user: null, sessionLoaded: true });
-                }
-            },
             toggleDarkMode: () => set((state) => ({ darkMode: !state.darkMode })),
         }),
         {
             name: 'pos_custom_user', 
             storage: createJSONStorage(() => localStorage),
             partialize: (state) => ({ user: state.user, darkMode: state.darkMode }),
+            onRehydrateStorage: () => (state) => {
+                state._setSessionLoaded();
+            },
         }
     )
 );

@@ -9,7 +9,8 @@ import { Image as ImageIcon } from 'lucide-react';
 export default function PageSettings() {
     const { data: settings, isLoading } = useSettings();
     const updateSettings = useUpdateSettings();
-    const { addToast } = useStore();
+    const { addToast, user } = useStore();
+    const isDemo = user?.isDemo;
 
     const [formData, setFormData] = useState({
         business_name: '',
@@ -109,17 +110,17 @@ export default function PageSettings() {
                                     </div>
                                 )}
                             </div>
-                            <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileSelect} />
+                            <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileSelect} disabled={isDemo} />
                         </div>
 
                         <div className="space-y-4">
                             <div>
                                 <Label>Business Name</Label>
-                                <Input name="business_name" value={formData.business_name} onChange={handleInputChange} />
+                                <Input name="business_name" value={formData.business_name} onChange={handleInputChange} disabled={isDemo} />
                             </div>
                             <div>
                                 <Label>Contact Number</Label>
-                                <Input name="contact_number" value={formData.contact_number} onChange={handleInputChange} />
+                                <Input name="contact_number" value={formData.contact_number} onChange={handleInputChange} disabled={isDemo} />
                             </div>
                         </div>
                     </div>
@@ -133,6 +134,7 @@ export default function PageSettings() {
                                 value={formData.business_hours} 
                                 onChange={handleInputChange} 
                                 placeholder="e.g. Mon-Sat: 8AM - 5PM" 
+                                disabled={isDemo}
                             />
                         </div>
                         <div>
@@ -142,6 +144,7 @@ export default function PageSettings() {
                                 value={formData.physical_address} 
                                 onChange={handleInputChange} 
                                 placeholder="Laois, Labrador, Pangasinan" 
+                                disabled={isDemo}
                             />
                         </div>
                     </div>
@@ -149,11 +152,11 @@ export default function PageSettings() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <Label>Facebook Link</Label>
-                            <Input name="facebook_link" value={formData.facebook_link} onChange={handleInputChange} placeholder="https://facebook.com/..." />
+                            <Input name="facebook_link" value={formData.facebook_link} onChange={handleInputChange} placeholder="https://facebook.com/..." disabled={isDemo} />
                         </div>
                         <div>
                             <Label>Messenger Link</Label>
-                            <Input name="messenger_link" value={formData.messenger_link} onChange={handleInputChange} placeholder="https://m.me/..." />
+                            <Input name="messenger_link" value={formData.messenger_link} onChange={handleInputChange} placeholder="https://m.me/..." disabled={isDemo} />
                         </div>
                     </div>
 
@@ -166,16 +169,17 @@ export default function PageSettings() {
                             onChange={handleInputChange}
                             rows={5}
                             placeholder="Write about your business here..."
+                            disabled={isDemo}
                         />
                     </div>
 
                     <div>
                         <Label>Location Map Embed URL (src)</Label>
-                        <Input name="location_embed" value={formData.location_embed} onChange={handleInputChange} placeholder="https://www.google.com/maps/embed?pb=..." />
+                        <Input name="location_embed" value={formData.location_embed} onChange={handleInputChange} placeholder="https://www.google.com/maps/embed?pb=..." disabled={isDemo} />
                     </div>
 
                     <div className="flex justify-end pt-4">
-                        <Button type="submit" variant="primary" disabled={isSaving}>
+                        <Button type="submit" variant="primary" disabled={isSaving || isDemo}>
                             {isSaving ? 'Saving Changes...' : 'Save Settings'}
                         </Button>
                     </div>

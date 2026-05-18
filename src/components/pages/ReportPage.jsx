@@ -481,10 +481,10 @@ const ReportPage = () => {
 
     const totalGallonsSold = useMemo(() => {
         if (!summaryData?.productQuantities) return 0;
-        
+
         // Target Product IDs based on database: 3 (Refill 30), 2 (Refill 35), 30 (Refill Walk-in 25)
         const targetRefillIds = ["3", "2", "30"];
-        
+
         return Object.entries(summaryData.productQuantities).reduce((sum, [pid, p]) => {
             if (targetRefillIds.includes(String(pid))) { // Convert pid to string for comparison
                 return sum + (p.quantity || 0);
@@ -641,9 +641,6 @@ const ReportPage = () => {
         return new Date(currentMonday.getTime() - 1);
     }, []);
 
-    // 2. Fetch All-Time Sales Summary for Gallon calculation
-    const { data: allTimeSales } = useSalesSummary({ startDate: undefined });
-
     // 3. Fetch Sales Summary since April 20 for Real Sales
     const { data: sinceRefSales } = useSalesSummary({ 
         startDate: REFERENCE_DATE,
@@ -659,14 +656,6 @@ const ReportPage = () => {
     });
 
     // --- CALCULATIONS ---
-    // Total Gallons Sold (All Time)
-    const allTimeGallons = useMemo(() => {
-        if (!allTimeSales?.productQuantities) return 0;
-        const targetRefills = ["Refill(30)", "Refill(35)", "Refill-Walk-in(25)"];
-        return Object.values(allTimeSales.productQuantities).reduce((sum, p) => 
-            targetRefills.includes(p.name) ? sum + (p.quantity || 0) : sum, 0);
-    }, [allTimeSales?.productQuantities]);
-
     // Total Real Sales (Revenue - Expenses) since April 20
     const totalRealSales = useMemo(() => {
         const revenue = sinceRefSales?.totalRevenue || 0;
@@ -738,19 +727,7 @@ const ReportPage = () => {
             <h1 className="text-2xl font-bold dark:text-white">Reports</h1>
 
             {/* --- NEW SECTION: BUSINESS OVERVIEW --- */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                
-                <div className="bg-blue-100 text-blue-900 dark:bg-blue-600 dark:text-white p-6 rounded-2xl shadow-lg flex flex-col justify-between overflow-hidden relative">
-                    <div className="relative z-10">
-                        <h3 className="text-sm font-bold uppercase tracking-wider opacity-80">Total Galons Sold</h3>
-                        <p className="text-xs mb-4 italic">(All-Time Aggregate)</p>
-                        <div className="text-4xl font-black">{allTimeGallons.toLocaleString()} <span className="text-lg">GAL</span></div>
-                    </div>
-                    <div className="absolute right-[-10px] bottom-[-10px] opacity-10 rotate-12">
-                        <PackageIcon className="w-32 h-32"/>
-                    </div>
-                </div>
-
+            <div className="grid grid-cols-1 md:grid-cols-1 gap-4 mt-4">
                 
                 <div className="bg-emerald-100 text-emerald-900 dark:bg-emerald-600 dark:text-white p-6 rounded-2xl shadow-lg flex flex-col justify-between overflow-hidden relative">
                     <div className="relative z-10">

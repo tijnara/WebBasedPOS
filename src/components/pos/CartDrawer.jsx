@@ -29,7 +29,8 @@ const CartDrawer = ({
                         clearSale,
                         onEditItem,
                         handleSetQuantity,
-                        stockWarningKey
+                        stockWarningKey,
+                        isDemo
                     }) => {
     const cartItems = Object.entries(currentSale);
 
@@ -51,6 +52,7 @@ const CartDrawer = ({
                             }
                         }}
                         className="text-red-500 text-sm font-semibold flex items-center gap-1 hover:bg-red-50 px-2 py-1 rounded"
+                        disabled={isDemo}
                     >
                         <span>✕ Clear</span>
                     </button>
@@ -98,6 +100,7 @@ const CartDrawer = ({
                                             <button
                                                 className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-primary active:scale-90 transition-transform text-lg leading-none border border-gray-100 rounded-full"
                                                 onClick={() => handleDecreaseQuantity(key)}
+                                                disabled={isDemo}
                                             >
                                                 -
                                             </button>
@@ -117,10 +120,12 @@ const CartDrawer = ({
                                                     e.target.select();
                                                 }}
                                                 onFocus={(e) => e.target.select()}
+                                                disabled={isDemo}
                                             />
                                             <button
                                                 className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-primary active:scale-90 transition-transform text-lg leading-none border border-gray-100 rounded-full"
                                                 onClick={() => handleIncreaseQuantity(key)}
+                                                disabled={isDemo}
                                             >
                                                 +
                                             </button>
@@ -139,6 +144,7 @@ const CartDrawer = ({
                                                 e.stopPropagation();
                                                 onEditItem && onEditItem(key);
                                             }}
+                                            disabled={isDemo}
                                         >
                                             <EditIcon />
                                         </button>
@@ -171,7 +177,7 @@ const CartDrawer = ({
                                 openPaymentModal();
                             }, 150); // Small delay fixes UI transition context mapping on mobile
                         }}
-                        disabled={cartItems.length === 0 || createSaleMutation.isPending}
+                        disabled={cartItems.length === 0 || createSaleMutation.isPending || isDemo}
                     >
                         {createSaleMutation.isPending ? 'Processing...' : 'Proceed to Payment'}
                     </Button>

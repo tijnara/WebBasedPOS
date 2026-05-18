@@ -132,37 +132,25 @@ export default function App({ Component, pageProps }) {
             },
         },
         mutationCache: new MutationCache({
-            onMutate: async (variables) => { // Correctly include variables
-                const { data: { session } } = await supabase.auth.getSession();
+            onMutate: async (variables) => {
+                // Read synchronously from Zustand instead of hitting Supabase
+                const { user, addToast } = useStore.getState();
                 
-                if (!session) return;
-
-                const { data: userProfile } = await supabase
-                    .from('users')
-                    .select('is_demo')
-                    .eq('id', session.user.id)
-                    .single();
-
-                const isDemoUser = userProfile?.is_demo === true || session.user.email?.includes('demo');
-
-                if (isDemoUser) {
+                if (user?.isDemo) {
+                    // Ensure toast fires after the current execution context
                     setTimeout(() => {
-                        useStore.getState().addToast({
+                        addToast({
                             title: 'Demo Mode Active',
-                            message: 'Adding, editing, and deleting is disabled.',
-                            type: 'error'
+                            description: 'Adding, editing, and deleting is disabled in this environment.',
+                            variant: 'warning' // aligned with your existing toast variants
                         });
                     }, 0);
-                    
+
                     return Promise.reject(new Error('Action blocked: Demo Mode is strictly read-only.'));
                 }
             }
         })
     }));
-
-    useEffect(() => {
-        useStore.getState().hydrate();
-    }, []);
 
     useEffect(() => {
         if (darkMode) {
