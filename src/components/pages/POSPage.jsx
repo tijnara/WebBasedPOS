@@ -584,7 +584,7 @@ export default function POSPage() {
                         <button
                             key={cat}
                             onClick={() => { setCategoryFilter(cat); setCurrentPage(1); }}
-                            className={`px-4 py-2.5 rounded-xl font-semibold transition-all border-2 ${categoryFilter === cat ? 'bg-primary-soft border-primary text-primary shadow-md' : 'bg-white border-gray-200 text-gray-600 hover:border-primary/50'
+                            className={`px-4 py-2.5 rounded-xl font-semibold transition-all border-2 ${categoryFilter === cat ? 'bg-primary-soft border-primary text-primary shadow-md' : 'bg-white border-gray-200 text-gray-600 hover:border-violet-500'
                             }`}
                         >
                             {cat}
