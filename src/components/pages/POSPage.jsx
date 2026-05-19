@@ -584,7 +584,7 @@ export default function POSPage() {
                         <button
                             key={cat}
                             onClick={() => { setCategoryFilter(cat); setCurrentPage(1); }}
-                            className={`px-4 py-2.5 rounded-xl font-semibold transition-all border-2 ${categoryFilter === cat ? 'bg-primary-soft border-primary text-primary shadow-md' : 'bg-white border-gray-200 text-gray-600 hover:border-violet-500'
+                            className={`px-4 py-2.5 rounded-xl font-semibold transition-all border-2 ${categoryFilter === cat ? 'bg-primary-soft border-primary text-primary shadow-md' : 'bg-white border-gray-200 text-gray-600 hover:bg-[var(--violet)] hover:text-white hover:border-[var(--violet)]'
                             }`}
                         >
                             {cat}
@@ -682,7 +682,7 @@ export default function POSPage() {
                 isOpen={isPaymentModalOpen}
                 setIsOpen={closePaymentModal}
                 searchTerm={customerSearchTerm}
-                setSearchTerm={setCustomerSearchTerm}
+                setSearchTerm={setSearchTerm}
                 selectedCustomer={selectedCustomer}
                 handleSelectCustomerInPayment={handleSelectCustomerInPayment}
                 isSearchingCustomers={isSearchingCustomers}
