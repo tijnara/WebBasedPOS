@@ -609,12 +609,12 @@
                                                 </span>
                                                 <div className="flex gap-2 mt-1">
                                                     {!isVoided && (
-                                                        <button onClick={() => handleEditClick(exp)} className="p-1 text-text-muted hover:text-blue-500 transition-colors" title="Edit" disabled={isDemo}>
+                                                        <button onClick={() => handleEditClick(exp)} className="p-1 text-text-muted expense-action-btn" title="Edit" disabled={isDemo}>
                                                             <Edit className="w-3.5 h-3.5"/>
                                                         </button>
                                                     )}
                                                     
-                                                    <button onClick={() => handleDeleteClick(exp.id)} className="p-1 text-text-muted hover:text-red-500 transition-colors" title="Delete" disabled={isDemo}>
+                                                    <button onClick={() => handleDeleteClick(exp.id)} className="p-1 text-text-muted expense-action-btn" title="Delete" disabled={isDemo}>
                                                         <Trash2 className="w-3.5 h-3.5"/>
                                                     </button>
 
@@ -624,7 +624,7 @@
                                                                 setReasonModal({ show: true, expense: exp });
                                                                 setReasonText('');
                                                             }}
-                                                            className="p-1 text-text-muted hover:text-orange-600 transition-colors"
+                                                            className="p-1 text-text-muted expense-action-btn"
                                                             title="Skip/Void this recurring item"
                                                             disabled={isDemo}
                                                         >

@@ -2011,3 +2011,7 @@ input[type="checkbox"]:focus {
 .table__td.total-column {
   color: #8BC34A !important; /* Apple Green */
 }
+
+.expense-action-btn:hover {
+    color: var(--violet) !important;
+}
