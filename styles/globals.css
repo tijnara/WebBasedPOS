@@ -1996,3 +1996,7 @@ input[type="checkbox"]:focus {
 .dark * {
     color: white;
 }
+
+.table__td.total-column {
+  color: #8BC34A !important; /* Apple Green */
+}

@@ -120,7 +120,7 @@ const SaleDetailsModal = ({ sale, isOpen, onClose }) => {
 
                     <div className="border-t-2 border-dashed border-gray-300 pt-4 mt-4 space-y-2">
                         <div className="flex justify-between items-center text-lg font-bold text-gray-600">
-                            <span>TOTAL</span><span className="font-mono text-red-600">{formatCurrency(sale.totalAmount)}</span>
+                            <span>TOTAL</span><span className="font-mono total-column">{formatCurrency(sale.totalAmount)}</span>
                         </div>
                         <div className="pt-2 space-y-1 text-xs text-gray-400 font-mono">
                             <div className="flex justify-between"><span>Payment Method:</span><span className="uppercase">{sale.paymentMethod}</span></div>
@@ -348,7 +348,7 @@ export default function HistoryPage() {
                                                         )}
                                                     </div>
                                                 </TableCell>
-                                                <TableCell className="text-right font-bold text-red-600">{formatCurrency(s.totalAmount)}</TableCell>
+                                                <TableCell className="text-right font-bold total-column">{formatCurrency(s.totalAmount)}</TableCell>
                                                 <TableCell>
                                                     <div className="flex gap-2 justify-end">
                                                         <Button variant="ghost" size="icon" onClick={() => openModal(s)}><ViewIcon/></Button>
