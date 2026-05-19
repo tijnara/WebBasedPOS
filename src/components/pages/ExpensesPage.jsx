@@ -37,6 +37,7 @@
         const [dateTo, setDateTo] = useState(initialDateTo);
         const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
         const [filterCategory, setFilterCategory] = useState(initialFilterCategory);
+        const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM')); // NEW STATE
         const debouncedSearch = useDebounce(searchTerm, 400);
 
         const [page, setPage] = useState(1);
@@ -54,7 +55,7 @@
             searchTerm: debouncedSearch,
             category: filterCategory
         });
-        const { data: summary } = useExpenseSummary();
+        const { data: summary } = useExpenseSummary(dateFrom, dateTo, selectedMonth);
         const { data: categories = [] } = useExpenseCategories();
         const { data: salesSummary } = useSalesSummary({
             startDate: dateFrom ? parseISO(dateFrom) : undefined,
@@ -411,11 +412,26 @@
                                 </div>
                             </div>
 
-                            <p className="text-text-muted text-sm font-medium">This Week's Total</p>
+                            <p className="text-text-muted text-sm font-medium">Selected Period Total</p>
                             <h2 className="text-5xl font-extrabold mb-4 text-red-600">{currency(summary?.weeklyTotal || 0, { symbol: '₱' }).format()}</h2>
-                            <div className="flex gap-12 border-t-transparent pt-4">
-                                <div><p className="text-xs uppercase font-semibold text-text-muted">Monthly</p><p className="text-lg font-bold text-text">{currency(summary?.monthlyTotal || 0, { symbol: '₱' }).format()}&nbsp;&nbsp;&nbsp;&nbsp;</p></div>
-                                <div><p className="text-xs uppercase font-semibold text-text-muted">All Time</p><p className="text-lg font-bold text-text">{currency(summary?.grandTotal || 0, { symbol:'₱' }).format()}</p></div>
+                            
+                            <div className="flex gap-12 border-t-transparent pt-4 items-end">
+                                <div>
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <p className="text-xs uppercase font-semibold text-text-muted">Monthly</p>
+                                        <input 
+                                            type="month" 
+                                            value={selectedMonth}
+                                            onChange={(e) => setSelectedMonth(e.target.value)}
+                                            className="text-xs bg-background border border-gray-200 dark:border-gray-800 rounded px-2 py-1 text-text cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary"
+                                        />
+                                    </div>
+                                    <p className="text-lg font-bold text-text">{currency(summary?.monthlyTotal || 0, { symbol: '₱' }).format()}</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs uppercase font-semibold text-text-muted mb-1 pb-[10px]">All Time (Since Apr 20)</p>
+                                    <p className="text-lg font-bold text-text">{currency(summary?.grandTotal || 0, { symbol:'₱' }).format()}</p>
+                                </div>
                             </div>
                         </div>
 

@@ -79,17 +79,57 @@ export function useCreateExpense() {
     });
 }
 
-export function useExpenseSummary() {
+export function useExpenseSummary(dateFrom, dateTo, selectedMonth) {
     return useQuery({
-        queryKey: ['expense-summary'],
+        // Adding the dependencies to the queryKey so it refetches when they change
+        queryKey: ['expense-summary', dateFrom, dateTo, selectedMonth],
         queryFn: async () => {
-            const { data, error } = await supabase.rpc('get_expense_summary');
-            if (error) throw error;
+            // 1. All time (Restricted to April 20, 2026 onwards as per your rules)
+            const { data: allTimeData, error: allTimeError } = await supabase
+                .from('expenses')
+                .select('amount')
+                .gte('expense_date', '2026-04-20');
+            
+            if (allTimeError) throw allTimeError;
+            const grandTotal = allTimeData?.reduce((acc, curr) => acc + Number(curr.amount), 0) || 0;
+
+            // 2. Selected Month
+            let monthlyTotal = 0;
+            if (selectedMonth) {
+                // Parse the YYYY-MM string to get the start and end dates of that month
+                const [year, month] = selectedMonth.split('-');
+                const endDay = new Date(year, month, 0).getDate();
+                
+                const startOfMonthStr = `${selectedMonth}-01`;
+                const endOfMonthStr = `${selectedMonth}-${endDay}`;
+                
+                const { data: monthData, error: monthError } = await supabase
+                    .from('expenses')
+                    .select('amount')
+                    .gte('expense_date', startOfMonthStr)
+                    .lte('expense_date', endOfMonthStr);
+                
+                if (monthError) throw monthError;
+                monthlyTotal = monthData?.reduce((acc, curr) => acc + Number(curr.amount), 0) || 0;
+            }
+
+            // 3. Selected Period (Driven by dateFrom and dateTo on the page)
+            let weeklyTotal = 0;
+            if (dateFrom && dateTo) {
+                const { data: weekData, error: weekError } = await supabase
+                    .from('expenses')
+                    .select('amount')
+                    .gte('expense_date', dateFrom)
+                    .lte('expense_date', dateTo);
+                
+                if (weekError) throw weekError;
+                weeklyTotal = weekData?.reduce((acc, curr) => acc + Number(curr.amount), 0) || 0;
+            }
+
             return {
-                dailyTotal: Number(data.dailyTotal || 0),
-                weeklyTotal: Number(data.weeklyTotal || 0),
-                monthlyTotal: Number(data.monthlyTotal || 0),
-                grandTotal: Number(data.grandTotal || 0)
+                weeklyTotal,
+                monthlyTotal,
+                grandTotal
             };
         },
         staleTime: 1000 * 60 * 3,
