@@ -283,9 +283,14 @@
         const handleManualSubmit = async (e) => {
             e.preventDefault();
             if (!amount || !description || !category || !expenseDate) return;
-
+        
             const capitalizedDescription = capitalizeWords(description);
-
+        
+            // Combine the selected date with the current time
+            const now = new Date();
+            const [year, month, day] = expenseDate.split('-').map(Number);
+            const combinedDateTime = new Date(year, month - 1, day, now.getHours(), now.getMinutes(), now.getSeconds());
+        
             try {
                 if (editingExpense) {
                     await updateExpense.mutateAsync({
@@ -293,12 +298,17 @@
                         amount,
                         category,
                         description: capitalizedDescription,
-                        expense_date: expenseDate
+                        expense_date: combinedDateTime.toISOString() // Pass ISO string
                     });
                     setEditingExpense(null);
                     addToast({ title: 'Expense Updated', message: 'Transaction updated.', type: 'success' });
                 } else {
-                    await createExpense.mutateAsync({ amount, category, description: capitalizedDescription, expense_date: expenseDate });
+                    await createExpense.mutateAsync({
+                        amount,
+                        category,
+                        description: capitalizedDescription,
+                        expense_date: combinedDateTime.toISOString() // Pass ISO string
+                    });
                     addToast({ title: 'Expense Added', message: 'Transaction saved.', type: 'success' });
                 }
                 setAmount('');
@@ -588,7 +598,7 @@
                                                 <div className="flex flex-col">
                                                     <span className="font-semibold text-text text-sm">{exp.description}</span>
                                                     <span className="text-xs font-medium text-text-muted">
-                                                        {exp.category} &bull; {format(parseISO(exp.expense_date), 'EEEE, MMM d, yyyy')}
+                                                        {exp.category} &bull; {format(parseISO(exp.expense_date), 'MMM d, yyyy h:mm a')}
                                                         {exp.users?.name && <span className="ml-1 text-primary font-bold italic opacity-70">by {exp.users.name}</span>}
                                                     </span>
                                                 </div>

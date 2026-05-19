@@ -66,7 +66,7 @@ export function useCreateExpense() {
                 amount: parseFloat(expenseData.amount),
                 category: expenseData.category,
                 description: expenseData.description,
-                expense_date: expenseData.expense_date || new Date().toISOString(),
+                expense_date: new Date(expenseData.expense_date).toISOString(),
                 created_by: user?.id || null,
             };
             const { error } = await supabase.from('expenses').insert([payload]);
@@ -203,7 +203,7 @@ export function useUpdateExpense() {
                     amount: parseFloat(expenseData.amount),
                     category: expenseData.category,
                     description: expenseData.description,
-                    expense_date: expenseData.expense_date,
+                    expense_date: new Date(expenseData.expense_date).toISOString(),
                 })
                 .eq('id', id);
             if (error) throw error;
