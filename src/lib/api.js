@@ -50,6 +50,8 @@ export async function login({ email, password }) {
             throw new Error('Invalid email or password.');
         }
     } catch (err) {
+        // Log the full error for server-side debugging
+        console.error('Login API Error:', err);
         const errorMessage = handleError(err);
         throw new Error(errorMessage);
     }
@@ -62,6 +64,15 @@ export function logout() {
 
 export function handleError(error) {
     if (!error) return 'An unknown error occurred.';
+
+    // Log the full error object for server-side inspection
+    console.error('Handling Error:', error);
+
+    // Example: Sentry/Axiom integration point
+    // if (process.env.NODE_ENV === 'production') {
+    //   Sentry.captureException(error);
+    //   // or axiom.log(error);
+    // }
 
     if (error.code) {
         switch (error.code) {

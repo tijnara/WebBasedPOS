@@ -23,7 +23,15 @@ export default async function handler(req, res) {
       .insert([{ email, message }]);
 
     if (dbError) {
-      console.error('Supabase Error:', dbError);
+      console.error('Supabase Error:', {
+        message: dbError.message,
+        code: dbError.code,
+        details: dbError.details,
+      });
+      // Example: Sentry/Axiom integration point
+      // if (process.env.NODE_ENV === 'production') {
+      //   Sentry.captureException(dbError);
+      // }
       return res.status(500).json({ message: 'Database error' });
     }
 
@@ -45,13 +53,25 @@ export default async function handler(req, res) {
 
     if (!formSubmitResponse.ok) {
       const formSubmitData = await formSubmitResponse.json();
-      console.error('FormSubmit Error:', formSubmitData);
+      console.error('FormSubmit Error:', {
+        status: formSubmitResponse.status,
+        statusText: formSubmitResponse.statusText,
+        data: formSubmitData,
+      });
+      // Example: Sentry/Axiom integration point
+      // if (process.env.NODE_ENV === 'production') {
+      //   Sentry.captureMessage('FormSubmit forwarding failed', { extra: formSubmitData });
+      // }
       // Even if email fails, we saved to DB, so don't send a 500 to the client
     }
 
     res.status(200).json({ message: 'Message sent and saved successfully' });
   } catch (error) {
-    console.error('Generic Error:', error);
+    console.error('Contact API Generic Error:', error);
+    // Example: Sentry/Axiom integration point
+    // if (process.env.NODE_ENV === 'production') {
+    //   Sentry.captureException(error);
+    // }
     res.status(500).json({ message: 'An unexpected error occurred' });
   }
 }
