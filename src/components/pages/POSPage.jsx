@@ -511,7 +511,7 @@ export default function POSPage() {
                 isOpen={isPaymentModalOpen}
                 setIsOpen={closePaymentModal}
                 searchTerm={customerSearchTerm}
-                setSearchTerm={setSearchTerm}
+                setSearchTerm={setCustomerSearchTerm}
                 selectedCustomer={selectedCustomer}
                 handleSelectCustomerInPayment={handleSelectCustomerInPayment}
                 isSearchingCustomers={isSearchingCustomers}
