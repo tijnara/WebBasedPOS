@@ -1,9 +1,18 @@
--- 1. Create a helper function to check if the current user is a demo user
+-- 1. Add is_demo column to public.users if it doesn't exist
+ALTER TABLE public.users
+ADD COLUMN IF NOT EXISTS is_demo BOOLEAN DEFAULT false;
+
+-- 2. Create a helper function to check if the current user is a demo user
+-- Since you use a custom login system with BIGINT user IDs, 
+-- use a session variable instead of auth.uid()
 CREATE OR REPLACE FUNCTION is_demo_user()
 RETURNS BOOLEAN
 LANGUAGE sql STABLE SECURITY DEFINER
 AS $$
-  SELECT is_demo FROM public.users WHERE id = auth.uid();
+  SELECT COALESCE(
+    (SELECT is_demo FROM public.users WHERE id = (current_setting('app.current_user_id', true)::BIGINT)),
+    false
+  );
 $$;
 
 -- 2. Apply this condition to your tables' INSERT, UPDATE, and DELETE policies
