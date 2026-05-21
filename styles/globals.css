@@ -2015,3 +2015,15 @@ input[type="checkbox"]:focus {
 .expense-action-btn:hover {
     color: var(--violet) !important;
 }
+
+.text-negative {
+  color: #dc2626; /* Red-600 */
+}
+
+.text-warning {
+  color: #f59e0b; /* Amber-500 */
+}
+
+.text-positive {
+  color: #8BC34A; /* Apple Green */
+}

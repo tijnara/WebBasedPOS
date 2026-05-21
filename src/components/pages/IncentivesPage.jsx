@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { startOfWeek, endOfWeek, format, addDays, subDays } from 'date-fns';
+import { startOfWeek, endOfWeek, format, addDays, subDays, parseISO } from 'date-fns';
 import currency from 'currency.js';
 import { Wallet, History, Plus, Info, TrendingUp, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import { useStore } from '../../store/useStore';
@@ -40,15 +40,22 @@ export default function IncentivesPage() {
         pageSize: 1000
     });
 
+    // Use parseISO to properly format the date just like the Expenses page
     const { data: salesSummary } = useSalesSummary({
-        startDate: new Date(`${monday}T00:00:00`),
-        endDate: new Date(`${sunday}T23:59:59.999`)
+        startDate: parseISO(monday),
+        endDate: parseISO(sunday)
     });
 
     const currentWeekSales = useMemo(() => {
-        const revenue = salesSummary?.totalRevenue || 0;
-        return Math.max(0, revenue - weeklyExpenses);
-    }, [salesSummary, weeklyExpenses]);
+        if (!salesSummary?.weeklyRevenue) return 0;
+
+        // Use the monday date key to lookup the weekly revenue in the dictionary
+        const weekKey = monday;
+        const weeklySales = salesSummary.weeklyRevenue[weekKey] || 0;
+
+        // Removed Math.max so negative values are returned
+        return weeklySales - weeklyExpenses;
+    }, [salesSummary, weeklyExpenses, monday]);
 
     const incentivePool = currentWeekSales * 0.25;
 
@@ -83,6 +90,20 @@ export default function IncentivesPage() {
         }
     };
 
+    const netSalesColor = useMemo(() => {
+        if (currentWeekSales < 0) return 'text-negative';
+        if (currentWeekSales > 0 && currentWeekSales < 500) return 'text-warning';
+        if (currentWeekSales >= 500) return 'text-positive';
+        return '';
+    }, [currentWeekSales]);
+
+    const poolColor = useMemo(() => {
+        if (incentivePool < 0) return 'text-negative';
+        if (incentivePool > 0 && incentivePool < 500) return 'text-warning';
+        if (incentivePool >= 500) return 'text-positive';
+        return '';
+    }, [incentivePool]);
+
     return (
         <div className="responsive-page min-h-screen bg-background pb-12">
             <div className="w-full max-w-7xl mx-auto bg-surface shadow-xl flex flex-col lg:flex-row rounded-3xl overflow-hidden border border-transparent">
@@ -116,7 +137,7 @@ export default function IncentivesPage() {
                                         <Button onClick={() => setCurrentDate(addDays(currentDate, 7))} variant="ghost" className="p-2 rounded-xl hover:bg-black/10 dark:hover:bg-white/20"><ChevronRight size={18} /></Button>
                                     </div>
                                     <p className="text-[11px] text-black/80 dark:text-white/80 font-bold uppercase tracking-widest md:pr-2">
-                                        {format(new Date(`${monday}T00:00:00`), 'MMMM dd')} - {format(new Date(`${sunday}T00:00:00`), 'MMMM dd, yyyy')} (Monday - Sunday)
+                                        {format(parseISO(monday), 'MMMM dd')} - {format(parseISO(sunday), 'MMMM dd, yyyy')} (Monday - Sunday)
                                     </p>
                                 </div>
                             </div>
@@ -124,14 +145,14 @@ export default function IncentivesPage() {
                             <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div>
                                     <p className="text-xs font-bold text-black/90 dark:text-primary-soft uppercase">Current Week Net Sales</p>
-                                    <h2 className="text-4xl font-black">{currency(currentWeekSales, { symbol: '₱' }).format()}</h2>
+                                    <h2 className={`text-4xl font-black ${netSalesColor}`}>{currency(currentWeekSales, { symbol: '₱' }).format()}</h2>
                                     <p className="text-[10px] opacity-70 mt-1 uppercase">
-                                        Revenue: {currency(salesSummary?.totalRevenue || 0, { symbol: '₱' }).format()} | Expenses: {currency(weeklyExpenses, { symbol: '₱' }).format()}
+                                        Revenue: {currency(salesSummary?.weeklyRevenue?.[monday] || 0, { symbol: '₱' }).format()} | Expenses: {currency(weeklyExpenses, { symbol: '₱' }).format()}
                                     </p>
                                 </div>
                                 <div className="md:text-right">
                                     <p className="text-xs font-bold text-black uppercase">Incentive Pool (25%)</p>
-                                    <h3 className="text-5xl font-black text-black">{currency(incentivePool, { symbol: '₱' }).format()}</h3>
+                                    <h3 className={`text-5xl font-black ${poolColor}`}>{currency(incentivePool, { symbol: '₱' }).format()}</h3>
                                 </div>
                             </div>
                         </div>
@@ -192,14 +213,13 @@ export default function IncentivesPage() {
                     </div>
                 </div>
 
-                {/* History Panel (Right) - Removed 'flex flex-col' so the height expands naturally */}
+                {/* History Panel (Right) */}
                 <div className="w-full lg:w-5/12 bg-surface p-8 border-l border-transparent">
                     <div className="flex items-center justify-between mb-6">
                         <h3 className="text-xl font-bold text-black dark:text-white flex items-center gap-2"><History size={20} /> Payout History</h3>
                         <span className="text-[10px] bg-slate-100 px-2 py-1 rounded-full font-bold text-slate-500 uppercase">{totalCount} Entries</span>
                     </div>
 
-                    {/* Removed 'flex-1' constraint so items push the page down without getting squashed */}
                     <div className="space-y-4 min-h-[200px]">
                         {historyLoading ? (
                             <p className="text-center py-10 text-gray-500 dark:text-gray-400 animate-pulse">Loading records...</p>
