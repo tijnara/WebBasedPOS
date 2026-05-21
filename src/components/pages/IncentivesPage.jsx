@@ -90,19 +90,13 @@ export default function IncentivesPage() {
         }
     };
 
-    const netSalesColor = useMemo(() => {
-        if (currentWeekSales < 0) return 'text-negative';
-        if (currentWeekSales > 0 && currentWeekSales < 500) return 'text-warning';
-        if (currentWeekSales >= 500) return 'text-positive';
-        return '';
-    }, [currentWeekSales]);
-
-    const poolColor = useMemo(() => {
-        if (incentivePool < 0) return 'text-negative';
-        if (incentivePool > 0 && incentivePool < 500) return 'text-warning';
-        if (incentivePool >= 500) return 'text-positive';
-        return '';
-    }, [incentivePool]);
+    // --- DYNAMIC COLOR HELPER ---
+    const getAmountColor = (amount) => {
+        if (amount < 0) return "#ef4444"; // Red
+        if (amount > 0 && amount < 500) return "#eab308"; // Yellow
+        if (amount >= 500) return "#8db600"; // Apple Green
+        return undefined; // Fallback to default theme text color for exactly 0
+    };
 
     return (
         <div className="responsive-page min-h-screen bg-background pb-12">
@@ -145,14 +139,24 @@ export default function IncentivesPage() {
                             <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div>
                                     <p className="text-xs font-bold text-black/90 dark:text-primary-soft uppercase">Current Week Net Sales</p>
-                                    <h2 className={`text-4xl font-black ${netSalesColor}`}>{currency(currentWeekSales, { symbol: '₱' }).format()}</h2>
+                                    <h2
+                                        className="text-4xl font-black"
+                                        style={{ color: getAmountColor(currentWeekSales) }}
+                                    >
+                                        {currency(currentWeekSales, { symbol: '₱' }).format()}
+                                    </h2>
                                     <p className="text-[10px] opacity-70 mt-1 uppercase">
                                         Revenue: {currency(salesSummary?.weeklyRevenue?.[monday] || 0, { symbol: '₱' }).format()} | Expenses: {currency(weeklyExpenses, { symbol: '₱' }).format()}
                                     </p>
                                 </div>
                                 <div className="md:text-right">
                                     <p className="text-xs font-bold text-black uppercase">Incentive Pool (25%)</p>
-                                    <h3 className={`text-5xl font-black ${poolColor}`}>{currency(incentivePool, { symbol: '₱' }).format()}</h3>
+                                    <h3
+                                        className="text-5xl font-black"
+                                        style={{ color: getAmountColor(incentivePool) }}
+                                    >
+                                        {currency(incentivePool, { symbol: '₱' }).format()}
+                                    </h3>
                                 </div>
                             </div>
                         </div>
