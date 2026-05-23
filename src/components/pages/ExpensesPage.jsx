@@ -1,8 +1,9 @@
 // Created on Sunday, April 20, 2026
     import React, { useState, useMemo, useEffect, useRef } from 'react';
+    import Link from 'next/link';
     import currency from 'currency.js';
     import { startOfWeek, endOfWeek, parseISO, format, subWeeks, addWeeks, getDay, startOfToday } from 'date-fns';
-    import { Plus, Utensils, Car, ShoppingBag, Zap, Receipt, Edit, Trash2, X, Calendar, ChevronLeft, ChevronRight, Search, RotateCcw, XCircle, AlertTriangle } from 'lucide-react';
+    import { Plus, Utensils, Car, ShoppingBag, Zap, Receipt, Edit, Trash2, X, Calendar, ChevronLeft, ChevronRight, Search, RotateCcw, XCircle, AlertTriangle, Star } from 'lucide-react';
     import { useStore } from '../../store/useStore';
     import { useExpenses, useCreateExpense, useUpdateExpense, useDeleteExpense, useExpenseSummary, useExpenseCategories, useCreateExpenseCategory, useUpdateExpenseCategory } from '../../hooks/useExpenses';
     import { useSalesSummary } from '../../hooks/useSalesSummary';
@@ -415,6 +416,10 @@
                                     <p className="text-xs text-text-muted mt-1">Created on: April 19, 2026 Sunday</p>
                                 </div>
                                 <div className="text-right">
+                                    <Link href="/incentives" className="flex items-center gap-2 text-sm font-medium text-primary bg-primary/10 hover:bg-primary/20 px-4 py-2 rounded-full transition-colors shadow-sm mb-2">
+                                        <Star className="w-4 h-4" />
+                                        <span>Incentives</span>
+                                    </Link>
                                     <p className="text-text-muted text-xs font-semibold uppercase tracking-wider">Current Week Sales</p>
                                     <p className="text-xl font-bold" style={{ color: currentWeekSales >= 0 ? '#8DB600' : '#dc2626' }}>
                                         {currentWeekSales >= 0 ? '+' : ''}{currency(currentWeekSales, { symbol: '₱' }).format()}

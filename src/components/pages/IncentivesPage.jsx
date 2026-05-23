@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import Link from 'next/link';
 import { startOfWeek, endOfWeek, format, addDays, subDays, parseISO } from 'date-fns';
 import currency from 'currency.js';
-import { Wallet, History, Plus, Info, TrendingUp, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import { Wallet, History, Plus, Info, TrendingUp, ChevronLeft, ChevronRight, Calendar, Receipt } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import { useSalesSummary } from '../../hooks/useSalesSummary';
 import { useExpenses } from '../../hooks/useExpenses';
@@ -109,9 +110,15 @@ export default function IncentivesPage() {
                         <div className="relative z-10">
 
                             <div className="flex flex-col md:flex-row justify-between items-start mb-6 gap-4">
-                                <h1 className="text-2xl font-bold flex items-center gap-2 mt-2">
-                                    <TrendingUp /> Staff Incentives
-                                </h1>
+                                <div className="flex items-center gap-4">
+                                    <h1 className="text-2xl font-bold flex items-center gap-2 mt-2">
+                                        <TrendingUp /> Staff Incentives
+                                    </h1>
+                                    <Link href="/expenses" className="flex items-center gap-2 text-sm font-medium text-black/70 bg-white/20 hover:bg-white/40 px-4 py-2 rounded-full transition-colors shadow-sm">
+                                        <Receipt className="w-4 h-4" />
+                                        <span>Expenses</span>
+                                    </Link>
+                                </div>
 
                                 <div className="flex flex-col items-start md:items-end gap-2">
                                     <div className="flex items-center gap-2 bg-black/10 dark:bg-white/20 p-1.5 rounded-2xl backdrop-blur-md">
