@@ -106,6 +106,7 @@ export function useSalesSummary({ startDate, endDate, productName, productId } =
                         totalamount,
                         saletimestamp,
                         status,
+                        users ( name, color ),
                         sale_items (
                             product_id,
                             quantity,

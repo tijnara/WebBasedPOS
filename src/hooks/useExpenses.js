@@ -28,7 +28,7 @@ export function useExpenses({ startDate, endDate, page = 1, pageSize = 20, searc
 
             let mainQuery = supabase
                 .from('expenses')
-                .select('*, users:created_by(name)', { count: 'exact' })
+                .select('*, users:created_by(name, color)', { count: 'exact' })
                 .order('expense_date', { ascending: false })
                 .range(from, to);
 
@@ -45,9 +45,15 @@ export function useExpenses({ startDate, endDate, page = 1, pageSize = 20, searc
             if (sumRes.error) throw sumRes.error;
 
             const totalSum = (sumRes.data || []).reduce((acc, curr) => acc + Number(curr.amount), 0);
+            
+            const expenses = mainRes.data.map(e => ({
+                ...e,
+                staffName: e.users?.name || 'Unknown',
+                userColor: e.users?.color || '#374151',
+            }));
 
             return {
-                expenses: mainRes.data || [],
+                expenses: expenses || [],
                 totalCount: mainRes.count || 0,
                 totalPages: Math.ceil((mainRes.count || 0) / pageSize),
                 totalSum

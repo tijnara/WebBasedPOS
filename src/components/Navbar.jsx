@@ -564,9 +564,14 @@ const Navbar = () => {
                                 <ActiveShiftIndicator user={clientUser} onOpenStartShift={() => setIsStartShiftModalOpen(true)} />
                                 <LiveClock />
                             </div>
-                            <div className="user-info-text hidden sm:block">
-                                <span className="text-gray-600">Logged in as:</span>{' '}
-                                <strong className="text-primary">{clientUser.name || clientUser.email}</strong>
+                            <div className="hidden md:flex items-center space-x-2 text-sm text-gray-600 mr-4">
+                                <span>Logged in as:</span>
+                                <span 
+                                    className="font-bold" 
+                                    style={{ color: clientUser?.color || '#16a34a' }}
+                                >
+                                    {clientUser?.name}
+                                </span>
                             </div>
                             <Button variant="ghost" onClick={() => router.push('/')} className="hidden sm:flex items-center gap-1 hover:text-primary transition-colors" title="Landing Page">
                                 <HomeIcon className="w-5 h-5" /> <span>Landing Page</span>

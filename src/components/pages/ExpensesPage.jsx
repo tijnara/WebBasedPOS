@@ -604,7 +604,10 @@
                                                     <span className="font-semibold text-text text-sm">{exp.description}</span>
                                                     <span className="text-xs font-medium text-text-muted">
                                                         {exp.category} &bull; {format(parseISO(exp.expense_date), 'MMM d, yyyy h:mm a')}
-                                                        {exp.users?.name && <span className="ml-1 text-primary font-bold italic opacity-70">by {exp.users.name}</span>}
+                                                        <div className="inline-flex items-center space-x-2 font-semibold" style={{ color: exp.userColor }}>
+                                                            <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: exp.userColor }}></span>
+                                                            <span>{exp.staffName}</span>
+                                                        </div>
                                                     </span>
                                                 </div>
                                             </div>

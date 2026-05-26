@@ -89,7 +89,10 @@ const SaleCard = ({ sale, onDelete, isAdmin }) => (
                 ))}
             </div>
             <div className="flex justify-between items-center text-xs text-gray-500 pt-3 border-t border-gray-100 mt-3">
-                <span>Staff: <span className="font-medium text-gray-700">{sale.staffName || 'N/A'}</span></span>
+                <div className="inline-flex items-center space-x-2" style={{ color: sale.userColor }}>
+                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: sale.userColor }}></span>
+                    <span>{sale.staffName}</span>
+                </div>
                 <span>Payment: <span className="font-medium text-gray-700">{sale.paymentMethod}</span></span>
             </div>
         </div>
@@ -340,7 +343,12 @@ const SalesReportDisplay = ({ salesList, currentPage, totalPages, onPageChange, 
                             </td>
                             <td className="px-3 py-3 whitespace-nowrap align-top">{sale.paymentMethod}</td>
                             <td className="px-3 py-3 whitespace-nowrap align-top" style={sale.status === 'Unpaid' ? { color: '#EA580C' } : {}}>{sale.status}</td>
-                            <td className="px-3 py-3 whitespace-nowrap align-top">{sale.staffName || 'N/A'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap align-top">
+                                <div className="inline-flex items-center space-x-2 font-semibold" style={{ color: sale.userColor }}>
+                                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: sale.userColor }}></span>
+                                    <span>{sale.staffName}</span>
+                                </div>
+                            </td>
 
                             {isAdmin && (
                                 <td className="px-3 py-3 text-right align-top">

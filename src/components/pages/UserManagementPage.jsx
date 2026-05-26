@@ -94,6 +94,7 @@ export default function UserManagementPage() {
     const [categoryId, setCategoryId] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [color, setColor] = useState('#3B82F6');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
@@ -148,6 +149,7 @@ export default function UserManagementPage() {
         setName(u?.name || '');
         setEmail(u?.email || '');
         setCategoryId(u?.categoryId || (categories.length > 0 ? categories[0].id : ''));
+        setColor(u?.color || '#3B82F6'); // Set edit color
         setPassword('');
         setConfirmPassword('');
         setIsModalOpen(true);
@@ -158,26 +160,17 @@ export default function UserManagementPage() {
         setName('');
         setEmail('');
         setCategoryId(categories.length > 0 ? categories[0].id : '');
+        setColor('#3B82F6'); // Reset color
         setPassword('');
         setConfirmPassword('');
     };
 
     const save = async (e) => {
         e.preventDefault();
-        if (password !== confirmPassword) {
-            addToast({ title: 'Error', description: "Passwords do not match.", variant: 'destructive' });
-            return;
-        }
-        if (!name || !email || !categoryId) {
-            addToast({ title: 'Error', description: "Name, Email, and Category are required.", variant: 'destructive' });
-            return;
-        }
-        if (!editing && !password) {
-            addToast({ title: 'Error', description: "Password is required for new users.", variant: 'destructive' });
-            return;
-        }
+        // ... (keep your existing validation checks) ...
 
-        const payload = { name, email, categoryId: Number(categoryId) };
+        // Include color in the payload
+        const payload = { name, email, categoryId: Number(categoryId), color };
         if (password) payload.password = password;
 
         try {
@@ -262,8 +255,8 @@ export default function UserManagementPage() {
                                     ) : (
                                         users.map(u => (
                                             <TableRow key={u.id}>
-                                                <TableCell className="font-medium">
-                                                    {u.name} {u.id === currentUser?.id && <span className="text-xs text-gray-400">(You)</span>}
+                                                <TableCell className="font-semibold" style={{ color: u.color }}>
+                                                    {u.name} {u.id === currentUser?.id && <span className="text-xs opacity-60 ml-1">(You)</span>}
                                                 </TableCell>
                                                 <TableCell>{u.email}</TableCell>
                                                 <TableCell>
@@ -304,9 +297,12 @@ export default function UserManagementPage() {
                         users.map(u => (
                             <Card key={u.id} className="p-4">
                                 <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="font-medium">{u.name} {u.id === currentUser?.id && <span className="text-xs text-gray-400">(You)</span>}</p>
-                                        <p className="text-sm text-muted">{u.email}</p>
+                                    <div className="flex items-center space-x-2">
+                                        <div className="w-3 h-3 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: u.color }}></div>
+                                        <div>
+                                            <p className="font-medium">{u.name} {u.id === currentUser?.id && <span className="text-xs text-gray-400">(You)</span>}</p>
+                                            <p className="text-sm text-muted">{u.email}</p>
+                                        </div>
                                     </div>
                                     <RoleBadge categoryName={u.categoryName} isAdmin={u.isAdmin} />
                                 </div>
@@ -402,7 +398,20 @@ export default function UserManagementPage() {
                                                     </Button>
                                                 )}
                                             </div>
-                                            
+                                        </div>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="color" className="text-sm font-semibold text-gray-700">User Color Palette</Label>
+                                        <div className="flex items-center space-x-3">
+                                            <Input 
+                                                id="color" 
+                                                type="color" 
+                                                value={color} 
+                                                onChange={(e) => setColor(e.target.value)} 
+                                                className="w-14 h-11 p-1 cursor-pointer border border-gray-300 rounded bg-white shadow-sm" 
+                                                disabled={isDemo} 
+                                            />
+                                            <span className="text-sm text-gray-500">This color will identify the user in reports</span>
                                         </div>
                                     </div>
                                 </div>

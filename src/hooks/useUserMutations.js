@@ -48,29 +48,25 @@ export function useUsers({ page = 1, itemsPerPage = 10, searchTerm = '' } = {}) 
     return useQuery({
         queryKey: usersTableKey.concat([isDemo, page, itemsPerPage, searchTerm]),
         queryFn: async () => {
-            if (isDemo) {
-                return { users: [], totalPages: 1, totalCount: 0 }; // Handle demo mode as needed
-            }
+            if (isDemo) return { users: [], totalPages: 1, totalCount: 0 }; 
 
             try {
                 const startIndex = (page - 1) * itemsPerPage;
                 const endIndex = startIndex + itemsPerPage - 1;
 
-                // --- REVERTED: Use the explicit join syntax ---
+                // ADDED 'color' to the select statement
                 let query = supabase
                     .from('users')
                     .select(`
-                        id, name, email, phone, dateadded, category_id,
-                        user_categories ( id, name, is_admin )
+                        id, name, email, phone, dateadded, category_id, color,
+                        user_categories:category_id ( id, name, is_admin )
                     `, { count: 'exact' })
                     .order('name', { ascending: true })
                     .range(startIndex, endIndex);
 
                 if (searchTerm) {
                     const term = searchTerm.trim().toLowerCase();
-                    query = query.or(
-                        `name.ilike.%${term}%,email.ilike.%${term}%,phone.ilike.%${term}%`
-                    );
+                    query = query.or(`name.ilike.%${term}%,email.ilike.%${term}%,phone.ilike.%${term}%`);
                 }
 
                 const { data, error, count } = await query;
@@ -83,6 +79,7 @@ export function useUsers({ page = 1, itemsPerPage = 10, searchTerm = '' } = {}) 
                     name: u.name || 'Unnamed User',
                     email: u.email,
                     phone: u.phone || 'N/A',
+                    color: u.color || '#3B82F6', // Assign color or fallback
                     categoryId: u.category_id,
                     categoryName: u.user_categories?.name || 'Unknown',
                     isAdmin: u.user_categories?.is_admin || false, 
@@ -110,12 +107,7 @@ export function useCreateUser() {
 
             const capitalizeFirst = str => str ? str.charAt(0).toUpperCase() + str.slice(1) : '';
 
-            const { data: existingUser } = await supabase
-                .from('users')
-                .select('id')
-                .eq('email', userData.email)
-                .maybeSingle();
-
+            const { data: existingUser } = await supabase.from('users').select('id').eq('email', userData.email).maybeSingle();
             if (existingUser) throw new Error(`Email ${userData.email} already exists.`);
 
             const payload = {
@@ -124,6 +116,7 @@ export function useCreateUser() {
                 phone: userData.phone || null,
                 password: userData.password,
                 category_id: userData.categoryId, 
+                color: userData.color || '#3B82F6', // Send the color
                 dateadded: new Date().toISOString()
             };
 
@@ -156,6 +149,7 @@ export function useUpdateUser() {
                 email: payload.email,
                 phone: payload.phone || null,
                 category_id: payload.categoryId,
+                color: payload.color, // Update the color
             };
 
             if (payload.password && payload.password.trim() !== '') {

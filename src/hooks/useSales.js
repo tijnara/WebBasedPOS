@@ -93,7 +93,7 @@ export function useSales({ searchTerm, startDate, endDate, productName, productI
                 const selectString = `
                     *,
                     sale_items${hasProductFilter ? '!inner' : ''} ( *, product:products ( name, price ) ),
-                    users:created_by ( name )
+                    users:created_by ( name, color )
                 `;
 
                 let query = supabase
@@ -139,6 +139,7 @@ export function useSales({ searchTerm, startDate, endDate, productName, productI
                     customerId: s.customerId,
                     customerName: s.customername || 'N/A',
                     createdBy: s.users?.name || s.created_by || 'N/A',
+                    userColor: s.users?.color || '#374151',
                     sale_items: Array.isArray(s.sale_items) ? s.sale_items.map(item => ({
                         ...item,
                         productName: item.product?.name || item.product_name || '',
