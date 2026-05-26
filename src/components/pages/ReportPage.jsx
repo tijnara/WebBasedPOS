@@ -1,5 +1,7 @@
 // src/components/pages/ReportPage.jsx
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabaseClient';
 import { useSales } from '../../hooks/useSales';
@@ -382,6 +384,8 @@ const SalesReportDisplay = ({ salesList, currentPage, totalPages, onPageChange, 
 
 // --- Main Report Page Component ---
 const ReportPage = () => {
+    const router = useRouter();
+    const searchParams = useSearchParams();
     const user = useStore(state => state.user);
     const isAdmin = user?.role === 'Admin' || user?.role === 'admin';
 
@@ -420,6 +424,22 @@ const ReportPage = () => {
     const [saleToDelete, setSaleToDelete] = useState(null);
 
     const deleteSaleMutation = useDeleteSale();
+
+    useEffect(() => {
+        const tab = searchParams.get('tab');
+        if (tab === 'customers') {
+            setActiveTab('customers');
+            const hash = window.location.hash;
+            if (hash === '#inactive-customers') {
+                setTimeout(() => {
+                    const element = document.getElementById('inactive-customers-report');
+                    if (element) {
+                        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }, 100);
+            }
+        }
+    }, [searchParams]);
 
     React.useEffect(() => {
         const onScroll = () => setElevated(window.scrollY > 8);
@@ -1047,6 +1067,11 @@ const ReportPage = () => {
             {/* --- CUSTOMER REPORT TAB --- */}
             {activeTab === 'customers' && (
                 <>
+                    <div className="flex justify-end mb-4">
+                        <Link href="/customer-management" className="text-sm text-blue-600 hover:underline dark:text-blue-400">
+                            &larr; Back to Customer Management
+                        </Link>
+                    </div>
                     <div className={`filter-bar bg-white rounded-lg p-4 transition-shadow sticky top-0 z-20 ${elevated ? 'shadow-md' : 'shadow-sm'}`}>
                         <div className="mb-4 pb-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                             <div>
@@ -1146,7 +1171,7 @@ const ReportPage = () => {
                                 />
                             </div>
 
-                            <div className="flex flex-col gap-2">
+                            <div id="inactive-customers-report" className="flex flex-col gap-2">
                                 <InactiveCustomersTable
                                     inactiveCustomers={inactiveCustomers}
                                     isLoading={isLoadingInactive}

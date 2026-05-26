@@ -1,5 +1,6 @@
 // src/components/pages/CustomerManagementPage.jsx
 import React, { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
 import { useStore } from '../../store/useStore';
 import {
     Button, Card, CardContent, Table, TableHeader, TableBody, TableRow,
@@ -214,10 +215,14 @@ export default function CustomerManagementPage() {
                             Manage your customer records and credit balances
                         </p>
                     </div>
-                    {/* The Add Customer trigger */}
-                    <Button onClick={openModal} variant="primary" className="shadow-sm font-semibold" disabled={isDemo}>
-                        + Add Customer
-                    </Button>
+                    <div className="flex flex-col items-end gap-2">
+                        <Button onClick={openModal} variant="primary" className="shadow-sm font-semibold" disabled={isDemo}>
+                            + Add Customer
+                        </Button>
+                        <Link href="/report?tab=customers#inactive-customers" className="text-sm text-blue-600 hover:underline dark:text-blue-400">
+                            View Inactive Customers Report
+                        </Link>
+                    </div>
                 </div>
 
                 {/* Search Input */}
