@@ -11,6 +11,7 @@ import {
 import Pagination from '../Pagination';
 import {
     useUsers,
+    useUserCategories,
     useCreateUser,
     useUpdateUser,
     useDeleteUser
@@ -18,50 +19,22 @@ import {
 
 import { EditIcon, DeleteIcon, UserIcon as StaffIcon } from '../Icons';
 
-// --- Constants ---
-const USER_ROLES = {
-    STAFF: 'Staff',
-    ADMIN: 'Admin',
-};
-
-// --- Helper for Role Badge ---
-const RoleBadge = ({ role }) => {
-    const isAdmin = role === USER_ROLES.ADMIN;
+// --- Dynamic Role Badge ---
+const RoleBadge = ({ categoryName, isAdmin }) => {
     return (
         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
             isAdmin ? 'bg-[#DCEDC8] text-[#33691E]' : 'bg-gray-100 text-gray-800'
         }`}>
-            {isAdmin ? 'Admin' : 'Staff'}
+            {categoryName}
         </span>
     );
 };
 
-// --- Icons for Input Fields ---
-const UserInputIcon = ({ className }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={className || "w-5 h-5"}>
-        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zM8 11a4 4 0 00-4 4v.5a.5.5 0 00.5.5h11a.5.5 0 00.5-.5V15a4 4 0 00-4-4H8z" clipRule="evenodd" />
-    </svg>
-);
-
-const MailIcon = ({ className }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={className || "w-5 h-5"}>
-        <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
-        <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
-    </svg>
-);
-
-const LockIcon = ({ className }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={className || "w-5 h-5"}>
-        <path fillRule="evenodd" d="M10 2a5 5 0 00-5 5v2a2 2 0 00-2 2v5a2 2 0 002 2h10a2 2 0 002-2v-5a2 2 0 00-2-2H7V7a3 3 0 015.905-.75 1 1 0 001.937-.5A5.002 5.002 0 0010 2z" clipRule="evenodd" />
-    </svg>
-);
-
-const BriefcaseIcon = ({ className }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={className || "w-5 h-5"}>
-        <path fillRule="evenodd" d="M6 6V5a3 3 0 013-3h2a3 3 0 013 3v1h2a2 2 0 012 2v3.57A22.952 22.952 0 0110 13a22.95 22.95 0 01-8-1.43V8a2 2 0 012-2h2zm2-1a1 1 0 011-1h2a1 1 0 011 1v1H8V5zm1 5a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z" clipRule="evenodd" />
-        <path d="M2 13.692V16a2 2 0 002 2h12a2 2 0 002-2v-2.308A24.974 24.974 0 0110 15c-2.796 0-5.487-.46-8-1.308z" />
-    </svg>
-);
+// --- Icons (Same as before) ---
+const UserInputIcon = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={className || "w-5 h-5"}><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zM8 11a4 4 0 00-4 4v.5a.5.5 0 00.5.5h11a.5.5 0 00.5-.5V15a4 4 0 00-4-4H8z" clipRule="evenodd" /></svg>);
+const MailIcon = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={className || "w-5 h-5"}><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" /><path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" /></svg>);
+const LockIcon = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={className || "w-5 h-5"}><path fillRule="evenodd" d="M10 2a5 5 0 00-5 5v2a2 2 0 00-2 2v5a2 2 0 002 2h10a2 2 0 002-2v-5a2 2 0 00-2-2H7V7a3 3 0 015.905-.75 1 1 0 001.937-.5A5.002 5.002 0 0010 2z" clipRule="evenodd" /></svg>);
+const BriefcaseIcon = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={className || "w-5 h-5"}><path fillRule="evenodd" d="M6 6V5a3 3 0 013-3h2a3 3 0 013 3v1h2a2 2 0 012 2v3.57A22.952 22.952 0 0110 13a22.95 22.95 0 01-8-1.43V8a2 2 0 012-2h2zm2-1a1 1 0 011-1h2a1 1 0 011 1v1H8V5zm1 5a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z" clipRule="evenodd" /><path d="M2 13.692V16a2 2 0 002 2h12a2 2 0 002-2v-2.308A24.974 24.974 0 0110 15c-2.796 0-5.487-.46-8-1.308z" /></svg>);
 
 export default function UserManagementPage() {
     const addToast = useStore(s => s.addToast);
@@ -70,15 +43,20 @@ export default function UserManagementPage() {
         isDemo: s.user?.isDemo
     }));
 
+    // SECURITY CHECK: Allow User ID:1 OR any flagged Admin to manage users
+    const canManageUsers = currentUser?.id === 1 || currentUser?.isAdmin;
+
     const createUser = useCreateUser();
     const updateUser = useUpdateUser();
     const deleteUser = useDeleteUser();
+    
+    const { data: categories = [] } = useUserCategories();
 
     // --- State ---
     const [editing, setEditing] = useState(null);
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
-    const [role, setRole] = useState(USER_ROLES.STAFF);
+    const [categoryId, setCategoryId] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -90,6 +68,13 @@ export default function UserManagementPage() {
     const users = usersData.users;
     const totalPages = usersData.totalPages;
     const searchInputRef = useRef(null);
+
+    // Default category ID selection
+    useEffect(() => {
+        if (!editing && categories.length > 0 && !categoryId) {
+            setCategoryId(categories[0].id);
+        }
+    }, [categories, editing]);
 
     // --- Effects ---
     useEffect(() => {
@@ -123,7 +108,7 @@ export default function UserManagementPage() {
         setEditing(u);
         setName(u?.name || '');
         setEmail(u?.email || '');
-        setRole(u?.role || USER_ROLES.STAFF);
+        setCategoryId(u?.categoryId || (categories.length > 0 ? categories[0].id : ''));
         setPassword('');
         setConfirmPassword('');
         setIsModalOpen(true);
@@ -133,7 +118,7 @@ export default function UserManagementPage() {
         setEditing(null);
         setName('');
         setEmail('');
-        setRole(USER_ROLES.STAFF);
+        setCategoryId(categories.length > 0 ? categories[0].id : '');
         setPassword('');
         setConfirmPassword('');
     };
@@ -144,8 +129,8 @@ export default function UserManagementPage() {
             addToast({ title: 'Error', description: "Passwords do not match.", variant: 'destructive' });
             return;
         }
-        if (!name || !email) {
-            addToast({ title: 'Error', description: "Name and Email are required.", variant: 'destructive' });
+        if (!name || !email || !categoryId) {
+            addToast({ title: 'Error', description: "Name, Email, and Category are required.", variant: 'destructive' });
             return;
         }
         if (!editing && !password) {
@@ -153,18 +138,11 @@ export default function UserManagementPage() {
             return;
         }
 
-        const payload = { name, email, role };
-        if (password) {
-            payload.password = password;
-        }
+        const payload = { name, email, categoryId: Number(categoryId) };
+        if (password) payload.password = password;
 
         try {
             if (editing) {
-                if (editing.id === currentUser?.id && role !== USER_ROLES.ADMIN) {
-                    if (!confirm("Warning: You are removing your own Admin privileges. You may lose access to this page. Proceed?")) {
-                        return;
-                    }
-                }
                 await updateUser.mutateAsync({ ...payload, id: editing.id });
             } else {
                 await createUser.mutateAsync(payload);
@@ -199,13 +177,20 @@ export default function UserManagementPage() {
                         <h1 className="text-2xl font-semibold">User Management</h1>
                         <p className="text-muted mt-1">Add, edit, or remove staff and admin accounts</p>
                     </div>
-                    <Button onClick={openModal} variant="primary" disabled={isDemo}>Add User</Button>
+                    <Button 
+                        onClick={openModal} 
+                        variant="primary" 
+                        disabled={isDemo || !canManageUsers}
+                        title={!canManageUsers ? "Only Admins can add users" : ""}
+                    >
+                        Add User
+                    </Button>
                 </div>
 
                 <div className="mb-4">
                     <Input
                         ref={searchInputRef}
-                        placeholder="Search by name, email, or role..."
+                        placeholder="Search by name, email..."
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
                         className="w-full max-w-xs mb-2"
@@ -243,7 +228,7 @@ export default function UserManagementPage() {
                                                 </TableCell>
                                                 <TableCell>{u.email}</TableCell>
                                                 <TableCell>
-                                                    <RoleBadge role={u.role} />
+                                                    <RoleBadge categoryName={u.categoryName} isAdmin={u.isAdmin} />
                                                 </TableCell>
                                                 <TableCell>
                                                     {u.dateAdded instanceof Date && !isNaN(u.dateAdded)
@@ -252,10 +237,10 @@ export default function UserManagementPage() {
                                                 </TableCell>
                                                 <TableCell className="text-right">
                                                     <div className="flex justify-end space-x-1">
-                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:bg-blue-100" onClick={() => startEdit(u)} title="Edit User" disabled={isDemo}>
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:bg-blue-100" onClick={() => startEdit(u)} disabled={isDemo || !canManageUsers}>
                                                             <EditIcon />
                                                         </Button>
-                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-red-600 hover:bg-red-100" onClick={() => remove(u)} title="Delete User" disabled={isDemo || u.id === currentUser?.id}>
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-red-600 hover:bg-red-100" onClick={() => remove(u)} disabled={isDemo || !canManageUsers || u.id === currentUser?.id}>
                                                             <DeleteIcon />
                                                         </Button>
                                                     </div>
@@ -270,50 +255,7 @@ export default function UserManagementPage() {
                     </CardContent>
                 </Card>
 
-                {/* --- MOBILE LIST VIEW --- */}
-                <div className="block md:hidden">
-                    <Card>
-                        <CardContent className="p-0">
-                            {isLoading ? (
-                                <div className="text-center text-muted p-6">Loading users...</div>
-                            ) : users.length === 0 ? (
-                                <div className="text-center text-muted p-6">No users found.</div>
-                            ) : (
-                                <div className="divide-y divide-gray-100">
-                                    {users.map(u => (
-                                        <div key={u.id} className="p-4 flex items-center space-x-3">
-                                            <div className="flex-shrink-0">
-                                                <span className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
-                                                    <StaffIcon />
-                                                </span>
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <div className="font-medium text-gray-900 truncate">
-                                                    {u.name} {u.id === currentUser?.id && <span className="text-xs text-gray-400">(You)</span>}
-                                                </div>
-                                                <div className="text-sm text-gray-500 truncate">{u.email}</div>
-                                                <div className="text-xs text-gray-400 mt-1">
-                                                    <RoleBadge role={u.role} />
-                                                </div>
-                                            </div>
-                                            <div className="flex-shrink-0 flex items-center space-x-0">
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600" onClick={() => startEdit(u)} title="Edit User" disabled={isDemo}>
-                                                    <EditIcon />
-                                                </Button>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-red-600" onClick={() => remove(u)} title="Delete User" disabled={isDemo || u.id === currentUser?.id}>
-                                                    <DeleteIcon />
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                    <Pagination currentPage={currentPage} totalPages={totalPages || 1} onPageChange={page => setCurrentPage(page)} />
-                </div>
-
-                {/* --- MODAL: Add/Edit User (Corrected) --- */}
+                {/* --- MODAL: Add/Edit User --- */}
                 <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
                     <DialogContent className="p-0 sm:max-w-xl w-full bg-white shadow-2xl border-0 overflow-hidden rounded-2xl">
                         <DialogHeader className="px-6 py-5 border-b border-gray-100 bg-gray-50/80">
@@ -325,129 +267,63 @@ export default function UserManagementPage() {
 
                         <form onSubmit={save} className="flex flex-col max-h-[80vh]">
                             <div className="overflow-y-auto px-6 py-6 space-y-6">
-                                {/* --- Section 1: Account --- */}
+                                {/* --- Account Details --- */}
                                 <div className="space-y-5">
-                                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 pb-2 mb-4">
-                                        Account Details
-                                    </h3>
-
-                                    {/* Full Name */}
                                     <div className="space-y-1.5">
-                                        <Label htmlFor="name" className="text-sm font-semibold text-gray-700">
-                                            Full Name <span className="text-red-500">*</span>
-                                        </Label>
+                                        <Label htmlFor="name" className="text-sm font-semibold text-gray-700">Full Name <span className="text-red-500">*</span></Label>
                                         <div className="relative">
-                                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
-                                                <UserInputIcon className="w-5 h-5" />
-                                            </div>
-                                            <Input
-                                                id="name"
-                                                value={name}
-                                                onChange={(e) => setName(e.target.value)}
-                                                required
-                                                autoFocus
-                                                placeholder="Enter full name"
-                                                className="w-full text-base pl-11 py-2.5 border-gray-300 h-11"
-                                                disabled={isDemo}
-                                            />
+                                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400"><UserInputIcon className="w-5 h-5" /></div>
+                                            <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required autoFocus className="w-full text-base pl-11 py-2.5 border-gray-300 h-11" disabled={isDemo} />
                                         </div>
                                     </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                        {/* Email */}
                                         <div className="space-y-1.5">
-                                            <Label htmlFor="email" className="text-sm font-semibold text-gray-700">
-                                                Email <span className="text-red-500">*</span>
-                                            </Label>
+                                            <Label htmlFor="email" className="text-sm font-semibold text-gray-700">Email <span className="text-red-500">*</span></Label>
                                             <div className="relative">
-                                                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
-                                                    <MailIcon className="w-5 h-5" />
-                                                </div>
-                                                <Input
-                                                    id="email"
-                                                    type="email"
-                                                    value={email}
-                                                    onChange={(e) => setEmail(e.target.value)}
-                                                    required
-                                                    placeholder="email@example.com"
-                                                    className="w-full text-base pl-11 py-2.5 border-gray-300 h-11"
-                                                    disabled={isDemo}
-                                                />
+                                                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400"><MailIcon className="w-5 h-5" /></div>
+                                                <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="w-full text-base pl-11 py-2.5 border-gray-300 h-11" disabled={isDemo} />
                                             </div>
                                         </div>
 
-                                        {/* Role */}
+                                        {/* --- Dynamic Category Dropdown --- */}
                                         <div className="space-y-1.5">
-                                            <Label htmlFor="role" className="text-sm font-semibold text-gray-700">
-                                                User Role
-                                            </Label>
+                                            <Label htmlFor="category_id" className="text-sm font-semibold text-gray-700">User Role</Label>
                                             <div className="relative">
-                                                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
-                                                    <BriefcaseIcon className="w-5 h-5" />
-                                                </div>
+                                                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400"><BriefcaseIcon className="w-5 h-5" /></div>
                                                 <Select
-                                                    id="role"
-                                                    value={role}
-                                                    onChange={(e) => setRole(e.target.value)}
+                                                    id="category_id"
+                                                    value={categoryId}
+                                                    onChange={(e) => setCategoryId(e.target.value)}
                                                     className="w-full text-base pl-11 py-2.5 border-gray-300 h-11 appearance-none"
-                                                    disabled={isDemo}
+                                                    disabled={isDemo || categories.length === 0}
                                                 >
-                                                    <option value={USER_ROLES.STAFF}>Staff</option>
-                                                    <option value={USER_ROLES.ADMIN}>Admin</option>
+                                                    <option value="" disabled>Select a role...</option>
+                                                    {categories.map(c => (
+                                                        <option key={c.id} value={c.id}>{c.name}</option>
+                                                    ))}
                                                 </Select>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
 
-                                {/* --- Section 2: Security --- */}
+                                {/* --- Security Details --- */}
                                 <div className="space-y-5 pt-2">
-                                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 pb-2 mb-4">
-                                        {editing ? 'Change Password (Optional)' : 'Security'}
-                                    </h3>
-
+                                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 pb-2 mb-4">{editing ? 'Change Password (Optional)' : 'Security'}</h3>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                        {/* Password */}
                                         <div className="space-y-1.5">
-                                            <Label htmlFor="password" className="text-sm font-semibold text-gray-700">
-                                                Password {!editing && <span className="text-red-500">*</span>}
-                                            </Label>
+                                            <Label htmlFor="password" className="text-sm font-semibold text-gray-700">Password {!editing && <span className="text-red-500">*</span>}</Label>
                                             <div className="relative">
-                                                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
-                                                    <LockIcon className="w-5 h-5" />
-                                                </div>
-                                                <Input
-                                                    id="password"
-                                                    type="password"
-                                                    value={password}
-                                                    onChange={(e) => setPassword(e.target.value)}
-                                                    required={!editing}
-                                                    placeholder="••••••••"
-                                                    className="w-full text-base pl-11 py-2.5 border-gray-300 h-11"
-                                                    disabled={isDemo}
-                                                />
+                                                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400"><LockIcon className="w-5 h-5" /></div>
+                                                <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required={!editing} className="w-full text-base pl-11 py-2.5 border-gray-300 h-11" disabled={isDemo} />
                                             </div>
                                         </div>
-
-                                        {/* Confirm Password */}
                                         <div className="space-y-1.5">
-                                            <Label htmlFor="confirmPassword" className="text-sm font-semibold text-gray-700">
-                                                Confirm Password {!editing && <span className="text-red-500">*</span>}
-                                            </Label>
+                                            <Label htmlFor="confirmPassword" className="text-sm font-semibold text-gray-700">Confirm Password {!editing && <span className="text-red-500">*</span>}</Label>
                                             <div className="relative">
-                                                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
-                                                    <LockIcon className="w-5 h-5" />
-                                                </div>
-                                                <Input
-                                                    id="confirmPassword"
-                                                    type="password"
-                                                    value={confirmPassword}
-                                                    onChange={(e) => setConfirmPassword(e.target.value)}
-                                                    required={!editing}
-                                                    placeholder="••••••••"
-                                                    className="w-full text-base pl-11 py-2.5 border-gray-300 h-11"
-                                                    disabled={isDemo}
-                                                />
+                                                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400"><LockIcon className="w-5 h-5" /></div>
+                                                <Input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required={!editing} className="w-full text-base pl-11 py-2.5 border-gray-300 h-11" disabled={isDemo} />
                                             </div>
                                         </div>
                                     </div>
@@ -455,9 +331,7 @@ export default function UserManagementPage() {
                             </div>
 
                             <DialogFooter className="px-6 py-4 border-t bg-gray-50 mt-auto">
-                                <Button variant="outline" type="button" onClick={closeModal} disabled={isMutating}>
-                                    Cancel
-                                </Button>
+                                <Button variant="outline" type="button" onClick={closeModal} disabled={isMutating}>Cancel</Button>
                                 <Button type="submit" variant="primary" disabled={isMutating || isDemo}>
                                     {isMutating ? 'Saving...' : (editing ? 'Update User' : 'Create User')}
                                 </Button>

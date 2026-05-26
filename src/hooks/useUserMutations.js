@@ -4,44 +4,65 @@ import { supabase } from '../lib/supabaseClient';
 import useStore from '../store/useStore';
 
 const usersTableKey = ['usersTableData'];
+const categoriesTableKey = ['userCategoriesData'];
+
+// --- NEW Hook: Fetch Categories ---
+export function useUserCategories() {
+    const isDemo = useStore(s => s.user?.isDemo);
+
+    return useQuery({
+        queryKey: categoriesTableKey.concat([isDemo]),
+        queryFn: async () => {
+            // 1. Fallback for Demo Mode
+            if (isDemo) {
+                return [
+                    { id: 1, name: 'Admin', is_admin: true },
+                    { id: 2, name: 'Staff', is_admin: false }
+                ];
+            }
+
+            // 2. Fetch from Supabase
+            const { data, error } = await supabase
+                .from('user_categories')
+                .select('*')
+                .order('id', { ascending: true });
+            
+            if (error) {
+                console.error("Error fetching categories:", error);
+                // Return a safe fallback so the UI doesn't break entirely
+                return [
+                    { id: 1, name: 'Admin', is_admin: true },
+                    { id: 2, name: 'Staff', is_admin: false }
+                ];
+            }
+            
+            return data || [];
+        }
+    });
+}
 
 // --- Hook for GETTING Data from 'users' Table ---
 export function useUsers({ page = 1, itemsPerPage = 10, searchTerm = '' } = {}) {
     const isDemo = useStore(s => s.user?.isDemo);
-    const MOCK_USERS = [
-        { id: 'mock-u-1', name: 'Demo Admin', email: 'demo.admin@seaside.com', phone: '09110000010', role: 'Admin', dateAdded: new Date('2025-11-01T08:00:00') },
-        { id: 'mock-u-2', name: 'Demo Staff', email: 'demo.staff@seaside.com', phone: '09110000011', role: 'Staff', dateAdded: new Date('2025-11-02T09:00:00') },
-    ];
 
     return useQuery({
         queryKey: usersTableKey.concat([isDemo, page, itemsPerPage, searchTerm]),
         queryFn: async () => {
             if (isDemo) {
-                // ... (demo logic remains similar, just ensuring mock data has roles)
-                await new Promise(resolve => setTimeout(resolve, 400));
-                let filtered = MOCK_USERS;
-                if (searchTerm) {
-                    const term = searchTerm.trim().toLowerCase();
-                    filtered = filtered.filter(u =>
-                        (u.name && u.name.toLowerCase().includes(term)) ||
-                        (u.email && u.email.toLowerCase().includes(term))
-                    );
-                }
-                const totalCount = filtered.length;
-                const totalPages = Math.max(1, Math.ceil(totalCount / itemsPerPage));
-                const startIdx = (page - 1) * itemsPerPage;
-                const endIdx = startIdx + itemsPerPage;
-                return { users: filtered.slice(startIdx, endIdx), totalPages, totalCount };
+                return { users: [], totalPages: 1, totalCount: 0 }; // Handle demo mode as needed
             }
 
             try {
                 const startIndex = (page - 1) * itemsPerPage;
                 const endIndex = startIndex + itemsPerPage - 1;
 
-                // --- UPDATED: Select 'role' and 'isadmin' ---
+                // --- REVERTED: Use the explicit join syntax ---
                 let query = supabase
                     .from('users')
-                    .select('id, name, email, phone, dateadded, role, isadmin', { count: 'exact' })
+                    .select(`
+                        id, name, email, phone, dateadded, category_id,
+                        user_categories ( id, name, is_admin )
+                    `, { count: 'exact' })
                     .order('name', { ascending: true })
                     .range(startIndex, endIndex);
 
@@ -62,8 +83,9 @@ export function useUsers({ page = 1, itemsPerPage = 10, searchTerm = '' } = {}) 
                     name: u.name || 'Unnamed User',
                     email: u.email,
                     phone: u.phone || 'N/A',
-                    role: u.role || 'Staff', // Default to Staff if missing
-                    isAdmin: u.isadmin,      // Map database isadmin to local prop
+                    categoryId: u.category_id,
+                    categoryName: u.user_categories?.name || 'Unknown',
+                    isAdmin: u.user_categories?.is_admin || false, 
                     dateAdded: u.dateadded ? new Date(u.dateadded) : null
                 }));
 
@@ -88,7 +110,6 @@ export function useCreateUser() {
 
             const capitalizeFirst = str => str ? str.charAt(0).toUpperCase() + str.slice(1) : '';
 
-            // Check existing email
             const { data: existingUser } = await supabase
                 .from('users')
                 .select('id')
@@ -102,17 +123,11 @@ export function useCreateUser() {
                 email: userData.email,
                 phone: userData.phone || null,
                 password: userData.password,
-                role: userData.role || 'Staff',
-                isadmin: userData.role === 'Admin', // ADD THIS LINE to sync legacy column
+                category_id: userData.categoryId, 
                 dateadded: new Date().toISOString()
             };
 
-            const { data, error } = await supabase
-                .from('users')
-                .insert([payload])
-                .select()
-                .single();
-
+            const { data, error } = await supabase.from('users').insert([payload]).select().single();
             if (error) throw error;
             return data;
         },
@@ -140,21 +155,14 @@ export function useUpdateUser() {
                 name: payload.name,
                 email: payload.email,
                 phone: payload.phone || null,
-                role: payload.role,
-                isadmin: payload.role === 'Admin', // ADD THIS LINE to sync legacy column
+                category_id: payload.categoryId,
             };
 
             if (payload.password && payload.password.trim() !== '') {
                 updateData.password = payload.password;
             }
 
-            const { data, error } = await supabase
-                .from('users')
-                .update(updateData)
-                .eq('id', id)
-                .select()
-                .single();
-
+            const { data, error } = await supabase.from('users').update(updateData).eq('id', id).select().single();
             if (error) throw error;
             return data;
         },
