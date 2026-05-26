@@ -196,3 +196,29 @@ export function useDeleteUser() {
         }
     });
 }
+
+// --- Hook for CREATING User Categories (Roles) ---
+export function useCreateUserCategory() {
+    const queryClient = useQueryClient();
+    const addToast = useStore(s => s.addToast);
+
+    return useMutation({
+        mutationFn: async (payload) => {
+            const { data, error } = await supabase
+                .from('user_categories')
+                .insert([{ name: payload.name, is_admin: payload.isAdmin }])
+                .select()
+                .single();
+            if (error) throw error;
+            return data;
+        },
+        onSuccess: () => {
+            // categoriesTableKey is defined at the top of your file
+            queryClient.invalidateQueries({ queryKey: ['userCategoriesData'] });
+            addToast({ title: 'Role Created', description: `New role added successfully.`, variant: 'success' });
+        },
+        onError: (error) => {
+            addToast({ title: 'Create Failed', description: error.message, variant: 'destructive' });
+        }
+    });
+}

@@ -7,6 +7,7 @@ import {
     DialogHeader, DialogTitle, DialogFooter, DialogCloseButton,
     Select
 } from '../ui';
+import { Checkbox } from '../ui/Checkbox';
 
 import Pagination from '../Pagination';
 import {
@@ -14,7 +15,8 @@ import {
     useUserCategories,
     useCreateUser,
     useUpdateUser,
-    useDeleteUser
+    useDeleteUser,
+    useCreateUserCategory
 } from '../../hooks/useUserMutations';
 
 import { EditIcon, DeleteIcon, UserIcon as StaffIcon } from '../Icons';
@@ -49,6 +51,39 @@ export default function UserManagementPage() {
     const createUser = useCreateUser();
     const updateUser = useUpdateUser();
     const deleteUser = useDeleteUser();
+    const createCategory = useCreateUserCategory();
+
+    const [isAddRoleModalOpen, setIsAddRoleModalOpen] = useState(false);
+    const [newRoleName, setNewRoleName] = useState('');
+    const [newRoleIsAdmin, setNewRoleIsAdmin] = useState(false);
+
+    const handleAddRole = async (e) => {
+        e.preventDefault();
+        if (!newRoleName || newRoleName.trim() === '') {
+            addToast({ title: 'Error', description: "Role name is required.", variant: 'destructive' });
+            return;
+        }
+        
+        try {
+            const newRole = await createCategory.mutateAsync({ name: newRoleName.trim(), isAdmin: newRoleIsAdmin });
+            if (newRole) {
+                setCategoryId(newRole.id);
+            }
+            closeAddRoleModal();
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    const openAddRoleModal = () => {
+        setNewRoleName('');
+        setNewRoleIsAdmin(false);
+        setIsAddRoleModalOpen(true);
+    };
+
+    const closeAddRoleModal = () => {
+        setIsAddRoleModalOpen(false);
+    };
     
     const { data: categories = [] } = useUserCategories();
 
@@ -74,7 +109,7 @@ export default function UserManagementPage() {
         if (!editing && categories.length > 0 && !categoryId) {
             setCategoryId(categories[0].id);
         }
-    }, [categories, editing]);
+    }, [categories, editing, categoryId]);
 
     // --- Effects ---
     useEffect(() => {
@@ -83,8 +118,12 @@ export default function UserManagementPage() {
                 closeModal();
                 return;
             }
+            if (e.key === 'Escape' && isAddRoleModalOpen) {
+                closeAddRoleModal();
+                return;
+            }
             const activeTag = document.activeElement.tagName;
-            if (activeTag === 'INPUT' || activeTag === 'TEXTAREA') return;
+            if (activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT') return;
             if ((e.ctrlKey && e.key === 'f') || e.key === '/') {
                 if (searchInputRef.current) searchInputRef.current.focus();
                 e.preventDefault();
@@ -92,7 +131,7 @@ export default function UserManagementPage() {
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [isModalOpen]);
+    }, [isModalOpen, isAddRoleModalOpen]);
 
     const openModal = () => {
         resetForm();
@@ -255,6 +294,46 @@ export default function UserManagementPage() {
                     </CardContent>
                 </Card>
 
+                {/* --- MOBILE CARD LIST --- */}
+                <div className="grid gap-4 md:hidden">
+                    {isLoading ? (
+                        <p className="text-center text-muted py-8">Loading users...</p>
+                    ) : users.length === 0 ? (
+                        <p className="text-center text-muted py-8">No users found.</p>
+                    ) : (
+                        users.map(u => (
+                            <Card key={u.id} className="p-4">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className="font-medium">{u.name} {u.id === currentUser?.id && <span className="text-xs text-gray-400">(You)</span>}</p>
+                                        <p className="text-sm text-muted">{u.email}</p>
+                                    </div>
+                                    <RoleBadge categoryName={u.categoryName} isAdmin={u.isAdmin} />
+                                </div>
+                                <div className="flex items-center justify-between mt-4">
+                                    <p className="text-sm text-muted">
+                                        Added: {u.dateAdded instanceof Date && !isNaN(u.dateAdded)
+                                            ? u.dateAdded.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+                                            : 'N/A'}
+                                    </p>
+                                    <div className="flex space-x-1">
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:bg-blue-100" onClick={() => startEdit(u)} disabled={isDemo || !canManageUsers}>
+                                            <EditIcon />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-red-600 hover:bg-red-100" onClick={() => remove(u)} disabled={isDemo || !canManageUsers || u.id === currentUser?.id}>
+                                            <DeleteIcon />
+                                        </Button>
+                                    </div>
+                                </div>
+                            </Card>
+                        ))
+                    )}
+                </div>
+                 {users.length > 0 && (
+                    <Pagination currentPage={currentPage} totalPages={totalPages || 1} onPageChange={page => setCurrentPage(page)} />
+                )}
+
+
                 {/* --- MODAL: Add/Edit User --- */}
                 <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
                     <DialogContent className="p-0 sm:max-w-xl w-full bg-white shadow-2xl border-0 overflow-hidden rounded-2xl">
@@ -289,21 +368,41 @@ export default function UserManagementPage() {
                                         {/* --- Dynamic Category Dropdown --- */}
                                         <div className="space-y-1.5">
                                             <Label htmlFor="category_id" className="text-sm font-semibold text-gray-700">User Role</Label>
-                                            <div className="relative">
-                                                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400"><BriefcaseIcon className="w-5 h-5" /></div>
-                                                <Select
-                                                    id="category_id"
-                                                    value={categoryId}
-                                                    onChange={(e) => setCategoryId(e.target.value)}
-                                                    className="w-full text-base pl-11 py-2.5 border-gray-300 h-11 appearance-none"
-                                                    disabled={isDemo || categories.length === 0}
-                                                >
-                                                    <option value="" disabled>Select a role...</option>
-                                                    {categories.map(c => (
-                                                        <option key={c.id} value={c.id}>{c.name}</option>
-                                                    ))}
-                                                </Select>
+                                            
+                                            <div className="flex items-center space-x-2">
+                                                <div className="relative flex-1">
+                                                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                                                        <BriefcaseIcon className="w-5 h-5" />
+                                                    </div>
+                                                    <Select
+                                                        id="category_id"
+                                                        value={categoryId}
+                                                        onChange={(e) => setCategoryId(e.target.value)}
+                                                        className="w-full text-base pl-11 py-2.5 border-gray-300 h-11 appearance-none"
+                                                        disabled={isDemo || categories.length === 0}
+                                                    >
+                                                        <option value="" disabled>Select a role...</option>
+                                                        {categories.map(c => (
+                                                            <option key={c.id} value={c.id}>{c.name}</option>
+                                                        ))}
+                                                    </Select>
+                                                </div>
+                                                
+                                                {/* ADD ROLE BUTTON */}
+                                                {!editing && (
+                                                    <Button 
+                                                        type="button" 
+                                                        variant="outline" 
+                                                        className="h-11 px-3"
+                                                        onClick={openAddRoleModal}
+                                                        disabled={isDemo || createCategory.isPending}
+                                                        title="Add a new role category"
+                                                    >
+                                                        + New
+                                                    </Button>
+                                                )}
                                             </div>
+                                            
                                         </div>
                                     </div>
                                 </div>
@@ -334,6 +433,50 @@ export default function UserManagementPage() {
                                 <Button variant="outline" type="button" onClick={closeModal} disabled={isMutating}>Cancel</Button>
                                 <Button type="submit" variant="primary" disabled={isMutating || isDemo}>
                                     {isMutating ? 'Saving...' : (editing ? 'Update User' : 'Create User')}
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    </DialogContent>
+                </Dialog>
+
+                {/* --- MODAL: Add New Role --- */}
+                <Dialog open={isAddRoleModalOpen} onOpenChange={setIsAddRoleModalOpen}>
+                    <DialogContent className="p-0 sm:max-w-md w-full bg-white shadow-2xl border-0 overflow-hidden rounded-2xl">
+                        <DialogHeader className="px-6 py-5 border-b border-gray-100 bg-gray-50/80">
+                            <DialogTitle className="text-xl font-bold text-gray-900 tracking-tight">
+                                Add New Role
+                            </DialogTitle>
+                            <DialogCloseButton onClick={closeAddRoleModal} />
+                        </DialogHeader>
+                        <form onSubmit={handleAddRole}>
+                            <div className="px-6 py-6 space-y-5">
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="newRoleName" className="text-sm font-semibold text-gray-700">Role Name</Label>
+                                    <Input 
+                                        id="newRoleName" 
+                                        value={newRoleName} 
+                                        onChange={(e) => setNewRoleName(e.target.value)} 
+                                        placeholder="e.g., Manager, Cashier"
+                                        required 
+                                        autoFocus
+                                        className="h-11"
+                                    />
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <Checkbox 
+                                        id="newRoleIsAdmin"
+                                        checked={newRoleIsAdmin}
+                                        onCheckedChange={setNewRoleIsAdmin}
+                                    />
+                                    <Label htmlFor="newRoleIsAdmin" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                        Grant Admin Privileges
+                                    </Label>
+                                </div>
+                            </div>
+                            <DialogFooter className="px-6 py-4 border-t bg-gray-50">
+                                <Button variant="outline" type="button" onClick={closeAddRoleModal}>Cancel</Button>
+                                <Button type="submit" variant="primary" disabled={createCategory.isPending}>
+                                    {createCategory.isPending ? 'Creating...' : 'Create Role'}
                                 </Button>
                             </DialogFooter>
                         </form>
