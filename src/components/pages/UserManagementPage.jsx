@@ -7,7 +7,7 @@ import {
     DialogHeader, DialogTitle, DialogFooter, DialogCloseButton,
     Select
 } from '../ui';
-import { Checkbox } from '../ui/Checkbox';
+import Checkbox from '../ui/Checkbox';
 
 import Pagination from '../Pagination';
 import {
@@ -466,7 +466,7 @@ export default function UserManagementPage() {
                                     <Checkbox 
                                         id="newRoleIsAdmin"
                                         checked={newRoleIsAdmin}
-                                        onCheckedChange={setNewRoleIsAdmin}
+                                        onChange={(e) => setNewRoleIsAdmin(e.target.checked)}
                                     />
                                     <Label htmlFor="newRoleIsAdmin" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                                         Grant Admin Privileges
