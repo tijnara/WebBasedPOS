@@ -317,7 +317,12 @@ export default function HistoryPage() {
                                             <TableRow key={s.id}>
                                                 <TableCell className="font-medium text-xs whitespace-nowrap">{formatDate(s.saleTimestamp)}</TableCell>
                                                 <TableCell className="text-green-600 font-medium">{s.customerName}</TableCell>
-                                                <TableCell>{s.createdBy || 'N/A'}</TableCell>
+                                                <TableCell>
+                                                    <div className="inline-flex items-center space-x-2 font-semibold" style={{ color: s.userColor }}>
+                                                        <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: s.userColor }}></span>
+                                                        <span>{s.createdBy || 'N/A'}</span>
+                                                    </div>
+                                                </TableCell>
                                                 <TableCell><StatusBadge status={s.status} /></TableCell>
                                                 <TableCell>{s.paymentMethod}</TableCell>
                                                 <TableCell>
@@ -399,7 +404,10 @@ export default function HistoryPage() {
                                                 </div>
                                                 <div className="text-sm text-gray-400">{formatDate(s.saleTimestamp)}</div>
                                                 <div className="flex justify-between items-center mt-1">
-                                                    <span className="text-xs text-gray-500">Staff: {s.createdBy || 'N/A'}</span>
+                                                    <div className="inline-flex items-center space-x-2 text-xs" style={{ color: s.userColor }}>
+                                                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: s.userColor }}></span>
+                                                        <span>{s.createdBy || 'N/A'}</span>
+                                                    </div>
                                                     <StatusBadge status={s.status} />
                                                 </div>
                                             </div>
