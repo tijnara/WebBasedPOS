@@ -54,9 +54,16 @@ export default function MockSalesReportPage() {
         const itemMap = new Map();
 
         realSales.forEach(sale => {
-            if (sale.customerName && sale.customerName !== 'N/A') {
+            // Ensure customer data is included
+            if (sale.customer_id && sale.customers) {
+                 const customerName = sale.customers.first_name ? `${sale.customers.first_name} ${sale.customers.last_name}`.trim() : 'Walk-in';
+                 if (customerName !== 'N/A') {
+                    customerSet.add(customerName);
+                 }
+            } else if (sale.customerName && sale.customerName !== 'N/A') { // Fallback for older data structure
                 customerSet.add(sale.customerName);
             }
+
             if (sale.sale_items && sale.sale_items.length > 0) {
                 sale.sale_items.forEach(item => {
                     if (item.productName && item.productPrice > 0) {
