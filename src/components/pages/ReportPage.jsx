@@ -17,6 +17,7 @@ import { Button, Input, Select } from '../ui';
 import { DeleteIcon } from '../Icons';
 import { useExpenses } from '../../hooks/useExpenses';
 import { PackageIcon, Receipt } from 'lucide-react';
+import { useMissedCustomersThisWeek } from '../../hooks/useMissedCustomersThisWeek';
 
 
 import Pagination from '../Pagination';
@@ -32,6 +33,32 @@ const formatCurrency = (amount) => {
     }
     return currency(numericAmount, { symbol: '₱', precision: 2 }).format();
 };
+
+/**
+ * Checks if the current time in the Philippines is between 
+ * Saturday 10:00 PM and Sunday 11:59 PM.
+ */
+function isMissedCustomersVisible() {
+    // Get the current time strictly in the Asia/Manila timezone
+    const now = new Date();
+    const manilaTimeString = now.toLocaleString("en-US", { timeZone: "Asia/Manila" });
+    const manilaTime = new Date(manilaTimeString);
+
+    const dayOfWeek = manilaTime.getDay(); // 0 = Sunday, 6 = Saturday
+    const hourOfDay = manilaTime.getHours(); // 0 - 23
+
+    // Condition 1: Saturday (6) and 10:00 PM (22) or later
+    if (dayOfWeek === 6 && hourOfDay >= 22) {
+        return true;
+    }
+
+    // Condition 2: Any time on Sunday (0)
+    if (dayOfWeek === 0) {
+        return true;
+    }
+
+    return false;
+}
 
 // --- Mobile Sale Card ---
 const SaleCard = ({ sale, onDelete, isAdmin }) => (
@@ -389,6 +416,94 @@ const SalesReportDisplay = ({ salesList, currentPage, totalPages, onPageChange, 
         />
     </div>
 );
+
+// --- Missed Customers Table ---
+const MissedCustomersTable = () => {
+    // 1. Check visibility before doing anything else
+    const isVisible = isMissedCustomersVisible();
+
+    // Add local state for pagination
+    const [page, setPage] = React.useState(1);
+    
+    // Pass the page to the hook. 
+    // We pass `enabled: isVisible` to prevent fetching data when hidden.
+    const { data, isLoading, error } = useMissedCustomersThisWeek({ 
+        page, 
+        itemsPerPage: 5,
+        enabled: isVisible // Requires a slight update to your hook (see note below)
+    });
+
+    // 2. If it's not the weekend window, render nothing
+    if (!isVisible) {
+        return null; 
+    }
+
+    const missedCustomers = data?.customers || [];
+    const hasMore = !!data?.hasMore;
+
+    if (isLoading && page === 1) return <div className="p-4 text-center text-sm text-gray-500">Loading dropped-off customers...</div>;
+    if (error) return <div className="p-4 text-center text-sm text-red-500">Failed to load dropped-off customers.</div>;
+
+    return (
+        <div className="bg-white rounded-lg shadow-sm md:overflow-hidden mb-6">
+            <div className="bg-orange-50 px-4 py-3">
+                <h3 className="text-sm font-semibold text-orange-800">Needs Attention: Dropped-off Customers</h3>
+                <p className="text-xs text-orange-600 mt-1">Customers who ordered last week but have NOT ordered in the last 7 days.</p>
+            </div>
+            
+            <div className="overflow-x-auto">
+                <table className="min-w-full text-sm">
+                    <thead className="bg-white">
+                        <tr>
+                            <th className="px-4 py-3 text-left font-semibold text-gray-700">Customer Name</th>
+                            <th className="px-4 py-3 text-left font-semibold text-gray-700">Phone</th>
+                            <th className="px-4 py-3 text-right font-semibold text-gray-700">Last Week's Total</th>
+                        </tr>
+                    </thead>
+                    <tbody className="relative">
+                        {/* Show a slight overlay while fetching new pages so the user knows it's loading */}
+                        {isLoading && <tr className="absolute inset-0 bg-white/50 z-10" />}
+                        
+                        {missedCustomers.length === 0 ? (
+                            <tr>
+                                <td colSpan="3" className="text-center p-6 text-gray-500">No dropped-off customers. Everyone is reordering!</td>
+                            </tr>
+                        ) : (
+                            missedCustomers.map(customer => (
+                                <tr key={customer.customer_id} className="last:border-0">
+                                    <td className="px-4 py-3 font-medium text-gray-800">{customer.customer_name}</td>
+                                    <td className="px-4 py-3 text-gray-600">{customer.phone || 'N/A'}</td>
+                                    <td className="px-4 py-3 text-right font-bold text-gray-700">
+                                        {formatCurrency(customer.last_week_total)}
+                                    </td>
+                                </tr>
+                            ))
+                        )}
+                    </tbody>
+                </table>
+            </div>
+
+            {/* Pagination Controls */}
+            <div className="flex justify-center items-center gap-2 py-3 bg-gray-50">
+                <Button
+                    className="btn--soft px-3 py-1 text-xs"
+                    disabled={page === 1}
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                >
+                    Prev
+                </Button>
+                <span className="text-xs text-gray-600">Page {page}</span>
+                <Button
+                    className="btn--primary px-3 py-1 text-xs disabled:opacity-50"
+                    disabled={!hasMore}
+                    onClick={() => setPage(p => p + 1)}
+                >
+                    Next
+                </Button>
+            </div>
+        </div>
+    );
+};
 
 // --- Main Report Page Component ---
 const ReportPage = () => {
@@ -1052,6 +1167,9 @@ const ReportPage = () => {
                             </div>
                         </div>
                     </div>
+
+                    {/* ADD THIS NEW COMPONENT HERE */}
+                    <MissedCustomersTable />
 
                     {isLoading && <div className="text-sm text-gray-500 p-4 text-center">Loading sales data...</div>}
                     {error && (
