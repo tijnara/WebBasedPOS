@@ -37,21 +37,7 @@ CREATE TABLE IF NOT EXISTS public.products (
 );
 
 -- ----------------------------------------------------------------
--- 3. Inventory Table
--- Logs all changes to product stock levels.
--- ----------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.inventory (
-    id BIGSERIAL PRIMARY KEY,
-    product_id BIGINT NOT NULL REFERENCES public.products(id),
-    change_quantity INTEGER NOT NULL,
-    reason TEXT, -- e.g., 'sale', 'restock', 'damage', 'initial_stock'
-    notes TEXT,
-    created_by BIGINT REFERENCES public.users(id),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
-);
-
--- ----------------------------------------------------------------
--- 4. Gallery Table
+-- 3. Gallery Table
 -- For the landing page gallery feature.
 -- ----------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.gallery (
@@ -64,7 +50,7 @@ CREATE TABLE IF NOT EXISTS public.gallery (
 );
 
 -- ----------------------------------------------------------------
--- 5. Incentives Table
+-- 4. Incentives Table
 -- For staff sales incentives.
 -- ----------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.incentives (
@@ -91,17 +77,6 @@ CREATE POLICY "Allow all for demo on gallery" ON public.gallery FOR ALL USING (t
 -- Policies for 'incentives' table
 ALTER TABLE public.incentives ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow all access for staff on incentives" ON public.incentives FOR ALL USING (true) WITH CHECK (true);
-
--- Policies for 'inventory' table
-ALTER TABLE public.inventory ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Allow read access on inventory" ON public.inventory
-  FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Allow full access for admins on inventory" ON public.inventory
-  FOR ALL TO authenticated USING (
-    (SELECT role FROM public.users WHERE id = auth.uid()) = 'Admin'
-  ) WITH CHECK (
-    (SELECT role FROM public.users WHERE id = auth.uid()) = 'Admin'
-  );
 
 -- ----------------------------------------------------------------
 -- Functions
