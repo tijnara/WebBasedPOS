@@ -1,6 +1,59 @@
--- SQL Schema for Gallery Feature
+-- SQL Schema for Seaside POS
 
--- 1. Create the gallery table
+-- ----------------------------------------------------------------
+-- 1. Users Table
+-- Stores user information for authentication and roles.
+-- ----------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.users (
+    id BIGSERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE,
+    password TEXT NOT NULL, -- Note: Storing plain text passwords is not secure. Consider using Supabase Auth or a custom hashing solution.
+    phone TEXT,
+    role TEXT DEFAULT 'Staff',
+    isadmin BOOLEAN DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- ----------------------------------------------------------------
+-- 2. Products Table
+-- Stores all product information.
+-- ----------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.products (
+    id BIGSERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    price NUMERIC(10, 2) DEFAULT 0.00,
+    category TEXT,
+    image_url TEXT,
+    barcode TEXT,
+    stock_quantity INTEGER DEFAULT 0,
+    min_stock_level INTEGER DEFAULT 0,
+    cost_price NUMERIC(10, 2) DEFAULT 0.00,
+    is_hidden BOOLEAN DEFAULT false,
+    parent_product_id BIGINT REFERENCES public.products(id),
+    conversion_rate INTEGER DEFAULT 1,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- ----------------------------------------------------------------
+-- 3. Inventory Table
+-- Logs all changes to product stock levels.
+-- ----------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.inventory (
+    id BIGSERIAL PRIMARY KEY,
+    product_id BIGINT NOT NULL REFERENCES public.products(id),
+    change_quantity INTEGER NOT NULL,
+    reason TEXT, -- e.g., 'sale', 'restock', 'damage', 'initial_stock'
+    notes TEXT,
+    created_by BIGINT REFERENCES public.users(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- ----------------------------------------------------------------
+-- 4. Gallery Table
+-- For the landing page gallery feature.
+-- ----------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.gallery (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     title TEXT NOT NULL,
@@ -10,43 +63,51 @@ CREATE TABLE IF NOT EXISTS public.gallery (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 2. Enable Row Level Security (RLS) - OPTIONAL
--- NOTE: The current project uses a custom login system. If you want to use RLS, 
--- you should switch to Supabase Auth. For now, we enable it but allow public access
--- to avoid breaking the demonstration.
-ALTER TABLE public.gallery ENABLE ROW LEVEL SECURITY;
-
--- 3. Create Policies
-
--- Allow public read access to gallery items
-CREATE POLICY "Allow public read access" ON public.gallery
-    FOR SELECT USING (true);
-
--- Allow public insert/update/delete (FOR DEMO ONLY - INSECURE)
--- In a real app, you would use auth.uid() and check for Admin role.
-CREATE POLICY "Allow all for demo" ON public.gallery
-    FOR ALL USING (true) WITH CHECK (true);
-
--- 4. Set up storage (if not already set up)
--- The app uses the 'products' bucket for gallery images as well.
--- Ensure the 'products' bucket is public.
--- Create incentives table with bigint primary key
+-- ----------------------------------------------------------------
+-- 5. Incentives Table
+-- For staff sales incentives.
+-- ----------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.incentives (
     id BIGSERIAL PRIMARY KEY,
     payout_date TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-    base_weekly_sales NUMERIC(12,2) NOT NULL, -- The "Current Week Sales" value
-    pool_amount NUMERIC(12,2) NOT NULL,        -- The calculated 25% pool
+    base_weekly_sales NUMERIC(12,2) NOT NULL,
+    pool_amount NUMERIC(12,2) NOT NULL,
     staff_name TEXT NOT NULL,
-    staff_percentage NUMERIC(5,2) NOT NULL,    -- Staff share percentage (e.g. 50%)
-    final_amount NUMERIC(12,2) NOT NULL,       -- Final payout amount
+    staff_percentage NUMERIC(5,2) NOT NULL,
+    final_amount NUMERIC(12,2) NOT NULL,
     created_by BIGINT REFERENCES public.users(id),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- Enable RLS
-ALTER TABLE public.incentives ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Allow all access for staff" ON public.incentives FOR ALL USING (true) WITH CHECK (true);
+-- ----------------------------------------------------------------
+-- Policies
+-- ----------------------------------------------------------------
 
+-- Policies for 'gallery' table
+ALTER TABLE public.gallery ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public read access on gallery" ON public.gallery FOR SELECT USING (true);
+CREATE POLICY "Allow all for demo on gallery" ON public.gallery FOR ALL USING (true) WITH CHECK (true);
+
+-- Policies for 'incentives' table
+ALTER TABLE public.incentives ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all access for staff on incentives" ON public.incentives FOR ALL USING (true) WITH CHECK (true);
+
+-- Policies for 'inventory' table
+ALTER TABLE public.inventory ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow read access on inventory" ON public.inventory
+  FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Allow full access for admins on inventory" ON public.inventory
+  FOR ALL TO authenticated USING (
+    (SELECT role FROM public.users WHERE id = auth.uid()) = 'Admin'
+  ) WITH CHECK (
+    (SELECT role FROM public.users WHERE id = auth.uid()) = 'Admin'
+  );
+
+-- ----------------------------------------------------------------
+-- Functions
+-- ----------------------------------------------------------------
+
+-- Function for custom user authentication
 CREATE OR REPLACE FUNCTION authenticate_user(p_email TEXT, p_password TEXT)
 RETURNS json
 LANGUAGE plpgsql
