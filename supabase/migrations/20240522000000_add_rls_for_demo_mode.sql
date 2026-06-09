@@ -33,7 +33,7 @@ CREATE POLICY "Allow delete for non-demo users" ON public.products
   FOR DELETE TO authenticated USING (is_demo_user() = false);
 
 -- Repeat the policy creation for all restricted tables:
--- customers, inventory, gallery, expenses, incentives, articles, settings.
+-- customers, gallery, expenses, incentives, articles, settings.
 
 -- Policies for 'customers' table
 CREATE POLICY "Allow read access on customers" ON public.customers
@@ -73,16 +73,6 @@ CREATE POLICY "Allow insert for non-demo users on articles" ON public.articles
 CREATE POLICY "Allow update for non-demo users on articles" ON public.articles
   FOR UPDATE TO authenticated USING (is_demo_user() = false);
 CREATE POLICY "Allow delete for non-demo users on articles" ON public.articles
-  FOR DELETE TO authenticated USING (is_demo_user() = false);
-
--- Policies for 'inventory' table
-CREATE POLICY "Allow read access on inventory" ON public.inventory
-  FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Allow insert for non-demo users on inventory" ON public.inventory
-  FOR INSERT TO authenticated WITH CHECK (is_demo_user() = false);
-CREATE POLICY "Allow update for non-demo users on inventory" ON public.inventory
-  FOR UPDATE TO authenticated USING (is_demo_user() = false);
-CREATE POLICY "Allow delete for non-demo users on inventory" ON public.inventory
   FOR DELETE TO authenticated USING (is_demo_user() = false);
 
 -- Policies for 'gallery' table
