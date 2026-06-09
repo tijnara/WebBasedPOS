@@ -7,8 +7,9 @@ import Image from 'next/image';
 import { supabase } from '../lib/supabaseClient';
 import currency from 'currency.js';
 import { CartIcon, PackageIcon, UserIcon, ChartIcon, UsersIcon, GalleryIcon, HomeIcon, SettingsIcon, DocumentReportIcon, MailIcon } from './Icons';
-import { Receipt, ChevronDown, Sun, Moon, LogOut, TrendingUp } from 'lucide-react'; // Import Sun and Moon
+import { Receipt, ChevronDown, Sun, Moon, LogOut, TrendingUp, TestTube } from 'lucide-react'; // Import Sun and Moon
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import Link from 'next/link';
 
 // Hamburger Icon
 const HamburgerIcon = (props) => (
@@ -191,6 +192,7 @@ const Navbar = () => {
                 { name: 'Expenses', path: '/expenses', icon: <Receipt className="h-6 w-6" /> },
                 { name: 'Incentives', path: '/incentives', icon: <TrendingUp className="h-6 w-6" /> },
                 { name: 'Report', path: '/report', icon: <ChartIcon className="h-5 w-5 menu-icon" />, adminOnly: true },
+                { name: 'Mock Sales', path: '/mock-sales-report', icon: <TestTube className="h-6 w-6" />, adminOnly: true },
             ]
         },
         {
