@@ -4,16 +4,12 @@ import Head from 'next/head';
 import Navbar from '../components/Navbar';
 import TabBar from '../components/TabBar';
 import { format, subWeeks } from 'date-fns';
-import { useSales } from '../hooks/useSales'; 
+import { useSales } from '../hooks/useSales';
+import { useProducts } from '../hooks/useProducts';
 
 const TARGET_TOTAL = 3845;
 
 // Fallbacks just in case there are no real transactions
-const FALLBACK_ITEMS = [
-    { name: "Refill Container", price: 30 },
-    { name: "Alkaline Water Refill", price: 40 },
-    { name: "New Container", price: 150 }
-];
 const FALLBACK_CUSTOMERS = ["Wendy", "John", "Alice", "Bob", "Charlie"];
 const ADDRESSES = ["Labrador", "Lingayen"];
 
@@ -60,14 +56,15 @@ export default function MockSalesReportPage() {
         fetchAll: true 
     });
 
+    const { data: productsData, isLoading: isLoadingProducts } = useProducts({ fetchAll: true });
+
     useEffect(() => {
-        if (isLoadingPrevSales) return;
+        if (isLoadingPrevSales || isLoadingProducts) return;
 
         const realSales = prevSalesData?.sales || [];
+        const allProducts = productsData?.products || [];
         
         const customerSet = new Set();
-        const itemMap = new Map();
-
         realSales.forEach(sale => {
             if (sale.customer_id && sale.customers) {
                  const customerName = sale.customers.first_name ? `${sale.customers.first_name} ${sale.customers.last_name}`.trim() : 'Walk-in';
@@ -75,36 +72,26 @@ export default function MockSalesReportPage() {
             } else if (sale.customerName && sale.customerName !== 'N/A') {
                 customerSet.add(sale.customerName);
             }
-
-            if (sale.sale_items && sale.sale_items.length > 0) {
-                sale.sale_items.forEach(item => {
-                    if (item.productName && item.productPrice > 0) {
-                        itemMap.set(item.productName, item.productPrice);
-                    }
-                });
-            }
         });
 
         const activeCustomers = customerSet.size > 0 ? Array.from(customerSet) : FALLBACK_CUSTOMERS;
-        const activeItems = itemMap.size > 0 
-            ? Array.from(itemMap, ([name, price]) => ({ name, price })) 
-            : FALLBACK_ITEMS;
-
+        
         let remaining = TARGET_TOTAL;
         const generated = [];
         
         let random = createSeededRandom(weeklySeed);
 
-        while (remaining > 200) { // Ensure there's enough remaining for a transaction
+        const itemForLingayen = allProducts.find(p => p.id === 2);
+        const itemForLabrador = allProducts.find(p => p.id === 3);
+
+        while (remaining > 200) {
             const transactionTotal = Math.floor(random() * (500 - 200 + 1)) + 200;
             
             if (remaining - transactionTotal < 0 && remaining > 200) {
-                // If the random total is too high, just use the remaining amount
-                // if it's within a reasonable range, otherwise skip.
                 if (remaining <= 500) {
-                    // Use all remaining as the last transaction total
+                    // Use all remaining
                 } else {
-                    continue; // Skip and try to generate a smaller transaction
+                    continue;
                 }
             }
 
@@ -116,11 +103,18 @@ export default function MockSalesReportPage() {
             txDate.setHours(8 + Math.floor(random() * 10), Math.floor(random() * 60));
 
             const randomAddress = ADDRESSES[Math.floor(random() * ADDRESSES.length)];
-
-            // Select a random item
-            const item = activeItems[Math.floor(random() * activeItems.length)];
             
-            // Calculate quantity based on the fixed total
+            let item;
+            if (randomAddress === 'Lingayen' && itemForLingayen) {
+                item = itemForLingayen;
+            } else if (randomAddress === 'Labrador' && itemForLabrador) {
+                item = itemForLabrador;
+            } else {
+                item = allProducts[Math.floor(random() * allProducts.length)];
+            }
+            
+            if (!item) continue;
+
             const qty = Math.max(1, Math.round(finalTransactionTotal / item.price));
             const total = item.price * qty;
 
@@ -141,7 +135,7 @@ export default function MockSalesReportPage() {
         generated.sort((a, b) => a.date - b.date);
         setTransactions(generated);
 
-    }, [prevSalesData, isLoadingPrevSales, currentMonday, weeklySeed]); 
+    }, [prevSalesData, productsData, isLoadingPrevSales, isLoadingProducts, currentMonday, weeklySeed]); 
 
     const actualTotal = transactions.reduce((sum, tx) => sum + tx.total, 0);
 
@@ -178,10 +172,10 @@ export default function MockSalesReportPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50 text-sm">
-                                {isLoadingPrevSales ? (
+                                {isLoadingPrevSales || isLoadingProducts ? (
                                     <tr>
                                         <td colSpan="7" className="p-8 text-center text-gray-500">
-                                            Loading previous week's data...
+                                            Loading data...
                                         </td>
                                     </tr>
                                 ) : transactions.map((tx) => (
