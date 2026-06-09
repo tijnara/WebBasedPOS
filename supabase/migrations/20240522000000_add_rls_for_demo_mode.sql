@@ -95,12 +95,20 @@ CREATE POLICY "Allow update for non-demo users on incentives" ON public.incentiv
 CREATE POLICY "Allow delete for non-demo users on incentives" ON public.incentives
   FOR DELETE TO authenticated USING (is_demo_user() = false);
 
--- Policies for 'settings' table
-CREATE POLICY "Allow read access on settings" ON public.settings
-  FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Allow insert for non-demo users on settings" ON public.settings
-  FOR INSERT TO authenticated WITH CHECK (is_demo_user() = false);
-CREATE POLICY "Allow update for non-demo users on settings" ON public.settings
-  FOR UPDATE TO authenticated USING (is_demo_user() = false);
-CREATE POLICY "Allow delete for non-demo users on settings" ON public.settings
-  FOR DELETE TO authenticated USING (is_demo_user() = false);
+-- Policies for 'settings' table (only if table exists)
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.tables 
+    WHERE table_name = 'settings' AND table_schema = 'public'
+  ) THEN
+    CREATE POLICY "Allow read access on settings" ON public.settings
+      FOR SELECT TO authenticated USING (true);
+    CREATE POLICY "Allow insert for non-demo users on settings" ON public.settings
+      FOR INSERT TO authenticated WITH CHECK (is_demo_user() = false);
+    CREATE POLICY "Allow update for non-demo users on settings" ON public.settings
+      FOR UPDATE TO authenticated USING (is_demo_user() = false);
+    CREATE POLICY "Allow delete for non-demo users on settings" ON public.settings
+      FOR DELETE TO authenticated USING (is_demo_user() = false);
+  END IF;
+END $$;
