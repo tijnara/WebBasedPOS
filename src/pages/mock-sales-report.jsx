@@ -140,7 +140,7 @@ export default function MockSalesReportPage() {
     return (
         <div className="min-h-screen bg-gray-50 pb-20 md:pb-0 pt-16 md:pt-0 md:pl-64">
             <Head>
-                <title>Mock Sales Report | POS</title>
+                <title>Mock Sales Report | Seaside WRS</title>
             </Head>
             <Navbar />
 

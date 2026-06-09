@@ -22,23 +22,23 @@ import { supabase } from '../lib/supabaseClient'; // Import Supabase client
 // Add a title map
 const titleMap = {
     '/': 'Seaside Purified Water Refilling Station | Labrador, Pangasinan',
-    '/login': 'Sign In | Seaside POS',
-    '/dashboard': 'Dashboard | Seaside POS',
-    '/pos': 'POS | Seaside POS',
-    '/inventory': 'Inventory | Seaside POS',
-    '/report': 'Reports | Seaside POS',
-    '/user-management': 'User Management | Seaside POS',
-    '/product-management': 'Product Management | Seaside POS',
-    '/customer-management': 'Customer Management | Seaside POS',
-    '/gallery-management': 'Gallery Management | Seaside POS',
-    '/article-management': 'Article Management | Seaside POS',
-    '/settings': 'Settings | Seaside POS',
-    '/history': 'History | Seaside POS',
-    '/expenses': 'Expenses | Seaside POS',
-    '/incentives': 'Incentives | Seaside POS',
-    '/terms': 'Terms of Service | Seaside POS',
-    '/privacy': 'Privacy Policy | Seaside POS',
-    '/contact': 'Contact Us | Seaside POS',
+    '/login': 'Sign In | Seaside WRS',
+    '/dashboard': 'Dashboard | Seaside WRS',
+    '/pos': 'POS | Seaside WRS',
+    '/inventory': 'Inventory | Seaside WRS',
+    '/report': 'Reports | Seaside WRS',
+    '/user-management': 'User Management | Seaside WRS',
+    '/product-management': 'Product Management | Seaside WRS',
+    '/customer-management': 'Customer Management | Seaside WRS',
+    '/gallery-management': 'Gallery Management | Seaside WRS',
+    '/article-management': 'Article Management | Seaside WRS',
+    '/settings': 'Settings | Seaside WRS',
+    '/history': 'History | Seaside WRS',
+    '/expenses': 'Expenses | Seaside WRS',
+    '/incentives': 'Incentives | Seaside WRS',
+    '/terms': 'Terms of Service | Seaside WRS',
+    '/privacy': 'Privacy Policy | Seaside WRS',
+    '/contact': 'Contact Us | Seaside WRS',
 };
 
 
@@ -185,7 +185,7 @@ export default function App({ Component, pageProps }) {
 
     // Set title dynamically
     useEffect(() => {
-        const title = titleMap[router.pathname] || 'Seaside POS';
+        const title = titleMap[router.pathname] || 'Seaside WRS';
         document.title = title;
     }, [router.pathname]);
 
@@ -197,7 +197,7 @@ export default function App({ Component, pageProps }) {
             <HydrationBoundary state={pageProps.dehydratedState}>
                 <Head>
                     {/* The title tag here is a fallback, the useEffect will override it */}
-                    <title>Seaside POS</title>
+                    <title>Seaside WRS</title>
                     <link rel="icon" href="/seaside.png" />
                     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
                     <meta name="theme-color" content="#0ea5e9" />
