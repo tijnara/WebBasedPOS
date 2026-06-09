@@ -19,6 +19,29 @@ import { SpeedInsights } from "@vercel/speed-insights/next"
 import { Analytics } from "@vercel/analytics/next";
 import { supabase } from '../lib/supabaseClient'; // Import Supabase client
 
+// Add a title map
+const titleMap = {
+    '/': 'Seaside Purified Water Refilling Station | Labrador, Pangasinan',
+    '/login': 'Sign In | Seaside POS',
+    '/dashboard': 'Dashboard | Seaside POS',
+    '/pos': 'POS | Seaside POS',
+    '/inventory': 'Inventory | Seaside POS',
+    '/report': 'Reports | Seaside POS',
+    '/user-management': 'User Management | Seaside POS',
+    '/product-management': 'Product Management | Seaside POS',
+    '/customer-management': 'Customer Management | Seaside POS',
+    '/gallery-management': 'Gallery Management | Seaside POS',
+    '/article-management': 'Article Management | Seaside POS',
+    '/settings': 'Settings | Seaside POS',
+    '/history': 'History | Seaside POS',
+    '/expenses': 'Expenses | Seaside POS',
+    '/incentives': 'Incentives | Seaside POS',
+    '/terms': 'Terms of Service | Seaside POS',
+    '/privacy': 'Privacy Policy | Seaside POS',
+    '/contact': 'Contact Us | Seaside POS',
+};
+
+
 function AuthGate({ children }) {
     const { user, sessionLoaded } = useStore(s => ({
         user: s.user,
@@ -160,6 +183,12 @@ export default function App({ Component, pageProps }) {
         }
     }, [darkMode]);
 
+    // Set title dynamically
+    useEffect(() => {
+        const title = titleMap[router.pathname] || 'Seaside POS';
+        document.title = title;
+    }, [router.pathname]);
+
     const isPublicPage = ['/', '/login', '/terms', '/privacy', '/contact'].includes(router.pathname) || router.pathname.startsWith('/resources');
     const hideNav = isPublicPage;
 
@@ -167,6 +196,8 @@ export default function App({ Component, pageProps }) {
         <QueryClientProvider client={queryClient}>
             <HydrationBoundary state={pageProps.dehydratedState}>
                 <Head>
+                    {/* The title tag here is a fallback, the useEffect will override it */}
+                    <title>Seaside POS</title>
                     <link rel="icon" href="/seaside.png" />
                     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
                     <meta name="theme-color" content="#0ea5e9" />

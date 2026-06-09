@@ -3,7 +3,6 @@ import { useRouter } from 'next/router';
 import { supabase } from '../../lib/supabaseClient';
 import { useStore } from '../../store/useStore';
 import { Mail, Lock, User, ArrowRight, ShieldCheck } from 'lucide-react';
-import Head from 'next/head';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -72,9 +71,6 @@ export default function LoginPage() {
 
   return (
       <>
-        <Head>
-          <title>Sign In | Seaside POS</title>
-        </Head>
         <div className="min-h-screen w-full flex bg-gray-50/50 font-sans">
 
           {/* Left Panel - Form */}
@@ -202,7 +198,7 @@ export default function LoginPage() {
               <h2 className="text-5xl font-black mb-6 tracking-tight leading-tight">
                 Pure Trust,<br/> Delivered.
               </h2>
-              <p className="text-lg text-teal-50 max-w-md font-medium leading-relaxed mb-10">
+              <p className="text-lg text-text-teal-50 max-w-md font-medium leading-relaxed mb-10">
                 Streamline your water refilling station operations with our advanced Point of Sale and management system.
               </p>
 

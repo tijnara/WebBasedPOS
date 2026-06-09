@@ -1,7 +1,6 @@
 // pages/index.js
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
 import { useSettings } from '../hooks/useSettings';
 import { useStore } from '../store/useStore';
 
@@ -54,17 +53,6 @@ const SeasideWaterLanding = () => {
 
     return (
         <div className="relative min-h-screen w-full font-sans text-slate-800 responsive-page">
-
-            {/* ONLY RENDER THE POPUNDER SCRIPT IF THE USER IS LOGGED OUT */}
-            {!user && (
-                <Head>
-                    <script
-                        type="text/javascript"
-                        src="https://pl28955515.profitablecpmratenetwork.com/31/66/b5/3166b5f32c1e188a1b6d87c24ff4add8.js"
-                        async
-                    />
-                </Head>
-            )}
 
             <BackgroundImage />
             <Meta />

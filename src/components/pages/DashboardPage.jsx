@@ -398,9 +398,7 @@ export default function DashboardPage() {
     return (
         <div className="flex-1 min-h-screen bg-transparent font-sans responsive-page pb-12 transition-colors duration-300">
             <Head>
-                <title>Dashboard</title>
             </Head>
-
             <main className="max-w-7xl mx-auto px-4 sm:px-6 mt-6">
                 <div className="flex flex-col gap-6">
 
