@@ -95,12 +95,20 @@ export default function MockSalesReportPage() {
         
         let random = createSeededRandom(weeklySeed);
 
-        while (remaining > 0) {
-            const affordableItems = activeItems.filter(item => item.price <= remaining);
+        while (remaining > 200) { // Ensure there's enough remaining for a transaction
+            const transactionTotal = Math.floor(random() * (500 - 200 + 1)) + 200;
             
-            if (affordableItems.length === 0) {
-                break; 
+            if (remaining - transactionTotal < 0 && remaining > 200) {
+                // If the random total is too high, just use the remaining amount
+                // if it's within a reasonable range, otherwise skip.
+                if (remaining <= 500) {
+                    // Use all remaining as the last transaction total
+                } else {
+                    continue; // Skip and try to generate a smaller transaction
+                }
             }
+
+            const finalTransactionTotal = Math.min(transactionTotal, remaining);
 
             const dayOffset = Math.floor(random() * 7); 
             const txDate = new Date(currentMonday);
@@ -109,11 +117,11 @@ export default function MockSalesReportPage() {
 
             const randomAddress = ADDRESSES[Math.floor(random() * ADDRESSES.length)];
 
-            const item = affordableItems[Math.floor(random() * affordableItems.length)];
+            // Select a random item
+            const item = activeItems[Math.floor(random() * activeItems.length)];
             
-            const maxQty = Math.floor(remaining / item.price);
-            const qty = Math.floor(random() * Math.min(maxQty, 5)) + 1;
-            
+            // Calculate quantity based on the fixed total
+            const qty = Math.max(1, Math.round(finalTransactionTotal / item.price));
             const total = item.price * qty;
 
             generated.push({
