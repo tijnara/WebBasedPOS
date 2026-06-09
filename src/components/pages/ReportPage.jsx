@@ -34,32 +34,6 @@ const formatCurrency = (amount) => {
     return currency(numericAmount, { symbol: '₱', precision: 2 }).format();
 };
 
-/**
- * Checks if the current time in the Philippines is between 
- * Saturday 10:00 PM and Sunday 11:59 PM.
- */
-function isMissedCustomersVisible() {
-    // Get the current time strictly in the Asia/Manila timezone
-    const now = new Date();
-    const manilaTimeString = now.toLocaleString("en-US", { timeZone: "Asia/Manila" });
-    const manilaTime = new Date(manilaTimeString);
-
-    const dayOfWeek = manilaTime.getDay(); // 0 = Sunday, 6 = Saturday
-    const hourOfDay = manilaTime.getHours(); // 0 - 23
-
-    // Condition 1: Saturday (6) and 10:00 PM (22) or later
-    if (dayOfWeek === 6 && hourOfDay >= 22) {
-        return true;
-    }
-
-    // Condition 2: Any time on Sunday (0)
-    if (dayOfWeek === 0) {
-        return true;
-    }
-
-    return false;
-}
-
 // --- Mobile Sale Card ---
 const SaleCard = ({ sale, onDelete, isAdmin }) => (
     <div className="bg-white rounded-lg shadow-sm overflow-hidden">
@@ -418,22 +392,42 @@ const SalesReportDisplay = ({ salesList, currentPage, totalPages, onPageChange, 
 );
 
 // --- Missed Customers Table ---
-const MissedCustomersTable = () => {
-    // 1. Check visibility before doing anything else
-    const isVisible = isMissedCustomersVisible();
+const MissedCustomersTable = ({ startDate, endDate }) => {
+    // Determine visibility based on selected dates
+    const isVisible = React.useMemo(() => {
+        if (!endDate) return false;
 
-    // Add local state for pagination
+        const now = new Date();
+        const manilaTimeString = now.toLocaleString("en-US", { timeZone: "Asia/Manila" });
+        const manilaTime = new Date(manilaTimeString);
+
+        // RULE 1: If the selected end date is in the past (historical report), ALWAYS show it!
+        // E.g., Looking at June 1 to June 7 on June 10th.
+        if (endDate < manilaTime) {
+            return true;
+        }
+
+        // RULE 2: If looking at the CURRENT week, enforce the weekend rule.
+        const dayOfWeek = manilaTime.getDay(); // 0 = Sunday, 6 = Saturday
+        const hourOfDay = manilaTime.getHours();
+
+        if (dayOfWeek === 6 && hourOfDay >= 22) return true;
+        if (dayOfWeek === 0) return true;
+
+        return false;
+    }, [endDate]);
+
     const [page, setPage] = React.useState(1);
     
-    // Pass the page to the hook. 
-    // We pass `enabled: isVisible` to prevent fetching data when hidden.
+    // Pass the dates to the hook!
     const { data, isLoading, error } = useMissedCustomersThisWeek({ 
         page, 
         itemsPerPage: 5,
-        enabled: isVisible // Requires a slight update to your hook (see note below)
+        enabled: isVisible,
+        startDate: startDate,
+        endDate: endDate
     });
 
-    // 2. If it's not the weekend window, render nothing
     if (!isVisible) {
         return null; 
     }
@@ -448,7 +442,7 @@ const MissedCustomersTable = () => {
         <div className="bg-white rounded-lg shadow-sm md:overflow-hidden mb-6">
             <div className="bg-orange-50 px-4 py-3">
                 <h3 className="text-sm font-semibold text-orange-800">Needs Attention: Dropped-off Customers</h3>
-                <p className="text-xs text-orange-600 mt-1">Customers who ordered last week but have NOT ordered in the last 7 days.</p>
+                <p className="text-xs text-orange-600 mt-1">Customers who ordered in the 7 days prior to this period, but did not order during this period.</p>
             </div>
             
             <div className="overflow-x-auto">
@@ -457,22 +451,27 @@ const MissedCustomersTable = () => {
                         <tr>
                             <th className="px-4 py-3 text-left font-semibold text-gray-700">Customer Name</th>
                             <th className="px-4 py-3 text-left font-semibold text-gray-700">Phone</th>
-                            <th className="px-4 py-3 text-right font-semibold text-gray-700">Last Week's Total</th>
+                            <th className="px-4 py-3 text-left font-semibold text-gray-700">Last Order Date</th>
+                            <th className="px-4 py-3 text-right font-semibold text-gray-700">Previous 7 Days Total</th>
                         </tr>
                     </thead>
                     <tbody className="relative">
-                        {/* Show a slight overlay while fetching new pages so the user knows it's loading */}
                         {isLoading && <tr className="absolute inset-0 bg-white/50 z-10" />}
                         
                         {missedCustomers.length === 0 ? (
                             <tr>
-                                <td colSpan="3" className="text-center p-6 text-gray-500">No dropped-off customers. Everyone is reordering!</td>
+                                <td colSpan="4" className="text-center p-6 text-gray-500">No dropped-off customers for this period. Everyone reordered!</td>
                             </tr>
                         ) : (
                             missedCustomers.map(customer => (
                                 <tr key={customer.customer_id} className="last:border-0">
                                     <td className="px-4 py-3 font-medium text-gray-800">{customer.customer_name}</td>
                                     <td className="px-4 py-3 text-gray-600">{customer.phone || 'N/A'}</td>
+                                    <td className="px-4 py-3 text-gray-600">
+                                        {customer.last_order_date 
+                                            ? format(new Date(customer.last_order_date), 'EEEE, MMM d, yyyy') 
+                                            : 'N/A'}
+                                    </td>
                                     <td className="px-4 py-3 text-right font-bold text-gray-700">
                                         {formatCurrency(customer.last_week_total)}
                                     </td>
@@ -1168,8 +1167,11 @@ const ReportPage = () => {
                         </div>
                     </div>
 
-                    {/* ADD THIS NEW COMPONENT HERE */}
-                    <MissedCustomersTable />
+                    {/* UPDATED COMPONENT CALL */}
+                    <MissedCustomersTable 
+                        startDate={interval.start} 
+                        endDate={interval.end} 
+                    />
 
                     {isLoading && <div className="text-sm text-gray-500 p-4 text-center">Loading sales data...</div>}
                     {error && (
