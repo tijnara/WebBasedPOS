@@ -3,7 +3,7 @@
     import Link from 'next/link';
     import currency from 'currency.js';
     import { startOfWeek, endOfWeek, parseISO, format, subWeeks, addWeeks, getDay, startOfToday } from 'date-fns';
-    import { Plus, Utensils, Car, ShoppingBag, Zap, Receipt, Edit, Trash2, X, Calendar, ChevronLeft, ChevronRight, Search, RotateCcw, XCircle, AlertTriangle, Star } from 'lucide-react';
+    import { Plus, Utensils, Car, ShoppingBag, Zap, Receipt, Edit, Trash2, X, Calendar, ChevronLeft, ChevronRight, Search, RotateCcw, XCircle, AlertTriangle, Star, Layers, Clock } from 'lucide-react';
     import { useStore } from '../../store/useStore';
     import { useExpenses, useCreateExpense, useUpdateExpense, useDeleteExpense, useExpenseSummary, useExpenseCategories, useCreateExpenseCategory, useUpdateExpenseCategory } from '../../hooks/useExpenses';
     import { useSalesSummary } from '../../hooks/useSalesSummary';
@@ -39,6 +39,7 @@
         const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
         const [filterCategory, setFilterCategory] = useState(initialFilterCategory);
         const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM')); // NEW STATE
+        const [groupBy, setGroupBy] = useState('date'); // 'date', 'category'
         const debouncedSearch = useDebounce(searchTerm, 400);
 
         const [page, setPage] = useState(1);
@@ -71,6 +72,38 @@
 
             return weeklySales - (totalSum || 0);
         }, [salesSummary, dateFrom, totalSum]);
+
+        const groupedExpenses = useMemo(() => {
+            if (groupBy === 'none') {
+                return { 'All Expenses': expenses };
+            }
+        
+            const sortedExpenses = [...expenses].sort((a, b) => new Date(b.expense_date) - new Date(a.expense_date));
+        
+            if (groupBy === 'category') {
+                return sortedExpenses.reduce((acc, exp) => {
+                    const key = exp.category || 'Uncategorized';
+                    if (!acc[key]) {
+                        acc[key] = [];
+                    }
+                    acc[key].push(exp);
+                    return acc;
+                }, {});
+            }
+        
+            if (groupBy === 'date') {
+                return sortedExpenses.reduce((acc, exp) => {
+                    const key = format(parseISO(exp.expense_date), 'MMMM d, yyyy');
+                    if (!acc[key]) {
+                        acc[key] = [];
+                    }
+                    acc[key].push(exp);
+                    return acc;
+                }, {});
+            }
+        
+            return {};
+        }, [expenses, groupBy]);
 
         const createExpense = useCreateExpense();
         const updateExpense = useUpdateExpense();
@@ -379,8 +412,6 @@
             const newTo = format(subWeeks(parseISO(dateTo), 1), 'yyyy-MM-dd');
             setDateFrom(newFrom);
             setDateTo(newTo);
-            const listContainer = document.querySelector('.overflow-y-auto');
-            if (listContainer) listContainer.scrollTo({ top: 0, behavior: 'smooth' });
         };
 
         const handlePrevPage = () => {
@@ -390,8 +421,6 @@
             const newTo = format(addWeeks(parseISO(dateTo), 1), 'yyyy-MM-dd');
             setDateFrom(newFrom);
             setDateTo(newTo);
-            const listContainer = document.querySelector('.overflow-y-auto');
-            if (listContainer) listContainer.scrollTo({ top: 0, behavior: 'smooth' });
         };
 
         const handleResetFilters = () => {
@@ -573,7 +602,7 @@
                     </div>
 
                     {/* Actions Panel */}
-                    <div className="w-full lg:w-5/12 bg-surface flex flex-col p-6 lg:border-l-transparent h-full min-h-[600px] lg:h-auto">
+                    <div className="w-full lg:w-5/12 bg-surface flex flex-col p-6 lg:border-l-transparent h-full">
                         <div className="flex justify-between items-end mb-4">
                             <div>
                                 <h3 className="text-xl font-bold text-text">List of Expenses</h3>
@@ -584,67 +613,82 @@
                                     </span>
                                 </div>
                             </div>
-                            <span className="text-xs font-medium text-text-muted pb-1">{totalCount} total</span>
+                            <div className="flex items-center gap-2">
+                                <button onClick={() => setGroupBy('date')} className={`p-1.5 rounded-md ${groupBy === 'date' ? 'bg-primary text-white' : 'bg-background text-text-muted'}`} title="Group by Date">
+                                    <Clock className="w-4 h-4" />
+                                </button>
+                                <button onClick={() => setGroupBy('category')} className={`p-1.5 rounded-md ${groupBy === 'category' ? 'bg-primary text-white' : 'bg-background text-text-muted'}`} title="Group by Category">
+                                    <Layers className="w-4 h-4" />
+                                </button>
+                                <span className="text-xs font-medium text-text-muted pb-1">{totalCount} total</span>
+                            </div>
                         </div>
 
                         <div className="flex-1 space-y-2 mb-8">
-                            {isLoading ? <p className="text-center py-4 text-text-muted">Loading...</p> : expenses.map((exp, index) => {
-                                const style = categoryStyles[exp.category] || { icon: Receipt, colorClass: 'bg-background text-text-muted' };
-                                const Icon = style.icon;
-                                const categoryInfo = categories.find(c => c.name === exp.category);
-                                const isRecurring = categoryInfo?.is_recurring || categoryInfo?.is_recurring_daily;
-                                const isVoided = exp.amount === 0 || exp.amount === "0.00";
-                                return (
-                                    <div key={exp.id}>
-                                        {index > 0 && <hr className="border-t border-gray-100 my-2 dark:border-gray-800" />}
-                                        <div className={`flex justify-between items-center p-3 hover:bg-background bg-surface rounded-xl border-transparent transition-colors ${editingExpense?.id === exp.id ? 'border-primary ring-1 ring-primary' : 'border-transparent'}`}>
-                                            <div className="flex items-center gap-3 flex-1 pr-3 border-r-transparent">
-                                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${style.colorClass}`}><Icon className="w-5 h-5" /></div>
-                                                <div className="flex flex-col">
-                                                    <span className="font-semibold text-text text-sm">{exp.description}</span>
-                                                    <span className="text-xs font-medium text-text-muted">
-                                                        {exp.category} &bull; {format(parseISO(exp.expense_date), 'MMM d, yyyy h:mm a')}
-                                                        <div className="inline-flex items-center space-x-2 font-semibold" style={{ color: exp.userColor }}>
-                                                            <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: exp.userColor }}></span>
-                                                            <span>{exp.staffName}</span>
+                            {isLoading ? <p className="text-center py-4 text-text-muted">Loading...</p> : 
+                                Object.entries(groupedExpenses).map(([groupTitle, groupExpenses]) => (
+                                    <div key={groupTitle}>
+                                        <h4 className="text-sm font-bold text-primary bg-primary/10 px-3 py-1.5 rounded-md my-3 sticky top-0 z-10">{groupTitle}</h4>
+                                        {groupExpenses.map((exp, index) => {
+                                            const style = categoryStyles[exp.category] || { icon: Receipt, colorClass: 'bg-background text-text-muted' };
+                                            const Icon = style.icon;
+                                            const categoryInfo = categories.find(c => c.name === exp.category);
+                                            const isRecurring = categoryInfo?.is_recurring || categoryInfo?.is_recurring_daily;
+                                            const isVoided = exp.amount === 0 || exp.amount === "0.00";
+                                            return (
+                                                <div key={exp.id}>
+                                                    {index > 0 && <hr className="border-t border-gray-100 my-2 dark:border-gray-800" />}
+                                                    <div className={`flex justify-between items-center p-3 hover:bg-background bg-surface rounded-xl border-transparent transition-colors ${editingExpense?.id === exp.id ? 'border-primary ring-1 ring-primary' : 'border-transparent'}`}>
+                                                        <div className="flex items-center gap-3 flex-1 pr-3 border-r-transparent">
+                                                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${style.colorClass}`}><Icon className="w-5 h-5" /></div>
+                                                            <div className="flex flex-col">
+                                                                <span className="font-semibold text-text text-sm">{exp.description}</span>
+                                                                <span className="text-xs font-medium text-text-muted">
+                                                                    {exp.category} &bull; {format(parseISO(exp.expense_date), 'MMM d, yyyy h:mm a')}
+                                                                    <div className="inline-flex items-center space-x-2 font-semibold" style={{ color: exp.userColor }}>
+                                                                        <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: exp.userColor }}></span>
+                                                                        <span>{exp.staffName}</span>
+                                                                    </div>
+                                                                </span>
+                                                            </div>
                                                         </div>
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            <div className="text-right flex flex-col items-end pl-3 min-w-[120px]">
-                                                <span className={`font-bold ${isVoided ? 'text-text-muted line-through' : 'text-red-600'}`}>
-                                                    -{currency(exp.amount, { symbol: '₱' }).format()}
-                                                </span>
-                                                <div className="flex gap-2 mt-1">
-                                                    {!isVoided && (
-                                                        <button onClick={() => handleEditClick(exp)} className="p-1 text-text-muted expense-action-btn" title="Edit" disabled={isDemo}>
-                                                            <Edit className="w-3.5 h-3.5"/>
-                                                        </button>
-                                                    )}
-                                                    
-                                                    <button onClick={() => handleDeleteClick(exp.id)} className="p-1 text-text-muted expense-action-btn" title="Delete" disabled={isDemo}>
-                                                        <Trash2 className="w-3.5 h-3.5"/>
-                                                    </button>
+                                                        <div className="text-right flex flex-col items-end pl-3 min-w-[120px]">
+                                                            <span className={`font-bold ${isVoided ? 'text-text-muted line-through' : 'text-red-600'}`}>
+                                                                -{currency(exp.amount, { symbol: '₱' }).format()}
+                                                            </span>
+                                                            <div className="flex gap-2 mt-1">
+                                                                {!isVoided && (
+                                                                    <button onClick={() => handleEditClick(exp)} className="p-1 text-text-muted expense-action-btn" title="Edit" disabled={isDemo}>
+                                                                        <Edit className="w-3.5 h-3.5"/>
+                                                                    </button>
+                                                                )}
+                                                                
+                                                                <button onClick={() => handleDeleteClick(exp.id)} className="p-1 text-text-muted expense-action-btn" title="Delete" disabled={isDemo}>
+                                                                    <Trash2 className="w-3.5 h-3.5"/>
+                                                                </button>
 
-                                                    {isRecurring && !isVoided && (
-                                                        <button
-                                                            onClick={() => {
-                                                                setReasonModal({ show: true, expense: exp });
-                                                                setReasonText('');
-                                                            }}
-                                                            className="p-1 text-text-muted expense-action-btn"
-                                                            title="Skip/Void this recurring item"
-                                                            disabled={isDemo}
-                                                        >
-                                                            <XCircle className="w-3.5 h-3.5"/>
-                                                        </button>
-                                                    )}
+                                                                {isRecurring && !isVoided && (
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            setReasonModal({ show: true, expense: exp });
+                                                                            setReasonText('');
+                                                                        }}
+                                                                        className="p-1 text-text-muted expense-action-btn"
+                                                                        title="Skip/Void this recurring item"
+                                                                        disabled={isDemo}
+                                                                    >
+                                                                        <XCircle className="w-3.5 h-3.5"/>
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </div>
+                                            );
+                                        })}
                                     </div>
-                                );
-                            })}
+                                ))
+                            }
 
                             {!isLoading && expenses.length === 0 && (
                                 <div className="text-center py-10">
