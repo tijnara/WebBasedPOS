@@ -41,22 +41,21 @@ export default function IncentivesPage() {
         pageSize: 1000
     });
 
-    // Use parseISO to properly format the date just like the Expenses page
+    // 1. Append time strings to capture the entire start and end days
     const { data: salesSummary } = useSalesSummary({
-        startDate: parseISO(monday),
-        endDate: parseISO(sunday)
+        startDate: monday ? new Date(`${monday}T00:00:00`) : undefined,
+        endDate: sunday ? new Date(`${sunday}T23:59:59.999`) : undefined
     });
 
+    // 2. Use totalRevenue which inherently matches the filtered date range
     const currentWeekSales = useMemo(() => {
-        if (!salesSummary?.weeklyRevenue) return 0;
+        if (!salesSummary) return 0;
 
-        // Use the monday date key to lookup the weekly revenue in the dictionary
-        const weekKey = monday;
-        const weeklySales = salesSummary.weeklyRevenue[weekKey] || 0;
+        const periodSales = salesSummary.totalRevenue || 0;
 
         // Removed Math.max so negative values are returned
-        return weeklySales - weeklyExpenses;
-    }, [salesSummary, weeklyExpenses, monday]);
+        return periodSales - (weeklyExpenses || 0);
+    }, [salesSummary, weeklyExpenses]);
 
     const incentivePool = currentWeekSales * 0.25;
 
@@ -145,7 +144,11 @@ export default function IncentivesPage() {
 
                             <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div>
-                                    <p className="text-xs font-bold text-black/90 dark:text-primary-soft uppercase">Current Week Net Sales</p>
+                                    <p className="text-xs font-bold text-black/90 dark:text-primary-soft uppercase">
+                                        {format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd') === monday 
+                                            ? 'Current Week Net Sales' 
+                                            : 'Selected Week Net Sales'}
+                                    </p>
                                     <h2
                                         className="text-4xl font-black"
                                         style={{ color: getAmountColor(currentWeekSales) }}
@@ -153,7 +156,7 @@ export default function IncentivesPage() {
                                         {currency(currentWeekSales, { symbol: '₱' }).format()}
                                     </h2>
                                     <p className="text-[10px] opacity-70 mt-1 uppercase">
-                                        Revenue: {currency(salesSummary?.weeklyRevenue?.[monday] || 0, { symbol: '₱' }).format()} | Expenses: {currency(weeklyExpenses, { symbol: '₱' }).format()}
+                                        Revenue: {currency(salesSummary?.totalRevenue || 0, { symbol: '₱' }).format()} | Expenses: {currency(weeklyExpenses, { symbol: '₱' }).format()}
                                     </p>
                                 </div>
                                 <div className="md:text-right">
