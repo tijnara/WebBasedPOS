@@ -252,6 +252,7 @@ export default function CustomerManagementPage() {
                                         <TableHead className="font-semibold text-gray-600 dark:text-gray-300">Contact Number</TableHead>
                                         <TableHead className="font-semibold text-gray-600 dark:text-gray-300">Address</TableHead>
                                         <TableHead className="font-semibold text-gray-600 dark:text-gray-300">Date Added</TableHead>
+                                        <TableHead className="font-semibold text-gray-600 dark:text-gray-300">Created By</TableHead>
                                         <TableHead className="text-center font-semibold text-gray-600 dark:text-gray-300">Balance (Utang)</TableHead>
                                         <TableHead className="text-right font-semibold text-gray-600 dark:text-gray-300">Actions</TableHead>
                                     </TableRow>
@@ -259,7 +260,7 @@ export default function CustomerManagementPage() {
                                 <TableBody>
                                     {isLoading ? (
                                         <TableRow>
-                                            <TableCell colSpan={6} className="text-center text-muted py-12">
+                                            <TableCell colSpan={7} className="text-center text-muted py-12">
                                                 <div className="flex justify-center items-center text-gray-500 dark:text-gray-400">
                                                     <svg className="animate-spin h-5 w-5 text-blue-600 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -271,7 +272,7 @@ export default function CustomerManagementPage() {
                                         </TableRow>
                                     ) : customers.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={6} className="text-center text-white-500 dark:text-white-400 py-12">
+                                            <TableCell colSpan={7} className="text-center text-white-500 dark:text-white-400 py-12">
                                                 {debouncedSearchTerm ? `No customers found matching "${debouncedSearchTerm}".` : 'No customers found.'}
                                             </TableCell>
                                         </TableRow>
@@ -283,6 +284,11 @@ export default function CustomerManagementPage() {
                                                 <TableCell className="text-sm text-gray-500 dark:text-slate-400 truncate max-w-[200px]" title={c.address}>{c.address || 'N/A'}</TableCell>
                                                 <TableCell className="text-sm text-gray-500 dark:text-gray-400">
                                                     {c.dateAdded ? new Date(c.dateAdded).toLocaleDateString() : '-'}
+                                                </TableCell>
+                                                <TableCell className="text-sm">
+                                                    <span style={{ color: c.users?.color || 'inherit' }} className="font-medium drop-shadow-sm">
+                                                        {c.users?.name || 'N/A'}
+                                                    </span>
                                                 </TableCell>
                                                 <TableCell className="text-center font-semibold">
                                                     <span className={c.credit_balance > 0 ? "text-red-600 bg-red-50 dark:bg-red-900/50 dark:text-red-400 px-2.5 py-1 rounded-md" : "text-green-600 dark:text-green-400"}>
@@ -355,6 +361,13 @@ export default function CustomerManagementPage() {
                                                 <div className={`font-bold text-lg ${c.credit_balance > 0 ? "text-red-600 dark:text-red-400" : "text-green-600 dark:text-green-400"}`}>
                                                     {currency(c.credit_balance || 0, { symbol: '₱' }).format()}
                                                 </div>
+                                            </div>
+                                            
+                                            <div className="text-xs mt-1 px-1 flex justify-between items-center">
+                                                <span className="text-gray-500 dark:text-gray-400">Created by:</span>
+                                                <span style={{ color: c.users?.color || 'inherit' }} className="font-semibold text-sm">
+                                                    {c.users?.name || 'N/A'}
+                                                </span>
                                             </div>
 
                                             <div className="flex justify-end items-center gap-2 pt-2">

@@ -4,9 +4,9 @@ import { useStore } from '../store/useStore';
 
 // --- Updated mock data structure ---
 const MOCK_CUSTOMERS = [
-    { id: 'mock-c-1', name: 'Demo Customer A', phone: '09110000001', address: '123 Demo St.', users: { name: 'Demo Staff' }, dateAdded: new Date() },
-    { id: 'mock-c-2', name: 'Demo Customer B', phone: '09110000002', address: '456 Demo Ave.', users: { name: 'Demo Staff' }, dateAdded: new Date() },
-    { id: 'mock-c-3', name: 'Demo Customer C', phone: '09110000003', address: '789 Demo Blvd.', users: { name: 'Demo Staff' }, dateAdded: new Date() },
+    { id: 'mock-c-1', name: 'Demo Customer A', phone: '09110000001', address: '123 Demo St.', users: { name: 'Demo Staff', color: '#3b82f6' }, dateAdded: new Date() },
+    { id: 'mock-c-2', name: 'Demo Customer B', phone: '09110000002', address: '456 Demo Ave.', users: { name: 'Demo Staff', color: '#10b981' }, dateAdded: new Date() },
+    { id: 'mock-c-3', name: 'Demo Customer C', phone: '09110000003', address: '789 Demo Blvd.', users: { name: 'Demo Staff', color: '#f59e0b' }, dateAdded: new Date() },
 ];
 
 // --- MODIFICATION: Accept searchTerm + date range ---
@@ -50,7 +50,8 @@ export function useCustomers({ searchTerm = '', page = 1, itemsPerPage = 10, sta
 
             let query = supabase
                 .from('customers')
-                .select('*, users!created_by(id, name)', { count: 'exact' })
+                // Added "color" to the joined select
+                .select('*, users!created_by(id, name, color)', { count: 'exact' })
                 // --- order by created_at DESC to get most recent ---
                 .order('created_at', { ascending: false });
 
