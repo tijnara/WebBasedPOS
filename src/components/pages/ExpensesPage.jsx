@@ -806,7 +806,7 @@
                                         onClick={() => setShowCategoryModal(false)}
                                         className="btn flex-1 h-10 bg-gray-100 border border-gray-200 text-gray-700 hover:bg-gray-200 text-sm font-semibold"
                                     >
-                                        Cancel
+.                                        Cancel
                                     </button>
                                     <button
                                         onClick={handleSaveCategory}

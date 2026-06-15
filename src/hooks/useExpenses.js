@@ -5,6 +5,13 @@ import { useStore } from '../store/useStore';
 const EXPENSES_KEY = ['expenses'];
 const CATEGORIES_KEY = ['expense-categories'];
 
+// Helper to get the end of the day for a given date string
+const getEndOfDay = (dateStr) => {
+    const date = new Date(dateStr);
+    date.setUTCHours(23, 59, 59, 999);
+    return date.toISOString();
+};
+
 export function useExpenses({ startDate, endDate, page = 1, pageSize = 20, searchTerm = '', category = 'All' } = {}) {
     return useQuery({
         queryKey: [...EXPENSES_KEY, startDate, endDate, page, pageSize, searchTerm, category],
@@ -14,7 +21,7 @@ export function useExpenses({ startDate, endDate, page = 1, pageSize = 20, searc
 
             const applyFilters = (query) => {
                 if (startDate) query = query.gte('expense_date', startDate);
-                if (endDate) query = query.lte('expense_date', endDate);
+                if (endDate) query = query.lte('expense_date', getEndOfDay(endDate));
                 
                 if (category && category !== 'All') {
                     query = query.eq('category', category);
@@ -113,7 +120,7 @@ export function useExpenseSummary(dateFrom, dateTo, selectedMonth) {
                     .from('expenses')
                     .select('amount')
                     .gte('expense_date', startOfMonthStr)
-                    .lte('expense_date', endOfMonthStr);
+                    .lte('expense_date', getEndOfDay(endOfMonthStr));
                 
                 if (monthError) throw monthError;
                 monthlyTotal = monthData?.reduce((acc, curr) => acc + Number(curr.amount), 0) || 0;
@@ -126,7 +133,7 @@ export function useExpenseSummary(dateFrom, dateTo, selectedMonth) {
                     .from('expenses')
                     .select('amount')
                     .gte('expense_date', dateFrom)
-                    .lte('expense_date', dateTo);
+                    .lte('expense_date', getEndOfDay(dateTo));
                 
                 if (weekError) throw weekError;
                 weeklyTotal = weekData?.reduce((acc, curr) => acc + Number(curr.amount), 0) || 0;
