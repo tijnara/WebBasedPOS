@@ -59,19 +59,22 @@
         });
         const { data: summary } = useExpenseSummary(dateFrom, dateTo, selectedMonth);
         const { data: categories = [] } = useExpenseCategories();
+        
+        // 1. Append the time strings to ensure we capture the entire start and end days
         const { data: salesSummary } = useSalesSummary({
-            startDate: dateFrom ? parseISO(dateFrom) : undefined,
-            endDate: dateTo ? parseISO(dateTo) : undefined
+            startDate: dateFrom ? new Date(`${dateFrom}T00:00:00`) : undefined,
+            endDate: dateTo ? new Date(`${dateTo}T23:59:59.999`) : undefined
         });
 
+        // 2. Use the totalRevenue which natively represents the filtered period
         const currentWeekSales = useMemo(() => {
-            if (!salesSummary?.weeklyRevenue) return 0;
+            if (!salesSummary) return 0;
 
-            const weekKey = dateFrom;
-            const weeklySales = salesSummary.weeklyRevenue[weekKey] || 0;
+            // totalRevenue perfectly matches the dateFrom and dateTo filter
+            const periodSales = salesSummary.totalRevenue || 0;
 
-            return weeklySales - (totalSum || 0);
-        }, [salesSummary, dateFrom, totalSum]);
+            return periodSales - (totalSum || 0);
+        }, [salesSummary, totalSum]);
 
         const groupedExpenses = useMemo(() => {
             if (groupBy === 'none') {
@@ -449,7 +452,15 @@
                                         <Star className="w-4 h-4" />
                                         <span>Incentives</span>
                                     </Link>
-                                    <p className="text-text-muted text-xs font-semibold uppercase tracking-wider">Current Week Sales</p>
+                                    <p className="text-text-muted text-xs font-semibold uppercase tracking-wider">
+                                        {dateFrom === initialDateFrom ? 'Current Week Gross' : 'Selected Week Gross'}
+                                    </p>
+                                    <p className="text-lg font-bold text-green-600">
+                                        {currency(salesSummary?.totalRevenue || 0, { symbol: '₱' }).format()}
+                                    </p>
+                                    <p className="text-text-muted text-xs font-semibold uppercase tracking-wider mt-2">
+                                        {dateFrom === initialDateFrom ? 'Current Week Net' : 'Selected Week Net'}
+                                    </p>
                                     <p className="text-xl font-bold" style={{ color: currentWeekSales >= 0 ? '#8DB600' : '#dc2626' }}>
                                         {currentWeekSales >= 0 ? '+' : ''}{currency(currentWeekSales, { symbol: '₱' }).format()}
                                     </p>
