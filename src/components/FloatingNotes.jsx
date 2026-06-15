@@ -151,7 +151,10 @@ export default function FloatingNotes() {
                                         <p className="whitespace-pre-wrap text-gray-800 mb-2 text-base">{note.content}</p>
                                         <div className="flex justify-between items-center mt-2 border-t pt-2">
                                             <span className="text-xs text-gray-500 font-medium">
-                                                <span className="font-semibold text-gray-700">
+                                                <span 
+                                                    className="font-semibold" 
+                                                    style={{ color: note.users?.color || '#3B82F6' }}
+                                                >
                                                     {note.users?.name || note.created_by || 'Unknown Staff'}
                                                 </span>
                                                 {' • '}

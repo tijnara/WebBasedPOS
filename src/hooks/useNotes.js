@@ -5,10 +5,10 @@ import { useStore } from '../store/useStore';
 
 const notesKey = ['notes'];
 
-// Mock data for demo mode
+// Mock data for demo mode - Add colors here
 let MOCK_NOTES = [
-    { id: 'mock-1', content: 'Follow up with supplier for 5-Gal jugs.', created_at: new Date().toISOString(), created_by: 'mock-id', users: { name: 'Demo Staff A' } },
-    { id: 'mock-2', content: 'Check inventory for 500ml PET bottles.', created_at: new Date().toISOString(), created_by: 'mock-id', users: { name: 'Demo Staff B' } },
+    { id: 'mock-1', content: 'Follow up with supplier for 5-Gal jugs.', created_at: new Date().toISOString(), created_by: 'mock-id', users: { name: 'Demo Staff A', color: '#EF4444' } },
+    { id: 'mock-2', content: 'Check inventory for 500ml PET bottles.', created_at: new Date().toISOString(), created_by: 'mock-id', users: { name: 'Demo Staff B', color: '#10B981' } },
 ];
 
 export function useNotes() {
@@ -22,8 +22,8 @@ export function useNotes() {
             try {
                 const { data, error } = await supabase
                     .from('notes')
-                    // Join the users table to get the name based on the created_by ID
-                    .select('*, users:created_by(name)')
+                    // CHANGE HERE: Add 'color' to the select statement
+                    .select('*, users:created_by(name, color)')
                     .order('created_at', { ascending: false });
 
                 if (error) {
@@ -51,7 +51,8 @@ export function useCreateNote() {
                     content,
                     created_at: new Date().toISOString(),
                     created_by: user.id,
-                    users: { name: user.name }
+                    // CHANGE HERE: Include the current user's color or a default
+                    users: { name: user.name, color: user.color || '#3B82F6' }
                 });
                 return;
             }
