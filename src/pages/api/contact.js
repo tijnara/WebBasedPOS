@@ -52,26 +52,25 @@ export default async function handler(req, res) {
     });
 
     if (!formSubmitResponse.ok) {
-      const formSubmitData = await formSubmitResponse.json();
+      // Safely attempt to read the error response without crashing
+      let formSubmitData;
+      try {
+        formSubmitData = await formSubmitResponse.json();
+      } catch (parseError) {
+        formSubmitData = await formSubmitResponse.text();
+      }
+      
       console.error('FormSubmit Error:', {
         status: formSubmitResponse.status,
         statusText: formSubmitResponse.statusText,
         data: formSubmitData,
       });
-      // Example: Sentry/Axiom integration point
-      // if (process.env.NODE_ENV === 'production') {
-      //   Sentry.captureMessage('FormSubmit forwarding failed', { extra: formSubmitData });
-      // }
-      // Even if email fails, we saved to DB, so don't send a 500 to the client
+      // We don't throw an error here because it successfully saved to Supabase.
     }
 
     res.status(200).json({ message: 'Message sent and saved successfully' });
   } catch (error) {
     console.error('Contact API Generic Error:', error);
-    // Example: Sentry/Axiom integration point
-    // if (process.env.NODE_ENV === 'production') {
-    //   Sentry.captureException(error);
-    // }
     res.status(500).json({ message: 'An unexpected error occurred' });
   }
 }
