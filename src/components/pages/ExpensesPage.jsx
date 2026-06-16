@@ -120,6 +120,7 @@
         const [category, setCategory] = useState('');
         const [description, setDescription] = useState('Payment for ');
         const [expenseDate, setExpenseDate] = useState('');
+        const [employeeName, setEmployeeName] = useState('');
         const [editingExpense, setEditingExpense] = useState(null);
 
         // Custom Category States
@@ -335,7 +336,8 @@
                         amount,
                         category,
                         description: capitalizedDescription,
-                        expense_date: combinedDateTime.toISOString() // Pass ISO string
+                        expense_date: combinedDateTime.toISOString(),
+                        employee_name: category === 'Salary' ? employeeName : null
                     });
                     setEditingExpense(null);
                     addToast({ title: 'Expense Updated', message: 'Transaction updated.', type: 'success' });
@@ -344,7 +346,8 @@
                         amount,
                         category,
                         description: capitalizedDescription,
-                        expense_date: combinedDateTime.toISOString() // Pass ISO string
+                        expense_date: combinedDateTime.toISOString(),
+                        employee_name: category === 'Salary' ? employeeName : null
                     });
                     addToast({ title: 'Expense Added', message: 'Transaction saved.', type: 'success' });
                 }
@@ -352,6 +355,7 @@
                 setDescription('Payment for ');
                 setExpenseDate('');
                 setCategory('');
+                setEmployeeName('');
             } catch (error) {
                 addToast({ title: 'Error', message: error.message, type: 'error' });
             }
@@ -362,6 +366,7 @@
             setAmount(exp.amount);
             setCategory(exp.category);
             setDescription(exp.description);
+            setEmployeeName(exp.employee_name || '');
             setExpenseDate(format(parseISO(exp.expense_date), 'yyyy-MM-dd'));
             window.scrollTo({ top: 0, behavior: 'smooth' });
         };
@@ -407,6 +412,7 @@
             setDescription('Payment for ');
             setExpenseDate('');
             setCategory('');
+            setEmployeeName('');
         };
 
         const handleNextPage = () => {
@@ -541,8 +547,23 @@
                                             <Edit className="w-4 h-4" />
                                         </button>
                                     </div>
-
                                 </div>
+
+                                {/* ONLY SHOW EMPLOYEE NAME INPUT IF CATEGORY IS SALARY */}
+                                {category === 'Salary' && (
+                                    <div className="flex flex-col sm:flex-row gap-3 mb-3">
+                                        <input 
+                                            type="text" 
+                                            value={employeeName} 
+                                            onChange={(e) => setEmployeeName(e.target.value)} 
+                                            placeholder="Enter Employee Name (e.g. John Doe)" 
+                                            required={category === 'Salary'} 
+                                            className="input w-full border-blue-300 bg-blue-50" 
+                                            disabled={isDemo} 
+                                        />
+                                    </div>
+                                )}
+
                                 <div className="flex flex-col sm:flex-row gap-3">
                                     <input type="text" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What did you buy?" required className="input flex-[2]" disabled={isDemo} />
                                     <button type="submit" disabled={createExpense.isPending || updateExpense.isPending || isDemo} className="btn btn--primary flex-1 flex justify-center items-center gap-2">
@@ -653,13 +674,20 @@
                                                         <div className="flex items-center gap-3 flex-1 pr-3 border-r-transparent">
                                                             <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${style.colorClass}`}><Icon className="w-5 h-5" /></div>
                                                             <div className="flex flex-col">
-                                                                <span className="font-semibold text-text text-sm">{exp.description}</span>
+                                                                {/* Conditionally render the employee name if it exists, otherwise just show description */}
+                                                                <span className="font-semibold text-text text-sm">
+                                                                    {exp.employee_name ? `${exp.employee_name} - ` : ''}{exp.description}
+                                                                </span>
+                                                                
                                                                 <span className="text-xs font-medium text-text-muted">
                                                                     {exp.category} &bull; {format(parseISO(exp.expense_date), 'MMM d, yyyy h:mm a')}
-                                                                    <div className="inline-flex items-center space-x-2 font-semibold" style={{ color: exp.userColor }}>
-                                                                        <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: exp.userColor }}></span>
-                                                                        <span>{exp.staffName}</span>
-                                                                    </div>
+                                                                    
+                                                                    {exp.staffName && (
+                                                                        <div className="inline-flex items-center space-x-1.5 font-semibold" style={{ color: exp.userColor }}>
+                                                                            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: exp.userColor }}></span>
+                                                                            <span>{exp.staffName}</span>
+                                                                        </div>
+                                                                    )}
                                                                 </span>
                                                             </div>
                                                         </div>

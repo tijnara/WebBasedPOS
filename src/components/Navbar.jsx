@@ -191,6 +191,7 @@ const Navbar = () => {
             links: [
                 { name: 'Expenses', path: '/expenses', icon: <Receipt className="h-6 w-6" /> },
                 { name: 'Incentives', path: '/incentives', icon: <TrendingUp className="h-6 w-6" /> },
+                { name: 'Salary', path: '/salary-monitoring', icon: <UserIcon className="h-5 w-5 menu-icon" />, adminOnly: true },
                 { name: 'Report', path: '/report', icon: <ChartIcon className="h-5 w-5 menu-icon" />, adminOnly: true },
                 { name: 'Mock Sales', path: '/mock-sales-report', icon: <TestTube className="h-6 w-6" />, adminOnly: true },
             ]
