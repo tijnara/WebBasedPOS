@@ -165,54 +165,81 @@ export default function SalaryMonitoringPage() {
                     </div>
                 </CardHeader>
                 <CardContent className="p-0">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Date</TableHead>
-                                <TableHead>Employee</TableHead>
-                                <TableHead>Description</TableHead>
-                                <TableHead className="text-right">Amount</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {isLoading ? (
-                                <TableRow><TableCell colSpan="4" className="text-center py-6 text-gray-500">Loading...</TableCell></TableRow>
-                            ) : salaryRecords?.length === 0 ? (
-                                <TableRow><TableCell colSpan="4" className="text-center py-8 text-gray-500 font-medium">No salary records for this period.</TableCell></TableRow>
-                            ) : (
-                                salaryRecords?.map(record => (
-                                    <TableRow key={record.id}>
-                                        <TableCell>{format(new Date(record.expense_date), 'MMM d, yyyy')}</TableCell>
-                                        <TableCell className="font-bold text-gray-800">{record.employee_name || 'N/A'}</TableCell>
-                                        <TableCell className="text-gray-500">{record.description}</TableCell>
-                                        <TableCell className="text-right text-red-600 font-bold">
-                                            {currency(record.amount, { symbol: '₱' }).format()}
-                                        </TableCell>
-                                    </TableRow>
-                                ))
-                            )}
-                        </TableBody>
-                    </Table>
-                    
-                    {/* PAGINATION / PERIOD NAVIGATION */}
-                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-b-lg border-t border-gray-100">
-                        <button
-                            onClick={() => setPeriod(getPrevPeriod(period.start))}
-                            className="flex items-center gap-1 text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors"
-                        >
-                            <ChevronLeft className="w-4 h-4" /> Previous Period
-                        </button>
-                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                            {format(new Date(period.start), 'MMM d')} - {format(new Date(period.end), 'MMM d')}
-                        </span>
-                        <button
-                            onClick={() => setPeriod(getNextPeriod(period.start))}
-                            className="flex items-center gap-1 text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors"
-                        >
-                            Next Period <ChevronRight className="w-4 h-4" />
-                        </button>
+    {/* DESKTOP TABLE */}
+    <div className="hidden md:block">
+        <Table>
+            <TableHeader>
+                <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Employee</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+                {isLoading ? (
+                    <TableRow><TableCell colSpan="4" className="text-center py-6 text-gray-500">Loading...</TableCell></TableRow>
+                ) : salaryRecords?.length === 0 ? (
+                    <TableRow><TableCell colSpan="4" className="text-center py-8 text-gray-500 font-medium">No salary records for this period.</TableCell></TableRow>
+                ) : (
+                    salaryRecords?.map(record => (
+                        <TableRow key={record.id}>
+                            <TableCell>{format(new Date(record.expense_date), 'MMM d, yyyy')}</TableCell>
+                            <TableCell className="font-bold text-gray-800">{record.employee_name || 'N/A'}</TableCell>
+                            <TableCell className="text-gray-500">{record.description}</TableCell>
+                            <TableCell className="text-right text-red-600 font-bold">
+                                {currency(record.amount, { symbol: '₱' }).format()}
+                            </TableCell>
+                        </TableRow>
+                    ))
+                )}
+            </TableBody>
+        </Table>
+    </div>
+
+    {/* MOBILE LIST VIEW */}
+    <div className="block md:hidden p-4">
+        {isLoading ? (
+            <p className="text-center py-6 text-gray-500">Loading...</p>
+        ) : salaryRecords?.length === 0 ? (
+            <p className="text-center py-8 text-gray-500 font-medium">No salary records for this period.</p>
+        ) : (
+            <div className="space-y-4">
+                {salaryRecords?.map(record => (
+                    <div key={record.id} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col gap-2">
+                        <div className="flex justify-between items-start">
+                            <span className="font-bold text-gray-800">{record.employee_name || 'N/A'}</span>
+                            <span className="text-red-600 font-bold">{currency(record.amount, { symbol: '₱' }).format()}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-sm text-gray-500">
+                            <span>{record.description}</span>
+                            <span>{format(new Date(record.expense_date), 'MMM d, yyyy')}</span>
+                        </div>
                     </div>
-                </CardContent>
+                ))}
+            </div>
+        )}
+    </div>
+    
+    {/* PAGINATION / PERIOD NAVIGATION */}
+    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-b-lg border-t border-gray-100">
+        <button
+            onClick={() => setPeriod(getPrevPeriod(period.start))}
+            className="flex items-center gap-1 text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors"
+        >
+            <ChevronLeft className="w-4 h-4" /> Previous Period
+        </button>
+        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+            {format(new Date(period.start), 'MMM d')} - {format(new Date(period.end), 'MMM d')}
+        </span>
+        <button
+            onClick={() => setPeriod(getNextPeriod(period.start))}
+            className="flex items-center gap-1 text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors"
+        >
+            Next Period <ChevronRight className="w-4 h-4" />
+        </button>
+    </div>
+</CardContent>
             </Card>
         </div>
     );
