@@ -3,14 +3,13 @@ import React from 'react';
 import { useRouter } from 'next/router';
 import { cn } from './ui';
 import { CartIcon, PackageIcon, ChartIcon, DocumentReportIcon } from './Icons';
-import { Receipt, Gift } from 'lucide-react'; // Added Gift icon for Incentives
+import { Receipt } from 'lucide-react';
 
 import { useStore } from '../store/useStore';
 
-// --- CHANGED: Removed Products and replaced it with Incentives ---
 const links = [
     { name: 'POS', path: '/pos', icon: <CartIcon className="h-6 w-6" />, adminOnly: false },
-    { name: 'Incentives', path: '/incentives', icon: <Gift className="h-6 w-6" />, adminOnly: false }, // New Incentives tab
+    { name: 'Salary', path: '/salary-monitoring', icon: <Receipt className="h-6 w-6" />, adminOnly: true },
     { name: 'Inventory', path: '/inventory', icon: <PackageIcon className="h-6 w-6" />, adminOnly: false },
     { name: 'Dashboard', path: '/dashboard', icon: <ChartIcon className="h-6 w-6" />, adminOnly: false },
     { name: 'Sale History', path: '/history', icon: <ChartIcon className="h-6 w-6" />, adminOnly: false },
