@@ -22,8 +22,8 @@ export function useNotes() {
             try {
                 const { data, error } = await supabase
                     .from('notes')
-                    // CHANGE HERE: Add 'color' to the select statement
-                    .select('*, users:created_by(name, color)')
+                    // FIX: Explicitly define relationships to the users table
+                    .select('*, users:users!created_by(name, color), updated_by_user:users!updated_by(name, color)')
                     .order('created_at', { ascending: false });
 
                 if (error) {
@@ -51,7 +51,6 @@ export function useCreateNote() {
                     content,
                     created_at: new Date().toISOString(),
                     created_by: user.id,
-                    // CHANGE HERE: Include the current user's color or a default
                     users: { name: user.name, color: user.color || '#3B82F6' }
                 });
                 return;
@@ -70,16 +69,21 @@ export function useCreateNote() {
 
 export function useUpdateNote() {
     const queryClient = useQueryClient();
-    const isDemo = useStore(s => s.user?.isDemo);
+    const user = useStore(s => s.user);
 
     return useMutation({
         mutationFn: async ({ id, content }) => {
-            if (isDemo) {
+            if (user?.isDemo) {
                 const note = MOCK_NOTES.find(n => n.id === id);
-                if (note) note.content = content;
+                if (note) {
+                    note.content = content;
+                    note.updated_at = new Date().toISOString();
+                    note.updated_by = user.id;
+                    note.updated_by_user = { name: user.name, color: user.color || '#3B82F6' };
+                }
                 return;
             }
-            const { error } = await supabase.from('notes').update({ content, updated_at: new Date().toISOString() }).eq('id', id);
+            const { error } = await supabase.from('notes').update({ content, updated_at: new Date().toISOString(), updated_by: user.id }).eq('id', id);
             if (error) throw error;
         },
         onSuccess: () => queryClient.invalidateQueries({ queryKey: notesKey }),

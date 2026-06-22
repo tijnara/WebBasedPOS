@@ -130,7 +130,7 @@ export default function FloatingNotes() {
             }}
         >
             {isOpen && (
-                <Card className="w-[85vw] sm:w-[300px] md:w-[320px] mb-4 shadow-2xl border-0 flex flex-col h-[28rem] md:h-[32rem] max-h-[70vh] bg-white">
+                <Card className="w-[90vw] sm:w-[380px] md:w-[420px] mb-4 shadow-2xl border-0 flex flex-col h-[40rem] md:h-[48rem] max-h-[85vh] bg-white">
                     <CardHeader className="bg-yellow-100 py-3 flex justify-between items-center rounded-t-lg">
                         <h3 className="font-bold text-yellow-800 flex items-center gap-2">
                             <StickyNoteIcon /> Scratchpad
@@ -165,6 +165,13 @@ export default function FloatingNotes() {
                                                 <button onClick={() => handleDelete(note.id)} className="text-red-500 hover:text-red-700 text-xs font-semibold">Delete</button>
                                             </div>
                                         </div>
+                                        {note.updated_at && (
+                                            <div className="text-xs text-gray-400 mt-1 pt-1 border-t border-dashed">
+                                                Updated by <span className="font-semibold" style={{ color: note.updated_by_user?.color || '#3B82F6' }}>{note.updated_by_user?.name || 'Unknown'}</span>
+                                                {' on '}
+                                                {format(new Date(note.updated_at), 'MMM d, h:mm a')}
+                                            </div>
+                                        )}
                                     </div>
                                 ))
                             )}
