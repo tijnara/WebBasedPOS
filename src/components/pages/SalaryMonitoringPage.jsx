@@ -1,7 +1,8 @@
 // src/components/pages/SalaryMonitoringPage.jsx
 import React, { useState, useMemo } from 'react';
 import { Card, CardHeader, CardContent, Button, Input, Label, Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '../ui';
-import { useSalaryRecords, useCreateSalary } from '../../hooks/useSalary';
+// Import useRecentSalaries
+import { useSalaryRecords, useCreateSalary, useRecentSalaries } from '../../hooks/useSalary';
 import currency from 'currency.js';
 import { format, endOfMonth, subMonths, addMonths } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -76,10 +77,11 @@ export default function SalaryMonitoringPage() {
     const { user, addToast } = useStore();
     const isAdmin = user?.role === 'Admin' || user?.role === 'admin' || user?.isadmin;
     
-    // Period State
     const [period, setPeriod] = useState(getInitialPeriod());
 
     const { data: salaryRecords, isLoading } = useSalaryRecords(period.start, period.end);
+    // Fetch recent salaries for the autocomplete dropdown
+    const { data: recentSalaries } = useRecentSalaries(); 
     const createSalary = useCreateSalary();
 
     const [employeeName, setEmployeeName] = useState('');
@@ -87,7 +89,6 @@ export default function SalaryMonitoringPage() {
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [description, setDescription] = useState('Salary Payout');
 
-    // Calculate total for current view
     const periodTotal = useMemo(() => {
         return salaryRecords?.reduce((sum, record) => sum + Number(record.amount), 0) || 0;
     }, [salaryRecords]);
@@ -95,6 +96,18 @@ export default function SalaryMonitoringPage() {
     if (!isAdmin) {
         return <div className="p-10 text-center text-red-500 font-bold">Access Denied. Admins only.</div>;
     }
+
+    // Auto-fill logic when an employee is selected from the datalist
+    const handleEmployeeChange = (e) => {
+        const val = e.target.value;
+        setEmployeeName(val);
+        
+        const match = recentSalaries?.find(s => s.employee_name === val);
+        if (match) {
+            setAmount(match.amount);
+            setDescription(match.description);
+        }
+    };
 
     const handleAddSalary = async (e) => {
         e.preventDefault();
@@ -118,7 +131,6 @@ export default function SalaryMonitoringPage() {
                 <p className="text-gray-500 text-sm">Manage staff salaries. Records here automatically sync with your general Expenses.</p>
             </div>
 
-            {/* RECORD SALARY FORM */}
             <Card>
                 <CardHeader className="bg-blue-50 border-b border-blue-100">
                     <h3 className="font-bold text-blue-800">Record Salary Payment</h3>
@@ -127,7 +139,22 @@ export default function SalaryMonitoringPage() {
                     <form onSubmit={handleAddSalary} className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
                         <div className="md:col-span-1">
                             <Label>Employee Name</Label>
-                            <Input type="text" placeholder="e.g. John Doe" value={employeeName} onChange={e => setEmployeeName(e.target.value)} required className="h-11" />
+                            {/* Attached the list attribute and onChange handler */}
+                            <Input 
+                                type="text" 
+                                placeholder="e.g. John Doe" 
+                                value={employeeName} 
+                                onChange={handleEmployeeChange} 
+                                required 
+                                className="h-11" 
+                                list="employee-list"
+                            />
+                            {/* Datalist provides the dropdown options */}
+                            <datalist id="employee-list">
+                                {recentSalaries?.map(emp => (
+                                    <option key={emp.employee_name} value={emp.employee_name} />
+                                ))}
+                            </datalist>
                         </div>
                         <div className="md:col-span-1">
                             <Label>Amount (₱)</Label>

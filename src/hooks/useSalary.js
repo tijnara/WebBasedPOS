@@ -3,7 +3,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient';
 import { useStore } from '../store/useStore';
 
-// Updated to accept dates
 export function useSalaryRecords(startDate, endDate) {
     return useQuery({
         queryKey: ['salary-records', startDate, endDate],
@@ -24,6 +23,33 @@ export function useSalaryRecords(startDate, endDate) {
             const { data, error } = await query;
             if (error) throw error;
             return data || [];
+        }
+    });
+}
+
+// NEW HOOK: Fetches unique past employees for autocomplete
+export function useRecentSalaries() {
+    return useQuery({
+        queryKey: ['recent-salaries'],
+        queryFn: async () => {
+            const { data, error } = await supabase
+                .from('expenses')
+                .select('employee_name, amount, description')
+                .eq('category', 'Salary')
+                .order('expense_date', { ascending: false });
+            
+            if (error) throw error;
+            
+            // Deduplicate to only get the latest record per employee
+            const unique = [];
+            const map = new Set();
+            for (const item of (data || [])) {
+                if (item.employee_name && !map.has(item.employee_name)) {
+                    map.add(item.employee_name);
+                    unique.push(item);
+                }
+            }
+            return unique;
         }
     });
 }
@@ -49,6 +75,7 @@ export function useCreateSalary() {
             queryClient.invalidateQueries({ queryKey: ['salary-records'] });
             queryClient.invalidateQueries({ queryKey: ['expenses'] });
             queryClient.invalidateQueries({ queryKey: ['expense-summary'] });
+            queryClient.invalidateQueries({ queryKey: ['recent-salaries'] }); // Added this
         },
     });
 }
