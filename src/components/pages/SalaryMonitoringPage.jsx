@@ -339,27 +339,27 @@ export default function SalaryMonitoringPage() {
                     </DialogHeader>
                     <div className="p-4 space-y-6">
                         {/* Add / Edit Form */}
-                        <form onSubmit={handleSaveEmployee} className="flex gap-2 items-end bg-gray-50 p-4 rounded-lg border border-gray-100">
-                            <div className="flex-1">
+                        <form onSubmit={handleSaveEmployee} className="flex flex-col md:flex-row gap-2 items-end bg-gray-50 p-4 rounded-lg border border-gray-100">
+                            <div className="flex-1 w-full">
                                 <Label>Employee Name</Label>
                                 <Input value={empFormName} onChange={e => setEmpFormName(e.target.value)} placeholder="e.g. Jane Doe" required />
                             </div>
-                            <div className="flex-1">
+                            <div className="flex-1 w-full">
                                 <Label>Default Salary (₱)</Label>
-                                <Input type="number" step="0.01" value={empFormSalary} onChange={e => setEmpFormSalary(e.target.value)} placeholder="e.g. 5000" />
+                                <Input type="number" step="0.01" value={empFormSalary} onChange={e => setEmpFormSalary(e.targe.value)} placeholder="e.g. 5000" />
                             </div>
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 w-full md:w-auto">
                                 {editingEmpId && (
-                                    <Button type="button" variant="ghost" onClick={() => { setEditingEmpId(null); setEmpFormName(''); setEmpFormSalary(''); }}>Cancel</Button>
+                                    <Button type="button" variant="ghost" onClick={() => { setEditingEmpId(null); setEmpFormName(''); setEmpFormSalary(''); }} className="w-full">Cancel</Button>
                                 )}
-                                <Button type="submit" disabled={manageEmployee.isPending} className="bg-blue-600 text-white hover:bg-blue-700">
+                                <Button type="submit" disabled={manageEmployee.isPending} className="bg-blue-600 text-white hover:bg-blue-700 w-full">
                                     {editingEmpId ? 'Update' : 'Add Employee'}
                                 </Button>
                             </div>
                         </form>
 
-                        {/* Employee List */}
-                        <div className="max-h-80 overflow-y-auto border rounded-lg">
+                        {/* Employee List - Desktop */}
+                        <div className="hidden md:block max-h-80 overflow-y-auto border rounded-lg">
                             <Table>
                                 <TableHeader>
                                     <TableRow>
@@ -391,6 +391,32 @@ export default function SalaryMonitoringPage() {
                                     )}
                                 </TableBody>
                             </Table>
+                        </div>
+                        
+                        {/* Employee List - Mobile */}
+                        <div className="block md:hidden space-y-3">
+                            {isEmpLoading ? (
+                                <p className="text-center text-gray-500">Loading...</p>
+                            ) : employees?.length === 0 ? (
+                                <p className="text-center text-gray-500">No employees registered.</p>
+                            ) : (
+                                employees?.map(emp => (
+                                    <div key={emp.id} className="bg-white p-3 rounded-lg border border-gray-100 shadow-sm flex justify-between items-center">
+                                        <div>
+                                            <p className="font-bold text-gray-800">{emp.name}</p>
+                                            <p className="text-sm text-gray-500">{currency(emp.default_salary, { symbol: '₱' }).format()}</p>
+                                        </div>
+                                        <div className="space-x-2">
+                                            <button onClick={() => handleEditClick(emp)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md">
+                                                <Edit2 className="w-4 h-4" />
+                                            </button>
+                                            <button onClick={() => handleDeleteEmployee(emp.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-md">
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
                         </div>
                     </div>
                     <DialogFooter className="p-4 border-t">

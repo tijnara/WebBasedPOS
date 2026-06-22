@@ -10,7 +10,7 @@ export function useEmployees() {
             const { data, error } = await supabase
                 .from('employees')
                 .select('*')
-                // .eq('is_active', true) // Temporarily disabled for diagnostics
+                .eq('is_active', true) // Re-enabled
                 .order('name', { ascending: true });
             
             if (error) throw error;
