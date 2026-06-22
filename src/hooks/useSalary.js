@@ -27,40 +27,14 @@ export function useSalaryRecords(startDate, endDate) {
     });
 }
 
-// NEW HOOK: Fetches unique past employees for autocomplete
-export function useRecentSalaries() {
-    return useQuery({
-        queryKey: ['recent-salaries'],
-        queryFn: async () => {
-            const { data, error } = await supabase
-                .from('expenses')
-                .select('employee_name, amount, description')
-                .eq('category', 'Salary')
-                .order('expense_date', { ascending: false });
-            
-            if (error) throw error;
-            
-            // Deduplicate to only get the latest record per employee
-            const unique = [];
-            const map = new Set();
-            for (const item of (data || [])) {
-                if (item.employee_name && !map.has(item.employee_name)) {
-                    map.add(item.employee_name);
-                    unique.push(item);
-                }
-            }
-            return unique;
-        }
-    });
-}
-
 export function useCreateSalary() {
     const queryClient = useQueryClient();
     const user = useStore(s => s.user);
 
     return useMutation({
         mutationFn: async ({ employeeName, amount, description, date }) => {
-            const { error } = await supabase.from('expenses').insert([{
+            // 1. Save to expenses
+            const { error: expenseError } = await supabase.from('expenses').insert([{
                 amount: parseFloat(amount),
                 category: 'Salary',
                 description: description || 'Salary Payout',
@@ -69,13 +43,19 @@ export function useCreateSalary() {
                 employee_name: employeeName
             }]);
             
-            if (error) throw error;
+            if (expenseError) throw expenseError;
+
+            // 2. Automatically register them in the employees table if they don't exist
+            await supabase.from('employees').upsert(
+                { name: employeeName, default_salary: parseFloat(amount) },
+                { onConflict: 'name', ignoreDuplicates: true } 
+            );
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['salary-records'] });
             queryClient.invalidateQueries({ queryKey: ['expenses'] });
             queryClient.invalidateQueries({ queryKey: ['expense-summary'] });
-            queryClient.invalidateQueries({ queryKey: ['recent-salaries'] }); // Added this
+            queryClient.invalidateQueries({ queryKey: ['employees'] }); // Refresh dropdown
         },
     });
 }

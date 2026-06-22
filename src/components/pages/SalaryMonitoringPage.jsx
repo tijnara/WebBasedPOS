@@ -1,8 +1,8 @@
 // src/components/pages/SalaryMonitoringPage.jsx
 import React, { useState, useMemo } from 'react';
 import { Card, CardHeader, CardContent, Button, Input, Label, Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '../ui';
-// Import useRecentSalaries
-import { useSalaryRecords, useCreateSalary, useRecentSalaries } from '../../hooks/useSalary';
+import { useSalaryRecords, useCreateSalary } from '../../hooks/useSalary';
+import { useEmployees } from '../../hooks/useEmployees'; // Import the new hook
 import currency from 'currency.js';
 import { format, endOfMonth, subMonths, addMonths } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -80,8 +80,7 @@ export default function SalaryMonitoringPage() {
     const [period, setPeriod] = useState(getInitialPeriod());
 
     const { data: salaryRecords, isLoading } = useSalaryRecords(period.start, period.end);
-    // Fetch recent salaries for the autocomplete dropdown
-    const { data: recentSalaries } = useRecentSalaries(); 
+    const { data: employees } = useEmployees(); // Fetch official employees list
     const createSalary = useCreateSalary();
 
     const [employeeName, setEmployeeName] = useState('');
@@ -97,15 +96,14 @@ export default function SalaryMonitoringPage() {
         return <div className="p-10 text-center text-red-500 font-bold">Access Denied. Admins only.</div>;
     }
 
-    // Auto-fill logic when an employee is selected from the datalist
     const handleEmployeeChange = (e) => {
         const val = e.target.value;
         setEmployeeName(val);
         
-        const match = recentSalaries?.find(s => s.employee_name === val);
-        if (match) {
-            setAmount(match.amount);
-            setDescription(match.description);
+        // Auto-fill amount if the employee is known
+        const match = employees?.find(emp => emp.name === val);
+        if (match && match.default_salary > 0) {
+            setAmount(match.default_salary);
         }
     };
 
@@ -130,7 +128,7 @@ export default function SalaryMonitoringPage() {
                 <h1 className="text-2xl font-bold">Salary Monitoring</h1>
                 <p className="text-gray-500 text-sm">Manage staff salaries. Records here automatically sync with your general Expenses.</p>
             </div>
-
+            
             <Card>
                 <CardHeader className="bg-blue-50 border-b border-blue-100">
                     <h3 className="font-bold text-blue-800">Record Salary Payment</h3>
@@ -139,7 +137,6 @@ export default function SalaryMonitoringPage() {
                     <form onSubmit={handleAddSalary} className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
                         <div className="md:col-span-1">
                             <Label>Employee Name</Label>
-                            {/* Attached the list attribute and onChange handler */}
                             <Input 
                                 type="text" 
                                 placeholder="e.g. John Doe" 
@@ -149,10 +146,10 @@ export default function SalaryMonitoringPage() {
                                 className="h-11" 
                                 list="employee-list"
                             />
-                            {/* Datalist provides the dropdown options */}
+                            {/* Datalist uses the dedicated table now */}
                             <datalist id="employee-list">
-                                {recentSalaries?.map(emp => (
-                                    <option key={emp.employee_name} value={emp.employee_name} />
+                                {employees?.map(emp => (
+                                    <option key={emp.id} value={emp.name} />
                                 ))}
                             </datalist>
                         </div>
