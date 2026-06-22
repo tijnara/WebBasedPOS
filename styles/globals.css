@@ -302,6 +302,23 @@ button:disabled {
     color: white;
 }
 
+.btn-apple-green {
+    background-color: #8DB600 !important;
+}
+
+.btn-apple-green:hover {
+    background-color: var(--violet) !important;
+}
+
+.btn-add-employee {
+    background-color: #8DB600 !important;
+    color: white !important;
+}
+
+.btn-add-employee:hover {
+    background-color: var(--violet) !important;
+}
+
 /* --- Input & Select Styles --- */
 .input,
 select.input {

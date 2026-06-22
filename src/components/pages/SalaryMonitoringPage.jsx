@@ -186,7 +186,10 @@ export default function SalaryMonitoringPage() {
                     <h1 className="text-2xl font-bold">Salary Monitoring</h1>
                     <p className="text-gray-500 text-sm">Manage staff salaries and records.</p>
                 </div>
-                <Button onClick={() => setIsManageModalOpen(true)} className="flex items-center gap-2 bg-slate-800 text-white hover:bg-slate-700">
+                <Button 
+                    onClick={() => setIsManageModalOpen(true)} 
+                    className="flex items-center gap-2 btn-apple-green text-white"
+                >
                     <Users className="w-4 h-4" /> Manage Employees
                 </Button>
             </div>
@@ -339,20 +342,27 @@ export default function SalaryMonitoringPage() {
                     </DialogHeader>
                     <div className="p-4 space-y-6">
                         {/* Add / Edit Form */}
-                        <form onSubmit={handleSaveEmployee} className="flex flex-col md:flex-row gap-2 items-end bg-gray-50 p-4 rounded-lg border border-gray-100">
-                            <div className="flex-1 w-full">
-                                <Label>Employee Name</Label>
-                                <Input value={empFormName} onChange={e => setEmpFormName(e.target.value)} placeholder="e.g. Jane Doe" required />
-                            </div>
-                            <div className="flex-1 w-full">
-                                <Label>Default Salary (₱)</Label>
-                                <Input type="number" step="0.01" value={empFormSalary} onChange={e => setEmpFormSalary(e.targe.value)} placeholder="e.g. 5000" />
-                            </div>
-                            <div className="flex gap-2 w-full md:w-auto">
+                        <form onSubmit={handleSaveEmployee} className="space-y-4 bg-gray-50 p-4 rounded-lg border border-gray-100">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <Label>Employee Name</Label>
+                                    <Input value={empFormName} onChange={e => setEmpFormName(e.target.value)} placeholder="e.g. Jane Doe" required />
+                                </div>
+                                <div>
+                                    <Label>Default Salary (₱)</Label>
+                                    <Input type="number" step="0.01" value={empFormSalary} onChange={e => setEmpFormSalary(e.target.value)} placeholder="e.g. 5000" />
+                                </div>
+                            </div><br></br>
+                            <div className="flex justify-end gap-2">
                                 {editingEmpId && (
-                                    <Button type="button" variant="ghost" onClick={() => { setEditingEmpId(null); setEmpFormName(''); setEmpFormSalary(''); }} className="w-full">Cancel</Button>
+                                    <Button type="button" variant="ghost" onClick={() => { setEditingEmpId(null); setEmpFormName(''); setEmpFormSalary(''); }}>Cancel</Button>
                                 )}
-                                <Button type="submit" disabled={manageEmployee.isPending} className="bg-blue-600 text-white hover:bg-blue-700 w-full">
+
+                                <Button 
+                                    type="submit" 
+                                    disabled={manageEmployee.isPending} 
+                                    className="btn-add-employee"
+                                >
                                     {editingEmpId ? 'Update' : 'Add Employee'}
                                 </Button>
                             </div>
