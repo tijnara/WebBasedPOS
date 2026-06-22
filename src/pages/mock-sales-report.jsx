@@ -40,15 +40,22 @@ function createSeededRandom(seed) {
 
 export default function MockSalesReportPage() {
     const [transactions, setTransactions] = useState([]);
+    const [seed, setSeed] = useState(null); // New state for the seed
+    const [isHovered, setIsHovered] = useState(false);
     
     const { monday: currentMonday } = useMemo(() => getWeekBounds(), []);
     
+    // Set initial seed
+    useEffect(() => {
+        if (seed === null) {
+            setSeed(currentMonday.getTime());
+        }
+    }, [currentMonday, seed]);
+
     const { monday: prevMonday, sunday: prevSunday } = useMemo(() => {
         const lastWeek = subWeeks(new Date(), 1);
         return getWeekBounds(lastWeek);
     }, []);
-
-    const weeklySeed = currentMonday.getTime();
 
     const { data: prevSalesData, isLoading: isLoadingPrevSales } = useSales({
         startDate: prevMonday,
@@ -59,7 +66,7 @@ export default function MockSalesReportPage() {
     const { data: productsData, isLoading: isLoadingProducts } = useProducts({ fetchAll: true });
 
     useEffect(() => {
-        if (isLoadingPrevSales || isLoadingProducts) return;
+        if (seed === null || isLoadingPrevSales || isLoadingProducts) return;
 
         const realSales = prevSalesData?.sales || [];
         const allProducts = productsData?.products || [];
@@ -79,7 +86,7 @@ export default function MockSalesReportPage() {
         let remaining = TARGET_TOTAL;
         const generated = [];
         
-        let random = createSeededRandom(weeklySeed);
+        let random = createSeededRandom(seed); // Use the state seed
 
         const itemForLingayen = allProducts.find(p => p.id === 2);
         const itemForLabrador = allProducts.find(p => p.id === 3);
@@ -135,9 +142,26 @@ export default function MockSalesReportPage() {
         generated.sort((a, b) => a.date - b.date);
         setTransactions(generated);
 
-    }, [prevSalesData, productsData, isLoadingPrevSales, isLoadingProducts, currentMonday, weeklySeed]); 
+    }, [prevSalesData, productsData, isLoadingPrevSales, isLoadingProducts, currentMonday, seed]); // Depend on seed
 
     const actualTotal = transactions.reduce((sum, tx) => sum + tx.total, 0);
+
+    // Handler to set a new random seed
+    const handleReshuffle = () => {
+        setSeed(Date.now());
+    };
+
+    const buttonStyle = {
+        backgroundColor: isHovered ? '#7F00FF' : '#8DB600',
+        padding: '0.5rem 0.75rem',
+        fontSize: '0.875rem',
+        lineHeight: '1.25rem',
+        fontWeight: '500',
+        color: 'white',
+        borderRadius: '0.375rem',
+        outline: 'none',
+        transition: 'background-color 0.2s ease-in-out',
+    };
 
     return (
         <div className="min-h-screen bg-gray-50 pb-20 md:pb-0 pt-16 md:pt-0 md:pl-64">
@@ -152,8 +176,18 @@ export default function MockSalesReportPage() {
                         <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Mock Weekly Sales Report</h1>
                         <p className="text-sm text-gray-500">Using actual items and customers from the <span className="font-semibold">previous week</span> to generate a total close to ₱3,845.</p>
                     </div>
-                    <div className="bg-green-100 text-green-800 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg font-bold text-lg border border-green-200">
-                        Total: ₱{actualTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    <div className="flex items-center gap-2 sm:gap-4">
+                        <div className="bg-green-100 text-green-800 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg font-bold text-lg border border-green-200">
+                            Total: ₱{actualTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </div>
+                        <button 
+                            onClick={handleReshuffle}
+                            style={buttonStyle}
+                            onMouseEnter={() => setIsHovered(true)}
+                            onMouseLeave={() => setIsHovered(false)}
+                        >
+                            Re-shuffle
+                        </button>
                     </div>
                 </div>
 
@@ -172,7 +206,7 @@ export default function MockSalesReportPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50 text-sm">
-                                {isLoadingPrevSales || isLoadingProducts ? (
+                                {isLoadingPrevSales || isLoadingProducts || seed === null ? ( // Updated loading state check
                                     <tr>
                                         <td colSpan="7" className="p-8 text-center text-gray-500">
                                             Loading data...
