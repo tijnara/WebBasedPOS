@@ -1,11 +1,15 @@
 // src/components/pages/SalaryMonitoringPage.jsx
 import React, { useState, useMemo } from 'react';
-import { Card, CardHeader, CardContent, Button, Input, Label, Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '../ui';
+import { 
+    Card, CardHeader, CardContent, Button, Input, Label, Select, 
+    Table, TableHeader, TableRow, TableHead, TableBody, TableCell,
+    Dialog, DialogContent, DialogHeader, DialogTitle
+} from '../ui';
 import { useSalaryRecords, useCreateSalary } from '../../hooks/useSalary';
-import { useEmployees } from '../../hooks/useEmployees'; // Import the new hook
+import { useEmployees, useManageEmployee } from '../../hooks/useEmployees';
 import currency from 'currency.js';
 import { format, endOfMonth, subMonths, addMonths } from 'date-fns';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Users, Edit2, Trash2 } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 
 // --- Date Math Helpers ---
@@ -79,14 +83,22 @@ export default function SalaryMonitoringPage() {
     
     const [period, setPeriod] = useState(getInitialPeriod());
 
-    const { data: salaryRecords, isLoading } = useSalaryRecords(period.start, period.end);
-    const { data: employees } = useEmployees(); // Fetch official employees list
+    const { data: salaryRecords, isLoading: isSalaryLoading } = useSalaryRecords(period.start, period.end);
+    const { data: employees, isLoading: isEmpLoading } = useEmployees();
     const createSalary = useCreateSalary();
+    const manageEmployee = useManageEmployee();
 
+    // Salary Form State
     const [employeeName, setEmployeeName] = useState('');
     const [amount, setAmount] = useState('');
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [description, setDescription] = useState('Salary Payout');
+
+    // Employee Modal State
+    const [isManageModalOpen, setIsManageModalOpen] = useState(false);
+    const [editingEmpId, setEditingEmpId] = useState(null);
+    const [empFormName, setEmpFormName] = useState('');
+    const [empFormSalary, setEmpFormSalary] = useState('');
 
     const periodTotal = useMemo(() => {
         return salaryRecords?.reduce((sum, record) => sum + Number(record.amount), 0) || 0;
@@ -96,11 +108,11 @@ export default function SalaryMonitoringPage() {
         return <div className="p-10 text-center text-red-500 font-bold">Access Denied. Admins only.</div>;
     }
 
-    const handleEmployeeChange = (e) => {
+    // --- SALARY FORM LOGIC ---
+    const handleEmployeeSelect = (e) => {
         const val = e.target.value;
         setEmployeeName(val);
         
-        // Auto-fill amount if the employee is known
         const match = employees?.find(emp => emp.name === val);
         if (match && match.default_salary > 0) {
             setAmount(match.default_salary);
@@ -109,7 +121,7 @@ export default function SalaryMonitoringPage() {
 
     const handleAddSalary = async (e) => {
         e.preventDefault();
-        if (!employeeName.trim() || !amount || !date) return;
+        if (!employeeName || !amount || !date) return;
 
         try {
             await createSalary.mutateAsync({ employeeName, amount, description, date });
@@ -122,13 +134,56 @@ export default function SalaryMonitoringPage() {
         }
     };
 
+    // --- EMPLOYEE MANAGEMENT LOGIC ---
+    const handleSaveEmployee = async (e) => {
+        e.preventDefault();
+        if (!empFormName.trim()) return;
+
+        try {
+            if (editingEmpId) {
+                await manageEmployee.mutateAsync({ action: 'EDIT', employee: { id: editingEmpId, name: empFormName, default_salary: empFormSalary } });
+                addToast({ title: 'Updated', description: 'Employee updated.', variant: 'success' });
+            } else {
+                await manageEmployee.mutateAsync({ action: 'ADD', employee: { name: empFormName, default_salary: empFormSalary } });
+                addToast({ title: 'Added', description: 'New employee added.', variant: 'success' });
+            }
+            setEditingEmpId(null);
+            setEmpFormName('');
+            setEmpFormSalary('');
+        } catch (error) {
+            addToast({ title: 'Error', description: error.message, variant: 'destructive' });
+        }
+    };
+
+    const handleEditClick = (emp) => {
+        setEditingEmpId(emp.id);
+        setEmpFormName(emp.name);
+        setEmpFormSalary(emp.default_salary);
+    };
+
+    const handleDeleteEmployee = async (id) => {
+        if (!window.confirm("Delete this employee profile? Past salaries will still show in history.")) return;
+        try {
+            await manageEmployee.mutateAsync({ action: 'DELETE', employee: { id } });
+            addToast({ title: 'Deleted', description: 'Employee removed.', variant: 'success' });
+        } catch (error) {
+            addToast({ title: 'Error', description: error.message, variant: 'destructive' });
+        }
+    };
+
     return (
         <div className="p-6 space-y-6 responsive-page max-w-5xl mx-auto">
-            <div>
-                <h1 className="text-2xl font-bold">Salary Monitoring</h1>
-                <p className="text-gray-500 text-sm">Manage staff salaries. Records here automatically sync with your general Expenses.</p>
+            <div className="flex justify-between items-center">
+                <div>
+                    <h1 className="text-2xl font-bold">Salary Monitoring</h1>
+                    <p className="text-gray-500 text-sm">Manage staff salaries and records.</p>
+                </div>
+                <Button onClick={() => setIsManageModalOpen(true)} className="flex items-center gap-2 bg-slate-800 text-white hover:bg-slate-700">
+                    <Users className="w-4 h-4" /> Manage Employees
+                </Button>
             </div>
-            
+
+            {/* RECORD SALARY FORM */}
             <Card>
                 <CardHeader className="bg-blue-50 border-b border-blue-100">
                     <h3 className="font-bold text-blue-800">Record Salary Payment</h3>
@@ -136,22 +191,14 @@ export default function SalaryMonitoringPage() {
                 <CardContent className="pt-6">
                     <form onSubmit={handleAddSalary} className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
                         <div className="md:col-span-1">
-                            <Label>Employee Name</Label>
-                            <Input 
-                                type="text" 
-                                placeholder="e.g. John Doe" 
-                                value={employeeName} 
-                                onChange={handleEmployeeChange} 
-                                required 
-                                className="h-11" 
-                                list="employee-list"
-                            />
-                            {/* Datalist uses the dedicated table now */}
-                            <datalist id="employee-list">
+                            <Label>Employee</Label>
+                            {/* Changed to a Select dropdown */}
+                            <Select value={employeeName} onChange={handleEmployeeSelect} required className="h-11">
+                                <option value="" disabled>Select Staff...</option>
                                 {employees?.map(emp => (
-                                    <option key={emp.id} value={emp.name} />
+                                    <option key={emp.id} value={emp.name}>{emp.name}</option>
                                 ))}
-                            </datalist>
+                            </Select>
                         </div>
                         <div className="md:col-span-1">
                             <Label>Amount (₱)</Label>
@@ -201,7 +248,7 @@ export default function SalaryMonitoringPage() {
                 </TableRow>
             </TableHeader>
             <TableBody>
-                {isLoading ? (
+                {isSalaryLoading ? (
                     <TableRow><TableCell colSpan="4" className="text-center py-6 text-gray-500">Loading...</TableCell></TableRow>
                 ) : salaryRecords?.length === 0 ? (
                     <TableRow><TableCell colSpan="4" className="text-center py-8 text-gray-500 font-medium">No salary records for this period.</TableCell></TableRow>
@@ -223,7 +270,7 @@ export default function SalaryMonitoringPage() {
 
     {/* MOBILE LIST VIEW */}
     <div className="block md:hidden p-4">
-        {isLoading ? (
+        {isSalaryLoading ? (
             <p className="text-center py-6 text-gray-500">Loading...</p>
         ) : salaryRecords?.length === 0 ? (
             <p className="text-center py-8 text-gray-500 font-medium">No salary records for this period.</p>
@@ -265,6 +312,71 @@ export default function SalaryMonitoringPage() {
     </div>
 </CardContent>
             </Card>
+
+            {/* EMPLOYEE MANAGEMENT MODAL */}
+            <Dialog open={isManageModalOpen} onOpenChange={setIsManageModalOpen}>
+                <DialogContent className="max-w-2xl w-full">
+                    <DialogHeader>
+                        <DialogTitle>Manage Employees</DialogTitle>
+                    </DialogHeader>
+                    <div className="p-4 space-y-6">
+                        {/* Add / Edit Form */}
+                        <form onSubmit={handleSaveEmployee} className="flex gap-2 items-end bg-gray-50 p-4 rounded-lg border border-gray-100">
+                            <div className="flex-1">
+                                <Label>Employee Name</Label>
+                                <Input value={empFormName} onChange={e => setEmpFormName(e.target.value)} placeholder="e.g. Jane Doe" required />
+                            </div>
+                            <div className="flex-1">
+                                <Label>Default Salary (₱)</Label>
+                                <Input type="number" step="0.01" value={empFormSalary} onChange={e => setEmpFormSalary(e.target.value)} placeholder="e.g. 5000" />
+                            </div>
+                            <div className="flex gap-2">
+                                {editingEmpId && (
+                                    <Button type="button" variant="ghost" onClick={() => { setEditingEmpId(null); setEmpFormName(''); setEmpFormSalary(''); }}>Cancel</Button>
+                                )}
+                                <Button type="submit" disabled={manageEmployee.isPending} className="bg-blue-600 text-white hover:bg-blue-700">
+                                    {editingEmpId ? 'Update' : 'Add Employee'}
+                                </Button>
+                            </div>
+                        </form>
+
+                        {/* Employee List */}
+                        <div className="max-h-80 overflow-y-auto border rounded-lg">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Name</TableHead>
+                                        <TableHead>Default Salary</TableHead>
+                                        <TableHead className="text-right">Actions</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {isEmpLoading ? (
+                                        <TableRow><TableCell colSpan="3" className="text-center">Loading...</TableCell></TableRow>
+                                    ) : employees?.length === 0 ? (
+                                        <TableRow><TableCell colSpan="3" className="text-center text-gray-500">No employees registered.</TableCell></TableRow>
+                                    ) : (
+                                        employees?.map(emp => (
+                                            <TableRow key={emp.id}>
+                                                <TableCell className="font-medium">{emp.name}</TableCell>
+                                                <TableCell>{currency(emp.default_salary, { symbol: '₱' }).format()}</TableCell>
+                                                <TableCell className="text-right space-x-2">
+                                                    <button onClick={() => handleEditClick(emp)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md">
+                                                        <Edit2 className="w-4 h-4" />
+                                                    </button>
+                                                    <button onClick={() => handleDeleteEmployee(emp.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-md">
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
