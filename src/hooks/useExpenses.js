@@ -12,9 +12,9 @@ const getEndOfDay = (dateStr) => {
     return date.toISOString();
 };
 
-export function useExpenses({ startDate, endDate, page = 1, pageSize = 20, searchTerm = '', category = 'All' } = {}) {
+export function useExpenses({ startDate, endDate, page = 1, pageSize = 20, searchTerm = '', category = 'All', employeeName = 'all' } = {}) {
     return useQuery({
-        queryKey: [...EXPENSES_KEY, startDate, endDate, page, pageSize, searchTerm, category],
+        queryKey: [...EXPENSES_KEY, startDate, endDate, page, pageSize, searchTerm, category, employeeName],
         queryFn: async () => {
             const from = (page - 1) * pageSize;
             const to = from + pageSize - 1;
@@ -25,6 +25,10 @@ export function useExpenses({ startDate, endDate, page = 1, pageSize = 20, searc
                 
                 if (category && category !== 'All') {
                     query = query.eq('category', category);
+                }
+
+                if (employeeName && employeeName !== 'all') {
+                    query = query.eq('employee_name', employeeName);
                 }
 
                 if (searchTerm) {
@@ -81,6 +85,7 @@ export function useCreateExpense() {
                 description: expenseData.description,
                 expense_date: new Date(expenseData.expense_date).toISOString(),
                 created_by: user?.id || null,
+                employee_name: expenseData.employee_name || null
             };
             const { error } = await supabase.from('expenses').insert([payload]);
             if (error) throw error;
@@ -217,6 +222,7 @@ export function useUpdateExpense() {
                     category: expenseData.category,
                     description: expenseData.description,
                     expense_date: new Date(expenseData.expense_date).toISOString(),
+                    employee_name: expenseData.employee_name || null
                 })
                 .eq('id', id);
             if (error) throw error;

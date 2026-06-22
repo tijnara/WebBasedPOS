@@ -6,6 +6,7 @@
     import { Plus, Utensils, Car, ShoppingBag, Zap, Receipt, Edit, Trash2, X, Calendar, ChevronLeft, ChevronRight, Search, RotateCcw, XCircle, AlertTriangle, Star, Layers, Clock } from 'lucide-react';
     import { useStore } from '../../store/useStore';
     import { useExpenses, useCreateExpense, useUpdateExpense, useDeleteExpense, useExpenseSummary, useExpenseCategories, useCreateExpenseCategory, useUpdateExpenseCategory } from '../../hooks/useExpenses';
+    import { useEmployees } from '../../hooks/useEmployees';
     import { useSalesSummary } from '../../hooks/useSalesSummary';
     import { useDebounce } from '../../hooks/useDebounce';
     import { useQueryClient } from '@tanstack/react-query';
@@ -32,18 +33,22 @@
         const initialDateTo = format(endOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
         const initialSearchTerm = '';
         const initialFilterCategory = 'All';
+        const initialFilterEmployee = 'all';
 
         // Filter States
         const [dateFrom, setDateFrom] = useState(initialDateFrom);
         const [dateTo, setDateTo] = useState(initialDateTo);
         const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
         const [filterCategory, setFilterCategory] = useState(initialFilterCategory);
+        const [filterEmployee, setFilterEmployee] = useState(initialFilterEmployee);
         const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM')); // NEW STATE
         const [groupBy, setGroupBy] = useState('date'); // 'date', 'category'
         const debouncedSearch = useDebounce(searchTerm, 400);
 
         const [page, setPage] = useState(1);
         const pageSize = 1000;
+
+        const { data: employees } = useEmployees();
 
         const { 
             data: { expenses = [], totalCount = 0, totalSum = 0 } = {}, 
@@ -55,7 +60,8 @@
             page: 1,
             pageSize,
             searchTerm: debouncedSearch,
-            category: filterCategory
+            category: filterCategory,
+            employeeName: filterEmployee
         });
         const { data: summary } = useExpenseSummary(dateFrom, dateTo, selectedMonth);
         const { data: categories = [] } = useExpenseCategories();
@@ -437,6 +443,7 @@
             setDateTo(initialDateTo);
             setSearchTerm(initialSearchTerm);
             setFilterCategory(initialFilterCategory);
+            setFilterEmployee(initialFilterEmployee);
             setPage(1); // Reset page to 1 when filters are reset
         };
 
@@ -552,15 +559,18 @@
                                 {/* ONLY SHOW EMPLOYEE NAME INPUT IF CATEGORY IS SALARY */}
                                 {category === 'Salary' && (
                                     <div className="flex flex-col sm:flex-row gap-3 mb-3">
-                                        <input 
-                                            type="text" 
+                                        <select 
                                             value={employeeName} 
                                             onChange={(e) => setEmployeeName(e.target.value)} 
-                                            placeholder="Enter Employee Name (e.g. John Doe)" 
                                             required={category === 'Salary'} 
                                             className="input w-full border-blue-300 bg-blue-50" 
                                             disabled={isDemo} 
-                                        />
+                                        >
+                                            <option value="" disabled>Select Employee...</option>
+                                            {employees?.map(emp => (
+                                                <option key={emp.id} value={emp.name}>{emp.name}</option>
+                                            ))}
+                                        </select>
                                     </div>
                                 )}
 
@@ -610,6 +620,21 @@
                                             {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                                         </select>
                                     </div>
+                                    {filterCategory === 'Salary' && (
+                                        <div className="flex flex-col">
+                                            <span className="text-[10px] uppercase font-bold text-text-muted ml-2 mb-1">Employee</span>
+                                            <select
+                                                value={filterEmployee}
+                                                onChange={(e) => setFilterEmployee(e.target.value)}
+                                                className="input text-sm h-10 w-full cursor-pointer"
+                                            >
+                                                <option value="all">All Employees</option>
+                                                {employees?.map(emp => (
+                                                    <option key={emp.id} value={emp.name}>{emp.name}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    )}
                                     <div className="flex flex-col">
                                         <span className="text-[10px] uppercase font-bold text-text-muted ml-2 mb-1">From</span>
                                         <input

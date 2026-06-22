@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { 
     Card, CardHeader, CardContent, Button, Input, Label, Select, 
     Table, TableHeader, TableRow, TableHead, TableBody, TableCell,
-    Dialog, DialogContent, DialogHeader, DialogTitle
+    Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
 } from '../ui';
 import { useSalaryRecords, useCreateSalary } from '../../hooks/useSalary';
 import { useEmployees, useManageEmployee } from '../../hooks/useEmployees';
@@ -82,6 +82,7 @@ export default function SalaryMonitoringPage() {
     const isAdmin = user?.role === 'Admin' || user?.role === 'admin' || user?.isadmin;
     
     const [period, setPeriod] = useState(getInitialPeriod());
+    const [filterEmployee, setFilterEmployee] = useState('all');
 
     const { data: salaryRecords, isLoading: isSalaryLoading } = useSalaryRecords(period.start, period.end);
     const { data: employees, isLoading: isEmpLoading } = useEmployees();
@@ -100,9 +101,16 @@ export default function SalaryMonitoringPage() {
     const [empFormName, setEmpFormName] = useState('');
     const [empFormSalary, setEmpFormSalary] = useState('');
 
+    const filteredRecords = useMemo(() => {
+        if (filterEmployee === 'all') {
+            return salaryRecords;
+        }
+        return salaryRecords?.filter(r => r.employee_name === filterEmployee);
+    }, [salaryRecords, filterEmployee]);
+
     const periodTotal = useMemo(() => {
-        return salaryRecords?.reduce((sum, record) => sum + Number(record.amount), 0) || 0;
-    }, [salaryRecords]);
+        return filteredRecords?.reduce((sum, record) => sum + Number(record.amount), 0) || 0;
+    }, [filteredRecords]);
 
     if (!isAdmin) {
         return <div className="p-10 text-center text-red-500 font-bold">Access Denied. Admins only.</div>;
@@ -223,16 +231,26 @@ export default function SalaryMonitoringPage() {
 
             {/* BI-MONTHLY HISTORY */}
             <Card>
-                <CardHeader className="flex flex-row justify-between items-end border-b border-gray-100 pb-4">
-                    <div>
+                <CardHeader className="flex flex-row justify-between items-center border-b border-gray-100 pb-4">
+                    <div className="flex-1">
                         <h3 className="font-bold">Salary History</h3>
                         <p className="text-xs text-gray-500 mt-1 uppercase tracking-wider font-semibold">
                             Period: {format(new Date(period.start), 'MMM d, yyyy')} — {format(new Date(period.end), 'MMM d, yyyy')}
                         </p>
                     </div>
-                    <div className="text-right">
-                        <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Period Total</p>
-                        <p className="text-xl font-bold text-red-600">{currency(periodTotal, { symbol: '₱' }).format()}</p>
+                    <div className="flex items-center gap-4">
+                        <div className="w-48">
+                            <Select value={filterEmployee} onChange={e => setFilterEmployee(e.target.value)}>
+                                <option value="all">All Employees</option>
+                                {employees?.map(emp => (
+                                    <option key={emp.id} value={emp.name}>{emp.name}</option>
+                                ))}
+                            </Select>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Period Total</p>
+                            <p className="text-xl font-bold text-red-600">{currency(periodTotal, { symbol: '₱' }).format()}</p>
+                        </div>
                     </div>
                 </CardHeader>
                 <CardContent className="p-0">
@@ -250,10 +268,10 @@ export default function SalaryMonitoringPage() {
             <TableBody>
                 {isSalaryLoading ? (
                     <TableRow><TableCell colSpan="4" className="text-center py-6 text-gray-500">Loading...</TableCell></TableRow>
-                ) : salaryRecords?.length === 0 ? (
+                ) : filteredRecords?.length === 0 ? (
                     <TableRow><TableCell colSpan="4" className="text-center py-8 text-gray-500 font-medium">No salary records for this period.</TableCell></TableRow>
                 ) : (
-                    salaryRecords?.map(record => (
+                    filteredRecords?.map(record => (
                         <TableRow key={record.id}>
                             <TableCell>{format(new Date(record.expense_date), 'MMM d, yyyy')}</TableCell>
                             <TableCell className="font-bold text-gray-800">{record.employee_name || 'N/A'}</TableCell>
@@ -272,11 +290,11 @@ export default function SalaryMonitoringPage() {
     <div className="block md:hidden p-4">
         {isSalaryLoading ? (
             <p className="text-center py-6 text-gray-500">Loading...</p>
-        ) : salaryRecords?.length === 0 ? (
+        ) : filteredRecords?.length === 0 ? (
             <p className="text-center py-8 text-gray-500 font-medium">No salary records for this period.</p>
         ) : (
             <div className="space-y-4">
-                {salaryRecords?.map(record => (
+                {filteredRecords?.map(record => (
                     <div key={record.id} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col gap-2">
                         <div className="flex justify-between items-start">
                             <span className="font-bold text-gray-800">{record.employee_name || 'N/A'}</span>
@@ -375,6 +393,11 @@ export default function SalaryMonitoringPage() {
                             </Table>
                         </div>
                     </div>
+                    <DialogFooter className="p-4 border-t">
+                        <Button variant="outline" onClick={() => setIsManageModalOpen(false)}>
+                            Close
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
         </div>
