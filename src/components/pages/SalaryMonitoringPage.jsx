@@ -150,12 +150,22 @@ export default function SalaryMonitoringPage() {
         e.preventDefault();
         if (!employeeName || !amount || !payoutDate) return;
     
+        // 1. Get the current time
+        const now = new Date();
+        
+        // 2. Parse the selected payoutDate (YYYY-MM-DD)
+        const [year, month, day] = payoutDate.split('-').map(Number);
+        
+        // 3. Combine the selected date with the current time
+        const combinedDateTime = new Date(year, month - 1, day, now.getHours(), now.getMinutes(), now.getSeconds());
+
         try {
             await createSalary.mutateAsync({ 
                 employeeName, 
                 amount, 
                 description, 
-                date: new Date(payoutDate).toISOString() 
+                // 4. Send the combined date and time
+                date: combinedDateTime.toISOString() 
             });
             addToast({ title: 'Success', description: 'Salary recorded successfully', variant: 'success' });
             setAmount('');
