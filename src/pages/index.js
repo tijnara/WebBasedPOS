@@ -9,6 +9,7 @@ import Meta from '../components/landing/Meta';
 import Header from '../components/landing/Header';
 import Hero from '../components/landing/Hero';
 import WhyChooseUs from '../components/landing/WhyChooseUs';
+import AdBanner from '../components/landing/AdBanner'; // Import the new component
 import Services from '../components/landing/Services';
 import { Process as ProcessSection } from '../components/landing/ProcessSection';
 import Gallery from '../components/landing/Gallery';
@@ -74,6 +75,7 @@ const SeasideWaterLanding = () => {
                         <div className="container mx-auto flex flex-col flex-grow relative backdrop-blur-sm shadow-lg bg-white/75">
                             <Hero />
                             <WhyChooseUs />
+                            <AdBanner />
                             <Services />
                             <ProcessSection />
                             <Gallery />
