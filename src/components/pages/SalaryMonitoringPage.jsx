@@ -293,7 +293,7 @@ export default function SalaryMonitoringPage() {
                     </div>
                     
                     {/* Custom Date Filter */}
-                    <div className="flex flex-col md:flex-row items-center gap-2 p-3 bg-gray-50 rounded-lg border">
+                    <div className="flex flex-col md:flex-row items-center gap-2 p-3 bg-gray-50 rounded-lg">
                         <Calendar className="w-5 h-5 text-gray-500" />
                         <Label className="font-semibold text-sm">Custom Date Range:</Label>
                         <Input 
@@ -321,7 +321,7 @@ export default function SalaryMonitoringPage() {
                                 {isSalaryLoading ? <TableRow><TableCell colSpan="4" className="text-center py-6">Loading...</TableCell></TableRow> :
                                 filteredRecords?.length === 0 ? <TableRow><TableCell colSpan="4" className="text-center py-8">No records for this period.</TableCell></TableRow> :
                                 filteredRecords?.map(record => (
-                                    <TableRow key={record.id}>
+                                    <TableRow key={record.id} className="border-b">
                                         <TableCell>{format(new Date(record.expense_date), 'EEE, MMM d, yyyy h:mm a')}</TableCell>
                                         <TableCell className="font-bold">{record.employee_name || 'N/A'}</TableCell>
                                         <TableCell>{record.description}</TableCell>
@@ -335,7 +335,7 @@ export default function SalaryMonitoringPage() {
                         {isSalaryLoading ? <p className="text-center py-6">Loading...</p> :
                         filteredRecords?.length === 0 ? <p className="text-center py-8">No records for this period.</p> :
                         filteredRecords?.map(record => (
-                            <div key={record.id} className="bg-white p-4 rounded-xl border shadow-sm">
+                            <div key={record.id} className="bg-white p-4 rounded-xl shadow-sm border-b">
                                 <div className="flex justify-between items-start"><span className="font-bold">{record.employee_name || 'N/A'}</span><span className="font-bold text-red-600">{currency(record.amount, { symbol: '₱' }).format()}</span></div>
                                 <div className="flex justify-between items-center text-sm text-gray-500 mt-2"><span>{record.description}</span><span>{format(new Date(record.expense_date), 'EEE, MMM d, h:mm a')}</span></div>
                             </div>
