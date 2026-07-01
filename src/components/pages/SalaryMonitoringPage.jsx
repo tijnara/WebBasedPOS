@@ -1,5 +1,5 @@
 // src/components/pages/SalaryMonitoringPage.jsx
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
     Card, CardHeader, CardContent, Button, Input, Label, Select, 
     Table, TableHeader, TableRow, TableHead, TableBody, TableCell,
@@ -73,6 +73,10 @@ const getNextPeriod = (currentStartStr) => {
 };
 
 export default function SalaryMonitoringPage() {
+    useEffect(() => {
+        document.title = 'Salary Monitoring | Seaside WRS';
+    }, []);
+
     const { user, addToast } = useStore();
     const isAdmin = user?.role === 'Admin' || user?.role === 'admin' || user?.isadmin;
     
@@ -122,8 +126,8 @@ export default function SalaryMonitoringPage() {
     const handleApplyCustomDate = () => {
         if (customStartDate && customEndDate) {
             setPeriod({
-                start: format(startOfDay(new Date(customStartDate)), "yyyy-MM-dd'T'HH:mm:ss"),
-                end: format(endOfDay(new Date(customEndDate)), "yyyy-MM-dd'T'HH:mm:ss")
+                start: customStartDate,
+                end: customEndDate
             });
             setIsCustomRangeActive(true);
         }
