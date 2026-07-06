@@ -33,11 +33,14 @@ export function useSalesSummary({ startDate, endDate, productName, productId } =
 
                 let totalRevenue = 0;
                 let totalProfit = 0;
+                let totalGallons = 0;
                 let productQuantities = {};
                 let firstTransactionDate = null;
                 let firstTransactionAmount = 0;
                 let monthlyRevenue = {};
                 let weeklyRevenue = {};
+                let weeklyGallons = {};
+                let monthlyGallons = {};
 
                 filtered.forEach(sale => {
                     const sDate = new Date(sale.saleTimestamp);
@@ -50,6 +53,7 @@ export function useSalesSummary({ startDate, endDate, productName, productId } =
                         // Monthly Key
                         const monthKey = `${sDate.getFullYear()}-${String(sDate.getMonth() + 1).padStart(2, '0')}`;
                         if (!monthlyRevenue[monthKey]) monthlyRevenue[monthKey] = 0;
+                        if (!monthlyGallons[monthKey]) monthlyGallons[monthKey] = 0;
 
                         // Weekly Key (Start of Week - Monday)
                         const d = new Date(sale.saleTimestamp);
@@ -59,8 +63,10 @@ export function useSalesSummary({ startDate, endDate, productName, productId } =
                         monday.setDate(diff);
                         const weekKey = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
                         if (!weeklyRevenue[weekKey]) weeklyRevenue[weekKey] = 0;
+                        if (!weeklyGallons[weekKey]) weeklyGallons[weekKey] = 0;
 
                         let saleRevenueForPeriod = 0;
+                        let saleGallonsForPeriod = 0;
 
                         sale.items.forEach(item => {
                             const name = (item.productName || '').trim();
@@ -75,6 +81,12 @@ export function useSalesSummary({ startDate, endDate, productName, productId } =
                             saleRevenueForPeriod += revenue;
                             totalProfit += (revenue - cost);
 
+                            const targetRefillIds = ["3", "2", "30"];
+                            if (targetRefillIds.includes(String(item.product_id))) {
+                                totalGallons += qty;
+                                saleGallonsForPeriod += qty;
+                            }
+
                             const pid = item.product_id || name;
                             if (pid) {
                                 if (!productQuantities[pid]) {
@@ -86,10 +98,12 @@ export function useSalesSummary({ startDate, endDate, productName, productId } =
 
                         monthlyRevenue[monthKey] += saleRevenueForPeriod;
                         weeklyRevenue[weekKey] += saleRevenueForPeriod;
+                        weeklyGallons[weekKey] += saleGallonsForPeriod;
+                        monthlyGallons[monthKey] += saleGallonsForPeriod;
                     }
                 });
 
-                return { totalRevenue, totalProfit, productQuantities, firstTransactionDate, firstTransactionAmount, monthlyRevenue, weeklyRevenue };
+                return { totalRevenue, totalProfit, totalGallons, productQuantities, firstTransactionDate, firstTransactionAmount, monthlyRevenue, weeklyRevenue, weeklyGallons, monthlyGallons };
             }
 
             // --- REAL DATABASE LOGIC ---
@@ -140,11 +154,16 @@ export function useSalesSummary({ startDate, endDate, productName, productId } =
 
             let totalRevenue = 0;
             let totalProfit = 0;
+            let totalGallons = 0;
             let productQuantities = {};
             let firstTransactionDate = null;
             let firstTransactionAmount = 0;
             let monthlyRevenue = {};
             let weeklyRevenue = {};
+            let weeklyGallons = {};
+            let monthlyGallons = {};
+
+            const targetRefillIds = ["3", "2", "30"];
 
             allSales.forEach(sale => {
                 const isPaid = sale.status === 'Completed'; // Only count Completed sales as revenue
@@ -159,6 +178,7 @@ export function useSalesSummary({ startDate, endDate, productName, productId } =
                 // Monthly Key
                 const monthKey = `${sDate.getFullYear()}-${String(sDate.getMonth() + 1).padStart(2, '0')}`;
                 if (!monthlyRevenue[monthKey]) monthlyRevenue[monthKey] = 0;
+                if (!monthlyGallons[monthKey]) monthlyGallons[monthKey] = 0;
             
                 // Weekly Key (Start of week - Monday)
                 const d = new Date(sale.saletimestamp);
@@ -168,8 +188,10 @@ export function useSalesSummary({ startDate, endDate, productName, productId } =
                 monday.setDate(diff);
                 const weekKey = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
                 if (!weeklyRevenue[weekKey]) weeklyRevenue[weekKey] = 0;
+                if (!weeklyGallons[weekKey]) weeklyGallons[weekKey] = 0;
             
                 let saleRevenueForPeriod = 0;
+                let saleGallonsForPeriod = 0;
             
                 if (sale.sale_items && Array.isArray(sale.sale_items)) {
                     sale.sale_items.forEach(item => {
@@ -179,6 +201,13 @@ export function useSalesSummary({ startDate, endDate, productName, productId } =
             
                         const pid = item.product_id;
                         const name = item.products?.name || 'Unknown Product';
+
+                        if (targetRefillIds.includes(String(pid))) {
+                            if (isPaid) {
+                                totalGallons += qty;
+                                saleGallonsForPeriod += qty;
+                            }
+                        }
             
                         if (productId) {
                             if (String(pid) !== String(productId)) return;
@@ -212,10 +241,12 @@ export function useSalesSummary({ startDate, endDate, productName, productId } =
                 if (isPaid) {
                     monthlyRevenue[monthKey] += saleRevenueForPeriod;
                     weeklyRevenue[weekKey] += saleRevenueForPeriod;
+                    weeklyGallons[weekKey] += saleGallonsForPeriod;
+                    monthlyGallons[monthKey] += saleGallonsForPeriod;
                 }
             });
 
-            return { totalRevenue, totalProfit, productQuantities, firstTransactionDate, firstTransactionAmount, monthlyRevenue, weeklyRevenue };
+            return { totalRevenue, totalProfit, totalGallons, productQuantities, firstTransactionDate, firstTransactionAmount, monthlyRevenue, weeklyRevenue, weeklyGallons, monthlyGallons };
         },
         staleTime: 1000 * 60 * 3,
     });

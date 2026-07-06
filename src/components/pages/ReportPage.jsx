@@ -18,6 +18,9 @@ import { DeleteIcon } from '../Icons';
 import { useExpenses } from '../../hooks/useExpenses';
 import { PackageIcon, Receipt } from 'lucide-react';
 import { useMissedCustomersThisWeek } from '../../hooks/useMissedCustomersThisWeek';
+import { useWeeklyGrowth } from '../../hooks/useWeeklyGrowth';
+import { useMonthlyGrowth } from '../../hooks/useMonthlyGrowth';
+import SummaryCard from '../ui/SummaryCard';
 
 
 import Pagination from '../Pagination';
@@ -547,6 +550,10 @@ const ReportPage = () => {
 
     const deleteSaleMutation = useDeleteSale();
 
+    const weeklyGrowthDate = useMemo(() => toDate ? new Date(toDate) : new Date(), [toDate]);
+    const { data: weeklyGrowthData, isLoading: isWeeklyGrowthLoading } = useWeeklyGrowth(weeklyGrowthDate);
+    const { data: monthlyGrowthData, isLoading: isMonthlyGrowthLoading } = useMonthlyGrowth(weeklyGrowthDate);
+
     useEffect(() => {
         const tab = searchParams.get('tab');
         if (tab === 'customers') {
@@ -620,20 +627,6 @@ const ReportPage = () => {
         endDate: interval.end,
         productId: selectedProductId
     });
-
-    const totalGallonsSold = useMemo(() => {
-        if (!summaryData?.productQuantities) return 0;
-
-        // Target Product IDs based on database: 3 (Refill 30), 2 (Refill 35), 30 (Refill Walk-in 25)
-        const targetRefillIds = ["3", "2", "30"];
-
-        return Object.entries(summaryData.productQuantities).reduce((sum, [pid, p]) => {
-            if (targetRefillIds.includes(String(pid))) { // Convert pid to string for comparison
-                return sum + (p.quantity || 0);
-            }
-            return sum;
-        }, 0);
-    }, [summaryData?.productQuantities]);
 
     const {
         data: customersPageData,
@@ -743,6 +736,7 @@ const ReportPage = () => {
 
     const totalSalesCount = salesPageData?.totalCount || 0;
     const totalRevenue = summaryData?.totalRevenue || 0;
+    const totalGallonsSold = summaryData?.totalGallons || 0;
 
     const customersData = customersPageData?.customers || [];
     const totalCustomersCount = customersPageData?.totalCount || 0;
@@ -869,20 +863,47 @@ const ReportPage = () => {
             <h1 className="text-2xl font-bold dark:text-white">Reports</h1>
 
             {/* --- NEW SECTION: BUSINESS OVERVIEW --- */}
-            <div className="grid grid-cols-1 md:grid-cols-1 gap-4 mt-4">
-                
-                <div className="bg-emerald-100 text-emerald-900 dark:bg-emerald-600 dark:text-white p-6 rounded-2xl shadow-lg flex flex-col justify-between overflow-hidden relative">
-                    <div className="relative z-10">
-                        <h3 className="text-sm font-bold uppercase tracking-wider opacity-80">Total Real Sales</h3>
-                        <p className="text-xs mb-4 italic">(Net Profit since April 20, 2026)</p>
-                        <div className="text-4xl font-black">
-                            {currency(totalRealSales, { symbol: '₱' }).format()}
-                        </div>
-                    </div>
-                    <div className="absolute right-[-10px] bottom-[-10px] opacity-10 -rotate-12">
-                        <Receipt className="w-32 h-32"/>
-                    </div>
-                </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                <SummaryCard
+                    title="Monthly Sales"
+                    isLoading={isMonthlyGrowthLoading}
+                    value={`₱${(monthlyGrowthData?.thisMonthSales || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                    previousValue={`₱${(monthlyGrowthData?.lastMonthSales || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                    percentage={Math.abs(monthlyGrowthData?.salesGrowth)}
+                    isPositive={monthlyGrowthData?.salesGrowth >= 0}
+                    isPositiveColor={monthlyGrowthData?.thisMonthSales >= monthlyGrowthData?.lastMonthSales}
+                    comparisonText={`(${format(monthlyGrowthData?.thisMonthStart || new Date(), 'MMM d')} - ${format(monthlyGrowthData?.thisMonthEnd || new Date(), 'd')}) vs. (${format(monthlyGrowthData?.lastMonthStart || new Date(), 'MMM d')} - ${format(monthlyGrowthData?.lastMonthEnd || new Date(), 'd')})`}
+                />
+                <SummaryCard
+                    title="Monthly Gallons Sold"
+                    isLoading={isMonthlyGrowthLoading}
+                    value={`${(monthlyGrowthData?.thisMonthGallons || 0).toLocaleString()} gal`}
+                    previousValue={`${(monthlyGrowthData?.lastMonthGallons || 0).toLocaleString()} gal`}
+                    percentage={Math.abs(monthlyGrowthData?.gallonsGrowth)}
+                    isPositive={monthlyGrowthData?.gallonsGrowth >= 0}
+                    isPositiveColor={monthlyGrowthData?.thisMonthGallons >= monthlyGrowthData?.lastMonthGallons}
+                    comparisonText={`(${format(monthlyGrowthData?.thisMonthStart || new Date(), 'MMM d')} - ${format(monthlyGrowthData?.thisMonthEnd || new Date(), 'd')}) vs. (${format(monthlyGrowthData?.lastMonthStart || new Date(), 'MMM d')} - ${format(monthlyGrowthData?.lastMonthEnd || new Date(), 'd')})`}
+                />
+                <SummaryCard
+                    title="Weekly Sales"
+                    isLoading={isWeeklyGrowthLoading}
+                    value={`₱${(weeklyGrowthData?.thisWeekSales || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                    previousValue={`₱${(weeklyGrowthData?.lastWeekSales || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                    percentage={Math.abs(weeklyGrowthData?.salesGrowth)}
+                    isPositive={weeklyGrowthData?.salesGrowth >= 0}
+                    isPositiveColor={weeklyGrowthData?.thisWeekSales >= weeklyGrowthData?.lastWeekSales}
+                    comparisonText={`(${format(weeklyGrowthData?.thisWeekStart || new Date(), 'MMM d')} - ${format(weeklyGrowthData?.thisWeekEnd || new Date(), 'd')}) vs. (${format(weeklyGrowthData?.lastWeekStart || new Date(), 'MMM d')} - ${format(weeklyGrowthData?.lastWeekEnd || new Date(), 'd')})`}
+                />
+                <SummaryCard
+                    title="Weekly Gallons Sold"
+                    isLoading={isWeeklyGrowthLoading}
+                    value={`${(weeklyGrowthData?.thisWeekGallons || 0).toLocaleString()} gal`}
+                    previousValue={`${(weeklyGrowthData?.lastWeekGallons || 0).toLocaleString()} gal`}
+                    percentage={Math.abs(weeklyGrowthData?.gallonsGrowth)}
+                    isPositive={weeklyGrowthData?.gallonsGrowth >= 0}
+                    isPositiveColor={weeklyGrowthData?.thisWeekGallons >= weeklyGrowthData?.lastWeekGallons}
+                    comparisonText={`(${format(weeklyGrowthData?.thisWeekStart || new Date(), 'MMM d')} - ${format(weeklyGrowthData?.thisWeekEnd || new Date(), 'd')}) vs. (${format(weeklyGrowthData?.lastWeekStart || new Date(), 'MMM d')} - ${format(weeklyGrowthData?.lastWeekEnd || new Date(), 'd')})`}
+                />
             </div>
 
             <br>

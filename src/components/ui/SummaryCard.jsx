@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, cn } from '../ui';
 
-const SummaryCard = ({ title, value, percentage, isPositive, comparisonText, isLoading, className }) => (
+const SummaryCard = ({ title, value, previousValue, percentage, isPositive, isPositiveColor, comparisonText, isLoading, className }) => (
     <Card className={cn("h-full border-none shadow-sm flex flex-col justify-center bg-white dark:bg-slate-900 transition-colors", className)}>
         <CardContent className="p-6">
             <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-400 mb-2">{title}</h3>
@@ -12,12 +12,17 @@ const SummaryCard = ({ title, value, percentage, isPositive, comparisonText, isL
             )}
             <div className="flex items-center text-sm">
                 {percentage !== undefined && (
-                    <span className={`font-bold flex items-center ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
+                    <span className={`font-bold flex items-center ${isPositiveColor ? 'text-[#8DB600]' : 'text-red-500'}`}>
                         {isPositive ? '▲' : '▼'} {percentage}%
                     </span>
                 )}
                 <span className="text-slate-500 dark:text-slate-400 ml-1">{comparisonText}</span>
             </div>
+            {previousValue && !isLoading && (
+                <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Last Period: {previousValue}
+                </div>
+            )}
         </CardContent>
     </Card>
 );
