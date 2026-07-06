@@ -102,7 +102,7 @@
         
             if (groupBy === 'date') {
                 return sortedExpenses.reduce((acc, exp) => {
-                    const key = format(parseISO(exp.expense_date), 'MMMM d, yyyy');
+                    const key = format(parseISO(exp.expense_date), 'EEE, MMMM d, yyyy');
                     if (!acc[key]) {
                         acc[key] = [];
                     }
@@ -705,12 +705,12 @@
                                                                 </span>
                                                                 
                                                                 <span className="text-xs font-medium text-text-muted">
-                                                                    {exp.category} &bull; {format(parseISO(exp.expense_date), 'MMM d, yyyy h:mm a')}
+                                                                    {exp.category} &bull; {format(parseISO(exp.expense_date), 'EEE, MMM d, yyyy h:mm a')}
                                                                     
                                                                     {exp.staffName && (
                                                                         <div className="inline-flex items-center space-x-1.5 font-semibold" style={{ color: exp.userColor }}>
                                                                             <span className="w-2 h-2 rounded-full" style={{ backgroundColor: exp.userColor }}></span>
-                                                                            <span>{exp.staffName}</span>
+                                                                            <span>&nbsp;{exp.staffName}</span>
                                                                         </div>
                                                                     )}
                                                                 </span>
