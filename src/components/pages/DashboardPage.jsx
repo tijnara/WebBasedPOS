@@ -410,67 +410,67 @@ export default function DashboardPage() {
                 <div className="flex flex-col gap-6">
 
                     {/* --- TOP ROW --- */}
-                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                        {/* Left Column: Summary Cards */}
-                        <div className="lg:col-span-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-6">
-                            <SummaryCard
-                                title="Overall Sales"
-                                isLoading={isSummaryLoading}
-                                value={`₱${overallSalesTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                                isPositive={true}
-                                comparisonText={firstTransactionDate ? `First Transaction: ${firstTransactionDate}` : "Lifetime total"}
-                            />
-                            <SummaryCard
-                                title="Recent Sales"
-                                isLoading={isTodayLoading}
-                                value={`₱${todaySales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                                percentage={recentSalesPct !== null ? Math.abs(recentSalesPct) : undefined}
-                                isPositive={recentSalesPct !== null ? recentSalesPct >= 0 : true}
-                                comparisonText="vs yesterday"
-                            />
-                            <SummaryCard
-                                title="Monthly Sales"
-                                isLoading={isMonthlyGrowthLoading}
-                                value={`₱${(monthlyGrowthData?.thisMonthSales || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                                previousValue={`₱${(monthlyGrowthData?.lastMonthSales || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                                percentage={Math.abs(monthlyGrowthData?.salesGrowth)}
-                                isPositive={monthlyGrowthData?.salesGrowth >= 0}
-                                isPositiveColor={monthlyGrowthData?.thisMonthSales > monthlyGrowthData?.lastMonthSales}
-                                comparisonText={`(${format(monthlyGrowthData?.thisMonthStart || new Date(), 'MMM d')} - ${format(monthlyGrowthData?.thisMonthEnd || new Date(), 'd')}) vs. (${format(monthlyGrowthData?.lastMonthStart || new Date(), 'MMM d')} - ${format(monthlyGrowthData?.lastMonthEnd || new Date(), 'd')})`}
-                            />
-                            <SummaryCard
-                                title="Monthly Gallons Sold"
-                                isLoading={isMonthlyGrowthLoading}
-                                value={`${(monthlyGrowthData?.thisMonthGallons || 0).toLocaleString()} gal`}
-                                previousValue={`${(monthlyGrowthData?.lastMonthGallons || 0).toLocaleString()} gal`}
-                                percentage={Math.abs(monthlyGrowthData?.gallonsGrowth)}
-                                isPositive={monthlyGrowthData?.gallonsGrowth >= 0}
-                                isPositiveColor={monthlyGrowthData?.thisMonthGallons > monthlyGrowthData?.lastMonthGallons}
-                                comparisonText={`(${format(monthlyGrowthData?.thisMonthStart || new Date(), 'MMM d')} - ${format(monthlyGrowthData?.thisMonthEnd || new Date(), 'd')}) vs. (${format(monthlyGrowthData?.lastMonthStart || new Date(), 'MMM d')} - ${format(monthlyGrowthData?.lastMonthEnd || new Date(), 'd')})`}
-                            />
-                            <SummaryCard
-                                title="Weekly Sales"
-                                isLoading={isWeeklyGrowthLoading}
-                                value={`₱${(weeklyGrowthData?.thisWeekSales || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                                previousValue={`₱${(weeklyGrowthData?.lastWeekSales || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                                percentage={Math.abs(weeklyGrowthData?.salesGrowth)}
-                                isPositive={weeklyGrowthData?.salesGrowth >= 0}
-                                isPositiveColor={weeklyGrowthData?.thisWeekSales > weeklyGrowthData?.lastWeekSales}
-                                comparisonText={`(${format(weeklyGrowthData?.thisWeekStart || new Date(), 'MMM d')} - ${format(weeklyGrowthData?.thisWeekEnd || new Date(), 'd')}) vs. (${format(weeklyGrowthData?.lastWeekStart || new Date(), 'MMM d')} - ${format(weeklyGrowthData?.lastWeekEnd || new Date(), 'd')})`}
-                            />
-                            <SummaryCard
-                                title="Weekly Gallons Sold"
-                                isLoading={isWeeklyGrowthLoading}
-                                value={`${(weeklyGrowthData?.thisWeekGallons || 0).toLocaleString()} gal`}
-                                previousValue={`${(weeklyGrowthData?.lastWeekGallons || 0).toLocaleString()} gal`}
-                                percentage={Math.abs(weeklyGrowthData?.gallonsGrowth)}
-                                isPositive={weeklyGrowthData?.gallonsGrowth >= 0}
-                                isPositiveColor={weeklyGrowthData?.thisWeekGallons > weeklyGrowthData?.lastWeekGallons}
-                                comparisonText={`(${format(weeklyGrowthData?.thisWeekStart || new Date(), 'MMM d')} - ${format(weeklyGrowthData?.thisWeekEnd || new Date(), 'd')}) vs. (${format(weeklyGrowthData?.lastWeekStart || new Date(), 'MMM d')} - ${format(weeklyGrowthData?.lastWeekEnd || new Date(), 'd')})`}
-                            />
-                        </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mt-4">
+                        <SummaryCard
+                            title="Overall Sales"
+                            isLoading={isSummaryLoading}
+                            value={`₱${overallSalesTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                            isPositive={true}
+                            comparisonText={firstTransactionDate ? `First Transaction: ${firstTransactionDate}` : "Lifetime total"}
+                        />
+                        <SummaryCard
+                            title="Recent Sales"
+                            isLoading={isTodayLoading}
+                            value={`₱${todaySales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                            percentage={recentSalesPct !== null ? Math.abs(recentSalesPct) : undefined}
+                            isPositive={recentSalesPct !== null ? recentSalesPct >= 0 : true}
+                            comparisonText="vs yesterday"
+                        />
+                        <SummaryCard
+                            title="Monthly Sales"
+                            isLoading={isMonthlyGrowthLoading}
+                            value={`₱${(monthlyGrowthData?.thisMonthSales || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                            previousValue={`₱${(monthlyGrowthData?.lastMonthSales || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                            percentage={Math.abs(monthlyGrowthData?.salesGrowth)}
+                            isPositive={monthlyGrowthData?.salesGrowth >= 0}
+                            isPositiveColor={monthlyGrowthData?.thisMonthSales > monthlyGrowthData?.lastMonthSales}
+                            comparisonText={`(${format(monthlyGrowthData?.thisMonthStart || new Date(), 'MMM d')} - ${format(monthlyGrowthData?.thisMonthEnd || new Date(), 'd')}) vs. (${format(monthlyGrowthData?.lastMonthStart || new Date(), 'MMM d')} - ${format(monthlyGrowthData?.lastMonthEnd || new Date(), 'd')})`}
+                        />
+                        <SummaryCard
+                            title="Monthly Gallons Sold"
+                            isLoading={isMonthlyGrowthLoading}
+                            value={`${(monthlyGrowthData?.thisMonthGallons || 0).toLocaleString()} gal`}
+                            previousValue={`${(monthlyGrowthData?.lastMonthGallons || 0).toLocaleString()} gal`}
+                            percentage={Math.abs(monthlyGrowthData?.gallonsGrowth)}
+                            isPositive={monthlyGrowthData?.gallonsGrowth >= 0}
+                            isPositiveColor={monthlyGrowthData?.thisMonthGallons > monthlyGrowthData?.lastMonthGallons}
+                            comparisonText={`(${format(monthlyGrowthData?.thisMonthStart || new Date(), 'MMM d')} - ${format(monthlyGrowthData?.thisMonthEnd || new Date(), 'd')}) vs. (${format(monthlyGrowthData?.lastMonthStart || new Date(), 'MMM d')} - ${format(monthlyGrowthData?.lastMonthEnd || new Date(), 'd')})`}
+                        />
+                        <SummaryCard
+                            title="Weekly Sales"
+                            isLoading={isWeeklyGrowthLoading}
+                            value={`₱${(weeklyGrowthData?.thisWeekSales || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                            previousValue={`₱${(weeklyGrowthData?.lastWeekSales || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                            percentage={Math.abs(weeklyGrowthData?.salesGrowth)}
+                            isPositive={weeklyGrowthData?.salesGrowth >= 0}
+                            isPositiveColor={weeklyGrowthData?.thisWeekSales > weeklyGrowthData?.lastWeekSales}
+                            comparisonText={`(${format(weeklyGrowthData?.thisWeekStart || new Date(), 'MMM d')} - ${format(weeklyGrowthData?.thisWeekEnd || new Date(), 'd')}) vs. (${format(weeklyGrowthData?.lastWeekStart || new Date(), 'MMM d')} - ${format(weeklyGrowthData?.lastWeekEnd || new Date(), 'd')})`}
+                        />
+                        <SummaryCard
+                            title="Weekly Gallons Sold"
+                            isLoading={isWeeklyGrowthLoading}
+                            value={`${(weeklyGrowthData?.thisWeekGallons || 0).toLocaleString()} gal`}
+                            previousValue={`${(weeklyGrowthData?.lastWeekGallons || 0).toLocaleString()} gal`}
+                            percentage={Math.abs(weeklyGrowthData?.gallonsGrowth)}
+                            isPositive={weeklyGrowthData?.gallonsGrowth >= 0}
+                            isPositiveColor={weeklyGrowthData?.thisWeekGallons > weeklyGrowthData?.lastWeekGallons}
+                            comparisonText={`(${format(weeklyGrowthData?.thisWeekStart || new Date(), 'MMM d')} - ${format(weeklyGrowthData?.thisWeekEnd || new Date(), 'd')}) vs. (${format(weeklyGrowthData?.lastWeekStart || new Date(), 'MMM d')} - ${format(weeklyGrowthData?.lastWeekEnd || new Date(), 'd')})`}
+                        />
+                    </div>
 
-                        {/* Right Column: Line Chart */}
+                    {/* --- CHARTS SECTION --- */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+                        {/* Line Chart */}
                         <div className="lg:col-span-3 min-h-[400px]">
                             <Card className="h-full shadow-sm flex flex-col bg-white dark:bg-slate-900 border-none">
                                 <CardHeader className="bg-transparent pb-0 flex flex-row items-center justify-between">
@@ -492,6 +492,7 @@ export default function DashboardPage() {
                             </Card>
                         </div>
                     </div>
+
 
                     {/* --- SALES VS EXPENSES CHART --- */}
                     <div className="w-full">

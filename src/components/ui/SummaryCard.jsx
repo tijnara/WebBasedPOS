@@ -12,7 +12,7 @@ const SummaryCard = ({ title, value, previousValue, percentage, isPositive, isPo
             )}
             <div className="flex items-center text-sm">
                 {percentage !== undefined && (
-                    <span className={`font-bold flex items-center ${isPositiveColor ? 'text-[#8DB600]' : 'text-red-500'}`}>
+                    <span className={cn("font-bold flex items-center", isPositiveColor ? "text-positive" : "text-negative")}>
                         {isPositive ? '▲' : '▼'} {percentage}%
                     </span>
                 )}

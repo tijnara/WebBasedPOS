@@ -2021,9 +2021,6 @@ input[type="checkbox"]:focus {
 .dark .table__th {
     color: white;
 }
-.dark * {
-    color: white;
-}
 
 .table__td.total-column {
   color: #8BC34A !important; /* Apple Green */
