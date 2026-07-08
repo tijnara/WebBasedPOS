@@ -1,8 +1,7 @@
-// Created on Sunday, April 20, 2026
     import React, { useState, useMemo, useEffect, useRef } from 'react';
     import Link from 'next/link';
     import currency from 'currency.js';
-    import { startOfWeek, endOfWeek, parseISO, format, subWeeks, addWeeks, getDay, startOfToday } from 'date-fns';
+    import { startOfWeek, endOfWeek, parseISO, format, subWeeks, addWeeks, getDay } from 'date-fns';
     import { Plus, Utensils, Car, ShoppingBag, Zap, Receipt, Edit, Trash2, X, Calendar, ChevronLeft, ChevronRight, Search, RotateCcw, XCircle, AlertTriangle, Star, Layers, Clock } from 'lucide-react';
     import { useStore } from '../../store/useStore';
     import { useExpenses, useCreateExpense, useUpdateExpense, useDeleteExpense, useExpenseSummary, useExpenseCategories, useCreateExpenseCategory, useUpdateExpenseCategory } from '../../hooks/useExpenses';

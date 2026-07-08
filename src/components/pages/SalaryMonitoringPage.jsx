@@ -1,5 +1,7 @@
 // src/components/pages/SalaryMonitoringPage.jsx
+// created on 6/16/2026
 import React, { useState, useMemo, useEffect } from 'react';
+
 import { 
     Card, CardHeader, CardContent, Button, Input, Label, Select, 
     Table, TableHeader, TableRow, TableHead, TableBody, TableCell,
