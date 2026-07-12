@@ -60,7 +60,7 @@ export function useCreateNote() {
                 throw new Error('User not available for creating a note.');
             }
 
-            const { error } = await supabase.from('notes').insert([{ content, created_by: user.id }]);
+            const { error } = await supabase.from('notes').insert([{ content, created_by: user.id, updated_at: new Date().toISOString() }]);
             if (error) throw error;
         },
         onSuccess: () => queryClient.invalidateQueries({ queryKey: notesKey }),

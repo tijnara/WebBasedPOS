@@ -167,9 +167,15 @@ export default function FloatingNotes() {
                                         </div>
                                         {note.updated_at && (
                                             <div className="text-xs text-gray-400 mt-1 pt-1 border-t border-dashed">
-                                                Updated by <span className="font-semibold" style={{ color: note.updated_by_user?.color || '#3B82F6' }}>{note.updated_by_user?.name || 'Unknown'}</span>
-                                                {' on '}
-                                                {format(new Date(note.updated_at), 'MMM d, h:mm a')}
+                                                {note.updated_by ? (
+                                                    <>
+                                                        Updated by <span className="font-semibold" style={{ color: note.updated_by_user?.color || '#3B82F6' }}>{note.updated_by_user?.name || 'Unknown'}</span>
+                                                        {' on '}
+                                                        {format(new Date(note.updated_at), 'MMM d, h:mm a')}
+                                                    </>
+                                                ) : (
+                                                    <span className="text-gray-500">Not updated yet.</span>
+                                                )}
                                             </div>
                                         )}
                                     </div>
