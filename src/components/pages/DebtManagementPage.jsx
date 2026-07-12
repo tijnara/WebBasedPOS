@@ -1,6 +1,7 @@
 // src/components/pages/DebtManagementPage.jsx
 import React, { useState, useMemo } from 'react';
 import { useDebts, useCreateDebt, useCreateDebtPayment } from '../../hooks/useDebts';
+import { useCreateExpense } from '../../hooks/useExpenses';
 import { useStore } from '../../store/useStore';
 import currency from 'currency.js';
 import { format, parseISO } from 'date-fns';
@@ -9,6 +10,18 @@ import {
     Table, TableHeader, TableBody, TableRow, TableHead, TableCell, ScrollArea 
 } from '../ui';
 import { Landmark, PlusCircle, CreditCard, Calendar, BarChart3, TrendingDown, History } from 'lucide-react';
+
+// Helper to get the current date in PH time in 'yyyy-MM-dd' format
+const getPhilippineDateString = () => {
+    const now = new Date();
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Manila',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    });
+    return formatter.format(now);
+};
 
 export default function DebtManagementPage() {
     const { user } = useStore(s => ({ user: s.user }));
@@ -19,9 +32,10 @@ export default function DebtManagementPage() {
     const { data: debts = [], isLoading } = useDebts();
     const createDebtMutation = useCreateDebt();
     const createPaymentMutation = useCreateDebtPayment();
+    const createExpenseMutation = useCreateExpense(); // Added Expense Hook
 
     // Form 1 State: New Company Debt
-    const [debtDate, setDebtDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+    const [debtDate, setDebtDate] = useState(getPhilippineDateString());
     const [description, setDescription] = useState('');
     const [totalDebtAmount, setTotalDebtAmount] = useState('');
     const [weeklyPaymentAmount, setWeeklyPaymentAmount] = useState('');
@@ -29,7 +43,7 @@ export default function DebtManagementPage() {
     // Form 2 State: Quick Payment Log
     const [selectedDebtId, setSelectedDebtId] = useState('');
     const [amountPaid, setAmountPaid] = useState('');
-    const [datePaid, setDatePaid] = useState(format(new Date(), 'yyyy-MM-dd'));
+    const [datePaid, setDatePaid] = useState(getPhilippineDateString());
 
     // Processed Data & Calculations
     const processedDebts = useMemo(() => {
@@ -101,7 +115,6 @@ export default function DebtManagementPage() {
         const debtId = e.target.value;
         setSelectedDebtId(debtId);
 
-        // Find the selected debt to auto-fill the payment amount
         const targetDebt = processedDebts.find(d => d.id.toString() === debtId);
         if (targetDebt) {
             setAmountPaid(targetDebt.weekly_payment_amount.toString());
@@ -110,7 +123,7 @@ export default function DebtManagementPage() {
         }
     };
 
-    // Handle Form 2 Submit
+    // Handle Form 2 Submit (Payment + Auto Expense)
     const handlePaymentSubmit = async (e) => {
         e.preventDefault();
         if (isDemo) {
@@ -123,19 +136,38 @@ export default function DebtManagementPage() {
             return;
         }
 
+        const targetDebt = processedDebts.find(d => d.id.toString() === selectedDebtId);
+
         try {
+            // 1. Log the Debt Amortization Payment
             await createPaymentMutation.mutateAsync({
                 debt_id: parseInt(selectedDebtId, 10),
                 amount_paid: parseFloat(amountPaid),
                 date_paid: datePaid
             });
-            addToast({ title: 'Payment Saved', description: 'Payment recorded against selected account.', variant: 'success' });
+
+            // 2. Automatically sync and log as a Company Expense
+            await createExpenseMutation.mutateAsync({
+                expense_date: datePaid,
+                category: 'Debt Repayment', 
+                description: `Amortization - ${targetDebt?.description || `Account #${selectedDebtId}`}`,
+                amount: parseFloat(amountPaid)
+            });
+
+            addToast({ 
+                title: 'Payment & Expense Synced', 
+                description: 'Amortization recorded and expense logged successfully.', 
+                variant: 'success' 
+            });
+            
             setAmountPaid('');
             setSelectedDebtId('');
         } catch (error) {
             addToast({ title: 'Error', description: error.message, variant: 'destructive' });
         }
     };
+
+    const isProcessingPayment = createPaymentMutation.isPending || createExpenseMutation.isPending;
 
     return (
         <div className="p-6 space-y-6 responsive-page max-w-7xl mx-auto">
@@ -250,8 +282,8 @@ export default function DebtManagementPage() {
                                     <Label htmlFor="datePaid" className="text-xs font-semibold text-gray-600">Payment Settlement Date</Label>
                                     <Input id="datePaid" type="date" value={datePaid} onChange={e => setDatePaid(e.target.value)} required className="h-10 text-sm mt-1" />
                                 </div>
-                                <Button type="submit" variant="success" className="w-full h-10 text-sm font-semibold btn--success" disabled={createPaymentMutation.isPending}>
-                                    {createPaymentMutation.isPending ? 'Logging Installment...' : 'Confirm Amortization'}
+                                <Button type="submit" variant="success" className="w-full h-10 text-sm font-semibold btn--success" disabled={isProcessingPayment}>
+                                    {isProcessingPayment ? 'Processing...' : 'Confirm Amortization'}
                                 </Button>
                             </form>
                         </CardContent>
