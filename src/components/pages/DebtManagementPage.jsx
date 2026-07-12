@@ -8,7 +8,7 @@ import {
     Card, CardHeader, CardContent, Button, Input, Label, Select, 
     Table, TableHeader, TableBody, TableRow, TableHead, TableCell, ScrollArea 
 } from '../ui';
-import { Landmark, PlusCircle, CreditCard, Calendar, BarChart3, TrendingDown } from 'lucide-react';
+import { Landmark, PlusCircle, CreditCard, Calendar, BarChart3, TrendingDown, History } from 'lucide-react';
 
 export default function DebtManagementPage() {
     const { user } = useStore(s => ({ user: s.user }));
@@ -40,10 +40,16 @@ export default function DebtManagementPage() {
 
             const remainingDebt = currency(debt.total_debt_amount).subtract(totalPaid).value;
 
+            // Sort payments newest first for the history list
+            const sortedPayments = [...(debt.debt_payments || [])].sort(
+                (a, b) => new Date(b.date_paid) - new Date(a.date_paid)
+            );
+
             return {
                 ...debt,
                 totalPaid,
-                remainingDebt
+                remainingDebt,
+                sortedPayments
             };
         });
     }, [debts]);
@@ -165,10 +171,10 @@ export default function DebtManagementPage() {
             </div>
 
             {/* Dashboard Split View Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+            <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 items-start">
                 
                 {/* Lodgement Operations Panel (1 Column) */}
-                <div className="space-y-6 lg:col-span-1">
+                <div className="space-y-6 xl:col-span-1">
                     {/* Form 1: New Obligation Entry */}
                     <Card className="shadow-sm border border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900">
                         <CardHeader className="bg-slate-50 dark:bg-slate-800/50 pb-3 border-b border-gray-100 dark:border-slate-800">
@@ -238,8 +244,8 @@ export default function DebtManagementPage() {
                     </Card>
                 </div>
 
-                {/* Ledger Registry Display Panel (2 Columns) */}
-                <div className="lg:col-span-2">
+                {/* Ledger Registry Display Panel (3 Columns on Extra Large Screens) */}
+                <div className="xl:col-span-3">
                     <Card className="shadow-sm border border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden rounded-xl">
                         <CardHeader className="bg-slate-50/50 dark:bg-slate-800/30 pb-3 border-b border-gray-100 dark:border-slate-800">
                             <h3 className="font-bold text-base text-gray-800 dark:text-white">Active Liability Registry & Ledger</h3>
@@ -253,6 +259,7 @@ export default function DebtManagementPage() {
                                             <TableHead>Date & Desc.</TableHead>
                                             <TableHead>Principal Debt</TableHead>
                                             <TableHead>Weekly Cadence</TableHead>
+                                            <TableHead className="w-64">Amortization History</TableHead>
                                             <TableHead>Total Cleared</TableHead>
                                             <TableHead className="text-right">Remaining Balance</TableHead>
                                         </TableRow>
@@ -260,23 +267,23 @@ export default function DebtManagementPage() {
                                     <TableBody>
                                         {isLoading ? (
                                             <TableRow>
-                                                <TableCell colSpan={6} className="text-center py-12 text-gray-400">
+                                                <TableCell colSpan={7} className="text-center py-12 text-gray-400">
                                                     Fetching liability accounts...
                                                 </TableCell>
                                             </TableRow>
                                         ) : processedDebts.length === 0 ? (
                                             <TableRow>
-                                                <TableCell colSpan={6} className="text-center py-12 text-gray-400">
+                                                <TableCell colSpan={7} className="text-center py-12 text-gray-400">
                                                     No corporate balance debts logged found.
                                                 </TableCell>
                                             </TableRow>
                                         ) : (
                                             processedDebts.map((debt) => (
-                                                <TableRow key={debt.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-all border-b border-gray-100 dark:border-slate-800">
-                                                    <TableCell className="font-mono text-xs font-bold text-slate-500">
+                                                <TableRow key={debt.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-all border-b border-gray-100 dark:border-slate-800 align-top">
+                                                    <TableCell className="font-mono text-xs font-bold text-slate-500 pt-4">
                                                         #{debt.id}
                                                     </TableCell>
-                                                    <TableCell>
+                                                    <TableCell className="pt-4">
                                                         <div className="flex flex-col">
                                                             <span className="text-sm font-medium text-gray-900 dark:text-white">
                                                                 {debt.description || 'No Description'}
@@ -286,16 +293,42 @@ export default function DebtManagementPage() {
                                                             </span>
                                                         </div>
                                                     </TableCell>
-                                                    <TableCell className="font-medium text-gray-900 dark:text-white">
+                                                    <TableCell className="font-medium text-gray-900 dark:text-white pt-4">
                                                         {currency(debt.total_debt_amount, { symbol: '₱' }).format()}
                                                     </TableCell>
-                                                    <TableCell className="text-xs text-gray-500 dark:text-slate-400 font-medium">
+                                                    <TableCell className="text-xs text-gray-500 dark:text-slate-400 font-medium pt-4">
                                                         {currency(debt.weekly_payment_amount, { symbol: '₱' }).format()} / wk
                                                     </TableCell>
-                                                    <TableCell className="text-sm font-semibold text-green-600">
+                                                    
+                                                    {/* New Amortization History Column */}
+                                                    <TableCell className="pt-4">
+                                                        {debt.sortedPayments.length > 0 ? (
+                                                            <ScrollArea className="h-24 w-full pr-2">
+                                                                <ul className="space-y-2">
+                                                                    {debt.sortedPayments.map(payment => (
+                                                                        <li key={payment.id} className="flex justify-between items-center text-xs border-b border-gray-100 dark:border-slate-800 pb-1 last:border-0">
+                                                                            <span className="text-gray-500 flex items-center gap-1">
+                                                                                <History className="w-3 h-3" />
+                                                                                {format(parseISO(payment.date_paid), 'MMM dd, yyyy')}
+                                                                            </span>
+                                                                            <span className="text-green-600 font-semibold">
+                                                                                +{currency(payment.amount_paid, { symbol: '₱' }).format()}
+                                                                            </span>
+                                                                        </li>
+                                                                    ))}
+                                                                </ul>
+                                                            </ScrollArea>
+                                                        ) : (
+                                                            <span className="text-xs text-gray-400 italic flex items-center gap-1">
+                                                                No payments logged yet.
+                                                            </span>
+                                                        )}
+                                                    </TableCell>
+
+                                                    <TableCell className="text-sm font-semibold text-green-600 pt-4">
                                                         {currency(debt.totalPaid, { symbol: '₱' }).format()}
                                                     </TableCell>
-                                                    <TableCell className="text-right font-black text-sm text-red-600">
+                                                    <TableCell className="text-right font-black text-sm text-red-600 pt-4">
                                                         {currency(debt.remainingDebt, { symbol: '₱' }).format()}
                                                     </TableCell>
                                                 </TableRow>
