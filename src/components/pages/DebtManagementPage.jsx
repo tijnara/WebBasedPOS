@@ -96,6 +96,20 @@ export default function DebtManagementPage() {
         }
     };
 
+    // Handle Form 2 Selection Change (Auto-fill amount)
+    const handleDebtSelection = (e) => {
+        const debtId = e.target.value;
+        setSelectedDebtId(debtId);
+
+        // Find the selected debt to auto-fill the payment amount
+        const targetDebt = processedDebts.find(d => d.id.toString() === debtId);
+        if (targetDebt) {
+            setAmountPaid(targetDebt.weekly_payment_amount.toString());
+        } else {
+            setAmountPaid('');
+        }
+    };
+
     // Handle Form 2 Submit
     const handlePaymentSubmit = async (e) => {
         e.preventDefault();
@@ -218,7 +232,7 @@ export default function DebtManagementPage() {
                             <form onSubmit={handlePaymentSubmit} className="space-y-4">
                                 <div>
                                     <Label htmlFor="targetDebt" className="text-xs font-semibold text-gray-600">Select Target Debt Account</Label>
-                                    <Select id="targetDebt" value={selectedDebtId} onChange={e => setSelectedDebtId(e.target.value)} className="h-10 text-sm mt-1 w-full" required>
+                                    <Select id="targetDebt" value={selectedDebtId} onChange={handleDebtSelection} className="h-10 text-sm mt-1 w-full" required>
                                         <option value="" disabled>-- Select Debt Account --</option>
                                         {processedDebts.filter(d => d.remainingDebt > 0).map(d => (
                                             <option key={d.id} value={d.id}>
