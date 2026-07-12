@@ -297,91 +297,95 @@ export default function DebtManagementPage() {
                             <h3 className="font-bold text-base text-gray-800 dark:text-white">Active Liability Registry & Ledger</h3>
                         </CardHeader>
                         <CardContent className="p-0">
-                            <ScrollArea className="h-[calc(100vh-280px)]">
-                                <Table>
-                                    <TableHeader className="bg-gray-50/80 dark:bg-gray-800/80 sticky top-0 z-10">
-                                        <TableRow>
-                                            <TableHead>Account ID</TableHead>
-                                            <TableHead>Date & Desc.</TableHead>
-                                            <TableHead>Principal Debt</TableHead>
-                                            <TableHead>Weekly Cadence</TableHead>
-                                            <TableHead className="w-64">Amortization History</TableHead>
-                                            <TableHead>Total Cleared</TableHead>
-                                            <TableHead className="text-right">Remaining Balance</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {isLoading ? (
+                            <ScrollArea className="h-[calc(100vh-280px)] w-full">
+                                {/* ADDED: overflow-x-auto wrapper for mobile scrolling */}
+                                <div className="overflow-x-auto w-full">
+                                    {/* min-w-[900px] prevents squishing; !block overrides globals.css display:none on mobile */}
+                                    <Table className="min-w-[900px] w-full !block">
+                                        <TableHeader className="bg-gray-50/80 dark:bg-gray-800/80 sticky top-0 z-10">
                                             <TableRow>
-                                                <TableCell colSpan={7} className="text-center py-12 text-gray-400">
-                                                    Fetching liability accounts...
-                                                </TableCell>
+                                                <TableHead>Account ID</TableHead>
+                                                <TableHead>Date & Desc.</TableHead>
+                                                <TableHead>Principal Debt</TableHead>
+                                                <TableHead>Weekly Cadence</TableHead>
+                                                <TableHead className="w-64">Amortization History</TableHead>
+                                                <TableHead>Total Cleared</TableHead>
+                                                <TableHead className="text-right">Remaining Balance</TableHead>
                                             </TableRow>
-                                        ) : processedDebts.length === 0 ? (
-                                            <TableRow>
-                                                <TableCell colSpan={7} className="text-center py-12 text-gray-400">
-                                                    No corporate balance debts logged found.
-                                                </TableCell>
-                                            </TableRow>
-                                        ) : (
-                                            processedDebts.map((debt) => (
-                                                <TableRow key={debt.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-all border-b border-gray-100 dark:border-slate-800 align-top">
-                                                    <TableCell className="font-mono text-xs font-bold text-slate-500 pt-4">
-                                                        #{debt.id}
-                                                    </TableCell>
-                                                    <TableCell className="pt-4">
-                                                        <div className="flex flex-col">
-                                                            <span className="text-sm font-medium text-gray-900 dark:text-white">
-                                                                {debt.description || 'No Description'}
-                                                            </span>
-                                                            <span className="text-xs text-gray-500 dark:text-slate-400">
-                                                                {format(parseISO(debt.debt_date), 'MMM dd, yyyy')}
-                                                            </span>
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell className="font-medium text-gray-900 dark:text-white pt-4">
-                                                        {currency(debt.total_debt_amount, { symbol: '₱' }).format()}
-                                                    </TableCell>
-                                                    <TableCell className="text-xs text-gray-500 dark:text-slate-400 font-medium pt-4">
-                                                        {currency(debt.weekly_payment_amount, { symbol: '₱' }).format()} / wk
-                                                    </TableCell>
-                                                    
-                                                    {/* New Amortization History Column */}
-                                                    <TableCell className="pt-4">
-                                                        {debt.sortedPayments.length > 0 ? (
-                                                            <ScrollArea className="h-24 w-full pr-2">
-                                                                <ul className="space-y-2">
-                                                                    {debt.sortedPayments.map(payment => (
-                                                                        <li key={payment.id} className="flex justify-between items-center text-xs border-b border-gray-100 dark:border-slate-800 pb-1 last:border-0">
-                                                                            <span className="text-gray-500 flex items-center gap-1">
-                                                                                <History className="w-3 h-3" />
-                                                                                {format(parseISO(payment.date_paid), 'MMM dd, yyyy')}
-                                                                            </span>
-                                                                            <span className="text-green-600 font-semibold">
-                                                                                +{currency(payment.amount_paid, { symbol: '₱' }).format()}
-                                                                            </span>
-                                                                        </li>
-                                                                    ))}
-                                                                </ul>
-                                                            </ScrollArea>
-                                                        ) : (
-                                                            <span className="text-xs text-gray-400 italic flex items-center gap-1">
-                                                                No payments logged yet.
-                                                            </span>
-                                                        )}
-                                                    </TableCell>
-
-                                                    <TableCell className="text-sm font-semibold text-green-600 pt-4">
-                                                        {currency(debt.totalPaid, { symbol: '₱' }).format()}
-                                                    </TableCell>
-                                                    <TableCell className="text-right font-black text-sm text-red-600 pt-4">
-                                                        {currency(debt.remainingDebt, { symbol: '₱' }).format()}
+                                        </TableHeader>
+                                        <TableBody>
+                                            {isLoading ? (
+                                                <TableRow>
+                                                    <TableCell colSpan={7} className="text-center py-12 text-gray-400">
+                                                        Fetching liability accounts...
                                                     </TableCell>
                                                 </TableRow>
-                                            ))
-                                        )}
-                                    </TableBody>
-                                </Table>
+                                            ) : processedDebts.length === 0 ? (
+                                                <TableRow>
+                                                    <TableCell colSpan={7} className="text-center py-12 text-gray-400">
+                                                        No corporate balance debts logged found.
+                                                    </TableCell>
+                                                </TableRow>
+                                            ) : (
+                                                processedDebts.map((debt) => (
+                                                    <TableRow key={debt.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-all border-b border-gray-100 dark:border-slate-800 align-top">
+                                                        <TableCell className="font-mono text-xs font-bold text-slate-500 pt-4">
+                                                            #{debt.id}
+                                                        </TableCell>
+                                                        <TableCell className="pt-4">
+                                                            <div className="flex flex-col">
+                                                                <span className="text-sm font-medium text-gray-900 dark:text-white">
+                                                                    {debt.description || 'No Description'}
+                                                                </span>
+                                                                <span className="text-xs text-gray-500 dark:text-slate-400 whitespace-nowrap">
+                                                                    {format(parseISO(debt.debt_date), 'MMM dd, yyyy')}
+                                                                </span>
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell className="font-medium text-gray-900 dark:text-white pt-4 whitespace-nowrap">
+                                                            {currency(debt.total_debt_amount, { symbol: '₱' }).format()}
+                                                        </TableCell>
+                                                        <TableCell className="text-xs text-gray-500 dark:text-slate-400 font-medium pt-4 whitespace-nowrap">
+                                                            {currency(debt.weekly_payment_amount, { symbol: '₱' }).format()} / wk
+                                                        </TableCell>
+
+                                                        {/* Amortization History Column */}
+                                                        <TableCell className="pt-4">
+                                                            {debt.sortedPayments.length > 0 ? (
+                                                                <ScrollArea className="h-24 w-full pr-2">
+                                                                    <ul className="space-y-2">
+                                                                        {debt.sortedPayments.map(payment => (
+                                                                            <li key={payment.id} className="flex justify-between items-center text-xs border-b border-gray-100 dark:border-slate-800 pb-1 last:border-0">
+                                                                                <span className="text-gray-500 flex items-center gap-1 whitespace-nowrap">
+                                                                                    <History className="w-3 h-3" />
+                                                                                    {format(parseISO(payment.date_paid), 'MMM dd, yyyy')}
+                                                                                </span>
+                                                                                <span className="text-green-600 font-semibold whitespace-nowrap ml-2">
+                                                                                    +{currency(payment.amount_paid, { symbol: '₱' }).format()}
+                                                                                </span>
+                                                                            </li>
+                                                                        ))}
+                                                                    </ul>
+                                                                </ScrollArea>
+                                                            ) : (
+                                                                <span className="text-xs text-gray-400 italic flex items-center gap-1">
+                                                                    No payments logged yet.
+                                                                </span>
+                                                            )}
+                                                        </TableCell>
+
+                                                        <TableCell className="text-sm font-semibold text-green-600 pt-4 whitespace-nowrap">
+                                                            {currency(debt.totalPaid, { symbol: '₱' }).format()}
+                                                        </TableCell>
+                                                        <TableCell className="text-right font-black text-sm text-red-600 pt-4 whitespace-nowrap">
+                                                            {currency(debt.remainingDebt, { symbol: '₱' }).format()}
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))
+                                            )}
+                                        </TableBody>
+                                    </Table>
+                                </div>
                             </ScrollArea>
                         </CardContent>
                     </Card>
