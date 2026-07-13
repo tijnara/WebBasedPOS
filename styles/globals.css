@@ -2002,42 +2002,11 @@ input[type="checkbox"]:focus {
     padding-left: 1.5rem;
     margin-bottom: 1.5rem;
 }
-.article-content li {
-    margin-bottom: 0.5rem;
-}
-.article-content strong {
-    font-weight: 700;
-    color: var(--text);
-}
-.article-content a {
-    color: #059669; /* Seaside green */
-    text-decoration: underline;
-}
-.article-content a:hover {
-    color: #047857;
+
+.modal-solid {
+    border: 1px solid var(--border);
 }
 
-.dark .table__td,
-.dark .table__th {
-    color: white;
-}
-
-.table__td.total-column {
-  color: #8BC34A !important; /* Apple Green */
-}
-
-.expense-action-btn:hover {
-    color: var(--violet) !important;
-}
-
-.text-negative {
-  color: #dc2626; /* Red-600 */
-}
-
-.text-warning {
-  color: #f59e0b; /* Amber-500 */
-}
-
-.text-positive {
-  color: #8BC34A; /* Apple Green */
+.bg-surface {
+    background-color: var(--surface);
 }

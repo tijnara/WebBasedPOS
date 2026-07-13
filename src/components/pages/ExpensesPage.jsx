@@ -885,8 +885,8 @@
                 )}
 
             {reasonModal.show && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
-                    <div className="bg-surface rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
+                <div className="fixed inset-0 bg-black/80 z-[110] flex items-center justify-center p-4">
+                    <div className="bg-surface rounded-3xl shadow-2xl w-full max-w-md overflow-hidden modal-solid">
                         <div className="p-6 bg-orange-50 border-b border-orange-100 flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600">
                                 <AlertTriangle className="w-6 h-6"/>
@@ -924,7 +924,7 @@
                             <button
                                 onClick={handleConfirmSkip}
                                 disabled={!reasonText.trim() || isDemo}
-                                className="btn flex-1 bg-orange-600 text-white font-bold disabled:opacity-50"
+                                className="btn flex-1 bg-orange-600 text-black font-bold disabled:opacity-50"
                             >
                                 Skip Item
                             </button>
