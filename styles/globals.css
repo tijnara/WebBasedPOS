@@ -2010,3 +2010,11 @@ input[type="checkbox"]:focus {
 .bg-surface {
     background-color: var(--surface);
 }
+
+.text-positive {
+    color: #8DB600;
+}
+
+.text-negative {
+    color: var(--danger);
+}
