@@ -1,17 +1,18 @@
 // src/components/pages/SalaryMonitoringPage.jsx
 // created on 6/16/2026
 import React, { useState, useMemo, useEffect } from 'react';
-
-import { 
-    Card, CardHeader, CardContent, Button, Input, Label, Select, 
+import Head from 'next/head';
+import {
+    Card, CardHeader, CardContent, Button, Input, Label, Select,
     Table, TableHeader, TableRow, TableHead, TableBody, TableCell,
-    Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
+    Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, ScrollArea
 } from '../ui';
-import { useSalaryRecords, useCreateSalary } from '../../hooks/useSalary';
+import { useSalaryRecords, useCreateSalary, useProcessDeductions } from '../../hooks/useSalary';
 import { useEmployees, useManageEmployee } from '../../hooks/useEmployees';
+import { useDebts } from '../../hooks/useDebts';
 import currency from 'currency.js';
 import { format, endOfMonth, subMonths, addMonths, startOfDay, endOfDay } from 'date-fns';
-import { ChevronLeft, ChevronRight, Users, Edit2, Trash2, Calendar } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Users, Edit2, Trash2, Calendar, Calculator, FileText } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 
 // --- Date Math Helpers ---
@@ -81,27 +82,85 @@ export default function SalaryMonitoringPage() {
 
     const { user, addToast } = useStore();
     const isAdmin = user?.role === 'Admin' || user?.role === 'admin' || user?.isadmin;
-    
+
     const [period, setPeriod] = useState(getInitialPeriod());
     const [filterEmployee, setFilterEmployee] = useState('all');
-    
+
     // State for custom date range
     const [customStartDate, setCustomStartDate] = useState(format(new Date(), 'yyyy-MM-dd'));
     const [customEndDate, setCustomEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
     const [isCustomRangeActive, setIsCustomRangeActive] = useState(false);
 
-
     const { data: salaryRecords, isLoading: isSalaryLoading } = useSalaryRecords(period.start, period.end);
     const { data: employees, isLoading: isEmpLoading } = useEmployees();
+    const { data: debts = [] } = useDebts();
     const createSalary = useCreateSalary();
+    const processDeductionsMutation = useProcessDeductions();
     const manageEmployee = useManageEmployee();
 
-    // Salary Form State
+    // ============================================================
+    // STATE 1: AUTOMATED PAYROLL SECTION
+    // ============================================================
+    const [payrollEmpId, setPayrollEmpId] = useState('');
+    const [payrollDate, setPayrollDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+
+    const selectedPayrollEmp = employees?.find(e => e.id.toString() === payrollEmpId);
+    const payrollEmpName = selectedPayrollEmp?.name || '';
+
+    // Calculate Gross Salary based on the Salary History for the current period
+    const payrollGross = useMemo(() => {
+        if (!payrollEmpName || !salaryRecords) return 0;
+        return salaryRecords
+            .filter(r => r.employee_name === payrollEmpName)
+            .reduce((sum, r) => sum + Number(r.amount), 0);
+    }, [payrollEmpName, salaryRecords]);
+
+    const activeDeductions = useMemo(() => {
+        if (!payrollEmpId || !payrollDate) return [];
+
+        const [y, m, dDay] = payrollDate.split('-').map(Number);
+        const lastDayOfMonth = new Date(y, m, 0).getDate();
+        const isDeductionDay = dDay === 15 || dDay === 30 || dDay === lastDayOfMonth;
+
+        // Ensure auto deductions only trigger on 15th, 30th, or end of month
+        if (!isDeductionDay) return [];
+
+        const empDebts = debts.filter(d =>
+            d.type === 'employee' &&
+            (d.employee_id === Number(payrollEmpId) || (d.description && d.description.includes(payrollEmpName)))
+        );
+
+        return empDebts.map(debt => {
+            const totalPaid = (debt.debt_payments || []).reduce((sum, p) => sum + Number(p.amount_paid), 0);
+            const remainingDebt = Number(debt.total_debt_amount) - totalPaid;
+
+            if (remainingDebt <= 0) return null;
+
+            let deduction = debt.frequency === 'Every 15 days'
+                ? Number(debt.weekly_payment_amount)
+                : Number(debt.weekly_payment_amount) * 2;
+
+            if (deduction > remainingDebt) deduction = remainingDebt;
+
+            return {
+                debt_id: debt.id,
+                description: debt.description,
+                amount: deduction,
+                remaining: remainingDebt
+            };
+        }).filter(Boolean);
+    }, [debts, payrollEmpId, payrollEmpName, payrollDate]);
+
+    const payrollTotalDeductions = activeDeductions.reduce((sum, d) => sum + d.amount, 0);
+    const payrollNet = payrollGross - payrollTotalDeductions;
+
+    // ============================================================
+    // STATE 2: MANUAL SALARY SECTION (ORIGINAL UNTOUCHED)
+    // ============================================================
     const [employeeName, setEmployeeName] = useState('');
     const [amount, setAmount] = useState('');
     const [description, setDescription] = useState('Salary Payout');
     const [payoutDate, setPayoutDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-
 
     // Employee Modal State
     const [isManageModalOpen, setIsManageModalOpen] = useState(false);
@@ -134,18 +193,50 @@ export default function SalaryMonitoringPage() {
             setIsCustomRangeActive(true);
         }
     };
-    
+
     const handleSetPeriod = (newPeriod) => {
         setPeriod(newPeriod);
         setIsCustomRangeActive(false);
     };
 
+    // ============================================================
+    // HANDLER: AUTOMATED PAYROLL
+    // ============================================================
+    const handleProcessPayroll = async (e) => {
+        e.preventDefault();
+        if (!payrollEmpName || !payrollDate) return;
 
-    // --- SALARY FORM LOGIC ---
+        if (activeDeductions.length === 0) {
+            addToast({ title: 'Notice', description: 'No active deductions to process for this date.', variant: 'warning' });
+            return;
+        }
+
+        const now = new Date();
+        const [year, month, day] = payrollDate.split('-').map(Number);
+        const combinedDateTime = new Date(year, month - 1, day, now.getHours(), now.getMinutes(), now.getSeconds());
+
+        try {
+            await processDeductionsMutation.mutateAsync({
+                employeeName: payrollEmpName,
+                date: combinedDateTime.toISOString(),
+                deductions: activeDeductions
+            });
+            addToast({ title: 'Success', description: 'Automated deductions processed successfully', variant: 'success' });
+
+            setPayrollEmpId('');
+            setPayrollDate(format(new Date(), 'yyyy-MM-dd'));
+        } catch (error) {
+            addToast({ title: 'Error', description: error.message, variant: 'destructive' });
+        }
+    };
+
+    // ============================================================
+    // HANDLER: ORIGINAL MANUAL SALARY
+    // ============================================================
     const handleEmployeeSelect = (e) => {
         const val = e.target.value;
         setEmployeeName(val);
-        
+
         const match = employees?.find(emp => emp.name === val);
         if (match && match.default_salary > 0) {
             setAmount(match.default_salary);
@@ -155,27 +246,22 @@ export default function SalaryMonitoringPage() {
     const handleAddSalary = async (e) => {
         e.preventDefault();
         if (!employeeName || !amount || !payoutDate) return;
-    
-        // 1. Get the current time
+
         const now = new Date();
-        
-        // 2. Parse the selected payoutDate (YYYY-MM-DD)
         const [year, month, day] = payoutDate.split('-').map(Number);
-        
-        // 3. Combine the selected date with the current time
         const combinedDateTime = new Date(year, month - 1, day, now.getHours(), now.getMinutes(), now.getSeconds());
 
         try {
-            await createSalary.mutateAsync({ 
-                employeeName, 
-                amount, 
-                description, 
-                // 4. Send the combined date and time
-                date: combinedDateTime.toISOString() 
+            await createSalary.mutateAsync({
+                employeeName,
+                amount,
+                description,
+                date: combinedDateTime.toISOString()
             });
             addToast({ title: 'Success', description: 'Salary recorded successfully', variant: 'success' });
+
             setAmount('');
-            setEmployeeName(''); 
+            setEmployeeName('');
             setDescription('Salary Payout');
             setPayoutDate(format(new Date(), 'yyyy-MM-dd'));
         } catch (error) {
@@ -222,62 +308,164 @@ export default function SalaryMonitoringPage() {
 
     return (
         <div className="p-6 space-y-6 responsive-page max-w-7xl mx-auto">
+            <Head>
+                <title>Salary Monitoring | Seaside POS</title>
+            </Head>
             <div className="flex justify-between items-center">
                 <div>
                     <h1 className="text-2xl font-bold">Salary Monitoring</h1>
-                    <p className="text-gray-500 text-sm">Manage staff salaries and records.</p>
+                    <p className="text-gray-500 text-sm">Manage staff salaries, automated payrolls, and manual records.</p>
                 </div>
-                <Button 
-                    onClick={() => setIsManageModalOpen(true)} 
+                <Button
+                    onClick={() => setIsManageModalOpen(true)}
                     className="flex items-center gap-2 btn-apple-green text-white"
                 >
                     <Users className="w-4 h-4" /> Manage Employees
                 </Button>
             </div>
 
-            {/* RECORD SALARY FORM */}
-            <Card>
-                <CardHeader className="bg-blue-50 border-b border-blue-100">
-                    <h3 className="font-bold text-blue-800">Record Salary Payment</h3>
-                </CardHeader>
-                <CardContent className="pt-6">
-                    <form onSubmit={handleAddSalary} className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
-                        <div className="md:col-span-1">
-                            <Label>Employee</Label>
-                            <Select value={employeeName} onChange={handleEmployeeSelect} required className="h-11">
-                                <option value="" disabled>Select Staff...</option>
-                                {employees?.map(emp => (
-                                    <option key={emp.id} value={emp.name}>{emp.name}</option>
-                                ))}
-                            </Select>
-                        </div>
-                        <div className="md:col-span-1">
-                            <Label>Amount (₱)</Label>
-                            <Input type="number" step="0.01" min="1" value={amount} onChange={e => setAmount(e.target.value)} required className="h-11" />
-                        </div>
-                        <div className="md:col-span-1">
-                            <Label>Payout Date</Label>
-                            <Input type="date" value={payoutDate} onChange={e => setPayoutDate(e.target.value)} required className="h-11" />
-                        </div>
-                        <div className="md:col-span-1">
-                            <Label>Description</Label>
-                            <Input type="text" value={description} onChange={e => setDescription(e.target.value)} required className="h-11" />
-                        </div>
-                        <div className="md:col-span-1">
-                            <Button type="submit" disabled={createSalary.isPending} className="btn--primary w-full h-11">
-                                {createSalary.isPending ? 'Saving...' : 'Record'}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
+
+                {/* ========================================================
+                    NEW SECTION: AUTOMATED PAYROLL CALCULATOR
+                    ======================================================== */}
+                <Card className="border-indigo-100 shadow-sm">
+                    <CardHeader className="bg-indigo-50/50 border-b border-indigo-100">
+                        <h3 className="font-bold text-indigo-800 flex items-center gap-2"><Calculator className="w-5 h-5"/> Auto-Deduct Payroll</h3>
+                        <p className="text-xs text-indigo-600">Calculates gross from the Salary History below and applies debts on cutoffs.</p>
+                    </CardHeader>
+                    <CardContent className="pt-6">
+                        <form onSubmit={handleProcessPayroll} className="space-y-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <Label>Select Employee</Label>
+                                    <Select value={payrollEmpId} onChange={(e) => setPayrollEmpId(e.target.value)} required className="h-11">
+                                        <option value="" disabled>Select Staff...</option>
+                                        {employees?.map(emp => (
+                                            <option key={emp.id} value={emp.id}>{emp.name}</option>
+                                        ))}
+                                    </Select>
+                                </div>
+                                <div>
+                                    <Label>Payout Date</Label>
+                                    <Input type="date" value={payrollDate} onChange={e => setPayrollDate(e.target.value)} required className="h-11" />
+                                </div>
+                            </div>
+
+                            {/* Computations Table UI - Responsive Flex Layout */}
+                            <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden mt-2">
+                                <div className="bg-gray-50 px-4 py-2 border-b text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                    Salary Computation
+                                </div>
+
+                                {(() => {
+                                    const [y, m, dDay] = payrollDate.split('-').map(Number);
+                                    const lastDay = new Date(y, m, 0).getDate();
+                                    const isDeductionDay = dDay === 15 || dDay === 30 || dDay === lastDay;
+
+                                    if (!isDeductionDay) {
+                                        return (
+                                            <div className="px-4 py-3 border-b text-sm text-gray-500 italic">
+                                                * Auto-deductions are paused. Deductions only trigger automatically on the 15th, 30th, or end of the month.
+                                            </div>
+                                        );
+                                    }
+
+                                    if (activeDeductions.length > 0) {
+                                        return (
+                                            <div className="px-4 py-3 border-b bg-red-50/50">
+                                                <p className="text-xs font-bold text-red-600 mb-1">Active Debt Deductions:</p>
+                                                <ul className="text-sm space-y-1">
+                                                    {activeDeductions.map(d => (
+                                                        <li key={d.debt_id} className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1 sm:gap-2">
+                                                            <span className="flex-1 text-gray-700 break-words">{d.description}</span>
+                                                            <span className="font-medium text-red-600 sm:whitespace-nowrap">- ₱{d.amount.toFixed(2)}</span>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        );
+                                    }
+
+                                    return (
+                                        <div className="px-4 py-3 border-b text-sm text-gray-500 italic">
+                                            No active auto-deductions found for the selected date.
+                                        </div>
+                                    );
+                                })()}
+
+                                {/* Replaced Table with Mobile-Friendly Flex Layout */}
+                                <div className="p-4 bg-indigo-50/30 flex flex-col sm:flex-row justify-between gap-4">
+                                    <div className="flex justify-between sm:flex-col sm:justify-start">
+                                        <span
+                                            className="text-xs text-gray-500 uppercase font-semibold">History Gross &nbsp; &nbsp;</span>
+                                        <span className="font-medium text-gray-700 text-lg">₱{payrollGross.toFixed(2)}</span>
+                                    </div>
+                                    <div className="flex justify-between sm:flex-col sm:justify-start">
+                                        <span className="text-xs text-gray-500 uppercase font-semibold">Total Deduction &nbsp;&nbsp;</span>
+                                        <span className="font-medium text-red-600 text-lg">- ₱{payrollTotalDeductions.toFixed(2)}</span>
+                                    </div>
+                                    <div className="flex justify-between sm:flex-col sm:text-right border-t border-indigo-100 sm:border-0 pt-3 sm:pt-0">
+                                        <span className="text-xs text-indigo-700 uppercase font-bold">Net Payout&nbsp;&nbsp;</span>
+                                        <span className="font-black text-2xl text-indigo-600">₱{payrollNet.toFixed(2)}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <Button type="submit" disabled={processDeductionsMutation.isPending || activeDeductions.length === 0} className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white">
+                                {processDeductionsMutation.isPending ? 'Processing...' : 'Process Deductions'}
                             </Button>
-                        </div>
-                    </form>
-                </CardContent>
-            </Card>
+                        </form>
+                    </CardContent>
+                </Card>
+
+                {/* ========================================================
+                    ORIGINAL SECTION: RECORD SALARY PAYMENT (UNTOUCHED LOGIC)
+                    ======================================================== */}
+                <Card>
+                    <CardHeader className="bg-blue-50 border-b border-blue-100">
+                        <h3 className="font-bold text-blue-800 flex items-center gap-2"><FileText className="w-5 h-5"/> Manual Record Salary Entry</h3>
+                        <p className="text-xs text-blue-600">Record a salary payout or bonus into the Salary History below.</p>
+                    </CardHeader>
+                    <CardContent className="pt-6">
+                        <form onSubmit={handleAddSalary} className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
+                            <div className="sm:col-span-1">
+                                <Label>Employee</Label>
+                                <Select value={employeeName} onChange={handleEmployeeSelect} required className="h-11">
+                                    <option value="" disabled>Select Staff...</option>
+                                    {employees?.map(emp => (
+                                        <option key={emp.id} value={emp.name}>{emp.name}</option>
+                                    ))}
+                                </Select>
+                            </div>
+                            <div className="sm:col-span-1">
+                                <Label>Gross Amount (₱)</Label>
+                                <Input type="number" step="0.01" min="1" value={amount} onChange={e => setAmount(e.target.value)} required className="h-11" />
+                            </div>
+                            <div className="sm:col-span-1">
+                                <Label>Payout Date</Label>
+                                <Input type="date" value={payoutDate} onChange={e => setPayoutDate(e.target.value)} required className="h-11" />
+                            </div>
+                            <div className="sm:col-span-1">
+                                <Label>Description</Label>
+                                <Input type="text" value={description} onChange={e => setDescription(e.target.value)} required className="h-11" />
+                            </div>
+                            <div className="sm:col-span-2">
+                                <Button type="submit" disabled={createSalary.isPending} className="btn--primary w-full h-11">
+                                    {createSalary.isPending ? 'Saving...' : 'Record Salary'}
+                                </Button>
+                            </div>
+                        </form>
+                    </CardContent>
+                </Card>
+            </div>
 
             {/* SALARY HISTORY & FILTERS */}
             <Card>
                 <CardHeader className="border-b border-gray-100 pb-4 space-y-4">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
                         <div className="flex-1">
-                            <h3 className="font-bold">Salary History</h3>
+                            <h3 className="font-bold">Salary History (Gross Payouts)</h3>
                             <p className="text-xs text-gray-500 mt-1 uppercase tracking-wider font-semibold">
                                 Period: {format(new Date(period.start), 'EEE, MMM d, yyyy')} — {format(new Date(period.end), 'EEE, MMM d, yyyy')}
                             </p>
@@ -297,21 +485,21 @@ export default function SalaryMonitoringPage() {
                             </div>
                         </div>
                     </div>
-                    
+
                     {/* Custom Date Filter */}
                     <div className="flex flex-col md:flex-row items-center gap-2 p-3 bg-gray-50 rounded-lg">
                         <Calendar className="w-5 h-5 text-gray-500" />
                         <Label className="font-semibold text-sm">Custom Date Range:</Label>
-                        <Input 
-                            type="date" 
-                            value={customStartDate} 
+                        <Input
+                            type="date"
+                            value={customStartDate}
                             onChange={e => setCustomStartDate(e.target.value)}
                             className="h-9 max-w-xs"
                         />
                         <span className="text-gray-500">-</span>
-                        <Input 
-                            type="date" 
-                            value={customEndDate} 
+                        <Input
+                            type="date"
+                            value={customEndDate}
                             onChange={e => setCustomEndDate(e.target.value)}
                             className="h-9 max-w-xs"
                         />
@@ -322,32 +510,32 @@ export default function SalaryMonitoringPage() {
                     {/* Table and List Views */}
                     <div className="hidden md:block">
                         <Table>
-                            <TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Employee</TableHead><TableHead>Description</TableHead><TableHead className="text-right">Amount</TableHead></TableRow></TableHeader>
+                            <TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Employee</TableHead><TableHead>Description</TableHead><TableHead className="text-right">Gross Amount</TableHead></TableRow></TableHeader>
                             <TableBody>
                                 {isSalaryLoading ? <TableRow><TableCell colSpan="4" className="text-center py-6">Loading...</TableCell></TableRow> :
-                                filteredRecords?.length === 0 ? <TableRow><TableCell colSpan="4" className="text-center py-8">No records for this period.</TableCell></TableRow> :
-                                filteredRecords?.map(record => (
-                                    <TableRow key={record.id} className="border-b">
-                                        <TableCell>{format(new Date(record.expense_date), 'EEE, MMM d, yyyy h:mm a')}</TableCell>
-                                        <TableCell className="font-bold">{record.employee_name || 'N/A'}</TableCell>
-                                        <TableCell>{record.description}</TableCell>
-                                        <TableCell className="text-right font-bold text-red-600">{currency(record.amount, { symbol: '₱' }).format()}</TableCell>
-                                    </TableRow>
-                                ))}
+                                    filteredRecords?.length === 0 ? <TableRow><TableCell colSpan="4" className="text-center py-8">No records for this period.</TableCell></TableRow> :
+                                        filteredRecords?.map(record => (
+                                            <TableRow key={record.id} className="border-b">
+                                                <TableCell>{format(new Date(record.expense_date), 'EEE, MMM d, yyyy h:mm a')}</TableCell>
+                                                <TableCell className="font-bold">{record.employee_name || 'N/A'}</TableCell>
+                                                <TableCell>{record.description}</TableCell>
+                                                <TableCell className="text-right font-bold text-red-600">{currency(record.amount, { symbol: '₱' }).format()}</TableCell>
+                                            </TableRow>
+                                        ))}
                             </TableBody>
                         </Table>
                     </div>
                     <div className="block md:hidden p-4 space-y-4">
                         {isSalaryLoading ? <p className="text-center py-6">Loading...</p> :
-                        filteredRecords?.length === 0 ? <p className="text-center py-8">No records for this period.</p> :
-                        filteredRecords?.map(record => (
-                            <div key={record.id} className="bg-white p-4 rounded-xl shadow-sm border-b">
-                                <div className="flex justify-between items-start"><span className="font-bold">{record.employee_name || 'N/A'}</span><span className="font-bold text-red-600">{currency(record.amount, { symbol: '₱' }).format()}</span></div>
-                                <div className="flex justify-between items-center text-sm text-gray-500 mt-2"><span>{record.description}</span><span>{format(new Date(record.expense_date), 'EEE, MMM d, h:mm a')}</span></div>
-                            </div>
-                        ))}
+                            filteredRecords?.length === 0 ? <p className="text-center py-8">No records for this period.</p> :
+                                filteredRecords?.map(record => (
+                                    <div key={record.id} className="bg-white p-4 rounded-xl shadow-sm border-b">
+                                        <div className="flex justify-between items-start"><span className="font-bold">{record.employee_name || 'N/A'}</span><span className="font-bold text-red-600">{currency(record.amount, { symbol: '₱' }).format()}</span></div>
+                                        <div className="flex justify-between items-center text-sm text-gray-500 mt-2"><span>{record.description}</span><span>{format(new Date(record.expense_date), 'EEE, MMM d, h:mm a')}</span></div>
+                                    </div>
+                                ))}
                     </div>
-                    
+
                     {/* Period Navigation */}
                     <div className="flex items-center justify-between p-4 bg-gray-50 rounded-b-lg border-t">
                         <Button
@@ -383,7 +571,7 @@ export default function SalaryMonitoringPage() {
                         <form onSubmit={handleSaveEmployee} className="space-y-4 bg-gray-50 p-4 rounded-lg border">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div><Label>Employee Name</Label><Input value={empFormName} onChange={e => setEmpFormName(e.target.value)} required /></div>
-                                <div><Label>Default Salary (₱)</Label><Input type="number" step="0.01" value={empFormSalary} onChange={e => setEmpFormSalary(e.target.value)} /></div>
+                                <div><Label>Daily Wage Rate (₱)</Label><Input type="number" step="0.01" value={empFormSalary} onChange={e => setEmpFormSalary(e.target.value)} /></div>
                             </div>
                             <div className="flex justify-end gap-2">
                                 {editingEmpId && <Button type="button" variant="ghost" onClick={() => { setEditingEmpId(null); setEmpFormName(''); setEmpFormSalary(''); }}>Cancel</Button>}
@@ -392,19 +580,19 @@ export default function SalaryMonitoringPage() {
                         </form>
                         <div className="max-h-80 overflow-y-auto border rounded-lg">
                             <Table>
-                                <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Default Salary</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
+                                <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Daily Rate</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
                                 <TableBody>
                                     {isEmpLoading ? <TableRow><TableCell colSpan="3" className="text-center">Loading...</TableCell></TableRow> :
-                                    employees?.map(emp => (
-                                        <TableRow key={emp.id}>
-                                            <TableCell className="font-medium">{emp.name}</TableCell>
-                                            <TableCell>{currency(emp.default_salary, { symbol: '₱' }).format()}</TableCell>
-                                            <TableCell className="text-right space-x-2">
-                                                <button onClick={() => handleEditClick(emp)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md"><Edit2 className="w-4 h-4" /></button>
-                                                <button onClick={() => handleDeleteEmployee(emp.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-md"><Trash2 className="w-4 h-4" /></button>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
+                                        employees?.map(emp => (
+                                            <TableRow key={emp.id}>
+                                                <TableCell className="font-medium">{emp.name}</TableCell>
+                                                <TableCell>{currency(emp.default_salary, { symbol: '₱' }).format()}</TableCell>
+                                                <TableCell className="text-right space-x-2">
+                                                    <button onClick={() => handleEditClick(emp)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md"><Edit2 className="w-4 h-4" /></button>
+                                                    <button onClick={() => handleDeleteEmployee(emp.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-md"><Trash2 className="w-4 h-4" /></button>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
                                 </TableBody>
                             </Table>
                         </div>

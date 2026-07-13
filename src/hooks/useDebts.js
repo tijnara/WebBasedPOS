@@ -19,6 +19,8 @@ export function useDebts() {
                         description: 'Delivery Truck Financing',
                         total_debt_amount: 250000.00,
                         weekly_payment_amount: 15000.00,
+                        frequency: 'Weekly',
+                        type: 'company',
                         debt_payments: [
                             { id: 1, amount_paid: 15000.00, date_paid: '2026-04-17' },
                             { id: 2, amount_paid: 15000.00, date_paid: '2026-04-24' }
@@ -30,6 +32,18 @@ export function useDebts() {
                         description: 'Office Renovation Materials',
                         total_debt_amount: 80000.00,
                         weekly_payment_amount: 5000.00,
+                        frequency: 'Every 15 days',
+                        type: 'company',
+                        debt_payments: []
+                    },
+                    {
+                        id: 103,
+                        debt_date: '2026-07-01',
+                        description: 'John Doe - Cash Advance',
+                        total_debt_amount: 5000.00,
+                        weekly_payment_amount: 500.00,
+                        frequency: 'Weekly',
+                        type: 'employee',
                         debt_payments: []
                     }
                 ];
