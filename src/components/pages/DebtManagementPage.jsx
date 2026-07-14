@@ -178,13 +178,27 @@ export default function DebtManagementPage() {
         e.preventDefault();
         if (isDemo) return addToast({ title: 'Demo', description: 'Disabled in demo.', variant: 'warning' });
 
+        // 1. Find the target debt so we can get its description
+        const targetDebt = employeeDebts.find(d => d.id.toString() === selectedEmpDebtId);
+
         try {
+            // 2. Log the payment to the Employee Liability Registry
             await createPaymentMutation.mutateAsync({
                 debt_id: parseInt(selectedEmpDebtId, 10),
                 amount_paid: parseFloat(empAmountPaid),
                 date_paid: empDatePaid
             });
-            addToast({ title: 'Success', description: 'Employee payment logged (No expense triggered).', variant: 'success' });
+
+            // 3. NEW: Automatically record this as a cash inflow in the Expenses Page
+            await createExpenseMutation.mutateAsync({
+                expense_date: empDatePaid,
+                category: 'Debt Repayment',
+                description: `Manual Repayment - ${targetDebt?.description || `Account #${selectedEmpDebtId}`}`,
+                // We use -Math.abs() to force it to be a negative expense (which adds to your net cash)
+                amount: -Math.abs(parseFloat(empAmountPaid)) 
+            });
+
+            addToast({ title: 'Success', description: 'Employee payment and expense logged.', variant: 'success' });
             setEmpAmountPaid(''); setSelectedEmpDebtId('');
         } catch (error) {
             addToast({ title: 'Error', description: error.message, variant: 'destructive' });

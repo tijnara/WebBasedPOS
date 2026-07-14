@@ -1,4 +1,4 @@
-    import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
     import Link from 'next/link';
     import currency from 'currency.js';
     import { startOfWeek, endOfWeek, parseISO, format, subWeeks, addWeeks, getDay } from 'date-fns';
@@ -716,9 +716,23 @@
                                                             </div>
                                                         </div>
                                                         <div className="text-right flex flex-col items-end pl-3 min-w-[120px]">
-                                                            <span className={`font-bold ${isVoided ? 'text-text-muted line-through' : 'text-red-600'}`}>
-                                                                -{currency(exp.amount, { symbol: '₱' }).format()}
-                                                            </span>
+                                                            {(() => {
+                                                                const isNegative = Number(exp.amount) < 0;
+                                                                const displayAmount = Math.abs(Number(exp.amount));
+                                                                
+                                                                // If it's a negative expense (inflow/repayment), make it green with a '+'
+                                                                // Otherwise, standard red with a '-'
+                                                                const colorClass = isVoided 
+                                                                    ? 'text-text-muted line-through' 
+                                                                    : (isNegative ? 'text-green-600' : 'text-red-600');
+                                                                const sign = isNegative ? '+' : '-';
+
+                                                                return (
+                                                                    <span className={`font-bold ${colorClass}`}>
+                                                                        {sign}{currency(displayAmount, { symbol: '₱' }).format()}
+                                                                    </span>
+                                                                );
+                                                            })()}
                                                             <div className="flex gap-2 mt-1">
                                                                 {!isVoided && (
                                                                     <button onClick={() => handleEditClick(exp)} className="p-1 text-text-muted expense-action-btn" title="Edit" disabled={isDemo}>
