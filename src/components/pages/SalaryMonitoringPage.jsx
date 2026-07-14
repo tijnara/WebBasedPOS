@@ -118,35 +118,63 @@ export default function SalaryMonitoringPage() {
     const activeDeductions = useMemo(() => {
         if (!payrollEmpId || !payrollDate) return [];
 
+        // 1. Determine the exact start and end dates of the CURRENT payroll period
         const [y, m, dDay] = payrollDate.split('-').map(Number);
-        const lastDayOfMonth = new Date(y, m, 0).getDate();
-        const isDeductionDay = dDay === 15 || dDay === 30 || dDay === lastDayOfMonth;
-
-        // Ensure auto deductions only trigger on 15th, 30th, or end of month
-        if (!isDeductionDay) return [];
+        let periodStart, periodEnd;
+        
+        if (dDay <= 15) {
+            periodStart = new Date(y, m - 1, 1);   // 1st of the month
+            periodEnd = new Date(y, m - 1, 15);    // 15th of the month
+        } else {
+            periodStart = new Date(y, m - 1, 16);  // 16th of the month
+            periodEnd = new Date(y, m, 0);         // Last day of the month
+        }
 
         const empDebts = debts.filter(d =>
-            d.type === 'employee' &&
-            (d.employee_id === Number(payrollEmpId) || (d.description && d.description.includes(payrollEmpName)))
+            d.type?.toLowerCase() === 'employee' &&
+            (d.employee_id === Number(payrollEmpId) || (d.description && d.description.toLowerCase().includes(payrollEmpName.toLowerCase())))
         );
 
         return empDebts.map(debt => {
             const totalPaid = (debt.debt_payments || []).reduce((sum, p) => sum + Number(p.amount_paid), 0);
             const remainingDebt = Number(debt.total_debt_amount) - totalPaid;
 
-            if (remainingDebt <= 0) return null;
+            if (remainingDebt <= 0) return null; // Debt is fully paid off
 
-            let deduction = debt.frequency === 'Every 15 days'
-                ? Number(debt.weekly_payment_amount)
-                : Number(debt.weekly_payment_amount) * 2;
+            // 2. Calculate the base scheduled deduction
+            let scheduledDeduction = debt.frequency === 'Every 15 days'
+                ? Number(debt.weekly_payment_amount || 0)
+                : Number(debt.weekly_payment_amount || 0) * 2;
 
-            if (deduction > remainingDebt) deduction = remainingDebt;
+            // 3. Find any manual payments made specifically during this cutoff period
+            const paymentsInPeriod = (debt.debt_payments || []).filter(p => {
+                const pDateStr = p.date_paid.split('T')[0];
+                const [py, pm, pd] = pDateStr.split('-').map(Number);
+                const pDate = new Date(py, pm - 1, pd);
+                
+                return pDate >= periodStart && pDate <= periodEnd;
+            });
+
+            // Sum up how much they already paid manually this period
+            const amountPaidInPeriod = paymentsInPeriod.reduce((sum, p) => sum + Number(p.amount_paid), 0);
+
+            // 4. Subtract early manual payments from the scheduled deduction
+            let finalDeduction = scheduledDeduction - amountPaidInPeriod;
+
+            // If they already paid equal to (or more than) their expected deduction, SKIP auto-deduct for this date
+            if (finalDeduction <= 0) return null;
+
+            // Ensure we don't over-deduct the actual remaining balance
+            if (finalDeduction > remainingDebt) finalDeduction = remainingDebt;
 
             return {
                 debt_id: debt.id,
                 description: debt.description,
-                amount: deduction,
-                remaining: remainingDebt
+                amount: finalDeduction,
+                remaining: remainingDebt,
+                frequency: debt.frequency,
+                baseAmount: Number(debt.weekly_payment_amount),
+                debtDate: debt.debt_date
             };
         }).filter(Boolean);
     }, [debts, payrollEmpId, payrollEmpName, payrollDate]);
@@ -359,18 +387,6 @@ export default function SalaryMonitoringPage() {
                                 </div>
 
                                 {(() => {
-                                    const [y, m, dDay] = payrollDate.split('-').map(Number);
-                                    const lastDay = new Date(y, m, 0).getDate();
-                                    const isDeductionDay = dDay === 15 || dDay === 30 || dDay === lastDay;
-
-                                    if (!isDeductionDay) {
-                                        return (
-                                            <div className="px-4 py-3 border-b text-sm text-gray-500 italic">
-                                                * Auto-deductions are paused. Deductions only trigger automatically on the 15th, 30th, or end of the month.
-                                            </div>
-                                        );
-                                    }
-
                                     if (activeDeductions.length > 0) {
                                         return (
                                             <div className="px-4 py-3 border-b bg-red-50/50">
@@ -378,7 +394,12 @@ export default function SalaryMonitoringPage() {
                                                 <ul className="text-sm space-y-1">
                                                     {activeDeductions.map(d => (
                                                         <li key={d.debt_id} className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1 sm:gap-2">
-                                                            <span className="flex-1 text-gray-700 break-words">{d.description}</span>
+                                                            <span className="flex-1 text-gray-700 break-words">
+                                                                {d.description}
+                                                                <span className="text-xs text-gray-500 italic ml-2">
+                                                                    (₱{d.baseAmount.toFixed(2)} / {d.frequency} | Date: {d.debtDate ? format(new Date(d.debtDate), 'MMM d, yyyy') : 'N/A'})
+                                                                </span>
+                                                            </span>
                                                             <span className="font-medium text-red-600 sm:whitespace-nowrap">- ₱{d.amount.toFixed(2)}</span>
                                                         </li>
                                                     ))}
@@ -412,7 +433,7 @@ export default function SalaryMonitoringPage() {
                                 </div>
                             </div>
 
-                            <Button type="submit" disabled={processDeductionsMutation.isPending || activeDeductions.length === 0} className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white">
+                            <Button type="submit" disabled={processDeductionsMutation.isPending || activeDeductions.length === 0} className="w-full h-11 btn-apple-green text-white">
                                 {processDeductionsMutation.isPending ? 'Processing...' : 'Process Deductions'}
                             </Button>
                         </form>
