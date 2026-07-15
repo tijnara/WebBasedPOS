@@ -188,6 +188,7 @@ const Navbar = () => {
                 { name: 'POS', path: '/pos', icon: <CartIcon className="h-5 w-5 menu-icon" /> },
                 { name: 'Sale History', path: '/history', icon: <ChartIcon className="h-5 w-5 menu-icon" /> },
                 { name: 'Customer', path: '/customer-management', icon: <UserIcon className="h-5 w-5 menu-icon" /> },
+                { name: 'Filter Tracking', path: '/filter-tracking', icon: <SettingsIcon className="h-5 w-5 menu-icon" /> },
             ]
         },
         {
