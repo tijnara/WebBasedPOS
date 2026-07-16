@@ -75,17 +75,28 @@ export default function SeasideNewLanding() {
             <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-green-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
             <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-lime-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
 
-            {/* Top Navigation */}
-            <nav className="relative z-20 flex justify-between items-center p-6 lg:px-12 max-w-7xl mx-auto w-full">
-                <div className="flex items-center space-x-3 font-extrabold text-2xl tracking-tight">
-                    <div className="w-16 h-16 flex items-center justify-center">
+            {/* Top Navigation - Updated for Mobile Visibility */}
+            <nav className="relative z-20 flex justify-between items-center p-4 sm:p-6 lg:px-12 max-w-7xl mx-auto w-full">
+                <div className="flex items-center space-x-2 sm:space-x-3 font-extrabold text-xl sm:text-2xl tracking-tight">
+                    {/* Logo scaled down slightly on mobile to prevent overlapping */}
+                    <div className="w-10 h-10 sm:w-16 sm:h-16 flex items-center justify-center">
                         <img src="/seasidelogo_.png" alt="Seaside Logo" className="w-full h-full object-contain" />
                     </div>
                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-slate-800 to-green-800">Seaside</span>
                 </div>
 
-                <div className="hidden md:flex space-x-10 text-sm font-semibold tracking-wide relative z-50">
-                    <a href="/about" className="hover:text-green-700 transition-colors duration-300">About</a>
+                {/* Removed 'hidden md:flex' so links show on mobile, adjusted spacing dynamically */}
+                <div className="flex items-center space-x-4 sm:space-x-6 md:space-x-10 text-sm font-semibold tracking-wide relative z-50">
+                    <a
+                        href="/about"
+                        onClick={(e) => {
+                            e.preventDefault();
+                            window.location.href = '/about';
+                        }}
+                        className="hover:text-green-700 transition-colors duration-300 cursor-pointer"
+                    >
+                        About
+                    </a>
                     <a href="#contact" className="hover:text-green-700 transition-colors duration-300">Contact</a>
                 </div>
             </nav>
