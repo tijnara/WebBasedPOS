@@ -109,14 +109,16 @@ export default function SeasideNewLanding() {
             alert('Failed to send message. Please try again.');
         }
     };
-    
+
     // --- Focus Handling ---
     const handleContactClick = () => {
-        setActiveCard('contact');
-        // Use a timeout to ensure the input is rendered before focusing
-        setTimeout(() => {
-            contactEmailRef.current?.focus();
-        }, 100);
+        setActiveCard(activeCard === 'login' ? 'contact' : 'login');
+        if (activeCard === 'login') {
+            // Use a timeout to ensure the input is rendered before focusing
+            setTimeout(() => {
+                contactEmailRef.current?.focus();
+            }, 100);
+        }
     };
 
     return (
@@ -138,22 +140,55 @@ export default function SeasideNewLanding() {
                     </div>
                     <span className="text-green-700">Seaside</span>
                 </div>
-                <div className="flex items-center space-x-4 sm:space-x-6 md:space-x-10 text-sm font-semibold tracking-wide relative z-50">
-                    <a href="/about" onClick={(e) => { e.preventDefault(); window.location.href = '/about'; }} className="hover:text-green-700 transition-colors duration-300 cursor-pointer">About</a>
-                    <button onClick={handleContactClick} className="hover:text-green-700 transition-colors duration-300 cursor-pointer outline-none font-semibold">
-                        Contact
+
+                <div className="flex items-center space-x-6 sm:space-x-8 md:space-x-12 text-sm font-semibold tracking-wide relative z-50">
+
+                    {/* FIXED: About Link is First. Isolated container specifically for About + Arrow to ensure perfect centering */}
+                    <div className="relative flex justify-center">
+                        <a
+                            href="/about"
+                            onClick={(e) => { e.preventDefault(); window.location.href = '/about'; }}
+                            className="hover:text-green-700 transition-colors duration-300 cursor-pointer font-bold relative z-10"
+                        >
+                            About
+                        </a>
+
+                        {/* Rainbow Pointer properly anchored to "About" */}
+                        <div className="absolute top-[120%] left-1/2 transform -translate-x-1/2 flex flex-col items-center pointer-events-none w-[160px] sm:w-[200px] z-[100]">
+                            {/* Perfectly centered bouncing vertical arrow */}
+                            <svg className="w-5 h-5 sm:w-6 sm:h-6 animate-bounce mb-1 drop-shadow-md" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <defs>
+                                    <linearGradient id="violet-arrow" x1="0%" y1="0%" x2="100%" y2="0%">
+                                        <stop offset="0%" stopColor="#a855f7" />
+                                        <stop offset="100%" stopColor="#6366f1" />
+                                    </linearGradient>
+                                </defs>
+                                <path stroke="url(#violet-arrow)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3.5" d="M12 4v16m0-16l-6 6m6-6l6 6" />
+                            </svg>
+                            <span className="text-[10px] sm:text-[11px] font-black text-center leading-tight text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-indigo-500 drop-shadow-sm px-1">
+                                For Our Guest: To know more about SEASIDE water refilling station
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* FIXED: Contact Link is Second */}
+                    <button onClick={handleContactClick} className="hover:text-green-700 transition-colors duration-300 cursor-pointer outline-none font-bold">
+                        {activeCard === 'login' ? 'Contact' : 'Login'}
                     </button>
+
                 </div>
             </nav>
 
             {/* Main Content */}
-            <main className="relative z-10 flex-grow flex items-center justify-center p-6">
+            <main className="relative z-10 flex-grow flex items-center justify-center p-6 mt-8 sm:mt-0">
                 <div className="max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
                     {/* Left Side */}
                     <div className="space-y-6">
                         <h1 className="text-5xl lg:text-7xl font-extrabold leading-tight tracking-tight text-green-700">
                             Seaside <br />
-                            Sales <br />
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-indigo-500">
+                                Sales
+                            </span> <br />
                             System
                         </h1>
 
