@@ -124,7 +124,7 @@ export default function SeasideNewLanding() {
                     <div className="w-10 h-10 sm:w-16 sm:h-16 flex items-center justify-center">
                         <img src="/seasidelogo_.png" alt="Seaside Logo" className="w-full h-full object-contain" />
                     </div>
-                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-900 to-teal-800">Seaside</span>
+                    <span className="text-green-700">Seaside</span>
                 </div>
                 <div className="flex items-center space-x-4 sm:space-x-6 md:space-x-10 text-sm font-semibold tracking-wide relative z-50">
                     <a href="/about" onClick={(e) => { e.preventDefault(); window.location.href = '/about'; }} className="hover:text-green-700 transition-colors duration-300 cursor-pointer">About</a>
@@ -138,21 +138,24 @@ export default function SeasideNewLanding() {
             <main className="relative z-10 flex-grow flex items-center justify-center p-6">
                 <div className="max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
                     {/* Left Side */}
-                    <div className="space-y-8">
-                        <div className="inline-flex items-center space-x-2 bg-black/5 backdrop-blur-md border border-black/10 rounded-full px-4 py-1.5 text-xs font-bold tracking-widest text-green-800 uppercase shadow-xl">
-                            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                            <span>Water Station Management</span>
-                        </div>
-                        <h1 className="text-5xl lg:text-7xl font-extrabold leading-tight tracking-tight">
-                            Streamline your <br />
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-lime-600">Water Business</span>
+                    <div className="space-y-6">
+                        <h1 className="text-5xl lg:text-7xl font-extrabold leading-tight tracking-tight text-green-700">
+                            Seaside <br />
+                            Sales <br />
+                            System
                         </h1>
-                        <p className="text-lg text-slate-600/80 max-w-lg leading-relaxed">
-                            The all-in-one platform built specifically for water refilling stations. Manage your sales, deliveries, inventory, and customers effortlessly.
+
+                        <p className="text-lg text-slate-700 font-medium max-w-lg leading-relaxed">
+                            Complete business management platform for modern enterprises. Streamline your operations from sales to delivery.
                         </p>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
-                            <Feature text="Real-time Sales Tracking" /><Feature text="Customer Management" />
-                            <Feature text="Inventory & Spoilage" /><Feature text="Delivery Routing" />
+
+                        <div className="flex flex-col space-y-4 pt-2">
+                            <Feature icon="analytics" text="Real-time Sales Analytics" />
+                            <Feature icon="inventory" text="Multi-warehouse Inventory" />
+                            <Feature icon="finance" text="Financial Reporting" />
+                            <Feature icon="customer" text="Customer Management" />
+                            <Feature icon="delivery" text="Delivery Tracking" />
+                            <Feature icon="social" text="Social Media Integration" />
                         </div>
                     </div>
 
@@ -227,16 +230,35 @@ export default function SeasideNewLanding() {
     );
 }
 
-// Helper component for the feature list items
-function Feature({ text }) {
+// Helper component for the dynamic feature list items
+function Feature({ icon, text }) {
+    const renderIcon = () => {
+        switch (icon) {
+            case 'analytics':
+                return <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />;
+            case 'inventory':
+                return <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />;
+            case 'finance':
+                return <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />;
+            case 'customer':
+                return <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />;
+            case 'delivery':
+                return <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />;
+            case 'social':
+                return <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />;
+            default:
+                return <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />;
+        }
+    };
+
     return (
-        <div className="flex items-center space-x-3 text-slate-600">
-            <div className="flex-shrink-0 w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center border border-green-400/30">
-                <svg className="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path>
+        <div className="flex items-center space-x-4 text-slate-700">
+            <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center border border-green-400/30">
+                <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    {renderIcon()}
                 </svg>
             </div>
-            <span className="font-medium text-sm">{text}</span>
+            <span className="font-semibold text-sm">{text}</span>
         </div>
     );
 }
