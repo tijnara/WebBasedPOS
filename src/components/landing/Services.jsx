@@ -126,11 +126,11 @@ const Services = () => {
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: isInView ? 1 : 0, y: isInView ? 0 : 50 }}
             transition={{ duration: 0.6 }}
-            className="bg-transparent relative mt-32 responsive-page"
+            className="bg-transparent relative mt-8 responsive-page" // Removed mt-32
             aria-labelledby="services-heading"
         >
-            <div className="px-6 py-20 pb-32 max-w-6xl mx-auto">
-                <div className="text-center mb-16 mt-48">
+            <div className="px-6 py-8 pb-16 max-w-6xl mx-auto">
+                <div className="text-center mb-16"> {/* Removed massive mt-48 */}
                     <div
                         className="inline-flex items-center justify-center rounded-full px-4 py-1 mb-8 shadow-sm"
                         style={{
@@ -169,8 +169,7 @@ const Services = () => {
                     ))}
                 </div>
             </div>
-            <br></br>
-            <br></br>
+            {/* NOTE: Removed the <br> tags from here */}
         </motion.section>
     );
 };

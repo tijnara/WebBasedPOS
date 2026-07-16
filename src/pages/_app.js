@@ -22,6 +22,7 @@ import { supabase } from '../lib/supabaseClient'; // Import Supabase client
 // Add a title map
 const titleMap = {
     '/': 'Seaside Purified Water Refilling Station | Labrador, Pangasinan',
+    '/about': 'About Us | Seaside WRS', // Added title for the about page
     '/login': 'Sign In | Seaside WRS',
     '/dashboard': 'Dashboard | Seaside WRS',
     '/pos': 'POS | Seaside WRS',
@@ -53,7 +54,8 @@ function AuthGate({ children }) {
     useEffect(() => {
         if (sessionLoaded) {
             const isLoggedIn = !!user;
-            const isPublicPage = ['/', '/login', '/terms', '/privacy', '/contact'].includes(router.pathname) || router.pathname.startsWith('/resources');
+            // CORRECTED: Added '/about' to the list of public pages
+            const isPublicPage = ['/', '/about', '/login', '/terms', '/privacy', '/contact'].includes(router.pathname) || router.pathname.startsWith('/resources');
 
             if (!isLoggedIn && !isPublicPage) {
                 if (process.env.NODE_ENV === 'development') console.log("AuthGate: Not logged in, redirecting to landing page");
@@ -130,8 +132,9 @@ function AuthGate({ children }) {
             </div>
         );
     }
-
-    if (['/', '/login', '/terms', '/privacy', '/contact'].includes(router.pathname) || router.pathname.startsWith('/resources') || user) {
+    
+    // CORRECTED: Added '/about' to the list of public pages
+    if (['/', '/about', '/login', '/terms', '/privacy', '/contact'].includes(router.pathname) || router.pathname.startsWith('/resources') || user) {
         return children;
     }
 
@@ -189,7 +192,8 @@ export default function App({ Component, pageProps }) {
         document.title = title;
     }, [router.pathname]);
 
-    const isPublicPage = ['/', '/login', '/terms', '/privacy', '/contact'].includes(router.pathname) || router.pathname.startsWith('/resources');
+    // CORRECTED: Added '/about' to the list of public pages
+    const isPublicPage = ['/', '/about', '/login', '/terms', '/privacy', '/contact'].includes(router.pathname) || router.pathname.startsWith('/resources');
     const hideNav = isPublicPage;
 
     return (

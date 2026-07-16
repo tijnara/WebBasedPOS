@@ -101,7 +101,7 @@ const WhyChooseUs = () => {
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: isInView ? 1 : 0, y: isInView ? 0 : 50 }}
             transition={{ duration: 0.6 }}
-            className="py-24 relative overflow-hidden font-sans bg-white responsive-page"
+            className="pt-16 pb-8 relative overflow-hidden font-sans bg-white responsive-page"
         >
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
 
@@ -176,9 +176,7 @@ const WhyChooseUs = () => {
                     })}
                 </div>
             </div>
-
-            <br></br>
-            <br></br>
+            {/* NOTE: Removed the <br> tags from here */}
         </motion.section>
     );
 };
