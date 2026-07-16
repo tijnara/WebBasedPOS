@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { supabase } from '../lib/supabaseClient';
@@ -8,6 +8,9 @@ import { useSettings } from '../hooks/useSettings';
 
 export default function SeasideNewLanding() {
     const router = useRouter();
+
+    // --- Refs for focus management ---
+    const contactEmailRef = useRef(null);
 
     // --- Settings and Global State ---
     const { data: settings } = useSettings() || {};
@@ -106,6 +109,15 @@ export default function SeasideNewLanding() {
             alert('Failed to send message. Please try again.');
         }
     };
+    
+    // --- Focus Handling ---
+    const handleContactClick = () => {
+        setActiveCard('contact');
+        // Use a timeout to ensure the input is rendered before focusing
+        setTimeout(() => {
+            contactEmailRef.current?.focus();
+        }, 100);
+    };
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-[#8DB600] to-white relative overflow-hidden font-sans text-slate-800 flex flex-col">
@@ -128,8 +140,8 @@ export default function SeasideNewLanding() {
                 </div>
                 <div className="flex items-center space-x-4 sm:space-x-6 md:space-x-10 text-sm font-semibold tracking-wide relative z-50">
                     <a href="/about" onClick={(e) => { e.preventDefault(); window.location.href = '/about'; }} className="hover:text-green-700 transition-colors duration-300 cursor-pointer">About</a>
-                    <button onClick={() => setActiveCard(activeCard === 'login' ? 'contact' : 'login')} className="hover:text-green-700 transition-colors duration-300 cursor-pointer outline-none font-semibold">
-                        {activeCard === 'login' ? 'Contact' : 'Login'}
+                    <button onClick={handleContactClick} className="hover:text-green-700 transition-colors duration-300 cursor-pointer outline-none font-semibold">
+                        Contact
                     </button>
                 </div>
             </nav>
@@ -196,7 +208,7 @@ export default function SeasideNewLanding() {
                                         <div className="hidden"><label htmlFor="honeypot">Do not fill this out</label><input type="text" id="honeypot" {...registerContact('honeypot')} /></div>
                                         <div className="space-y-1">
                                             <label className="text-xs font-bold text-slate-700 ml-1">Your Email Address</label>
-                                            <input type="email" {...registerContact('email', { required: 'Email is required', pattern: { value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i, message: 'Invalid email address' } })} className={`w-full px-5 py-4 bg-slate-50 border ${contactErrors.email ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-slate-200 focus:border-green-500 focus:ring-green-500/20'} rounded-2xl focus:outline-none focus:ring-4 transition-all font-medium text-slate-900 placeholder-slate-400 text-sm`} placeholder="@ example@email.com" />
+                                            <input type="email" {...registerContact('email', { required: 'Email is required', pattern: { value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i, message: 'Invalid email address' } })} ref={contactEmailRef} className={`w-full px-5 py-4 bg-slate-50 border ${contactErrors.email ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-slate-200 focus:border-green-500 focus:ring-green-500/20'} rounded-2xl focus:outline-none focus:ring-4 transition-all font-medium text-slate-900 placeholder-slate-400 text-sm`} placeholder="@ example@email.com" />
                                             {contactErrors.email && <p className="text-red-500 text-xs mt-1 ml-1 font-medium">{contactErrors.email.message}</p>}
                                         </div>
                                         <div className="space-y-1">
