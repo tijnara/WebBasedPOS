@@ -6,6 +6,12 @@ import { Facebook } from 'lucide-react';
 const ContactForm = ({ settings }) => {
     const { register, handleSubmit, formState: { errors, isSubmitting }, reset } = useForm({
         mode: 'onBlur',
+        // FIX: Initialize form with default values to prevent uncontrolled -> controlled error
+        defaultValues: {
+            email: '',
+            message: '',
+            honeypot: ''
+        }
     });
 
     const onSubmit = async (data) => {
@@ -20,7 +26,7 @@ const ContactForm = ({ settings }) => {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(data)
+                body: JSON.stringify({ email: data.email, message: data.message }) // Only send necessary fields
             });
 
             if (response.ok) {
