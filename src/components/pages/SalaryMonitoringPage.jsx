@@ -10,9 +10,10 @@ import {
 import { useSalaryRecords, useCreateSalary, useProcessDeductions } from '../../hooks/useSalary';
 import { useEmployees, useManageEmployee } from '../../hooks/useEmployees';
 import { useDebts } from '../../hooks/useDebts';
+import { useSalesSummary } from '../../hooks/useSalesSummary';
 import currency from 'currency.js';
 import { format, endOfMonth, subMonths, addMonths, startOfDay, endOfDay } from 'date-fns';
-import { ChevronLeft, ChevronRight, Users, Edit2, Trash2, Calendar, Calculator, FileText } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Users, Edit2, Trash2, Calendar, Calculator, FileText, AlertCircle } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 
 // --- Date Math Helpers ---
@@ -91,18 +92,42 @@ export default function SalaryMonitoringPage() {
     const [customEndDate, setCustomEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
     const [isCustomRangeActive, setIsCustomRangeActive] = useState(false);
 
-    const { data: salaryRecords, isLoading: isSalaryLoading } = useSalaryRecords(period.start, period.end);
-    const { data: employees, isLoading: isEmpLoading } = useEmployees();
-    const { data: debts = [] } = useDebts();
-    const createSalary = useCreateSalary();
-    const processDeductionsMutation = useProcessDeductions();
-    const manageEmployee = useManageEmployee();
-
     // ============================================================
     // STATE 1: AUTOMATED PAYROLL SECTION
     // ============================================================
     const [payrollEmpId, setPayrollEmpId] = useState('');
     const [payrollDate, setPayrollDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+
+    // ============================================================
+    // STATE 2: MANUAL SALARY SECTION
+    // ============================================================
+    const [employeeName, setEmployeeName] = useState('');
+    const [amount, setAmount] = useState('');
+    const [description, setDescription] = useState('Salary Payout');
+    const [payoutDate, setPayoutDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+    const [excessMultiplier, setExcessMultiplier] = useState('1');
+
+    // Employee Modal State
+    const [isManageModalOpen, setIsManageModalOpen] = useState(false);
+    const [editingEmpId, setEditingEmpId] = useState(null);
+    const [empFormName, setEmpFormName] = useState('');
+    const [empFormSalary, setEmpFormSalary] = useState('');
+    const [empFormSalaryType, setEmpFormSalaryType] = useState('per_day');
+    const [empFormMultiplier, setEmpFormMultiplier] = useState('');
+
+    const { data: salaryRecords, isLoading: isSalaryLoading } = useSalaryRecords(period.start, period.end);
+    const { data: employees, isLoading: isEmpLoading } = useEmployees();
+    const { data: debts = [] } = useDebts();
+
+    // Fetch daily summary for the payoutDate in Manual Record
+    const { data: dailySummary } = useSalesSummary({
+        startDate: useMemo(() => payoutDate ? startOfDay(new Date(payoutDate)) : null, [payoutDate]),
+        endDate: useMemo(() => payoutDate ? endOfDay(new Date(payoutDate)) : null, [payoutDate])
+    });
+    const dailyGallons = dailySummary?.totalGallons || 0;
+    const createSalary = useCreateSalary();
+    const processDeductionsMutation = useProcessDeductions();
+    const manageEmployee = useManageEmployee();
 
     const selectedPayrollEmp = employees?.find(e => e.id.toString() === payrollEmpId);
     const payrollEmpName = selectedPayrollEmp?.name || '';
@@ -182,20 +207,6 @@ export default function SalaryMonitoringPage() {
     const payrollTotalDeductions = activeDeductions.reduce((sum, d) => sum + d.amount, 0);
     const payrollNet = payrollGross - payrollTotalDeductions;
 
-    // ============================================================
-    // STATE 2: MANUAL SALARY SECTION (ORIGINAL UNTOUCHED)
-    // ============================================================
-    const [employeeName, setEmployeeName] = useState('');
-    const [amount, setAmount] = useState('');
-    const [description, setDescription] = useState('Salary Payout');
-    const [payoutDate, setPayoutDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-
-    // Employee Modal State
-    const [isManageModalOpen, setIsManageModalOpen] = useState(false);
-    const [editingEmpId, setEditingEmpId] = useState(null);
-    const [empFormName, setEmpFormName] = useState('');
-    const [empFormSalary, setEmpFormSalary] = useState('');
-
     const filteredRecords = useMemo(() => {
         if (filterEmployee === 'all') {
             return salaryRecords;
@@ -262,14 +273,37 @@ export default function SalaryMonitoringPage() {
     // HANDLER: ORIGINAL MANUAL SALARY
     // ============================================================
     const handleEmployeeSelect = (e) => {
-        const val = e.target.value;
-        setEmployeeName(val);
-
-        const match = employees?.find(emp => emp.name === val);
-        if (match && match.default_salary > 0) {
-            setAmount(match.default_salary);
-        }
+        setEmployeeName(e.target.value);
+        setExcessMultiplier('1');
     };
+
+    useEffect(() => {
+        if (!employeeName) return;
+        const emp = employees?.find(e => e.name === employeeName);
+        if (emp) {
+            let baseAmount = 0;
+            let bonusAmount = 0;
+            let breakdown = '';
+
+            if (emp.salary_type === 'per_container') {
+                const multiplier = Number(emp.container_multiplier || 1);
+                baseAmount = dailyGallons * multiplier;
+                breakdown = `(${dailyGallons} gal x${multiplier} = ${baseAmount})`;
+            } else {
+                baseAmount = Number(emp.default_salary || 0);
+            }
+
+            if (dailyGallons > 100) {
+                const excess = dailyGallons - 100;
+                const bonus = excess * Number(excessMultiplier);
+                bonusAmount = bonus;
+                breakdown += (breakdown ? ' + ' : ' ') + `Excess Bonus (${excess} gal x${excessMultiplier} = ${bonus})`;
+            }
+
+            setAmount((baseAmount + bonusAmount).toFixed(2));
+            setDescription(`Salary Payout${breakdown ? ' ' + breakdown : ''}`);
+        }
+    }, [employeeName, dailyGallons, employees, excessMultiplier]);
 
     const handleAddSalary = async (e) => {
         e.preventDefault();
@@ -304,15 +338,34 @@ export default function SalaryMonitoringPage() {
 
         try {
             if (editingEmpId) {
-                await manageEmployee.mutateAsync({ action: 'EDIT', employee: { id: editingEmpId, name: empFormName, default_salary: empFormSalary } });
+                await manageEmployee.mutateAsync({
+                    action: 'EDIT',
+                    employee: {
+                        id: editingEmpId,
+                        name: empFormName,
+                        default_salary: empFormSalary,
+                        salary_type: empFormSalaryType,
+                        container_multiplier: empFormSalaryType === 'per_container' ? empFormMultiplier : null
+                    }
+                });
                 addToast({ title: 'Updated', description: 'Employee updated.', variant: 'success' });
             } else {
-                await manageEmployee.mutateAsync({ action: 'ADD', employee: { name: empFormName, default_salary: empFormSalary } });
+                await manageEmployee.mutateAsync({
+                    action: 'ADD',
+                    employee: {
+                        name: empFormName,
+                        default_salary: empFormSalary,
+                        salary_type: empFormSalaryType,
+                        container_multiplier: empFormSalaryType === 'per_container' ? empFormMultiplier : null
+                    }
+                });
                 addToast({ title: 'Added', description: 'New employee added.', variant: 'success' });
             }
             setEditingEmpId(null);
             setEmpFormName('');
             setEmpFormSalary('');
+            setEmpFormSalaryType('per_day');
+            setEmpFormMultiplier('');
         } catch (error) {
             addToast({ title: 'Error', description: error.message, variant: 'destructive' });
         }
@@ -322,6 +375,8 @@ export default function SalaryMonitoringPage() {
         setEditingEmpId(emp.id);
         setEmpFormName(emp.name);
         setEmpFormSalary(emp.default_salary);
+        setEmpFormSalaryType(emp.salary_type || 'per_day');
+        setEmpFormMultiplier(emp.container_multiplier || '');
     };
 
     const handleDeleteEmployee = async (id) => {
@@ -460,17 +515,59 @@ export default function SalaryMonitoringPage() {
                                 </Select>
                             </div>
                             <div className="sm:col-span-1">
-                                <Label>Gross Amount (₱)</Label>
-                                <Input type="number" step="0.01" min="1" value={amount} onChange={e => setAmount(e.target.value)} required className="h-11" />
+                                {(() => {
+                                    const emp = employees?.find(e => e.name === employeeName);
+                                    const isPerContainer = emp?.salary_type === 'per_container';
+                                    return (
+                                        <>
+                                            <Label>
+                                                Gross Amount (₱) 
+                                                {isPerContainer && `: ${dailyGallons} gals x${emp.container_multiplier} = ${dailyGallons * Number(emp.container_multiplier)}`}
+                                                {dailyGallons > 100 && ` + Excess Bonus (${dailyGallons - 100} x${excessMultiplier} = ${(dailyGallons - 100) * Number(excessMultiplier)})`}
+                                            </Label>
+                                            <Input type="number" step="0.01" min="1" value={amount} onChange={e => setAmount(e.target.value)} required className="h-11" />
+                                        </>
+                                    );
+                                })()}
                             </div>
                             <div className="sm:col-span-1">
                                 <Label>Payout Date</Label>
-                                <Input type="date" value={payoutDate} onChange={e => setPayoutDate(e.target.value)} required className="h-11" />
+                                <Input type="date" value={payoutDate} onChange={e => { setPayoutDate(e.target.value); setExcessMultiplier('1'); }} required className="h-11" />
                             </div>
                             <div className="sm:col-span-1">
                                 <Label>Description</Label>
                                 <Input type="text" value={description} onChange={e => setDescription(e.target.value)} required className="h-11" />
                             </div>
+
+                            {dailyGallons > 100 && (
+                                <div className="sm:col-span-2 bg-orange-50 p-3 rounded-lg border border-orange-100 flex flex-col sm:flex-row justify-between items-center gap-3">
+                                    <div className="flex items-center gap-2 text-orange-800 text-sm font-medium">
+                                        <AlertCircle className="w-5 h-5 text-orange-500" />
+                                        <span>Quota exceeded: {dailyGallons - 100} gallons exceed the 100-gallon daily quota.</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Label className="whitespace-nowrap text-orange-900">Excess Multiplier:</Label>
+                                        <Select 
+                                            value={excessMultiplier} 
+                                            onChange={e => setExcessMultiplier(e.target.value)}
+                                            className="h-10 w-28 bg-white border-orange-200"
+                                        >
+                                            <option value="0">x0</option>
+                                            <option value="0.5">x0.5</option>
+                                            <option value="1">x1</option>
+                                            <option value="1.5">x1.5</option>
+                                            <option value="2">x2</option>
+                                            <option value="2.5">x2.5</option>
+                                            <option value="3">x3</option>
+                                            <option value="3.5">x3.5</option>
+                                            <option value="4">x4</option>
+                                            <option value="4.5">x4.5</option>
+                                            <option value="5">x5</option>
+                                        </Select>
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="sm:col-span-2">
                                 <Button type="submit" disabled={createSalary.isPending} className="btn--primary w-full h-11">
                                     {createSalary.isPending ? 'Saving...' : 'Record Salary'}
@@ -592,22 +689,55 @@ export default function SalaryMonitoringPage() {
                         <form onSubmit={handleSaveEmployee} className="space-y-4 bg-gray-50 p-4 rounded-lg border">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div><Label>Employee Name</Label><Input value={empFormName} onChange={e => setEmpFormName(e.target.value)} required /></div>
-                                <div><Label>Daily Wage Rate (₱)</Label><Input type="number" step="0.01" value={empFormSalary} onChange={e => setEmpFormSalary(e.target.value)} /></div>
+                                <div>
+                                    <Label>Salary Type</Label>
+                                    <Select value={empFormSalaryType} onChange={e => setEmpFormSalaryType(e.target.value)} required>
+                                        <option value="per_day">Per Day</option>
+                                        <option value="per_container">Per Container</option>
+                                    </Select>
+                                </div>
+                                {empFormSalaryType === 'per_day' ? (
+                                    <div><Label>Daily Wage Rate (₱)</Label><Input type="number" step="0.01" value={empFormSalary} onChange={e => setEmpFormSalary(e.target.value)} /></div>
+                                ) : (
+                                    <div>
+                                        <Label>Container Multiplier</Label>
+                                        <Select value={empFormMultiplier} onChange={e => setEmpFormMultiplier(e.target.value)} required>
+                                            <option value="" disabled>Select Multiplier...</option>
+                                            <option value="1">x1</option>
+                                            <option value="2">x2</option>
+                                            <option value="3">x3</option>
+                                            <option value="4">x4</option>
+                                            <option value="5">x5</option>
+                                        </Select>
+                                    </div>
+                                )}
                             </div>
                             <div className="flex justify-end gap-2">
-                                {editingEmpId && <Button type="button" variant="ghost" onClick={() => { setEditingEmpId(null); setEmpFormName(''); setEmpFormSalary(''); }}>Cancel</Button>}
+                                {editingEmpId && (
+                                    <Button type="button" variant="ghost" onClick={() => { 
+                                        setEditingEmpId(null); 
+                                        setEmpFormName(''); 
+                                        setEmpFormSalary(''); 
+                                        setEmpFormSalaryType('per_day');
+                                        setEmpFormMultiplier('');
+                                    }}>Cancel</Button>
+                                )}
                                 <Button type="submit" disabled={manageEmployee.isPending}>{editingEmpId ? 'Update' : 'Add Employee'}</Button>
                             </div>
                         </form>
                         <div className="max-h-80 overflow-y-auto border rounded-lg">
                             <Table>
-                                <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Daily Rate</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
+                                <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Salary Info</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
                                 <TableBody>
                                     {isEmpLoading ? <TableRow><TableCell colSpan="3" className="text-center">Loading...</TableCell></TableRow> :
                                         employees?.map(emp => (
                                             <TableRow key={emp.id}>
                                                 <TableCell className="font-medium">{emp.name}</TableCell>
-                                                <TableCell>{currency(emp.default_salary, { symbol: '₱' }).format()}</TableCell>
+                                                <TableCell>
+                                                    {emp.salary_type === 'per_container' 
+                                                        ? `Per Container (x${emp.container_multiplier})` 
+                                                        : currency(emp.default_salary, { symbol: '₱' }).format() + ' / day'}
+                                                </TableCell>
                                                 <TableCell className="text-right space-x-2">
                                                     <button onClick={() => handleEditClick(emp)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md"><Edit2 className="w-4 h-4" /></button>
                                                     <button onClick={() => handleDeleteEmployee(emp.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-md"><Trash2 className="w-4 h-4" /></button>

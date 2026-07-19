@@ -29,6 +29,8 @@ export function useManageEmployee() {
                 const { error } = await supabase.from('employees').insert([{ 
                     name: employee.name, 
                     default_salary: parseFloat(employee.default_salary || 0),
+                    salary_type: employee.salary_type || 'per_day',
+                    container_multiplier: employee.container_multiplier ? parseInt(employee.container_multiplier) : null,
                     is_active: true
                 }]);
                 if (error) throw error;
@@ -37,7 +39,9 @@ export function useManageEmployee() {
                 const { error } = await supabase.from('employees')
                     .update({ 
                         name: employee.name, 
-                        default_salary: parseFloat(employee.default_salary || 0) 
+                        default_salary: parseFloat(employee.default_salary || 0),
+                        salary_type: employee.salary_type,
+                        container_multiplier: employee.container_multiplier ? parseInt(employee.container_multiplier) : null
                     })
                     .eq('id', employee.id);
                 if (error) throw error;
