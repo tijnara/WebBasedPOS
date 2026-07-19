@@ -170,11 +170,11 @@ const POSCart = ({
                     <div className="w-full">
                         <div className="flex justify-between mb-1 text-sm">
                             <span>Subtotal</span>
-                            <span>₱{currency(subtotal, { symbol: '', precision: 2 }).format()}</span>
+                            <span>{currency(subtotal, { symbol: '₱', precision: 2 }).format()}</span>
                         </div>
                         <div className="flex justify-between mb-3 font-bold text-lg pt-2 mt-2">
                             <span>Total</span>
-                            <span className="text-success">₱{currency(subtotal, { symbol: '', precision: 2 }).format()}</span>
+                            <span className="text-success">{currency(subtotal, { symbol: '₱', precision: 2 }).format()}</span>
                         </div>
                         <Button
                             variant="primary"

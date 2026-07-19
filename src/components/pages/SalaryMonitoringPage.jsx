@@ -146,7 +146,7 @@ export default function SalaryMonitoringPage() {
         // 1. Determine the exact start and end dates of the CURRENT payroll period
         const [y, m, dDay] = payrollDate.split('-').map(Number);
         let periodStart, periodEnd;
-        
+
         if (dDay <= 15) {
             periodStart = new Date(y, m - 1, 1);   // 1st of the month
             periodEnd = new Date(y, m - 1, 15);    // 15th of the month
@@ -176,7 +176,7 @@ export default function SalaryMonitoringPage() {
                 const pDateStr = p.date_paid.split('T')[0];
                 const [py, pm, pd] = pDateStr.split('-').map(Number);
                 const pDate = new Date(py, pm - 1, pd);
-                
+
                 return pDate >= periodStart && pDate <= periodEnd;
             });
 
@@ -422,7 +422,7 @@ export default function SalaryMonitoringPage() {
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <Label>Select Employee</Label>
-                                    <Select value={payrollEmpId} onChange={(e) => setPayrollEmpId(e.target.value)} required className="h-11">
+                                    <Select value={payrollEmpId} onChange={(e) => setPayrollEmpId(e.target.value)} required className="h-11 w-full">
                                         <option value="" disabled>Select Staff...</option>
                                         {employees?.map(emp => (
                                             <option key={emp.id} value={emp.id}>{emp.name}</option>
@@ -431,7 +431,7 @@ export default function SalaryMonitoringPage() {
                                 </div>
                                 <div>
                                     <Label>Payout Date</Label>
-                                    <Input type="date" value={payrollDate} onChange={e => setPayrollDate(e.target.value)} required className="h-11" />
+                                    <Input type="date" value={payrollDate} onChange={e => setPayrollDate(e.target.value)} required className="h-11 w-full" />
                                 </div>
                             </div>
 
@@ -496,7 +496,7 @@ export default function SalaryMonitoringPage() {
                 </Card>
 
                 {/* ========================================================
-                    ORIGINAL SECTION: RECORD SALARY PAYMENT (UNTOUCHED LOGIC)
+                    ORIGINAL SECTION: RECORD SALARY PAYMENT (UPDATED LAYOUT)
                     ======================================================== */}
                 <Card>
                     <CardHeader className="bg-blue-50 border-b border-blue-100">
@@ -504,53 +504,69 @@ export default function SalaryMonitoringPage() {
                         <p className="text-xs text-blue-600">Record a salary payout or bonus into the Salary History below.</p>
                     </CardHeader>
                     <CardContent className="pt-6">
-                        <form onSubmit={handleAddSalary} className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
-                            <div className="sm:col-span-1">
+                        <form onSubmit={handleAddSalary} className="grid grid-cols-1 md:grid-cols-2 gap-4 md:items-end">
+                            <div className="md:col-span-2">
                                 <Label>Employee</Label>
-                                <Select value={employeeName} onChange={handleEmployeeSelect} required className="h-11">
+                                <Select value={employeeName} onChange={handleEmployeeSelect} required className="h-11 w-full">
                                     <option value="" disabled>Select Staff...</option>
                                     {employees?.map(emp => (
                                         <option key={emp.id} value={emp.name}>{emp.name}</option>
                                     ))}
                                 </Select>
                             </div>
-                            <div className="sm:col-span-1">
-                                {(() => {
-                                    const emp = employees?.find(e => e.name === employeeName);
-                                    const isPerContainer = emp?.salary_type === 'per_container';
-                                    return (
-                                        <>
-                                            <Label>
-                                                Gross Amount (₱) 
-                                                {isPerContainer && `: ${dailyGallons} gals x${emp.container_multiplier} = ${dailyGallons * Number(emp.container_multiplier)}`}
-                                                {dailyGallons > 100 && ` + Excess Bonus (${dailyGallons - 100} x${excessMultiplier} = ${(dailyGallons - 100) * Number(excessMultiplier)})`}
-                                            </Label>
-                                            <Input type="number" step="0.01" min="1" value={amount} onChange={e => setAmount(e.target.value)} required className="h-11" />
-                                        </>
-                                    );
-                                })()}
+                            <div className="md:col-span-1">
+                                <Label>Gross Amount (₱)</Label>
+                                <Input type="number" step="0.01" min="1" value={amount} onChange={e => setAmount(e.target.value)} required className="h-11 w-full" />
                             </div>
-                            <div className="sm:col-span-1">
+                            <div className="md:col-span-1">
                                 <Label>Payout Date</Label>
-                                <Input type="date" value={payoutDate} onChange={e => { setPayoutDate(e.target.value); setExcessMultiplier('1'); }} required className="h-11" />
+                                <Input type="date" value={payoutDate} onChange={e => { setPayoutDate(e.target.value); setExcessMultiplier('1'); }} required className="h-11 w-full" />
                             </div>
-                            <div className="sm:col-span-1">
+                            <div className="md:col-span-2">
                                 <Label>Description</Label>
-                                <Input type="text" value={description} onChange={e => setDescription(e.target.value)} required className="h-11" />
+                                <Input type="text" value={description} onChange={e => setDescription(e.target.value)} required className="h-11 w-full" />
                             </div>
 
+                            {/* Calculation Info Helper */}
+                            {(employeeName && employees?.find(e => e.name === employeeName)) && (
+                                <div className="md:col-span-2">
+                                    {(() => {
+                                        const emp = employees?.find(e => e.name === employeeName);
+                                        const isPerContainer = emp?.salary_type === 'per_container';
+                                        if (!isPerContainer && dailyGallons <= 100) return null;
+
+                                        return (
+                                            <div className="bg-blue-50/50 p-2 rounded-lg border border-blue-100 text-[11px] sm:text-xs text-blue-800 flex flex-wrap gap-x-4 gap-y-1">
+                                                {isPerContainer && (
+                                                    <span>
+                                                        <span className="font-bold opacity-70 uppercase mr-1">Base Calculation:</span>
+                                                        {dailyGallons} gal × ₱{emp.container_multiplier} = {currency(dailyGallons * Number(emp.container_multiplier), { symbol: '₱' }).format()}
+                                                    </span>
+                                                )}
+                                                {dailyGallons > 100 && (
+                                                    <span>
+                                                        <span className="font-bold opacity-70 uppercase mr-1">Quota Bonus:</span>
+                                                        {dailyGallons - 100} gal × x{excessMultiplier} = {currency((dailyGallons - 100) * Number(excessMultiplier), { symbol: '₱' }).format()}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        );
+                                    })()}
+                                </div>
+                            )}
+
                             {dailyGallons > 100 && (
-                                <div className="sm:col-span-2 bg-orange-50 p-3 rounded-lg border border-orange-100 flex flex-col sm:flex-row justify-between items-center gap-3">
+                                <div className="md:col-span-2 bg-orange-50 p-3 rounded-lg border border-orange-100 flex flex-col sm:flex-row justify-between items-center gap-3">
                                     <div className="flex items-center gap-2 text-orange-800 text-sm font-medium">
                                         <AlertCircle className="w-5 h-5 text-orange-500" />
-                                        <span>Quota exceeded: {dailyGallons - 100} gallons exceed the 100-gallon daily quota.</span>
+                                        <span>Quota exceeded: {dailyGallons - 100} gallons exceed the 100-gal daily quota.</span>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <Label className="whitespace-nowrap text-orange-900">Excess Multiplier:</Label>
-                                        <Select 
-                                            value={excessMultiplier} 
+                                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                                        <Label className="whitespace-nowrap text-orange-900 mb-0">Multiplier:</Label>
+                                        <Select
+                                            value={excessMultiplier}
                                             onChange={e => setExcessMultiplier(e.target.value)}
-                                            className="h-10 w-28 bg-white border-orange-200"
+                                            className="h-10 w-full sm:w-28 bg-white border-orange-200"
                                         >
                                             <option value="0">x0</option>
                                             <option value="0.5">x0.5</option>
@@ -568,7 +584,7 @@ export default function SalaryMonitoringPage() {
                                 </div>
                             )}
 
-                            <div className="sm:col-span-2">
+                            <div className="md:col-span-2">
                                 <Button type="submit" disabled={createSalary.isPending} className="btn--primary w-full h-11">
                                     {createSalary.isPending ? 'Saving...' : 'Record Salary'}
                                 </Button>
@@ -588,9 +604,9 @@ export default function SalaryMonitoringPage() {
                                 Period: {format(new Date(period.start), 'EEE, MMM d, yyyy')} — {format(new Date(period.end), 'EEE, MMM d, yyyy')}
                             </p>
                         </div>
-                        <div className="flex items-center gap-4 mt-4 md:mt-0">
-                            <div className="w-48">
-                                <Select value={filterEmployee} onChange={e => setFilterEmployee(e.target.value)}>
+                        <div className="flex flex-col sm:flex-row items-center gap-4 mt-4 md:mt-0 w-full md:w-auto">
+                            <div className="w-full sm:w-48">
+                                <Select value={filterEmployee} onChange={e => setFilterEmployee(e.target.value)} className="w-full">
                                     <option value="all">All Employees</option>
                                     {employees?.map(emp => (
                                         <option key={emp.id} value={emp.name}>{emp.name}</option>
@@ -612,16 +628,16 @@ export default function SalaryMonitoringPage() {
                             type="date"
                             value={customStartDate}
                             onChange={e => setCustomStartDate(e.target.value)}
-                            className="h-9 max-w-xs"
+                            className="h-9 w-full sm:max-w-xs"
                         />
-                        <span className="text-gray-500">-</span>
+                        <span className="hidden sm:inline text-gray-500">-</span>
                         <Input
                             type="date"
                             value={customEndDate}
                             onChange={e => setCustomEndDate(e.target.value)}
-                            className="h-9 max-w-xs"
+                            className="h-9 w-full sm:max-w-xs"
                         />
-                        <Button onClick={handleApplyCustomDate} className="h-9 btn-primary">Apply</Button>
+                        <Button onClick={handleApplyCustomDate} className="h-9 btn-primary w-full sm:w-auto">Apply</Button>
                     </div>
                 </CardHeader>
                 <CardContent className="p-0">
@@ -714,10 +730,10 @@ export default function SalaryMonitoringPage() {
                             </div>
                             <div className="flex justify-end gap-2">
                                 {editingEmpId && (
-                                    <Button type="button" variant="ghost" onClick={() => { 
-                                        setEditingEmpId(null); 
-                                        setEmpFormName(''); 
-                                        setEmpFormSalary(''); 
+                                    <Button type="button" variant="ghost" onClick={() => {
+                                        setEditingEmpId(null);
+                                        setEmpFormName('');
+                                        setEmpFormSalary('');
                                         setEmpFormSalaryType('per_day');
                                         setEmpFormMultiplier('');
                                     }}>Cancel</Button>
@@ -734,8 +750,8 @@ export default function SalaryMonitoringPage() {
                                             <TableRow key={emp.id}>
                                                 <TableCell className="font-medium">{emp.name}</TableCell>
                                                 <TableCell>
-                                                    {emp.salary_type === 'per_container' 
-                                                        ? `Per Container (x${emp.container_multiplier})` 
+                                                    {emp.salary_type === 'per_container'
+                                                        ? `Per Container (x${emp.container_multiplier})`
                                                         : currency(emp.default_salary, { symbol: '₱' }).format() + ' / day'}
                                                 </TableCell>
                                                 <TableCell className="text-right space-x-2">
