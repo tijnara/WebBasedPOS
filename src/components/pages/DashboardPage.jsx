@@ -431,6 +431,7 @@ export default function DashboardPage() {
                             isLoading={isMonthlyGrowthLoading}
                             value={`₱${(monthlyGrowthData?.thisMonthSales || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                             previousValue={`₱${(monthlyGrowthData?.lastMonthSales || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                            previousPeriodRange={monthlyGrowthData?.lastMonthStart ? `(${format(monthlyGrowthData.lastMonthStart, 'MMM d')} - ${format(monthlyGrowthData.lastMonthEnd, 'd')})` : undefined}
                             percentage={Math.abs(monthlyGrowthData?.salesGrowth)}
                             isPositive={monthlyGrowthData?.salesGrowth >= 0}
                             isPositiveColor={monthlyGrowthData?.thisMonthSales > monthlyGrowthData?.lastMonthSales}
@@ -441,6 +442,7 @@ export default function DashboardPage() {
                             isLoading={isMonthlyGrowthLoading}
                             value={`${(monthlyGrowthData?.thisMonthGallons || 0).toLocaleString()} gal`}
                             previousValue={`${(monthlyGrowthData?.lastMonthGallons || 0).toLocaleString()} gal`}
+                            previousPeriodRange={monthlyGrowthData?.lastMonthStart ? `(${format(monthlyGrowthData.lastMonthStart, 'MMM d')} - ${format(monthlyGrowthData.lastMonthEnd, 'd')})` : undefined}
                             percentage={Math.abs(monthlyGrowthData?.gallonsGrowth)}
                             isPositive={monthlyGrowthData?.gallonsGrowth >= 0}
                             isPositiveColor={monthlyGrowthData?.thisMonthGallons > monthlyGrowthData?.lastMonthGallons}
@@ -451,6 +453,7 @@ export default function DashboardPage() {
                             isLoading={isWeeklyGrowthLoading}
                             value={`₱${(weeklyGrowthData?.thisWeekSales || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                             previousValue={`₱${(weeklyGrowthData?.lastWeekSales || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                            previousPeriodRange={weeklyGrowthData?.lastWeekStart ? `(${format(weeklyGrowthData.lastWeekStart, 'MMM d')} - ${format(weeklyGrowthData.lastWeekEnd, 'd')})` : undefined}
                             percentage={Math.abs(weeklyGrowthData?.salesGrowth)}
                             isPositive={weeklyGrowthData?.salesGrowth >= 0}
                             isPositiveColor={weeklyGrowthData?.thisWeekSales > weeklyGrowthData?.lastWeekSales}
@@ -461,6 +464,7 @@ export default function DashboardPage() {
                             isLoading={isWeeklyGrowthLoading}
                             value={`${(weeklyGrowthData?.thisWeekGallons || 0).toLocaleString()} gal`}
                             previousValue={`${(weeklyGrowthData?.lastWeekGallons || 0).toLocaleString()} gal`}
+                            previousPeriodRange={weeklyGrowthData?.lastWeekStart ? `(${format(weeklyGrowthData.lastWeekStart, 'MMM d')} - ${format(weeklyGrowthData.lastWeekEnd, 'd')})` : undefined}
                             percentage={Math.abs(weeklyGrowthData?.gallonsGrowth)}
                             isPositive={weeklyGrowthData?.gallonsGrowth >= 0}
                             isPositiveColor={weeklyGrowthData?.thisWeekGallons > weeklyGrowthData?.lastWeekGallons}
