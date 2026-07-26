@@ -214,6 +214,18 @@ export default function SalaryMonitoringPage() {
         return salaryRecords?.filter(r => r.employee_name === filterEmployee);
     }, [salaryRecords, filterEmployee]);
 
+    const groupedRecords = useMemo(() => {
+        if (!filteredRecords) return {};
+        return filteredRecords.reduce((acc, record) => {
+            const key = record.employee_name || 'N/A';
+            if (!acc[key]) {
+                acc[key] = [];
+            }
+            acc[key].push(record);
+            return acc;
+        }, {});
+    }, [filteredRecords]);
+
     const periodTotal = useMemo(() => {
         return filteredRecords?.reduce((sum, record) => sum + Number(record.amount), 0) || 0;
     }, [filteredRecords]);
@@ -641,34 +653,60 @@ export default function SalaryMonitoringPage() {
                     </div>
                 </CardHeader>
                 <CardContent className="p-0">
-                    {/* Table and List Views */}
-                    <div className="hidden md:block">
-                        <Table>
-                            <TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Employee</TableHead><TableHead>Description</TableHead><TableHead className="text-right">Gross Amount</TableHead></TableRow></TableHeader>
-                            <TableBody>
-                                {isSalaryLoading ? <TableRow><TableCell colSpan="4" className="text-center py-6">Loading...</TableCell></TableRow> :
-                                    filteredRecords?.length === 0 ? <TableRow><TableCell colSpan="4" className="text-center py-8">No records for this period.</TableCell></TableRow> :
-                                        filteredRecords?.map(record => (
-                                            <TableRow key={record.id} className="border-b">
-                                                <TableCell>{format(new Date(record.expense_date), 'EEE, MMM d, yyyy h:mm a')}</TableCell>
-                                                <TableCell className="font-bold">{record.employee_name || 'N/A'}</TableCell>
-                                                <TableCell>{record.description}</TableCell>
-                                                <TableCell className="text-right font-bold text-red-600">{currency(record.amount, { symbol: '₱' }).format()}</TableCell>
-                                            </TableRow>
-                                        ))}
-                            </TableBody>
-                        </Table>
-                    </div>
-                    <div className="block md:hidden p-4 space-y-4">
-                        {isSalaryLoading ? <p className="text-center py-6">Loading...</p> :
-                            filteredRecords?.length === 0 ? <p className="text-center py-8">No records for this period.</p> :
-                                filteredRecords?.map(record => (
-                                    <div key={record.id} className="bg-white p-4 rounded-xl shadow-sm border-b">
-                                        <div className="flex justify-between items-start"><span className="font-bold">{record.employee_name || 'N/A'}</span><span className="font-bold text-red-600">{currency(record.amount, { symbol: '₱' }).format()}</span></div>
-                                        <div className="flex justify-between items-center text-sm text-gray-500 mt-2"><span>{record.description}</span><span>{format(new Date(record.expense_date), 'EEE, MMM d, h:mm a')}</span></div>
+                    {isSalaryLoading ? (
+                        <p className="text-center py-8">Loading...</p>
+                    ) : Object.keys(groupedRecords).length === 0 ? (
+                        <p className="text-center py-8">No records for this period.</p>
+                    ) : (
+                        Object.entries(groupedRecords).map(([employeeName, records]) => {
+                            const employeeTotal = records.reduce((sum, record) => sum + Number(record.amount), 0);
+                            return (
+                                <div key={employeeName} className="border-b last:border-b-0">
+                                    <div className="bg-gray-50/50 p-3 flex justify-between items-center">
+                                        <h4 className="font-bold text-md">{employeeName}</h4>
+                                        <div className="text-right">
+                                            <p className="text-xs text-gray-500">Employee Total</p>
+                                            <p className="font-bold text-red-600">{currency(employeeTotal, { symbol: '₱' }).format()}</p>
+                                        </div>
                                     </div>
-                                ))}
-                    </div>
+                                    {/* Desktop Table */}
+                                    <div className="hidden md:block">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead>Date</TableHead>
+                                                    <TableHead>Description</TableHead>
+                                                    <TableHead className="text-right">Gross Amount</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {records.map(record => (
+                                                    <TableRow key={record.id}>
+                                                        <TableCell>{format(new Date(record.expense_date), 'EEE, MMM d, yyyy h:mm a')}</TableCell>
+                                                        <TableCell>{record.description}</TableCell>
+                                                        <TableCell className="text-right font-bold text-red-600">{currency(record.amount, { symbol: '₱' }).format()}</TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                    {/* Mobile List */}
+                                    <div className="block md:hidden p-4 space-y-3">
+                                        {records.map(record => (
+                                            <div key={record.id} className="bg-white p-3 rounded-lg shadow-sm border">
+                                                <div className="flex justify-between items-start">
+                                                    <span className="text-sm flex-1 pr-2">{record.description}</span>
+                                                    <span className="font-bold text-red-600 text-md">{currency(record.amount, { symbol: '₱' }).format()}</span>
+                                                </div>
+                                                <p className="text-xs text-gray-500 mt-1 text-right">{format(new Date(record.expense_date), 'EEE, MMM d, h:mm a')}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            );
+                        })
+                    )}
+                </CardContent>
 
                     {/* Period Navigation */}
                     <div className="flex items-center justify-between p-4 bg-gray-50 rounded-b-lg border-t">
@@ -692,7 +730,6 @@ export default function SalaryMonitoringPage() {
                             Next 15-Day <ChevronRight className="w-4 h-4" />
                         </Button>
                     </div>
-                </CardContent>
             </Card>
 
             {/* EMPLOYEE MANAGEMENT MODAL */}
