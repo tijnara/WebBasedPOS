@@ -570,15 +570,15 @@ export default function SalaryMonitoringPage() {
                             {dailyGallons > 100 && (
                                 <div className="md:col-span-2 bg-orange-50 p-3 rounded-lg border border-orange-100 flex flex-col sm:flex-row justify-between items-center gap-3">
                                     <div className="flex items-center gap-2 text-orange-800 text-sm font-medium">
-                                        <AlertCircle className="w-5 h-5 text-orange-500" />
+                                        <AlertCircle className="w-5 h-5 text-orange-500 shrink-0" />
                                         <span>Quota exceeded: {dailyGallons - 100} gallons exceed the 100-gal daily quota.</span>
                                     </div>
-                                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                                    <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
                                         <Label className="whitespace-nowrap text-orange-900 mb-0">Multiplier:</Label>
                                         <Select
                                             value={excessMultiplier}
                                             onChange={e => setExcessMultiplier(e.target.value)}
-                                            className="h-10 w-full sm:w-28 bg-white border-orange-200"
+                                            className="h-10 w-full sm:w-32 bg-white border-orange-200"
                                         >
                                             <option value="0">x0</option>
                                             <option value="0.5">x0.5</option>
@@ -708,28 +708,28 @@ export default function SalaryMonitoringPage() {
                     )}
                 </CardContent>
 
-                    {/* Period Navigation */}
-                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-b-lg border-t">
-                        <Button
-                            onClick={() => handleSetPeriod(getPrevPeriod(period.start))}
-                            disabled={isCustomRangeActive}
-                            variant="outline"
-                            className="flex items-center gap-1 disabled:opacity-50"
-                        >
-                            <ChevronLeft className="w-4 h-4" /> Prev 15-Day
-                        </Button>
-                        <span className="text-xs font-bold text-gray-400 uppercase">
+                {/* Period Navigation */}
+                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-b-lg border-t">
+                    <Button
+                        onClick={() => handleSetPeriod(getPrevPeriod(period.start))}
+                        disabled={isCustomRangeActive}
+                        variant="outline"
+                        className="flex items-center gap-1 disabled:opacity-50"
+                    >
+                        <ChevronLeft className="w-4 h-4" /> Prev 15-Day
+                    </Button>
+                    <span className="text-xs font-bold text-gray-400 uppercase">
                            {isCustomRangeActive ? "Custom Range" : `${format(new Date(period.start), 'MMM d')} - ${format(new Date(period.end), 'MMM d')}`}
                         </span>
-                        <Button
-                            onClick={() => handleSetPeriod(getNextPeriod(period.start))}
-                            disabled={isCustomRangeActive}
-                            variant="outline"
-                            className="flex items-center gap-1 disabled:opacity-50"
-                        >
-                            Next 15-Day <ChevronRight className="w-4 h-4" />
-                        </Button>
-                    </div>
+                    <Button
+                        onClick={() => handleSetPeriod(getNextPeriod(period.start))}
+                        disabled={isCustomRangeActive}
+                        variant="outline"
+                        className="flex items-center gap-1 disabled:opacity-50"
+                    >
+                        Next 15-Day <ChevronRight className="w-4 h-4" />
+                    </Button>
+                </div>
             </Card>
 
             {/* EMPLOYEE MANAGEMENT MODAL */}
