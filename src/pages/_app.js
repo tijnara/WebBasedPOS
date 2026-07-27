@@ -23,7 +23,6 @@ import { supabase } from '../lib/supabaseClient'; // Import Supabase client
 const titleMap = {
     '/': 'Seaside Purified Water Refilling Station | Labrador, Pangasinan',
     '/about': 'About Us | Seaside WRS', // Added title for the about page
-    '/login': 'Sign In | Seaside WRS',
     '/dashboard': 'Dashboard | Seaside WRS',
     '/pos': 'POS | Seaside WRS',
     '/inventory': 'Inventory | Seaside WRS',
@@ -55,14 +54,11 @@ function AuthGate({ children }) {
         if (sessionLoaded) {
             const isLoggedIn = !!user;
             // CORRECTED: Added '/about' to the list of public pages
-            const isPublicPage = ['/', '/about', '/login', '/terms', '/privacy', '/contact'].includes(router.pathname) || router.pathname.startsWith('/resources');
+            const isPublicPage = ['/', '/about', '/terms', '/privacy', '/contact'].includes(router.pathname) || router.pathname.startsWith('/resources');
 
             if (!isLoggedIn && !isPublicPage) {
                 if (process.env.NODE_ENV === 'development') console.log("AuthGate: Not logged in, redirecting to landing page");
                 router.push('/');
-            } else if (isLoggedIn && router.pathname === '/login') {
-                if (process.env.NODE_ENV === 'development') console.log("AuthGate: Logged in, redirecting from login to dashboard");
-                router.replace('/dashboard');
             }
         }
     }, [user, sessionLoaded, router]);
@@ -134,7 +130,7 @@ function AuthGate({ children }) {
     }
     
     // CORRECTED: Added '/about' to the list of public pages
-    if (['/', '/about', '/login', '/terms', '/privacy', '/contact'].includes(router.pathname) || router.pathname.startsWith('/resources') || user) {
+    if (['/', '/about', '/terms', '/privacy', '/contact'].includes(router.pathname) || router.pathname.startsWith('/resources') || user) {
         return children;
     }
 
@@ -193,7 +189,7 @@ export default function App({ Component, pageProps }) {
     }, [router.pathname]);
 
     // CORRECTED: Added '/about' to the list of public pages
-    const isPublicPage = ['/', '/about', '/login', '/terms', '/privacy', '/contact'].includes(router.pathname) || router.pathname.startsWith('/resources');
+    const isPublicPage = ['/', '/about', '/terms', '/privacy', '/contact'].includes(router.pathname) || router.pathname.startsWith('/resources');
     const hideNav = isPublicPage;
 
     return (

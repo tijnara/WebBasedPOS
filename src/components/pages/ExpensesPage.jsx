@@ -460,10 +460,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
                                     <p className="text-xs text-text-muted mt-1">Created on: April 19, 2026 Sunday</p>
                                 </div>
                                 <div className="text-right">
-                                    <Link href="/incentives" className="flex items-center gap-2 text-sm font-medium text-primary bg-primary/10 hover:bg-primary/20 px-4 py-2 rounded-full transition-colors shadow-sm mb-2">
-                                        <Star className="w-4 h-4" />
-                                        <span>Incentives</span>
-                                    </Link>
+
                                     <p className="text-text-muted text-xs font-semibold uppercase tracking-wider">
                                         {dateFrom === initialDateFrom ? 'Current Week Gross' : 'Selected Week Gross'}
                                     </p>

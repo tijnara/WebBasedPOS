@@ -22,11 +22,18 @@ import {
 import { EditIcon, DeleteIcon, UserIcon as StaffIcon } from '../Icons';
 
 // --- Dynamic Role Badge ---
-const RoleBadge = ({ categoryName, isAdmin }) => {
+const RoleBadge = ({ categoryName, isAdmin, color }) => {
     return (
-        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-            isAdmin ? 'bg-[#DCEDC8] text-[#33691E]' : 'bg-gray-100 text-gray-800'
-        }`}>
+        <span 
+            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                !color ? (isAdmin ? 'bg-[#DCEDC8] text-[#33691E]' : 'bg-gray-100 text-gray-800') : ''
+            }`}
+            style={color ? { 
+                backgroundColor: `${color}15`, 
+                color: color,
+                border: `1px solid ${color}30`
+            } : {}}
+        >
             {categoryName}
         </span>
     );
@@ -260,7 +267,7 @@ export default function UserManagementPage() {
                                                 </TableCell>
                                                 <TableCell>{u.email}</TableCell>
                                                 <TableCell>
-                                                    <RoleBadge categoryName={u.categoryName} isAdmin={u.isAdmin} />
+                                                    <RoleBadge categoryName={u.categoryName} isAdmin={u.isAdmin} color={u.color} />
                                                 </TableCell>
                                                 <TableCell>
                                                     {u.dateAdded instanceof Date && !isNaN(u.dateAdded)
@@ -304,7 +311,7 @@ export default function UserManagementPage() {
                                             <p className="text-sm text-muted">{u.email}</p>
                                         </div>
                                     </div>
-                                    <RoleBadge categoryName={u.categoryName} isAdmin={u.isAdmin} />
+                                    <RoleBadge categoryName={u.categoryName} isAdmin={u.isAdmin} color={u.color} />
                                 </div>
                                 <div className="flex items-center justify-between mt-4">
                                     <p className="text-sm text-muted">

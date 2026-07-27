@@ -21,8 +21,8 @@ export default function TabBar() {
     const router = useRouter();
     const user = useStore(s => s.user);
 
-    // Don't show the tab bar on the login page AND landing page ('/')
-    if (router.pathname === '/login' || router.pathname === '/') {
+    // Don't show the tab bar on the landing page ('/')
+    if (router.pathname === '/') {
         return null;
     }
 
