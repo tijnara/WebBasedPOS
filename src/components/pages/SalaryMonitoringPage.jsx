@@ -12,66 +12,69 @@ import { useEmployees, useManageEmployee } from '../../hooks/useEmployees';
 import { useDebts } from '../../hooks/useDebts';
 import { useSalesSummary } from '../../hooks/useSalesSummary';
 import currency from 'currency.js';
-import { format, endOfMonth, subMonths, addMonths, startOfDay, endOfDay } from 'date-fns';
+import { format as formatDate, endOfMonth, subMonths, addMonths, startOfDay, endOfDay } from 'date-fns';
+import { formatInTimeZone, toDate } from 'date-fns-tz';
 import { ChevronLeft, ChevronRight, Users, Edit2, Trash2, Calendar, Calculator, FileText, AlertCircle } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 
+const TIME_ZONE = 'Asia/Manila';
+
 // --- Date Math Helpers ---
 const getInitialPeriod = () => {
-    const today = new Date();
+    const today = toDate(new Date(), { timeZone: TIME_ZONE });
     const year = today.getFullYear();
     const month = today.getMonth();
     const day = today.getDate();
 
     if (day <= 15) {
         return {
-            start: format(startOfDay(new Date(year, month, 1)), 'yyyy-MM-dd'),
-            end: format(endOfDay(new Date(year, month, 15)), 'yyyy-MM-dd')
+            start: formatDate(startOfDay(new Date(year, month, 1)), 'yyyy-MM-dd'),
+            end: formatDate(endOfDay(new Date(year, month, 15)), 'yyyy-MM-dd')
         };
     } else {
         return {
-            start: format(startOfDay(new Date(year, month, 16)), 'yyyy-MM-dd'),
-            end: format(endOfDay(endOfMonth(today)), 'yyyy-MM-dd')
+            start: formatDate(startOfDay(new Date(year, month, 16)), 'yyyy-MM-dd'),
+            end: formatDate(endOfDay(endOfMonth(today)), 'yyyy-MM-dd')
         };
     }
 };
 
 const getPrevPeriod = (currentStartStr) => {
-    const currentStart = new Date(currentStartStr);
+    const currentStart = toDate(currentStartStr, { timeZone: TIME_ZONE });
     const year = currentStart.getFullYear();
     const month = currentStart.getMonth();
     const day = currentStart.getDate();
 
     if (day === 16) {
         return {
-            start: format(startOfDay(new Date(year, month, 1)), 'yyyy-MM-dd'),
-            end: format(endOfDay(new Date(year, month, 15)), 'yyyy-MM-dd')
+            start: formatDate(startOfDay(new Date(year, month, 1)), 'yyyy-MM-dd'),
+            end: formatDate(endOfDay(new Date(year, month, 15)), 'yyyy-MM-dd')
         };
     } else {
         const prevMonthDate = subMonths(currentStart, 1);
         return {
-            start: format(startOfDay(new Date(prevMonthDate.getFullYear(), prevMonthDate.getMonth(), 16)), 'yyyy-MM-dd'),
-            end: format(endOfDay(endOfMonth(prevMonthDate)), 'yyyy-MM-dd')
+            start: formatDate(startOfDay(new Date(prevMonthDate.getFullYear(), prevMonthDate.getMonth(), 16)), 'yyyy-MM-dd'),
+            end: formatDate(endOfDay(endOfMonth(prevMonthDate)), 'yyyy-MM-dd')
         };
     }
 };
 
 const getNextPeriod = (currentStartStr) => {
-    const currentStart = new Date(currentStartStr);
+    const currentStart = toDate(currentStartStr, { timeZone: TIME_ZONE });
     const year = currentStart.getFullYear();
     const month = currentStart.getMonth();
     const day = currentStart.getDate();
 
     if (day === 1) {
         return {
-            start: format(startOfDay(new Date(year, month, 16)), 'yyyy-MM-dd'),
-            end: format(endOfDay(endOfMonth(currentStart)), 'yyyy-MM-dd')
+            start: formatDate(startOfDay(new Date(year, month, 16)), 'yyyy-MM-dd'),
+            end: formatDate(endOfDay(endOfMonth(currentStart)), 'yyyy-MM-dd')
         };
     } else {
         const nextMonthDate = addMonths(currentStart, 1);
         return {
-            start: format(startOfDay(new Date(nextMonthDate.getFullYear(), nextMonthDate.getMonth(), 1)), 'yyyy-MM-dd'),
-            end: format(endOfDay(new Date(nextMonthDate.getFullYear(), nextMonthDate.getMonth(), 15)), 'yyyy-MM-dd')
+            start: formatDate(startOfDay(new Date(nextMonthDate.getFullYear(), nextMonthDate.getMonth(), 1)), 'yyyy-MM-dd'),
+            end: formatDate(endOfDay(new Date(nextMonthDate.getFullYear(), nextMonthDate.getMonth(), 15)), 'yyyy-MM-dd')
         };
     }
 };
@@ -88,15 +91,15 @@ export default function SalaryMonitoringPage() {
     const [filterEmployee, setFilterEmployee] = useState('all');
 
     // State for custom date range
-    const [customStartDate, setCustomStartDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-    const [customEndDate, setCustomEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+    const [customStartDate, setCustomStartDate] = useState(formatInTimeZone(new Date(), TIME_ZONE, 'yyyy-MM-dd'));
+    const [customEndDate, setCustomEndDate] = useState(formatInTimeZone(new Date(), TIME_ZONE, 'yyyy-MM-dd'));
     const [isCustomRangeActive, setIsCustomRangeActive] = useState(false);
 
     // ============================================================
     // STATE 1: AUTOMATED PAYROLL SECTION
     // ============================================================
     const [payrollEmpId, setPayrollEmpId] = useState('');
-    const [payrollDate, setPayrollDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+    const [payrollDate, setPayrollDate] = useState(formatInTimeZone(new Date(), TIME_ZONE, 'yyyy-MM-dd'));
 
     // ============================================================
     // STATE 2: MANUAL SALARY SECTION
@@ -104,7 +107,7 @@ export default function SalaryMonitoringPage() {
     const [employeeName, setEmployeeName] = useState('');
     const [amount, setAmount] = useState('');
     const [description, setDescription] = useState('Salary Payout');
-    const [payoutDate, setPayoutDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+    const [payoutDate, setPayoutDate] = useState(formatInTimeZone(new Date(), TIME_ZONE, 'yyyy-MM-dd'));
     const [excessMultiplier, setExcessMultiplier] = useState('1');
 
     // Employee Modal State
@@ -121,8 +124,8 @@ export default function SalaryMonitoringPage() {
 
     // Fetch daily summary for the payoutDate in Manual Record
     const { data: dailySummary } = useSalesSummary({
-        startDate: useMemo(() => payoutDate ? startOfDay(new Date(payoutDate)) : null, [payoutDate]),
-        endDate: useMemo(() => payoutDate ? endOfDay(new Date(payoutDate)) : null, [payoutDate])
+        startDate: useMemo(() => payoutDate ? startOfDay(toDate(payoutDate, { timeZone: TIME_ZONE })) : null, [payoutDate]),
+        endDate: useMemo(() => payoutDate ? endOfDay(toDate(payoutDate, { timeZone: TIME_ZONE })) : null, [payoutDate])
     });
     const dailyGallons = dailySummary?.totalGallons || 0;
     const createSalary = useCreateSalary();
@@ -135,63 +138,55 @@ export default function SalaryMonitoringPage() {
     // Calculate Gross Salary based on the Salary History for the current period
     const payrollGross = useMemo(() => {
         if (!payrollEmpName || !salaryRecords) return 0;
-        return salaryRecords
-            .filter(r => r.employee_name === payrollEmpName)
+        const gross = salaryRecords
+            .filter(r => r.employee_name === payrollEmpName && Number(r.amount) > 0)
             .reduce((sum, r) => sum + Number(r.amount), 0);
+        return gross;
     }, [payrollEmpName, salaryRecords]);
 
     const activeDeductions = useMemo(() => {
         if (!payrollEmpId || !payrollDate) return [];
-
-        // 1. Determine the exact start and end dates of the CURRENT payroll period
-        const [y, m, dDay] = payrollDate.split('-').map(Number);
+    
+        const payoutDateObj = toDate(payrollDate, { timeZone: TIME_ZONE });
+        const dayOfMonth = payoutDateObj.getDate();
+    
         let periodStart, periodEnd;
-
-        if (dDay <= 15) {
-            periodStart = new Date(y, m - 1, 1);   // 1st of the month
-            periodEnd = new Date(y, m - 1, 15);    // 15th of the month
+    
+        if (dayOfMonth <= 15) {
+            periodStart = startOfDay(new Date(payoutDateObj.getFullYear(), payoutDateObj.getMonth(), 1));
+            periodEnd = endOfDay(new Date(payoutDateObj.getFullYear(), payoutDateObj.getMonth(), 15));
         } else {
-            periodStart = new Date(y, m - 1, 16);  // 16th of the month
-            periodEnd = new Date(y, m, 0);         // Last day of the month
+            periodStart = startOfDay(new Date(payoutDateObj.getFullYear(), payoutDateObj.getMonth(), 16));
+            periodEnd = endOfDay(endOfMonth(payoutDateObj));
         }
-
+    
         const empDebts = debts.filter(d =>
             d.type?.toLowerCase() === 'employee' &&
             (d.employee_id === Number(payrollEmpId) || (d.description && d.description.toLowerCase().includes(payrollEmpName.toLowerCase())))
         );
-
+    
         return empDebts.map(debt => {
             const totalPaid = (debt.debt_payments || []).reduce((sum, p) => sum + Number(p.amount_paid), 0);
             const remainingDebt = Number(debt.total_debt_amount) - totalPaid;
-
-            if (remainingDebt <= 0) return null; // Debt is fully paid off
-
-            // 2. Calculate the base scheduled deduction
+    
+            if (remainingDebt <= 0) return null;
+    
             let scheduledDeduction = debt.frequency === 'Every 15 days'
                 ? Number(debt.weekly_payment_amount || 0)
                 : Number(debt.weekly_payment_amount || 0) * 2;
-
-            // 3. Find any manual payments made specifically during this cutoff period
+    
             const paymentsInPeriod = (debt.debt_payments || []).filter(p => {
-                const pDateStr = p.date_paid.split('T')[0];
-                const [py, pm, pd] = pDateStr.split('-').map(Number);
-                const pDate = new Date(py, pm - 1, pd);
-
+                if (!p.date_paid) return false;
+                const pDate = toDate(p.date_paid, { timeZone: TIME_ZONE });
                 return pDate >= periodStart && pDate <= periodEnd;
             });
-
-            // Sum up how much they already paid manually this period
+    
             const amountPaidInPeriod = paymentsInPeriod.reduce((sum, p) => sum + Number(p.amount_paid), 0);
-
-            // 4. Subtract early manual payments from the scheduled deduction
             let finalDeduction = scheduledDeduction - amountPaidInPeriod;
-
-            // If they already paid equal to (or more than) their expected deduction, SKIP auto-deduct for this date
+    
             if (finalDeduction <= 0) return null;
-
-            // Ensure we don't over-deduct the actual remaining balance
             if (finalDeduction > remainingDebt) finalDeduction = remainingDebt;
-
+    
             return {
                 debt_id: debt.id,
                 description: debt.description,
@@ -262,20 +257,20 @@ export default function SalaryMonitoringPage() {
             return;
         }
 
+        const dateInManila = toDate(payrollDate, { timeZone: TIME_ZONE });
         const now = new Date();
-        const [year, month, day] = payrollDate.split('-').map(Number);
-        const combinedDateTime = new Date(year, month - 1, day, now.getHours(), now.getMinutes(), now.getSeconds());
+        dateInManila.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
 
         try {
             await processDeductionsMutation.mutateAsync({
                 employeeName: payrollEmpName,
-                date: combinedDateTime.toISOString(),
+                date: dateInManila.toISOString(),
                 deductions: activeDeductions
             });
             addToast({ title: 'Success', description: 'Automated deductions processed successfully', variant: 'success' });
 
             setPayrollEmpId('');
-            setPayrollDate(format(new Date(), 'yyyy-MM-dd'));
+            setPayrollDate(formatInTimeZone(new Date(), TIME_ZONE, 'yyyy-MM-dd'));
         } catch (error) {
             addToast({ title: 'Error', description: error.message, variant: 'destructive' });
         }
@@ -321,23 +316,23 @@ export default function SalaryMonitoringPage() {
         e.preventDefault();
         if (!employeeName || !amount || !payoutDate) return;
 
+        const dateInManila = toDate(payoutDate, { timeZone: TIME_ZONE });
         const now = new Date();
-        const [year, month, day] = payoutDate.split('-').map(Number);
-        const combinedDateTime = new Date(year, month - 1, day, now.getHours(), now.getMinutes(), now.getSeconds());
+        dateInManila.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
 
         try {
             await createSalary.mutateAsync({
                 employeeName,
                 amount,
                 description,
-                date: combinedDateTime.toISOString()
+                date: dateInManila.toISOString()
             });
             addToast({ title: 'Success', description: 'Salary recorded successfully', variant: 'success' });
 
             setAmount('');
             setEmployeeName('');
             setDescription('Salary Payout');
-            setPayoutDate(format(new Date(), 'yyyy-MM-dd'));
+            setPayoutDate(formatInTimeZone(new Date(), TIME_ZONE, 'yyyy-MM-dd'));
         } catch (error) {
             addToast({ title: 'Error', description: error.message, variant: 'destructive' });
         }
@@ -464,7 +459,7 @@ export default function SalaryMonitoringPage() {
                                                             <span className="flex-1 text-gray-700 break-words">
                                                                 {d.description}
                                                                 <span className="text-xs text-gray-500 italic ml-2">
-                                                                    (₱{d.baseAmount.toFixed(2)} / {d.frequency} | Date: {d.debtDate ? format(new Date(d.debtDate), 'MMM d, yyyy') : 'N/A'})
+                                                                    (₱{d.baseAmount.toFixed(2)} / {d.frequency} | Date: {d.debtDate ? formatInTimeZone(toDate(d.debtDate), TIME_ZONE, 'MMM d, yyyy') : 'N/A'})
                                                                 </span>
                                                             </span>
                                                             <span className="font-medium text-red-600 sm:whitespace-nowrap">- ₱{d.amount.toFixed(2)}</span>
@@ -613,7 +608,7 @@ export default function SalaryMonitoringPage() {
                         <div className="flex-1">
                             <h3 className="font-bold">Salary History (Gross Payouts)</h3>
                             <p className="text-xs text-gray-500 mt-1 uppercase tracking-wider font-semibold">
-                                Period: {format(new Date(period.start), 'EEE, MMM d, yyyy')} — {format(new Date(period.end), 'EEE, MMM d, yyyy')}
+                                Period: {formatInTimeZone(toDate(period.start), TIME_ZONE, 'EEE, MMM d, yyyy')} — {formatInTimeZone(toDate(period.end), TIME_ZONE, 'EEE, MMM d, yyyy')}
                             </p>
                         </div>
                         <div className="flex flex-col sm:flex-row items-center gap-4 mt-4 md:mt-0 w-full md:w-auto">
@@ -682,9 +677,11 @@ export default function SalaryMonitoringPage() {
                                             <TableBody>
                                                 {records.map(record => (
                                                     <TableRow key={record.id}>
-                                                        <TableCell>{format(new Date(record.expense_date), 'EEE, MMM d, yyyy h:mm a')}</TableCell>
+                                                        <TableCell>{formatInTimeZone(toDate(record.expense_date), TIME_ZONE, 'EEE, MMM d, yyyy h:mm a')}</TableCell>
                                                         <TableCell>{record.description}</TableCell>
-                                                        <TableCell className="text-right font-bold text-red-600">{currency(record.amount, { symbol: '₱' }).format()}</TableCell>
+                                                        <TableCell className={`text-right font-bold ${Number(record.amount) < 0 ? 'text-red-600' : 'text-gray-800'}`}>
+                                                            {currency(record.amount, { symbol: '₱' }).format()}
+                                                        </TableCell>
                                                     </TableRow>
                                                 ))}
                                             </TableBody>
@@ -696,9 +693,11 @@ export default function SalaryMonitoringPage() {
                                             <div key={record.id} className="bg-white p-3 rounded-lg shadow-sm border">
                                                 <div className="flex justify-between items-start">
                                                     <span className="text-sm flex-1 pr-2">{record.description}</span>
-                                                    <span className="font-bold text-red-600 text-md">{currency(record.amount, { symbol: '₱' }).format()}</span>
+                                                    <span className={`font-bold text-md ${Number(record.amount) < 0 ? 'text-red-600' : 'text-gray-800'}`}>
+                                                        {currency(record.amount, { symbol: '₱' }).format()}
+                                                    </span>
                                                 </div>
-                                                <p className="text-xs text-gray-500 mt-1 text-right">{format(new Date(record.expense_date), 'EEE, MMM d, h:mm a')}</p>
+                                                <p className="text-xs text-gray-500 mt-1 text-right">{formatInTimeZone(toDate(record.expense_date), TIME_ZONE, 'EEE, MMM d, h:mm a')}</p>
                                             </div>
                                         ))}
                                     </div>
@@ -719,7 +718,7 @@ export default function SalaryMonitoringPage() {
                         <ChevronLeft className="w-4 h-4" /> Prev 15-Day
                     </Button>
                     <span className="text-xs font-bold text-gray-400 uppercase">
-                           {isCustomRangeActive ? "Custom Range" : `${format(new Date(period.start), 'MMM d')} - ${format(new Date(period.end), 'MMM d')}`}
+                           {isCustomRangeActive ? "Custom Range" : `${formatInTimeZone(toDate(period.start), TIME_ZONE, 'MMM d')} - ${formatInTimeZone(toDate(period.end), TIME_ZONE, 'MMM d')}`}
                         </span>
                     <Button
                         onClick={() => handleSetPeriod(getNextPeriod(period.start))}
