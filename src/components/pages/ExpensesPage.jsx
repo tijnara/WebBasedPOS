@@ -139,119 +139,99 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
         // Optimistic locking ref
         const isSyncing = useRef(false);
 
-        // AUTO-SYNC DAILY EXPENSES EFFECT
+        // AUTO-SYNC EXPENSES EFFECT (DAILY & WEEKLY)
         useEffect(() => {
-            const syncDailyExpenses = async () => {
+            const syncExpenses = async () => {
                 const today = new Date();
                 if (!categories.length || !user || user.isDemo || isSyncing.current || isFetching) return;
 
-                const todayStr = format(today, 'yyyy-MM-dd');
                 isSyncing.current = true;
 
                 try {
+                    // --- DAILY SYNC ---
+                    const todayStr = format(today, 'yyyy-MM-dd');
                     const recurringDailyCategories = categories.filter(cat => cat.is_recurring_daily);
-                    if (recurringDailyCategories.length === 0) {
-                        isSyncing.current = false;
-                        return;
-                    }
+                    let dailyCount = 0;
+                    
+                    if (recurringDailyCategories.length > 0) {
+                        const { data: existingDaily, error: dailyError } = await supabase
+                            .from('expenses')
+                            .select('category')
+                            .eq('expense_date', todayStr);
 
-                    const { data: existing, error } = await supabase
-                        .from('expenses')
-                        .select('category')
-                        .eq('expense_date', todayStr);
+                        if (dailyError) throw dailyError;
 
-                    if (error) throw error;
-
-                    const existingCategoryNames = existing?.map(e => e.category) || [];
-                    const missingCategories = recurringDailyCategories.filter(
-                        cat => !existingCategoryNames.includes(cat.name)
-                    );
-
-                    if (missingCategories.length > 0) {
-                        const insertPromises = missingCategories.map(cat => 
-                            createExpense.mutateAsync({
-                                amount: cat.default_amount || 0,
-                                category: cat.name,
-                                description: cat.default_description || `Daily ${cat.name}`,
-                                expense_date: todayStr
-                            })
+                        const existingDailyNames = existingDaily?.map(e => e.category) || [];
+                        const missingDaily = recurringDailyCategories.filter(
+                            cat => !existingDailyNames.includes(cat.name)
                         );
 
-                        await Promise.all(insertPromises);
-                        
+                        if (missingDaily.length > 0) {
+                            const insertDaily = missingDaily.map(cat => 
+                                createExpense.mutateAsync({
+                                    amount: cat.default_amount || 0,
+                                    category: cat.name,
+                                    description: cat.default_description || `Daily ${cat.name}`,
+                                    expense_date: todayStr
+                                })
+                            );
+                            await Promise.all(insertDaily);
+                            dailyCount = missingDaily.length;
+                        }
+                    }
+
+                    // --- WEEKLY SYNC ---
+                    // No longer restricted to Mondays only to allow catching up if the app was closed on Monday
+                    const currentMonday = startOfWeek(today, { weekStartsOn: 1 });
+                    const mondayStr = format(currentMonday, 'yyyy-MM-dd');
+                    const recurringWeeklyCategories = categories.filter(cat => cat.is_recurring);
+                    let weeklyCount = 0;
+
+                    if (recurringWeeklyCategories.length > 0) {
+                        const { data: existingWeekly, error: weeklyError } = await supabase
+                            .from('expenses')
+                            .select('category')
+                            .eq('expense_date', mondayStr);
+
+                        if (weeklyError) throw weeklyError;
+
+                        const existingWeeklyNames = existingWeekly?.map(e => e.category) || [];
+                        const missingWeekly = recurringWeeklyCategories.filter(
+                            cat => !existingWeeklyNames.includes(cat.name)
+                        );
+
+                        if (missingWeekly.length > 0) {
+                            const insertWeekly = missingWeekly.map(cat => 
+                                createExpense.mutateAsync({
+                                    amount: cat.default_amount || 0,
+                                    category: cat.name,
+                                    description: cat.default_description || `Weekly ${cat.name}`,
+                                    expense_date: mondayStr
+                                })
+                            );
+                            await Promise.all(insertWeekly);
+                            weeklyCount = missingWeekly.length;
+                        }
+                    }
+
+                    if (dailyCount > 0 || weeklyCount > 0) {
                         queryClient.invalidateQueries({ queryKey: ['expenses'] });
                         queryClient.invalidateQueries({ queryKey: ['expense-summary'] });
                         
-                        addToast({ 
-                            title: 'Daily Sync', 
-                            message: `Automatically synced ${missingCategories.length} recurring daily expenses.`, 
-                            type: 'success' 
-                        });
-                    }
-                } catch (err) {
-                    console.error("Auto-daily-expense sync failed:", err);
-                } finally {
-                    setTimeout(() => {
-                        isSyncing.current = false;
-                    }, 2000);
-                }
-            };
-
-            syncDailyExpenses();
-        }, [categories, user, isFetching, createExpense, queryClient, addToast]);
-
-        // AUTO-SYNC WEEKLY EXPENSES EFFECT
-        useEffect(() => {
-            const syncWeeklyExpenses = async () => {
-                const today = new Date();
-                if (getDay(today) !== 1) return;
-
-                if (!categories.length || !user || user.isDemo || isSyncing.current || isFetching) return;
-
-                const currentMonday = startOfWeek(today, { weekStartsOn: 1 });
-                const mondayStr = format(currentMonday, 'yyyy-MM-dd');
-
-                isSyncing.current = true;
-
-                try {
-                    const recurringCategories = categories.filter(cat => cat.is_recurring);
-                    if (recurringCategories.length === 0) {
-                        isSyncing.current = false;
-                        return;
-                    }
-
-                    const { data: existing, error } = await supabase
-                        .from('expenses')
-                        .select('category')
-                        .eq('expense_date', mondayStr);
-
-                    if (error) throw error;
-
-                    const existingCategoryNames = existing?.map(e => e.category) || [];
-                    const missingCategories = recurringCategories.filter(
-                        cat => !existingCategoryNames.includes(cat.name)
-                    );
-
-                    if (missingCategories.length > 0) {
-                        const insertPromises = missingCategories.map(cat => 
-                            createExpense.mutateAsync({
-                                amount: cat.default_amount || 0,
-                                category: cat.name,
-                                description: cat.default_description || `Weekly ${cat.name}`,
-                                expense_date: mondayStr
-                            })
-                        );
-
-                        await Promise.all(insertPromises);
-                        
-                        queryClient.invalidateQueries({ queryKey: ['expenses'] });
-                        queryClient.invalidateQueries({ queryKey: ['expense-summary'] });
-                        
-                        addToast({ 
-                            title: 'Weekly Sync', 
-                            message: `Automatically synced ${missingCategories.length} recurring expenses.`, 
-                            type: 'success' 
-                        });
+                        if (dailyCount > 0) {
+                            addToast({ 
+                                title: 'Daily Sync', 
+                                message: `Automatically synced ${dailyCount} recurring daily expenses.`, 
+                                type: 'success' 
+                            });
+                        }
+                        if (weeklyCount > 0) {
+                            addToast({ 
+                                title: 'Weekly Sync', 
+                                message: `Automatically synced ${weeklyCount} recurring expenses.`, 
+                                type: 'success' 
+                            });
+                        }
                     }
                 } catch (err) {
                     console.error("Auto-expense sync failed:", err);
@@ -262,9 +242,8 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
                 }
             };
 
-            syncWeeklyExpenses();
-
-        }, [categories, user, expenses, isFetching, createExpense, queryClient, addToast]);
+            syncExpenses();
+        }, [categories, user, isFetching, createExpense, queryClient, addToast, expenses]);
 
         const handleCategoryChange = (val) => {
             if (val === 'ADD_NEW') {
