@@ -198,6 +198,9 @@ export default function App({ Component, pageProps }) {
                 <Head>
                     {/* The title tag here is a fallback, the useEffect will override it */}
                     <title>Seaside WRS</title>
+                    <meta property="og:title" content="Seaside WRS" />
+                    <meta property="og:description" content="Seaside Purified Water Refilling Station in Labrador, Pangasinan" />
+                    <meta property="og:image" content="https://seasidepos.vercel.app/og-image.png" />
                     <link rel="icon" href="/seaside.png" />
                     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
                     <meta name="theme-color" content="#0ea5e9" />
