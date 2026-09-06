@@ -4,7 +4,6 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabaseClient';
 import { useSales } from '../../hooks/useSales';
 import { useSalesSummary } from '../../hooks/useSalesSummary';
-import { useCustomers } from '../../hooks/useCustomers';
 import { useProducts } from '../../hooks/useProducts';
 import { useDeleteSale } from '../../hooks/useDeleteSale';
 import { useDebounce } from '../../hooks/useDebounce';
@@ -16,9 +15,7 @@ import { useMonthlyGrowth } from '../../hooks/useMonthlyGrowth';
 import SummaryCard from '../ui/SummaryCard';
 import DeleteConfirmationModal from '../DeleteConfirmationModal';
 import SalesTab from '../reports/SalesTab';
-import CustomerTab from '../reports/CustomerTab';
 import FrequentOrdersTab from '../reports/FrequentOrdersTab';
-import DroppedOffCustomersSection from '../reports/DroppedOffCustomersSection';
 
 const ReportPage = () => {
     const searchParams = useSearchParams();
@@ -27,7 +24,6 @@ const ReportPage = () => {
 
     const [activeTab, setActiveTab] = useState('sales');
     const [currentPage, setCurrentPage] = useState(1);
-    const [customerPage, setCustomerPage] = useState(1);
     const [frequentPage, setFrequentPage] = useState(1);
 
     const [frequentMonth, setFrequentMonth] = useState(format(new Date(), 'yyyy-MM'));
@@ -49,7 +45,6 @@ const ReportPage = () => {
     const [toDate, setToDate] = useState(_weekTo);
     const [elevated, setElevated] = useState(false);
 
-    const CUSTOMER_PAGE_SIZE = 5;
     const FREQUENT_PAGE_SIZE = 10;
 
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -63,8 +58,8 @@ const ReportPage = () => {
 
     useEffect(() => {
         const tab = searchParams.get('tab');
-        if (tab === 'customers') {
-            setActiveTab('customers');
+        if (tab === 'frequent') {
+            setActiveTab('frequent');
         }
     }, [searchParams]);
 
@@ -117,17 +112,6 @@ const ReportPage = () => {
         productId: selectedProductId
     });
 
-    const {
-        data: customersPageData,
-        isLoading: isLoadingCustomers,
-        error: customersError
-    } = useCustomers({
-        page: customerPage,
-        itemsPerPage: CUSTOMER_PAGE_SIZE,
-        startDate: interval.start,
-        endDate: interval.end,
-        searchTerm: debouncedCustomerSearch
-    });
 
     const { data: frequentData, isLoading: isLoadingFrequent } = useQuery({
         queryKey: ['frequent-customers', user?.isDemo, frequentMonth, frequentPage, frequentSortCol, frequentSortDesc, debouncedCustomerSearch],
@@ -201,11 +185,9 @@ const ReportPage = () => {
 
     const isLoading = activeTab === 'sales'
         ? (isLoadingSales || isLoadingSummary)
-        : activeTab === 'frequent' ? isLoadingFrequent : isLoadingCustomers;
+        : isLoadingFrequent;
 
-    const error = activeTab === 'sales'
-        ? (salesError || summaryError)
-        : activeTab === 'frequent' ? null : customersError;
+    const error = activeTab === 'sales' ? (salesError || summaryError) : null;
 
     const allSales = allSalesData?.sales || [];
     const chartSalesData = allSales;
@@ -251,13 +233,11 @@ const ReportPage = () => {
 
     const totalPages = activeTab === 'sales'
         ? totalSalesPages
-        : activeTab === 'frequent' ? (frequentData?.totalPages || 1) : (customersPageData?.totalPages || 1);
+        : (frequentData?.totalPages || 1);
 
     const totalRevenue = summaryData?.totalRevenue || 0;
     const totalGallonsSold = summaryData?.totalGallons || 0;
 
-    const customersData = customersPageData?.customers || [];
-    const totalCustomersCount = customersPageData?.totalCount || 0;
 
     const reportTitle = useMemo(() => {
         if (!interval.start && !interval.end) return 'Custom Report: All Time';
@@ -269,38 +249,27 @@ const ReportPage = () => {
         return `${startStr} - ${endStr}`;
     }, [interval]);
 
-    const processedCustomers = useMemo(() => {
-        return customersData.sort((a, b) => {
-            const dateA = a.dateAdded ? new Date(a.dateAdded) : new Date(0);
-            const dateB = b.dateAdded ? new Date(b.dateAdded) : new Date(0);
-            return dateB - dateA;
-        });
-    }, [customersData]);
 
     const handleTabChange = (tab) => {
         setActiveTab(tab);
         setCurrentPage(1);
-        setCustomerPage(1);
         setFrequentPage(1);
     };
 
     const handleFromDateChange = (e) => {
         setFromDate(e.target.value);
         setCurrentPage(1);
-        setCustomerPage(1);
     };
 
     const handleToDateChange = (e) => {
         setToDate(e.target.value);
         setCurrentPage(1);
-        setCustomerPage(1);
     };
 
     const handleClearRange = () => {
         setFromDate('');
         setToDate('');
         setCurrentPage(1);
-        setCustomerPage(1);
         setSelectedProductId('');
         setCustomerSearch('');
     };
@@ -391,12 +360,6 @@ const ReportPage = () => {
                     Sales Report
                 </Button>
                 <Button
-                    onClick={() => handleTabChange('customers')}
-                    className={`px-4 py-2 font-semibold rounded-md ${activeTab === 'customers' ? 'btn--primary' : 'btn--soft'}`}
-                >
-                    Customer Report
-                </Button>
-                <Button
                     onClick={() => handleTabChange('frequent')}
                     className={`px-4 py-2 font-semibold rounded-md ${activeTab === 'frequent' ? 'btn--primary' : 'btn--soft'}`}
                 >
@@ -454,30 +417,6 @@ const ReportPage = () => {
                 />
             )}
 
-            {activeTab === 'customers' && (
-                <>
-                    <CustomerTab
-                        elevated={elevated}
-                        totalCustomersCount={totalCustomersCount}
-                        isLoading={isLoadingCustomers}
-                        activeRangeLabel={activeRangeLabel}
-                        fromDate={fromDate}
-                        handleFromDateChange={handleFromDateChange}
-                        toDate={toDate}
-                        handleToDateChange={handleToDateChange}
-                        customerSearch={customerSearch}
-                        setCustomerSearch={setCustomerSearch}
-                        handleClearRange={handleClearRange}
-                        reportTitle={reportTitle}
-                        error={customersError}
-                        processedCustomers={processedCustomers}
-                        customerPage={customerPage}
-                        totalPages={totalPages}
-                        setCustomerPage={setCustomerPage}
-                    />
-                    <DroppedOffCustomersSection />
-                </>
-            )}
 
             <DeleteConfirmationModal
                 isOpen={isModalOpen}
