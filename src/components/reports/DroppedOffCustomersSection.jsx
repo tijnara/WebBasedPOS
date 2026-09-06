@@ -3,15 +3,13 @@ import { useDroppedOffCustomers } from '../../hooks/useDroppedOffCustomers';
 import DroppedOffCustomersTable from './DroppedOffCustomersTable';
 import { Button } from '../ui';
 
-const DroppedOffCustomersSection = ({ fromDate, toDate }) => {
+const DroppedOffCustomersSection = () => {
     const [page, setPage] = useState(1);
     const {
         data: droppedOffData,
         isLoading: isLoadingDroppedOff,
         error: droppedOffError,
     } = useDroppedOffCustomers({
-        startDate: fromDate,
-        endDate: toDate,
         page: page,
         itemsPerPage: 5,
     });

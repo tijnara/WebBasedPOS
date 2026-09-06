@@ -18,6 +18,7 @@ import DeleteConfirmationModal from '../DeleteConfirmationModal';
 import SalesTab from '../reports/SalesTab';
 import CustomerTab from '../reports/CustomerTab';
 import FrequentOrdersTab from '../reports/FrequentOrdersTab';
+import DroppedOffCustomersSection from '../reports/DroppedOffCustomersSection';
 
 const ReportPage = () => {
     const searchParams = useSearchParams();
@@ -454,25 +455,28 @@ const ReportPage = () => {
             )}
 
             {activeTab === 'customers' && (
-                <CustomerTab
-                    elevated={elevated}
-                    totalCustomersCount={totalCustomersCount}
-                    isLoading={isLoadingCustomers}
-                    activeRangeLabel={activeRangeLabel}
-                    fromDate={fromDate}
-                    handleFromDateChange={handleFromDateChange}
-                    toDate={toDate}
-                    handleToDateChange={handleToDateChange}
-                    customerSearch={customerSearch}
-                    setCustomerSearch={setCustomerSearch}
-                    handleClearRange={handleClearRange}
-                    reportTitle={reportTitle}
-                    error={customersError}
-                    processedCustomers={processedCustomers}
-                    customerPage={customerPage}
-                    totalPages={totalPages}
-                    setCustomerPage={setCustomerPage}
-                />
+                <>
+                    <CustomerTab
+                        elevated={elevated}
+                        totalCustomersCount={totalCustomersCount}
+                        isLoading={isLoadingCustomers}
+                        activeRangeLabel={activeRangeLabel}
+                        fromDate={fromDate}
+                        handleFromDateChange={handleFromDateChange}
+                        toDate={toDate}
+                        handleToDateChange={handleToDateChange}
+                        customerSearch={customerSearch}
+                        setCustomerSearch={setCustomerSearch}
+                        handleClearRange={handleClearRange}
+                        reportTitle={reportTitle}
+                        error={customersError}
+                        processedCustomers={processedCustomers}
+                        customerPage={customerPage}
+                        totalPages={totalPages}
+                        setCustomerPage={setCustomerPage}
+                    />
+                    <DroppedOffCustomersSection />
+                </>
             )}
 
             <DeleteConfirmationModal

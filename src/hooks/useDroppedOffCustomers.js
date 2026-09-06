@@ -1,11 +1,22 @@
 import { useQuery } from '@tanstack/react-query';
+import { format, startOfWeek, subDays } from 'date-fns';
 import { supabase } from '../lib/supabaseClient';
 import { useStore } from '../store/useStore';
 
-export function useDroppedOffCustomers({ startDate, endDate, page = 1, itemsPerPage = 5 }) {
+export function useDroppedOffCustomers({ page = 1, itemsPerPage = 5 }) {
     const isDemo = useStore(s => s.user?.isDemo);
 
-    const queryKey = ['dropped-off-customers', { startDate, endDate, isDemo, page, itemsPerPage }];
+    // Calculate the date range based on the last Sunday.
+    // The data refreshes every Sunday and remains static for the week.
+    const today = new Date();
+    const startOfCurrentWeek = startOfWeek(today, { weekStartsOn: 0 }); // Previous or current Sunday
+    const effectiveEndDate = subDays(startOfCurrentWeek, 1); // The Saturday of the week before
+    const effectiveStartDate = subDays(effectiveEndDate, 6); // The Sunday of the week before
+
+    const finalStartDate = format(effectiveStartDate, 'yyyy-MM-dd');
+    const finalEndDate = format(effectiveEndDate, 'yyyy-MM-dd');
+
+    const queryKey = ['dropped-off-customers', { startDate: finalStartDate, endDate: finalEndDate, isDemo, page, itemsPerPage }];
 
     return useQuery({
         queryKey,
@@ -31,8 +42,8 @@ export function useDroppedOffCustomers({ startDate, endDate, page = 1, itemsPerP
 
             const { data, error } = await supabase
                 .rpc('get_dropped_off_customers', {
-                    p_start_date: startDate,
-                    p_end_date: endDate,
+                    p_start_date: finalStartDate,
+                    p_end_date: finalEndDate,
                 })
                 .range(startIndex, endIndex);
 
