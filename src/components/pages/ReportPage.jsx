@@ -275,124 +275,153 @@ const InactiveCustomersTable = ({ inactiveCustomers, isLoading, error }) => (
 );
 
 // --- Sales Report Table / Cards ---
-const SalesReportDisplay = ({ salesList, currentPage, totalPages, onPageChange, onDelete, isAdmin }) => (
-    <div className="bg-white rounded-lg shadow-sm md:overflow-hidden">
-        <div className="overflow-x-auto hidden md:block">
-            <table className="min-w-full text-sm">
-                <thead className="bg-gray-100">
-                <tr>
-                    <th className="px-3 py-3 text-left font-semibold text-gray-700 border-b border-gray-200">Date & Time</th>
-                    <th className="px-3 py-3 text-left font-semibold text-gray-700 border-b border-gray-200">Customer</th>
-                    <th className="px-3 py-3 text-left font-semibold text-gray-700 border-b border-gray-200">Item(s) & Qty</th>
-                    <th className="px-3 py-3 text-left font-semibold text-gray-700 border-b border-gray-200">Price(s)</th>
-                    <th className="px-3 py-3 text-left font-semibold text-gray-700 border-b border-gray-200">Discount</th>
-                    <th className="px-3 py-3 text-center font-semibold text-gray-700 border-b border-gray-200">Total Qty</th>
-                    <th className="px-3 py-3 text-right font-semibold text-gray-700 border-b border-gray-200">Total</th>
-                    <th className="px-3 py-3 text-left font-semibold text-gray-700 border-b border-gray-200">Payment</th>
-                    <th className="px-3 py-3 text-left font-semibold text-gray-700 border-b border-gray-200">Status</th>
-                    <th className="px-3 py-3 text-left font-semibold text-gray-700 border-b border-gray-200">Staff</th>
-                    {isAdmin && <th className="px-3 py-3 text-right font-semibold text-gray-700 border-b border-gray-200">Action</th>}
-                </tr>
-                </thead>
-                <tbody className="">
-                {salesList.length === 0 ? (
-                    <tr>
-                        <td colSpan={isAdmin ? "11" : "10"} className="text-center p-6 text-gray-500 text-sm border-b border-gray-200">
-                            No sales found for this period.
-                        </td>
-                    </tr>
-                ) : (
-                    salesList.map(sale => (
-                        <tr key={sale.id} className="border-b border-gray-200 last:border-0">
-                            <td className="px-3 py-3 whitespace-nowrap align-top">{format(new Date(sale.saleTimestamp), 'MMM d, yyyy h:mm a')}</td>
-                            <td className="px-3 py-3 whitespace-nowrap align-top">{sale.customerName}</td>
-                            <td className="px-3 py-3 align-top">
-                                <div className="flex flex-col">
-                                    {(sale.sale_items || []).map((item, idx) => (
-                                        <div key={idx} className={`py-1 ${idx > 0 ? 'border-t border-gray-200' : ''}`}>
-                                            <span className="block truncate" title={item.productName}>
-                                                {item.productName || 'N/A'} <span className="font-bold text-primary">x{item.quantity || 0}</span>
-                                            </span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </td>
-                            <td className="px-3 py-3 align-top">
-                                <div className="flex flex-col">
-                                    {(sale.sale_items || []).map((item, idx) => (
-                                        <div key={idx} className={`py-1 ${idx > 0 ? 'border-t border-gray-200' : ''}`}>
-                                            <span className="block whitespace-nowrap">
-                                                {formatCurrency(item.productPrice || 0)}
-                                            </span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </td>
-                            <td className="px-3 py-3 align-top">
-                                <div className="flex flex-col">
-                                    {(sale.sale_items || []).map((item, idx) => (
-                                        <div key={idx} className={`py-1 ${idx > 0 ? 'border-t border-gray-200' : ''}`}>
-                                            <span className={`block whitespace-nowrap ${item.discount_amount > 0 ? 'text-green-600 font-medium' : 'text-gray-400'}`}>
-                                                {item.discount_amount > 0 ? `-${formatCurrency(item.discount_amount)}` : '—'}
-                                            </span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </td>
-                            <td className="px-3 py-3 align-top text-center font-medium text-gray-800">
-                                {(sale.sale_items || []).reduce((acc, item) => acc + (item.quantity || 0), 0)}
-                            </td>
-                            <td className="px-3 py-3 text-right whitespace-nowrap align-top font-bold text-green-600">
-                                {formatCurrency(sale.totalAmount)}
-                            </td>
-                            <td className="px-3 py-3 whitespace-nowrap align-top">{sale.paymentMethod}</td>
-                            <td className="px-3 py-3 whitespace-nowrap align-top" style={sale.status === 'Unpaid' ? { color: '#EA580C' } : {}}>{sale.status}</td>
-                            <td className="px-3 py-3 whitespace-nowrap align-top">
-                                <div className="inline-flex items-center space-x-2 font-semibold" style={{ color: sale.userColor }}>
-                                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: sale.userColor }}></span>
-                                    <span>{sale.staffName}</span>
-                                </div>
-                            </td>
+const SalesReportDisplay = ({ salesList, currentPage, totalPages, onPageChange, onDelete, isAdmin, currentDate }) => {
+    const formattedDate = useMemo(() => {
+        if (!currentDate) return null;
+        try {
+            const [y, m, d] = currentDate.split('-').map(Number);
+            return format(new Date(y, m - 1, d), 'EEEE, MMMM d, yyyy');
+        } catch {
+            return currentDate;
+        }
+    }, [currentDate]);
 
-                            {isAdmin && (
-                                <td className="px-3 py-3 text-right align-top">
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="text-red-600 hover:bg-red-50 h-8 w-8"
-                                        onClick={() => onDelete(sale.id)}
-                                    >
-                                        <DeleteIcon className="w-4 h-4" />
-                                    </Button>
-                                </td>
-                            )}
+    const dailyTotal = useMemo(() => {
+        return salesList.reduce((acc, sale) => acc + (sale.totalAmount || 0), 0);
+    }, [salesList]);
+
+    return (
+        <div className="bg-white rounded-lg shadow-sm md:overflow-hidden">
+            {formattedDate && salesList.length > 0 && (
+                <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                        <span className="font-bold text-gray-800 text-sm md:text-base">{formattedDate}</span>
+                        <span className="text-xs bg-blue-100 text-blue-800 font-semibold px-2 py-0.5 rounded-full">
+                            {salesList.length} {salesList.length === 1 ? 'transaction' : 'transactions'}
+                        </span>
+                    </div>
+                    <div className="text-sm text-gray-600">
+                        Daily Total: <span className="font-bold text-green-600">{formatCurrency(dailyTotal)}</span>
+                    </div>
+                </div>
+            )}
+            <div className="overflow-x-auto hidden md:block">
+                <table className="min-w-full text-sm">
+                    <thead className="bg-gray-100">
+                    <tr>
+                        <th className="px-3 py-3 text-left font-semibold text-gray-700 border-b border-gray-200">Date & Time</th>
+                        <th className="px-3 py-3 text-left font-semibold text-gray-700 border-b border-gray-200">Customer</th>
+                        <th className="px-3 py-3 text-left font-semibold text-gray-700 border-b border-gray-200">Item(s) & Qty</th>
+                        <th className="px-3 py-3 text-left font-semibold text-gray-700 border-b border-gray-200">Price(s)</th>
+                        <th className="px-3 py-3 text-left font-semibold text-gray-700 border-b border-gray-200">Discount</th>
+                        <th className="px-3 py-3 text-center font-semibold text-gray-700 border-b border-gray-200">Total Qty</th>
+                        <th className="px-3 py-3 text-right font-semibold text-gray-700 border-b border-gray-200">Total</th>
+                        <th className="px-3 py-3 text-left font-semibold text-gray-700 border-b border-gray-200">Payment</th>
+                        <th className="px-3 py-3 text-left font-semibold text-gray-700 border-b border-gray-200">Status</th>
+                        <th className="px-3 py-3 text-left font-semibold text-gray-700 border-b border-gray-200">Staff</th>
+                        {isAdmin && <th className="px-3 py-3 text-right font-semibold text-gray-700 border-b border-gray-200">Action</th>}
+                    </tr>
+                    </thead>
+                    <tbody className="">
+                    {salesList.length === 0 ? (
+                        <tr>
+                            <td colSpan={isAdmin ? "11" : "10"} className="text-center p-6 text-gray-500 text-sm border-b border-gray-200">
+                                No sales found for this period.
+                            </td>
                         </tr>
+                    ) : (
+                        salesList.map(sale => (
+                            <tr key={sale.id} className="border-b border-gray-200 last:border-0">
+                                <td className="px-3 py-3 whitespace-nowrap align-top">{format(new Date(sale.saleTimestamp), 'MMM d, yyyy h:mm a')}</td>
+                                <td className="px-3 py-3 whitespace-nowrap align-top">{sale.customerName}</td>
+                                <td className="px-3 py-3 align-top">
+                                    <div className="flex flex-col">
+                                        {(sale.sale_items || []).map((item, idx) => (
+                                            <div key={idx} className={`py-1 ${idx > 0 ? 'border-t border-gray-200' : ''}`}>
+                                                <span className="block truncate" title={item.productName}>
+                                                    {item.productName || 'N/A'} <span className="font-bold text-primary">x{item.quantity || 0}</span>
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </td>
+                                <td className="px-3 py-3 align-top">
+                                    <div className="flex flex-col">
+                                        {(sale.sale_items || []).map((item, idx) => (
+                                            <div key={idx} className={`py-1 ${idx > 0 ? 'border-t border-gray-200' : ''}`}>
+                                                <span className="block whitespace-nowrap">
+                                                    {formatCurrency(item.productPrice || 0)}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </td>
+                                <td className="px-3 py-3 align-top">
+                                    <div className="flex flex-col">
+                                        {(sale.sale_items || []).map((item, idx) => (
+                                            <div key={idx} className={`py-1 ${idx > 0 ? 'border-t border-gray-200' : ''}`}>
+                                                <span className={`block whitespace-nowrap ${item.discount_amount > 0 ? 'text-green-600 font-medium' : 'text-gray-400'}`}>
+                                                    {item.discount_amount > 0 ? `-${formatCurrency(item.discount_amount)}` : '—'}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </td>
+                                <td className="px-3 py-3 align-top text-center font-medium text-gray-800">
+                                    {(sale.sale_items || []).reduce((acc, item) => acc + (item.quantity || 0), 0)}
+                                </td>
+                                <td className="px-3 py-3 text-right whitespace-nowrap align-top font-bold text-green-600">
+                                    {formatCurrency(sale.totalAmount)}
+                                </td>
+                                <td className="px-3 py-3 whitespace-nowrap align-top">{sale.paymentMethod}</td>
+                                <td className="px-3 py-3 whitespace-nowrap align-top" style={sale.status === 'Unpaid' ? { color: '#EA580C' } : {}}>{sale.status}</td>
+                                <td className="px-3 py-3 whitespace-nowrap align-top">
+                                    <div className="inline-flex items-center space-x-2 font-semibold" style={{ color: sale.userColor }}>
+                                        <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: sale.userColor }}></span>
+                                        <span>{sale.staffName}</span>
+                                    </div>
+                                </td>
+
+                                {isAdmin && (
+                                    <td className="px-3 py-3 text-right align-top">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="text-red-600 hover:bg-red-50 h-8 w-8"
+                                            onClick={() => onDelete(sale.id)}
+                                        >
+                                            <DeleteIcon className="w-4 h-4" />
+                                        </Button>
+                                    </td>
+                                )}
+                            </tr>
+                        ))
+                    )}
+                    </tbody>
+                </table>
+            </div>
+            <div className="md:hidden p-2 bg-gray-50">
+                {salesList.length === 0 ? (
+                    <div className="text-center p-6 text-gray-500">
+                        No sales found for this period.
+                    </div>
+                ) : (
+                    salesList.map((sale, index) => (
+                        <div key={sale.id}>
+                            {index > 0 && <hr className="border-t border-gray-200 my-3" />}
+                            <SaleCard sale={sale} onDelete={onDelete} isAdmin={isAdmin} />
+                        </div>
                     ))
                 )}
-                </tbody>
-            </table>
+            </div>
+            <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={onPageChange}
+            />
         </div>
-        <div className="md:hidden p-2 bg-gray-50">
-            {salesList.length === 0 ? (
-                <div className="text-center p-6 text-gray-500">
-                    No sales found for this period.
-                </div>
-            ) : (
-                salesList.map((sale, index) => (
-                    <div key={sale.id}>
-                        {index > 0 && <hr className="border-t border-gray-200 my-3" />}
-                        <SaleCard sale={sale} onDelete={onDelete} isAdmin={isAdmin} />
-                    </div>
-                ))
-            )}
-        </div>
-        <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={onPageChange}
-        />
-    </div>
-);
+    );
+};
 
 // --- Missed Customers Table ---
 const MissedCustomersTable = ({ startDate, endDate }) => {
@@ -541,7 +570,6 @@ const ReportPage = () => {
     const [toDate, setToDate] = useState(_weekTo);
     const [elevated, setElevated] = useState(false);
 
-    const SALES_PAGE_SIZE = 10;
     const CUSTOMER_PAGE_SIZE = 5;
     const FREQUENT_PAGE_SIZE = 10;
 
@@ -598,19 +626,10 @@ const ReportPage = () => {
     }, [interval]);
 
     const {
-        data: salesPageData,
-        isLoading: isLoadingList,
-        error: listError
+        data: allSalesData,
+        isLoading: isLoadingSales,
+        error: salesError
     } = useSales({
-        startDate: interval.start,
-        endDate: interval.end,
-        productId: selectedProductId,
-        searchTerm: debouncedCustomerSearch,
-        page: currentPage,
-        itemsPerPage: SALES_PAGE_SIZE
-    });
-
-    const { data: allSalesData } = useSales({
         startDate: interval.start,
         endDate: interval.end,
         productId: selectedProductId,
@@ -721,20 +740,60 @@ const ReportPage = () => {
     });
 
     const isLoading = activeTab === 'sales'
-        ? (isLoadingList || isLoadingSummary)
+        ? (isLoadingSales || isLoadingSummary)
         : activeTab === 'frequent' ? isLoadingFrequent : isLoadingCustomers;
 
     const error = activeTab === 'sales'
-        ? (listError || summaryError)
+        ? (salesError || summaryError)
         : activeTab === 'frequent' ? null : customersError;
 
-    const salesData = salesPageData?.sales || [];
-    const chartSalesData = allSalesData?.sales || [];
+    const allSales = allSalesData?.sales || [];
+    const chartSalesData = allSales;
+    const totalSalesCount = allSalesData?.totalCount ?? allSales.length;
+
+    const { dateKeys, salesByDate } = useMemo(() => {
+        if (!allSales || allSales.length === 0) {
+            return { dateKeys: [], salesByDate: {} };
+        }
+
+        const groups = {};
+        const dates = [];
+
+        // Sort sales descending by timestamp (newest first)
+        const sortedSales = [...allSales].sort((a, b) => new Date(b.saleTimestamp) - new Date(a.saleTimestamp));
+
+        sortedSales.forEach(sale => {
+            const dateObj = new Date(sale.saleTimestamp);
+            const dateKey = format(dateObj, 'yyyy-MM-dd');
+            if (!groups[dateKey]) {
+                groups[dateKey] = [];
+                dates.push(dateKey);
+            }
+            groups[dateKey].push({
+                ...sale,
+                staffName: sale.createdBy || 'N/A',
+                status: sale.status || 'Unknown',
+            });
+        });
+
+        return { dateKeys: dates, salesByDate: groups };
+    }, [allSales]);
+
+    const totalSalesPages = Math.max(1, dateKeys.length);
+    const safeCurrentPage = Math.min(Math.max(1, currentPage), totalSalesPages);
+    const currentDateKey = dateKeys[safeCurrentPage - 1] || null;
+    const processedSales = currentDateKey ? (salesByDate[currentDateKey] || []) : [];
+
+    useEffect(() => {
+        if (currentPage > totalSalesPages && totalSalesPages > 0) {
+            setCurrentPage(totalSalesPages);
+        }
+    }, [currentPage, totalSalesPages]);
+
     const totalPages = activeTab === 'sales'
-        ? (salesPageData?.totalPages || 1)
+        ? totalSalesPages
         : activeTab === 'frequent' ? (frequentData?.totalPages || 1) : (customersPageData?.totalPages || 1);
 
-    const totalSalesCount = salesPageData?.totalCount || 0;
     const totalRevenue = summaryData?.totalRevenue || 0;
     const totalGallonsSold = summaryData?.totalGallons || 0;
 
@@ -752,14 +811,6 @@ const ReportPage = () => {
         const endStr = interval.end ? format(interval.end, 'MMM d, yyyy') : 'Present';
         return `${startStr} - ${endStr}`;
     }, [interval]);
-
-    const processedSales = useMemo(() => {
-        return salesData.map(sale => ({
-            ...sale,
-            staffName: sale.createdBy || 'N/A',
-            status: sale.status || 'Unknown',
-        })).sort((a, b) => new Date(b.saleTimestamp) - new Date(a.saleTimestamp));
-    }, [salesData]);
 
     const processedCustomers = useMemo(() => {
         return customersData.sort((a, b) => {
@@ -1207,11 +1258,12 @@ const ReportPage = () => {
                     {!isLoading && !error && (
                         <SalesReportDisplay
                             salesList={processedSales}
-                            currentPage={currentPage}
+                            currentPage={safeCurrentPage}
                             totalPages={totalPages}
                             onPageChange={page => setCurrentPage(page)}
                             onDelete={openDeleteModal}
                             isAdmin={isAdmin}
+                            currentDate={currentDateKey}
                         />
                     )}
                 </>
