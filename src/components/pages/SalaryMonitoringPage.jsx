@@ -146,12 +146,12 @@ export default function SalaryMonitoringPage() {
 
     const activeDeductions = useMemo(() => {
         if (!payrollEmpId || !payrollDate) return [];
-    
+
         const payoutDateObj = toDate(payrollDate, { timeZone: TIME_ZONE });
         const dayOfMonth = payoutDateObj.getDate();
-    
+
         let periodStart, periodEnd;
-    
+
         if (dayOfMonth <= 15) {
             periodStart = startOfDay(new Date(payoutDateObj.getFullYear(), payoutDateObj.getMonth(), 1));
             periodEnd = endOfDay(new Date(payoutDateObj.getFullYear(), payoutDateObj.getMonth(), 15));
@@ -159,34 +159,34 @@ export default function SalaryMonitoringPage() {
             periodStart = startOfDay(new Date(payoutDateObj.getFullYear(), payoutDateObj.getMonth(), 16));
             periodEnd = endOfDay(endOfMonth(payoutDateObj));
         }
-    
+
         const empDebts = debts.filter(d =>
             d.type?.toLowerCase() === 'employee' &&
             (d.employee_id === Number(payrollEmpId) || (d.description && d.description.toLowerCase().includes(payrollEmpName.toLowerCase())))
         );
-    
+
         return empDebts.map(debt => {
             const totalPaid = (debt.debt_payments || []).reduce((sum, p) => sum + Number(p.amount_paid), 0);
             const remainingDebt = Number(debt.total_debt_amount) - totalPaid;
-    
+
             if (remainingDebt <= 0) return null;
-    
+
             let scheduledDeduction = debt.frequency === 'Every 15 days'
                 ? Number(debt.weekly_payment_amount || 0)
                 : Number(debt.weekly_payment_amount || 0) * 2;
-    
+
             const paymentsInPeriod = (debt.debt_payments || []).filter(p => {
                 if (!p.date_paid) return false;
                 const pDate = toDate(p.date_paid, { timeZone: TIME_ZONE });
                 return pDate >= periodStart && pDate <= periodEnd;
             });
-    
+
             const amountPaidInPeriod = paymentsInPeriod.reduce((sum, p) => sum + Number(p.amount_paid), 0);
             let finalDeduction = scheduledDeduction - amountPaidInPeriod;
-    
+
             if (finalDeduction <= 0) return null;
             if (finalDeduction > remainingDebt) finalDeduction = remainingDebt;
-    
+
             return {
                 debt_id: debt.id,
                 description: debt.description,
@@ -257,14 +257,14 @@ export default function SalaryMonitoringPage() {
             return;
         }
 
-        const dateInManila = toDate(payrollDate, { timeZone: TIME_ZONE });
         const now = new Date();
-        dateInManila.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
+        const [year, month, day] = payrollDate.split('-').map(Number);
+        const combinedDateTime = new Date(year, month - 1, day, now.getHours(), now.getMinutes(), now.getSeconds());
 
         try {
             await processDeductionsMutation.mutateAsync({
                 employeeName: payrollEmpName,
-                date: dateInManila.toISOString(),
+                date: combinedDateTime.toISOString(),
                 deductions: activeDeductions
             });
             addToast({ title: 'Success', description: 'Automated deductions processed successfully', variant: 'success' });
@@ -316,16 +316,16 @@ export default function SalaryMonitoringPage() {
         e.preventDefault();
         if (!employeeName || !amount || !payoutDate) return;
 
-        const dateInManila = toDate(payoutDate, { timeZone: TIME_ZONE });
         const now = new Date();
-        dateInManila.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
+        const [year, month, day] = payoutDate.split('-').map(Number);
+        const combinedDateTime = new Date(year, month - 1, day, now.getHours(), now.getMinutes(), now.getSeconds());
 
         try {
             await createSalary.mutateAsync({
                 employeeName,
                 amount,
                 description,
-                date: dateInManila.toISOString()
+                date: combinedDateTime.toISOString()
             });
             addToast({ title: 'Success', description: 'Salary recorded successfully', variant: 'success' });
 
