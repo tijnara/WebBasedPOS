@@ -54,8 +54,8 @@ export default function ExpensesPage() {
         isLoading,
         isFetching
     } = useExpenses({
-        startDate: dateFrom ? new Date(`${dateFrom}T00:00:00`).toISOString() : undefined,
-        endDate: dateTo ? new Date(`${dateTo}T23:59:59.999`).toISOString() : undefined,
+        startDate: dateFrom ? new Date(`${dateFrom}T00:00:00+08:00`).toISOString() : undefined,
+        endDate: dateTo ? new Date(`${dateTo}T23:59:59.999+08:00`).toISOString() : undefined,
         page: 1,
         pageSize,
         searchTerm: debouncedSearch,
@@ -64,8 +64,8 @@ export default function ExpensesPage() {
     });
 
     const { data: summary } = useExpenseSummary(
-        dateFrom ? new Date(`${dateFrom}T00:00:00`).toISOString() : undefined,
-        dateTo ? new Date(`${dateTo}T23:59:59.999`).toISOString() : undefined,
+        dateFrom ? new Date(`${dateFrom}T00:00:00+08:00`).toISOString() : undefined,
+        dateTo ? new Date(`${dateTo}T23:59:59.999+08:00`).toISOString() : undefined,
         selectedMonth
     );
 
@@ -73,8 +73,8 @@ export default function ExpensesPage() {
 
     // 1. Append the time strings to ensure we capture the entire start and end days
     const { data: salesSummary } = useSalesSummary({
-        startDate: dateFrom ? new Date(`${dateFrom}T00:00:00`) : undefined,
-        endDate: dateTo ? new Date(`${dateTo}T23:59:59.999`) : undefined
+        startDate: dateFrom ? new Date(`${dateFrom}T00:00:00+08:00`) : undefined,
+        endDate: dateTo ? new Date(`${dateTo}T23:59:59.999+08:00`) : undefined
     });
 
     // 2. Use the totalRevenue which natively represents the filtered period
@@ -865,7 +865,7 @@ export default function ExpensesPage() {
                                     onClick={() => setShowCategoryModal(false)}
                                     className="btn flex-1 h-10 bg-gray-100 border border-gray-200 text-gray-700 hover:bg-gray-200 text-sm font-semibold"
                                 >
-                                    .                                        Cancel
+                                    Cancel
                                 </button>
                                 <button
                                     onClick={handleSaveCategory}
