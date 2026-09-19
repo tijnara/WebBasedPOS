@@ -11,6 +11,7 @@ import Navbar from '../components/Navbar';
 import TabBar from '../components/TabBar';
 import FloatingNotes from '../components/FloatingNotes';
 import FloatingMessages from '../components/FloatingMessages';
+import GlobalVehicleAlert from '../components/tracking/GlobalVehicleAlert';
 import { Button } from '../components/ui';
 import { QueryClient, QueryClientProvider, HydrationBoundary, MutationCache } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
@@ -39,6 +40,7 @@ const titleMap = {
     '/terms': 'Terms of Service | Seaside WRS',
     '/privacy': 'Privacy Policy | Seaside WRS',
     '/contact': 'Contact Us | Seaside WRS',
+    '/maintenance': 'Maintenance Tracking | Seaside WRS',
 };
 
 
@@ -245,6 +247,7 @@ export default function App({ Component, pageProps }) {
                             ))}
                         </div>
                     </div>
+                    <GlobalVehicleAlert />
                 </AuthGate>
                 <div id="modal-root"></div>
                 <ReactQueryDevtools initialIsOpen={false} position="bottom" />

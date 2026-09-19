@@ -37,10 +37,10 @@ const LiveClock = () => {
         month: 'short',
         day: 'numeric'
     };
-    
+
     const formatter = new Intl.DateTimeFormat('en-US', options);
     const parts = formatter.formatToParts(time);
-    
+
     const timeParts = {};
     parts.forEach(({type, value}) => {
         timeParts[type] = value;
@@ -188,7 +188,7 @@ const Navbar = () => {
                 { name: 'POS', path: '/pos', icon: <CartIcon className="h-5 w-5 menu-icon" /> },
                 { name: 'Sale History', path: '/history', icon: <ChartIcon className="h-5 w-5 menu-icon" /> },
                 { name: 'Customer', path: '/customer-management', icon: <UserIcon className="h-5 w-5 menu-icon" /> },
-                { name: 'Filter Tracking', path: '/filter-tracking', icon: <SettingsIcon className="h-5 w-5 menu-icon" /> },
+                { name: 'Maintenance', path: '/maintenance', icon: <SettingsIcon className="h-5 w-5 menu-icon" /> },
             ]
         },
         {
@@ -203,7 +203,6 @@ const Navbar = () => {
             category: 'Finance & Analytics',
             links: [
                 { name: 'Expenses', path: '/expenses', icon: <Receipt className="h-6 w-6" /> },
-                // Removed Incentives link
                 { name: 'Salary', path: '/salary-monitoring', icon: <UserIcon className="h-5 w-5 menu-icon" />, adminOnly: true },
                 { name: 'Debt Management', path: '/debt-management', icon: <Landmark className="h-6 w-6" />, adminOnly: true },
                 { name: 'Report', path: '/report', icon: <ChartIcon className="h-5 w-5 menu-icon" />, adminOnly: true },
@@ -583,8 +582,8 @@ const Navbar = () => {
                             </div>
                             <div className="hidden md:flex items-center space-x-2 text-sm text-gray-600 mr-4">
                                 <span>Logged in as:</span>
-                                <span 
-                                    className="font-bold" 
+                                <span
+                                    className="font-bold"
                                     style={{ color: clientUser?.color || '#16a34a' }}
                                 >
                                     {clientUser?.name}
@@ -597,9 +596,9 @@ const Navbar = () => {
                             <Button variant="ghost" onClick={() => router.push('/')} className="sm:hidden p-2 hover:text-primary transition-colors" title="Landing Page">
                                 <HomeIcon className="w-5 h-5" />
                             </Button>
-                            <Button 
-                                variant="ghost" 
-                                onClick={toggleDarkMode} 
+                            <Button
+                                variant="ghost"
+                                onClick={toggleDarkMode}
                                 className="p-2 hover:text-primary transition-colors"
                                 title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
                             >
