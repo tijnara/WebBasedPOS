@@ -2,20 +2,21 @@
 // created on 6/16/2026
 import React, { useState, useMemo, useEffect } from 'react';
 import Head from 'next/head';
-import {
-    Card, CardHeader, CardContent, Button, Input, Label, Select,
-    Table, TableHeader, TableRow, TableHead, TableBody, TableCell,
-    Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, ScrollArea
-} from '../ui';
+import { Button } from '../ui';
 import { useSalaryRecords, useCreateSalary, useProcessDeductions } from '../../hooks/useSalary';
 import { useEmployees, useManageEmployee } from '../../hooks/useEmployees';
 import { useDebts } from '../../hooks/useDebts';
 import { useSalesSummary } from '../../hooks/useSalesSummary';
-import currency from 'currency.js';
 import { format as formatDate, endOfMonth, subMonths, addMonths, startOfDay, endOfDay } from 'date-fns';
 import { formatInTimeZone, toDate } from 'date-fns-tz';
-import { ChevronLeft, ChevronRight, Users, Edit2, Trash2, Calendar, Calculator, FileText, AlertCircle } from 'lucide-react';
+import { Users } from 'lucide-react';
 import { useStore } from '../../store/useStore';
+
+// Extracted Modular Components
+import AutoPayrollCard from '../salary/AutoPayrollCard';
+import ManualSalaryCard from '../salary/ManualSalaryCard';
+import SalaryHistoryCard from '../salary/SalaryHistoryCard';
+import EmployeeManagementModal from '../salary/EmployeeManagementModal';
 
 const TIME_ZONE = 'Asia/Manila';
 
@@ -401,6 +402,7 @@ export default function SalaryMonitoringPage() {
             <Head>
                 <title>Salary Monitoring | Seaside POS</title>
             </Head>
+
             <div className="flex justify-between items-center">
                 <div>
                     <h1 className="text-2xl font-bold">Salary Monitoring</h1>
@@ -415,396 +417,81 @@ export default function SalaryMonitoringPage() {
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
+                {/* Automated Payroll Calculator */}
+                <AutoPayrollCard
+                    payrollEmpId={payrollEmpId}
+                    setPayrollEmpId={setPayrollEmpId}
+                    payrollDate={payrollDate}
+                    setPayrollDate={setPayrollDate}
+                    employees={employees}
+                    activeDeductions={activeDeductions}
+                    payrollGross={payrollGross}
+                    payrollTotalDeductions={payrollTotalDeductions}
+                    payrollNet={payrollNet}
+                    handleProcessPayroll={handleProcessPayroll}
+                    isPending={processDeductionsMutation.isPending}
+                />
 
-                {/* ========================================================
-                    NEW SECTION: AUTOMATED PAYROLL CALCULATOR
-                    ======================================================== */}
-                <Card className="border-indigo-100 shadow-sm">
-                    <CardHeader className="bg-indigo-50/50 border-b border-indigo-100">
-                        <h3 className="font-bold text-indigo-800 flex items-center gap-2"><Calculator className="w-5 h-5"/> Auto-Deduct Payroll</h3>
-                        <p className="text-xs text-indigo-600">Calculates gross from the Salary History below and applies debts on cutoffs.</p>
-                    </CardHeader>
-                    <CardContent className="pt-6">
-                        <form onSubmit={handleProcessPayroll} className="space-y-4">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                    <Label>Select Employee</Label>
-                                    <Select value={payrollEmpId} onChange={(e) => setPayrollEmpId(e.target.value)} required className="h-11 w-full">
-                                        <option value="" disabled>Select Staff...</option>
-                                        {employees?.map(emp => (
-                                            <option key={emp.id} value={emp.id}>{emp.name}</option>
-                                        ))}
-                                    </Select>
-                                </div>
-                                <div>
-                                    <Label>Payout Date</Label>
-                                    <Input type="date" value={payrollDate} onChange={e => setPayrollDate(e.target.value)} required className="h-11 w-full" />
-                                </div>
-                            </div>
-
-                            {/* Computations Table UI - Responsive Flex Layout */}
-                            <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden mt-2">
-                                <div className="bg-gray-50 px-4 py-2 border-b text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                                    Salary Computation
-                                </div>
-
-                                {(() => {
-                                    if (activeDeductions.length > 0) {
-                                        return (
-                                            <div className="px-4 py-3 border-b bg-red-50/50">
-                                                <p className="text-xs font-bold text-red-600 mb-1">Active Debt Deductions:</p>
-                                                <ul className="text-sm space-y-1">
-                                                    {activeDeductions.map(d => (
-                                                        <li key={d.debt_id} className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1 sm:gap-2">
-                                                            <span className="flex-1 text-gray-700 break-words">
-                                                                {d.description}
-                                                                <span className="text-xs text-gray-500 italic ml-2">
-                                                                    (₱{d.baseAmount.toFixed(2)} / {d.frequency} | Date: {d.debtDate ? formatInTimeZone(toDate(d.debtDate), TIME_ZONE, 'MMM d, yyyy') : 'N/A'})
-                                                                </span>
-                                                            </span>
-                                                            <span className="font-medium text-red-600 sm:whitespace-nowrap">- ₱{d.amount.toFixed(2)}</span>
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            </div>
-                                        );
-                                    }
-
-                                    return (
-                                        <div className="px-4 py-3 border-b text-sm text-gray-500 italic">
-                                            No active auto-deductions found for the selected date.
-                                        </div>
-                                    );
-                                })()}
-
-                                {/* Replaced Table with Mobile-Friendly Flex Layout */}
-                                <div className="p-4 bg-indigo-50/30 flex flex-col sm:flex-row justify-between gap-4">
-                                    <div className="flex justify-between sm:flex-col sm:justify-start">
-                                        <span
-                                            className="text-xs text-gray-500 uppercase font-semibold">History Gross &nbsp; &nbsp;</span>
-                                        <span className="font-medium text-gray-700 text-lg">₱{payrollGross.toFixed(2)}</span>
-                                    </div>
-                                    <div className="flex justify-between sm:flex-col sm:justify-start">
-                                        <span className="text-xs text-gray-500 uppercase font-semibold">Total Deduction &nbsp;&nbsp;</span>
-                                        <span className="font-medium text-red-600 text-lg">- ₱{payrollTotalDeductions.toFixed(2)}</span>
-                                    </div>
-                                    <div className="flex justify-between sm:flex-col sm:text-right border-t border-indigo-100 sm:border-0 pt-3 sm:pt-0">
-                                        <span className="text-xs text-indigo-700 uppercase font-bold">Net Payout&nbsp;&nbsp;</span>
-                                        <span className="font-black text-2xl text-indigo-600">₱{payrollNet.toFixed(2)}</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <Button type="submit" disabled={processDeductionsMutation.isPending || activeDeductions.length === 0} className="w-full h-11 btn-apple-green text-white">
-                                {processDeductionsMutation.isPending ? 'Processing...' : 'Process Deductions'}
-                            </Button>
-                        </form>
-                    </CardContent>
-                </Card>
-
-                {/* ========================================================
-                    ORIGINAL SECTION: RECORD SALARY PAYMENT (UPDATED LAYOUT)
-                    ======================================================== */}
-                <Card>
-                    <CardHeader className="bg-blue-50 border-b border-blue-100">
-                        <h3 className="font-bold text-blue-800 flex items-center gap-2"><FileText className="w-5 h-5"/> Manual Record Salary Entry</h3>
-                        <p className="text-xs text-blue-600">Record a salary payout or bonus into the Salary History below.</p>
-                    </CardHeader>
-                    <CardContent className="pt-6">
-                        <form onSubmit={handleAddSalary} className="grid grid-cols-1 md:grid-cols-2 gap-4 md:items-end">
-                            <div className="md:col-span-2">
-                                <Label>Employee</Label>
-                                <Select value={employeeName} onChange={handleEmployeeSelect} required className="h-11 w-full">
-                                    <option value="" disabled>Select Staff...</option>
-                                    {employees?.map(emp => (
-                                        <option key={emp.id} value={emp.name}>{emp.name}</option>
-                                    ))}
-                                </Select>
-                            </div>
-                            <div className="md:col-span-1">
-                                <Label>Gross Amount (₱)</Label>
-                                <Input type="number" step="0.01" min="1" value={amount} onChange={e => setAmount(e.target.value)} required className="h-11 w-full" />
-                            </div>
-                            <div className="md:col-span-1">
-                                <Label>Payout Date</Label>
-                                <Input type="date" value={payoutDate} onChange={e => { setPayoutDate(e.target.value); setExcessMultiplier('1'); }} required className="h-11 w-full" />
-                            </div>
-                            <div className="md:col-span-2">
-                                <Label>Description</Label>
-                                <Input type="text" value={description} onChange={e => setDescription(e.target.value)} required className="h-11 w-full" />
-                            </div>
-
-                            {/* Calculation Info Helper */}
-                            {(employeeName && employees?.find(e => e.name === employeeName)) && (
-                                <div className="md:col-span-2">
-                                    {(() => {
-                                        const emp = employees?.find(e => e.name === employeeName);
-                                        const isPerContainer = emp?.salary_type === 'per_container';
-                                        if (!isPerContainer && dailyGallons <= 100) return null;
-
-                                        return (
-                                            <div className="bg-blue-50/50 p-2 rounded-lg border border-blue-100 text-[11px] sm:text-xs text-blue-800 flex flex-wrap gap-x-4 gap-y-1">
-                                                {isPerContainer && (
-                                                    <span>
-                                                        <span className="font-bold opacity-70 uppercase mr-1">Base Calculation:</span>
-                                                        {dailyGallons} gal × ₱{emp.container_multiplier} = {currency(dailyGallons * Number(emp.container_multiplier), { symbol: '₱' }).format()}
-                                                    </span>
-                                                )}
-                                                {dailyGallons > 100 && (
-                                                    <span>
-                                                        <span className="font-bold opacity-70 uppercase mr-1">Quota Bonus:</span>
-                                                        {dailyGallons - 100} gal × x{excessMultiplier} = {currency((dailyGallons - 100) * Number(excessMultiplier), { symbol: '₱' }).format()}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        );
-                                    })()}
-                                </div>
-                            )}
-
-                            {dailyGallons > 100 && (
-                                <div className="md:col-span-2 bg-orange-50 p-3 rounded-lg border border-orange-100 flex flex-col sm:flex-row justify-between items-center gap-3">
-                                    <div className="flex items-center gap-2 text-orange-800 text-sm font-medium">
-                                        <AlertCircle className="w-5 h-5 text-orange-500 shrink-0" />
-                                        <span>Quota exceeded: {dailyGallons - 100} gallons exceed the 100-gal daily quota.</span>
-                                    </div>
-                                    <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
-                                        <Label className="whitespace-nowrap text-orange-900 mb-0">Multiplier:</Label>
-                                        <Select
-                                            value={excessMultiplier}
-                                            onChange={e => setExcessMultiplier(e.target.value)}
-                                            className="h-10 w-full sm:w-32 bg-white border-orange-200"
-                                        >
-                                            <option value="0">x0</option>
-                                            <option value="0.5">x0.5</option>
-                                            <option value="1">x1</option>
-                                            <option value="1.5">x1.5</option>
-                                            <option value="2">x2</option>
-                                            <option value="2.5">x2.5</option>
-                                            <option value="3">x3</option>
-                                            <option value="3.5">x3.5</option>
-                                            <option value="4">x4</option>
-                                            <option value="4.5">x4.5</option>
-                                            <option value="5">x5</option>
-                                        </Select>
-                                    </div>
-                                </div>
-                            )}
-
-                            <div className="md:col-span-2">
-                                <Button type="submit" disabled={createSalary.isPending} className="btn--primary w-full h-11">
-                                    {createSalary.isPending ? 'Saving...' : 'Record Salary'}
-                                </Button>
-                            </div>
-                        </form>
-                    </CardContent>
-                </Card>
+                {/* Manual Record Salary Entry */}
+                <ManualSalaryCard
+                    employeeName={employeeName}
+                    handleEmployeeSelect={handleEmployeeSelect}
+                    employees={employees}
+                    amount={amount}
+                    setAmount={setAmount}
+                    payoutDate={payoutDate}
+                    setPayoutDate={setPayoutDate}
+                    description={description}
+                    setDescription={setDescription}
+                    dailyGallons={dailyGallons}
+                    excessMultiplier={excessMultiplier}
+                    setExcessMultiplier={setExcessMultiplier}
+                    handleAddSalary={handleAddSalary}
+                    isPending={createSalary.isPending}
+                />
             </div>
 
-            {/* SALARY HISTORY & FILTERS */}
-            <Card>
-                <CardHeader className="border-b border-gray-100 pb-4 space-y-4">
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
-                        <div className="flex-1">
-                            <h3 className="font-bold">Salary History (Gross Payouts)</h3>
-                            <p className="text-xs text-gray-500 mt-1 uppercase tracking-wider font-semibold">
-                                Period: {formatInTimeZone(toDate(period.start), TIME_ZONE, 'EEE, MMM d, yyyy')} — {formatInTimeZone(toDate(period.end), TIME_ZONE, 'EEE, MMM d, yyyy')}
-                            </p>
-                        </div>
-                        <div className="flex flex-col sm:flex-row items-center gap-4 mt-4 md:mt-0 w-full md:w-auto">
-                            <div className="w-full sm:w-48">
-                                <Select value={filterEmployee} onChange={e => setFilterEmployee(e.target.value)} className="w-full">
-                                    <option value="all">All Employees</option>
-                                    {employees?.map(emp => (
-                                        <option key={emp.id} value={emp.name}>{emp.name}</option>
-                                    ))}
-                                </Select>
-                            </div>
-                            <div className="text-right">
-                                <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Period Total</p>
-                                <p className="text-xl font-bold text-red-600">{currency(periodTotal, { symbol: '₱' }).format()}</p>
-                            </div>
-                        </div>
-                    </div>
+            {/* Salary History & Filters */}
+            <SalaryHistoryCard
+                period={period}
+                filterEmployee={filterEmployee}
+                setFilterEmployee={setFilterEmployee}
+                employees={employees}
+                periodTotal={periodTotal}
+                customStartDate={customStartDate}
+                setCustomStartDate={setCustomStartDate}
+                customEndDate={customEndDate}
+                setCustomEndDate={setCustomEndDate}
+                handleApplyCustomDate={handleApplyCustomDate}
+                isSalaryLoading={isSalaryLoading}
+                groupedRecords={groupedRecords}
+                handleSetPeriod={handleSetPeriod}
+                getPrevPeriod={getPrevPeriod}
+                getNextPeriod={getNextPeriod}
+                isCustomRangeActive={isCustomRangeActive}
+            />
 
-                    {/* Custom Date Filter */}
-                    <div className="flex flex-col md:flex-row items-center gap-2 p-3 bg-gray-50 rounded-lg">
-                        <Calendar className="w-5 h-5 text-gray-500" />
-                        <Label className="font-semibold text-sm">Custom Date Range:</Label>
-                        <Input
-                            type="date"
-                            value={customStartDate}
-                            onChange={e => setCustomStartDate(e.target.value)}
-                            className="h-9 w-full sm:max-w-xs"
-                        />
-                        <span className="hidden sm:inline text-gray-500">-</span>
-                        <Input
-                            type="date"
-                            value={customEndDate}
-                            onChange={e => setCustomEndDate(e.target.value)}
-                            className="h-9 w-full sm:max-w-xs"
-                        />
-                        <Button onClick={handleApplyCustomDate} className="h-9 btn-primary w-full sm:w-auto">Apply</Button>
-                    </div>
-                </CardHeader>
-                <CardContent className="p-0">
-                    {isSalaryLoading ? (
-                        <p className="text-center py-8">Loading...</p>
-                    ) : Object.keys(groupedRecords).length === 0 ? (
-                        <p className="text-center py-8">No records for this period.</p>
-                    ) : (
-                        Object.entries(groupedRecords).map(([employeeName, records]) => {
-                            const employeeTotal = records.reduce((sum, record) => sum + Number(record.amount), 0);
-                            return (
-                                <div key={employeeName} className="border-b last:border-b-0">
-                                    <div className="bg-gray-50/50 p-3 flex justify-between items-center">
-                                        <h4 className="font-bold text-md">{employeeName}</h4>
-                                        <div className="text-right">
-                                            <p className="text-xs text-gray-500">Employee Total</p>
-                                            <p className="font-bold text-red-600">{currency(employeeTotal, { symbol: '₱' }).format()}</p>
-                                        </div>
-                                    </div>
-                                    {/* Desktop Table */}
-                                    <div className="hidden md:block">
-                                        <Table>
-                                            <TableHeader>
-                                                <TableRow>
-                                                    <TableHead>Date</TableHead>
-                                                    <TableHead>Description</TableHead>
-                                                    <TableHead className="text-right">Gross Amount</TableHead>
-                                                </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                                {records.map(record => (
-                                                    <TableRow key={record.id}>
-                                                        <TableCell>{formatInTimeZone(toDate(record.expense_date), TIME_ZONE, 'EEE, MMM d, yyyy h:mm a')}</TableCell>
-                                                        <TableCell>{record.description}</TableCell>
-                                                        <TableCell className={`text-right font-bold ${Number(record.amount) < 0 ? 'text-red-600' : 'text-gray-800'}`}>
-                                                            {currency(record.amount, { symbol: '₱' }).format()}
-                                                        </TableCell>
-                                                    </TableRow>
-                                                ))}
-                                            </TableBody>
-                                        </Table>
-                                    </div>
-                                    {/* Mobile List */}
-                                    <div className="block md:hidden p-4 space-y-3">
-                                        {records.map(record => (
-                                            <div key={record.id} className="bg-white p-3 rounded-lg shadow-sm border">
-                                                <div className="flex justify-between items-start">
-                                                    <span className="text-sm flex-1 pr-2">{record.description}</span>
-                                                    <span className={`font-bold text-md ${Number(record.amount) < 0 ? 'text-red-600' : 'text-gray-800'}`}>
-                                                        {currency(record.amount, { symbol: '₱' }).format()}
-                                                    </span>
-                                                </div>
-                                                <p className="text-xs text-gray-500 mt-1 text-right">{formatInTimeZone(toDate(record.expense_date), TIME_ZONE, 'EEE, MMM d, h:mm a')}</p>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            );
-                        })
-                    )}
-                </CardContent>
-
-                {/* Period Navigation */}
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-b-lg border-t">
-                    <Button
-                        onClick={() => handleSetPeriod(getPrevPeriod(period.start))}
-                        disabled={isCustomRangeActive}
-                        variant="outline"
-                        className="flex items-center gap-1 disabled:opacity-50"
-                    >
-                        <ChevronLeft className="w-4 h-4" /> Prev 15-Day
-                    </Button>
-                    <span className="text-xs font-bold text-gray-400 uppercase">
-                           {isCustomRangeActive ? "Custom Range" : `${formatInTimeZone(toDate(period.start), TIME_ZONE, 'MMM d')} - ${formatInTimeZone(toDate(period.end), TIME_ZONE, 'MMM d')}`}
-                        </span>
-                    <Button
-                        onClick={() => handleSetPeriod(getNextPeriod(period.start))}
-                        disabled={isCustomRangeActive}
-                        variant="outline"
-                        className="flex items-center gap-1 disabled:opacity-50"
-                    >
-                        Next 15-Day <ChevronRight className="w-4 h-4" />
-                    </Button>
-                </div>
-            </Card>
-
-            {/* EMPLOYEE MANAGEMENT MODAL */}
-            <Dialog open={isManageModalOpen} onOpenChange={setIsManageModalOpen}>
-                <DialogContent className="max-w-2xl w-full">
-                    <DialogHeader>
-                        <DialogTitle>Manage Employees</DialogTitle>
-                    </DialogHeader>
-                    <div className="p-4 space-y-6">
-                        <form onSubmit={handleSaveEmployee} className="space-y-4 bg-gray-50 p-4 rounded-lg border">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div><Label>Employee Name</Label><Input value={empFormName} onChange={e => setEmpFormName(e.target.value)} required /></div>
-                                <div>
-                                    <Label>Salary Type</Label>
-                                    <Select value={empFormSalaryType} onChange={e => setEmpFormSalaryType(e.target.value)} required>
-                                        <option value="per_day">Per Day</option>
-                                        <option value="per_container">Per Container</option>
-                                    </Select>
-                                </div>
-                                {empFormSalaryType === 'per_day' ? (
-                                    <div><Label>Daily Wage Rate (₱)</Label><Input type="number" step="0.01" value={empFormSalary} onChange={e => setEmpFormSalary(e.target.value)} /></div>
-                                ) : (
-                                    <div>
-                                        <Label>Container Multiplier</Label>
-                                        <Select value={empFormMultiplier} onChange={e => setEmpFormMultiplier(e.target.value)} required>
-                                            <option value="" disabled>Select Multiplier...</option>
-                                            <option value="1">x1</option>
-                                            <option value="2">x2</option>
-                                            <option value="3">x3</option>
-                                            <option value="4">x4</option>
-                                            <option value="5">x5</option>
-                                        </Select>
-                                    </div>
-                                )}
-                            </div>
-                            <div className="flex justify-end gap-2">
-                                {editingEmpId && (
-                                    <Button type="button" variant="ghost" onClick={() => {
-                                        setEditingEmpId(null);
-                                        setEmpFormName('');
-                                        setEmpFormSalary('');
-                                        setEmpFormSalaryType('per_day');
-                                        setEmpFormMultiplier('');
-                                    }}>Cancel</Button>
-                                )}
-                                <Button type="submit" disabled={manageEmployee.isPending}>{editingEmpId ? 'Update' : 'Add Employee'}</Button>
-                            </div>
-                        </form>
-                        <div className="max-h-80 overflow-y-auto border rounded-lg">
-                            <Table>
-                                <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Salary Info</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
-                                <TableBody>
-                                    {isEmpLoading ? <TableRow><TableCell colSpan="3" className="text-center">Loading...</TableCell></TableRow> :
-                                        employees?.map(emp => (
-                                            <TableRow key={emp.id}>
-                                                <TableCell className="font-medium">{emp.name}</TableCell>
-                                                <TableCell>
-                                                    {emp.salary_type === 'per_container'
-                                                        ? `Per Container (x${emp.container_multiplier})`
-                                                        : currency(emp.default_salary, { symbol: '₱' }).format() + ' / day'}
-                                                </TableCell>
-                                                <TableCell className="text-right space-x-2">
-                                                    <button onClick={() => handleEditClick(emp)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md"><Edit2 className="w-4 h-4" /></button>
-                                                    <button onClick={() => handleDeleteEmployee(emp.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-md"><Trash2 className="w-4 h-4" /></button>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                </TableBody>
-                            </Table>
-                        </div>
-                    </div>
-                    <DialogFooter className="p-4 border-t">
-                        <Button variant="outline" onClick={() => setIsManageModalOpen(false)}>Close</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            {/* Employee Management Modal */}
+            <EmployeeManagementModal
+                isManageModalOpen={isManageModalOpen}
+                setIsManageModalOpen={setIsManageModalOpen}
+                handleSaveEmployee={handleSaveEmployee}
+                empFormName={empFormName}
+                setEmpFormName={setEmpFormName}
+                empFormSalaryType={empFormSalaryType}
+                setEmpFormSalaryType={setEmpFormSalaryType}
+                empFormSalary={empFormSalary}
+                setEmpFormSalary={setEmpFormSalary}
+                empFormMultiplier={empFormMultiplier}
+                setEmpFormMultiplier={setEmpFormMultiplier}
+                editingEmpId={editingEmpId}
+                setEditingEmpId={setEditingEmpId}
+                isPending={manageEmployee.isPending}
+                isEmpLoading={isEmpLoading}
+                employees={employees}
+                handleEditClick={handleEditClick}
+                handleDeleteEmployee={handleDeleteEmployee}
+            />
         </div>
     );
 }
