@@ -1,25 +1,29 @@
+// C:\Users\tijna\WebstormProjects\WebBasedPOS\src\components\reports\CustomerTab.jsx
+
 import { Button, Input } from '../ui';
 import CustomerReportDisplay from './CustomerReportDisplay';
+import DroppedOffCustomersSection from './DroppedOffCustomersSection';
+import ReturningCustomersSection from './ReturningCustomersSection';
 
 const CustomerTab = ({
-    elevated,
-    totalCustomersCount,
-    isLoading,
-    activeRangeLabel,
-    fromDate,
-    handleFromDateChange,
-    toDate,
-    handleToDateChange,
-    customerSearch,
-    setCustomerSearch,
-    handleClearRange,
-    reportTitle,
-    error,
-    processedCustomers,
-    customerPage,
-    totalPages,
-    setCustomerPage,
-}) => {
+                         elevated,
+                         totalCustomersCount,
+                         isLoading,
+                         activeRangeLabel,
+                         fromDate,
+                         handleFromDateChange,
+                         toDate,
+                         handleToDateChange,
+                         customerSearch,
+                         setCustomerSearch,
+                         handleClearRange,
+                         reportTitle,
+                         error,
+                         processedCustomers,
+                         customerPage,
+                         totalPages,
+                         setCustomerPage,
+                     }) => {
     return (
         <>
             <div className="flex justify-end mb-4">
@@ -37,6 +41,14 @@ const CustomerTab = ({
                     {totalCustomersCount} customers found
                 </span>
             </div>
+
+            {/* Smart Alerts Section: Dropped-off & Returning Customers */}
+            {fromDate && toDate && (
+                <div className="mt-6 space-y-6">
+                    <DroppedOffCustomersSection startDate={fromDate} endDate={toDate} />
+                    <ReturningCustomersSection startDate={fromDate} endDate={toDate} />
+                </div>
+            )}
 
             {isLoading && <div className="text-sm text-gray-500 p-4 text-center">Loading customer data...</div>}
             {error && (

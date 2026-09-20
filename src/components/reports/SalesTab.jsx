@@ -3,6 +3,7 @@ import { Button, Input, Select } from '../ui';
 import WeeklySalesChart from '../charts/WeeklySalesChart';
 import SalesReportDisplay from './SalesReportDisplay';
 import MissedCustomersTable from './MissedCustomersTable';
+import ReturningCustomersSection from './ReturningCustomersSection';
 
 const formatCurrency = (amount) => {
     const numericAmount = typeof amount === 'string' ? currency(amount).value : currency(amount).value;
@@ -13,35 +14,35 @@ const formatCurrency = (amount) => {
 };
 
 const SalesTab = ({
-    elevated,
-    totalRevenue,
-    isLoading,
-    activeRangeLabel,
-    fromDate,
-    handleFromDateChange,
-    toDate,
-    handleToDateChange,
-    selectedProductId,
-    setSelectedProductId,
-    availableProducts,
-    customerSearch,
-    setCustomerSearch,
-    handleClearRange,
-    chartSalesData,
-    interval,
-    reportTitle,
-    totalSalesCount,
-    totalGallonsSold,
-    summaryData,
-    error,
-    processedSales,
-    safeCurrentPage,
-    totalPages,
-    setCurrentPage,
-    openDeleteModal,
-    isAdmin,
-    currentDateKey,
-}) => (
+                      elevated,
+                      totalRevenue,
+                      isLoading,
+                      activeRangeLabel,
+                      fromDate,
+                      handleFromDateChange,
+                      toDate,
+                      handleToDateChange,
+                      selectedProductId,
+                      setSelectedProductId,
+                      availableProducts,
+                      customerSearch,
+                      setCustomerSearch,
+                      handleClearRange,
+                      chartSalesData,
+                      interval,
+                      reportTitle,
+                      totalSalesCount,
+                      totalGallonsSold,
+                      summaryData,
+                      error,
+                      processedSales,
+                      safeCurrentPage,
+                      totalPages,
+                      setCurrentPage,
+                      openDeleteModal,
+                      isAdmin,
+                      currentDateKey,
+                  }) => (
     <>
         <div className={`filter-bar bg-white rounded-lg p-4 transition-shadow sticky top-0 z-20 ${elevated ? 'shadow-md' : 'shadow-sm'}`}>
             <div className="mb-4 pb-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
@@ -168,27 +169,36 @@ const SalesTab = ({
             </div>
         </div>
 
-        <MissedCustomersTable 
-            startDate={interval.start} 
-            endDate={interval.end} 
-        />
+        <div className="space-y-6 mt-4">
+            <MissedCustomersTable
+                startDate={interval.start}
+                endDate={interval.end}
+            />
 
-        {isLoading && <div className="text-sm text-gray-500 p-4 text-center">Loading sales data...</div>}
+            <ReturningCustomersSection
+                startDate={interval.start}
+                endDate={interval.end}
+            />
+        </div>
+
+        {isLoading && <div className="text-sm text-gray-500 p-4 text-center mt-4">Loading sales data...</div>}
         {error && (
-            <div className="text-sm text-red-600 bg-red-50 p-4 rounded-lg">
+            <div className="text-sm text-red-600 bg-red-50 p-4 rounded-lg mt-4">
                 Error loading sales: {error.message}
             </div>
         )}
         {!isLoading && !error && (
-            <SalesReportDisplay
-                salesList={processedSales}
-                currentPage={safeCurrentPage}
-                totalPages={totalPages}
-                onPageChange={page => setCurrentPage(page)}
-                onDelete={openDeleteModal}
-                isAdmin={isAdmin}
-                currentDate={currentDateKey}
-            />
+            <div className="mt-4">
+                <SalesReportDisplay
+                    salesList={processedSales}
+                    currentPage={safeCurrentPage}
+                    totalPages={totalPages}
+                    onPageChange={page => setCurrentPage(page)}
+                    onDelete={openDeleteModal}
+                    isAdmin={isAdmin}
+                    currentDate={currentDateKey}
+                />
+            </div>
         )}
     </>
 );
