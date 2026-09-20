@@ -18,12 +18,11 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import Head from 'next/head';
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import { Analytics } from "@vercel/analytics/next";
-import { supabase } from '../lib/supabaseClient'; // Import Supabase client
+import { supabase } from '../lib/supabaseClient';
 
-// Add a title map
 const titleMap = {
     '/': 'Seaside Purified Water Refilling Station | Labrador, Pangasinan',
-    '/about': 'About Us | Seaside WRS', // Added title for the about page
+    '/about': 'About Us | Seaside WRS',
     '/dashboard': 'Dashboard | Seaside WRS',
     '/pos': 'POS | Seaside WRS',
     '/inventory': 'Inventory | Seaside WRS',
@@ -43,7 +42,6 @@ const titleMap = {
     '/maintenance': 'Maintenance Tracking | Seaside WRS',
 };
 
-
 function AuthGate({ children }) {
     const { user, sessionLoaded } = useStore(s => ({
         user: s.user,
@@ -51,11 +49,9 @@ function AuthGate({ children }) {
     }));
     const router = useRouter();
 
-    // Standard Auth Routing
     useEffect(() => {
         if (sessionLoaded) {
             const isLoggedIn = !!user;
-            // CORRECTED: Added '/about' to the list of public pages
             const isPublicPage = ['/', '/about', '/terms', '/privacy', '/contact'].includes(router.pathname) || router.pathname.startsWith('/resources');
 
             if (!isLoggedIn && !isPublicPage) {
@@ -65,7 +61,6 @@ function AuthGate({ children }) {
         }
     }, [user, sessionLoaded, router]);
 
-    // --- Navigation Reset & Idle Tracker ---
     useEffect(() => {
         const isNewTabSession = typeof window !== 'undefined' && !sessionStorage.getItem('pos_tab_initialized');
         if (isNewTabSession) {
@@ -130,8 +125,7 @@ function AuthGate({ children }) {
             </div>
         );
     }
-    
-    // CORRECTED: Added '/about' to the list of public pages
+
     if (['/', '/about', '/terms', '/privacy', '/contact'].includes(router.pathname) || router.pathname.startsWith('/resources') || user) {
         return children;
     }
@@ -157,16 +151,14 @@ export default function App({ Component, pageProps }) {
         },
         mutationCache: new MutationCache({
             onMutate: async (variables) => {
-                // Read synchronously from Zustand instead of hitting Supabase
                 const { user, addToast } = useStore.getState();
-                
+
                 if (user?.isDemo) {
-                    // Ensure toast fires after the current execution context
                     setTimeout(() => {
                         addToast({
                             title: 'Demo Mode Active',
                             description: 'Adding, editing, and deleting is disabled in this environment.',
-                            variant: 'warning' // aligned with your existing toast variants
+                            variant: 'warning'
                         });
                     }, 0);
 
@@ -184,13 +176,11 @@ export default function App({ Component, pageProps }) {
         }
     }, [darkMode]);
 
-    // Set title dynamically
     useEffect(() => {
         const title = titleMap[router.pathname] || 'Seaside WRS';
         document.title = title;
     }, [router.pathname]);
 
-    // CORRECTED: Added '/about' to the list of public pages
     const isPublicPage = ['/', '/about', '/terms', '/privacy', '/contact'].includes(router.pathname) || router.pathname.startsWith('/resources');
     const hideNav = isPublicPage;
 
@@ -198,7 +188,6 @@ export default function App({ Component, pageProps }) {
         <QueryClientProvider client={queryClient}>
             <HydrationBoundary state={pageProps.dehydratedState}>
                 <Head>
-                    {/* The title tag here is a fallback, the useEffect will override it */}
                     <title>Seaside WRS</title>
                     <meta property="og:title" content="Seaside WRS" />
                     <meta property="og:description" content="Seaside Purified Water Refilling Station in Labrador, Pangasinan" />
@@ -214,7 +203,8 @@ export default function App({ Component, pageProps }) {
                     <meta name="google-site-verification" content="kd1wSsNQZCjJmyp4LaQKI9Mr7s6Z9_I5Z3ETpaW1EVc" />
                 </Head>
                 <AuthGate>
-                    <div className="app responsive-page">
+                    {/* MODIFIED: Added md:pl-64 to make room for the sticky desktop sidebar */}
+                    <div className={`app responsive-page ${!hideNav ? 'md:pl-64' : ''}`}>
                         {!hideNav && <Navbar />}
                         {!hideNav && <TabBar />}
 

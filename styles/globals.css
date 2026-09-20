@@ -374,16 +374,23 @@ input[type="checkbox"]:focus {
 
 .main {
     padding: 1.25rem;
-    padding-top: 5.25rem; /* <--- CHANGED: Added padding to account for fixed navbar */
+    padding-top: 5.25rem; /* Space for Mobile Top Navbar */
     width: 100%;
     box-sizing: border-box;
+}
+
+@media (min-width: 768px) {
+    .main {
+        /* CHANGED: Adds top padding to clear the Desktop Top Bar (4rem height + 1.5rem padding) */
+        padding-top: 5.5rem;
+    }
 }
 
 @media (max-width: 480px) {
     .main {
         padding-left: 0.5rem;
         padding-right: 0.5rem;
-        padding-top: 4.5rem; /* <--- CHANGED: Added padding to account for fixed navbar */
+        padding-top: 4.5rem;
         padding-bottom: 6rem;
     }
 }
@@ -392,7 +399,7 @@ input[type="checkbox"]:focus {
     .main {
         padding-left: 0.25rem;
         padding-right: 0.25rem;
-        padding-top: 4.25rem; /* <--- CHANGED: Added padding to account for fixed navbar */
+        padding-top: 4.25rem;
         padding-bottom: 7rem;
     }
 }
@@ -421,12 +428,10 @@ input[type="checkbox"]:focus {
     padding: 0 1rem;
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
-    position: fixed; /* <--- CHANGED: from sticky to fixed */
+    position: fixed;
     top: 0;
     left: 0;
-    /* <--- CHANGED: added to lock it to the edges */
     right: 0;
-    /* <--- CHANGED: added to lock it to the edges */
     z-index: 30;
     box-sizing: border-box;
     backdrop-filter: blur(8px);

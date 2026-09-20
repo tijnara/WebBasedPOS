@@ -69,7 +69,6 @@ const ActiveShiftIndicator = ({ user, onOpenStartShift }) => {
                 if (!stored) return null;
                 const shiftData = JSON.parse(stored);
 
-                // --- FIXED: Read the dynamically updating demo sales ---
                 const demoSales = shiftData.demo_sales || 0;
                 const expected = currency(shiftData.starting_cash).add(demoSales).value;
                 return { start: shiftData.starting_cash, sales: demoSales, expected };
@@ -111,7 +110,7 @@ const ActiveShiftIndicator = ({ user, onOpenStartShift }) => {
 
     if (isLoading) {
         return (
-            <div className="flex items-center gap-2 bg-gray-50 text-gray-400 px-3 py-1 rounded-lg border border-gray-200 text-xs font-bold md:mr-2 shadow-sm whitespace-nowrap">
+            <div className="flex items-center gap-2 bg-gray-50 text-gray-400 px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-bold shadow-sm whitespace-nowrap">
                 Loading Shift...
             </div>
         );
@@ -121,20 +120,20 @@ const ActiveShiftIndicator = ({ user, onOpenStartShift }) => {
         return (
             <button
                 onClick={onOpenStartShift}
-                className="flex items-center gap-2 bg-red-50 text-red-600 px-3 py-1 rounded-lg border border-red-200 text-xs font-bold md:mr-2 shadow-sm whitespace-nowrap hover:bg-red-100 transition-colors cursor-pointer"
+                className="flex items-center gap-2 bg-red-50 text-red-600 px-3 py-1.5 rounded-lg border border-red-200 text-xs font-bold shadow-sm whitespace-nowrap hover:bg-red-100 transition-colors cursor-pointer"
                 title="Click to start a new shift">
-                No Active Shift (Click to Start)
+                No Active Shift (Start)
             </button>
         );
     }
 
     return (
-        <div className="flex items-center gap-2 bg-green-50 text-green-700 px-3 py-1 rounded-lg border border-green-200 text-xs font-bold md:mr-2 shadow-sm whitespace-nowrap" title="Expected Cash in Drawer">
+        <div className="flex items-center gap-2 bg-green-50 text-green-700 px-3 py-1.5 rounded-lg border border-green-200 text-xs font-bold shadow-sm whitespace-nowrap" title="Expected Cash in Drawer">
             <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
             </span>
-            <span className="hidden sm:inline">Active Shift: </span>₱{shiftStats.expected.toFixed(2)}
+            <span>Drawer: ₱{shiftStats.expected.toFixed(2)}</span>
         </div>
     );
 };
@@ -142,7 +141,7 @@ const ActiveShiftIndicator = ({ user, onOpenStartShift }) => {
 const Navbar = () => {
     const router = useRouter();
     const queryClient = useQueryClient();
-    const { user, logout, isDemo, darkMode, toggleDarkMode } = useStore(s => ({ // Extract darkMode and toggleDarkMode
+    const { user, logout, isDemo, darkMode, toggleDarkMode } = useStore(s => ({
         user: s.user,
         logout: s.logout,
         isDemo: s.user?.isDemo,
@@ -174,7 +173,6 @@ const Navbar = () => {
         return next;
     });
 
-    // --- ICONS FOR NAVIGATION ---
     const navCategoriesSource = [
         {
             category: null,
@@ -269,11 +267,8 @@ const Navbar = () => {
 
     const checkActiveShift = async () => {
         if (!user) return;
-
         const promptKey = `pos_shift_prompted_${user.id}`;
-        if (sessionStorage.getItem(promptKey) === 'true') {
-            return;
-        }
+        if (sessionStorage.getItem(promptKey) === 'true') return;
 
         try {
             if (user.isDemo) {
@@ -287,23 +282,15 @@ const Navbar = () => {
             }
 
             const { data: shifts, error } = await supabase.from('shifts')
-                .select('id')
-                .eq('staff_id', user.id)
-                .eq('status', 'OPEN')
-                .limit(1);
+                .select('id').eq('staff_id', user.id).eq('status', 'OPEN').limit(1);
 
             const shift = shifts?.[0];
-
-            if (error && error.code !== 'PGRST116') {
-                console.error("Error checking shift:", error);
-                return;
-            }
+            if (error && error.code !== 'PGRST116') return;
 
             if (!shift) {
                 setStartingCash('');
                 setIsStartShiftModalOpen(true);
             }
-
             sessionStorage.setItem(promptKey, 'true');
         } catch (err) {
             console.error("Shift check failed:", err);
@@ -317,7 +304,7 @@ const Navbar = () => {
             sessionStorage.setItem(`demo_shift_${user.id}`, JSON.stringify({
                 start_time: new Date().toISOString(),
                 starting_cash: parseFloat(startingCash),
-                demo_sales: 0 // Initialize at 0
+                demo_sales: 0
             }));
             setIsStartShiftModalOpen(false);
             await queryClient.invalidateQueries({ queryKey: ['sales', 'active-shift'] });
@@ -331,9 +318,7 @@ const Navbar = () => {
             status: 'OPEN'
         });
 
-        if (error) {
-            alert("Failed to start shift: " + error.message);
-        } else {
+        if (!error) {
             setIsStartShiftModalOpen(false);
             await queryClient.invalidateQueries({ queryKey: ['sales', 'active-shift'] });
         }
@@ -349,8 +334,6 @@ const Navbar = () => {
                 return;
             }
             const demoShift = JSON.parse(demoShiftStr);
-
-            // --- FIXED: Z-Reading now displays the dynamically updated sales ---
             const demoSales = demoShift.demo_sales || 0;
             const expected = currency(demoShift.starting_cash).add(demoSales).value;
 
@@ -362,24 +345,16 @@ const Navbar = () => {
         }
 
         const { data: shifts } = await supabase.from('shifts')
-            .select('*')
-            .eq('staff_id', user.id)
-            .eq('status', 'OPEN')
-            .order('start_time', { ascending: false })
-            .limit(1);
+            .select('*').eq('staff_id', user.id).eq('status', 'OPEN').order('start_time', { ascending: false }).limit(1);
 
         const shift = shifts?.[0];
-
         if (!shift) {
             await handleLogout();
             return;
         }
 
         const { data: sales } = await supabase.from('sales')
-            .select('totalamount')
-            .eq('created_by', user.id)
-            .eq('paymentmethod', 'Cash')
-            .gte('saletimestamp', shift.start_time);
+            .select('totalamount').eq('created_by', user.id).eq('paymentmethod', 'Cash').gte('saletimestamp', shift.start_time);
 
         const totalSales = Array.isArray(sales)
             ? sales.reduce((sum, s) => sum.add(s.totalamount || 0), currency(0)).value
@@ -429,16 +404,19 @@ const Navbar = () => {
         await handleLogout();
     };
 
-    // --- RENDER MOBILE LINKS (Original Design) ---
-    const renderMobileLinks = () => navCategories.map(({ category, links }) => {
+    const renderLinks = (isSidebar) => navCategories.map(({ category, links }) => {
         const visibleLinks = links.filter(link => !link.adminOnly || isAdmin);
         if (visibleLinks.length === 0) return null;
         const isOpen = !category || openCategories.has(category);
+
+        const btnContainerClass = isSidebar ? "w-[calc(100%-1.5rem)] mx-3" : "w-full";
+        const childContainerClass = isSidebar ? "pl-3 ml-5 mt-1 space-y-0.5" : "pl-2 ml-2 mt-0.5 space-y-0.5";
+
         return (
-            <div key={category ?? '__root__'} className="mb-0.5">
+            <div key={category ?? '__root__'} className="mb-1">
                 {category && (
                     <button
-                        className="w-full flex items-center justify-between px-4 py-2.5 font-semibold text-xs uppercase tracking-widest text-white rounded-lg border-0 outline-none transition-all duration-150 active:scale-[0.98]"
+                        className={`${btnContainerClass} flex items-center justify-between px-4 py-2.5 font-semibold text-xs uppercase tracking-widest text-white rounded-lg shadow-sm transition-all duration-150 active:scale-[0.98]`}
                         style={{ background: 'linear-gradient(90deg, #6abf45 0%, #4e9e2d 100%)' }}
                         onClick={() => toggleCategory(category)}
                     >
@@ -447,57 +425,18 @@ const Navbar = () => {
                     </button>
                 )}
                 {isOpen && (
-                    <div className="pl-2 ml-2 mt-0.5">
+                    <div className={childContainerClass}>
                         {visibleLinks.map(link => {
                             const isActive = router.pathname === link.path;
                             return (
                                 <Button
                                     key={link.name}
                                     variant="ghost"
-                                    className={`nav-item w-full justify-start gap-3 px-3 py-2 transition-all rounded-md border-0 outline-none ${isActive ? 'text-white font-bold' : 'text-gray-700 hover:bg-gray-100'}`}
-                                    style={isActive ? { background: 'linear-gradient(90deg, #6abf45 0%, #4e9e2d 100%)' } : {}}
+                                    className={`nav-item ${isSidebar ? 'w-[calc(100%-1rem)]' : 'w-full'} justify-start gap-4 px-4 py-2 transition-all rounded-md ${isActive ? 'text-white font-bold shadow-md' : (isSidebar ? 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800' : 'text-gray-700 hover:bg-gray-100')}`}
+                                    style={isActive ? { background: 'linear-gradient(90deg, rgba(106,191,69,0.95) 0%, rgba(78,158,45,0.9) 100%)' } : {}}
                                     onClick={async () => { if (category) setOpenCategories(new Set([category])); await router.push(link.path); setIsMenuOpen(false); }}
                                 >
-                                    {link.icon} <span className="text-sm">{link.name}</span>
-                                </Button>
-                            );
-                        })}
-                    </div>
-                )}
-            </div>
-        );
-    });
-
-    // --- RENDER DESKTOP LINKS (Office 2016 Design) ---
-    const renderDesktopLinks = () => navCategories.map(({ category, links }) => {
-        const visibleLinks = links.filter(link => !link.adminOnly || isAdmin);
-        if (visibleLinks.length === 0) return null;
-        const isOpen = !category || openCategories.has(category);
-        return (
-            <div key={category ?? '__root__'} className="mb-1">
-                {category && (
-                    <button
-                        className="w-full flex items-center justify-between mx-3 px-4 py-2.5 font-semibold text-xs uppercase tracking-widest text-white rounded-lg shadow-md transition-all duration-150 active:scale-[0.98]"
-                        style={{ width: 'calc(100% - 1.5rem)', background: 'linear-gradient(90deg, #6abf45 0%, #4e9e2d 100%)' }}
-                        onClick={() => toggleCategory(category)}
-                    >
-                        <span className="drop-shadow-sm">{category}</span>
-                        <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
-                    </button>
-                )}
-                {isOpen && (
-                    <div className="pl-3 ml-5 mt-0.5">
-                        {visibleLinks.map(link => {
-                            const isActive = router.pathname === link.path;
-                            return (
-                                <Button
-                                    key={link.name}
-                                    variant="ghost"
-                                    className={`nav-item w-full justify-start gap-4 px-4 py-2 transition-all rounded-md ${isActive ? 'text-white font-bold shadow-md' : 'text-white hover:bg-white/10'}`}
-                                    style={isActive ? { background: 'linear-gradient(90deg, rgba(106,191,69,0.55) 0%, rgba(78,158,45,0.35) 100%)' } : {}}
-                                    onClick={async () => { if (category) setOpenCategories(new Set([category])); await router.push(link.path); setIsMenuOpen(false); }}
-                                >
-                                    {link.icon} <span className="text-base">{link.name}</span>
+                                    {link.icon} <span className="text-sm font-medium">{link.name}</span>
                                 </Button>
                             );
                         })}
@@ -509,111 +448,77 @@ const Navbar = () => {
 
     return (
         <>
-            <div className="navbar">
+            {/* =========================================
+                MOBILE LAYOUT: TOP NAVBAR & FLOATING MENU
+                ========================================= */}
+            <div className="navbar md:hidden">
                 <div className="flex items-center">
-                    {/* Hamburger Button */}
                     <div className="relative" ref={menuRef}>
                         <Button variant="ghost" onClick={() => setIsMenuOpen(!isMenuOpen)}>
                             <HamburgerIcon className="h-6 w-6 hamburger-icon" />
                         </Button>
 
                         {isMenuOpen && (
-                            <>
-                                {/* --- MOBILE LAYOUT: FLOATING MENU --- */}
-                                <div className="md:hidden absolute left-0 mt-2 w-56 origin-top-left bg-white rounded-2xl shadow-2xl focus:outline-none z-50 max-h-[80vh] overflow-y-auto" id="main-menu-mobile">
-                                    <nav className="flex flex-col px-1 py-1">
-                                        {renderMobileLinks()}
-                                    </nav>
-                                </div>
-
-                                {/* --- DESKTOP LAYOUT: SIDEBAR DRAWER --- */}
-                                <div className="hidden md:block">
-                                    <div
-                                        className="fixed inset-0 bg-black/40 z-40 transition-opacity"
-                                        onClick={() => setIsMenuOpen(false)}
-                                    ></div>
-
-                                    <div
-                                        className="fixed top-0 left-0 bottom-0 w-[350px] bg-primary text-white z-50 shadow-2xl flex flex-col overflow-y-auto transition-transform duration-300 ease-in-out transform translate-x-0"
-                                        style={{ backgroundColor: 'var(--primary)', opacity: 1 }}
-                                        id="main-menu-desktop"
-                                    >
-                                        <div>
-                                            <div className="flex items-center gap-4 px-6 py-6">
-                                                <Button variant="ghost" onClick={() => setIsMenuOpen(false)} className="text-white hover:bg-white/10 p-2">
-                                                    <HamburgerIcon className="h-7 w-7" />
-                                                </Button>
-                                                <span className="font-bold text-xl uppercase tracking-wider">Menu</span>
-                                            </div>
-
-                                            <nav className="flex flex-col py-2 gap-0">
-                                                {renderDesktopLinks()}
-                                            </nav>
-                                        </div>
-                                    </div>
-                                </div>
-                            </>
+                            <div className="absolute left-0 mt-2 w-56 origin-top-left bg-white rounded-2xl shadow-2xl focus:outline-none z-50 max-h-[80vh] overflow-y-auto" id="main-menu-mobile">
+                                <nav className="flex flex-col px-1 py-1">
+                                    {renderLinks(false)}
+                                </nav>
+                            </div>
                         )}
                     </div>
-                    <div className="brand flex items-center min-w-0 flex-shrink-0">
+                    <div className="brand flex items-center min-w-0 flex-shrink-0" onClick={() => router.push('/')}>
                         <Image src="/seaside.png" alt="Seaside Logo" width={80} height={80} loading="eager" className="flex-shrink-0" />
-                        {router.pathname.includes('/pos') ? (
-                            <span className="ml-2 text-xl font-bold text-primary hidden md:block whitespace-nowrap">
-                                Point of Sale
-                            </span>
-                        ) : (
-                            <span className="font-bold text-lg text-primary hidden md:block whitespace-nowrap ml-2">Seaside</span>
-                        )}
                     </div>
                 </div>
 
-                {/* Mobile-only clock */}
-                <div className="mobile-clock-container flex flex-col items-center gap-1">
+                <div className="mobile-clock-container flex flex-col items-center gap-1 ml-auto">
                     {clientUser && <ActiveShiftIndicator user={clientUser} onOpenStartShift={() => setIsStartShiftModalOpen(true)} />}
                     <LiveClock />
                 </div>
-
-                <div className="meta-container">
-                    {clientUser ? (
-                        <>
-                            <div className="hidden md:flex items-center">
-                                <ActiveShiftIndicator user={clientUser} onOpenStartShift={() => setIsStartShiftModalOpen(true)} />
-                                <LiveClock />
-                            </div>
-                            <div className="hidden md:flex items-center space-x-2 text-sm text-gray-600 mr-4">
-                                <span>Logged in as:</span>
-                                <span
-                                    className="font-bold"
-                                    style={{ color: clientUser?.color || '#16a34a' }}
-                                >
-                                    {clientUser?.name}
-                                </span>
-                            </div>
-                            <Button variant="ghost" onClick={() => router.push('/')} className="hidden sm:flex items-center gap-1 hover:text-primary transition-colors" title="Landing Page">
-                                <HomeIcon className="w-5 h-5" /> <span>Landing Page</span>
-                            </Button>
-                            {/* Mobile-only icon version to save space */}
-                            <Button variant="ghost" onClick={() => router.push('/')} className="sm:hidden p-2 hover:text-primary transition-colors" title="Landing Page">
-                                <HomeIcon className="w-5 h-5" />
-                            </Button>
-                            <Button
-                                variant="ghost"
-                                onClick={toggleDarkMode}
-                                className="p-2 hover:text-primary transition-colors"
-                                title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
-                            >
-                                {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-                            </Button>
-                            <Button variant="ghost" className="p-2 sm:px-3 text-destructive hover:bg-red-50 transition-colors flex items-center gap-2" onClick={prepareZReading} title="Logout">
-                                <LogOut className="w-5 h-5"/>
-                                <span className="hidden sm:inline">Logout</span>
-                            </Button>
-                        </>
-                    ) : <div className="user-info-text">Loading...</div>}
-                </div>
             </div>
 
-            {/* Modals */}
+            {/* =========================================
+                DESKTOP LAYOUT: FIXED SIDEBAR
+                ========================================= */}
+            <aside className="hidden md:flex flex-col w-64 fixed inset-y-0 left-0 bg-surface border-r border-border z-40 shadow-lg">
+                {/* Brand Header */}
+                <div className="h-16 flex items-center px-6 border-b border-border shrink-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors" onClick={() => router.push('/')}>
+                    <Image src="/seaside.png" alt="Seaside Logo" width={40} height={40} loading="eager" className="shrink-0" />
+                    <span className="font-bold text-lg text-primary ml-3 tracking-wide">Seaside</span>
+                </div>
+
+                {/* Scrolling Links Area */}
+                <nav className="flex-1 overflow-y-auto py-4 menu-scrollbar flex flex-col gap-1">
+                    {renderLinks(true)}
+                </nav>
+            </aside>
+
+            {/* =========================================
+                DESKTOP LAYOUT: TOP HEADER BAR
+                ========================================= */}
+            <header className="hidden md:flex h-16 fixed top-0 left-64 right-0 bg-surface border-b border-border z-30 items-center justify-end px-6 gap-6 shadow-sm">
+                {clientUser && <ActiveShiftIndicator user={clientUser} onOpenStartShift={() => setIsStartShiftModalOpen(true)} />}
+
+                <div className="flex items-center gap-3 border-l border-border pl-6 h-8">
+                    <LiveClock />
+                </div>
+
+                <div className="flex items-center gap-3 border-l border-border pl-6 h-8">
+                    <div className="text-sm font-bold truncate pr-2" style={{ color: clientUser?.color || 'var(--primary)' }}>
+                        {clientUser?.name || 'Loading...'}
+                    </div>
+                    <Button variant="ghost" size="sm" onClick={toggleDarkMode} className="p-1.5 h-8 w-8 text-gray-500 hover:text-primary bg-white dark:bg-gray-800 shadow-sm border border-gray-200 dark:border-gray-700" title="Toggle Theme">
+                        {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={prepareZReading} className="p-1.5 h-8 w-8 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 bg-white dark:bg-gray-800 shadow-sm border border-gray-200 dark:border-gray-700" title="Z-Reading / Logout">
+                        <LogOut className="w-4 h-4"/>
+                    </Button>
+                </div>
+            </header>
+
+            {/* =========================================
+                MODALS
+                ========================================= */}
             <Dialog open={isStartShiftModalOpen} onOpenChange={(open) => { if (!open) return; }}>
                 <DialogContent className="max-w-sm z-50" closeOnBackdropClick={false}>
                     <DialogHeader><DialogTitle>Start Shift</DialogTitle></DialogHeader>
