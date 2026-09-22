@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { supabase } from '../lib/supabaseClient';
 import currency from 'currency.js';
 import { CartIcon, PackageIcon, UserIcon, ChartIcon, UsersIcon, GalleryIcon, HomeIcon, SettingsIcon, DocumentReportIcon, MailIcon } from './Icons';
-import { Landmark, Receipt, ChevronDown, Sun, Moon, LogOut, TrendingUp, TestTube } from 'lucide-react';
+import { Landmark, Receipt, ChevronDown, Sun, Moon, LogOut, TrendingUp, TestTube, History } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 
@@ -212,6 +212,7 @@ const Navbar = () => {
             links: [
                 { name: 'Users', path: '/user-management', icon: <UsersIcon className="h-5 w-5 menu-icon" />, adminOnly: true },
                 { name: 'Articles', path: '/article-management', icon: <DocumentReportIcon className="h-5 w-5 menu-icon" />, adminOnly: true },
+                { name: 'Activity Logs', path: '/activity-logs', icon: <History className="h-5 w-5 menu-icon" />, adminOnly: true },
                 { name: 'Page Settings', path: '/settings', icon: <SettingsIcon className="h-5 w-5 menu-icon" />, adminOnly: true },
                 { name: 'Messages', path: '/messages', icon: <MailIcon className="h-5 w-5 menu-icon" />, adminOnly: true },
             ]

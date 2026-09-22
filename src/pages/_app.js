@@ -32,6 +32,7 @@ const titleMap = {
     '/customer-management': 'Customer Management | Seaside WRS',
     '/gallery-management': 'Gallery Management | Seaside WRS',
     '/article-management': 'Article Management | Seaside WRS',
+
     '/settings': 'Settings | Seaside WRS',
     '/history': 'History | Seaside WRS',
     '/expenses': 'Expenses | Seaside WRS',
@@ -40,6 +41,7 @@ const titleMap = {
     '/privacy': 'Privacy Policy | Seaside WRS',
     '/contact': 'Contact Us | Seaside WRS',
     '/maintenance': 'Maintenance Tracking | Seaside WRS',
+    '/activity-logs': 'Activity Logs | Seaside WRS',
 };
 
 function AuthGate({ children }) {
