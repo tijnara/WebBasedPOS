@@ -9,9 +9,9 @@ import currency from 'currency.js';
 import { format, parseISO } from 'date-fns';
 import {
     Card, CardHeader, CardContent, Button, Input, Label, Select,
-    Table, TableHeader, TableBody, TableRow, TableHead, TableCell, ScrollArea
+    Table, TableHeader, TableBody, TableRow, TableHead, TableCell
 } from '../ui';
-import { Landmark, PlusCircle, CreditCard, Calendar, BarChart3, TrendingDown, History, Users } from 'lucide-react';
+import { Landmark, PlusCircle, CreditCard, Calendar, BarChart3, TrendingDown, History, Users, ChevronDown, ChevronUp } from 'lucide-react';
 
 const getPhilippineDateString = () => {
     const now = new Date();
@@ -160,7 +160,7 @@ export default function DebtManagementPage() {
                 weekly_payment_amount: parseFloat(empWeeklyPaymentAmount),
                 frequency: empDebtFrequency,
                 type: 'employee',
-                employee_id: selectedEmployeeId ? parseInt(selectedEmployeeId, 10) : null // Added employee_id here
+                employee_id: selectedEmployeeId ? parseInt(selectedEmployeeId, 10) : null
             });
             addToast({ title: 'Success', description: 'Employee debt logged.', variant: 'success' });
 
@@ -178,24 +178,20 @@ export default function DebtManagementPage() {
         e.preventDefault();
         if (isDemo) return addToast({ title: 'Demo', description: 'Disabled in demo.', variant: 'warning' });
 
-        // 1. Find the target debt so we can get its description
         const targetDebt = employeeDebts.find(d => d.id.toString() === selectedEmpDebtId);
 
         try {
-            // 2. Log the payment to the Employee Liability Registry
             await createPaymentMutation.mutateAsync({
                 debt_id: parseInt(selectedEmpDebtId, 10),
                 amount_paid: parseFloat(empAmountPaid),
                 date_paid: empDatePaid
             });
 
-            // 3. NEW: Automatically record this as a cash inflow in the Expenses Page
             await createExpenseMutation.mutateAsync({
                 expense_date: empDatePaid,
                 category: 'Debt Repayment',
                 description: `Manual Repayment - ${targetDebt?.description || `Account #${selectedEmpDebtId}`}`,
-                // We use -Math.abs() to force it to be a negative expense (which adds to your net cash)
-                amount: -Math.abs(parseFloat(empAmountPaid)) 
+                amount: -Math.abs(parseFloat(empAmountPaid))
             });
 
             addToast({ title: 'Success', description: 'Employee payment and expense logged.', variant: 'success' });
@@ -205,65 +201,222 @@ export default function DebtManagementPage() {
         }
     };
 
-    const DebtTable = ({ data, emptyMessage }) => (
-        <ScrollArea className="h-[400px] w-full">
-            <div className="overflow-x-auto w-full">
-                <Table className="min-w-[900px] w-full !block">
-                    <TableHeader className="bg-gray-50/80 dark:bg-gray-800/80 sticky top-0 z-10">
-                        <TableRow>
-                            <TableHead>Account ID</TableHead>
-                            <TableHead>Date & Desc.</TableHead>
-                            <TableHead>Principal Debt</TableHead>
-                            <TableHead>Payment Cadence</TableHead>
-                            <TableHead className="w-64">Amortization History</TableHead>
-                            <TableHead>Total Cleared</TableHead>
-                            <TableHead className="text-right">Remaining Balance</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {isLoading ? (
-                            <TableRow><TableCell colSpan={7} className="text-center py-12">Loading...</TableCell></TableRow>
-                        ) : data.length === 0 ? (
-                            <TableRow><TableCell colSpan={7} className="text-center py-12 text-gray-400">{emptyMessage}</TableCell></TableRow>
-                        ) : (
-                            data.map((debt) => (
-                                <TableRow key={debt.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 align-top">
-                                    <TableCell className="font-mono text-xs font-bold pt-4">#{debt.id}</TableCell>
-                                    <TableCell className="pt-4">
-                                        <div className="flex flex-col">
-                                            <span className="text-sm font-medium">{debt.description}</span>
-                                            <span className="text-xs text-gray-500">{format(parseISO(debt.debt_date), 'MMM dd, yyyy')}</span>
+    // ========================================================
+    // REFACTORED TABLE COMPONENT (Dual Desktop/Mobile Layout)
+    // ========================================================
+    const DebtTable = ({ data, emptyMessage }) => {
+        const [expandedRows, setExpandedRows] = useState(new Set());
+
+        const toggleRow = (id) => {
+            const newSet = new Set(expandedRows);
+            if (newSet.has(id)) {
+                newSet.delete(id);
+            } else {
+                newSet.add(id);
+            }
+            setExpandedRows(newSet);
+        };
+
+        if (isLoading) {
+            return <div className="text-center py-12 text-gray-500">Loading...</div>;
+        }
+
+        if (data.length === 0) {
+            return <div className="text-center py-12 text-gray-400">{emptyMessage}</div>;
+        }
+
+        return (
+            <div className="w-full">
+                {/* --- DESKTOP VIEW --- */}
+                <div className="hidden md:block w-full overflow-x-auto">
+                    <Table className="w-full">
+                        <TableHeader className="bg-gray-50/80 dark:bg-gray-800/80">
+                            <TableRow>
+                                <TableHead className="whitespace-nowrap">Account Details</TableHead>
+                                <TableHead className="whitespace-nowrap">Terms</TableHead>
+                                <TableHead className="w-1/4 min-w-[150px]">Progress</TableHead>
+                                <TableHead className="text-right whitespace-nowrap">Remaining</TableHead>
+                                <TableHead className="w-12 text-center">History</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {data.map((debt) => {
+                                const isExpanded = expandedRows.has(debt.id);
+                                const progressPct = debt.total_debt_amount > 0 ? Math.min(100, (debt.totalPaid / debt.total_debt_amount) * 100) : 0;
+                                const isFullyPaid = debt.remainingDebt <= 0;
+
+                                return (
+                                    <React.Fragment key={debt.id}>
+                                        <TableRow className={`hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors ${isFullyPaid ? 'opacity-50 bg-gray-50/30' : ''}`}>
+                                            <TableCell className="py-4">
+                                                <div className="font-bold text-sm text-gray-900 dark:text-gray-100">{debt.description}</div>
+                                                <div className="text-xs text-gray-500 font-mono mt-0.5">#{debt.id} • {format(parseISO(debt.debt_date), 'MMM dd, yyyy')}</div>
+                                            </TableCell>
+                                            <TableCell className="py-4">
+                                                <div className="font-medium text-sm text-gray-900 dark:text-gray-100">{currency(debt.total_debt_amount, { symbol: '₱' }).format()}</div>
+                                                <div className="text-xs text-gray-500 mt-0.5">
+                                                    {currency(debt.weekly_payment_amount, { symbol: '₱' }).format()}
+                                                    {(!debt.frequency || debt.frequency === 'Weekly') ? ' / wk' : ' / 15 days'}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="py-4">
+                                                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-1 overflow-hidden flex">
+                                                    <div
+                                                        className={`h-2 rounded-full transition-all duration-500 ${isFullyPaid ? 'bg-green-500' : 'bg-primary'}`}
+                                                        style={{ width: `${progressPct}%` }}
+                                                    />
+                                                </div>
+                                                <div className="flex justify-between items-center mt-1.5">
+                                                    <span className="text-[10px] font-semibold text-green-600 dark:text-green-400 uppercase tracking-wider">
+                                                        {currency(debt.totalPaid, { symbol: '₱' }).format()} paid
+                                                    </span>
+                                                    <span className="text-[10px] font-bold text-gray-500">
+                                                        {Math.round(progressPct)}%
+                                                    </span>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="text-right py-4">
+                                                <div className={`font-black text-sm ${isFullyPaid ? 'text-green-600' : 'text-red-600'}`}>
+                                                    {currency(debt.remainingDebt, { symbol: '₱' }).format()}
+                                                </div>
+                                                {isFullyPaid && <div className="text-[10px] text-green-600 font-bold uppercase mt-0.5 tracking-widest">Cleared</div>}
+                                            </TableCell>
+                                            <TableCell className="text-center py-4">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className={`h-8 w-8 p-0 rounded-full transition-colors ${isExpanded ? 'bg-primary text-white hover:bg-primary-hover hover:text-white' : 'text-gray-500 hover:text-primary hover:bg-primary/10'}`}
+                                                    onClick={() => toggleRow(debt.id)}
+                                                    title="View Payment History"
+                                                >
+                                                    {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+
+                                        {/* Expandable History Drawer */}
+                                        {isExpanded && (
+                                            <TableRow className="bg-gray-50/80 dark:bg-gray-800/40 border-b-2 border-b-gray-200 dark:border-b-gray-700">
+                                                <TableCell colSpan={5} className="p-0">
+                                                    <div className="p-4 sm:p-6 border-l-4 border-l-primary">
+                                                        <div className="flex items-center gap-2 mb-4">
+                                                            <History className="w-4 h-4 text-primary" />
+                                                            <h4 className="font-bold text-xs text-gray-700 dark:text-gray-300 uppercase tracking-wider">Amortization History</h4>
+                                                        </div>
+                                                        {debt.sortedPayments.length > 0 ? (
+                                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                                                {debt.sortedPayments.map(payment => (
+                                                                    <div key={payment.id} className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 p-3 rounded-lg flex justify-between items-center shadow-sm">
+                                                                        <div className="flex flex-col">
+                                                                            <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{format(parseISO(payment.date_paid), 'MMMM dd, yyyy')}</span>
+                                                                            <span className="text-[10px] text-gray-400 font-mono mt-0.5">TXN #{payment.id}</span>
+                                                                        </div>
+                                                                        <span className="text-sm font-black text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2.5 py-1 rounded-md">
+                                                                            +{currency(payment.amount_paid, { symbol: '₱' }).format()}
+                                                                        </span>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        ) : (
+                                                            <div className="bg-white dark:bg-gray-800 border border-dashed border-gray-200 dark:border-gray-700 rounded-lg p-6 text-center shadow-sm">
+                                                                <span className="text-sm text-gray-400 font-medium">No payments have been recorded for this account yet.</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
+                                    </React.Fragment>
+                                );
+                            })}
+                        </TableBody>
+                    </Table>
+                </div>
+
+                {/* --- MOBILE VIEW (Stacked Cards) --- */}
+                <div className="block md:hidden divide-y divide-gray-100 dark:divide-gray-800">
+                    {data.map((debt) => {
+                        const isExpanded = expandedRows.has(debt.id);
+                        const progressPct = debt.total_debt_amount > 0 ? Math.min(100, (debt.totalPaid / debt.total_debt_amount) * 100) : 0;
+                        const isFullyPaid = debt.remainingDebt <= 0;
+
+                        return (
+                            <div key={debt.id} className={`p-4 ${isFullyPaid ? 'opacity-60 bg-gray-50/50 dark:bg-gray-900/50' : 'bg-white dark:bg-gray-900'}`}>
+                                <div className="flex justify-between items-start mb-2">
+                                    <div>
+                                        <div className="font-bold text-sm text-gray-900 dark:text-gray-100">{debt.description}</div>
+                                        <div className="text-xs text-gray-500 font-mono mt-0.5">#{debt.id} • {format(parseISO(debt.debt_date), 'MMM dd, yyyy')}</div>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className={`font-black text-sm ${isFullyPaid ? 'text-green-600' : 'text-red-600'}`}>
+                                            {currency(debt.remainingDebt, { symbol: '₱' }).format()}
                                         </div>
-                                    </TableCell>
-                                    <TableCell className="font-medium pt-4 whitespace-nowrap">{currency(debt.total_debt_amount, { symbol: '₱' }).format()}</TableCell>
-                                    <TableCell className="text-xs text-gray-500 pt-4 whitespace-nowrap">
-                                        {currency(debt.weekly_payment_amount, { symbol: '₱' }).format()}
-                                        {(!debt.frequency || debt.frequency === 'Weekly') ? ' / wk' : ' / 15 days'}
-                                    </TableCell>
-                                    <TableCell className="pt-4">
+                                        {isFullyPaid && <div className="text-[10px] text-green-600 font-bold uppercase mt-0.5 tracking-widest">Cleared</div>}
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-between text-xs mb-3">
+                                    <span className="text-gray-600 dark:text-gray-400">Principal: <span className="font-medium text-gray-900 dark:text-gray-200">{currency(debt.total_debt_amount, { symbol: '₱' }).format()}</span></span>
+                                    <span className="text-gray-600 dark:text-gray-400">Terms: <span className="font-medium text-gray-900 dark:text-gray-200">{currency(debt.weekly_payment_amount, { symbol: '₱' }).format()}{(!debt.frequency || debt.frequency === 'Weekly') ? ' / wk' : ' / 15 days'}</span></span>
+                                </div>
+
+                                <div className="mb-4">
+                                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden flex">
+                                        <div
+                                            className={`h-2 rounded-full transition-all duration-500 ${isFullyPaid ? 'bg-green-500' : 'bg-primary'}`}
+                                            style={{ width: `${progressPct}%` }}
+                                        />
+                                    </div>
+                                    <div className="flex justify-between items-center mt-1.5">
+                                        <span className="text-[10px] font-semibold text-green-600 dark:text-green-400 uppercase tracking-wider">
+                                            {currency(debt.totalPaid, { symbol: '₱' }).format()} paid
+                                        </span>
+                                        <span className="text-[10px] font-bold text-gray-500">
+                                            {Math.round(progressPct)}%
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <Button
+                                    variant="outline"
+                                    className="w-full text-xs h-9 flex justify-center items-center gap-2"
+                                    onClick={() => toggleRow(debt.id)}
+                                >
+                                    <History className="w-3.5 h-3.5" />
+                                    {isExpanded ? 'Hide History' : 'View History'}
+                                    {isExpanded ? <ChevronUp className="w-4 h-4 ml-auto" /> : <ChevronDown className="w-4 h-4 ml-auto" />}
+                                </Button>
+
+                                {isExpanded && (
+                                    <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-lg">
                                         {debt.sortedPayments.length > 0 ? (
-                                            <ScrollArea className="h-24 w-full pr-2">
-                                                <ul className="space-y-2">
-                                                    {debt.sortedPayments.map(payment => (
-                                                        <li key={payment.id} className="flex justify-between items-center text-xs pb-1 border-b">
-                                                            <span className="text-gray-500">{format(parseISO(payment.date_paid), 'MMM dd, yyyy')}</span>
-                                                            <span className="text-green-600 font-semibold">+{currency(payment.amount_paid, { symbol: '₱' }).format()}</span>
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            </ScrollArea>
-                                        ) : <span className="text-xs text-gray-400">No payments yet.</span>}
-                                    </TableCell>
-                                    <TableCell className="text-sm font-semibold text-green-600 pt-4">{currency(debt.totalPaid, { symbol: '₱' }).format()}</TableCell>
-                                    <TableCell className="text-right font-black text-sm text-red-600 pt-4">{currency(debt.remainingDebt, { symbol: '₱' }).format()}</TableCell>
-                                </TableRow>
-                            ))
-                        )}
-                    </TableBody>
-                </Table>
+                                            <div className="space-y-2">
+                                                {debt.sortedPayments.map(payment => (
+                                                    <div key={payment.id} className="flex justify-between items-center bg-white dark:bg-gray-900 p-2.5 rounded shadow-sm border border-gray-100 dark:border-gray-800">
+                                                        <div className="flex flex-col">
+                                                            <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{format(parseISO(payment.date_paid), 'MMM dd, yyyy')}</span>
+                                                            <span className="text-[10px] text-gray-400 font-mono mt-0.5">TXN #{payment.id}</span>
+                                                        </div>
+                                                        <span className="text-xs font-black text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded">
+                                                            +{currency(payment.amount_paid, { symbol: '₱' }).format()}
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="text-center py-4 text-xs text-gray-400 font-medium border border-dashed border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-900">
+                                                No payments yet.
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
-        </ScrollArea>
-    );
+        );
+    };
 
     return (
         <div className="p-6 space-y-12 responsive-page max-w-7xl mx-auto">
@@ -350,7 +503,7 @@ export default function DebtManagementPage() {
                     </div>
                     <div className="xl:col-span-3">
                         <Card className="shadow-sm overflow-hidden">
-                            <CardHeader className="pb-3 border-b"><h3 className="font-bold text-base">Company Liability Registry</h3></CardHeader>
+                            <CardHeader className="pb-3 border-b bg-gray-50/50"><h3 className="font-bold text-base text-gray-800">Company Liability Registry</h3></CardHeader>
                             <CardContent className="p-0"><DebtTable data={companyDebts} emptyMessage="No company debts found." /></CardContent>
                         </Card>
                     </div>
