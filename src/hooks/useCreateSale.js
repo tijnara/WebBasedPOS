@@ -2,6 +2,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient';
 import { useStore } from '../store/useStore';
+import { logActivity } from './useActivityLogs';
 import currency from 'currency.js';
 
 export function useCreateSale() {
@@ -127,6 +128,15 @@ export function useCreateSale() {
                     }
                 }
             }
+
+            // --- 5. Log Activity ---
+            const currentUser = useStore.getState().user;
+            logActivity({
+                user: currentUser,
+                action: 'CREATE',
+                entity_type: 'SALE',
+                description: `Processed POS transaction for ${saleDataToInsert.customername || 'Walk-in'} (₱${saleDataToInsert.totalamount})`
+            });
 
             return { ...saleData, items: itemsToInsert };
         },

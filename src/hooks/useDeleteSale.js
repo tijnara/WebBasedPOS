@@ -2,6 +2,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient';
 import { useStore } from '../store/useStore';
+import { logActivity } from './useActivityLogs';
 
 export function useDeleteSale() {
     const queryClient = useQueryClient();
@@ -9,6 +10,13 @@ export function useDeleteSale() {
 
     return useMutation({
         mutationFn: async ({ saleId, reason }) => {
+            // 0. Fetch sale details BEFORE deletion for activity logging
+            const { data: saleToDelete } = await supabase
+                .from('sales')
+                .select('customername, totalamount')
+                .eq('id', saleId)
+                .single();
+
             // 1. Fetch items to identify what to restore
             const { data: items, error: fetchError } = await supabase
                 .from('sale_items')
@@ -25,7 +33,7 @@ export function useDeleteSale() {
                         p_product_id: item.product_id,
                         p_quantity: item.quantity
                     });
-                    
+
                     if (stockError) console.error(`Stock restore failed for ${item.product_name}`);
 
                     // Log restoration in audit trail (stock_movements)
@@ -53,7 +61,18 @@ export function useDeleteSale() {
                 .eq('id', saleId);
 
             if (saleError) throw saleError;
-            
+
+            // 4. Fire activity log
+            if (saleToDelete) {
+                const currentUser = useStore.getState().user;
+                logActivity({
+                    user: currentUser,
+                    action: 'DELETE',
+                    entity_type: 'SALE',
+                    description: `Voided sale #${saleId} for ${saleToDelete.customername || 'Walk-in'} (₱${saleToDelete.totalamount}). Reason: ${reason}`
+                });
+            }
+
             return saleId;
         },
         onSuccess: () => {
@@ -62,7 +81,7 @@ export function useDeleteSale() {
             queryClient.invalidateQueries({ queryKey: ['sales-summary'] });
             queryClient.invalidateQueries({ queryKey: ['products'] });
             queryClient.invalidateQueries({ queryKey: ['spoilage-report'] });
-            
+
             addToast({
                 title: 'Transaction deleted successfully',
                 description: 'Inventory has been updated.',
