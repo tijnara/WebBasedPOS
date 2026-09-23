@@ -1,3 +1,4 @@
+// C:\Users\tijna\WebstormProjects\WebBasedPOS\src\pages\activity-logs.jsx
 import React, { useState, useMemo } from 'react';
 import Head from 'next/head';
 import { useStore } from '../store/useStore';
@@ -11,12 +12,15 @@ import ActivityLogsTable from '../components/activity-logs/ActivityLogsTable';
 
 export default function ActivityLogsPage() {
     const { user } = useStore();
-    const isAdmin = user?.role?.toLowerCase() === 'admin' || user?.isadmin;
+
+    // Check for admin privileges using both role and the isadmin boolean from your schema
+    const isAdmin = user?.role?.toLowerCase() === 'admin' || user?.isadmin === true;
 
     const [searchTerm, setSearchTerm] = useState('');
     const [filterAction, setFilterAction] = useState('ALL');
     const [filterType, setFilterType] = useState('ALL');
 
+    // Fetch the 500 most recent logs
     const { data: logs = [], isLoading } = useActivityLogs(500);
 
     const filteredLogs = useMemo(() => {
@@ -29,6 +33,7 @@ export default function ActivityLogsPage() {
         });
     }, [logs, searchTerm, filterAction, filterType]);
 
+    // If the user is not an admin, render the Access Denied screen
     if (!isAdmin) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6">
@@ -39,6 +44,7 @@ export default function ActivityLogsPage() {
         );
     }
 
+    // If the user is an admin, render the actual activity logs dashboard
     return (
         <div className="p-6 space-y-6 responsive-page max-w-7xl mx-auto">
             <Head>
