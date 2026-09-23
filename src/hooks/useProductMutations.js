@@ -1,5 +1,8 @@
+// src/hooks/useProductMutations.js
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient';
+import { useStore } from '../store/useStore';
+import { logActivity } from './useActivityLogs';
 
 // Key for product queries
 const productsKey = ['products'];
@@ -31,10 +34,21 @@ export function useCreateProduct() {
                 .select()
                 .single();
             if (error) throw error;
+
+            // --- Log Activity ---
+            const currentUser = useStore.getState().user;
+            logActivity({
+                user: currentUser,
+                action: 'CREATE',
+                entity_type: 'PRODUCT',
+                description: `Created new product: ${payload.name}`
+            });
+
             return data;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: productsKey });
+            queryClient.invalidateQueries({ queryKey: ['activity-logs'] });
         },
     });
 }
@@ -74,10 +88,21 @@ export function useUpdateProduct() {
                 .select()
                 .single();
             if (error) throw error;
+
+            // --- Log Activity ---
+            const currentUser = useStore.getState().user;
+            logActivity({
+                user: currentUser,
+                action: 'UPDATE',
+                entity_type: 'PRODUCT',
+                description: `Updated product details for: ${dbPayload.name || `ID #${id}`}`
+            });
+
             return data;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: productsKey });
+            queryClient.invalidateQueries({ queryKey: ['activity-logs'] });
         },
     });
 }
@@ -87,12 +112,32 @@ export function useDeleteProduct() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async (productId) => {
+            // Fetch product name first for the log
+            const { data: productToDelete } = await supabase
+                .from('products')
+                .select('name')
+                .eq('id', productId)
+                .single();
+
             const { error } = await supabase.from('products').delete().eq('id', productId);
             if (error) throw error;
+
+            // --- Log Activity ---
+            if (productToDelete) {
+                const currentUser = useStore.getState().user;
+                logActivity({
+                    user: currentUser,
+                    action: 'DELETE',
+                    entity_type: 'PRODUCT',
+                    description: `Deleted product: ${productToDelete.name}`
+                });
+            }
+
             return productId;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: productsKey });
+            queryClient.invalidateQueries({ queryKey: ['activity-logs'] });
         },
     });
 }

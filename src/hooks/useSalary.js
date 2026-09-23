@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient';
 import { useStore } from '../store/useStore';
 import { toDate } from 'date-fns-tz';
+import { logActivity } from './useActivityLogs';
 
 const TIME_ZONE = 'Asia/Manila';
 
@@ -57,12 +58,22 @@ export function useCreateSalary() {
                 { name: employeeName, default_salary: parseFloat(amount) },
                 { onConflict: 'name', ignoreDuplicates: true }
             );
+
+            // --- Log Activity ---
+            const currentUser = useStore.getState().user;
+            logActivity({
+                user: currentUser,
+                action: 'CREATE',
+                entity_type: 'SALARY',
+                description: `Recorded salary payout of ₱${amount} for ${employeeName}`
+            });
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['salary-records'] });
             queryClient.invalidateQueries({ queryKey: ['expenses'] });
             queryClient.invalidateQueries({ queryKey: ['expense-summary'] });
             queryClient.invalidateQueries({ queryKey: ['employees'] });
+            queryClient.invalidateQueries({ queryKey: ['activity-logs'] });
         },
     });
 }
@@ -101,6 +112,16 @@ export function useProcessDeductions() {
             if (expensesToInsert.length > 0) {
                 const { error: expenseError } = await supabase.from('expenses').insert(expensesToInsert);
                 if (expenseError) throw expenseError;
+
+                // --- Log Activity ---
+                const currentUser = useStore.getState().user;
+                const totalDeducted = deductions.reduce((sum, d) => sum + d.amount, 0);
+                logActivity({
+                    user: currentUser,
+                    action: 'UPDATE',
+                    entity_type: 'SALARY',
+                    description: `Processed ₱${totalDeducted.toFixed(2)} in debt deductions for ${employeeName}`
+                });
             }
         },
         onSuccess: () => {
@@ -108,6 +129,7 @@ export function useProcessDeductions() {
             queryClient.invalidateQueries({ queryKey: ['expenses'] });
             queryClient.invalidateQueries({ queryKey: ['expense-summary'] });
             queryClient.invalidateQueries({ queryKey: ['debts'] });
+            queryClient.invalidateQueries({ queryKey: ['activity-logs'] });
         },
     });
 }

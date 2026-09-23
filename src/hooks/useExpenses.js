@@ -1,6 +1,8 @@
+// src/hooks/useExpenses.js
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient';
 import { useStore } from '../store/useStore';
+import { logActivity } from './useActivityLogs';
 
 const EXPENSES_KEY = ['expenses'];
 const CATEGORIES_KEY = ['expense-categories'];
@@ -22,7 +24,7 @@ export function useExpenses({ startDate, endDate, page = 1, pageSize = 20, searc
             const applyFilters = (query) => {
                 if (startDate) query = query.gte('expense_date', startDate);
                 if (endDate) query = query.lte('expense_date', getEndOfDay(endDate));
-                
+
                 if (category && category !== 'All') {
                     query = query.eq('category', category);
                 }
@@ -56,7 +58,7 @@ export function useExpenses({ startDate, endDate, page = 1, pageSize = 20, searc
             if (sumRes.error) throw sumRes.error;
 
             const totalSum = (sumRes.data || []).reduce((acc, curr) => acc + Number(curr.amount), 0);
-            
+
             const expenses = mainRes.data.map(e => ({
                 ...e,
                 staffName: e.users?.name || 'Unknown',
@@ -89,10 +91,20 @@ export function useCreateExpense() {
             };
             const { error } = await supabase.from('expenses').insert([payload]);
             if (error) throw error;
+
+            // --- Log Activity ---
+            const currentUser = useStore.getState().user;
+            logActivity({
+                user: currentUser,
+                action: 'CREATE',
+                entity_type: 'EXPENSE',
+                description: `Recorded expense of ₱${payload.amount} for ${payload.category} (${payload.description})`
+            });
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: EXPENSES_KEY });
             queryClient.invalidateQueries({ queryKey: ['expense-summary'] });
+            queryClient.invalidateQueries({ queryKey: ['activity-logs'] });
         },
     });
 }
@@ -107,7 +119,7 @@ export function useExpenseSummary(dateFrom, dateTo, selectedMonth) {
                 .from('expenses')
                 .select('amount')
                 .gte('expense_date', '2026-04-20');
-            
+
             if (allTimeError) throw allTimeError;
             const grandTotal = allTimeData?.reduce((acc, curr) => acc + Number(curr.amount), 0) || 0;
 
@@ -117,16 +129,16 @@ export function useExpenseSummary(dateFrom, dateTo, selectedMonth) {
                 // Parse the YYYY-MM string to get the start and end dates of that month
                 const [year, month] = selectedMonth.split('-');
                 const endDay = new Date(year, month, 0).getDate();
-                
+
                 const startOfMonthStr = `${selectedMonth}-01`;
                 const endOfMonthStr = `${selectedMonth}-${endDay}`;
-                
+
                 const { data: monthData, error: monthError } = await supabase
                     .from('expenses')
                     .select('amount')
                     .gte('expense_date', startOfMonthStr)
                     .lte('expense_date', getEndOfDay(endOfMonthStr));
-                
+
                 if (monthError) throw monthError;
                 monthlyTotal = monthData?.reduce((acc, curr) => acc + Number(curr.amount), 0) || 0;
             }
@@ -139,7 +151,7 @@ export function useExpenseSummary(dateFrom, dateTo, selectedMonth) {
                     .select('amount')
                     .gte('expense_date', dateFrom)
                     .lte('expense_date', getEndOfDay(dateTo));
-                
+
                 if (weekError) throw weekError;
                 weeklyTotal = weekData?.reduce((acc, curr) => acc + Number(curr.amount), 0) || 0;
             }
@@ -181,9 +193,19 @@ export function useCreateExpenseCategory() {
                 created_by: user?.id || null
             }]);
             if (error) throw error;
+
+            // --- Log Activity ---
+            const currentUser = useStore.getState().user;
+            logActivity({
+                user: currentUser,
+                action: 'CREATE',
+                entity_type: 'CATEGORY',
+                description: `Created new expense category: ${name}`
+            });
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: CATEGORIES_KEY });
+            queryClient.invalidateQueries({ queryKey: ['activity-logs'] });
         },
     });
 }
@@ -203,9 +225,19 @@ export function useUpdateExpenseCategory() {
                 })
                 .eq('id', id);
             if (error) throw error;
+
+            // --- Log Activity ---
+            const currentUser = useStore.getState().user;
+            logActivity({
+                user: currentUser,
+                action: 'UPDATE',
+                entity_type: 'CATEGORY',
+                description: `Updated expense category: ${name}`
+            });
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: CATEGORIES_KEY });
+            queryClient.invalidateQueries({ queryKey: ['activity-logs'] });
         },
     });
 }
@@ -226,10 +258,20 @@ export function useUpdateExpense() {
                 })
                 .eq('id', id);
             if (error) throw error;
+
+            // --- Log Activity ---
+            const currentUser = useStore.getState().user;
+            logActivity({
+                user: currentUser,
+                action: 'UPDATE',
+                entity_type: 'EXPENSE',
+                description: `Updated expense details for ${expenseData.category} (₱${expenseData.amount})`
+            });
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: EXPENSES_KEY });
             queryClient.invalidateQueries({ queryKey: ['expense-summary'] });
+            queryClient.invalidateQueries({ queryKey: ['activity-logs'] });
         },
     });
 }
@@ -239,12 +281,31 @@ export function useDeleteExpense() {
 
     return useMutation({
         mutationFn: async (id) => {
+            // Fetch expense details first for the log
+            const { data: expenseToDelete } = await supabase
+                .from('expenses')
+                .select('category, amount, description')
+                .eq('id', id)
+                .single();
+
             const { error } = await supabase.from('expenses').delete().eq('id', id);
             if (error) throw error;
+
+            // --- Log Activity ---
+            if (expenseToDelete) {
+                const currentUser = useStore.getState().user;
+                logActivity({
+                    user: currentUser,
+                    action: 'DELETE',
+                    entity_type: 'EXPENSE',
+                    description: `Deleted expense: ${expenseToDelete.category} (₱${expenseToDelete.amount})`
+                });
+            }
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: EXPENSES_KEY });
             queryClient.invalidateQueries({ queryKey: ['expense-summary'] });
+            queryClient.invalidateQueries({ queryKey: ['activity-logs'] });
         },
     });
 }

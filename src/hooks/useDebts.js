@@ -2,6 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient';
 import { useStore } from '../store/useStore';
+import { logActivity } from './useActivityLogs';
 
 const DEBTS_KEY = ['debts'];
 
@@ -71,10 +72,21 @@ export function useCreateDebt() {
                 .single();
 
             if (error) throw error;
+
+            // --- Log Activity ---
+            const currentUser = useStore.getState().user;
+            logActivity({
+                user: currentUser,
+                action: 'CREATE',
+                entity_type: 'DEBT',
+                description: `Created new debt record: ${newDebt.description} (₱${newDebt.total_debt_amount})`
+            });
+
             return data;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: DEBTS_KEY });
+            queryClient.invalidateQueries({ queryKey: ['activity-logs'] });
         }
     });
 }
@@ -90,10 +102,21 @@ export function useCreateDebtPayment() {
                 .single();
 
             if (error) throw error;
+
+            // --- Log Activity ---
+            const currentUser = useStore.getState().user;
+            logActivity({
+                user: currentUser,
+                action: 'UPDATE',
+                entity_type: 'DEBT',
+                description: `Recorded debt payment of ₱${newPayment.amount_paid}`
+            });
+
             return data;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: DEBTS_KEY });
+            queryClient.invalidateQueries({ queryKey: ['activity-logs'] });
         }
     });
 }
