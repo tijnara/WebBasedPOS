@@ -22,8 +22,8 @@ export default function ActivityLogsTable({ logs, isLoading }) {
     return (
         <div className="w-full">
             {/* --- DESKTOP VIEW --- */}
-            <div className="hidden md:block w-full overflow-x-auto">
-                <Table className="w-full min-w-[800px]">
+            <div className="hidden md:block w-full min-w-0">
+                <Table className="w-full">
                     <TableHeader>
                         <TableRow className="bg-gray-50/50 dark:bg-gray-800/30">
                             <TableHead className="w-48">Date & Time</TableHead>
@@ -53,7 +53,7 @@ export default function ActivityLogsTable({ logs, isLoading }) {
                                         {log.entity_type}
                                     </span>
                                 </TableCell>
-                                <TableCell className="text-sm text-gray-700 dark:text-gray-300">
+                                <TableCell className="text-sm text-gray-700 dark:text-gray-300 whitespace-normal break-words">
                                     {log.description}
                                 </TableCell>
                             </TableRow>

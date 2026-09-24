@@ -46,7 +46,7 @@ export default function ActivityLogsPage() {
 
     // If the user is an admin, render the actual activity logs dashboard
     return (
-        <div className="p-6 space-y-6 responsive-page max-w-7xl mx-auto">
+        <div className="p-4 md:p-6 space-y-4 md:space-y-6 responsive-page max-w-7xl mx-auto">
             <Head>
                 <title>Activity Logs | Seaside POS</title>
             </Head>
