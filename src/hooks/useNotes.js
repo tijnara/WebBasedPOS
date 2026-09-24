@@ -1,7 +1,8 @@
-// src/hooks/useNotes.js
+// C:\Users\tijna\WebstormProjects\WebBasedPOS\src\hooks\useNotes.js
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient';
 import { useStore } from '../store/useStore';
+import { logActivity } from './useActivityLogs';
 
 const notesKey = ['notes'];
 
@@ -62,8 +63,18 @@ export function useCreateNote() {
 
             const { error } = await supabase.from('notes').insert([{ content, created_by: user.id, updated_at: new Date().toISOString() }]);
             if (error) throw error;
+
+            logActivity({
+                user,
+                action: 'CREATE',
+                entity_type: 'NOTE',
+                description: `Created new dashboard note`
+            });
         },
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: notesKey }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: notesKey });
+            queryClient.invalidateQueries({ queryKey: ['activity-logs'] });
+        },
     });
 }
 
@@ -85,24 +96,44 @@ export function useUpdateNote() {
             }
             const { error } = await supabase.from('notes').update({ content, updated_at: new Date().toISOString(), updated_by: user.id }).eq('id', id);
             if (error) throw error;
+
+            logActivity({
+                user,
+                action: 'UPDATE',
+                entity_type: 'NOTE',
+                description: `Updated dashboard note`
+            });
         },
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: notesKey }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: notesKey });
+            queryClient.invalidateQueries({ queryKey: ['activity-logs'] });
+        },
     });
 }
 
 export function useDeleteNote() {
     const queryClient = useQueryClient();
-    const isDemo = useStore(s => s.user?.isDemo);
+    const user = useStore(s => s.user);
 
     return useMutation({
         mutationFn: async (id) => {
-            if (isDemo) {
+            if (user?.isDemo) {
                 MOCK_NOTES = MOCK_NOTES.filter(n => n.id !== id);
                 return;
             }
             const { error } = await supabase.from('notes').delete().eq('id', id);
             if (error) throw error;
+
+            logActivity({
+                user,
+                action: 'DELETE',
+                entity_type: 'NOTE',
+                description: `Deleted dashboard note`
+            });
         },
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: notesKey }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: notesKey });
+            queryClient.invalidateQueries({ queryKey: ['activity-logs'] });
+        },
     });
 }

@@ -1,6 +1,8 @@
 // src/hooks/useEmployees.js
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient';
+import { useStore } from '../store/useStore';
+import { logActivity } from './useActivityLogs';
 
 // 1. Fetches all active employees to populate your dropdown and table
 export function useEmployees() {
@@ -12,7 +14,7 @@ export function useEmployees() {
                 .select('*')
                 .eq('is_active', true) // Re-enabled
                 .order('name', { ascending: true });
-            
+
             if (error) throw error;
             return data || [];
         }
@@ -25,36 +27,72 @@ export function useManageEmployee() {
 
     return useMutation({
         mutationFn: async ({ action, employee }) => {
+            const currentUser = useStore.getState().user;
+
             if (action === 'ADD') {
-                const { error } = await supabase.from('employees').insert([{ 
-                    name: employee.name, 
+                const { error } = await supabase.from('employees').insert([{
+                    name: employee.name,
                     default_salary: parseFloat(employee.default_salary || 0),
                     salary_type: employee.salary_type || 'per_day',
                     container_multiplier: employee.container_multiplier ? parseInt(employee.container_multiplier) : null,
                     is_active: true
                 }]);
                 if (error) throw error;
-            } 
+
+                // --- Log Activity ---
+                logActivity({
+                    user: currentUser,
+                    action: 'CREATE',
+                    entity_type: 'EMPLOYEE',
+                    description: `Added new employee: ${employee.name}`
+                });
+            }
             else if (action === 'EDIT') {
                 const { error } = await supabase.from('employees')
-                    .update({ 
-                        name: employee.name, 
+                    .update({
+                        name: employee.name,
                         default_salary: parseFloat(employee.default_salary || 0),
                         salary_type: employee.salary_type,
                         container_multiplier: employee.container_multiplier ? parseInt(employee.container_multiplier) : null
                     })
                     .eq('id', employee.id);
                 if (error) throw error;
-            } 
+
+                // --- Log Activity ---
+                logActivity({
+                    user: currentUser,
+                    action: 'UPDATE',
+                    entity_type: 'EMPLOYEE',
+                    description: `Updated employee profile: ${employee.name}`
+                });
+            }
             else if (action === 'DELETE') {
+                // Fetch name for the log before deleting
+                const { data: empToDelete } = await supabase
+                    .from('employees')
+                    .select('name')
+                    .eq('id', employee.id)
+                    .single();
+
                 // Hard deletes the employee record
                 const { error } = await supabase.from('employees').delete().eq('id', employee.id);
                 if (error) throw error;
+
+                // --- Log Activity ---
+                if (empToDelete) {
+                    logActivity({
+                        user: currentUser,
+                        action: 'DELETE',
+                        entity_type: 'EMPLOYEE',
+                        description: `Deleted employee profile: ${empToDelete.name}`
+                    });
+                }
             }
         },
         onSuccess: () => {
             // Automatically refreshes the UI after a change is made
             queryClient.invalidateQueries({ queryKey: ['employees'] });
+            queryClient.invalidateQueries({ queryKey: ['activity-logs'] });
         }
     });
 }

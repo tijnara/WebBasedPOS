@@ -1,7 +1,8 @@
-// src/hooks/useUserMutations.js
+// C:\Users\tijna\WebstormProjects\WebBasedPOS\src\hooks\useUserMutations.js
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient';
-import useStore from '../store/useStore';
+import { useStore } from '../store/useStore';
+import { logActivity } from './useActivityLogs';
 
 const usersTableKey = ['usersTableData'];
 const categoriesTableKey = ['userCategoriesData'];
@@ -26,7 +27,7 @@ export function useUserCategories() {
                 .from('user_categories')
                 .select('*')
                 .order('id', { ascending: true });
-            
+
             if (error) {
                 console.error("Error fetching categories:", error);
                 // Return a safe fallback so the UI doesn't break entirely
@@ -35,7 +36,7 @@ export function useUserCategories() {
                     { id: 2, name: 'Staff', is_admin: false }
                 ];
             }
-            
+
             return data || [];
         }
     });
@@ -48,7 +49,7 @@ export function useUsers({ page = 1, itemsPerPage = 10, searchTerm = '' } = {}) 
     return useQuery({
         queryKey: usersTableKey.concat([isDemo, page, itemsPerPage, searchTerm]),
         queryFn: async () => {
-            if (isDemo) return { users: [], totalPages: 1, totalCount: 0 }; 
+            if (isDemo) return { users: [], totalPages: 1, totalCount: 0 };
 
             try {
                 const startIndex = (page - 1) * itemsPerPage;
@@ -82,7 +83,7 @@ export function useUsers({ page = 1, itemsPerPage = 10, searchTerm = '' } = {}) 
                     color: u.color || '#3B82F6', // Assign color or fallback
                     categoryId: u.category_id,
                     categoryName: u.user_categories?.name || 'Unknown',
-                    isAdmin: u.user_categories?.is_admin || false, 
+                    isAdmin: u.user_categories?.is_admin || false,
                     dateAdded: u.dateadded ? new Date(u.dateadded) : null
                 }));
 
@@ -100,6 +101,7 @@ export function useUsers({ page = 1, itemsPerPage = 10, searchTerm = '' } = {}) 
 export function useCreateUser() {
     const queryClient = useQueryClient();
     const addToast = useStore(s => s.addToast);
+    const currentUser = useStore(s => s.user);
 
     return useMutation({
         mutationFn: async (userData) => {
@@ -115,17 +117,26 @@ export function useCreateUser() {
                 email: userData.email,
                 phone: userData.phone || null,
                 password: userData.password,
-                category_id: userData.categoryId, 
+                category_id: userData.categoryId,
                 color: userData.color || '#3B82F6', // Send the color
                 dateadded: new Date().toISOString()
             };
 
             const { data, error } = await supabase.from('users').insert([payload]).select().single();
             if (error) throw error;
+
+            logActivity({
+                user: currentUser,
+                action: 'CREATE',
+                entity_type: 'USER',
+                description: `Created new user: ${payload.name}`
+            });
+
             return data;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: usersTableKey });
+            queryClient.invalidateQueries({ queryKey: ['activity-logs'] });
             addToast({ title: 'User Created', description: `User created successfully.`, variant: 'success' });
         },
         onError: (error) => {
@@ -138,6 +149,7 @@ export function useCreateUser() {
 export function useUpdateUser() {
     const queryClient = useQueryClient();
     const addToast = useStore(s => s.addToast);
+    const currentUser = useStore(s => s.user);
 
     return useMutation({
         mutationFn: async (userData) => {
@@ -158,11 +170,20 @@ export function useUpdateUser() {
 
             const { data, error } = await supabase.from('users').update(updateData).eq('id', id).select().single();
             if (error) throw error;
+
+            logActivity({
+                user: currentUser,
+                action: 'UPDATE',
+                entity_type: 'USER',
+                description: `Updated user details for: ${updateData.name}`
+            });
+
             return data;
         },
         onSuccess: () => {
             addToast({ title: 'User Updated', description: `User details updated.`, variant: 'success' });
             queryClient.invalidateQueries({ queryKey: usersTableKey });
+            queryClient.invalidateQueries({ queryKey: ['activity-logs'] });
         },
         onError: (error) => {
             addToast({ title: 'Update Failed', description: error.message, variant: 'destructive' });
@@ -174,16 +195,30 @@ export function useUpdateUser() {
 export function useDeleteUser() {
     const queryClient = useQueryClient();
     const addToast = useStore(s => s.addToast);
+    const currentUser = useStore(s => s.user);
 
     return useMutation({
         mutationFn: async (userId) => {
+            const { data: userToDelete } = await supabase.from('users').select('name').eq('id', userId).single();
+
             const { error } = await supabase.from('users').delete().eq('id', userId);
             if (error) throw error;
+
+            if (userToDelete) {
+                logActivity({
+                    user: currentUser,
+                    action: 'DELETE',
+                    entity_type: 'USER',
+                    description: `Deleted user: ${userToDelete.name}`
+                });
+            }
+
             return userId;
         },
         onSuccess: () => {
             addToast({ title: 'User Deleted', description: `User deleted successfully.`, variant: 'success' });
             queryClient.invalidateQueries({ queryKey: usersTableKey });
+            queryClient.invalidateQueries({ queryKey: ['activity-logs'] });
         },
         onError: (error) => {
             addToast({ title: 'Delete Failed', description: error.message, variant: 'destructive' });
@@ -195,6 +230,7 @@ export function useDeleteUser() {
 export function useCreateUserCategory() {
     const queryClient = useQueryClient();
     const addToast = useStore(s => s.addToast);
+    const currentUser = useStore(s => s.user);
 
     return useMutation({
         mutationFn: async (payload) => {
@@ -204,11 +240,20 @@ export function useCreateUserCategory() {
                 .select()
                 .single();
             if (error) throw error;
+
+            logActivity({
+                user: currentUser,
+                action: 'CREATE',
+                entity_type: 'ROLE',
+                description: `Created new user role: ${payload.name}`
+            });
+
             return data;
         },
         onSuccess: () => {
             // categoriesTableKey is defined at the top of your file
             queryClient.invalidateQueries({ queryKey: ['userCategoriesData'] });
+            queryClient.invalidateQueries({ queryKey: ['activity-logs'] });
             addToast({ title: 'Role Created', description: `New role added successfully.`, variant: 'success' });
         },
         onError: (error) => {

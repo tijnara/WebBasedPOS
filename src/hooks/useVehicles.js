@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient';
 import { addMonths, addDays, isSameDay } from 'date-fns';
 import { useStore } from '../store/useStore';
+import { logActivity } from './useActivityLogs';
 import { FILTER_CONFIG } from '../config/constants';
 
 /**
