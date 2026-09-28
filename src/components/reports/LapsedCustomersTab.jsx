@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabaseClient';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell, Input, Button } from '../ui';
 import { format, parseISO } from 'date-fns';
-import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { useDebounce } from '../../hooks/useDebounce';
 
 const PAGE_SIZE = 10;
@@ -12,16 +12,17 @@ const PAGE_SIZE = 10;
 export default function LapsedCustomersTab({ enabled }) {
     const [searchTerm, setSearchTerm] = useState('');
     const [page, setPage] = useState(1);
+    const [sortConfig, setSortConfig] = useState({ key: 'last_order_date', direction: 'desc' });
 
     const debouncedSearch = useDebounce(searchTerm, 300);
 
-    // Reset to page 1 on new search
+    // Reset to page 1 on new search or sort change
     useEffect(() => {
         setPage(1);
-    }, [debouncedSearch]);
+    }, [debouncedSearch, sortConfig]);
 
     const { data, isLoading, isError } = useQuery({
-        queryKey: ['lapsed-customers', page, debouncedSearch],
+        queryKey: ['lapsed-customers', page, debouncedSearch, sortConfig],
         queryFn: async () => {
             const oneMonthAgo = new Date();
             oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
@@ -38,6 +39,7 @@ export default function LapsedCustomersTab({ enabled }) {
                     },
                     { count: 'exact' }
                 )
+                .order(sortConfig.key, { ascending: sortConfig.direction === 'asc', nullsFirst: false })
                 .range(from, to);
 
             if (error) throw error;
@@ -51,6 +53,37 @@ export default function LapsedCustomersTab({ enabled }) {
         enabled: enabled,
         staleTime: 1000 * 60 * 5
     });
+
+    const handleSort = (key) => {
+        setSortConfig((current) => ({
+            key,
+            direction: current.key === key && current.direction === 'desc' ? 'asc' : 'desc',
+        }));
+    };
+
+    const renderSortHeader = (label, key, align = 'left') => {
+        const isActive = sortConfig.key === key;
+        return (
+            <TableHead
+                className={`font-semibold text-gray-600 ${align === 'right' ? 'text-right' : ''}`}
+            >
+                <button
+                    type="button"
+                    onClick={() => handleSort(key)}
+                    aria-label={`Sort by ${label}; currently ${isActive ? sortConfig.direction : 'unsorted'}`}
+                    aria-pressed={isActive}
+                    className={`flex w-full items-center gap-1 text-left font-semibold text-gray-600 select-none hover:text-gray-900 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${align === 'right' ? 'justify-end text-right' : ''}`}
+                >
+                    {label}
+                    {isActive ? (
+                        sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3 text-primary" /> : <ArrowDown className="w-3 h-3 text-primary" />
+                    ) : (
+                        <ArrowUpDown className="w-3 h-3 text-gray-300" />
+                    )}
+                </button>
+            </TableHead>
+        );
+    };
 
     if (!enabled) return null;
 
@@ -78,11 +111,11 @@ export default function LapsedCustomersTab({ enabled }) {
                     <Table>
                         <TableHeader>
                             <TableRow className="bg-gray-50/50">
-                                <TableHead className="font-semibold text-gray-600">Customer</TableHead>
-                                <TableHead className="font-semibold text-gray-600">Phone</TableHead>
-                                <TableHead className="font-semibold text-gray-600">Registered</TableHead>
-                                <TableHead className="font-semibold text-gray-600">Last Order</TableHead>
-                                <TableHead className="font-semibold text-gray-600 text-right">Average Refills</TableHead>
+                                {renderSortHeader('Customer', 'customer_name')}
+                                {renderSortHeader('Phone', 'customer_phone')}
+                                {renderSortHeader('Registered', 'date_registered')}
+                                {renderSortHeader('Last Order', 'last_order_date')}
+                                {renderSortHeader('Average Refills', 'avg_refills', 'right')}
                             </TableRow>
                         </TableHeader>
                         <TableBody>
