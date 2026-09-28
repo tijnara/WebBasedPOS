@@ -1,3 +1,4 @@
+// C:\Users\tijna\WebstormProjects\WebBasedPOS\src\components\pages\ReportPage.jsx
 import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
@@ -14,8 +15,11 @@ import { useWeeklyGrowth } from '../../hooks/useWeeklyGrowth';
 import { useMonthlyGrowth } from '../../hooks/useMonthlyGrowth';
 import SummaryCard from '../ui/SummaryCard';
 import DeleteConfirmationModal from '../DeleteConfirmationModal';
+
+// Extracted Modular Tabs
 import SalesTab from '../reports/SalesTab';
 import FrequentOrdersTab from '../reports/FrequentOrdersTab';
+import LapsedCustomersTab from '../reports/LapsedCustomersTab';
 
 const ReportPage = () => {
     const searchParams = useSearchParams();
@@ -365,6 +369,12 @@ const ReportPage = () => {
                 >
                     Frequent Orders
                 </Button>
+                <Button
+                    onClick={() => handleTabChange('inactive')}
+                    className={`px-4 py-2 font-semibold rounded-md ${activeTab === 'inactive' ? 'btn--primary' : 'btn--soft'}`}
+                >
+                    Dropped Off
+                </Button>
             </div>
 
             {activeTab === 'frequent' && (
@@ -417,6 +427,7 @@ const ReportPage = () => {
                 />
             )}
 
+            {activeTab === 'inactive' && <LapsedCustomersTab enabled={activeTab === 'inactive'} />}
 
             <DeleteConfirmationModal
                 isOpen={isModalOpen}
