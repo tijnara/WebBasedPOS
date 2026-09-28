@@ -1,10 +1,10 @@
 // C:\Users\tijna\WebstormProjects\WebBasedPOS\src\pages\activity-logs.jsx
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import Head from 'next/head';
 import { useStore } from '../store/useStore';
 import { useActivityLogs } from '../hooks/useActivityLogs';
-import { Card, CardContent } from '../components/ui';
-import { ShieldAlert } from 'lucide-react';
+import { Card, CardContent, Button } from '../components/ui';
+import { ShieldAlert, ChevronLeft, ChevronRight } from 'lucide-react';
 
 import ActivityLogsHeader from '../components/activity-logs/ActivityLogsHeader';
 import ActivityLogsFilters from '../components/activity-logs/ActivityLogsFilters';
@@ -19,19 +19,24 @@ export default function ActivityLogsPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterAction, setFilterAction] = useState('ALL');
     const [filterType, setFilterType] = useState('ALL');
+    const [page, setPage] = useState(1);
 
-    // Fetch the 500 most recent logs
-    const { data: logs = [], isLoading } = useActivityLogs(500);
+    // Fetch exactly 20 logs based on current page and filters
+    const { data, isLoading } = useActivityLogs({
+        page,
+        pageSize: 20,
+        searchTerm,
+        filterAction,
+        filterType
+    });
 
-    const filteredLogs = useMemo(() => {
-        return logs.filter(log => {
-            const matchesSearch = log.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                log.user_name.toLowerCase().includes(searchTerm.toLowerCase());
-            const matchesAction = filterAction === 'ALL' || log.action === filterAction;
-            const matchesType = filterType === 'ALL' || log.entity_type === filterType;
-            return matchesSearch && matchesAction && matchesType;
-        });
-    }, [logs, searchTerm, filterAction, filterType]);
+    const logs = data?.logs || [];
+    const totalPages = data?.totalPages || 1;
+
+    // Reset page to 1 whenever a filter changes
+    const handleSearchChange = (val) => { setSearchTerm(val); setPage(1); };
+    const handleActionChange = (val) => { setFilterAction(val); setPage(1); };
+    const handleTypeChange = (val) => { setFilterType(val); setPage(1); };
 
     // If the user is not an admin, render the Access Denied screen
     if (!isAdmin) {
@@ -53,16 +58,41 @@ export default function ActivityLogsPage() {
 
             <ActivityLogsHeader />
 
-            <Card className="shadow-sm overflow-hidden">
+            <Card className="shadow-sm overflow-hidden flex flex-col">
                 <ActivityLogsFilters
-                    searchTerm={searchTerm} setSearchTerm={setSearchTerm}
-                    filterAction={filterAction} setFilterAction={setFilterAction}
-                    filterType={filterType} setFilterType={setFilterType}
+                    searchTerm={searchTerm} setSearchTerm={handleSearchChange}
+                    filterAction={filterAction} setFilterAction={handleActionChange}
+                    filterType={filterType} setFilterType={handleTypeChange}
                 />
 
                 <CardContent className="p-0">
-                    <ActivityLogsTable logs={filteredLogs} isLoading={isLoading} />
+                    <ActivityLogsTable logs={logs} isLoading={isLoading} />
                 </CardContent>
+
+                {/* Pagination Controls */}
+                <div className="flex items-center justify-between border-t border-gray-100 p-4 bg-gray-50 dark:bg-gray-800 dark:border-gray-700">
+                    <Button
+                        variant="outline"
+                        onClick={() => setPage(p => Math.max(1, p - 1))}
+                        disabled={page === 1 || isLoading}
+                        className="flex items-center gap-1 text-sm font-medium"
+                    >
+                        <ChevronLeft className="w-4 h-4" /> Prev
+                    </Button>
+                    <div className="flex flex-col items-center">
+                        <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                            Page {page} of {totalPages}
+                        </span>
+                    </div>
+                    <Button
+                        variant="outline"
+                        onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                        disabled={page >= totalPages || isLoading}
+                        className="flex items-center gap-1 text-sm font-medium"
+                    >
+                        Next <ChevronRight className="w-4 h-4" />
+                    </Button>
+                </div>
             </Card>
         </div>
     );
