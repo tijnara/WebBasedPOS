@@ -1,3 +1,5 @@
+// C:\Users\tijna\WebstormProjects\WebBasedPOS\src\components\pages\ExpensesPage.jsx
+
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import currency from 'currency.js';
 import { startOfWeek, endOfWeek, parseISO, format, subWeeks, addWeeks, subDays, addDays } from 'date-fns';
@@ -140,7 +142,15 @@ export default function ExpensesPage() {
     const [editingExpense, setEditingExpense] = useState(null);
 
     const [showCategoryModal, setShowCategoryModal] = useState(false);
-    const [catForm, setCatForm] = useState({ id: null, name: '', default_amount: '', default_description: '', is_recurring: false, is_recurring_daily: false });
+    const [catForm, setCatForm] = useState({
+        id: null,
+        name: '',
+        default_amount: '',
+        default_description: '',
+        is_recurring: false,
+        is_recurring_daily: false,
+        recurring_day: 1 // Default to Monday
+    });
 
     const [reasonModal, setReasonModal] = useState({ show: false, expense: null });
     const [reasonText, setReasonText] = useState('');
@@ -186,35 +196,55 @@ export default function ExpensesPage() {
                     }
                 }
 
-                const currentMonday = startOfWeek(today, { weekStartsOn: 1 });
-                const mondayStr = format(currentMonday, 'yyyy-MM-dd');
+                // --- NEW DYNAMIC WEEKLY SYNC LOGIC ---
                 const recurringWeeklyCategories = categories.filter(cat => cat.is_recurring);
                 let weeklyCount = 0;
 
                 if (recurringWeeklyCategories.length > 0) {
-                    const { data: existingWeekly, error: weeklyError } = await supabase
-                        .from('expenses')
-                        .select('category')
-                        .eq('expense_date', mondayStr);
+                    // Group categories by the specific date they should trigger this week
+                    const categoriesByDate = {};
 
-                    if (weeklyError) throw weeklyError;
+                    recurringWeeklyCategories.forEach(cat => {
+                        const targetDay = cat.recurring_day ?? 1; // Default to Monday if legacy
+                        const todayDay = today.getDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
 
-                    const existingWeeklyNames = existingWeekly?.map(e => e.category) || [];
-                    const missingWeekly = recurringWeeklyCategories.filter(
-                        cat => !existingWeeklyNames.includes(cat.name)
-                    );
+                        // Calculate how many days ago the target day occurred
+                        const daysAgo = (todayDay + 7 - targetDay) % 7;
+                        const targetDate = subDays(today, daysAgo);
+                        const targetDateStr = format(targetDate, 'yyyy-MM-dd');
 
-                    if (missingWeekly.length > 0) {
-                        const insertWeekly = missingWeekly.map(cat =>
-                            createExpense.mutateAsync({
-                                amount: cat.default_amount || 0,
-                                category: cat.name,
-                                description: cat.default_description || `Weekly ${cat.name}`,
-                                expense_date: mondayStr
-                            })
+                        if (!categoriesByDate[targetDateStr]) {
+                            categoriesByDate[targetDateStr] = [];
+                        }
+                        categoriesByDate[targetDateStr].push(cat);
+                    });
+
+                    // Check and insert for each specific date
+                    for (const [dateStr, cats] of Object.entries(categoriesByDate)) {
+                        const { data: existingWeekly, error: weeklyError } = await supabase
+                            .from('expenses')
+                            .select('category')
+                            .eq('expense_date', dateStr);
+
+                        if (weeklyError) throw weeklyError;
+
+                        const existingWeeklyNames = existingWeekly?.map(e => e.category) || [];
+                        const missingWeekly = cats.filter(
+                            cat => !existingWeeklyNames.includes(cat.name)
                         );
-                        await Promise.all(insertWeekly);
-                        weeklyCount = missingWeekly.length;
+
+                        if (missingWeekly.length > 0) {
+                            const insertWeekly = missingWeekly.map(cat =>
+                                createExpense.mutateAsync({
+                                    amount: cat.default_amount || 0,
+                                    category: cat.name,
+                                    description: cat.default_description || `Weekly ${cat.name}`,
+                                    expense_date: dateStr
+                                })
+                            );
+                            await Promise.all(insertWeekly);
+                            weeklyCount += missingWeekly.length;
+                        }
                     }
                 }
 
@@ -241,7 +271,15 @@ export default function ExpensesPage() {
 
     const handleCategoryChange = (val) => {
         if (val === 'ADD_NEW') {
-            setCatForm({ id: null, name: '', default_amount: '', default_description: '', is_recurring: false, is_recurring_daily: false });
+            setCatForm({
+                id: null,
+                name: '',
+                default_amount: '',
+                default_description: '',
+                is_recurring: false,
+                is_recurring_daily: false,
+                recurring_day: 1
+            });
             setShowCategoryModal(true);
             return;
         }
@@ -254,7 +292,7 @@ export default function ExpensesPage() {
     };
 
     const handleSaveCategory = async () => {
-        const { id, name, default_amount, default_description, is_recurring, is_recurring_daily } = catForm;
+        const { id, name, default_amount, default_description, is_recurring, is_recurring_daily, recurring_day } = catForm;
         if (!name.trim()) return;
 
         const capitalizedName = capitalizeWords(name);
@@ -262,14 +300,29 @@ export default function ExpensesPage() {
 
         try {
             if (id) {
-                await updateCategory.mutateAsync({ id, name: capitalizedName, default_amount, default_description: capitalizedDescription, is_recurring, is_recurring_daily });
+                await updateCategory.mutateAsync({
+                    id,
+                    name: capitalizedName,
+                    default_amount,
+                    default_description: capitalizedDescription,
+                    is_recurring,
+                    is_recurring_daily,
+                    recurring_day
+                });
                 addToast({ title: 'Success', message: 'Category updated.', type: 'success' });
             } else {
                 if (categories.some(c => c.name.toLowerCase() === capitalizedName.toLowerCase())) {
                     addToast({ title: 'Error', message: 'Category already exists.', type: 'error' });
                     return;
                 }
-                await createCategory.mutateAsync({ name: capitalizedName, default_amount, default_description: capitalizedDescription, is_recurring, is_recurring_daily });
+                await createCategory.mutateAsync({
+                    name: capitalizedName,
+                    default_amount,
+                    default_description: capitalizedDescription,
+                    is_recurring,
+                    is_recurring_daily,
+                    recurring_day
+                });
                 addToast({ title: 'Success', message: 'Category created.', type: 'success' });
             }
             setCategory(capitalizedName);
@@ -290,7 +343,8 @@ export default function ExpensesPage() {
                 default_amount: selectedCat.default_amount || '',
                 default_description: selectedCat.default_description || '',
                 is_recurring: selectedCat.is_recurring || false,
-                is_recurring_daily: selectedCat.is_recurring_daily || false
+                is_recurring_daily: selectedCat.is_recurring_daily || false,
+                recurring_day: selectedCat.recurring_day ?? 1
             });
             setShowCategoryModal(true);
         }

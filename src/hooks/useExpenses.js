@@ -1,4 +1,4 @@
-// src/hooks/useExpenses.js
+// C:\Users\UserT\WebstormProjects\WebBasedPOS\src\hooks\useExpenses.js
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient';
 import { useStore } from '../store/useStore';
@@ -111,10 +111,9 @@ export function useCreateExpense() {
 
 export function useExpenseSummary(dateFrom, dateTo, selectedMonth) {
     return useQuery({
-        // Adding the dependencies to the queryKey so it refetches when they change
         queryKey: ['expense-summary', dateFrom, dateTo, selectedMonth],
         queryFn: async () => {
-            // 1. All time (Restricted to April 20, 2026 onwards as per your rules)
+            // 1. All time (Restricted to April 20, 2026 onwards)
             const { data: allTimeData, error: allTimeError } = await supabase
                 .from('expenses')
                 .select('amount')
@@ -126,7 +125,6 @@ export function useExpenseSummary(dateFrom, dateTo, selectedMonth) {
             // 2. Selected Month
             let monthlyTotal = 0;
             if (selectedMonth) {
-                // Parse the YYYY-MM string to get the start and end dates of that month
                 const [year, month] = selectedMonth.split('-');
                 const endDay = new Date(year, month, 0).getDate();
 
@@ -143,7 +141,7 @@ export function useExpenseSummary(dateFrom, dateTo, selectedMonth) {
                 monthlyTotal = monthData?.reduce((acc, curr) => acc + Number(curr.amount), 0) || 0;
             }
 
-            // 3. Selected Period (Driven by dateFrom and dateTo on the page)
+            // 3. Selected Period
             let weeklyTotal = 0;
             if (dateFrom && dateTo) {
                 const { data: weekData, error: weekError } = await supabase
@@ -184,12 +182,14 @@ export function useCreateExpenseCategory() {
     const user = useStore(s => s.user);
 
     return useMutation({
-        mutationFn: async ({ name, default_amount, default_description, is_recurring }) => {
+        mutationFn: async ({ name, default_amount, default_description, is_recurring, is_recurring_daily, recurring_day }) => {
             const { error } = await supabase.from('expense_categories').insert([{
                 name,
                 default_amount: default_amount ? parseFloat(default_amount) : null,
                 default_description: default_description || null,
                 is_recurring: !!is_recurring,
+                is_recurring_daily: !!is_recurring_daily,
+                recurring_day: parseInt(recurring_day) || 1, // Store the custom day
                 created_by: user?.id || null
             }]);
             if (error) throw error;
@@ -214,14 +214,16 @@ export function useUpdateExpenseCategory() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async ({ id, name, default_amount, default_description, is_recurring }) => {
+        mutationFn: async ({ id, name, default_amount, default_description, is_recurring, is_recurring_daily, recurring_day }) => {
             const { error } = await supabase
                 .from('expense_categories')
                 .update({
                     name,
                     default_amount: default_amount ? parseFloat(default_amount) : null,
                     default_description: default_description || null,
-                    is_recurring: !!is_recurring
+                    is_recurring: !!is_recurring,
+                    is_recurring_daily: !!is_recurring_daily,
+                    recurring_day: parseInt(recurring_day) || 1 // Update custom day
                 })
                 .eq('id', id);
             if (error) throw error;

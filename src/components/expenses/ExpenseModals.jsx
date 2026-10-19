@@ -1,3 +1,4 @@
+// C:\Users\UserT\WebstormProjects\WebBasedPOS\src\components\expenses\ExpenseModals.jsx
 import React from 'react';
 import { Plus, AlertTriangle } from 'lucide-react';
 
@@ -70,26 +71,57 @@ export default function ExpenseModals({
                                     />
                                 </div>
                             </div>
+
                             <div className="space-y-3 pt-2">
+                                {/* WEEKLY AUTO-ADD WITH DAY SELECTOR */}
                                 <div className="flex items-center gap-3">
                                     <input
                                         type="checkbox"
                                         id="is_recurring"
                                         checked={catForm.is_recurring}
-                                        onChange={(e) => setCatForm(prev => ({ ...prev, is_recurring: e.target.checked, is_recurring_daily: e.target.checked ? false : prev.is_recurring_daily }))}
+                                        onChange={(e) => setCatForm(prev => ({
+                                            ...prev,
+                                            is_recurring: e.target.checked,
+                                            is_recurring_daily: e.target.checked ? false : prev.is_recurring_daily
+                                        }))}
                                         className="w-4 h-4 text-primary rounded border-gray-300 focus:ring-primary"
                                         disabled={isDemo}
                                     />
-                                    <label htmlFor="is_recurring" className="text-sm font-medium text-gray-800">
-                                        Auto-add every Monday
+                                    <label htmlFor="is_recurring" className="text-sm font-medium text-gray-800 flex items-center gap-2">
+                                        Auto-add every
+                                        <select
+                                            value={catForm.recurring_day ?? 1}
+                                            onChange={(e) => setCatForm(prev => ({
+                                                ...prev,
+                                                recurring_day: parseInt(e.target.value),
+                                                is_recurring: true,
+                                                is_recurring_daily: false
+                                            }))}
+                                            disabled={!catForm.is_recurring || isDemo}
+                                            className="text-sm border border-gray-300 rounded px-2 py-1 outline-none focus:border-primary disabled:opacity-50 disabled:bg-gray-50"
+                                        >
+                                            <option value={0}>Sunday</option>
+                                            <option value={1}>Monday</option>
+                                            <option value={2}>Tuesday</option>
+                                            <option value={3}>Wednesday</option>
+                                            <option value={4}>Thursday</option>
+                                            <option value={5}>Friday</option>
+                                            <option value={6}>Saturday</option>
+                                        </select>
                                     </label>
                                 </div>
+
+                                {/* DAILY AUTO-ADD */}
                                 <div className="flex items-center gap-3">
                                     <input
                                         type="checkbox"
                                         id="is_recurring_daily"
                                         checked={catForm.is_recurring_daily}
-                                        onChange={(e) => setCatForm(prev => ({ ...prev, is_recurring_daily: e.target.checked, is_recurring: e.target.checked ? false : prev.is_recurring }))}
+                                        onChange={(e) => setCatForm(prev => ({
+                                            ...prev,
+                                            is_recurring_daily: e.target.checked,
+                                            is_recurring: e.target.checked ? false : prev.is_recurring
+                                        }))}
                                         className="w-4 h-4 text-primary rounded border-gray-300 focus:ring-primary"
                                         disabled={isDemo}
                                     />
@@ -98,6 +130,7 @@ export default function ExpenseModals({
                                     </label>
                                 </div>
                             </div>
+
                             <div className="pt-2 flex gap-3">
                                 <button
                                     onClick={() => setShowCategoryModal(false)}
