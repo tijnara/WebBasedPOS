@@ -5,7 +5,7 @@ import { useProducts } from '../../hooks/useProducts';
 import { useCreateSale } from '../../hooks/useCreateSale';
 import { useCreateCustomer } from '../../hooks/useCustomerMutations';
 import { useProductByBarcode } from '../../hooks/useProductByBarcode';
-import { Button, Input, Dialog, DialogContent, DialogHeader, DialogTitle, DialogCloseButton } from '../ui';
+import { Button, Input } from '../ui';
 import { usePOSModals } from '../../hooks/usePOSModals';
 import { usePOSCheckout, getLocalDateString, getLocalTimeString } from '../../hooks/usePOSCheckout';
 import { DEBOUNCE_DELAY_MS, DEFAULT_ITEMS_PER_PAGE, CUSTOMER_SEARCH_LIMIT } from '../../config/constants';
@@ -48,7 +48,7 @@ export default function POSPage() {
 
     const triggerStockWarning = (key) => {
         setStockWarningKey(key);
-        setTimeout(() => setStockWarningKey(null), 3000); // Clear after 3 seconds
+        setTimeout(() => setStockWarningKey(null), 3000);
     };
 
     useEffect(() => {
@@ -195,7 +195,7 @@ export default function POSPage() {
                     mapping[p.id] = {
                         ...p,
                         price: Number(p.price) || 0,
-                        stock: p.stock_quantity || 0,
+                        stock: p.stock_quantity ?? p.stock ?? 0,
                     };
                 });
                 setHotkeyProducts(mapping);
@@ -203,6 +203,30 @@ export default function POSPage() {
         };
         fetchHotkeys();
     }, []);
+
+    const isServiceProduct = (p) => {
+        if (!p) return false;
+        const cat = (p.category || '').toLowerCase();
+        const name = (p.name || '').toLowerCase();
+        const stock = p.stock ?? p.stock_quantity;
+        return cat.includes('refill') || cat.includes('service') || name.includes('refill') || (stock !== null && stock > 9999);
+    };
+
+    const handleAdd = (product) => {
+        if (!product) return;
+        const itemKey = `${product.id}__${Number(product.price).toFixed(2)}`;
+        const currentQtyInCart = currentSale[itemKey]?.quantity || 0;
+        const stock = product.stock ?? product.stock_quantity;
+        const isService = isServiceProduct(product);
+
+        if (!isService && stock !== null && stock !== undefined && currentQtyInCart + 1 > stock) {
+            addToast({ title: 'Stock Limit', description: `Cannot add more than the ${stock} available.`, variant: 'warning' });
+            triggerStockWarning(itemKey);
+            return;
+        }
+
+        addItemToSale({ ...product, stock }, 1);
+    };
 
     useEffect(() => {
         const handleKeyDown = (event) => {
@@ -291,62 +315,74 @@ export default function POSPage() {
         searchCustomers();
     }, [debouncedCustomerSearchTerm, isCustomerModalOpen, isPaymentModalOpen]);
 
-    const handleAdd = (product) => {
-        if (!product) return;
-        const itemKey = `${product.id}__${Number(product.price).toFixed(2)}`;
-        const currentQtyInCart = currentSale[itemKey]?.quantity || 0;
-
-        if (currentQtyInCart + 1 > product.stock) {
-            addToast({ title: 'Stock Limit', description: `Cannot add more than the ${product.stock} available.`, variant: 'warning' });
-            triggerStockWarning(itemKey);
-            return;
-        }
-
-        addItemToSale({ ...product }, 1);
-    };
-
     const handleIncreaseQuantity = (key) => {
         const item = currentSale[key];
         if (item) {
             const product = products.find(p => p.id === item.productId);
-            if (product && item.quantity + 1 > product.stock) {
-                addToast({ title: 'Stock Limit', description: `Cannot add more than the ${product.stock} available.`, variant: 'warning' });
+            const stock = product ? (product.stock ?? product.stock_quantity) : null;
+            const isService = isServiceProduct(product);
+
+            if (product && !isService && stock !== null && item.quantity + 1 > stock) {
+                addToast({ title: 'Stock Limit', description: `Cannot add more than the ${stock} available.`, variant: 'warning' });
                 triggerStockWarning(key);
                 return;
             }
-            addItemToSale({ ...item, id: item.productId }, 1);
+            addItemToSale({ ...item, id: item.productId, stock }, 1);
         }
     };
-    const handleDecreaseQuantity = (key) => { const item = currentSale[key]; if (item) addItemToSale({ ...item, id: item.productId }, -1); };
-    const handleRemoveItem = (key) => { useStore.getState().removeItemFromSale(key); };
+
+    const handleDecreaseQuantity = (key) => {
+        const item = currentSale[key];
+        if (item) addItemToSale({ ...item, id: item.productId }, -1);
+    };
+
+    const handleRemoveItem = (key) => {
+        useStore.getState().removeItemFromSale(key);
+    };
 
     const handleSetQuantity = (key, qty) => {
         const item = currentSale[key];
         if (!item) return;
 
         const product = products.find(p => p.id === item.productId);
+        const stock = product ? (product.stock ?? product.stock_quantity) : null;
+        const isService = isServiceProduct(product);
         let finalQty = qty;
 
-        if (product && product.stock !== null && product.stock !== undefined) {
-            if (qty > product.stock) {
-                addToast({ title: 'Stock Limit', description: `Cannot add more than the ${product.stock} available.`, variant: 'warning' });
+        if (product && !isService && stock !== null && stock !== undefined) {
+            if (qty > stock) {
+                addToast({ title: 'Stock Limit', description: `Cannot add more than the ${stock} available.`, variant: 'warning' });
                 triggerStockWarning(key);
-                finalQty = product.stock;
+                finalQty = stock;
             }
         }
 
         updateCartItem(key, { quantity: finalQty });
     };
 
-    const handleSelectCustomerFromModal = (c) => { handleSetSelectedCustomer(c); setCustomerSearchTerm(''); closeCustomerModal(); };
-    const handleSelectCustomerInPayment = (c) => { handleSetSelectedCustomer(c); setCustomerSearchTerm(''); setDebouncedCustomerSearchTerm(''); setCustomerSearchResults([]); setIsSearchingCustomers(false); };
+    const handleSelectCustomerFromModal = (c) => {
+        handleSetSelectedCustomer(c);
+        setCustomerSearchTerm('');
+        closeCustomerModal();
+    };
+
+    const handleSelectCustomerInPayment = (c) => {
+        handleSetSelectedCustomer(c);
+        setCustomerSearchTerm('');
+        setDebouncedCustomerSearchTerm('');
+        setCustomerSearchResults([]);
+        setIsSearchingCustomers(false);
+    };
+
     const handleAddCustomer = async (name) => {
         if (!name?.trim()) return;
         try {
             const added = await createCustomerMutation.mutateAsync({ name: name.trim() });
             handleSelectCustomerFromModal(added);
             if (isPaymentModalOpen) handleSelectCustomerInPayment(added);
-        } catch (e) { addToast({ title: 'Error', description: e.message, variant: 'destructive' }); }
+        } catch (e) {
+            addToast({ title: 'Error', description: e.message, variant: 'destructive' });
+        }
     };
 
     const handleCameraButtonClick = async () => {
@@ -365,27 +401,55 @@ export default function POSPage() {
     return (
         <div className="pos-page responsive-page">
 
-            {/* Quick Keys Legend */}
-            <div className="flex flex-wrap gap-x-6 gap-y-2 mb-4 text-[10px] sm:text-xs font-medium text-gray-500 bg-gray-50/50 p-2 rounded-lg border border-gray-100 items-center">
-                <span className="text-gray-400 uppercase tracking-wider font-bold mr-1">Quick Keys:</span>
-
-                <span className="flex items-center gap-1.5">
-                    <kbd className="min-w-[1.5rem] h-5 flex items-center justify-center bg-white border border-gray-300 rounded shadow-sm text-gray-700 font-bold">1</kbd>
-                    <span className="truncate">{hotkeyProducts[3]?.name || 'Loading...'}</span>
+            {/* Quick Keys / Fast Action Touch Row */}
+            <div className="flex items-center gap-2 mb-4 overflow-x-auto no-scrollbar py-1">
+                <span className="hidden sm:inline-flex items-center text-gray-400 uppercase tracking-wider font-bold text-[11px] mr-1">
+                    Quick Keys:
                 </span>
 
-                <span className="flex items-center gap-1.5">
-                    <kbd className="min-w-[1.5rem] h-5 flex items-center justify-center bg-white border border-gray-300 rounded shadow-sm text-gray-700 font-bold">2</kbd>
-                    <span className="truncate">{hotkeyProducts[2]?.name || 'Loading...'}</span>
-                </span>
+                {hotkeyProducts[3] && (
+                    <button
+                        type="button"
+                        onClick={() => {
+                            handleAdd(hotkeyProducts[3]);
+                            addToast({ title: 'Quick Add', description: `${hotkeyProducts[3].name} added.`, variant: 'success' });
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-emerald-50 border border-gray-200 hover:border-emerald-500 rounded-lg shadow-sm text-xs font-semibold text-gray-700 transition-all flex-shrink-0 active:scale-95"
+                    >
+                        <kbd className="hidden sm:inline-flex min-w-[1.25rem] h-4 items-center justify-center bg-gray-100 border border-gray-300 rounded text-[10px] text-gray-600 font-bold">1</kbd>
+                        <span className="text-emerald-700 font-bold">⚡ {hotkeyProducts[3].name}</span>
+                    </button>
+                )}
 
-                <span className="flex items-center gap-1.5">
-                    <kbd className="min-w-[1.5rem] h-5 flex items-center justify-center bg-white border border-gray-300 rounded shadow-sm text-gray-700 font-bold">3</kbd>
-                    <span className="truncate">{hotkeyProducts[30]?.name || 'Loading...'}</span>
-                </span>
+                {hotkeyProducts[2] && (
+                    <button
+                        type="button"
+                        onClick={() => {
+                            handleAdd(hotkeyProducts[2]);
+                            addToast({ title: 'Quick Add', description: `${hotkeyProducts[2].name} added.`, variant: 'success' });
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-emerald-50 border border-gray-200 hover:border-emerald-500 rounded-lg shadow-sm text-xs font-semibold text-gray-700 transition-all flex-shrink-0 active:scale-95"
+                    >
+                        <kbd className="hidden sm:inline-flex min-w-[1.25rem] h-4 items-center justify-center bg-gray-100 border border-gray-300 rounded text-[10px] text-gray-600 font-bold">2</kbd>
+                        <span className="text-emerald-700 font-bold">⚡ {hotkeyProducts[2].name}</span>
+                    </button>
+                )}
 
-                <div className="hidden sm:flex items-center gap-6 ml-auto">
-                    <div className="h-4 w-px bg-gray-200"></div>
+                {hotkeyProducts[30] && (
+                    <button
+                        type="button"
+                        onClick={() => {
+                            handleAdd(hotkeyProducts[30]);
+                            addToast({ title: 'Quick Add', description: `${hotkeyProducts[30].name} added.`, variant: 'success' });
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-emerald-50 border border-gray-200 hover:border-emerald-500 rounded-lg shadow-sm text-xs font-semibold text-gray-700 transition-all flex-shrink-0 active:scale-95"
+                    >
+                        <kbd className="hidden sm:inline-flex min-w-[1.25rem] h-4 items-center justify-center bg-gray-100 border border-gray-300 rounded text-[10px] text-gray-600 font-bold">3</kbd>
+                        <span className="text-emerald-700 font-bold">⚡ {hotkeyProducts[30].name}</span>
+                    </button>
+                )}
+
+                <div className="hidden sm:flex items-center gap-5 ml-auto text-xs text-gray-500">
                     <span className="flex items-center gap-1.5">
                         <kbd className="px-1.5 h-5 flex items-center justify-center bg-white border border-gray-300 rounded shadow-sm text-gray-700 font-bold">F4</kbd> Payment
                     </span>
@@ -395,7 +459,7 @@ export default function POSPage() {
                 </div>
             </div>
 
-            {/* Category Bar - Swipeable horizontal pill list on mobile */}
+            {/* Category Bar */}
             <div className="category-bar-container mb-4 overflow-x-auto no-scrollbar -mx-2 px-2 sm:mx-0 sm:px-0">
                 <div className="flex items-center gap-2 pb-2 flex-nowrap w-max min-w-full">
                     {availableCategories.map((cat) => (
@@ -452,6 +516,7 @@ export default function POSPage() {
                 </div>
             </div>
 
+            {/* Product Grid and Cart Panel */}
             <div className="flex flex-col md:flex-row gap-4 w-full relative items-start">
                 <POSProductGrid
                     isLoading={isLoadingProducts}
@@ -481,7 +546,7 @@ export default function POSPage() {
                 </div>
             </div>
 
-            {/* --- MODALS --- */}
+            {/* Modals */}
             <CustomerSelectionModal
                 isOpen={isCustomerModalOpen}
                 setIsOpen={closeCustomerModal}
@@ -539,9 +604,11 @@ export default function POSPage() {
                     item={currentSale[editItemKey]}
                     onSave={(updatedItem) => {
                         const product = products.find(p => p.id === updatedItem.productId);
-                        if (product && updatedItem.quantity > product.stock) {
-                            addToast({ title: 'Stock Limit', description: `Limited to ${product.stock} items.`, variant: 'warning' });
-                            updatedItem.quantity = product.stock;
+                        const stock = product ? (product.stock ?? product.stock_quantity) : null;
+                        const isService = isServiceProduct(product);
+                        if (product && !isService && stock !== null && updatedItem.quantity > stock) {
+                            addToast({ title: 'Stock Limit', description: `Limited to ${stock} items.`, variant: 'warning' });
+                            updatedItem.quantity = stock;
                         }
                         updateCartItem(editItemKey, updatedItem);
                         closeEditItem();
@@ -550,7 +617,6 @@ export default function POSPage() {
                 />
             )}
 
-            {/* --- SCANNER MODAL --- */}
             {isScannerOpen && (
                 <BarcodeScannerModal
                     isOpen={isScannerOpen}
@@ -559,7 +625,6 @@ export default function POSPage() {
                 />
             )}
 
-            {/* --- MOBILE CART BAR --- */}
             {!(isCartDrawerOpen || isPaymentModalOpen) && (
                 <MobileCartBar
                     itemCount={Object.keys(currentSale).length}
