@@ -188,7 +188,7 @@ export default function POSPage() {
                 .from('products')
                 .select('*')
                 .in('id', [2, 3, 30]);
-            
+
             if (!error && data) {
                 const mapping = {};
                 data.forEach(p => {
@@ -206,33 +206,29 @@ export default function POSPage() {
 
     useEffect(() => {
         const handleKeyDown = (event) => {
-            // Check if user is typing in an input or textarea
             const isTyping = ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName) || document.activeElement.isContentEditable;
 
-            // F1: Focus Search
             if (event.key === 'F1') {
                 event.preventDefault();
                 productSearchInputRef.current?.focus();
             }
-            
-            // Quick Add Hotkeys (1, 2, 3) - Only if not typing
+
             if (!isTyping && ['1', '2', '3'].includes(event.key)) {
                 const idMap = { '1': 3, '2': 2, '3': 30 };
                 const productId = idMap[event.key];
                 const product = hotkeyProducts[productId];
-                
+
                 if (product) {
                     event.preventDefault();
                     handleAdd(product);
-                    addToast({ 
-                        title: 'Quick Add', 
-                        description: `${product.name} added to cart.`, 
-                        variant: 'success' 
+                    addToast({
+                        title: 'Quick Add',
+                        description: `${product.name} added to cart.`,
+                        variant: 'success'
                     });
                 }
             }
 
-            // F4: Open Payment Modal
             if (event.key === 'F4') {
                 event.preventDefault();
                 if (!isPaymentModalOpen) {
@@ -240,13 +236,11 @@ export default function POSPage() {
                 }
             }
 
-            // Shift + Delete: Clear Sale
             if (event.shiftKey && event.key === 'Delete') {
                 event.preventDefault();
                 clearSale();
             }
 
-            // Escape: Close modals or clear search
             if (event.key === 'Escape') {
                 if (isPaymentModalOpen) {
                     closePaymentModal();
@@ -268,9 +262,9 @@ export default function POSPage() {
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [
-        isPaymentModalOpen, isCustomerModalOpen, isCustomSaleModalOpen, 
-        isScannerOpen, editItemKey, isCartDrawerOpen, 
-        openPaymentModal, clearSale, closePaymentModal, closeCustomerModal, 
+        isPaymentModalOpen, isCustomerModalOpen, isCustomSaleModalOpen,
+        isScannerOpen, editItemKey, isCartDrawerOpen,
+        openPaymentModal, clearSale, closePaymentModal, closeCustomerModal,
         closeCustomSale, closeScanner, closeEditItem, closeCartDrawer, setSearchTerm,
         hotkeyProducts
     ]);
@@ -356,7 +350,6 @@ export default function POSPage() {
     };
 
     const handleCameraButtonClick = async () => {
-        // MOBILE FIX: Mobile browsers disable mediaDevices entirely over HTTP.
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
             addToast({
                 title: 'Camera Blocked by Browser',
@@ -371,31 +364,26 @@ export default function POSPage() {
 
     return (
         <div className="pos-page responsive-page">
-            
-            {/* Mobile Title Removed */}
 
             {/* Quick Keys Legend */}
             <div className="flex flex-wrap gap-x-6 gap-y-2 mb-4 text-[10px] sm:text-xs font-medium text-gray-500 bg-gray-50/50 p-2 rounded-lg border border-gray-100 items-center">
                 <span className="text-gray-400 uppercase tracking-wider font-bold mr-1">Quick Keys:</span>
-                
-                {/* Dynamic Hotkey 1 (Product ID 3) */}
+
                 <span className="flex items-center gap-1.5">
-                    <kbd className="min-w-[1.5rem] h-5 flex items-center justify-center bg-white border border-gray-300 rounded shadow-sm text-gray-700 font-bold">1</kbd> 
+                    <kbd className="min-w-[1.5rem] h-5 flex items-center justify-center bg-white border border-gray-300 rounded shadow-sm text-gray-700 font-bold">1</kbd>
                     <span className="truncate">{hotkeyProducts[3]?.name || 'Loading...'}</span>
                 </span>
 
-                {/* Dynamic Hotkey 2 (Product ID 2) */}
                 <span className="flex items-center gap-1.5">
-                    <kbd className="min-w-[1.5rem] h-5 flex items-center justify-center bg-white border border-gray-300 rounded shadow-sm text-gray-700 font-bold">2</kbd> 
+                    <kbd className="min-w-[1.5rem] h-5 flex items-center justify-center bg-white border border-gray-300 rounded shadow-sm text-gray-700 font-bold">2</kbd>
                     <span className="truncate">{hotkeyProducts[2]?.name || 'Loading...'}</span>
                 </span>
 
-                {/* Dynamic Hotkey 3 (Product ID 30) */}
                 <span className="flex items-center gap-1.5">
-                    <kbd className="min-w-[1.5rem] h-5 flex items-center justify-center bg-white border border-gray-300 rounded shadow-sm text-gray-700 font-bold">3</kbd> 
+                    <kbd className="min-w-[1.5rem] h-5 flex items-center justify-center bg-white border border-gray-300 rounded shadow-sm text-gray-700 font-bold">3</kbd>
                     <span className="truncate">{hotkeyProducts[30]?.name || 'Loading...'}</span>
                 </span>
-                
+
                 <div className="hidden sm:flex items-center gap-6 ml-auto">
                     <div className="h-4 w-px bg-gray-200"></div>
                     <span className="flex items-center gap-1.5">
@@ -407,13 +395,17 @@ export default function POSPage() {
                 </div>
             </div>
 
-            <div className="category-bar-container mb-6 overflow-x-auto no-scrollbar">
-                <div className="flex gap-2 pb-2">
+            {/* Category Bar - Swipeable horizontal pill list on mobile */}
+            <div className="category-bar-container mb-4 overflow-x-auto no-scrollbar -mx-2 px-2 sm:mx-0 sm:px-0">
+                <div className="flex items-center gap-2 pb-2 flex-nowrap w-max min-w-full">
                     {availableCategories.map((cat) => (
                         <button
                             key={cat}
                             onClick={() => { setCategoryFilter(cat); setCurrentPage(1); }}
-                            className={`px-4 py-2.5 rounded-xl font-semibold transition-all border-2 ${categoryFilter === cat ? 'bg-primary-soft border-primary text-primary shadow-md' : 'bg-white border-gray-200 text-gray-600 hover:bg-[var(--violet)] hover:text-white hover:border-[var(--violet)]'
+                            className={`flex-shrink-0 whitespace-nowrap px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all border-2 select-none ${
+                                categoryFilter === cat
+                                    ? 'bg-primary-soft border-primary text-primary shadow-sm'
+                                    : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300'
                             }`}
                         >
                             {cat}
@@ -424,7 +416,6 @@ export default function POSPage() {
 
             {/* Action Bar */}
             <div className="flex flex-col md:flex-row gap-4 mb-6">
-                {/* Search & Camera Group (Aligned with Product Grid) */}
                 <div className="w-full md:w-2/3 flex items-center gap-2">
                     <div className="relative flex w-full sm:w-auto gap-2">
                         <Input
@@ -449,11 +440,10 @@ export default function POSPage() {
                     </div>
                 </div>
 
-                {/* Custom Button (Aligned with Sidebar) */}
                 <div className="w-full md:w-1/3 xl:w-1/3 flex-shrink-0">
-                    <Button 
-                        variant="primary" 
-                        onClick={openCustomSale} 
+                    <Button
+                        variant="primary"
+                        onClick={openCustomSale}
                         className="w-full rounded-lg shadow-md font-semibold whitespace-nowrap h-11"
                         disabled={isDemo}
                     >
