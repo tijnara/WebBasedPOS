@@ -1,8 +1,9 @@
+// src/components/pages/DashboardPage.jsx
 import React, { useState, useMemo } from 'react';
 import Head from 'next/head';
 import dynamic from 'next/dynamic';
 import { Card, CardHeader, CardContent, Select } from '../ui';
-import SummaryCard from '../ui/SummaryCard'; // Import the global SummaryCard
+import SummaryCard from '../ui/SummaryCard';
 import {
     Chart as ChartJS,
     CategoryScale,
@@ -22,17 +23,16 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabaseClient';
 import { useStore } from '../../store/useStore';
 
-// Import your custom hook to fetch real database data
+// Custom hooks
 import { useSalesSummary } from '../../hooks/useSalesSummary';
 import { useTopProductsSummary } from '../../hooks/useTopProductsSummary';
 import { useDailySales } from '../../hooks/useDailySales';
 import { useWeeklyGrowth } from '../../hooks/useWeeklyGrowth';
 import { useMonthlyGrowth } from '../../hooks/useMonthlyGrowth';
 
-// Import date-fns for date range management
-import { startOfDay, endOfDay, formatISO, format } from 'date-fns';
+import { format } from 'date-fns';
 
-// Import floating buttons
+// Floating action buttons
 import FloatingMessages from '../FloatingMessages';
 import FloatingNotes from '../FloatingNotes';
 
@@ -44,10 +44,6 @@ const ChartLoading = () => (
 );
 
 // Dynamic imports for Chart components
-const SalesVsExpensesChart = dynamic(() => import('../charts/SalesVsExpensesChart'), {
-    ssr: false,
-    loading: () => <ChartLoading />
-});
 const Line = dynamic(() => import('react-chartjs-2').then((mod) => mod.Line), {
     ssr: false,
     loading: () => <ChartLoading />
@@ -78,16 +74,6 @@ ChartJS.register(
 export default function DashboardPage() {
     const user = useStore(state => state.user);
 
-    const [dateFilter, setDateFilter] = useState('Trailing 12 Months');
-    const [territory, setTerritory] = useState('All');
-
-    // Apply strict cutoff date: DO NOT fetch/display anything before April 20, 2026
-    const START_CUTOFF_DATE = new Date('2026-04-20T00:00:00');
-
-    // Default date range for Sales vs Expenses: from Cutoff Date to Now
-    const [dateFrom, setDateFrom] = useState(formatISO(startOfDay(START_CUTOFF_DATE)));
-    const [dateTo, setDateTo] = useState(formatISO(endOfDay(new Date())));
-
     // Toggle for Monthly vs Weekly chart view
     const [salesView, setSalesView] = useState('Monthly');
 
@@ -97,6 +83,7 @@ export default function DashboardPage() {
     const firstTransactionDate = summaryData?.firstTransactionDate
         ? new Date(summaryData.firstTransactionDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
         : null;
+
     const { data: topProducts, isLoading: isTopProductsLoading, isError: isTopProductsError } = useTopProductsSummary(5);
 
     const { data: dailySalesData, isLoading: isTodayLoading } = useDailySales();
@@ -108,7 +95,6 @@ export default function DashboardPage() {
 
     const { data: weeklyGrowthData, isLoading: isWeeklyGrowthLoading } = useWeeklyGrowth();
     const { data: monthlyGrowthData, isLoading: isMonthlyGrowthLoading } = useMonthlyGrowth();
-
 
     // --- TOP 10 ALL-TIME CUSTOMERS ---
     const { data: topCustomers, isLoading: isTopCustomersLoading } = useQuery({
@@ -162,7 +148,7 @@ export default function DashboardPage() {
             const sortedMonths = Object.keys(summaryData.monthlyRevenue).sort();
             labels = sortedMonths.map(month => {
                 const [year, m] = month.split('-');
-                const date = new Date(year, m - 1);
+                const date = new Date(year, Number(m) - 1);
                 return date.toLocaleString('default', { month: 'short', year: 'numeric' });
             });
             data = sortedMonths.map(month => summaryData.monthlyRevenue[month]);
@@ -171,7 +157,7 @@ export default function DashboardPage() {
             const sortedWeeks = Object.keys(summaryData.weeklyRevenue).sort();
             labels = sortedWeeks.map(weekStart => {
                 const [year, m, d] = weekStart.split('-');
-                const date = new Date(year, m - 1, d);
+                const date = new Date(year, Number(m) - 1, d);
                 return `Week of ${date.toLocaleString('default', { month: 'short', day: 'numeric' })}`;
             });
             data = sortedWeeks.map(week => summaryData.weeklyRevenue[week]);
@@ -249,25 +235,28 @@ export default function DashboardPage() {
         }
     };
 
-    // Bar Chart Data: Top Products by Revenue from Database
-    const barChartData = useMemo(() => {
-        if (!topProducts || topProducts.length === 0) {
+    // Bar Chart Data: Top 10 All-Time Customers
+    const topCustomersBarChartData = useMemo(() => {
+        if (!topCustomers || topCustomers.length === 0) {
             return { labels: [], datasets: [] };
         }
-        const sorted = [...topProducts].sort((a, b) => a.revenue - b.revenue);
+
+        const labels = topCustomers.map((c, index) => `${index + 1}. ${c.name}`);
+        const data = topCustomers.map(c => c.revenue);
+
         return {
-            labels: sorted.map(p => p.name),
+            labels: labels,
             datasets: [{
-                label: 'Revenue',
-                data: sorted.map(p => p.revenue),
-                backgroundColor: '#38bdf8',
+                label: 'Total Revenue',
+                data: data,
+                backgroundColor: '#8DB600',
                 borderRadius: 4,
                 barPercentage: 0.6
             }]
         };
-    }, [topProducts]);
+    }, [topCustomers]);
 
-    const barChartOptions = {
+    const topCustomersBarChartOptions = {
         indexAxis: 'y',
         responsive: true,
         maintainAspectRatio: false,
@@ -351,61 +340,9 @@ export default function DashboardPage() {
         }
     };
 
-    // Bar Chart Data: Top 10 All-Time Customers
-    const topCustomersBarChartData = useMemo(() => {
-        if (!topCustomers || topCustomers.length === 0) {
-            return { labels: [], datasets: [] };
-        }
-
-        const labels = topCustomers.map((c, index) => `${index + 1}. ${c.name}`);
-        const data = topCustomers.map(c => c.revenue);
-
-        return {
-            labels: labels,
-            datasets: [{
-                label: 'Total Revenue',
-                data: data,
-                backgroundColor: '#8DB600', // Apple Green
-                borderRadius: 4,
-                barPercentage: 0.6
-            }]
-        };
-    }, [topCustomers]);
-
-    const topCustomersBarChartOptions = {
-        indexAxis: 'y',
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: { display: false },
-            tooltip: {
-                callbacks: {
-                    label: (context) => `₱${context.parsed.x.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                }
-            }
-        },
-        scales: {
-            x: {
-                grid: { display: false },
-                border: { display: false },
-                ticks: {
-                    callback: (value) => `₱${(value / 1000).toFixed(0)}K`,
-                    color: '#94a3b8'
-                }
-            },
-            y: {
-                grid: { display: false },
-                border: { display: false },
-                ticks: { color: '#64748b', font: { weight: '500' } }
-            }
-        }
-    };
-
     return (
         <div className="flex-1 min-h-screen bg-transparent font-sans responsive-page pb-12 transition-colors duration-300">
-            <Head>
-
-            </Head>
+            <Head />
             <main className="max-w-7xl mx-auto px-4 sm:px-6 mt-6">
                 <div className="flex flex-col gap-6">
 
@@ -497,15 +434,9 @@ export default function DashboardPage() {
                         </div>
                     </div>
 
-
-                    {/* --- SALES VS EXPENSES CHART --- */}
-                    <div className="w-full">
-                        <SalesVsExpensesChart dateFrom={dateFrom} dateTo={dateTo} />
-                    </div>
-
                     {/* --- BOTTOM ROW (2 Columns) --- */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-6">
-                        {/* Bottom Middle: Pie Chart */}
+                        {/* Bottom Left: Pie Chart */}
                         <Card className="shadow-sm h-[400px] flex flex-col bg-white dark:bg-slate-900 border-none">
                             <CardHeader className="bg-transparent pb-0 shrink-0">
                                 <h3 className="font-semibold text-slate-800 dark:text-white text-lg">New Sales by Product</h3>
