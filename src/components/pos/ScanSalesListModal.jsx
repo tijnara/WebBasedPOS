@@ -345,7 +345,12 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
 
                             <div className="border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-100 bg-white">
                                 {parsedItems.map((item, idx) => (
-                                    <div key={idx} className="p-3 flex items-center gap-2 hover:bg-gray-50/70 transition-colors">
+                                    <div key={idx} className="p-3 flex items-center gap-2.5 hover:bg-gray-50/70 transition-colors">
+                                        {/* Row/Transaction Number Badge */}
+                                        <div className="w-6 h-6 rounded-lg bg-gray-100 text-gray-500 text-[11px] font-bold flex items-center justify-center shrink-0 border border-gray-200">
+                                            {idx + 1}
+                                        </div>
+
                                         {/* Customer Name */}
                                         <div className="flex-1 min-w-[110px]">
                                             <label className="text-[9px] uppercase font-bold text-gray-400 block mb-0.5">Customer</label>
