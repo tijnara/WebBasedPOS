@@ -6,8 +6,8 @@ import { useStore } from '../../store/useStore';
 import { format } from 'date-fns';
 import currency from 'currency.js';
 
-// High-clarity compression preserving lower text boundaries
-const compressImage = (file, maxDimension = 1800, quality = 0.88) => {
+// Client-side image compression: keeps pen strokes sharp while uploading fast
+const compressImage = (file, maxDimension = 1200, quality = 0.8) => {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
@@ -31,6 +31,8 @@ const compressImage = (file, maxDimension = 1800, quality = 0.88) => {
                 canvas.height = height;
 
                 const ctx = canvas.getContext('2d');
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
                 ctx.drawImage(img, 0, 0, width, height);
 
                 const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
@@ -48,6 +50,7 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
     const [parsedItems, setParsedItems] = useState([]);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
 
     const cameraInputRef = useRef(null);
     const uploadInputRef = useRef(null);
@@ -58,11 +61,13 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
         const file = e.target.files?.[0];
         if (!file) return;
 
+        e.target.value = '';
+
         try {
+            setErrorMessage('');
             setIsAnalyzing(true);
             setParsedItems([]);
 
-            // Compress image on client
             const compressedBase64 = await compressImage(file);
             setImagePreview(compressedBase64);
 
@@ -70,19 +75,16 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
         } catch (err) {
             console.error(err);
             setIsAnalyzing(false);
+            setErrorMessage(err.message || 'Failed to read image.');
             addToast({ title: 'Image Error', description: 'Failed to process image.', variant: 'destructive' });
         }
     };
 
     const processImage = async (base64String) => {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 35000); // 35s timeout guard
-
         try {
             const res = await fetch('/api/scan-sales-list', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                signal: controller.signal,
                 body: JSON.stringify({
                     imageBase64: base64String,
                     mimeType: 'image/jpeg',
@@ -94,18 +96,19 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
                 })
             });
 
-            clearTimeout(timeoutId);
             const result = await res.json();
             if (!res.ok) throw new Error(result.error || 'Failed to extract sales');
 
             setParsedItems(result.data || []);
             if (!result.data || result.data.length === 0) {
-                addToast({ title: 'No entries detected', description: 'Could not detect clear sales rows in this photo.', variant: 'warning' });
+                const msg = 'Could not detect clear sales rows in this photo.';
+                setErrorMessage(msg);
+                addToast({ title: 'No entries detected', description: msg, variant: 'warning' });
             }
         } catch (err) {
-            clearTimeout(timeoutId);
             console.error(err);
-            const msg = err.name === 'AbortError' ? 'Request timed out. Please try again.' : err.message;
+            const msg = err.message || 'Failed to scan image.';
+            setErrorMessage(msg);
             addToast({ title: 'Scan Error', description: msg, variant: 'destructive' });
         } finally {
             setIsAnalyzing(false);
@@ -152,6 +155,7 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
         setIsSaving(true);
 
         try {
+            // Explicit Asia/Manila (+08:00) ISO timestamp
             const now = new Date();
             const manilaIso = format(now, "yyyy-MM-dd'T'HH:mm:ss'+08:00'");
 
@@ -235,6 +239,14 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
                 </div>
 
                 <div className="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
+                    {/* Inline Error Banner */}
+                    {errorMessage && (
+                        <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-center gap-2">
+                            <span>⚠️</span>
+                            <span className="font-medium">{errorMessage}</span>
+                        </div>
+                    )}
+
                     {/* Capture / Upload Buttons */}
                     {!imagePreview && (
                         <div className="border-2 border-dashed border-gray-200 hover:border-emerald-500 rounded-2xl p-6 sm:p-8 text-center transition-colors bg-gray-50/50">
@@ -305,6 +317,7 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
                                 onClick={() => {
                                     setImagePreview(null);
                                     setParsedItems([]);
+                                    setErrorMessage('');
                                 }}
                                 className="text-xs text-gray-500 hover:text-red-600 font-semibold px-2 py-1"
                             >
@@ -317,8 +330,8 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
                     {isAnalyzing && (
                         <div className="py-12 flex flex-col items-center justify-center text-center space-y-3">
                             <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
-                            <p className="text-sm font-semibold text-gray-700">Gemini is parsing the log...</p>
-                            <p className="text-xs text-gray-400">Detecting all customer rows down to the page end</p>
+                            <p className="text-sm font-semibold text-gray-700">AI is parsing the delivery log...</p>
+                            <p className="text-xs text-gray-400">Transcribing all rows down to the page end</p>
                         </div>
                     )}
 

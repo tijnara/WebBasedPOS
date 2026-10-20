@@ -2,6 +2,7 @@
 import { GoogleGenAI } from '@google/genai';
 
 export const config = {
+    maxDuration: 60,
     api: {
         bodyParser: {
             sizeLimit: '10mb',
@@ -9,51 +10,69 @@ export const config = {
     },
 };
 
-// Resilient JSON parser that rescues completed rows even if output was truncated
-function parseSalesJson(rawText) {
+// Universal parser: parses pipe-separated lines, markdown tables, or JSON
+function parseOcrOutput(rawText) {
     let clean = (rawText || '').trim();
-    clean = clean.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
+    clean = clean.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
 
-    // 1. Direct standard parse
+    // 1. Try JSON if wrapped in an array or object
     try {
         const parsed = JSON.parse(clean);
-        if (Array.isArray(parsed)) return parsed;
-        if (parsed && typeof parsed === 'object') {
-            for (const key of ['sales', 'items', 'data', 'orders']) {
-                if (Array.isArray(parsed[key])) return parsed[key];
-            }
-            return [parsed];
+        const arr = Array.isArray(parsed) ? parsed : (parsed.sales || parsed.items || parsed.rows || parsed.data || []);
+        if (arr.length > 0) {
+            return arr.map(item => ({
+                name: (item.name || item.customer_name || 'Walk-in').trim(),
+                qty: Math.max(1, parseInt(item.qty || item.quantity || 1, 10)),
+                total: parseFloat(item.total || item.total_amount || 0),
+                pd: item.pd !== false
+            }));
         }
     } catch {
-        // Fall through to regex extraction if JSON is cut off
+        // Fall back to line-by-line parsing
     }
 
-    // 2. Extract full array block
-    const arrayMatch = clean.match(/\[\s*\{[\s\S]*\}\s*\]/);
-    if (arrayMatch) {
-        try {
-            return JSON.parse(arrayMatch[0]);
-        } catch {
-            // Fall through to individual object matching
+    // 2. Line-by-line parser (handles "Name | Qty | Total | pd" and Markdown tables)
+    const lines = clean.split('\n').map(l => l.trim()).filter(Boolean);
+    const results = [];
+
+    for (const line of lines) {
+        if (/^[\|\s\-:]+$/.test(line)) continue;
+
+        let parts = [];
+        if (line.includes('|')) {
+            const stripped = line.replace(/^\|/, '').replace(/\|$/, '');
+            parts = stripped.split('|').map(p => p.trim());
+        } else if (line.includes('\t')) {
+            parts = line.split('\t').map(p => p.trim());
+        } else if (line.includes(',')) {
+            parts = line.split(',').map(p => p.trim());
+        }
+
+        if (parts.length >= 3) {
+            const rawName = parts[0];
+            if (/^(customer|name|item|qty|total|price)$/i.test(rawName)) continue;
+
+            const qMatch = parts[1].match(/\d+/);
+            const tMatch = parts[2].match(/[\d\.]+/);
+
+            if (qMatch && tMatch) {
+                const qty = parseInt(qMatch[0], 10);
+                const total = parseFloat(tMatch[0]);
+                const isPaid = parts.length < 4 || !/utang|credit|unpaid/i.test(parts[3]);
+
+                results.push({
+                    name: rawName || 'Walk-in',
+                    qty: qty || 1,
+                    total: total || 0,
+                    pd: isPaid
+                });
+            }
         }
     }
 
-    // 3. Regex match all completed individual { customer_name: ... } objects
-    const objects = [];
-    const objectRegex = /\{[^{}]*?"customer_name"[\s\S]*?\}/g;
-    let match;
-    while ((match = objectRegex.exec(clean)) !== null) {
-        try {
-            const item = JSON.parse(match[0]);
-            objects.push(item);
-        } catch {
-            // Ignore incomplete fragment
-        }
-    }
+    if (results.length > 0) return results;
 
-    if (objects.length > 0) return objects;
-
-    throw new Error('Could not parse any valid sales rows from AI response.');
+    throw new Error('Could not detect readable sales rows. Please ensure the paper is well-lit.');
 }
 
 export default async function handler(req, res) {
@@ -63,7 +82,7 @@ export default async function handler(req, res) {
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-        return res.status(500).json({ error: 'GEMINI_API_KEY is not configured in .env.local' });
+        return res.status(500).json({ error: 'GEMINI_API_KEY environment variable is not configured.' });
     }
 
     try {
@@ -75,83 +94,99 @@ export default async function handler(req, res) {
 
         const ai = new GoogleGenAI({ apiKey });
 
-        const productCatalogSummary = products
-            .map(p => `ID: ${p.id} | Name: "${p.name}" | Price: ₱${p.price}`)
-            .join('\n');
-
         const prompt = `
-You are an expert OCR transcription assistant for a Philippine Water Refilling Station.
-Carefully transcribe ALL handwritten rows on this delivery notepad page from top to bottom.
+You are a high-speed handwriting OCR engine for a Philippine water refilling station delivery log.
+Transcribe every line written on this page from top to bottom.
 
-CRITICAL INSTRUCTIONS:
-1. Scan the ENTIRE page from top to bottom. Do NOT stop early after 8 or 9 entries.
-2. Continue scanning all the way down until you reach the empty lines at the bottom of the paper.
-   Make sure you include the entries near the bottom (specifically: Isidra, Medy, Cecile).
-3. The page consists of rows with 3 main data columns:
-   - Column 1 (Left): Customer Name (e.g., Danny, Gaslin, Ramos, JCA, Myra, Japon, Corie, Doro, Isidra, Medy, Cecile)
-   - Column 2 (Middle): Quantity (e.g., 2, 11, 12, 5, 8, 12, 1, 9, 5, 5, 3)
-   - Column 3 (Right): Total Amount (e.g., 50, 220, 240, 100, 160, 240, 20, 180, 100, 100, 60)
-   - Far right has "pd" which means "Paid" (Payment method: "Cash").
-4. Deduce unit_price = Total Amount / Quantity:
-   - If unit_price is 25 (e.g., 50 / 2) -> match product "Refill(25)"
-   - If unit_price is 20 (e.g., 220 / 11, 240 / 12, 100 / 5, 160 / 8, 20 / 1, 180 / 9, 60 / 3) -> match product "Refill-Walk-in(20)"
-5. Return a JSON array containing every single row found. There are 11 customer rows in this notepad.
+Output each row on a single line separated by pipes (|) in this exact format:
+Customer Name | Quantity | Total Amount | Paid Status
+
+Example output:
+Danny | 2 | 50 | pd
+Gaslin | 11 | 220 | pd
+Ramos | 12 | 240 | pd
+
+Rules:
+1. Scan the whole page from the first line down to the blank bottom.
+2. If a row has quantity/total but no customer name written on the left, output "Walk-in".
+3. Right column: write "pd" if marked pd or paid, otherwise "unpaid".
+4. Output ONLY the lines with pipes. No intro, no markdown codeblocks, no explanations.
 `;
 
-        const response = await ai.models.generateContent({
-            model: 'gemini-3.8-flash',
-            contents: [
-                {
-                    role: 'user',
-                    parts: [
-                        { text: prompt },
-                        {
-                            inlineData: {
-                                mimeType: mimeType,
-                                data: imageBase64.replace(/^data:image\/\w+;base64,/, '')
-                            }
-                        }
-                    ]
-                }
-            ],
-            config: {
-                temperature: 0.1, // Greedy decoding prevents repetitive looping
-                maxOutputTokens: 3500, // Hard ceiling prevents token overflow
-                responseMimeType: 'application/json',
-            }
-        });
+        const cleanBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+        let response = null;
 
-        const rawText = response.text || '[]';
-        const parsedList = parseSalesJson(rawText);
+        // Try gemini-2.5-flash (1,500 RPD free tier); fallback to gemini-3.1-flash-lite
+        try {
+            response = await ai.models.generateContent({
+                model: 'gemini-2.5-flash',
+                contents: [
+                    {
+                        role: 'user',
+                        parts: [
+                            { text: prompt },
+                            { inlineData: { mimeType, data: cleanBase64 } }
+                        ]
+                    }
+                ],
+                config: { temperature: 0.1, maxOutputTokens: 2500 }
+            });
+        } catch (err) {
+            console.warn('gemini-2.5-flash error, falling back to gemini-3.1-flash-lite:', err.message);
+            response = await ai.models.generateContent({
+                model: 'gemini-3.1-flash-lite',
+                contents: [
+                    {
+                        role: 'user',
+                        parts: [
+                            { text: prompt },
+                            { inlineData: { mimeType, data: cleanBase64 } }
+                        ]
+                    }
+                ],
+                config: { temperature: 0.1, maxOutputTokens: 2500 }
+            });
+        }
 
-        // Safe fallback mapping: match unit prices to product catalog
-        const safeData = parsedList.map(item => {
-            const qty = Number(item.quantity) || 1;
-            const total = Number(item.total_amount) || 0;
-            const unitPrice = Number(item.unit_price) || (qty > 0 ? total / qty : 0);
+        const rawText = response.text || '';
+        const rawRows = parseOcrOutput(rawText);
+
+        // Match unit prices and catalog products
+        const safeData = rawRows.map(row => {
+            const rawName = (row.name || '').trim();
+            const customerName = rawName ? rawName : 'Walk-in';
+            const qty = Math.max(1, Number(row.qty) || 1);
+            const total = Number(row.total) || 0;
+            const unitPrice = total > 0 ? total / qty : 0;
 
             let matchedProduct = null;
-            if (item.product_id) {
-                matchedProduct = products.find(p => p.id === item.product_id);
-            }
-            if (!matchedProduct && unitPrice > 0) {
-                matchedProduct = products.find(p => Number(p.price) === unitPrice);
-            }
-            if (!matchedProduct && item.product_name) {
-                matchedProduct = products.find(p => p.name?.toLowerCase().includes(item.product_name.toLowerCase()));
-            }
-            if (!matchedProduct) {
-                matchedProduct = products.find(p => p.name?.toLowerCase().includes('refill')) || products[0];
+            if (unitPrice > 0 && products.length > 0) {
+                matchedProduct = products.find(p => Math.abs(Number(p.price) - unitPrice) < 0.01);
+
+                if (!matchedProduct) {
+                    const refillProducts = products.filter(p => (p.name || '').toLowerCase().includes('refill'));
+                    const candidates = refillProducts.length > 0 ? refillProducts : products;
+                    matchedProduct = candidates.reduce((prev, curr) => {
+                        return Math.abs(Number(curr.price) - unitPrice) < Math.abs(Number(prev.price) - unitPrice) ? curr : prev;
+                    });
+                }
             }
 
+            if (!matchedProduct && products.length > 0) {
+                matchedProduct = products.find(p => (p.name || '').toLowerCase().includes('refill')) || products[0];
+            }
+
+            const finalPrice = matchedProduct ? Number(matchedProduct.price) : (unitPrice || 20);
+            const finalTotal = total > 0 ? total : (qty * finalPrice);
+
             return {
-                customer_name: (item.customer_name || 'Walk-in').trim(),
+                customer_name: customerName,
                 product_id: matchedProduct?.id || null,
                 product_name: matchedProduct?.name || 'Water Refill',
                 quantity: qty,
-                unit_price: unitPrice || Number(matchedProduct?.price) || 0,
-                total_amount: total || (qty * (unitPrice || Number(matchedProduct?.price) || 0)),
-                payment_method: item.payment_method || 'Cash'
+                unit_price: finalPrice,
+                total_amount: finalTotal,
+                payment_method: row.pd === false ? 'Credit' : 'Cash'
             };
         });
 
