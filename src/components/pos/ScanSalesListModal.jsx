@@ -133,7 +133,7 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
     };
 
     const handleAddNewItem = () => {
-        const defaultProduct = products.find(p => p.name?.toLowerCase().includes('refill')) || products[0] || { id: null, name: 'Water Refill', price: 20 };
+        const defaultProduct = products.find(p => p.name?.toLowerCase().includes('refill')) || products[0] || { id: 1, name: 'Water Refill', price: 20 };
         const price = Number(defaultProduct.price) || 20;
 
         setParsedItems(prev => [
@@ -159,12 +159,16 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
             const now = new Date();
             const manilaIso = format(now, "yyyy-MM-dd'T'HH:mm:ss'+08:00'");
 
+            // Fallback product if item has no product_id selected
+            const defaultCatalogProduct = products.find(p => p.name?.toLowerCase().includes('refill')) || products[0];
+
             for (const item of parsedItems) {
                 const qty = Number(item.quantity) || 1;
                 const unitPrice = Number(item.unit_price) || 0;
                 const total = Number(item.total_amount) || (qty * unitPrice);
                 const customerName = (item.customer_name || 'Walk-in').trim();
 
+                // 1. Insert into public.sales
                 const { data: saleData, error: saleErr } = await supabase
                     .from('sales')
                     .insert([{
@@ -180,15 +184,24 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
 
                 if (saleErr) throw saleErr;
 
-                if (item.product_id) {
+                // 2. Insert into public.sale_items with matching columns
+                const finalProductId = item.product_id || defaultCatalogProduct?.id;
+                const finalProductName = item.product_name || defaultCatalogProduct?.name || 'Water Refill';
+
+                if (finalProductId) {
                     const { error: itemErr } = await supabase
                         .from('sale_items')
                         .insert([{
                             sale_id: saleData.id,
-                            product_id: item.product_id,
+                            product_id: finalProductId,
+                            product_name: finalProductName,
                             quantity: qty,
-                            price: unitPrice
+                            price_at_sale: unitPrice,
+                            subtotal: total,
+                            cost_at_sale: 0,
+                            discount_amount: 0
                         }]);
+
                     if (itemErr) throw itemErr;
                 }
             }
