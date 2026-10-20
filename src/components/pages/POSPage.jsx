@@ -1,5 +1,6 @@
 // src/components/pages/POSPage.jsx
 import React, { useState, useEffect, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useStore } from '../../store/useStore';
 import { useProducts } from '../../hooks/useProducts';
 import { useCreateSale } from '../../hooks/useCreateSale';
@@ -20,9 +21,12 @@ import MobileCartBar from '../pos/MobileCartBar';
 import CartDrawer from '../pos/CartDrawer';
 import EditCartItemModal from '../pos/EditCartItemModal';
 import BarcodeScannerModal from '../pos/BarcodeScannerModal';
+import ScanSalesListModal from '../pos/ScanSalesListModal';
 import { supabase } from '../../lib/supabaseClient';
 
 export default function POSPage() {
+    const queryClient = useQueryClient();
+
     const {
         isCustomerModalOpen, closeCustomerModal,
         isCustomSaleModalOpen, openCustomSale, closeCustomSale,
@@ -32,6 +36,7 @@ export default function POSPage() {
         editItemKey, openEditItem, closeEditItem
     } = usePOSModals();
 
+    const [isScanSalesModalOpen, setIsScanSalesModalOpen] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = DEFAULT_ITEMS_PER_PAGE;
 
@@ -504,11 +509,19 @@ export default function POSPage() {
                     </div>
                 </div>
 
-                <div className="w-full md:w-1/3 xl:w-1/3 flex-shrink-0">
+                <div className="w-full md:w-1/3 xl:w-1/3 flex-shrink-0 flex items-center gap-2">
+                    <Button
+                        variant="outline"
+                        onClick={() => setIsScanSalesModalOpen(true)}
+                        className="flex-1 h-11 rounded-lg border-emerald-500 text-emerald-700 hover:bg-emerald-50 font-bold whitespace-nowrap shadow-sm flex items-center justify-center gap-1.5 transition-all active:scale-95"
+                        title="Scan Delivery / Sales Log Sheet"
+                    >
+                        <span className="text-base">📷</span> Scan List
+                    </Button>
                     <Button
                         variant="primary"
                         onClick={openCustomSale}
-                        className="w-full rounded-lg shadow-md font-semibold whitespace-nowrap h-11"
+                        className="flex-1 rounded-lg shadow-md font-semibold whitespace-nowrap h-11"
                         disabled={isDemo}
                     >
                         + Custom
@@ -625,6 +638,22 @@ export default function POSPage() {
                 />
             )}
 
+            {/* --- SCAN SALES LIST MODAL --- */}
+            <ScanSalesListModal
+                isOpen={isScanSalesModalOpen}
+                onClose={() => setIsScanSalesModalOpen(false)}
+                products={products}
+                onSuccess={() => {
+                    queryClient.invalidateQueries({ queryKey: ['products'] });
+                    queryClient.invalidateQueries({ queryKey: ['sales'] });
+                    queryClient.invalidateQueries({ queryKey: ['daily-sales'] });
+                    queryClient.invalidateQueries({ queryKey: ['sales-summary'] });
+                    queryClient.invalidateQueries({ queryKey: ['weekly-growth'] });
+                    queryClient.invalidateQueries({ queryKey: ['monthly-growth'] });
+                }}
+            />
+
+            {/* --- MOBILE CART BAR --- */}
             {!(isCartDrawerOpen || isPaymentModalOpen) && (
                 <MobileCartBar
                     itemCount={Object.keys(currentSale).length}
