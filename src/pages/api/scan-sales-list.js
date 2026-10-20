@@ -80,30 +80,22 @@ export default async function handler(req, res) {
             .join('\n');
 
         const prompt = `
-You are an OCR transcription assistant for a Philippine Water Refilling Station.
-Transcribe this handwritten delivery notebook page.
+You are an expert OCR transcription assistant for a Philippine Water Refilling Station.
+Carefully transcribe ALL handwritten rows on this delivery notepad page from top to bottom.
 
-The page consists of rows with these columns:
-1. Customer Name (left column, e.g., Danny, Gaslin, Ramos, JCA, Myra, Japon, Corie, Doro, Isidra, Medy, Cecile)
-2. Quantity (middle column, e.g., 2, 11, 12, 5, 8, 12, 1, 9, 5, 5, 3)
-3. Total Amount (price column, e.g., 50, 220, 240, 100, 160, 240, 20, 180, 100, 100, 60)
-4. Right column has "pd" which means "Paid".
-
-Available Station Products for matching:
-${productCatalogSummary}
-
-Rules:
-- Deduce unit_price = Total Amount / Quantity.
-  - If unit_price is 25 (e.g., 50 / 2) -> match product "Refill(25)"
-  - If unit_price is 20 (e.g., 220 / 11) -> match product "Refill-Walk-in(20)"
-- Payment method is "Cash" for all rows marked "pd".
-- Transcribe ONLY the written rows. Do NOT repeat or output loops.
-
-Return a JSON array of objects following this exact format:
-[
-  {"customer_name": "Danny", "quantity": 2, "unit_price": 25, "total_amount": 50, "product_name": "Refill(25)", "product_id": 2, "payment_method": "Cash"},
-  {"customer_name": "Gaslin", "quantity": 11, "unit_price": 20, "total_amount": 220, "product_name": "Refill-Walk-in(20)", "product_id": 30, "payment_method": "Cash"}
-]
+CRITICAL INSTRUCTIONS:
+1. Scan the ENTIRE page from top to bottom. Do NOT stop early after 8 or 9 entries.
+2. Continue scanning all the way down until you reach the empty lines at the bottom of the paper.
+   Make sure you include the entries near the bottom (specifically: Isidra, Medy, Cecile).
+3. The page consists of rows with 3 main data columns:
+   - Column 1 (Left): Customer Name (e.g., Danny, Gaslin, Ramos, JCA, Myra, Japon, Corie, Doro, Isidra, Medy, Cecile)
+   - Column 2 (Middle): Quantity (e.g., 2, 11, 12, 5, 8, 12, 1, 9, 5, 5, 3)
+   - Column 3 (Right): Total Amount (e.g., 50, 220, 240, 100, 160, 240, 20, 180, 100, 100, 60)
+   - Far right has "pd" which means "Paid" (Payment method: "Cash").
+4. Deduce unit_price = Total Amount / Quantity:
+   - If unit_price is 25 (e.g., 50 / 2) -> match product "Refill(25)"
+   - If unit_price is 20 (e.g., 220 / 11, 240 / 12, 100 / 5, 160 / 8, 20 / 1, 180 / 9, 60 / 3) -> match product "Refill-Walk-in(20)"
+5. Return a JSON array containing every single row found. There are 11 customer rows in this notepad.
 `;
 
         const response = await ai.models.generateContent({
@@ -124,7 +116,7 @@ Return a JSON array of objects following this exact format:
             ],
             config: {
                 temperature: 0.1, // Greedy decoding prevents repetitive looping
-                maxOutputTokens: 2500, // Hard ceiling prevents token overflow
+                maxOutputTokens: 3500, // Hard ceiling prevents token overflow
                 responseMimeType: 'application/json',
             }
         });

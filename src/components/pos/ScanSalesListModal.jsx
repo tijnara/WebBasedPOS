@@ -1,13 +1,13 @@
 // src/components/pos/ScanSalesListModal.jsx
 import React, { useState, useRef } from 'react';
-import { Camera, Trash2, Check, Loader2, FileImage } from 'lucide-react';
+import { Camera, Trash2, Check, Loader2, FileImage, Plus } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { useStore } from '../../store/useStore';
 import { format } from 'date-fns';
 import currency from 'currency.js';
 
-// Client-side image compressor: shrinks 10MB photos to ~150KB in milliseconds
-const compressImage = (file, maxWidth = 1280, quality = 0.8) => {
+// High-clarity compression preserving lower text boundaries
+const compressImage = (file, maxDimension = 1800, quality = 0.88) => {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
@@ -16,9 +16,14 @@ const compressImage = (file, maxWidth = 1280, quality = 0.8) => {
             img.src = event.target.result;
             img.onload = () => {
                 let { width, height } = img;
-                if (width > maxWidth) {
-                    height = Math.round((height * maxWidth) / width);
-                    width = maxWidth;
+                if (width > maxDimension || height > maxDimension) {
+                    if (width > height) {
+                        height = Math.round((height * maxDimension) / width);
+                        width = maxDimension;
+                    } else {
+                        width = Math.round((width * maxDimension) / height);
+                        height = maxDimension;
+                    }
                 }
 
                 const canvas = document.createElement('canvas');
@@ -122,6 +127,24 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
 
     const removeItem = (index) => {
         setParsedItems(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const handleAddNewItem = () => {
+        const defaultProduct = products.find(p => p.name?.toLowerCase().includes('refill')) || products[0] || { id: null, name: 'Water Refill', price: 20 };
+        const price = Number(defaultProduct.price) || 20;
+
+        setParsedItems(prev => [
+            ...prev,
+            {
+                customer_name: '',
+                product_id: defaultProduct.id,
+                product_name: defaultProduct.name,
+                quantity: 1,
+                unit_price: price,
+                total_amount: price,
+                payment_method: 'Cash'
+            }
+        ]);
     };
 
     const handleConfirmAndRecord = async () => {
@@ -295,7 +318,7 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
                         <div className="py-12 flex flex-col items-center justify-center text-center space-y-3">
                             <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
                             <p className="text-sm font-semibold text-gray-700">Gemini is parsing the log...</p>
-                            <p className="text-xs text-gray-400">Detecting names, quantities, and matching refill prices</p>
+                            <p className="text-xs text-gray-400">Detecting all customer rows down to the page end</p>
                         </div>
                     )}
 
@@ -374,6 +397,17 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
                                         </button>
                                     </div>
                                 ))}
+                            </div>
+
+                            {/* Manual Add Row Button */}
+                            <div className="flex justify-end pt-1">
+                                <button
+                                    type="button"
+                                    onClick={handleAddNewItem}
+                                    className="text-xs font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all active:scale-95 shadow-sm"
+                                >
+                                    <Plus className="w-3.5 h-3.5" /> Add Customer Row
+                                </button>
                             </div>
                         </div>
                     )}
