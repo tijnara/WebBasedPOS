@@ -1,6 +1,6 @@
 // src/components/pos/ScanSalesListModal.jsx
-import React, { useState, useRef } from 'react';
-import { Camera, Trash2, Check, Loader2, FileImage, Plus, Calendar } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Camera, Trash2, Check, Loader2, FileImage, Plus, Calendar, UserCheck, CreditCard } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { useStore } from '../../store/useStore';
 import { format } from 'date-fns';
@@ -44,10 +44,68 @@ const compressImage = (file, maxDimension = 1200, quality = 0.8) => {
     });
 };
 
+// Normalize strings for fuzzy matching
+const normalize = (str) => (str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+// Levenshtein distance for fuzzy typo tolerance
+const getLevenshteinDistance = (a, b) => {
+    const matrix = [];
+    for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+    for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+
+    for (let i = 1; i <= b.length; i++) {
+        for (let j = 1; j <= a.length; j++) {
+            if (b.charAt(i - 1) === a.charAt(j - 1)) {
+                matrix[i][j] = matrix[i - 1][j - 1];
+            } else {
+                matrix[i][j] = Math.min(
+                    matrix[i - 1][j - 1] + 1,
+                    matrix[i][j - 1] + 1,
+                    matrix[i - 1][j] + 1
+                );
+            }
+        }
+    }
+    return matrix[b.length][a.length];
+};
+
+// Find closest registered customer account
+const matchCustomerAccount = (rawName, customerList = []) => {
+    if (!rawName || !customerList.length) return null;
+    const cleanRaw = normalize(rawName);
+    if (cleanRaw.length < 2 || cleanRaw === 'walkin') return null;
+
+    // 1. Exact normalized match
+    const exact = customerList.find(c => normalize(c.name) === cleanRaw);
+    if (exact) return exact;
+
+    // 2. Substring match (e.g., "Laundry" matches "Laundry Shop")
+    const substring = customerList.find(c => {
+        const normC = normalize(c.name);
+        return (normC.includes(cleanRaw) || cleanRaw.includes(normC)) && Math.min(normC.length, cleanRaw.length) >= 3;
+    });
+    if (substring) return substring;
+
+    // 3. Typo-tolerant edit distance (distance <= 1 for short names, <= 2 for longer names)
+    let best = null;
+    let minDistance = 999;
+    for (const c of customerList) {
+        const normC = normalize(c.name);
+        const dist = getLevenshteinDistance(cleanRaw, normC);
+        const maxDist = cleanRaw.length <= 4 ? 1 : 2;
+        if (dist <= maxDist && dist < minDistance) {
+            minDistance = dist;
+            best = c;
+        }
+    }
+    return best;
+};
+
 export default function ScanSalesListModal({ isOpen, onClose, products = [], onSuccess }) {
     const { user, addToast } = useStore();
     const [imagePreview, setImagePreview] = useState(null);
     const [parsedItems, setParsedItems] = useState([]);
+    const [customers, setCustomers] = useState([]);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
@@ -57,6 +115,25 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
 
     const cameraInputRef = useRef(null);
     const uploadInputRef = useRef(null);
+
+    // Fetch existing customer accounts for fuzzy linking
+    useEffect(() => {
+        if (!isOpen) return;
+        const fetchCustomers = async () => {
+            try {
+                const { data, error } = await supabase
+                    .from('customers')
+                    .select('id, name, credit_balance, phone, address')
+                    .order('name');
+                if (!error && data) {
+                    setCustomers(data);
+                }
+            } catch (err) {
+                console.error('Error fetching customers:', err);
+            }
+        };
+        fetchCustomers();
+    }, [isOpen]);
 
     if (!isOpen) return null;
 
@@ -102,8 +179,20 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
             const result = await res.json();
             if (!res.ok) throw new Error(result.error || 'Failed to extract sales');
 
-            setParsedItems(result.data || []);
-            if (!result.data || result.data.length === 0) {
+            const rawData = result.data || [];
+
+            // Auto fuzzy-link extracted customer names to registered accounts
+            const enrichedData = rawData.map(item => {
+                const matched = matchCustomerAccount(item.customer_name, customers);
+                return {
+                    ...item,
+                    customer_id: matched?.id || null,
+                    matched_account_name: matched?.name || null
+                };
+            });
+
+            setParsedItems(enrichedData);
+            if (enrichedData.length === 0) {
                 const msg = 'Could not detect clear sales rows in this photo.';
                 setErrorMessage(msg);
                 addToast({ title: 'No entries detected', description: msg, variant: 'warning' });
@@ -122,11 +211,24 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
         setParsedItems(prev => {
             const updated = [...prev];
             updated[index] = { ...updated[index], [field]: value };
+
             if (field === 'quantity' || field === 'unit_price') {
                 const qty = Number(field === 'quantity' ? value : updated[index].quantity) || 0;
                 const price = Number(field === 'unit_price' ? value : updated[index].unit_price) || 0;
                 updated[index].total_amount = qty * price;
             }
+
+            // Sync account name if customer_id changes via dropdown
+            if (field === 'customer_id') {
+                const custId = value ? Number(value) : null;
+                const cust = customers.find(c => c.id === custId);
+                updated[index].customer_id = custId;
+                updated[index].matched_account_name = cust ? cust.name : null;
+                if (cust && (!updated[index].customer_name || updated[index].customer_name === 'Walk-in')) {
+                    updated[index].customer_name = cust.name;
+                }
+            }
+
             return updated;
         });
     };
@@ -143,6 +245,8 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
             ...prev,
             {
                 customer_name: '',
+                customer_id: null,
+                matched_account_name: null,
                 product_id: defaultProduct.id,
                 product_name: defaultProduct.name,
                 quantity: 1,
@@ -158,7 +262,6 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
         setIsSaving(true);
 
         try {
-            // Apply selected delivery date combined with the current time of day in Asia/Manila (+08:00)
             const now = new Date();
             const timeOfDay = format(now, 'HH:mm:ss');
             const targetDate = deliveryDate || format(now, 'yyyy-MM-dd');
@@ -166,25 +269,44 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
 
             const defaultCatalogProduct = products.find(p => p.name?.toLowerCase().includes('refill')) || products[0];
 
+            // Map to aggregate credit balance increases per customer
+            const customerCreditIncrements = {};
+
             for (const item of parsedItems) {
                 const qty = Number(item.quantity) || 1;
                 const unitPrice = Number(item.unit_price) || 0;
                 const total = Number(item.total_amount) || (qty * unitPrice);
                 const customerName = (item.customer_name || 'Walk-in').trim();
+                const isCredit = item.payment_method === 'Credit';
 
-                // 1. Insert into public.sales with the selected delivery timestamp
-                const { data: saleData, error: saleErr } = await supabase
+                // 1. Build payload for public.sales
+                const salePayload = {
+                    customername: customerName,
+                    totalamount: total,
+                    paymentmethod: item.payment_method || 'Cash',
+                    status: isCredit ? 'Unpaid' : 'Completed',
+                    saletimestamp: manilaIso,
+                    created_by: user?.id || null
+                };
+
+                // Link customer_id if matched
+                if (item.customer_id) {
+                    salePayload.customer_id = item.customer_id;
+                }
+
+                let { data: saleData, error: saleErr } = await supabase
                     .from('sales')
-                    .insert([{
-                        customername: customerName,
-                        totalamount: total,
-                        paymentmethod: item.payment_method || 'Cash',
-                        status: 'Completed',
-                        saletimestamp: manilaIso,
-                        created_by: user?.id || null
-                    }])
+                    .insert([salePayload])
                     .select('id')
                     .single();
+
+                // If 'customer_id' column doesn't exist on sales table, insert without it
+                if (saleErr && saleErr.code === 'PGRST204') {
+                    delete salePayload.customer_id;
+                    const retry = await supabase.from('sales').insert([salePayload]).select('id').single();
+                    saleData = retry.data;
+                    saleErr = retry.error;
+                }
 
                 if (saleErr) throw saleErr;
 
@@ -208,6 +330,28 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
 
                     if (itemErr) throw itemErr;
                 }
+
+                // 3. Track credit balance increments for customer accounts
+                if (isCredit && item.customer_id) {
+                    customerCreditIncrements[item.customer_id] = (customerCreditIncrements[item.customer_id] || 0) + total;
+                }
+            }
+
+            // 4. Batch update credit_balance for linked customers
+            for (const [custIdStr, addedCredit] of Object.entries(customerCreditIncrements)) {
+                const custId = Number(custIdStr);
+                const currentCustomer = customers.find(c => c.id === custId);
+                const currentBalance = Number(currentCustomer?.credit_balance || 0);
+                const newBalance = currentBalance + addedCredit;
+
+                const { error: custUpdateErr } = await supabase
+                    .from('customers')
+                    .update({ credit_balance: newBalance })
+                    .eq('id', custId);
+
+                if (custUpdateErr) {
+                    console.warn(`Could not update credit balance for customer ${custId}:`, custUpdateErr.message);
+                }
             }
 
             const formattedDeliveryDate = format(new Date(`${targetDate}T00:00:00+08:00`), 'MMM d, yyyy');
@@ -228,10 +372,13 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
     };
 
     const grandTotal = parsedItems.reduce((sum, item) => sum + (Number(item.total_amount) || 0), 0);
+    const totalCreditAmount = parsedItems
+        .filter(item => item.payment_method === 'Credit')
+        .reduce((sum, item) => sum + (Number(item.total_amount) || 0), 0);
 
     return (
         <div className="fixed inset-0 bg-black/60 z-[120] flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                 {/* Header with Seaside Logo & Delivery Date Picker */}
                 <div className="bg-emerald-600 text-white px-5 py-3.5 flex flex-wrap items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
@@ -244,12 +391,11 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
                         </div>
                         <div>
                             <h2 className="text-base font-bold leading-tight">Scan Sales Sheet / Log</h2>
-                            <p className="text-xs text-emerald-100">AI auto-extracts customer orders from paper lists</p>
+                            <p className="text-xs text-emerald-100">AI auto-extracts customer orders & links accounts</p>
                         </div>
                     </div>
 
                     <div className="flex items-center gap-2.5 self-end sm:self-auto ml-auto">
-                        {/* Delivery Date Input */}
                         <div className="flex items-center gap-2 bg-emerald-700/90 hover:bg-emerald-700 border border-emerald-500/60 rounded-xl px-2.5 py-1 text-xs shadow-inner transition-colors">
                             <Calendar className="w-3.5 h-3.5 text-emerald-200 shrink-0" />
                             <div className="flex flex-col">
@@ -313,7 +459,7 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
                             </div>
                             <h3 className="font-bold text-gray-800 text-sm mb-1">Scan or Upload Delivery Log</h3>
                             <p className="text-xs text-gray-500 mb-6 max-w-sm mx-auto">
-                                Point your camera at a notebook list or upload a photo to auto-record orders.
+                                Point your camera at a notebook list or upload a photo to auto-record orders and link customer accounts.
                             </p>
 
                             <div className="flex flex-col sm:flex-row justify-center gap-3">
@@ -345,7 +491,7 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
                                         {isAnalyzing ? 'Analyzing photo...' : `Extracted ${parsedItems.length} transactions`}
                                     </p>
                                     <p className="text-[11px] text-gray-500">
-                                        {isAnalyzing ? 'Reading handwriting & calculating totals' : 'Review rows below before saving'}
+                                        {isAnalyzing ? 'Reading handwriting & linking customer accounts' : 'Review rows, accounts, and payments before saving'}
                                     </p>
                                 </div>
                             </div>
@@ -369,90 +515,140 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
                         <div className="py-12 flex flex-col items-center justify-center text-center space-y-3">
                             <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
                             <p className="text-sm font-semibold text-gray-700">AI is parsing the delivery log...</p>
-                            <p className="text-xs text-gray-400">Transcribing all rows down to the page end</p>
+                            <p className="text-xs text-gray-400">Transcribing names, matching products & checking registered customers</p>
                         </div>
                     )}
 
                     {/* Editable Review Table */}
                     {!isAnalyzing && parsedItems.length > 0 && (
                         <div className="space-y-3">
-                            <div className="flex items-center justify-between text-xs text-gray-500 px-1">
+                            <div className="flex flex-wrap items-center justify-between text-xs text-gray-500 px-1 gap-2">
                                 <span className="font-bold uppercase tracking-wider">Review & Edit Items</span>
-                                <span>Total: <strong className="text-emerald-700 font-bold">{currency(grandTotal, { symbol: '₱' }).format()}</strong></span>
+                                <div className="flex items-center gap-3">
+                                    {totalCreditAmount > 0 && (
+                                        <span className="text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md font-semibold">
+                                            Utang: <strong>{currency(totalCreditAmount, { symbol: '₱' }).format()}</strong>
+                                        </span>
+                                    )}
+                                    <span>Total: <strong className="text-emerald-700 font-bold">{currency(grandTotal, { symbol: '₱' }).format()}</strong></span>
+                                </div>
                             </div>
 
                             <div className="border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-100 bg-white">
-                                {parsedItems.map((item, idx) => (
-                                    <div key={idx} className="p-3 flex items-center gap-2.5 hover:bg-gray-50/70 transition-colors">
-                                        {/* Row/Transaction Number Badge */}
-                                        <div className="w-6 h-6 rounded-lg bg-gray-100 text-gray-500 text-[11px] font-bold flex items-center justify-center shrink-0 border border-gray-200">
-                                            {idx + 1}
-                                        </div>
+                                {parsedItems.map((item, idx) => {
+                                    const isCredit = item.payment_method === 'Credit';
+                                    const linkedCustomer = customers.find(c => c.id === item.customer_id);
 
-                                        {/* Customer Name */}
-                                        <div className="flex-1 min-w-[110px]">
-                                            <label className="text-[9px] uppercase font-bold text-gray-400 block mb-0.5">Customer</label>
-                                            <input
-                                                type="text"
-                                                value={item.customer_name}
-                                                onChange={(e) => updateItem(idx, 'customer_name', e.target.value)}
-                                                className="w-full text-xs font-semibold bg-transparent border-b border-gray-200 focus:border-emerald-500 outline-none pb-0.5"
-                                            />
-                                        </div>
+                                    return (
+                                        <div key={idx} className="p-3 flex flex-wrap sm:flex-nowrap items-center gap-2.5 hover:bg-gray-50/70 transition-colors">
+                                            {/* Row/Transaction Number Badge */}
+                                            <div className="w-6 h-6 rounded-lg bg-gray-100 text-gray-500 text-[11px] font-bold flex items-center justify-center shrink-0 border border-gray-200">
+                                                {idx + 1}
+                                            </div>
 
-                                        {/* Product Select */}
-                                        <div className="flex-1 min-w-[130px]">
-                                            <label className="text-[9px] uppercase font-bold text-gray-400 block mb-0.5">Product</label>
-                                            <select
-                                                value={item.product_id || ''}
-                                                onChange={(e) => {
-                                                    const pid = parseInt(e.target.value);
-                                                    const prod = products.find(p => p.id === pid);
-                                                    if (prod) {
-                                                        updateItem(idx, 'product_id', prod.id);
-                                                        updateItem(idx, 'product_name', prod.name);
-                                                        updateItem(idx, 'unit_price', Number(prod.price) || 0);
-                                                    }
-                                                }}
-                                                className="w-full text-xs bg-transparent border-b border-gray-200 focus:border-emerald-500 outline-none pb-0.5 truncate"
+                                            {/* Customer Name & Link Dropdown */}
+                                            <div className="flex-1 min-w-[150px]">
+                                                <div className="flex items-center justify-between mb-0.5">
+                                                    <label className="text-[9px] uppercase font-bold text-gray-400">Customer</label>
+                                                    {item.customer_id && (
+                                                        <span className="text-[9px] text-emerald-600 font-bold flex items-center gap-0.5">
+                                                            <UserCheck className="w-3 h-3" /> Linked
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <input
+                                                    type="text"
+                                                    value={item.customer_name}
+                                                    onChange={(e) => updateItem(idx, 'customer_name', e.target.value)}
+                                                    placeholder="Name on paper"
+                                                    className="w-full text-xs font-semibold bg-transparent border-b border-gray-200 focus:border-emerald-500 outline-none pb-0.5"
+                                                />
+                                                {/* Customer Account Selector */}
+                                                <select
+                                                    value={item.customer_id || ''}
+                                                    onChange={(e) => updateItem(idx, 'customer_id', e.target.value)}
+                                                    className="w-full text-[10px] mt-1 text-gray-500 bg-gray-50 border border-gray-200 rounded px-1.5 py-0.5 outline-none focus:border-emerald-500 truncate"
+                                                >
+                                                    <option value="">-- Unlinked / Walk-in --</option>
+                                                    {customers.map(c => (
+                                                        <option key={c.id} value={c.id}>
+                                                            {c.name} {Number(c.credit_balance) > 0 ? `(Debt: ₱${c.credit_balance})` : ''}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+
+                                            {/* Product Select */}
+                                            <div className="w-36 min-w-[120px]">
+                                                <label className="text-[9px] uppercase font-bold text-gray-400 block mb-0.5">Product</label>
+                                                <select
+                                                    value={item.product_id || ''}
+                                                    onChange={(e) => {
+                                                        const pid = parseInt(e.target.value);
+                                                        const prod = products.find(p => p.id === pid);
+                                                        if (prod) {
+                                                            updateItem(idx, 'product_id', prod.id);
+                                                            updateItem(idx, 'product_name', prod.name);
+                                                            updateItem(idx, 'unit_price', Number(prod.price) || 0);
+                                                        }
+                                                    }}
+                                                    className="w-full text-xs bg-transparent border-b border-gray-200 focus:border-emerald-500 outline-none pb-0.5 truncate"
+                                                >
+                                                    {products.map(p => (
+                                                        <option key={p.id} value={p.id}>{p.name}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+
+                                            {/* Qty */}
+                                            <div className="w-14 text-center">
+                                                <label className="text-[9px] uppercase font-bold text-gray-400 block mb-0.5">Qty</label>
+                                                <input
+                                                    type="number"
+                                                    min="1"
+                                                    value={item.quantity}
+                                                    onChange={(e) => updateItem(idx, 'quantity', e.target.value)}
+                                                    className="w-full text-xs font-bold text-center bg-gray-50 rounded py-1 border border-gray-200 outline-none focus:border-emerald-500"
+                                                />
+                                            </div>
+
+                                            {/* Payment Method Toggle (Cash vs Utang) */}
+                                            <div className="w-20 text-center">
+                                                <label className="text-[9px] uppercase font-bold text-gray-400 block mb-0.5">Payment</label>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => updateItem(idx, 'payment_method', isCredit ? 'Cash' : 'Credit')}
+                                                    className={`w-full text-[10px] font-bold py-1 px-1.5 rounded-lg border transition-all ${
+                                                        isCredit
+                                                            ? 'bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-200'
+                                                            : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                                                    }`}
+                                                    title="Click to toggle Cash vs Credit (Utang)"
+                                                >
+                                                    {isCredit ? 'Utang' : 'Cash (pd)'}
+                                                </button>
+                                            </div>
+
+                                            {/* Row Total */}
+                                            <div className="w-16 text-right pr-1">
+                                                <label className="text-[9px] uppercase font-bold text-gray-400 block mb-0.5">Total</label>
+                                                <span className={`text-xs font-bold ${isCredit ? 'text-amber-700' : 'text-emerald-600'}`}>
+                                                    ₱{Number(item.total_amount || 0).toFixed(0)}
+                                                </span>
+                                            </div>
+
+                                            {/* Delete */}
+                                            <button
+                                                type="button"
+                                                onClick={() => removeItem(idx)}
+                                                className="p-1.5 text-gray-400 hover:text-red-500 transition-colors ml-1"
+                                                title="Remove entry"
                                             >
-                                                {products.map(p => (
-                                                    <option key={p.id} value={p.id}>{p.name}</option>
-                                                ))}
-                                            </select>
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                            </button>
                                         </div>
-
-                                        {/* Qty */}
-                                        <div className="w-14 text-center">
-                                            <label className="text-[9px] uppercase font-bold text-gray-400 block mb-0.5">Qty</label>
-                                            <input
-                                                type="number"
-                                                min="1"
-                                                value={item.quantity}
-                                                onChange={(e) => updateItem(idx, 'quantity', e.target.value)}
-                                                className="w-full text-xs font-bold text-center bg-gray-50 rounded py-1 border border-gray-200 outline-none focus:border-emerald-500"
-                                            />
-                                        </div>
-
-                                        {/* Row Total */}
-                                        <div className="w-16 text-right pr-1">
-                                            <label className="text-[9px] uppercase font-bold text-gray-400 block mb-0.5">Total</label>
-                                            <span className="text-xs font-bold text-emerald-600">
-                                                ₱{Number(item.total_amount || 0).toFixed(0)}
-                                            </span>
-                                        </div>
-
-                                        {/* Delete */}
-                                        <button
-                                            type="button"
-                                            onClick={() => removeItem(idx)}
-                                            className="p-1.5 text-gray-400 hover:text-red-500 transition-colors ml-1"
-                                            title="Remove entry"
-                                        >
-                                            <Trash2 className="w-3.5 h-3.5" />
-                                        </button>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
 
                             {/* Manual Add Row Button */}
@@ -488,7 +684,7 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
                     >
                         {isSaving ? (
                             <>
-                                <Loader2 className="w-4 h-4 animate-spin" /> Saving Sales...
+                                <Loader2 className="w-4 h-4 animate-spin" /> Saving Sales & Debts...
                             </>
                         ) : (
                             <>

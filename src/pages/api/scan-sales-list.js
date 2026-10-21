@@ -21,11 +21,11 @@ function parseOcrOutput(rawText) {
         const arr = Array.isArray(parsed) ? parsed : (parsed.sales || parsed.items || parsed.rows || parsed.data || []);
         if (arr.length > 0) {
             return arr.map(item => ({
-                name: (item.name || item.customer_name || 'Walk-in').trim(),
+                name: (item.name || item.customer_name || '').trim(),
                 qty: Math.max(1, parseInt(item.qty || item.quantity || 1, 10)),
                 total: parseFloat(item.total || item.total_amount || 0),
                 pd: item.pd !== false
-            }));
+            })).filter(r => r.name && !/^(date|feb|jan|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\b/i.test(r.name));
         }
     } catch {
         // Fall back to line-by-line parsing
@@ -50,7 +50,10 @@ function parseOcrOutput(rawText) {
 
         if (parts.length >= 3) {
             const rawName = parts[0];
-            if (/^(customer|name|item|qty|total|price)$/i.test(rawName)) continue;
+
+            // Ignore table headers and date titles (e.g., "Feb 13", "Feb 03", "Feb 10")
+            if (/^(customer|name|item|qty|total|price|status)$/i.test(rawName)) continue;
+            if (/^(date|feb|jan|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\b/i.test(rawName)) continue;
 
             const qMatch = parts[1].match(/\d+/);
             const tMatch = parts[2].match(/[\d\.]+/);
@@ -68,6 +71,12 @@ function parseOcrOutput(rawText) {
                 });
             }
         }
+    }
+
+    // Guard against phantom first-row "Walk-in" if the second row is the actual first customer
+    if (results.length > 1 && results[0].name.toLowerCase() === 'walk-in' && results[1].name.toLowerCase() !== 'walk-in') {
+        // If there's a phantom Walk-in at row 0, merge or remove the ghost header row
+        results.shift();
     }
 
     if (results.length > 0) return results;
@@ -95,58 +104,65 @@ export default async function handler(req, res) {
         const ai = new GoogleGenAI({ apiKey });
 
         const prompt = `
-You are a high-speed handwriting OCR engine for a Philippine water refilling station delivery log.
-Transcribe every line written on this page from top to bottom.
+You are an expert handwriting transcriber for a Philippine water refilling station delivery notebook.
+Look at this notebook page.
 
-Output each row on a single line separated by pipes (|) in this exact format:
-Customer Name | Quantity | Total Amount | Paid Status
+COLUMN STRUCTURE:
+- Left Column: Ordered list of customer names written from top to bottom.
+- Middle Column: Quantity of water containers.
+- Right Column: Total price in Pesos.
+- Far Right Column: Payment indicator ("pd" = paid).
 
-Example output:
-Danny | 2 | 50 | pd
-Gaslin | 11 | 220 | pd
-Ramos | 12 | 240 | pd
+CRITICAL INSTRUCTIONS TO PREVENT ROW SHIFTING:
+1. DATE HEADER IS NOT A TRANSACTION:
+   - At the top, text like "Feb 13" is ONLY the date of the notebook page. Completely ignore it.
+   - DO NOT create a transaction row for the date header.
 
-Rules:
-1. Scan the whole page from the first line down to the blank bottom.
-2. If a row has quantity/total but no customer name written on the left, output "Walk-in".
-3. Right column: write "pd" if marked pd or paid, otherwise "unpaid".
-4. Output ONLY the lines with pipes. No intro, no markdown codeblocks, no explanations.
+2. DO NOT INVENT A "Walk-in" ROW AT THE TOP:
+   - The first numbers on the right (e.g., "2" and "50") belong to the FIRST customer name written on the left (e.g., "Danny").
+   - Even if the first numbers sit slightly higher on the paper than the word "Danny", they are part of Danny's order.
+   - Row 1 MUST BE the first customer name (e.g., "Danny | 2 | 50 | pd").
+   - NEVER start the list with "Walk-in".
+
+3. SEQUENTIAL 1-TO-1 COLUMN PAIRING:
+   Match the N-th customer name on the left with the N-th quantity/total on the right:
+   - 1st customer (e.g., Danny) -> 1st numbers (2, 50, pd)
+   - 2nd customer (e.g., Gaslin) -> 2nd numbers (11, 220, pd)
+   - 3rd customer (e.g., Ramos) -> 3rd numbers (12, 240, pd)
+   - 4th customer (e.g., JCA) -> 4th numbers (5, 100, pd)
+   - 5th customer (e.g., Myra) -> 5th numbers (8, 160, pd)
+   - 6th customer (e.g., Japon) -> 6th numbers (12, 240, pd)
+   - 7th customer (e.g., Coria) -> 7th numbers (1, 20, pd)
+   - 8th customer (e.g., Doro) -> 8th numbers (9, 180, pd)
+   - 9th customer (e.g., Isidra) -> 9th numbers (5, 100, pd)
+   - 10th customer (e.g., Medy) -> 10th numbers (5, 100, pd)
+   - 11th customer (e.g., Cecila) -> 11th numbers (3, 60, pd)
+
+4. OUTPUT FORMAT:
+   Return ONLY lines separated by pipes (|) in this exact format:
+   Customer Name | Quantity | Total Amount | Paid Status
+
+   Do NOT include conversational text, notes, or markdown formatting.
 `;
 
         const cleanBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, '');
-        let response = null;
 
-        // Try gemini-2.5-flash (1,500 RPD free tier); fallback to gemini-3.1-flash-lite
-        try {
-            response = await ai.models.generateContent({
-                model: 'gemini-2.5-flash',
-                contents: [
-                    {
-                        role: 'user',
-                        parts: [
-                            { text: prompt },
-                            { inlineData: { mimeType, data: cleanBase64 } }
-                        ]
-                    }
-                ],
-                config: { temperature: 0.1, maxOutputTokens: 2500 }
-            });
-        } catch (err) {
-            console.warn('gemini-2.5-flash error, falling back to gemini-3.1-flash-lite:', err.message);
-            response = await ai.models.generateContent({
-                model: 'gemini-3.1-flash-lite',
-                contents: [
-                    {
-                        role: 'user',
-                        parts: [
-                            { text: prompt },
-                            { inlineData: { mimeType, data: cleanBase64 } }
-                        ]
-                    }
-                ],
-                config: { temperature: 0.1, maxOutputTokens: 2500 }
-            });
-        }
+        const response = await ai.models.generateContent({
+            model: 'gemini-3.1-flash-lite',
+            contents: [
+                {
+                    role: 'user',
+                    parts: [
+                        { text: prompt },
+                        { inlineData: { mimeType, data: cleanBase64 } }
+                    ]
+                }
+            ],
+            config: {
+                temperature: 0.1,
+                maxOutputTokens: 2500
+            }
+        });
 
         const rawText = response.text || '';
         const rawRows = parseOcrOutput(rawText);
@@ -154,15 +170,17 @@ Rules:
         // Match unit prices and catalog products
         const safeData = rawRows.map(row => {
             const rawName = (row.name || '').trim();
-            const customerName = rawName ? rawName : 'Walk-in';
+            const customerName = rawName || 'Walk-in';
             const qty = Math.max(1, Number(row.qty) || 1);
             const total = Number(row.total) || 0;
             const unitPrice = total > 0 ? total / qty : 0;
 
             let matchedProduct = null;
             if (unitPrice > 0 && products.length > 0) {
+                // 1. Exact price match
                 matchedProduct = products.find(p => Math.abs(Number(p.price) - unitPrice) < 0.01);
 
+                // 2. Nearest price match among Refills
                 if (!matchedProduct) {
                     const refillProducts = products.filter(p => (p.name || '').toLowerCase().includes('refill'));
                     const candidates = refillProducts.length > 0 ? refillProducts : products;
