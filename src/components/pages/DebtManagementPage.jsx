@@ -5,13 +5,18 @@ import { useDebts, useCreateDebt, useCreateDebtPayment } from '../../hooks/useDe
 import { useCreateExpense } from '../../hooks/useExpenses';
 import { useEmployees } from '../../hooks/useEmployees';
 import { useStore } from '../../store/useStore';
+import { useQueryClient } from '@tanstack/react-query';
+import { supabase } from '../../lib/supabaseClient';
 import currency from 'currency.js';
 import { format, parseISO } from 'date-fns';
 import {
     Card, CardHeader, CardContent, Button, Input, Label, Select,
     Table, TableHeader, TableBody, TableRow, TableHead, TableCell
 } from '../ui';
-import { Landmark, PlusCircle, CreditCard, Calendar, BarChart3, TrendingDown, History, Users, ChevronDown, ChevronUp } from 'lucide-react';
+import {
+    Landmark, PlusCircle, Calendar, History, Users,
+    ChevronDown, ChevronUp, Edit2, Trash2, CheckCircle2, Receipt
+} from 'lucide-react';
 
 const getPhilippineDateString = () => {
     const now = new Date();
@@ -24,13 +29,24 @@ const getPhilippineDateString = () => {
     return formatter.format(now);
 };
 
+const formatDateSafe = (dateStr, formatPattern = 'MMM dd, yyyy') => {
+    if (!dateStr) return 'N/A';
+    try {
+        const d = typeof dateStr === 'string' ? parseISO(dateStr) : new Date(dateStr);
+        return isNaN(d.getTime()) ? dateStr : format(d, formatPattern);
+    } catch {
+        return dateStr;
+    }
+};
+
 export default function DebtManagementPage() {
     const { user } = useStore(s => ({ user: s.user }));
     const isDemo = user?.isDemo;
     const addToast = useStore(s => s.addToast);
+    const queryClient = useQueryClient?.() || null;
 
     // Queries
-    const { data: debts = [], isLoading } = useDebts();
+    const { data: debts = [], isLoading, refetch } = useDebts();
     const { data: employees = [] } = useEmployees();
 
     // Mutations
@@ -61,17 +77,34 @@ export default function DebtManagementPage() {
     const [empAmountPaid, setEmpAmountPaid] = useState('');
     const [empDatePaid, setEmpDatePaid] = useState(getPhilippineDateString());
 
+    // Edit Modal State
+    const [editingDebt, setEditingDebt] = useState(null);
+    const [isUpdatingDebt, setIsUpdatingDebt] = useState(false);
+
     // Process Debts & Separate Company vs Employee
     const { companyDebts, employeeDebts } = useMemo(() => {
         const processed = debts.map(debt => {
-            const totalPaid = (debt.debt_payments || []).reduce((sum, payment) => {
+            const rawPayments = debt.debt_payments || [];
+
+            // Isolate payments belonging strictly to this debt
+            const debtPayments = rawPayments.filter(p => {
+                const pId = p.debt_id ?? p.company_debt_id ?? p.debtId;
+                if (pId !== undefined && pId !== null) {
+                    return String(pId) === String(debt.id);
+                }
+                return true;
+            });
+
+            const totalPaid = debtPayments.reduce((sum, payment) => {
                 return sum.add(currency(payment.amount_paid));
             }, currency(0)).value;
 
             const remainingDebt = currency(debt.total_debt_amount).subtract(totalPaid).value;
-            const sortedPayments = [...(debt.debt_payments || [])].sort(
-                (a, b) => new Date(b.date_paid) - new Date(a.date_paid)
-            );
+            const sortedPayments = [...debtPayments].sort((a, b) => {
+                const dateA = new Date(a.date_paid || a.payment_date || 0);
+                const dateB = new Date(b.date_paid || b.payment_date || 0);
+                return dateB - dateA;
+            });
 
             return { ...debt, totalPaid, remainingDebt, sortedPayments };
         });
@@ -106,12 +139,13 @@ export default function DebtManagementPage() {
                 debt_date: debtDate,
                 description,
                 total_debt_amount: parseFloat(totalDebtAmount),
-                weekly_payment_amount: parseFloat(weeklyPaymentAmount),
+                weekly_payment_amount: parseFloat(weeklyPaymentAmount) || 0,
                 frequency: debtFrequency,
                 type: 'company'
             });
             addToast({ title: 'Success', description: 'Company debt logged.', variant: 'success' });
             setDescription(''); setTotalDebtAmount(''); setWeeklyPaymentAmount(''); setDebtFrequency('Weekly');
+            refetch?.();
         } catch (error) {
             addToast({ title: 'Error', description: error.message, variant: 'destructive' });
         }
@@ -138,6 +172,7 @@ export default function DebtManagementPage() {
 
             addToast({ title: 'Success', description: 'Payment and expense logged.', variant: 'success' });
             setAmountPaid(''); setSelectedDebtId('');
+            refetch?.();
         } catch (error) {
             addToast({ title: 'Error', description: error.message, variant: 'destructive' });
         }
@@ -150,14 +185,14 @@ export default function DebtManagementPage() {
 
         const employee = employees.find(emp => emp.id.toString() === selectedEmployeeId);
         const employeeName = employee ? employee.name : 'Unknown Employee';
-        const finalDescription = empReason.trim() ? `${employeeName} - ${empReason}` : employeeName;
+        const finalDescription = empReason.trim() ? `${employeeName} • ${empReason.trim()}` : employeeName;
 
         try {
             await createDebtMutation.mutateAsync({
                 debt_date: empDebtDate,
                 description: finalDescription,
                 total_debt_amount: parseFloat(empTotalDebtAmount),
-                weekly_payment_amount: parseFloat(empWeeklyPaymentAmount),
+                weekly_payment_amount: parseFloat(empWeeklyPaymentAmount) || 0,
                 frequency: empDebtFrequency,
                 type: 'employee',
                 employee_id: selectedEmployeeId ? parseInt(selectedEmployeeId, 10) : null
@@ -169,6 +204,7 @@ export default function DebtManagementPage() {
             setEmpTotalDebtAmount('');
             setEmpWeeklyPaymentAmount('');
             setEmpDebtFrequency('Weekly');
+            refetch?.();
         } catch (error) {
             addToast({ title: 'Error', description: error.message, variant: 'destructive' });
         }
@@ -196,15 +232,69 @@ export default function DebtManagementPage() {
 
             addToast({ title: 'Success', description: 'Employee payment and expense logged.', variant: 'success' });
             setEmpAmountPaid(''); setSelectedEmpDebtId('');
+            refetch?.();
         } catch (error) {
             addToast({ title: 'Error', description: error.message, variant: 'destructive' });
         }
     };
 
+    // === ACCOUNT DATA MANAGEMENT (EDIT & DELETE) ===
+    const handleUpdateDebtSubmit = async (e) => {
+        e.preventDefault();
+        if (isDemo) return addToast({ title: 'Demo', description: 'Disabled in demo.', variant: 'warning' });
+        if (!editingDebt) return;
+
+        setIsUpdatingDebt(true);
+        try {
+            const { error } = await supabase
+                .from('debts')
+                .update({
+                    description: editingDebt.description,
+                    total_debt_amount: parseFloat(editingDebt.total_debt_amount),
+                    weekly_payment_amount: parseFloat(editingDebt.weekly_payment_amount) || 0,
+                    frequency: editingDebt.frequency || 'Weekly',
+                    debt_date: editingDebt.debt_date
+                })
+                .eq('id', editingDebt.id);
+
+            if (error) throw error;
+
+            addToast({ title: 'Updated', description: `Account #${editingDebt.id} updated successfully.`, variant: 'success' });
+            setEditingDebt(null);
+            refetch?.();
+            queryClient?.invalidateQueries({ queryKey: ['debts'] });
+        } catch (err) {
+            console.error('Update debt error:', err);
+            addToast({ title: 'Update Error', description: err.message, variant: 'destructive' });
+        } finally {
+            setIsUpdatingDebt(false);
+        }
+    };
+
+    const handleDeleteDebt = async (debt) => {
+        if (isDemo) return addToast({ title: 'Demo', description: 'Disabled in demo.', variant: 'warning' });
+        if (!window.confirm(`Are you sure you want to delete "${debt.description}" (#${debt.id})? All recorded payments will be deleted as well.`)) {
+            return;
+        }
+
+        try {
+            await supabase.from('debt_payments').delete().eq('debt_id', debt.id);
+            const { error } = await supabase.from('debts').delete().eq('id', debt.id);
+            if (error) throw error;
+
+            addToast({ title: 'Deleted', description: `Account #${debt.id} deleted successfully.`, variant: 'success' });
+            refetch?.();
+            queryClient?.invalidateQueries({ queryKey: ['debts'] });
+        } catch (err) {
+            console.error('Delete debt error:', err);
+            addToast({ title: 'Delete Error', description: err.message, variant: 'destructive' });
+        }
+    };
+
     // ========================================================
-    // REFACTORED TABLE COMPONENT (Dual Desktop/Mobile Layout)
+    // REFACTORED TABLE COMPONENT (FULL-WIDTH HISTORY DRAWER)
     // ========================================================
-    const DebtTable = ({ data, emptyMessage }) => {
+    const DebtTable = ({ data, emptyMessage, onEdit, onDelete }) => {
         const [expandedRows, setExpandedRows] = useState(new Set());
 
         const toggleRow = (id) => {
@@ -218,11 +308,11 @@ export default function DebtManagementPage() {
         };
 
         if (isLoading) {
-            return <div className="text-center py-12 text-gray-500">Loading...</div>;
+            return <div className="text-center py-12 text-gray-500 font-medium text-xs">Loading liabilities...</div>;
         }
 
         if (data.length === 0) {
-            return <div className="text-center py-12 text-gray-400">{emptyMessage}</div>;
+            return <div className="text-center py-12 text-gray-400 font-medium text-xs">{emptyMessage}</div>;
         }
 
         return (
@@ -233,10 +323,10 @@ export default function DebtManagementPage() {
                         <TableHeader className="bg-gray-50/80 dark:bg-gray-800/80">
                             <TableRow>
                                 <TableHead className="whitespace-nowrap">Account Details</TableHead>
-                                <TableHead className="whitespace-nowrap">Terms</TableHead>
-                                <TableHead className="w-1/4 min-w-[150px]">Progress</TableHead>
+                                <TableHead className="whitespace-nowrap text-right">Terms</TableHead>
+                                <TableHead className="w-1/4 min-w-[160px] text-center">Progress</TableHead>
                                 <TableHead className="text-right whitespace-nowrap">Remaining</TableHead>
-                                <TableHead className="w-12 text-center">History</TableHead>
+                                <TableHead className="w-24 text-center">History</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -247,84 +337,145 @@ export default function DebtManagementPage() {
 
                                 return (
                                     <React.Fragment key={debt.id}>
-                                        <TableRow className={`hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors ${isFullyPaid ? 'opacity-50 bg-gray-50/30' : ''}`}>
+                                        <TableRow className={`hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors ${isFullyPaid ? 'opacity-60 bg-gray-50/30' : ''}`}>
+                                            {/* Account Details */}
                                             <TableCell className="py-4">
-                                                <div className="font-bold text-sm text-gray-900 dark:text-gray-100">{debt.description}</div>
-                                                <div className="text-xs text-gray-500 font-mono mt-0.5">#{debt.id} • {format(parseISO(debt.debt_date), 'MMM dd, yyyy')}</div>
+                                                <div className="flex items-center gap-1.5 flex-wrap">
+                                                    <span className="font-bold text-sm text-gray-900 dark:text-gray-100">
+                                                        {debt.description}
+                                                    </span>
+                                                    {isFullyPaid && (
+                                                        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-emerald-700 bg-emerald-50 dark:bg-emerald-950 dark:text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-200">
+                                                            <CheckCircle2 className="w-2.5 h-2.5" /> Cleared
+                                                        </span>
+                                                    )}
+                                                </div>
+
+                                                <div className="flex items-center gap-2 text-xs text-gray-500 font-mono mt-1">
+                                                    <span>#{debt.id}</span>
+                                                    <span>•</span>
+                                                    <span>{formatDateSafe(debt.debt_date)}</span>
+
+                                                    {/* Edit & Delete Controls */}
+                                                    <div className="flex items-center gap-1.5 ml-2 border-l border-gray-200 dark:border-gray-700 pl-2">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => onEdit(debt)}
+                                                            className="text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors p-0.5"
+                                                            title="Edit Account Details"
+                                                        >
+                                                            <Edit2 className="w-3.5 h-3.5" />
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => onDelete(debt)}
+                                                            className="text-gray-400 hover:text-red-500 transition-colors p-0.5"
+                                                            title="Delete Debt Account"
+                                                        >
+                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                        </button>
+                                                    </div>
+                                                </div>
                                             </TableCell>
-                                            <TableCell className="py-4">
-                                                <div className="font-medium text-sm text-gray-900 dark:text-gray-100">{currency(debt.total_debt_amount, { symbol: '₱' }).format()}</div>
-                                                <div className="text-xs text-gray-500 mt-0.5">
-                                                    {currency(debt.weekly_payment_amount, { symbol: '₱' }).format()}
+
+                                            {/* Terms */}
+                                            <TableCell className="text-right py-4">
+                                                <div className="font-bold text-sm text-gray-900 dark:text-gray-100">
+                                                    {currency(debt.total_debt_amount, { symbol: '₱' }).format()}
+                                                </div>
+                                                <div className="text-[11px] text-gray-500 mt-0.5">
+                                                    {currency(debt.weekly_payment_amount || 0, { symbol: '₱' }).format()}
                                                     {(!debt.frequency || debt.frequency === 'Weekly') ? ' / wk' : ' / 15 days'}
                                                 </div>
                                             </TableCell>
-                                            <TableCell className="py-4">
-                                                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-1 overflow-hidden flex">
+
+                                            {/* Progress */}
+                                            <TableCell className="py-4 px-2">
+                                                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden flex">
                                                     <div
-                                                        className={`h-2 rounded-full transition-all duration-500 ${isFullyPaid ? 'bg-green-500' : 'bg-primary'}`}
+                                                        className={`h-2 rounded-full transition-all duration-500 ${isFullyPaid ? 'bg-emerald-500' : 'bg-primary'}`}
                                                         style={{ width: `${progressPct}%` }}
                                                     />
                                                 </div>
-                                                <div className="flex justify-between items-center mt-1.5">
-                                                    <span className="text-[10px] font-semibold text-green-600 dark:text-green-400 uppercase tracking-wider">
-                                                        {currency(debt.totalPaid, { symbol: '₱' }).format()} paid
+                                                <div className="flex justify-between items-center mt-1.5 text-[10px] font-bold">
+                                                    <span className="text-emerald-600 dark:text-emerald-400">
+                                                        {currency(debt.totalPaid, { symbol: '₱' }).format()} PAID
                                                     </span>
-                                                    <span className="text-[10px] font-bold text-gray-500">
+                                                    <span className="text-gray-400">
                                                         {Math.round(progressPct)}%
                                                     </span>
                                                 </div>
                                             </TableCell>
+
+                                            {/* Remaining */}
                                             <TableCell className="text-right py-4">
-                                                <div className={`font-black text-sm ${isFullyPaid ? 'text-green-600' : 'text-red-600'}`}>
+                                                <div className={`font-black text-sm ${isFullyPaid ? 'text-emerald-600' : 'text-red-600'}`}>
                                                     {currency(debt.remainingDebt, { symbol: '₱' }).format()}
                                                 </div>
-                                                {isFullyPaid && <div className="text-[10px] text-green-600 font-bold uppercase mt-0.5 tracking-widest">Cleared</div>}
                                             </TableCell>
+
+                                            {/* History Toggle Button */}
                                             <TableCell className="text-center py-4">
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
-                                                    className={`h-8 w-8 p-0 rounded-full transition-colors ${isExpanded ? 'bg-primary text-white hover:bg-primary-hover hover:text-white' : 'text-gray-500 hover:text-primary hover:bg-primary/10'}`}
+                                                    className={`h-8 px-2.5 rounded-lg flex items-center justify-center gap-1.5 text-xs font-semibold border transition-all mx-auto ${
+                                                        isExpanded
+                                                            ? 'bg-emerald-50 border-emerald-300 text-emerald-700 dark:bg-emerald-950 dark:border-emerald-800 dark:text-emerald-300 shadow-inner'
+                                                            : 'border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:border-gray-700 dark:text-gray-400'
+                                                    }`}
                                                     onClick={() => toggleRow(debt.id)}
-                                                    title="View Payment History"
+                                                    title={isExpanded ? 'Hide History' : 'View Payment History'}
                                                 >
-                                                    {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                                                    <span>{debt.sortedPayments.length}</span>
+                                                    {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
                                                 </Button>
                                             </TableCell>
                                         </TableRow>
 
-                                        {/* Expandable History Drawer */}
+                                        {/* Full-Width Expandable History Drawer: Uses Native <td colSpan={5}> */}
                                         {isExpanded && (
-                                            <TableRow className="bg-gray-50/80 dark:bg-gray-800/40 border-b-2 border-b-gray-200 dark:border-b-gray-700">
-                                                <TableCell colSpan={5} className="p-0">
-                                                    <div className="p-4 sm:p-6 border-l-4 border-l-primary">
-                                                        <div className="flex items-center gap-2 mb-4">
-                                                            <History className="w-4 h-4 text-primary" />
-                                                            <h4 className="font-bold text-xs text-gray-700 dark:text-gray-300 uppercase tracking-wider">Amortization History</h4>
+                                            <tr className="bg-gray-50/70 dark:bg-gray-800/40 border-b-2 border-b-gray-200 dark:border-b-gray-700">
+                                                <td colSpan={5} className="p-0 w-full">
+                                                    <div className="w-full p-4 sm:p-5 border-l-4 border-l-emerald-600 bg-gray-50/80 dark:bg-gray-800/60 animate-in fade-in duration-150">
+                                                        <div className="flex items-center gap-2 mb-3">
+                                                            <Receipt className="w-4 h-4 text-emerald-600" />
+                                                            <h4 className="font-bold text-xs text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                                                Amortization History ({debt.sortedPayments.length})
+                                                            </h4>
                                                         </div>
+
                                                         {debt.sortedPayments.length > 0 ? (
-                                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                                                                {debt.sortedPayments.map(payment => (
-                                                                    <div key={payment.id} className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 p-3 rounded-lg flex justify-between items-center shadow-sm">
-                                                                        <div className="flex flex-col">
-                                                                            <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{format(parseISO(payment.date_paid), 'MMMM dd, yyyy')}</span>
-                                                                            <span className="text-[10px] text-gray-400 font-mono mt-0.5">TXN #{payment.id}</span>
+                                                            <div className="flex flex-wrap gap-3 w-full">
+                                                                {debt.sortedPayments.map((payment, idx) => (
+                                                                    <div
+                                                                        key={payment.id || idx}
+                                                                        className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 px-3.5 py-2.5 rounded-xl flex items-center justify-between gap-3 shadow-xs min-w-[210px] flex-1 sm:flex-initial"
+                                                                    >
+                                                                        <div className="flex flex-col min-w-0 pr-1">
+                                                                            <span className="text-xs font-bold text-gray-800 dark:text-gray-200 whitespace-nowrap">
+                                                                                {formatDateSafe(payment.date_paid || payment.payment_date, 'MMM dd, yyyy')}
+                                                                            </span>
+                                                                            <span className="text-[10px] text-gray-400 font-mono mt-0.5">
+                                                                                TXN #{payment.id || idx + 1}
+                                                                            </span>
                                                                         </div>
-                                                                        <span className="text-sm font-black text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2.5 py-1 rounded-md">
+                                                                        <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800 px-2.5 py-1 rounded-lg shrink-0 whitespace-nowrap">
                                                                             +{currency(payment.amount_paid, { symbol: '₱' }).format()}
                                                                         </span>
                                                                     </div>
                                                                 ))}
                                                             </div>
                                                         ) : (
-                                                            <div className="bg-white dark:bg-gray-800 border border-dashed border-gray-200 dark:border-gray-700 rounded-lg p-6 text-center shadow-sm">
-                                                                <span className="text-sm text-gray-400 font-medium">No payments have been recorded for this account yet.</span>
+                                                            <div className="bg-white dark:bg-gray-900 border border-dashed border-gray-200 dark:border-gray-700 rounded-xl p-4 text-center">
+                                                                <span className="text-xs text-gray-400 font-medium italic">
+                                                                    No payments have been recorded for this account yet.
+                                                                </span>
                                                             </div>
                                                         )}
                                                     </div>
-                                                </TableCell>
-                                            </TableRow>
+                                                </td>
+                                            </tr>
                                         )}
                                     </React.Fragment>
                                 );
@@ -344,31 +495,53 @@ export default function DebtManagementPage() {
                             <div key={debt.id} className={`p-4 ${isFullyPaid ? 'opacity-60 bg-gray-50/50 dark:bg-gray-900/50' : 'bg-white dark:bg-gray-900'}`}>
                                 <div className="flex justify-between items-start mb-2">
                                     <div>
-                                        <div className="font-bold text-sm text-gray-900 dark:text-gray-100">{debt.description}</div>
-                                        <div className="text-xs text-gray-500 font-mono mt-0.5">#{debt.id} • {format(parseISO(debt.debt_date), 'MMM dd, yyyy')}</div>
+                                        <div className="font-bold text-sm text-gray-900 dark:text-gray-100 flex items-center gap-1.5 flex-wrap">
+                                            {debt.description}
+                                            {isFullyPaid && (
+                                                <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                                                    Cleared
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center gap-2 text-xs text-gray-500 font-mono mt-0.5">
+                                            <span>#{debt.id}</span>
+                                            <span>•</span>
+                                            <span>{formatDateSafe(debt.debt_date)}</span>
+                                            <div className="flex items-center gap-1 ml-1.5 border-l border-gray-200 pl-1.5">
+                                                <button type="button" onClick={() => onEdit(debt)} className="p-0.5 text-gray-400 hover:text-emerald-600">
+                                                    <Edit2 className="w-3.5 h-3.5" />
+                                                </button>
+                                                <button type="button" onClick={() => onDelete(debt)} className="p-0.5 text-gray-400 hover:text-red-500">
+                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
                                     <div className="text-right">
-                                        <div className={`font-black text-sm ${isFullyPaid ? 'text-green-600' : 'text-red-600'}`}>
+                                        <div className={`font-black text-sm ${isFullyPaid ? 'text-emerald-600' : 'text-red-600'}`}>
                                             {currency(debt.remainingDebt, { symbol: '₱' }).format()}
                                         </div>
-                                        {isFullyPaid && <div className="text-[10px] text-green-600 font-bold uppercase mt-0.5 tracking-widest">Cleared</div>}
                                     </div>
                                 </div>
 
                                 <div className="flex justify-between text-xs mb-3">
-                                    <span className="text-gray-600 dark:text-gray-400">Principal: <span className="font-medium text-gray-900 dark:text-gray-200">{currency(debt.total_debt_amount, { symbol: '₱' }).format()}</span></span>
-                                    <span className="text-gray-600 dark:text-gray-400">Terms: <span className="font-medium text-gray-900 dark:text-gray-200">{currency(debt.weekly_payment_amount, { symbol: '₱' }).format()}{(!debt.frequency || debt.frequency === 'Weekly') ? ' / wk' : ' / 15 days'}</span></span>
+                                    <span className="text-gray-600 dark:text-gray-400">
+                                        Principal: <span className="font-medium text-gray-900 dark:text-gray-200">{currency(debt.total_debt_amount, { symbol: '₱' }).format()}</span>
+                                    </span>
+                                    <span className="text-gray-600 dark:text-gray-400">
+                                        Terms: <span className="font-medium text-gray-900 dark:text-gray-200">{currency(debt.weekly_payment_amount || 0, { symbol: '₱' }).format()}{(!debt.frequency || debt.frequency === 'Weekly') ? ' / wk' : ' / 15 days'}</span>
+                                    </span>
                                 </div>
 
                                 <div className="mb-4">
                                     <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden flex">
                                         <div
-                                            className={`h-2 rounded-full transition-all duration-500 ${isFullyPaid ? 'bg-green-500' : 'bg-primary'}`}
+                                            className={`h-2 rounded-full transition-all duration-500 ${isFullyPaid ? 'bg-emerald-500' : 'bg-primary'}`}
                                             style={{ width: `${progressPct}%` }}
                                         />
                                     </div>
                                     <div className="flex justify-between items-center mt-1.5">
-                                        <span className="text-[10px] font-semibold text-green-600 dark:text-green-400 uppercase tracking-wider">
+                                        <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
                                             {currency(debt.totalPaid, { symbol: '₱' }).format()} paid
                                         </span>
                                         <span className="text-[10px] font-bold text-gray-500">
@@ -383,26 +556,26 @@ export default function DebtManagementPage() {
                                     onClick={() => toggleRow(debt.id)}
                                 >
                                     <History className="w-3.5 h-3.5" />
-                                    {isExpanded ? 'Hide History' : 'View History'}
+                                    {isExpanded ? 'Hide History' : `View History (${debt.sortedPayments.length})`}
                                     {isExpanded ? <ChevronUp className="w-4 h-4 ml-auto" /> : <ChevronDown className="w-4 h-4 ml-auto" />}
                                 </Button>
 
                                 {isExpanded && (
-                                    <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-lg">
+                                    <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-lg space-y-2">
                                         {debt.sortedPayments.length > 0 ? (
-                                            <div className="space-y-2">
-                                                {debt.sortedPayments.map(payment => (
-                                                    <div key={payment.id} className="flex justify-between items-center bg-white dark:bg-gray-900 p-2.5 rounded shadow-sm border border-gray-100 dark:border-gray-800">
-                                                        <div className="flex flex-col">
-                                                            <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{format(parseISO(payment.date_paid), 'MMM dd, yyyy')}</span>
-                                                            <span className="text-[10px] text-gray-400 font-mono mt-0.5">TXN #{payment.id}</span>
-                                                        </div>
-                                                        <span className="text-xs font-black text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded">
-                                                            +{currency(payment.amount_paid, { symbol: '₱' }).format()}
+                                            debt.sortedPayments.map(payment => (
+                                                <div key={payment.id} className="flex justify-between items-center bg-white dark:bg-gray-900 p-2.5 rounded shadow-sm border border-gray-100 dark:border-gray-800">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-xs font-bold text-gray-700 dark:text-gray-300">
+                                                            {formatDateSafe(payment.date_paid || payment.payment_date)}
                                                         </span>
+                                                        <span className="text-[10px] text-gray-400 font-mono mt-0.5">TXN #{payment.id}</span>
                                                     </div>
-                                                ))}
-                                            </div>
+                                                    <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1 rounded">
+                                                        +{currency(payment.amount_paid, { symbol: '₱' }).format()}
+                                                    </span>
+                                                </div>
+                                            ))
                                         ) : (
                                             <div className="text-center py-4 text-xs text-gray-400 font-medium border border-dashed border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-900">
                                                 No payments yet.
@@ -438,7 +611,7 @@ export default function DebtManagementPage() {
                         <p className="text-xs text-gray-500 uppercase">Total Initial Capital Debt</p><h3 className="text-2xl font-bold">{metrics.original}</h3>
                     </CardContent></Card>
                     <Card className="border-l-4 border-l-green-500 shadow-sm"><CardContent className="p-5">
-                        <p className="text-xs text-gray-500 uppercase">Total Principal Amount Paid</p><h3 className="text-2xl font-bold text-green-600">{metrics.paid}</h3>
+                        <p className="text-xs text-gray-500 uppercase">Total Principal Amount Paid</p><h3 className="text-2xl font-bold text-emerald-600">{metrics.paid}</h3>
                     </CardContent></Card>
                     <Card className="border-l-4 border-l-red-500 shadow-sm"><CardContent className="p-5">
                         <p className="text-xs text-gray-500 uppercase">Net Remaining Liability</p><h3 className="text-2xl font-bold text-red-600">{metrics.remaining}</h3>
@@ -457,12 +630,12 @@ export default function DebtManagementPage() {
                                         <Input type="date" value={debtDate} onChange={e => setDebtDate(e.target.value)} required />
                                     </div>
                                     <Input type="text" value={description} onChange={e => setDescription(e.target.value)} placeholder="Description" required />
-                                    <Input type="number" value={totalDebtAmount} onChange={e => setTotalDebtAmount(e.target.value)} placeholder="Total Principal (₱)" required />
+                                    <Input type="number" step="0.01" value={totalDebtAmount} onChange={e => setTotalDebtAmount(e.target.value)} placeholder="Total Principal (₱)" required />
 
                                     <div className="flex gap-2">
                                         <div className="flex-1">
                                             <Label className="text-xs font-semibold text-gray-600">Installment (₱)</Label>
-                                            <Input type="number" value={weeklyPaymentAmount} onChange={e => setWeeklyPaymentAmount(e.target.value)} placeholder="0.00" required />
+                                            <Input type="number" step="0.01" value={weeklyPaymentAmount} onChange={e => setWeeklyPaymentAmount(e.target.value)} placeholder="0.00" />
                                         </div>
                                         <div className="flex-1">
                                             <Label className="text-xs font-semibold text-gray-600">Frequency</Label>
@@ -478,7 +651,7 @@ export default function DebtManagementPage() {
                             </CardContent>
                         </Card>
                         <Card className="shadow-sm">
-                            <CardHeader className="pb-3 border-b"><h3 className="font-bold text-sm flex items-center gap-2"><Calendar className="w-4 h-4 text-green-600" /> Amortization Log</h3></CardHeader>
+                            <CardHeader className="pb-3 border-b"><h3 className="font-bold text-sm flex items-center gap-2"><Calendar className="w-4 h-4 text-emerald-600" /> Amortization Log</h3></CardHeader>
                             <CardContent className="p-5">
                                 <form onSubmit={handlePaymentSubmit} className="space-y-4">
                                     <div>
@@ -488,14 +661,14 @@ export default function DebtManagementPage() {
                                     <Select value={selectedDebtId} onChange={(e) => {
                                         setSelectedDebtId(e.target.value);
                                         const d = companyDebts.find(d => d.id.toString() === e.target.value);
-                                        if (d) setAmountPaid(d.weekly_payment_amount);
+                                        if (d) setAmountPaid(d.weekly_payment_amount || '');
                                     }} required>
                                         <option value="" disabled>-- Select Company Debt --</option>
                                         {companyDebts.filter(d => d.remainingDebt > 0).map(d => (
                                             <option key={d.id} value={d.id}>{d.description} (Rem: ₱{d.remainingDebt.toFixed(2)})</option>
                                         ))}
                                     </Select>
-                                    <Input type="number" value={amountPaid} onChange={e => setAmountPaid(e.target.value)} placeholder="Amount (₱)" required />
+                                    <Input type="number" step="0.01" value={amountPaid} onChange={e => setAmountPaid(e.target.value)} placeholder="Amount (₱)" required />
                                     <Button type="submit" variant="success" className="w-full">Confirm Payment & Log Expense</Button>
                                 </form>
                             </CardContent>
@@ -504,7 +677,14 @@ export default function DebtManagementPage() {
                     <div className="xl:col-span-3">
                         <Card className="shadow-sm overflow-hidden">
                             <CardHeader className="pb-3 border-b bg-gray-50/50"><h3 className="font-bold text-base text-gray-800">Company Liability Registry</h3></CardHeader>
-                            <CardContent className="p-0"><DebtTable data={companyDebts} emptyMessage="No company debts found." /></CardContent>
+                            <CardContent className="p-0">
+                                <DebtTable
+                                    data={companyDebts}
+                                    emptyMessage="No company debts found."
+                                    onEdit={setEditingDebt}
+                                    onDelete={handleDeleteDebt}
+                                />
+                            </CardContent>
                         </Card>
                     </div>
                 </div>
@@ -550,12 +730,12 @@ export default function DebtManagementPage() {
                                         <Input type="text" value={empReason} onChange={e => setEmpReason(e.target.value)} placeholder="e.g., Medical Emergency" />
                                     </div>
 
-                                    <Input type="number" value={empTotalDebtAmount} onChange={e => setEmpTotalDebtAmount(e.target.value)} placeholder="Total Advance (₱)" required />
+                                    <Input type="number" step="0.01" value={empTotalDebtAmount} onChange={e => setEmpTotalDebtAmount(e.target.value)} placeholder="Total Advance (₱)" required />
 
                                     <div className="flex gap-2">
                                         <div className="flex-1">
                                             <Label className="text-xs font-semibold text-gray-600">Deduction (₱)</Label>
-                                            <Input type="number" value={empWeeklyPaymentAmount} onChange={e => setEmpWeeklyPaymentAmount(e.target.value)} placeholder="0.00" required />
+                                            <Input type="number" step="0.01" value={empWeeklyPaymentAmount} onChange={e => setEmpWeeklyPaymentAmount(e.target.value)} placeholder="0.00" />
                                         </div>
                                         <div className="flex-1">
                                             <Label className="text-xs font-semibold text-gray-600">Frequency</Label>
@@ -581,14 +761,14 @@ export default function DebtManagementPage() {
                                     <Select value={selectedEmpDebtId} onChange={(e) => {
                                         setSelectedEmpDebtId(e.target.value);
                                         const d = employeeDebts.find(d => d.id.toString() === e.target.value);
-                                        if (d) setEmpAmountPaid(d.weekly_payment_amount);
+                                        if (d) setEmpAmountPaid(d.weekly_payment_amount || '');
                                     }} required>
                                         <option value="" disabled>-- Select Account --</option>
                                         {employeeDebts.filter(d => d.remainingDebt > 0).map(d => (
                                             <option key={d.id} value={d.id}>{d.description} (Rem: ₱{d.remainingDebt.toFixed(2)})</option>
                                         ))}
                                     </Select>
-                                    <Input type="number" value={empAmountPaid} onChange={e => setEmpAmountPaid(e.target.value)} placeholder="Amount (₱)" required />
+                                    <Input type="number" step="0.01" value={empAmountPaid} onChange={e => setEmpAmountPaid(e.target.value)} placeholder="Amount (₱)" required />
                                     <Button type="submit" variant="success" className="w-full">Confirm Employee Payment</Button>
                                 </form>
                             </CardContent>
@@ -597,12 +777,109 @@ export default function DebtManagementPage() {
                     <div className="xl:col-span-3">
                         <Card className="shadow-sm overflow-hidden border-indigo-100">
                             <CardHeader className="pb-3 border-b bg-indigo-50/30"><h3 className="font-bold text-base text-indigo-900">Employee Liability Registry</h3></CardHeader>
-                            <CardContent className="p-0"><DebtTable data={employeeDebts} emptyMessage="No employee debts found." /></CardContent>
+                            <CardContent className="p-0">
+                                <DebtTable
+                                    data={employeeDebts}
+                                    emptyMessage="No employee debts found."
+                                    onEdit={setEditingDebt}
+                                    onDelete={handleDeleteDebt}
+                                />
+                            </CardContent>
                         </Card>
                     </div>
                 </div>
             </div>
 
+            {/* ========================================================
+                MODAL: EDIT ACCOUNT DETAILS
+                ======================================================== */}
+            {editingDebt && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+                        <div className="bg-emerald-600 text-white px-5 py-4 flex items-center justify-between">
+                            <h3 className="font-bold text-sm">Edit Account Details (#{editingDebt.id})</h3>
+                            <button
+                                type="button"
+                                onClick={() => setEditingDebt(null)}
+                                className="text-white/80 hover:text-white p-1 font-bold text-lg leading-none transition-colors"
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleUpdateDebtSubmit} className="p-5 space-y-4">
+                            <div>
+                                <Label className="text-xs font-semibold text-gray-600 dark:text-gray-400">Description / Account Title</Label>
+                                <Input
+                                    type="text"
+                                    value={editingDebt.description || ''}
+                                    onChange={(e) => setEditingDebt({ ...editingDebt, description: e.target.value })}
+                                    required
+                                />
+                            </div>
+
+                            <div>
+                                <Label className="text-xs font-semibold text-gray-600 dark:text-gray-400">Total Principal (₱)</Label>
+                                <Input
+                                    type="number"
+                                    step="0.01"
+                                    value={editingDebt.total_debt_amount || ''}
+                                    onChange={(e) => setEditingDebt({ ...editingDebt, total_debt_amount: e.target.value })}
+                                    required
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <Label className="text-xs font-semibold text-gray-600 dark:text-gray-400">Installment (₱)</Label>
+                                    <Input
+                                        type="number"
+                                        step="0.01"
+                                        value={editingDebt.weekly_payment_amount || ''}
+                                        onChange={(e) => setEditingDebt({ ...editingDebt, weekly_payment_amount: e.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <Label className="text-xs font-semibold text-gray-600 dark:text-gray-400">Frequency</Label>
+                                    <Select
+                                        value={editingDebt.frequency || 'Weekly'}
+                                        onChange={(e) => setEditingDebt({ ...editingDebt, frequency: e.target.value })}
+                                    >
+                                        <option value="Weekly">Weekly</option>
+                                        <option value="Every 15 days">Every 15 days</option>
+                                    </Select>
+                                </div>
+                            </div>
+
+                            <div>
+                                <Label className="text-xs font-semibold text-gray-600 dark:text-gray-400">Date of Initiation</Label>
+                                <Input
+                                    type="date"
+                                    value={editingDebt.debt_date ? format(parseISO(editingDebt.debt_date), 'yyyy-MM-dd') : ''}
+                                    onChange={(e) => setEditingDebt({ ...editingDebt, debt_date: e.target.value })}
+                                />
+                            </div>
+
+                            <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100 dark:border-gray-800">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setEditingDebt(null)}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    type="submit"
+                                    disabled={isUpdatingDebt}
+                                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                                >
+                                    {isUpdatingDebt ? 'Saving Changes...' : 'Save Changes'}
+                                </Button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
