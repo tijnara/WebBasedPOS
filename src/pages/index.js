@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
+// src/pages/index.js
+import React, { useState, useRef } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { supabase } from '../lib/supabaseClient';
@@ -18,13 +19,19 @@ export default function SeasideNewLanding() {
     const physicalAddress = settings?.physical_address || 'Laois, Labrador, Pangasinan';
     const setAuth = useStore(state => state.setAuth);
 
-    // --- UI State ---
+    // --- UI State: 'login' | 'signup' | 'contact' ---
     const [authError, setAuthError] = useState(null);
+    const [regError, setRegError] = useState(null);
+    const [regSuccess, setRegSuccess] = useState(null);
     const [isDemoLoading, setIsDemoLoading] = useState(false);
     const [activeCard, setActiveCard] = useState('login');
 
-    // --- Login Form Logic (with react-hook-form) ---
-    const { register: registerLogin, handleSubmit: handleLoginSubmit, formState: { isSubmitting: isLoginSubmitting } } = useForm({
+    // --- Login Form Logic ---
+    const {
+        register: registerLogin,
+        handleSubmit: handleLoginSubmit,
+        formState: { isSubmitting: isLoginSubmitting }
+    } = useForm({
         defaultValues: {
             email: '',
             password: ''
@@ -43,7 +50,7 @@ export default function SeasideNewLanding() {
             const { data: userPayload, error: rpcError } = await supabase.rpc(
                 'authenticate_user',
                 {
-                    p_email: data.email,
+                    p_email: data.email.trim().toLowerCase(),
                     p_password: data.password,
                 }
             );
@@ -63,6 +70,89 @@ export default function SeasideNewLanding() {
         }
     };
 
+    // --- Staff Sign Up Form Logic ---
+    const {
+        register: registerSignUp,
+        handleSubmit: handleSignUpSubmit,
+        formState: { errors: signUpErrors, isSubmitting: isSignUpSubmitting },
+        reset: resetSignUp,
+        watch: watchSignUp
+    } = useForm({
+        defaultValues: {
+            name: '',
+            email: '',
+            phone: '',
+            password: '',
+            confirmPassword: ''
+        }
+    });
+
+    const onSignUp = async (data) => {
+        setRegError(null);
+        setRegSuccess(null);
+
+        const cleanEmail = data.email.trim().toLowerCase();
+        const cleanPhone = data.phone.trim();
+        const cleanName = data.name.trim();
+
+        try {
+            // 1. Check if email already exists in users table
+            const { data: existingUser, error: checkError } = await supabase
+                .from('users')
+                .select('id')
+                .eq('email', cleanEmail)
+                .maybeSingle();
+
+            if (checkError) console.warn('Check user error:', checkError.message);
+
+            if (existingUser) {
+                setRegError('An account with this email already exists. Please sign in instead.');
+                return;
+            }
+
+            // 2. Insert into users table (strictly set isadmin: false)
+            const { error: insertError } = await supabase
+                .from('users')
+                .insert([{
+                    name: cleanName,
+                    email: cleanEmail,
+                    phone: cleanPhone,
+                    password: data.password,
+                    isadmin: false, // Automatically non-admin; an admin can elevate later
+                    is_demo: false,
+                    category_id: 2
+                }])
+                .select()
+                .single();
+
+            if (insertError) throw insertError;
+
+            // 3. Attempt immediate auto-login via authenticate_user RPC
+            try {
+                const { data: userPayload } = await supabase.rpc('authenticate_user', {
+                    p_email: cleanEmail,
+                    p_password: data.password
+                });
+
+                if (userPayload) {
+                    setAuth({ ...userPayload, isadmin: false, isDemo: false });
+                    router.push('/pos');
+                    return;
+                }
+            } catch (rpcErr) {
+                console.warn('Auto-login RPC skipped:', rpcErr.message);
+            }
+
+            // Fallback: Show success and transition to login tab
+            setRegSuccess('Account created successfully! Admin privileges will be set by an administrator. Please sign in.');
+            setActiveCard('login');
+            resetSignUp();
+        } catch (err) {
+            console.error('Registration exception:', err);
+            setRegError(err.message || 'Failed to create staff account. Please try again.');
+        }
+    };
+
     const handleDemoLogin = () => {
         setIsDemoLoading(true);
         const demoUser = {
@@ -78,7 +168,12 @@ export default function SeasideNewLanding() {
     };
 
     // --- Contact Form Logic ---
-    const { register: registerContact, handleSubmit: handleContactSubmit, formState: { errors: contactErrors, isSubmitting: isContactSubmitting }, reset: resetContact } = useForm({
+    const {
+        register: registerContact,
+        handleSubmit: handleContactSubmit,
+        formState: { errors: contactErrors, isSubmitting: isContactSubmitting },
+        reset: resetContact
+    } = useForm({
         mode: 'onBlur',
         defaultValues: {
             email: '',
@@ -112,9 +207,8 @@ export default function SeasideNewLanding() {
 
     // --- Focus Handling ---
     const handleContactClick = () => {
-        setActiveCard(activeCard === 'login' ? 'contact' : 'login');
-        if (activeCard === 'login') {
-            // Use a timeout to ensure the input is rendered before focusing
+        setActiveCard(activeCard === 'contact' ? 'login' : 'contact');
+        if (activeCard !== 'contact') {
             setTimeout(() => {
                 contactEmailRef.current?.focus();
             }, 100);
@@ -142,8 +236,7 @@ export default function SeasideNewLanding() {
                 </div>
 
                 <div className="flex items-center space-x-6 sm:space-x-8 md:space-x-12 text-sm font-semibold tracking-wide relative z-50">
-
-                    {/* FIXED: About Link is First. Isolated container specifically for About + Arrow to ensure perfect centering */}
+                    {/* About Link */}
                     <div className="relative flex justify-center">
                         <a
                             href="/about"
@@ -153,9 +246,8 @@ export default function SeasideNewLanding() {
                             About
                         </a>
 
-                        {/* Rainbow Pointer properly anchored to "About" */}
+                        {/* Rainbow Pointer */}
                         <div className="absolute top-[120%] left-1/2 transform -translate-x-1/2 flex flex-col items-center pointer-events-none w-[160px] sm:w-[200px] z-[100]">
-                            {/* Perfectly centered bouncing vertical arrow */}
                             <svg className="w-5 h-5 sm:w-6 sm:h-6 animate-bounce mb-1 drop-shadow-md" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <defs>
                                     <linearGradient id="violet-arrow" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -171,11 +263,10 @@ export default function SeasideNewLanding() {
                         </div>
                     </div>
 
-                    {/* FIXED: Contact Link is Second */}
+                    {/* Contact Link */}
                     <button onClick={handleContactClick} className="hover:text-green-700 transition-colors duration-300 cursor-pointer outline-none font-bold">
-                        {activeCard === 'login' ? 'Contact' : 'Login'}
+                        {activeCard === 'contact' ? 'Login' : 'Contact'}
                     </button>
-
                 </div>
             </nav>
 
@@ -210,29 +301,268 @@ export default function SeasideNewLanding() {
                     <div className="bg-white/70 backdrop-blur-xl text-slate-800 rounded-[2rem] p-8 md:p-12 shadow-2xl shadow-green-900/20 border border-white/40 relative overflow-hidden transition-all duration-500 min-h-[580px] flex flex-col justify-center">
                         <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-gradient-to-br from-lime-400 to-green-500 rounded-full blur-2xl opacity-50 z-0"></div>
                         <div className="relative z-10 w-full">
-                            {activeCard === 'login' ? (
-                                <div className="animate-in fade-in zoom-in-95 duration-300">
-                                    <div className="mb-10"><h2 className="text-3xl font-extrabold mb-2 text-slate-900">Welcome Back</h2><p className="text-slate-500 font-medium">Log in to your Seaside dashboard.</p></div>
-                                    {authError && <div className="mb-4 rounded-xl bg-red-50 p-4 text-sm font-medium text-red-600 border border-red-100 flex items-start"><svg className="w-5 h-5 mr-2 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>{authError}</div>}
-                                    <form className="space-y-6" onSubmit={handleLoginSubmit(onLogin)}>
-                                        <div className="space-y-1">
-                                            <label className="text-sm font-bold text-slate-700 ml-1">Username or Email</label>
-                                            <input type="email" {...registerLogin('email', { required: true })} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-green-500/20 focus:border-green-500 transition-all font-medium text-slate-900 placeholder-slate-400" placeholder="name@seaside.com" />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <div className="flex justify-between items-center ml-1"><label className="text-sm font-bold text-slate-700">Password</label><a href="#" className="text-xs font-bold text-green-600 hover:text-green-700">Forgot?</a></div>
-                                            <input type="password" {...registerLogin('password', { required: true })} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-green-500/20 focus:border-green-500 transition-all font-medium text-slate-900 placeholder-slate-400" placeholder="••••••••" />
-                                        </div>
-                                        <button type="submit" disabled={isLoginSubmitting || isDemoLoading} className="w-full bg-[#8DB600] hover:bg-lime-600 text-white py-4 rounded-2xl font-bold text-lg shadow-lg shadow-lime-600/30 transition-all hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 disabled:opacity-70">
-                                            {isLoginSubmitting ? <><svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Authenticating...</> : <>Sign In<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg></>}
-                                        </button>
-                                    </form>
-                                    <div className="mt-6 relative flex items-center justify-center"><hr className="w-full border-slate-200" /><span className="absolute bg-white/70 px-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Or</span></div>
-                                    <button onClick={handleDemoLogin} disabled={isLoginSubmitting || isDemoLoading} className="mt-6 w-full border-2 border-slate-200 bg-white text-slate-700 hover:bg-slate-50 py-3 rounded-2xl font-bold transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-70">
-                                        {isDemoLoading ? <><svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-slate-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Loading Demo...</> : <><svg className="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>Try Demo Version</>}
+
+                            {/* --- TAB SELECTOR (SIGN IN VS STAFF SIGN UP) --- */}
+                            {activeCard !== 'contact' && (
+                                <div className="flex bg-slate-200/70 p-1 rounded-2xl mb-6 border border-slate-300/40">
+                                    <button
+                                        type="button"
+                                        onClick={() => { setActiveCard('login'); setAuthError(null); setRegError(null); setRegSuccess(null); }}
+                                        className={`flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+                                            activeCard === 'login'
+                                                ? 'bg-white text-slate-900 shadow-sm'
+                                                : 'text-slate-500 hover:text-slate-800'
+                                        }`}
+                                    >
+                                        Sign In
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => { setActiveCard('signup'); setAuthError(null); setRegError(null); setRegSuccess(null); }}
+                                        className={`flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+                                            activeCard === 'signup'
+                                                ? 'bg-white text-green-700 shadow-sm'
+                                                : 'text-slate-500 hover:text-slate-800'
+                                        }`}
+                                    >
+                                        Staff Sign Up
                                     </button>
                                 </div>
-                            ) : (
+                            )}
+
+                            {/* --- CARD VIEW 1: LOGIN --- */}
+                            {activeCard === 'login' && (
+                                <div className="animate-in fade-in zoom-in-95 duration-300">
+                                    <div className="mb-6">
+                                        <h2 className="text-3xl font-extrabold mb-1 text-slate-900">Welcome Back</h2>
+                                        <p className="text-slate-500 font-medium text-sm">Log in to your Seaside dashboard.</p>
+                                    </div>
+
+                                    {regSuccess && (
+                                        <div className="mb-4 rounded-xl bg-emerald-50 p-3.5 text-xs font-semibold text-emerald-700 border border-emerald-100 flex items-center gap-2">
+                                            <span>✓</span>
+                                            <span>{regSuccess}</span>
+                                        </div>
+                                    )}
+
+                                    {authError && (
+                                        <div className="mb-4 rounded-xl bg-red-50 p-4 text-sm font-medium text-red-600 border border-red-100 flex items-start">
+                                            <svg className="w-5 h-5 mr-2 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
+                                            {authError}
+                                        </div>
+                                    )}
+
+                                    <form className="space-y-4" onSubmit={handleLoginSubmit(onLogin)}>
+                                        <div className="space-y-1">
+                                            <label className="text-xs font-bold uppercase tracking-wider text-slate-700 ml-1">Username or Email</label>
+                                            <input
+                                                type="email"
+                                                {...registerLogin('email', { required: true })}
+                                                className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-green-500/20 focus:border-green-500 transition-all font-medium text-sm text-slate-900 placeholder-slate-400"
+                                                placeholder="name@seaside.com"
+                                            />
+                                        </div>
+
+                                        <div className="space-y-1">
+                                            <div className="flex justify-between items-center ml-1">
+                                                <label className="text-xs font-bold uppercase tracking-wider text-slate-700">Password</label>
+                                                <a href="#" className="text-xs font-bold text-green-600 hover:text-green-700">Forgot?</a>
+                                            </div>
+                                            <input
+                                                type="password"
+                                                {...registerLogin('password', { required: true })}
+                                                className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-green-500/20 focus:border-green-500 transition-all font-medium text-sm text-slate-900 placeholder-slate-400"
+                                                placeholder="••••••••"
+                                            />
+                                        </div>
+
+                                        <button
+                                            type="submit"
+                                            disabled={isLoginSubmitting || isDemoLoading}
+                                            className="w-full bg-[#8DB600] hover:bg-lime-600 text-white py-3.5 rounded-2xl font-bold text-base shadow-lg shadow-lime-600/30 transition-all hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 disabled:opacity-70 mt-2"
+                                        >
+                                            {isLoginSubmitting ? (
+                                                <>
+                                                    <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                                    Authenticating...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    Sign In
+                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                                                </>
+                                            )}
+                                        </button>
+                                    </form>
+
+                                    <div className="mt-5 text-center">
+                                        <button
+                                            type="button"
+                                            onClick={() => { setActiveCard('signup'); setAuthError(null); setRegError(null); }}
+                                            className="text-xs font-semibold text-green-700 hover:text-green-800 transition-colors"
+                                        >
+                                            New Seaside staff? <span className="underline font-bold">Register an account</span>
+                                        </button>
+                                    </div>
+
+                                    <div className="mt-5 relative flex items-center justify-center">
+                                        <hr className="w-full border-slate-200" />
+                                        <span className="absolute bg-white/70 px-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Or</span>
+                                    </div>
+
+                                    <button
+                                        onClick={handleDemoLogin}
+                                        disabled={isLoginSubmitting || isDemoLoading}
+                                        className="mt-5 w-full border-2 border-slate-200 bg-white text-slate-700 hover:bg-slate-50 py-3 rounded-2xl font-bold transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-70 text-sm shadow-xs"
+                                    >
+                                        {isDemoLoading ? (
+                                            <>
+                                                <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-slate-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                                Loading Demo...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <svg className="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                                                Try Demo Version
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* --- CARD VIEW 2: STAFF SIGN UP --- */}
+                            {activeCard === 'signup' && (
+                                <div className="animate-in fade-in zoom-in-95 duration-300">
+                                    <div className="mb-4">
+                                        <h2 className="text-3xl font-extrabold mb-1 text-slate-900">Staff Sign Up</h2>
+                                        <p className="text-slate-500 font-medium text-xs">
+                                            Register for a staff account. An administrator will configure your permissions.
+                                        </p>
+                                    </div>
+
+                                    {regError && (
+                                        <div className="mb-3 rounded-xl bg-red-50 p-3 text-xs font-semibold text-red-600 border border-red-100 flex items-start gap-2">
+                                            <span>⚠️</span>
+                                            <span>{regError}</span>
+                                        </div>
+                                    )}
+
+                                    <form className="space-y-2.5" onSubmit={handleSignUpSubmit(onSignUp)}>
+                                        {/* Name Field */}
+                                        <div className="space-y-0.5">
+                                            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-700 ml-1">
+                                                Full Name <span className="text-red-500">*</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                {...registerSignUp('name', { required: 'Full name is required' })}
+                                                className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-green-500/20 focus:border-green-500 transition-all font-medium text-sm text-slate-900 placeholder-slate-400"
+                                                placeholder="Juan Dela Cruz"
+                                            />
+                                            {signUpErrors.name && <p className="text-red-500 text-[10px] ml-1 font-semibold">{signUpErrors.name.message}</p>}
+                                        </div>
+
+                                        {/* Email Field */}
+                                        <div className="space-y-0.5">
+                                            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-700 ml-1">
+                                                Email Address <span className="text-red-500">*</span>
+                                            </label>
+                                            <input
+                                                type="email"
+                                                {...registerSignUp('email', {
+                                                    required: 'Email is required',
+                                                    pattern: { value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i, message: 'Invalid email address' }
+                                                })}
+                                                className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-green-500/20 focus:border-green-500 transition-all font-medium text-sm text-slate-900 placeholder-slate-400"
+                                                placeholder="staff@seaside.com"
+                                            />
+                                            {signUpErrors.email && <p className="text-red-500 text-[10px] ml-1 font-semibold">{signUpErrors.email.message}</p>}
+                                        </div>
+
+                                        {/* Phone Number Field */}
+                                        <div className="space-y-0.5">
+                                            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-700 ml-1">
+                                                Phone Number <span className="text-red-500">*</span>
+                                            </label>
+                                            <input
+                                                type="tel"
+                                                {...registerSignUp('phone', {
+                                                    required: 'Phone number is required',
+                                                    pattern: { value: /^[0-9+() -]{7,15}$/, message: 'Please enter a valid phone number' }
+                                                })}
+                                                className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-green-500/20 focus:border-green-500 transition-all font-medium text-sm text-slate-900 placeholder-slate-400"
+                                                placeholder="0912 345 6789"
+                                            />
+                                            {signUpErrors.phone && <p className="text-red-500 text-[10px] ml-1 font-semibold">{signUpErrors.phone.message}</p>}
+                                        </div>
+
+                                        {/* Password Field */}
+                                        <div className="space-y-0.5">
+                                            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-700 ml-1">
+                                                Password <span className="text-red-500">*</span>
+                                            </label>
+                                            <input
+                                                type="password"
+                                                {...registerSignUp('password', {
+                                                    required: 'Password is required',
+                                                    minLength: { value: 6, message: 'Must be at least 6 characters' }
+                                                })}
+                                                className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-green-500/20 focus:border-green-500 transition-all font-medium text-sm text-slate-900 placeholder-slate-400"
+                                                placeholder="••••••••"
+                                            />
+                                            {signUpErrors.password && <p className="text-red-500 text-[10px] ml-1 font-semibold">{signUpErrors.password.message}</p>}
+                                        </div>
+
+                                        {/* Confirm Password Field */}
+                                        <div className="space-y-0.5">
+                                            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-700 ml-1">
+                                                Confirm Password <span className="text-red-500">*</span>
+                                            </label>
+                                            <input
+                                                type="password"
+                                                {...registerSignUp('confirmPassword', {
+                                                    required: 'Confirm your password',
+                                                    validate: val => val === watchSignUp('password') || 'Passwords do not match'
+                                                })}
+                                                className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-green-500/20 focus:border-green-500 transition-all font-medium text-sm text-slate-900 placeholder-slate-400"
+                                                placeholder="••••••••"
+                                            />
+                                            {signUpErrors.confirmPassword && <p className="text-red-500 text-[10px] ml-1 font-semibold">{signUpErrors.confirmPassword.message}</p>}
+                                        </div>
+
+                                        <button
+                                            type="submit"
+                                            disabled={isSignUpSubmitting}
+                                            className="w-full bg-[#8DB600] hover:bg-lime-600 text-white py-3 rounded-2xl font-bold text-base shadow-lg shadow-lime-600/30 transition-all hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 disabled:opacity-70 mt-3"
+                                        >
+                                            {isSignUpSubmitting ? (
+                                                <>
+                                                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                                    Registering...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    Create Staff Account
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                                                </>
+                                            )}
+                                        </button>
+                                    </form>
+
+                                    <div className="mt-3 pt-2.5 border-t border-slate-200 text-center">
+                                        <button
+                                            type="button"
+                                            onClick={() => { setActiveCard('login'); setRegError(null); }}
+                                            className="text-xs font-semibold text-slate-500 hover:text-green-700 transition-colors"
+                                        >
+                                            Already registered? <span className="underline font-bold text-green-700">Sign in here</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* --- CARD VIEW 3: CONTACT --- */}
+                            {activeCard === 'contact' && (
                                 <div className="animate-in fade-in zoom-in-95 duration-300 flex flex-col h-full">
                                     <div className="mb-6"><h2 className="text-3xl font-extrabold mb-1 text-slate-900">Contact Us</h2><p className="text-slate-500 font-medium text-sm">We'd love to hear from you</p></div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
@@ -269,6 +599,7 @@ export default function SeasideNewLanding() {
                                     </div>
                                 </div>
                             )}
+
                         </div>
                     </div>
                 </div>
