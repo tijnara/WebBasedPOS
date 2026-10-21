@@ -1,22 +1,31 @@
-// C:\Users\tijna\WebstormProjects\WebBasedPOS\src\components\pages\ExpensesPage.jsx
-
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+// src/components/pages/ExpensesPage.jsx
+import React, { useState, useMemo } from 'react';
+import Head from 'next/head';
 import currency from 'currency.js';
 import { startOfWeek, endOfWeek, parseISO, format, subWeeks, addWeeks, subDays, addDays } from 'date-fns';
 import { Utensils, Car, ShoppingBag, Zap, Receipt } from 'lucide-react';
 import { useStore } from '../../store/useStore';
-import { useExpenses, useCreateExpense, useUpdateExpense, useDeleteExpense, useExpenseSummary, useExpenseCategories, useCreateExpenseCategory, useUpdateExpenseCategory } from '../../hooks/useExpenses';
+import { useQueryClient } from '@tanstack/react-query';
+
+// Extracted Hooks
+import {
+    useExpenses, useCreateExpense, useUpdateExpense, useDeleteExpense,
+    useExpenseSummary, useExpenseCategories, useCreateExpenseCategory,
+    useUpdateExpenseCategory
+} from '../../hooks/useExpenses';
 import { useEmployees } from '../../hooks/useEmployees';
 import { useSalesSummary } from '../../hooks/useSalesSummary';
 import { useDebounce } from '../../hooks/useDebounce';
-import { useQueryClient } from '@tanstack/react-query';
-import { supabase } from '../../lib/supabaseClient';
+import { useAutoSyncExpenses } from '../../hooks/useAutoSyncExpenses';
+import { useMonthlyComparison } from '../../hooks/useMonthlyComparison';
+import { useWeeklyComparison } from '../../hooks/useWeeklyComparison';
 
 // Extracted Components
 import ExpenseForm from '../expenses/ExpenseForm';
 import ExpenseFilters from '../expenses/ExpenseFilters';
 import ExpenseList from '../expenses/ExpenseList';
 import ExpenseModals from '../expenses/ExpenseModals';
+import FinancialPerformanceSection from '../expenses/FinancialPerformanceSection';
 
 const categoryStyles = {
     'Food': { icon: Utensils, colorClass: 'bg-orange-100 text-orange-600' },
@@ -29,9 +38,21 @@ const capitalizeWords = (str) => {
     return str.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
 };
 
+const formatPeso = (val) => currency(Number(val) || 0, { symbol: '₱', precision: 2 }).format();
+
+const formatDateSafe = (dateStr, formatPattern = 'MMM dd, yyyy') => {
+    if (!dateStr) return 'N/A';
+    try {
+        const d = typeof dateStr === 'string' ? parseISO(dateStr) : new Date(dateStr);
+        return isNaN(d.getTime()) ? dateStr : format(d, formatPattern);
+    } catch {
+        return dateStr;
+    }
+};
+
 export default function ExpensesPage() {
     const queryClient = useQueryClient();
-    const { user } = useStore(s => ({ user: s.user }));
+    const { user, addToast } = useStore();
     const isDemo = user?.isDemo;
 
     const initialDateFrom = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
@@ -57,11 +78,7 @@ export default function ExpensesPage() {
     const fetchStart = dateFrom ? format(subDays(parseISO(dateFrom), 1), 'yyyy-MM-dd') : undefined;
     const fetchEnd = dateTo ? format(addDays(parseISO(dateTo), 1), 'yyyy-MM-dd') : undefined;
 
-    const {
-        data: { expenses = [] } = {},
-        isLoading,
-        isFetching
-    } = useExpenses({
+    const { data: { expenses = [] } = {}, isLoading, isFetching } = useExpenses({
         startDate: fetchStart,
         endDate: fetchEnd,
         page: 1,
@@ -75,35 +92,44 @@ export default function ExpensesPage() {
     const { data: categories = [] } = useExpenseCategories();
 
     const { data: salesSummary } = useSalesSummary({
-        startDate: dateFrom ? new Date(`${dateFrom}T00:00:00`) : undefined,
-        endDate: dateTo ? new Date(`${dateTo}T23:59:59.999`) : undefined
+        startDate: dateFrom ? new Date(`${dateFrom}T00:00:00+08:00`) : undefined,
+        endDate: dateTo ? new Date(`${dateTo}T23:59:59.999+08:00`) : undefined
     });
 
     const { validExpenses, localTotalSum, localTotalCount } = useMemo(() => {
         if (!expenses || expenses.length === 0) return { validExpenses: [], localTotalSum: 0, localTotalCount: 0 };
-
-        const start = new Date(`${dateFrom}T00:00:00`);
-        const end = new Date(`${dateTo}T23:59:59.999`);
-
+        const start = new Date(`${dateFrom}T00:00:00+08:00`);
+        const end = new Date(`${dateTo}T23:59:59.999+08:00`);
         const valid = expenses.filter(exp => {
             const expDate = parseISO(exp.expense_date);
             return expDate >= start && expDate <= end;
         });
-
         const sum = valid.reduce((acc, exp) => acc + Number(exp.amount), 0);
-
         return { validExpenses: valid, localTotalSum: sum, localTotalCount: valid.length };
     }, [expenses, dateFrom, dateTo]);
 
-    const currentWeekSales = useMemo(() => {
-        if (!salesSummary) return 0;
-        const periodSales = salesSummary.totalRevenue || 0;
-        return periodSales - localTotalSum;
-    }, [salesSummary, localTotalSum]);
+    const weekGrossSales = salesSummary?.totalRevenue || 0;
+    const weekNetSales = weekGrossSales - localTotalSum;
+    const weekNetMargin = weekGrossSales > 0 ? ((weekNetSales / weekGrossSales) * 100).toFixed(1) : '0.0';
 
+    // Monthly & Weekly Comparisons
+    const { monthlyComparisonData, momNetGrowth } = useMonthlyComparison(selectedMonth);
+    const { data: previousWeekData } = useWeeklyComparison(dateFrom, dateTo);
+
+    const wowNetGrowth = useMemo(() => {
+        if (!previousWeekData) return null;
+        const cur = weekNetSales;
+        const prev = previousWeekData.net;
+        if (prev === 0) return cur > 0 ? 100 : 0;
+        return (((cur - prev) / Math.abs(prev)) * 100).toFixed(1);
+    }, [weekNetSales, previousWeekData]);
+
+    const createExpense = useCreateExpense();
+    useAutoSyncExpenses({ categories, user, isFetching, createExpense, queryClient, addToast });
+
+    // Grouping computation for the ExpenseList
     const groupedExpenses = useMemo(() => {
         if (groupBy === 'none') return { 'All Expenses': validExpenses };
-
         const sortedExpenses = [...validExpenses].sort((a, b) => new Date(b.expense_date) - new Date(a.expense_date));
 
         if (groupBy === 'category') {
@@ -123,16 +149,13 @@ export default function ExpensesPage() {
                 return acc;
             }, {});
         }
-
         return {};
     }, [validExpenses, groupBy]);
 
-    const createExpense = useCreateExpense();
     const updateExpense = useUpdateExpense();
     const deleteExpense = useDeleteExpense();
     const createCategory = useCreateExpenseCategory();
     const updateCategory = useUpdateExpenseCategory();
-    const addToast = useStore((state) => state.addToast);
 
     const [amount, setAmount] = useState('');
     const [category, setCategory] = useState('');
@@ -149,125 +172,10 @@ export default function ExpensesPage() {
         default_description: '',
         is_recurring: false,
         is_recurring_daily: false,
-        recurring_day: 1 // Default to Monday
+        recurring_day: 1
     });
-
     const [reasonModal, setReasonModal] = useState({ show: false, expense: null });
     const [reasonText, setReasonText] = useState('');
-
-    const isSyncing = useRef(false);
-
-    useEffect(() => {
-        const syncExpenses = async () => {
-            const today = new Date();
-            if (!categories.length || !user || user.isDemo || isSyncing.current || isFetching) return;
-
-            isSyncing.current = true;
-
-            try {
-                const todayStr = format(today, 'yyyy-MM-dd');
-                const recurringDailyCategories = categories.filter(cat => cat.is_recurring_daily);
-                let dailyCount = 0;
-
-                if (recurringDailyCategories.length > 0) {
-                    const { data: existingDaily, error: dailyError } = await supabase
-                        .from('expenses')
-                        .select('category')
-                        .eq('expense_date', todayStr);
-
-                    if (dailyError) throw dailyError;
-
-                    const existingDailyNames = existingDaily?.map(e => e.category) || [];
-                    const missingDaily = recurringDailyCategories.filter(
-                        cat => !existingDailyNames.includes(cat.name)
-                    );
-
-                    if (missingDaily.length > 0) {
-                        const insertDaily = missingDaily.map(cat =>
-                            createExpense.mutateAsync({
-                                amount: cat.default_amount || 0,
-                                category: cat.name,
-                                description: cat.default_description || `Daily ${cat.name}`,
-                                expense_date: todayStr
-                            })
-                        );
-                        await Promise.all(insertDaily);
-                        dailyCount = missingDaily.length;
-                    }
-                }
-
-                // --- NEW DYNAMIC WEEKLY SYNC LOGIC ---
-                const recurringWeeklyCategories = categories.filter(cat => cat.is_recurring);
-                let weeklyCount = 0;
-
-                if (recurringWeeklyCategories.length > 0) {
-                    // Group categories by the specific date they should trigger this week
-                    const categoriesByDate = {};
-
-                    recurringWeeklyCategories.forEach(cat => {
-                        const targetDay = cat.recurring_day ?? 1; // Default to Monday if legacy
-                        const todayDay = today.getDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
-
-                        // Calculate how many days ago the target day occurred
-                        const daysAgo = (todayDay + 7 - targetDay) % 7;
-                        const targetDate = subDays(today, daysAgo);
-                        const targetDateStr = format(targetDate, 'yyyy-MM-dd');
-
-                        if (!categoriesByDate[targetDateStr]) {
-                            categoriesByDate[targetDateStr] = [];
-                        }
-                        categoriesByDate[targetDateStr].push(cat);
-                    });
-
-                    // Check and insert for each specific date
-                    for (const [dateStr, cats] of Object.entries(categoriesByDate)) {
-                        const { data: existingWeekly, error: weeklyError } = await supabase
-                            .from('expenses')
-                            .select('category')
-                            .eq('expense_date', dateStr);
-
-                        if (weeklyError) throw weeklyError;
-
-                        const existingWeeklyNames = existingWeekly?.map(e => e.category) || [];
-                        const missingWeekly = cats.filter(
-                            cat => !existingWeeklyNames.includes(cat.name)
-                        );
-
-                        if (missingWeekly.length > 0) {
-                            const insertWeekly = missingWeekly.map(cat =>
-                                createExpense.mutateAsync({
-                                    amount: cat.default_amount || 0,
-                                    category: cat.name,
-                                    description: cat.default_description || `Weekly ${cat.name}`,
-                                    expense_date: dateStr
-                                })
-                            );
-                            await Promise.all(insertWeekly);
-                            weeklyCount += missingWeekly.length;
-                        }
-                    }
-                }
-
-                if (dailyCount > 0 || weeklyCount > 0) {
-                    queryClient.invalidateQueries({ queryKey: ['expenses'] });
-                    queryClient.invalidateQueries({ queryKey: ['expense-summary'] });
-
-                    if (dailyCount > 0) {
-                        addToast({ title: 'Daily Sync', message: `Automatically synced ${dailyCount} recurring daily expenses.`, type: 'success' });
-                    }
-                    if (weeklyCount > 0) {
-                        addToast({ title: 'Weekly Sync', message: `Automatically synced ${weeklyCount} recurring expenses.`, type: 'success' });
-                    }
-                }
-            } catch (err) {
-                console.error("Auto-expense sync failed:", err);
-            } finally {
-                setTimeout(() => { isSyncing.current = false; }, 2000);
-            }
-        };
-
-        syncExpenses();
-    }, [categories, user, isFetching, createExpense, queryClient, addToast, expenses]);
 
     const handleCategoryChange = (val) => {
         if (val === 'ADD_NEW') {
@@ -355,11 +263,9 @@ export default function ExpensesPage() {
         if (!amount || !description || !category || !expenseDate) return;
 
         const capitalizedDescription = capitalizeWords(description);
-
         const now = new Date();
         const [year, month, day] = expenseDate.split('-').map(Number);
         const combinedDateTime = new Date(year, month - 1, day, now.getHours(), now.getMinutes(), now.getSeconds());
-
         const localISOString = format(combinedDateTime, "yyyy-MM-dd'T'HH:mm:ss");
 
         try {
@@ -417,7 +323,6 @@ export default function ExpensesPage() {
 
     const handleConfirmSkip = async () => {
         if (!reasonText.trim() || !reasonModal.expense) return;
-
         try {
             await updateExpense.mutateAsync({
                 id: reasonModal.expense.id,
@@ -426,7 +331,6 @@ export default function ExpensesPage() {
                 description: `[SKIPPED] ${reasonText} (Was: ${reasonModal.expense.description})`,
                 expense_date: reasonModal.expense.expense_date
             });
-
             addToast({ title: 'Item Skipped', message: 'Recurring item voided for this week.', type: 'success' });
             setReasonModal({ show: false, expense: null });
             setReasonText('');
@@ -446,19 +350,15 @@ export default function ExpensesPage() {
 
     const handleNextPage = () => {
         setPage(prev => prev + 1);
-        const newFrom = format(subWeeks(parseISO(dateFrom), 1), 'yyyy-MM-dd');
-        const newTo = format(subWeeks(parseISO(dateTo), 1), 'yyyy-MM-dd');
-        setDateFrom(newFrom);
-        setDateTo(newTo);
+        setDateFrom(format(subWeeks(parseISO(dateFrom), 1), 'yyyy-MM-dd'));
+        setDateTo(format(subWeeks(parseISO(dateTo), 1), 'yyyy-MM-dd'));
     };
 
     const handlePrevPage = () => {
         if (page <= 1) return;
         setPage(prev => prev - 1);
-        const newFrom = format(addWeeks(parseISO(dateFrom), 1), 'yyyy-MM-dd');
-        const newTo = format(addWeeks(parseISO(dateTo), 1), 'yyyy-MM-dd');
-        setDateFrom(newFrom);
-        setDateTo(newTo);
+        setDateFrom(format(addWeeks(parseISO(dateFrom), 1), 'yyyy-MM-dd'));
+        setDateTo(format(addWeeks(parseISO(dateTo), 1), 'yyyy-MM-dd'));
     };
 
     const handleResetFilters = () => {
@@ -471,117 +371,145 @@ export default function ExpensesPage() {
     };
 
     return (
-        <div className="responsive-page min-h-screen bg-background">
-            <div className="w-full max-w-7xl mx-auto bg-surface shadow-xl flex flex-col lg:flex-row rounded-3xl border-transparent overflow-hidden">
-                <div className="w-full lg:w-7/12 flex flex-col bg-surface">
-                    <div className="bg-surface text-text p-8 rounded-br-[3rem] shadow-md z-10">
-                        <div className="flex justify-between items-start mb-4">
-                            <div>
-                                <h1 className="text-2xl font-bold flex items-center gap-2 text-text"><Receipt /> Expenses</h1>
-                                <p className="text-xs text-text-muted mt-1">Created on: April 19, 2026 Sunday</p>
-                            </div>
-                            <div className="text-right">
-                                <p className="text-text-muted text-xs font-semibold uppercase tracking-wider">
-                                    {dateFrom === initialDateFrom ? 'Current Week Gross' : 'Selected Week Gross'}
-                                </p>
-                                <p className="text-lg font-bold text-green-600">
-                                    {currency(salesSummary?.totalRevenue || 0, { symbol: '₱' }).format()}
-                                </p>
-                                <p className="text-text-muted text-xs font-semibold uppercase tracking-wider mt-2">
-                                    {dateFrom === initialDateFrom ? 'Current Week Net' : 'Selected Week Net'}
-                                </p>
-                                <p className="text-xl font-bold" style={{ color: currentWeekSales >= 0 ? '#8DB600' : '#dc2626' }}>
-                                    {currentWeekSales >= 0 ? '+' : ''}{currency(currentWeekSales, { symbol: '₱' }).format()}
-                                </p>
-                            </div>
-                        </div>
+        <div className="responsive-page min-h-screen bg-background p-4 sm:p-6 lg:p-8 space-y-6">
+            <Head><title>Expenses & Financial Performance | Seaside POS</title></Head>
 
-                        <p className="text-text-muted text-sm font-medium">Selected Period Total</p>
-                        <h2 className="text-5xl font-extrabold mb-4 text-red-600">{currency(localTotalSum || 0, { symbol: '₱' }).format()}</h2>
+            <div className="max-w-7xl mx-auto space-y-6">
 
-                        <div className="flex gap-12 border-t-transparent pt-4 items-end">
-                            <div>
-                                <div className="flex items-center gap-2 mb-1">
-                                    <p className="text-xs uppercase font-semibold text-text-muted">Monthly</p>
-                                    <input
-                                        type="month"
-                                        value={selectedMonth}
-                                        onChange={(e) => setSelectedMonth(e.target.value)}
-                                        className="text-xs bg-background border border-gray-200 dark:border-gray-800 rounded px-2 py-1 text-text cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary"
-                                    />
+                {/* 1. EXTRACTED GRAPHICAL BUSINESS SECTION */}
+                <FinancialPerformanceSection
+                    dateFrom={dateFrom}
+                    setDateFrom={setDateFrom}
+                    setDateTo={setDateTo}
+                    initialDateFrom={initialDateFrom}
+                    dateTo={dateTo}
+                    weekGrossSales={weekGrossSales}
+                    localTotalSum={localTotalSum}
+                    weekNetSales={weekNetSales}
+                    weekNetMargin={weekNetMargin}
+                    previousWeekData={previousWeekData}
+                    wowNetGrowth={wowNetGrowth}
+                    monthlyComparisonData={monthlyComparisonData}
+                    momNetGrowth={momNetGrowth}
+                    selectedMonth={selectedMonth}
+                    setSelectedMonth={setSelectedMonth}
+                />
+
+                {/* 2. EXPENSE LOGGING & TRANSACTION MANAGEMENT */}
+                <div className="w-full bg-surface shadow-xl flex flex-col lg:flex-row rounded-3xl border-transparent overflow-hidden">
+                    <div className="w-full lg:w-7/12 flex flex-col bg-surface">
+                        <div className="bg-surface text-text p-6 sm:p-8 rounded-br-[3rem] shadow-sm z-10 border-b border-slate-100 dark:border-slate-800">
+                            <div className="flex justify-between items-start mb-4">
+                                <div>
+                                    <h1 className="text-2xl font-bold flex items-center gap-2 text-text">
+                                        <Receipt className="text-emerald-600" /> Expense Operations
+                                    </h1>
+                                    <p className="text-xs text-text-muted mt-1">
+                                        Record payouts, daily operations, and recurring utilities
+                                    </p>
                                 </div>
-                                <p className="text-lg font-bold text-text">{currency(summary?.monthlyTotal || 0, { symbol: '₱' }).format()}</p>
+                                <div className="text-right">
+                                    <p className="text-text-muted text-[10px] font-bold uppercase tracking-wider">
+                                        {dateFrom === initialDateFrom ? 'Week Gross Revenue' : 'Period Gross'}
+                                    </p>
+                                    <p className="text-base sm:text-lg font-bold text-emerald-600">
+                                        {formatPeso(salesSummary?.totalRevenue || 0)}
+                                    </p>
+                                    <p className="text-text-muted text-[10px] font-bold uppercase tracking-wider mt-1.5">
+                                        {dateFrom === initialDateFrom ? 'Week Net Income' : 'Period Net'}
+                                    </p>
+                                    <p className="text-lg sm:text-xl font-black" style={{ color: weekNetSales >= 0 ? '#10b981' : '#dc2626' }}>
+                                        {weekNetSales >= 0 ? '+' : ''}{formatPeso(weekNetSales)}
+                                    </p>
+                                </div>
                             </div>
-                            <div>
-                                <p className="text-xs uppercase font-semibold text-text-muted mb-1 pb-[10px]">All Time (Since Apr 20)</p>
-                                <p className="text-lg font-bold text-text">{currency(summary?.grandTotal || 0, { symbol:'₱' }).format()}</p>
+
+                            <p className="text-text-muted text-xs font-semibold uppercase tracking-wider">Selected Period Expenses</p>
+                            <h2 className="text-3xl sm:text-4xl font-extrabold mb-4 text-red-600">{formatPeso(localTotalSum || 0)}</h2>
+
+                            <div className="flex flex-wrap gap-8 border-t border-slate-100 dark:border-slate-800 pt-3 items-end">
+                                <div>
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <p className="text-xs uppercase font-semibold text-text-muted">Monthly Filter</p>
+                                        <input
+                                            type="month"
+                                            value={selectedMonth}
+                                            onChange={(e) => setSelectedMonth(e.target.value)}
+                                            className="text-xs bg-background border border-gray-200 dark:border-gray-800 rounded-lg px-2 py-1 text-text cursor-pointer focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                                        />
+                                    </div>
+                                    <p className="text-base font-bold text-text">{formatPeso(summary?.monthlyTotal || 0)}</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs uppercase font-semibold text-text-muted mb-1 pb-[10px]">All-Time Expenses</p>
+                                    <p className="text-base font-bold text-text">{formatPeso(summary?.grandTotal || 0)}</p>
+                                </div>
                             </div>
+                        </div>
+
+                        <div className="p-5 sm:p-6 space-y-6">
+                            <ExpenseForm
+                                amount={amount}
+                                setAmount={setAmount}
+                                category={category}
+                                handleCategoryChange={handleCategoryChange}
+                                description={description}
+                                setDescription={setDescription}
+                                expenseDate={expenseDate}
+                                setExpenseDate={setExpenseDate}
+                                employeeName={employeeName}
+                                setEmployeeName={setEmployeeName}
+                                editingExpense={editingExpense}
+                                cancelEdit={cancelEdit}
+                                handleManualSubmit={handleManualSubmit}
+                                handleEditCategory={handleEditCategory}
+                                categories={categories}
+                                employees={employees}
+                                isDemo={isDemo}
+                                isPending={createExpense.isPending || updateExpense.isPending}
+                            />
+                            <ExpenseFilters
+                                searchTerm={searchTerm}
+                                setSearchTerm={setSearchTerm}
+                                filterCategory={filterCategory}
+                                setFilterCategory={setFilterCategory}
+                                filterEmployee={filterEmployee}
+                                setFilterEmployee={setFilterEmployee}
+                                dateFrom={dateFrom}
+                                setDateFrom={setDateFrom}
+                                dateTo={dateTo}
+                                setDateTo={setDateTo}
+                                setPage={setPage}
+                                handleResetFilters={handleResetFilters}
+                                categories={categories}
+                                employees={employees}
+                            />
                         </div>
                     </div>
 
-                    <div className="p-6">
-                        <ExpenseForm
-                            amount={amount}
-                            setAmount={setAmount}
-                            category={category}
-                            handleCategoryChange={handleCategoryChange}
-                            description={description}
-                            setDescription={setDescription}
-                            expenseDate={expenseDate}
-                            setExpenseDate={setExpenseDate}
-                            employeeName={employeeName}
-                            setEmployeeName={setEmployeeName}
+                    <div className="w-full lg:w-5/12 bg-surface flex flex-col p-5 sm:p-6 lg:border-l border-slate-100 dark:border-slate-800 h-full">
+                        <ExpenseList
+                            groupedExpenses={groupedExpenses}
+                            isLoading={isLoading}
+                            validExpenses={validExpenses}
+                            localTotalSum={localTotalSum}
+                            localTotalCount={localTotalCount}
+                            groupBy={groupBy}
+                            setGroupBy={setGroupBy}
+                            categoryStyles={categoryStyles}
+                            categories={categories}
                             editingExpense={editingExpense}
-                            cancelEdit={cancelEdit}
-                            handleManualSubmit={handleManualSubmit}
-                            handleEditCategory={handleEditCategory}
-                            categories={categories}
-                            employees={employees}
+                            handleEditClick={handleEditClick}
+                            handleDeleteClick={handleDeleteClick}
+                            setReasonModal={setReasonModal}
+                            setReasonText={setReasonText}
                             isDemo={isDemo}
-                            isPending={createExpense.isPending || updateExpense.isPending}
-                        />
-
-                        <ExpenseFilters
-                            searchTerm={searchTerm}
-                            setSearchTerm={setSearchTerm}
-                            filterCategory={filterCategory}
-                            setFilterCategory={setFilterCategory}
-                            filterEmployee={filterEmployee}
-                            setFilterEmployee={setFilterEmployee}
+                            page={page}
                             dateFrom={dateFrom}
-                            setDateFrom={setDateFrom}
-                            dateTo={dateTo}
-                            setDateTo={setDateTo}
-                            setPage={setPage}
-                            handleResetFilters={handleResetFilters}
-                            categories={categories}
-                            employees={employees}
+                            handlePrevPage={handlePrevPage}
+                            handleNextPage={handleNextPage}
                         />
                     </div>
-                </div>
-
-                <div className="w-full lg:w-5/12 bg-surface flex flex-col p-6 lg:border-l-transparent h-full">
-                    <ExpenseList
-                        groupedExpenses={groupedExpenses}
-                        isLoading={isLoading}
-                        validExpenses={validExpenses}
-                        localTotalSum={localTotalSum}
-                        localTotalCount={localTotalCount}
-                        groupBy={groupBy}
-                        setGroupBy={setGroupBy}
-                        categoryStyles={categoryStyles}
-                        categories={categories}
-                        editingExpense={editingExpense}
-                        handleEditClick={handleEditClick}
-                        handleDeleteClick={handleDeleteClick}
-                        setReasonModal={setReasonModal}
-                        setReasonText={setReasonText}
-                        isDemo={isDemo}
-                        page={page}
-                        dateFrom={dateFrom}
-                        handlePrevPage={handlePrevPage}
-                        handleNextPage={handleNextPage}
-                    />
                 </div>
             </div>
 
