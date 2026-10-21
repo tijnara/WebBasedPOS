@@ -118,7 +118,7 @@ export default function SeasideNewLanding() {
                     email: cleanEmail,
                     phone: cleanPhone,
                     password: data.password,
-                    isadmin: false, // Automatically non-admin; an admin can elevate later
+                    isadmin: false,
                     is_demo: false,
                     category_id: 2
                 }])
@@ -604,6 +604,13 @@ export default function SeasideNewLanding() {
                     </div>
                 </div>
             </main>
+
+            {/* Footer */}
+            <footer className="relative z-20 py-4 px-6 text-center text-xs font-medium text-slate-700/80 border-t border-white/40 bg-white/30 backdrop-blur-md">
+                <p>
+                    &copy; {new Date().getFullYear()} Seaside Purified Water Refilling Station. All rights reserved. • Developed by <span className="font-bold text-green-800">tijnara</span>
+                </p>
+            </footer>
         </div>
     );
 }
