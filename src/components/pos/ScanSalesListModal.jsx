@@ -1,6 +1,6 @@
 // src/components/pos/ScanSalesListModal.jsx
 import React, { useState, useRef } from 'react';
-import { Camera, Trash2, Check, Loader2, FileImage, Plus } from 'lucide-react';
+import { Camera, Trash2, Check, Loader2, FileImage, Plus, Calendar } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { useStore } from '../../store/useStore';
 import { format } from 'date-fns';
@@ -51,6 +51,9 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
+
+    // Delivery date defaults to today (YYYY-MM-DD)
+    const [deliveryDate, setDeliveryDate] = useState(() => format(new Date(), 'yyyy-MM-dd'));
 
     const cameraInputRef = useRef(null);
     const uploadInputRef = useRef(null);
@@ -155,11 +158,12 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
         setIsSaving(true);
 
         try {
-            // Explicit Asia/Manila (+08:00) ISO timestamp
+            // Apply selected delivery date combined with the current time of day in Asia/Manila (+08:00)
             const now = new Date();
-            const manilaIso = format(now, "yyyy-MM-dd'T'HH:mm:ss'+08:00'");
+            const timeOfDay = format(now, 'HH:mm:ss');
+            const targetDate = deliveryDate || format(now, 'yyyy-MM-dd');
+            const manilaIso = `${targetDate}T${timeOfDay}+08:00`;
 
-            // Fallback product if item has no product_id selected
             const defaultCatalogProduct = products.find(p => p.name?.toLowerCase().includes('refill')) || products[0];
 
             for (const item of parsedItems) {
@@ -168,7 +172,7 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
                 const total = Number(item.total_amount) || (qty * unitPrice);
                 const customerName = (item.customer_name || 'Walk-in').trim();
 
-                // 1. Insert into public.sales
+                // 1. Insert into public.sales with the selected delivery timestamp
                 const { data: saleData, error: saleErr } = await supabase
                     .from('sales')
                     .insert([{
@@ -184,7 +188,7 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
 
                 if (saleErr) throw saleErr;
 
-                // 2. Insert into public.sale_items with matching columns
+                // 2. Insert into public.sale_items
                 const finalProductId = item.product_id || defaultCatalogProduct?.id;
                 const finalProductName = item.product_name || defaultCatalogProduct?.name || 'Water Refill';
 
@@ -206,9 +210,10 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
                 }
             }
 
+            const formattedDeliveryDate = format(new Date(`${targetDate}T00:00:00+08:00`), 'MMM d, yyyy');
             addToast({
                 title: 'Sales Recorded',
-                description: `Successfully logged ${parsedItems.length} transactions from photo!`,
+                description: `Successfully logged ${parsedItems.length} transactions for ${formattedDeliveryDate}!`,
                 variant: 'success'
             });
 
@@ -227,8 +232,8 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
     return (
         <div className="fixed inset-0 bg-black/60 z-[120] flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                {/* Header with Seaside Logo */}
-                <div className="bg-emerald-600 text-white px-5 py-4 flex items-center justify-between">
+                {/* Header with Seaside Logo & Delivery Date Picker */}
+                <div className="bg-emerald-600 text-white px-5 py-3.5 flex flex-wrap items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center p-1.5 shadow-sm overflow-hidden shrink-0">
                             <img
@@ -242,13 +247,33 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
                             <p className="text-xs text-emerald-100">AI auto-extracts customer orders from paper lists</p>
                         </div>
                     </div>
-                    <button
-                        onClick={onClose}
-                        disabled={isSaving}
-                        className="text-white/80 hover:text-white text-lg font-bold p-1 leading-none"
-                    >
-                        ✕
-                    </button>
+
+                    <div className="flex items-center gap-2.5 self-end sm:self-auto ml-auto">
+                        {/* Delivery Date Input */}
+                        <div className="flex items-center gap-2 bg-emerald-700/90 hover:bg-emerald-700 border border-emerald-500/60 rounded-xl px-2.5 py-1 text-xs shadow-inner transition-colors">
+                            <Calendar className="w-3.5 h-3.5 text-emerald-200 shrink-0" />
+                            <div className="flex flex-col">
+                                <label className="text-[9px] uppercase tracking-wider font-bold text-emerald-200 leading-none">
+                                    Delivery Date
+                                </label>
+                                <input
+                                    type="date"
+                                    value={deliveryDate}
+                                    onChange={(e) => setDeliveryDate(e.target.value)}
+                                    className="bg-transparent text-white font-bold text-xs outline-none cursor-pointer [color-scheme:dark] py-0.5"
+                                />
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={onClose}
+                            disabled={isSaving}
+                            className="text-white/80 hover:text-white text-lg font-bold p-1 leading-none transition-colors"
+                            title="Close modal"
+                        >
+                            ✕
+                        </button>
+                    </div>
                 </div>
 
                 <div className="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
