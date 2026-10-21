@@ -31,6 +31,16 @@ import { useWeeklyGrowth } from '../../hooks/useWeeklyGrowth';
 import { useMonthlyGrowth } from '../../hooks/useMonthlyGrowth';
 
 import { format } from 'date-fns';
+import {
+    TrendingUp,
+    TrendingDown,
+    Droplets,
+    DollarSign,
+    Calendar,
+    BarChart3,
+    ArrowUpRight,
+    ArrowDownRight
+} from 'lucide-react';
 
 // Floating action buttons
 import FloatingMessages from '../FloatingMessages';
@@ -71,11 +81,101 @@ ChartJS.register(
     Filler
 );
 
+// Executive Graphical Business KPI Card
+function GraphicalMetricCard({
+                                 title,
+                                 currentValue,
+                                 previousValue,
+                                 percentage,
+                                 isPositive,
+                                 currentRange,
+                                 previousRange,
+                                 unit = '₱',
+                                 rawCurrent = 0,
+                                 rawPrevious = 0,
+                                 icon: Icon,
+                                 isLoading
+                             }) {
+    // Calculate visual pace / progress ratio against prior period
+    const ratio = rawPrevious > 0 ? Math.min(100, Math.round((rawCurrent / rawPrevious) * 100)) : 0;
+
+    return (
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between hover:shadow-md transition-all duration-200">
+            <div>
+                {/* Header: Title + Icon + Trend Pill */}
+                <div className="flex items-center justify-between gap-2 mb-2">
+                    <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-emerald-600 dark:text-emerald-400 border border-slate-100 dark:border-slate-700/60">
+                            {Icon && <Icon className="w-4 h-4" />}
+                        </div>
+                        <span className="text-xs font-bold text-slate-600 dark:text-slate-300 tracking-tight">
+                            {title}
+                        </span>
+                    </div>
+
+                    {percentage !== undefined && percentage !== null && !isLoading && (
+                        <div
+                            className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[11px] font-black border ${
+                                isPositive
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
+                                    : 'bg-rose-50 text-rose-700 border-rose-200/80 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800'
+                            }`}
+                        >
+                            {isPositive ? (
+                                <ArrowUpRight className="w-3 h-3 stroke-[2.5]" />
+                            ) : (
+                                <ArrowDownRight className="w-3 h-3 stroke-[2.5]" />
+                            )}
+                            <span>{Math.abs(percentage).toFixed(1)}%</span>
+                        </div>
+                    )}
+                </div>
+
+                {/* Primary Metric Value */}
+                <div className="mt-2">
+                    {isLoading ? (
+                        <div className="h-7 w-28 bg-slate-100 dark:bg-slate-800 animate-pulse rounded-lg" />
+                    ) : (
+                        <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                            {currentValue}
+                        </h2>
+                    )}
+                </div>
+
+                {/* Visual Comparative Progress Bar */}
+                <div className="mt-3.5 space-y-1.5">
+                    <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden flex">
+                        <div
+                            className={`h-full rounded-full transition-all duration-500 ${
+                                isPositive ? 'bg-emerald-500' : 'bg-amber-500'
+                            }`}
+                            style={{ width: `${ratio}%` }}
+                        />
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] font-semibold text-slate-400">
+                        <span>Pace: <strong className="text-slate-700 dark:text-slate-300">{ratio}%</strong> of prior</span>
+                        <span>Prior: <strong className="text-slate-600 dark:text-slate-400">{previousValue}</strong></span>
+                    </div>
+                </div>
+            </div>
+
+            {/* Bottom Comparison Date Range */}
+            <div className="mt-4 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[10px] text-slate-400">
+                <span className="font-semibold text-slate-500 dark:text-slate-400">Period:</span>
+                <span className="font-medium truncate pl-1">
+                    {currentRange && previousRange ? `${currentRange} vs. ${previousRange}` : 'Current vs Prior Period'}
+                </span>
+            </div>
+        </div>
+    );
+}
+
 export default function DashboardPage() {
     const user = useStore(state => state.user);
 
-    // Toggle for Monthly vs Weekly chart view
+    // Toggles for charts
     const [salesView, setSalesView] = useState('Monthly');
+    const [periodGraphMode, setPeriodGraphMode] = useState('revenue'); // 'revenue' | 'gallons'
 
     // Fetch live data from the database
     const { data: summaryData, isLoading: isSummaryLoading } = useSalesSummary();
@@ -95,6 +195,56 @@ export default function DashboardPage() {
 
     const { data: weeklyGrowthData, isLoading: isWeeklyGrowthLoading } = useWeeklyGrowth();
     const { data: monthlyGrowthData, isLoading: isMonthlyGrowthLoading } = useMonthlyGrowth();
+
+    // Safe Numeric Metric Extractions
+    const mThisSales = Number(monthlyGrowthData?.thisMonthSales) || 0;
+    const mLastSales = Number(monthlyGrowthData?.lastMonthSales) || 0;
+    const mSalesGrowth = monthlyGrowthData?.salesGrowth;
+
+    const mThisGal = Number(monthlyGrowthData?.thisMonthGallons) || 0;
+    const mLastGal = Number(monthlyGrowthData?.lastMonthGallons) || 0;
+    const mGalGrowth = monthlyGrowthData?.gallonsGrowth;
+
+    const wThisSales = Number(weeklyGrowthData?.thisWeekSales) || 0;
+    const wLastSales = Number(weeklyGrowthData?.lastWeekSales) || 0;
+    const wSalesGrowth = weeklyGrowthData?.salesGrowth;
+
+    const wThisGal = Number(weeklyGrowthData?.thisWeekGallons) || 0;
+    const wLastGal = Number(weeklyGrowthData?.lastWeekGallons) || 0;
+    const wGalGrowth = weeklyGrowthData?.gallonsGrowth;
+
+    // Clean Date Ranges (No multiline wrapping)
+    const mRange = useMemo(() => {
+        if (!monthlyGrowthData?.thisMonthStart) return null;
+        try {
+            const curStart = format(new Date(monthlyGrowthData.thisMonthStart), 'MMM d');
+            const curEnd = format(new Date(monthlyGrowthData.thisMonthEnd || monthlyGrowthData.thisMonthStart), 'd');
+            const prevStart = format(new Date(monthlyGrowthData.lastMonthStart), 'MMM d');
+            const prevEnd = format(new Date(monthlyGrowthData.lastMonthEnd || monthlyGrowthData.lastMonthStart), 'd');
+            return {
+                current: `${curStart} - ${curEnd}`,
+                previous: `${prevStart} - ${prevEnd}`
+            };
+        } catch {
+            return null;
+        }
+    }, [monthlyGrowthData]);
+
+    const wRange = useMemo(() => {
+        if (!weeklyGrowthData?.thisWeekStart) return null;
+        try {
+            const curStart = format(new Date(weeklyGrowthData.thisWeekStart), 'MMM d');
+            const curEnd = format(new Date(weeklyGrowthData.thisWeekEnd || weeklyGrowthData.thisWeekStart), 'd');
+            const prevStart = format(new Date(weeklyGrowthData.lastWeekStart), 'MMM d');
+            const prevEnd = format(new Date(weeklyGrowthData.lastWeekEnd || weeklyGrowthData.lastWeekStart), 'd');
+            return {
+                current: `${curStart} - ${curEnd}`,
+                previous: `${prevStart} - ${prevEnd}`
+            };
+        } catch {
+            return null;
+        }
+    }, [weeklyGrowthData]);
 
     // --- TOP 10 ALL-TIME CUSTOMERS ---
     const { data: topCustomers, isLoading: isTopCustomersLoading } = useQuery({
@@ -134,10 +284,85 @@ export default function DashboardPage() {
                 .sort((a, b) => b.revenue - a.revenue)
                 .slice(0, 10);
         },
-        staleTime: 1000 * 60 * 60 // Cache for 1 hour
+        staleTime: 1000 * 60 * 60
     });
 
-    // Line Chart Data: Live Monthly/Weekly Sales from Database
+    // Comparative Bar Graph: Current Period vs Previous Period
+    const periodComparisonBarData = useMemo(() => {
+        const isRev = periodGraphMode === 'revenue';
+
+        return {
+            labels: ['Monthly Analysis', 'Weekly Analysis'],
+            datasets: [
+                {
+                    label: 'Current Period',
+                    data: isRev ? [mThisSales, wThisSales] : [mThisGal, wThisGal],
+                    backgroundColor: isRev ? '#10b981' : '#0284c7',
+                    borderRadius: 6,
+                    barPercentage: 0.55,
+                    categoryPercentage: 0.65
+                },
+                {
+                    label: 'Previous Period',
+                    data: isRev ? [mLastSales, wLastSales] : [mLastGal, wLastGal],
+                    backgroundColor: '#cbd5e1',
+                    borderRadius: 6,
+                    barPercentage: 0.55,
+                    categoryPercentage: 0.65
+                }
+            ]
+        };
+    }, [periodGraphMode, mThisSales, wThisSales, mLastSales, wLastSales, mThisGal, wThisGal, mLastGal, wLastGal]);
+
+    const periodComparisonBarOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'top',
+                align: 'end',
+                labels: {
+                    usePointStyle: true,
+                    boxWidth: 8,
+                    color: '#64748b',
+                    font: { family: 'Inter', weight: '600', size: 12 }
+                }
+            },
+            tooltip: {
+                backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                titleColor: '#fff',
+                bodyColor: '#cbd5e1',
+                padding: 12,
+                cornerRadius: 8,
+                callbacks: {
+                    label: (context) => {
+                        const val = context.parsed.y;
+                        const formatted = periodGraphMode === 'revenue'
+                            ? `₱${Number(val).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                            : `${Number(val).toLocaleString()} gal`;
+                        return ` ${context.dataset.label}: ${formatted}`;
+                    }
+                }
+            }
+        },
+        scales: {
+            x: {
+                grid: { display: false },
+                ticks: { color: '#64748b', font: { weight: '600', size: 12 } }
+            },
+            y: {
+                beginAtZero: true,
+                grid: { color: '#f1f5f9' },
+                ticks: {
+                    color: '#64748b',
+                    font: { size: 11 },
+                    callback: (val) => periodGraphMode === 'revenue' ? `₱${(val / 1000).toFixed(0)}k` : `${val} gal`
+                }
+            }
+        }
+    };
+
+    // Line Chart Data: Live Monthly/Weekly Sales
     const lineChartData = useMemo(() => {
         if (!summaryData) return { labels: [], datasets: [] };
 
@@ -169,12 +394,12 @@ export default function DashboardPage() {
                 {
                     label: `${salesView} Sales`,
                     data: data,
-                    borderColor: 'rgba(94, 234, 212, 1)',
-                    backgroundColor: 'rgba(153, 246, 228, 0.5)',
+                    borderColor: 'rgba(16, 185, 129, 1)',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
                     fill: true,
                     tension: 0.4,
                     pointBackgroundColor: '#fff',
-                    pointBorderColor: 'rgba(94, 234, 212, 1)',
+                    pointBorderColor: 'rgba(16, 185, 129, 1)',
                     pointRadius: 4,
                 }
             ]
@@ -249,7 +474,7 @@ export default function DashboardPage() {
             datasets: [{
                 label: 'Total Revenue',
                 data: data,
-                backgroundColor: '#8DB600',
+                backgroundColor: '#10b981',
                 borderRadius: 4,
                 barPercentage: 0.6
             }]
@@ -285,6 +510,7 @@ export default function DashboardPage() {
         }
     };
 
+    // Pie Chart Data: Top Products
     const pieChartData = useMemo(() => {
         if (!Array.isArray(topProducts) || topProducts.length === 0) {
             return { labels: [], datasets: [] };
@@ -303,7 +529,7 @@ export default function DashboardPage() {
             labels: topProducts.map(p => p.name || 'Unknown'),
             datasets: [{
                 data: percentages,
-                backgroundColor: ['#38bdf8', '#fbbf24', '#f97316', '#78350f', '#a78bfa'],
+                backgroundColor: ['#10b981', '#06b6d4', '#f59e0b', '#8b5cf6', '#ec4899'],
                 borderWidth: 0,
                 hoverOffset: 4
             }]
@@ -342,104 +568,166 @@ export default function DashboardPage() {
 
     return (
         <div className="flex-1 min-h-screen bg-transparent font-sans responsive-page pb-12 transition-colors duration-300">
-            <Head />
+            <Head>
+                <title>Dashboard | Seaside POS</title>
+            </Head>
             <main className="max-w-7xl mx-auto px-4 sm:px-6 mt-6">
                 <div className="flex flex-col gap-6">
 
-                    {/* --- TOP ROW --- */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mt-4">
+                    {/* --- ROW 1: LIFETIME & TODAY'S METRICS --- */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <SummaryCard
-                            title="Overall Sales"
+                            title="Overall Lifetime Sales"
                             isLoading={isSummaryLoading}
                             value={`₱${overallSalesTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                             isPositive={true}
                             comparisonText={firstTransactionDate ? `First Transaction: ${firstTransactionDate}` : "Lifetime total"}
                         />
                         <SummaryCard
-                            title="Recent Sales"
+                            title="Today's Sales"
                             isLoading={isTodayLoading}
                             value={`₱${todaySales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                             percentage={recentSalesPct !== null ? Math.abs(recentSalesPct) : undefined}
                             isPositive={recentSalesPct !== null ? recentSalesPct >= 0 : true}
-                            comparisonText="vs yesterday"
-                        />
-                        <SummaryCard
-                            title="Monthly Sales"
-                            isLoading={isMonthlyGrowthLoading}
-                            value={`₱${(monthlyGrowthData?.thisMonthSales || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                            previousValue={`₱${(monthlyGrowthData?.lastMonthSales || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                            previousPeriodRange={monthlyGrowthData?.lastMonthStart ? `(${format(monthlyGrowthData.lastMonthStart, 'MMM d')} - ${format(monthlyGrowthData.lastMonthEnd, 'd')})` : undefined}
-                            percentage={Math.abs(monthlyGrowthData?.salesGrowth)}
-                            isPositive={monthlyGrowthData?.salesGrowth >= 0}
-                            isPositiveColor={monthlyGrowthData?.thisMonthSales > monthlyGrowthData?.lastMonthSales}
-                            comparisonText={`(${format(monthlyGrowthData?.thisMonthStart || new Date(), 'MMM d')} - ${format(monthlyGrowthData?.thisMonthEnd || new Date(), 'd')}) vs. (${format(monthlyGrowthData?.lastMonthStart || new Date(), 'MMM d')} - ${format(monthlyGrowthData?.lastMonthEnd || new Date(), 'd')})`}
-                        />
-                        <SummaryCard
-                            title="Monthly Gallons Sold"
-                            isLoading={isMonthlyGrowthLoading}
-                            value={`${(monthlyGrowthData?.thisMonthGallons || 0).toLocaleString()} gal`}
-                            previousValue={`${(monthlyGrowthData?.lastMonthGallons || 0).toLocaleString()} gal`}
-                            previousPeriodRange={monthlyGrowthData?.lastMonthStart ? `(${format(monthlyGrowthData.lastMonthStart, 'MMM d')} - ${format(monthlyGrowthData.lastMonthEnd, 'd')})` : undefined}
-                            percentage={Math.abs(monthlyGrowthData?.gallonsGrowth)}
-                            isPositive={monthlyGrowthData?.gallonsGrowth >= 0}
-                            isPositiveColor={monthlyGrowthData?.thisMonthGallons > monthlyGrowthData?.lastMonthGallons}
-                            comparisonText={`(${format(monthlyGrowthData?.thisMonthStart || new Date(), 'MMM d')} - ${format(monthlyGrowthData?.thisMonthEnd || new Date(), 'd')}) vs. (${format(monthlyGrowthData?.lastMonthStart || new Date(), 'MMM d')} - ${format(monthlyGrowthData?.lastMonthEnd || new Date(), 'd')})`}
-                        />
-                        <SummaryCard
-                            title="Weekly Sales"
-                            isLoading={isWeeklyGrowthLoading}
-                            value={`₱${(weeklyGrowthData?.thisWeekSales || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                            previousValue={`₱${(weeklyGrowthData?.lastWeekSales || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                            previousPeriodRange={weeklyGrowthData?.lastWeekStart ? `(${format(weeklyGrowthData.lastWeekStart, 'MMM d')} - ${format(weeklyGrowthData.lastWeekEnd, 'd')})` : undefined}
-                            percentage={Math.abs(weeklyGrowthData?.salesGrowth)}
-                            isPositive={weeklyGrowthData?.salesGrowth >= 0}
-                            isPositiveColor={weeklyGrowthData?.thisWeekSales > weeklyGrowthData?.lastWeekSales}
-                            comparisonText={`(${format(weeklyGrowthData?.thisWeekStart || new Date(), 'MMM d')} - ${format(weeklyGrowthData?.thisWeekEnd || new Date(), 'd')}) vs. (${format(weeklyGrowthData?.lastWeekStart || new Date(), 'MMM d')} - ${format(weeklyGrowthData?.lastWeekEnd || new Date(), 'd')})`}
-                        />
-                        <SummaryCard
-                            title="Weekly Gallons Sold"
-                            isLoading={isWeeklyGrowthLoading}
-                            value={`${(weeklyGrowthData?.thisWeekGallons || 0).toLocaleString()} gal`}
-                            previousValue={`${(weeklyGrowthData?.lastWeekGallons || 0).toLocaleString()} gal`}
-                            previousPeriodRange={weeklyGrowthData?.lastWeekStart ? `(${format(weeklyGrowthData.lastWeekStart, 'MMM d')} - ${format(weeklyGrowthData.lastWeekEnd, 'd')})` : undefined}
-                            percentage={Math.abs(weeklyGrowthData?.gallonsGrowth)}
-                            isPositive={weeklyGrowthData?.gallonsGrowth >= 0}
-                            isPositiveColor={weeklyGrowthData?.thisWeekGallons > weeklyGrowthData?.lastWeekGallons}
-                            comparisonText={`(${format(weeklyGrowthData?.thisWeekStart || new Date(), 'MMM d')} - ${format(weeklyGrowthData?.thisWeekEnd || new Date(), 'd')}) vs. (${format(weeklyGrowthData?.lastWeekStart || new Date(), 'MMM d')} - ${format(weeklyGrowthData?.lastWeekEnd || new Date(), 'd')})`}
+                            comparisonText="vs. Yesterday"
                         />
                     </div>
 
-                    {/* --- CHARTS SECTION --- */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
-                        {/* Line Chart */}
-                        <div className="lg:col-span-3 min-h-[400px]">
-                            <Card className="h-full shadow-sm flex flex-col bg-white dark:bg-slate-900 border-none">
+                    {/* --- ROW 2: REFACTORED GRAPHICAL PERIOD METRIC CARDS --- */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {/* 1. Monthly Sales */}
+                        <GraphicalMetricCard
+                            title="Monthly Sales"
+                            isLoading={isMonthlyGrowthLoading}
+                            currentValue={`₱${mThisSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                            previousValue={`₱${mLastSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                            percentage={mSalesGrowth}
+                            isPositive={mSalesGrowth >= 0}
+                            currentRange={mRange?.current}
+                            previousRange={mRange?.previous}
+                            rawCurrent={mThisSales}
+                            rawPrevious={mLastSales}
+                            icon={DollarSign}
+                        />
+
+                        {/* 2. Monthly Gallons Sold */}
+                        <GraphicalMetricCard
+                            title="Monthly Gallons"
+                            isLoading={isMonthlyGrowthLoading}
+                            currentValue={`${mThisGal.toLocaleString()} gal`}
+                            previousValue={`${mLastGal.toLocaleString()} gal`}
+                            percentage={mGalGrowth}
+                            isPositive={mGalGrowth >= 0}
+                            currentRange={mRange?.current}
+                            previousRange={mRange?.previous}
+                            rawCurrent={mThisGal}
+                            rawPrevious={mLastGal}
+                            icon={Droplets}
+                        />
+
+                        {/* 3. Weekly Sales */}
+                        <GraphicalMetricCard
+                            title="Weekly Sales"
+                            isLoading={isWeeklyGrowthLoading}
+                            currentValue={`₱${wThisSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                            previousValue={`₱${wLastSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                            percentage={wSalesGrowth}
+                            isPositive={wSalesGrowth >= 0}
+                            currentRange={wRange?.current}
+                            previousRange={wRange?.previous}
+                            rawCurrent={wThisSales}
+                            rawPrevious={wLastSales}
+                            icon={DollarSign}
+                        />
+
+                        {/* 4. Weekly Gallons Sold */}
+                        <GraphicalMetricCard
+                            title="Weekly Gallons"
+                            isLoading={isWeeklyGrowthLoading}
+                            currentValue={`${wThisGal.toLocaleString()} gal`}
+                            previousValue={`${wLastGal.toLocaleString()} gal`}
+                            percentage={wGalGrowth}
+                            isPositive={wGalGrowth >= 0}
+                            currentRange={wRange?.current}
+                            previousRange={wRange?.previous}
+                            rawCurrent={wThisGal}
+                            rawPrevious={wLastGal}
+                            icon={Droplets}
+                        />
+                    </div>
+
+                    {/* --- ROW 3: CHARTS SECTION --- */}
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-2">
+                        {/* Timeline Sales Performance (8 cols) */}
+                        <div className="lg:col-span-7 min-h-[380px]">
+                            <Card className="h-full shadow-sm flex flex-col bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl">
                                 <CardHeader className="bg-transparent pb-0 flex flex-row items-center justify-between">
-                                    <h3 className="font-bold text-slate-800 dark:text-white text-xl">Sales Performance Over Time</h3>
+                                    <h3 className="font-bold text-slate-800 dark:text-white text-base">Sales Performance Over Time</h3>
                                     <Select
                                         value={salesView}
                                         onChange={(e) => setSalesView(e.target.value)}
-                                        className="w-32 h-8 py-1 px-3 text-sm bg-slate-50 dark:bg-slate-800 dark:text-white rounded-md font-medium text-slate-700 cursor-pointer hover:bg-slate-100 shadow-sm transition-colors outline-none focus:ring-2 focus:ring-indigo-500"
+                                        className="w-32 h-8 py-1 px-3 text-xs bg-slate-50 dark:bg-slate-800 dark:text-white rounded-lg font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 shadow-xs outline-none"
                                     >
                                         <option value="Monthly">Monthly</option>
                                         <option value="Weekly">Weekly</option>
                                     </Select>
                                 </CardHeader>
                                 <CardContent className="p-4 pt-4 flex-1 flex flex-col w-full h-full">
-                                    <div className="flex-1 w-full h-full min-h-[350px]">
+                                    <div className="flex-1 w-full h-full min-h-[300px]">
                                         <Line data={lineChartData} options={lineChartOptions} />
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+
+                        {/* Period Comparison Graphical Business Graph (5 cols) */}
+                        <div className="lg:col-span-5 min-h-[380px]">
+                            <Card className="h-full shadow-sm flex flex-col bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl">
+                                <CardHeader className="bg-transparent pb-0 flex flex-row items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <BarChart3 className="w-4 h-4 text-emerald-600" />
+                                        <h3 className="font-bold text-slate-800 dark:text-white text-base">Period Comparison</h3>
+                                    </div>
+                                    <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg text-xs">
+                                        <button
+                                            type="button"
+                                            onClick={() => setPeriodGraphMode('revenue')}
+                                            className={`px-2.5 py-1 rounded-md font-bold transition-all ${
+                                                periodGraphMode === 'revenue'
+                                                    ? 'bg-white dark:bg-slate-900 text-emerald-600 shadow-xs'
+                                                    : 'text-slate-500 hover:text-slate-800'
+                                            }`}
+                                        >
+                                            Revenue
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setPeriodGraphMode('gallons')}
+                                            className={`px-2.5 py-1 rounded-md font-bold transition-all ${
+                                                periodGraphMode === 'gallons'
+                                                    ? 'bg-white dark:bg-slate-900 text-sky-600 shadow-xs'
+                                                    : 'text-slate-500 hover:text-slate-800'
+                                            }`}
+                                        >
+                                            Gallons
+                                        </button>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="p-4 pt-3 flex-1 flex flex-col w-full h-full">
+                                    <div className="flex-1 w-full h-full min-h-[300px]">
+                                        <Bar data={periodComparisonBarData} options={periodComparisonBarOptions} />
                                     </div>
                                 </CardContent>
                             </Card>
                         </div>
                     </div>
 
-                    {/* --- BOTTOM ROW (2 Columns) --- */}
+                    {/* --- ROW 4: PRODUCT BREAKDOWN & TOP CUSTOMERS --- */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-6">
-                        {/* Bottom Left: Pie Chart */}
-                        <Card className="shadow-sm h-[400px] flex flex-col bg-white dark:bg-slate-900 border-none">
+                        {/* New Sales by Product */}
+                        <Card className="shadow-sm h-[390px] flex flex-col bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl">
                             <CardHeader className="bg-transparent pb-0 shrink-0">
-                                <h3 className="font-semibold text-slate-800 dark:text-white text-lg">New Sales by Product</h3>
+                                <h3 className="font-bold text-slate-800 dark:text-white text-base">New Sales by Product</h3>
                             </CardHeader>
                             <CardContent className="p-4 flex-1 flex flex-col w-full h-full">
                                 <div className="flex-1 w-full h-full relative flex justify-center items-center">
@@ -450,8 +738,8 @@ export default function DashboardPage() {
                                     ) : !Array.isArray(topProducts) || topProducts.length === 0 ? (
                                         <div className="text-slate-400 text-sm">No sales data available.</div>
                                     ) : (
-                                        <div className="w-full flex justify-center items-center" style={{ height: '280px' }}>
-                                            <div className="relative h-full w-full max-w-[280px]">
+                                        <div className="w-full flex justify-center items-center" style={{ height: '270px' }}>
+                                            <div className="relative h-full w-full max-w-[270px]">
                                                 <Pie data={pieChartData} options={pieChartOptions} />
                                             </div>
                                         </div>
@@ -460,14 +748,14 @@ export default function DashboardPage() {
                             </CardContent>
                         </Card>
 
-                        {/* Bottom Right: Top 10 All-Time Customers */}
-                        <Card className="shadow-sm h-[400px] flex flex-col bg-white dark:bg-slate-900 border-none">
+                        {/* Top 10 All-Time Customers */}
+                        <Card className="shadow-sm h-[390px] flex flex-col bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl">
                             <CardHeader className="bg-transparent pb-0 shrink-0">
-                                <h3 className="font-semibold text-slate-800 dark:text-white text-lg">Top 10 All-Time Customers</h3>
+                                <h3 className="font-bold text-slate-800 dark:text-white text-base">Top 10 All-Time Customers</h3>
                             </CardHeader>
                             <CardContent className="p-4 pt-0 flex-1 flex flex-col w-full h-full">
-                                <div className="flex items-center gap-2 mb-2 ml-4 text-sm text-slate-600 dark:text-slate-400 font-medium shrink-0">
-                                    <div className="w-3 h-3 bg-[#8DB600] rounded-sm"></div>
+                                <div className="flex items-center gap-2 mb-2 ml-4 text-xs text-slate-500 font-semibold shrink-0">
+                                    <div className="w-2.5 h-2.5 bg-emerald-500 rounded-sm" />
                                     Total Revenue
                                 </div>
                                 <div className="flex-1 w-full h-full relative">
