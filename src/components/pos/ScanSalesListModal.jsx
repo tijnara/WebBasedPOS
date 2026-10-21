@@ -1,6 +1,6 @@
 // src/components/pos/ScanSalesListModal.jsx
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Trash2, Check, Loader2, FileImage, Plus, Calendar, UserCheck, CreditCard } from 'lucide-react';
+import { Camera, Trash2, Check, Loader2, FileImage, Plus, Calendar, UserCheck, UserPlus } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { useStore } from '../../store/useStore';
 import { format } from 'date-fns';
@@ -86,7 +86,7 @@ const matchCustomerAccount = (rawName, customerList = []) => {
     });
     if (substring) return substring;
 
-    // 3. Typo-tolerant edit distance (distance <= 1 for short names, <= 2 for longer names)
+    // 3. Typo-tolerant edit distance
     let best = null;
     let minDistance = 999;
     for (const c of customerList) {
@@ -224,7 +224,7 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
                 const cust = customers.find(c => c.id === custId);
                 updated[index].customer_id = custId;
                 updated[index].matched_account_name = cust ? cust.name : null;
-                if (cust && (!updated[index].customer_name || updated[index].customer_name === 'Walk-in')) {
+                if (cust && (!updated[index].customer_name || updated[index].customer_name.toLowerCase() === 'walk-in')) {
                     updated[index].customer_name = cust.name;
                 }
             }
@@ -269,8 +269,12 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
 
             const defaultCatalogProduct = products.find(p => p.name?.toLowerCase().includes('refill')) || products[0];
 
-            // Map to aggregate credit balance increases per customer
+            // 1. Aggregations for atomic batch actions
             const customerCreditIncrements = {};
+            const stockDeductions = {};
+
+            // Cache for newly created customers during this batch to prevent duplicates
+            const newlyCreatedCustomers = {};
 
             for (const item of parsedItems) {
                 const qty = Number(item.quantity) || 1;
@@ -279,7 +283,31 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
                 const customerName = (item.customer_name || 'Walk-in').trim();
                 const isCredit = item.payment_method === 'Credit';
 
-                // 1. Build payload for public.sales
+                let finalCustomerId = item.customer_id;
+
+                // AUTO-CREATE MISSING CUSTOMERS
+                const cleanName = customerName.toLowerCase();
+                if (!finalCustomerId && cleanName !== 'walk-in' && cleanName !== '') {
+                    if (newlyCreatedCustomers[cleanName]) {
+                        finalCustomerId = newlyCreatedCustomers[cleanName]; // Use if already created in this batch
+                    } else {
+                        // Insert new customer into database
+                        const { data: newCustData, error: newCustErr } = await supabase
+                            .from('customers')
+                            .insert([{ name: customerName, created_by: user?.id || null }])
+                            .select('id')
+                            .single();
+
+                        if (!newCustErr && newCustData) {
+                            finalCustomerId = newCustData.id;
+                            newlyCreatedCustomers[cleanName] = newCustData.id;
+                        } else {
+                            console.warn('Failed to auto-create customer:', newCustErr?.message);
+                        }
+                    }
+                }
+
+                // Insert into public.sales
                 const salePayload = {
                     customername: customerName,
                     totalamount: total,
@@ -289,9 +317,8 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
                     created_by: user?.id || null
                 };
 
-                // Link customer_id if matched
-                if (item.customer_id) {
-                    salePayload.customer_id = item.customer_id;
+                if (finalCustomerId) {
+                    salePayload.customer_id = finalCustomerId;
                 }
 
                 let { data: saleData, error: saleErr } = await supabase
@@ -300,7 +327,6 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
                     .select('id')
                     .single();
 
-                // If 'customer_id' column doesn't exist on sales table, insert without it
                 if (saleErr && saleErr.code === 'PGRST204') {
                     delete salePayload.customer_id;
                     const retry = await supabase.from('sales').insert([salePayload]).select('id').single();
@@ -310,7 +336,7 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
 
                 if (saleErr) throw saleErr;
 
-                // 2. Insert into public.sale_items
+                // Insert into public.sale_items
                 const finalProductId = item.product_id || defaultCatalogProduct?.id;
                 const finalProductName = item.product_name || defaultCatalogProduct?.name || 'Water Refill';
 
@@ -329,18 +355,22 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
                         }]);
 
                     if (itemErr) throw itemErr;
+
+                    // Aggregate stock deductions per product
+                    stockDeductions[finalProductId] = (stockDeductions[finalProductId] || 0) + qty;
                 }
 
-                // 3. Track credit balance increments for customer accounts
-                if (isCredit && item.customer_id) {
-                    customerCreditIncrements[item.customer_id] = (customerCreditIncrements[item.customer_id] || 0) + total;
+                // Track credit increments
+                if (isCredit && finalCustomerId) {
+                    customerCreditIncrements[finalCustomerId] = (customerCreditIncrements[finalCustomerId] || 0) + total;
                 }
             }
 
-            // 4. Batch update credit_balance for linked customers
+            // 2. Batch update credit_balance for linked customers
             for (const [custIdStr, addedCredit] of Object.entries(customerCreditIncrements)) {
                 const custId = Number(custIdStr);
                 const currentCustomer = customers.find(c => c.id === custId);
+                // If currentCustomer is undefined, it's a newly created customer, so starting balance is 0
                 const currentBalance = Number(currentCustomer?.credit_balance || 0);
                 const newBalance = currentBalance + addedCredit;
 
@@ -354,10 +384,80 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
                 }
             }
 
+            // 3. Synchronize Inventory Stock Deductions
+            for (const [prodIdStr, deductQty] of Object.entries(stockDeductions)) {
+                const prodId = Number(prodIdStr);
+                try {
+                    const { data: prodData, error: prodFetchErr } = await supabase
+                        .from('products')
+                        .select('*')
+                        .eq('id', prodId)
+                        .single();
+
+                    if (!prodFetchErr && prodData) {
+                        if (prodData.track_stock === false || prodData.is_tracked === false) continue;
+
+                        const stockField = ['stock', 'quantity', 'inventory', 'current_stock'].find(
+                            field => prodData[field] !== undefined && prodData[field] !== null
+                        );
+
+                        if (stockField) {
+                            const currentStock = Number(prodData[stockField]) || 0;
+                            const newStock = Math.max(0, currentStock - deductQty);
+
+                            const { error: stockUpdateErr } = await supabase
+                                .from('products')
+                                .update({ [stockField]: newStock })
+                                .eq('id', prodId);
+
+                            if (stockUpdateErr) console.warn(stockUpdateErr.message);
+                        }
+                    }
+
+                    // Sync separate inventory table if configured
+                    const { data: invRecords } = await supabase
+                        .from('inventory')
+                        .select('id, quantity, stock, current_stock')
+                        .eq('product_id', prodId);
+
+                    if (invRecords && invRecords.length > 0) {
+                        for (const inv of invRecords) {
+                            const invField = ['quantity', 'stock', 'current_stock'].find(
+                                f => inv[f] !== undefined && inv[f] !== null
+                            );
+                            if (invField) {
+                                const currentInv = Number(inv[invField]) || 0;
+                                const newInv = Math.max(0, currentInv - deductQty);
+                                await supabase
+                                    .from('inventory')
+                                    .update({ [invField]: newInv })
+                                    .eq('id', inv.id);
+                            }
+                        }
+                    }
+                } catch (stockSyncErr) {
+                    console.warn(`Stock sync skipped for product ${prodId}:`, stockSyncErr.message);
+                }
+            }
+
+            // 4. Record Activity Log
+            try {
+                const addedCustomersCount = Object.keys(newlyCreatedCustomers).length;
+                const autoAddText = addedCustomersCount > 0 ? ` (Auto-created ${addedCustomersCount} new customer accounts)` : '';
+                await supabase.from('activity_logs').insert([{
+                    user_id: user?.id || null,
+                    action: 'DELIVERY_LOG_SCAN',
+                    description: `Recorded ${parsedItems.length} sales (${currency(grandTotal, { symbol: '₱' }).format()}) for delivery date ${targetDate}. Inventory stock synchronized.${autoAddText}`,
+                    created_at: manilaIso
+                }]);
+            } catch {
+                // Activity logs are non-blocking
+            }
+
             const formattedDeliveryDate = format(new Date(`${targetDate}T00:00:00+08:00`), 'MMM d, yyyy');
             addToast({
-                title: 'Sales Recorded',
-                description: `Successfully logged ${parsedItems.length} transactions for ${formattedDeliveryDate}!`,
+                title: 'Sales & Inventory Recorded',
+                description: `Successfully logged ${parsedItems.length} transactions and synchronized inventory for ${formattedDeliveryDate}!`,
                 variant: 'success'
             });
 
@@ -459,7 +559,7 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
                             </div>
                             <h3 className="font-bold text-gray-800 text-sm mb-1">Scan or Upload Delivery Log</h3>
                             <p className="text-xs text-gray-500 mb-6 max-w-sm mx-auto">
-                                Point your camera at a notebook list or upload a photo to auto-record orders and link customer accounts.
+                                Point your camera at a notebook list or upload a photo to auto-record orders, sync inventory, and link customer accounts.
                             </p>
 
                             <div className="flex flex-col sm:flex-row justify-center gap-3">
@@ -537,11 +637,11 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
                             <div className="border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-100 bg-white">
                                 {parsedItems.map((item, idx) => {
                                     const isCredit = item.payment_method === 'Credit';
-                                    const linkedCustomer = customers.find(c => c.id === item.customer_id);
+                                    const isUnlinkedNewCustomer = !item.customer_id && item.customer_name && item.customer_name.toLowerCase() !== 'walk-in';
 
                                     return (
                                         <div key={idx} className="p-3 flex flex-wrap sm:flex-nowrap items-center gap-2.5 hover:bg-gray-50/70 transition-colors">
-                                            {/* Row/Transaction Number Badge */}
+                                            {/* Row Number Badge */}
                                             <div className="w-6 h-6 rounded-lg bg-gray-100 text-gray-500 text-[11px] font-bold flex items-center justify-center shrink-0 border border-gray-200">
                                                 {idx + 1}
                                             </div>
@@ -550,11 +650,15 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
                                             <div className="flex-1 min-w-[150px]">
                                                 <div className="flex items-center justify-between mb-0.5">
                                                     <label className="text-[9px] uppercase font-bold text-gray-400">Customer</label>
-                                                    {item.customer_id && (
+                                                    {item.customer_id ? (
                                                         <span className="text-[9px] text-emerald-600 font-bold flex items-center gap-0.5">
                                                             <UserCheck className="w-3 h-3" /> Linked
                                                         </span>
-                                                    )}
+                                                    ) : isUnlinkedNewCustomer ? (
+                                                        <span className="text-[9px] text-blue-500 font-bold flex items-center gap-0.5" title="This customer will be auto-created in the database">
+                                                            <UserPlus className="w-3 h-3" /> Auto-Add
+                                                        </span>
+                                                    ) : null}
                                                 </div>
                                                 <input
                                                     type="text"
@@ -563,13 +667,14 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
                                                     placeholder="Name on paper"
                                                     className="w-full text-xs font-semibold bg-transparent border-b border-gray-200 focus:border-emerald-500 outline-none pb-0.5"
                                                 />
-                                                {/* Customer Account Selector */}
                                                 <select
                                                     value={item.customer_id || ''}
                                                     onChange={(e) => updateItem(idx, 'customer_id', e.target.value)}
                                                     className="w-full text-[10px] mt-1 text-gray-500 bg-gray-50 border border-gray-200 rounded px-1.5 py-0.5 outline-none focus:border-emerald-500 truncate"
                                                 >
-                                                    <option value="">-- Unlinked / Walk-in --</option>
+                                                    <option value="">
+                                                        {isUnlinkedNewCustomer ? "-- Create New Account --" : "-- Unlinked / Walk-in --"}
+                                                    </option>
                                                     {customers.map(c => (
                                                         <option key={c.id} value={c.id}>
                                                             {c.name} {Number(c.credit_balance) > 0 ? `(Debt: ₱${c.credit_balance})` : ''}
@@ -684,7 +789,7 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
                     >
                         {isSaving ? (
                             <>
-                                <Loader2 className="w-4 h-4 animate-spin" /> Saving Sales & Debts...
+                                <Loader2 className="w-4 h-4 animate-spin" /> Saving Sales & Stock...
                             </>
                         ) : (
                             <>
