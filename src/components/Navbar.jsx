@@ -21,9 +21,11 @@ import {
     Clock,
     UserCheck,
     ChevronRight,
-    ShieldAlert
+    AlertTriangle,
+    Mail
 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { subHours } from 'date-fns';
 import Link from 'next/link';
 
 // Hamburger Icon
@@ -171,6 +173,7 @@ const Navbar = () => {
     // --- Notifications State ---
     const [isNotifOpen, setIsNotifOpen] = useState(false);
     const notifRef = useRef(null);
+    const [lastSeenMessageTime, setLastSeenMessageTime] = useState(null);
 
     // --- Z-Reading / End Shift State ---
     const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
@@ -200,7 +203,32 @@ const Navbar = () => {
         )
     );
 
-    // --- PENDING STAFF APPROVALS QUERY ---
+    // Load last seen message timestamp from storage
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const stored = localStorage.getItem('last_seen_contact_message_time');
+            if (stored) {
+                setLastSeenMessageTime(stored);
+            }
+        }
+    }, []);
+
+    // Automatically mark messages as seen when visiting /Messages
+    useEffect(() => {
+        if (router.pathname.toLowerCase() === '/messages') {
+            const now = new Date().toISOString();
+            localStorage.setItem('last_seen_contact_message_time', now);
+            setLastSeenMessageTime(now);
+        }
+    }, [router.pathname]);
+
+    const markMessagesAsSeen = () => {
+        const now = new Date().toISOString();
+        localStorage.setItem('last_seen_contact_message_time', now);
+        setLastSeenMessageTime(now);
+    };
+
+    // --- 1. PENDING STAFF APPROVALS QUERY ---
     const { data: pendingUsers = [] } = useQuery({
         queryKey: ['pending-approvals-count', clientUser?.id, isAdmin],
         queryFn: async () => {
@@ -226,27 +254,73 @@ const Navbar = () => {
 
     const pendingCount = pendingUsers.length;
 
-    // --- REALTIME SUBSCRIPTION FOR USERS REGISTRATIONS ---
+    // --- 2. RECENT CONTACT MESSAGES QUERY ---
+    const { data: recentMessages = [] } = useQuery({
+        queryKey: ['recent-contact-messages-count', clientUser?.id, isAdmin],
+        queryFn: async () => {
+            if (!isAdmin || isDemo) return [];
+
+            const fortyEightHoursAgo = subHours(new Date(), 48).toISOString();
+
+            const { data, error } = await supabase
+                .from('contact_messages')
+                .select('id, email, message, created_at')
+                .gte('created_at', fortyEightHoursAgo)
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                console.warn('Contact messages query error:', error.message);
+                return [];
+            }
+            return data || [];
+        },
+        enabled: !!isAdmin && !isDemo,
+        refetchInterval: 30000,
+        staleTime: 10000
+    });
+
+    // Compute unread message count based on last seen timestamp
+    const unreadMessages = useMemo(() => {
+        if (!recentMessages.length) return [];
+        if (!lastSeenMessageTime) {
+            const oneDayAgo = subHours(new Date(), 24);
+            return recentMessages.filter(m => new Date(m.created_at) > oneDayAgo);
+        }
+        return recentMessages.filter(m => new Date(m.created_at) > new Date(lastSeenMessageTime));
+    }, [recentMessages, lastSeenMessageTime]);
+
+    const unreadMessageCount = unreadMessages.length;
+    const totalNotifications = pendingCount + unreadMessageCount;
+
+    // --- REALTIME SUBSCRIPTIONS (USERS & CONTACT MESSAGES) ---
     useEffect(() => {
         if (!isAdmin || isDemo) return;
 
-        const channel = supabase
+        const usersChannel = supabase
             .channel('realtime:navbar-pending-approvals')
             .on(
                 'postgres_changes',
-                {
-                    event: '*',
-                    schema: 'public',
-                    table: 'users'
-                },
+                { event: '*', schema: 'public', table: 'users' },
                 () => {
                     queryClient.invalidateQueries({ queryKey: ['pending-approvals-count'] });
                 }
             )
             .subscribe();
 
+        const messagesChannel = supabase
+            .channel('realtime:navbar-contact-messages')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'contact_messages' },
+                () => {
+                    queryClient.invalidateQueries({ queryKey: ['recent-contact-messages-count'] });
+                }
+            )
+            .subscribe();
+
         return () => {
-            supabase.removeChannel(channel);
+            supabase.removeChannel(usersChannel);
+            supabase.removeChannel(messagesChannel);
         };
     }, [isAdmin, isDemo, queryClient]);
 
@@ -292,7 +366,7 @@ const Navbar = () => {
                 { name: 'Articles', path: '/article-management', icon: <DocumentReportIcon className="h-5 w-5 menu-icon" />, adminOnly: true },
                 { name: 'Activity Logs', path: '/activity-logs', icon: <History className="h-5 w-5 menu-icon" />, adminOnly: true },
                 { name: 'Page Settings', path: '/settings', icon: <SettingsIcon className="h-5 w-5 menu-icon" />, adminOnly: true },
-                { name: 'Messages', path: '/messages', icon: <MailIcon className="h-5 w-5 menu-icon" />, adminOnly: true },
+                { name: 'Messages', path: '/Messages', icon: <MailIcon className="h-5 w-5 menu-icon" />, adminOnly: true },
             ]
         },
     ];
@@ -495,7 +569,7 @@ const Navbar = () => {
         const btnContainerClass = isSidebar ? "w-[calc(100%-1.5rem)] mx-3" : "w-full";
         const childContainerClass = isSidebar ? "pl-3 ml-5 mt-1 space-y-0.5" : "pl-2 ml-2 mt-0.5 space-y-0.5";
 
-        const hasAdminApprovalsPending = category === 'Administration & Content' && pendingCount > 0;
+        const hasAdminAlertsPending = category === 'Administration & Content' && totalNotifications > 0;
 
         return (
             <div key={category ?? '__root__'} className="mb-1">
@@ -508,7 +582,7 @@ const Navbar = () => {
                         <div className="flex items-center gap-2 min-w-0">
                             <span className="drop-shadow-sm truncate">{category}</span>
                             {/* Pulsing Dot on collapsed category */}
-                            {hasAdminApprovalsPending && !isOpen && (
+                            {hasAdminAlertsPending && !isOpen && (
                                 <span className="relative flex h-2 w-2">
                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
                                     <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
@@ -523,7 +597,10 @@ const Navbar = () => {
                         {visibleLinks.map(link => {
                             const isActive = router.pathname === link.path;
                             const isApprovalsLink = link.path === '/admin/user-approvals';
-                            const showNotification = isApprovalsLink && pendingCount > 0;
+                            const isMessagesLink = link.path.toLowerCase() === '/messages';
+
+                            const showApprovalsNotification = isApprovalsLink && pendingCount > 0;
+                            const showMessagesNotification = isMessagesLink && unreadMessageCount > 0;
 
                             return (
                                 <Button
@@ -531,7 +608,12 @@ const Navbar = () => {
                                     variant="ghost"
                                     className={`nav-item ${isSidebar ? 'w-[calc(100%-1rem)]' : 'w-full'} justify-start px-4 py-2 transition-all rounded-md ${isActive ? 'text-white font-bold shadow-md' : (isSidebar ? 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800' : 'text-gray-700 hover:bg-gray-100')}`}
                                     style={isActive ? { background: 'linear-gradient(90deg, rgba(106,191,69,0.95) 0%, rgba(78,158,45,0.9) 100%)' } : {}}
-                                    onClick={async () => { if (category) setOpenCategories(new Set([category])); await router.push(link.path); setIsMenuOpen(false); }}
+                                    onClick={async () => {
+                                        if (category) setOpenCategories(new Set([category]));
+                                        if (isMessagesLink) markMessagesAsSeen();
+                                        await router.push(link.path);
+                                        setIsMenuOpen(false);
+                                    }}
                                 >
                                     <div className="flex items-center justify-between w-full min-w-0">
                                         <div className="flex items-center gap-4 min-w-0">
@@ -539,8 +621,8 @@ const Navbar = () => {
                                             <span className="text-sm font-medium truncate">{link.name}</span>
                                         </div>
 
-                                        {/* Notification Badge Dot + Pill */}
-                                        {showNotification && (
+                                        {/* Staff Approvals Notification Badge */}
+                                        {showApprovalsNotification && (
                                             <div className="flex items-center gap-1.5 ml-auto pl-2 shrink-0">
                                                 <span className="relative flex h-2 w-2">
                                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
@@ -548,6 +630,19 @@ const Navbar = () => {
                                                 </span>
                                                 <span className="bg-rose-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center shadow-xs">
                                                     {pendingCount}
+                                                </span>
+                                            </div>
+                                        )}
+
+                                        {/* Messages Notification Badge */}
+                                        {showMessagesNotification && (
+                                            <div className="flex items-center gap-1.5 ml-auto pl-2 shrink-0">
+                                                <span className="relative flex h-2 w-2">
+                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                                                </span>
+                                                <span className="bg-blue-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center shadow-xs">
+                                                    {unreadMessageCount}
                                                 </span>
                                             </div>
                                         )}
@@ -592,14 +687,21 @@ const Navbar = () => {
                         {isAdmin && (
                             <button
                                 type="button"
-                                onClick={() => router.push('/admin/user-approvals')}
+                                onClick={() => {
+                                    if (unreadMessageCount > 0 && pendingCount === 0) {
+                                        markMessagesAsSeen();
+                                        router.push('/Messages');
+                                    } else {
+                                        router.push('/admin/user-approvals');
+                                    }
+                                }}
                                 className="relative p-1.5 text-gray-600 dark:text-gray-300 hover:text-primary rounded-lg transition-colors"
-                                title="Pending Staff Approvals"
+                                title="Notifications"
                             >
                                 <Bell className="w-5 h-5" />
-                                {pendingCount > 0 && (
+                                {totalNotifications > 0 && (
                                     <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-rose-500 text-[8px] font-black text-white shadow-xs">
-                                        {pendingCount > 9 ? '9+' : pendingCount}
+                                        {totalNotifications > 9 ? '9+' : totalNotifications}
                                     </span>
                                 )}
                             </button>
@@ -614,13 +716,11 @@ const Navbar = () => {
                 DESKTOP LAYOUT: FIXED SIDEBAR
                 ========================================= */}
             <aside className="hidden md:flex flex-col w-64 fixed inset-y-0 left-0 bg-surface border-r border-border z-40 shadow-lg">
-                {/* Brand Header */}
                 <div className="h-16 flex items-center px-6 border-b border-border shrink-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors" onClick={() => router.push('/')}>
                     <Image src="/seaside.png" alt="Seaside Logo" width={40} height={40} loading="eager" className="shrink-0" />
                     <span className="font-bold text-lg text-primary ml-3 tracking-wide">Seaside</span>
                 </div>
 
-                {/* Scrolling Links Area */}
                 <nav className="flex-1 overflow-y-auto py-4 menu-scrollbar flex flex-col gap-1">
                     {renderLinks(true)}
                 </nav>
@@ -644,72 +744,118 @@ const Navbar = () => {
                             size="sm"
                             onClick={() => setIsNotifOpen(prev => !prev)}
                             className="p-1.5 h-8 w-8 text-gray-500 hover:text-primary bg-white dark:bg-gray-800 shadow-sm border border-gray-200 dark:border-gray-700 relative"
-                            title="Staff Approvals Notifications"
+                            title="Notifications"
                         >
                             <Bell className="w-4 h-4" />
-                            {pendingCount > 0 && (
+                            {totalNotifications > 0 && (
                                 <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-rose-500 text-[9px] font-black text-white shadow-xs">
-                                    {pendingCount > 9 ? '9+' : pendingCount}
+                                    {totalNotifications > 9 ? '9+' : totalNotifications}
                                 </span>
                             )}
                         </Button>
 
                         {/* Notifications Dropdown Panel */}
                         {isNotifOpen && (
-                            <div className="absolute right-0 top-10 w-80 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-800 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+                            <div className="absolute right-0 top-10 w-84 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-800 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
                                 <div className="p-3.5 bg-gray-50/80 dark:bg-gray-800/80 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
                                     <span className="text-xs font-bold text-gray-800 dark:text-gray-100 flex items-center gap-1.5">
-                                        <Bell className="w-3.5 h-3.5 text-primary" /> Staff Registration Alerts
+                                        <Bell className="w-3.5 h-3.5 text-primary" /> Notifications
                                     </span>
-                                    {pendingCount > 0 ? (
+                                    {totalNotifications > 0 ? (
                                         <span className="text-[10px] font-bold bg-rose-100 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300 px-2 py-0.5 rounded-full">
-                                            {pendingCount} pending
+                                            {totalNotifications} new
                                         </span>
                                     ) : (
                                         <span className="text-[10px] text-gray-400">All clear</span>
                                     )}
                                 </div>
 
-                                <div className="max-h-64 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-800">
-                                    {pendingCount > 0 ? (
-                                        pendingUsers.map(u => (
-                                            <div
-                                                key={u.id}
-                                                onClick={() => {
-                                                    setIsNotifOpen(false);
-                                                    router.push('/admin/user-approvals');
-                                                }}
-                                                className="p-3 flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer"
-                                            >
-                                                <div className="w-8 h-8 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-200 dark:border-amber-800">
-                                                    <Clock className="w-4 h-4" />
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-xs font-bold text-gray-900 dark:text-gray-100 truncate">{u.name}</p>
-                                                    <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">{u.email || u.phone || 'New Signup'}</p>
-                                                </div>
-                                                <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 px-1.5 py-0.5 rounded shrink-0">
-                                                    Review
-                                                </span>
+                                <div className="max-h-72 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-800">
+                                    {/* Section 1: Staff Approvals */}
+                                    {pendingCount > 0 && (
+                                        <div className="bg-amber-50/50 dark:bg-amber-950/30 px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 flex items-center justify-between">
+                                            <span>Staff Registrations</span>
+                                            <span>{pendingCount}</span>
+                                        </div>
+                                    )}
+                                    {pendingUsers.map(u => (
+                                        <div
+                                            key={`user-${u.id}`}
+                                            onClick={() => {
+                                                setIsNotifOpen(false);
+                                                router.push('/admin/user-approvals');
+                                            }}
+                                            className="p-3 flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer"
+                                        >
+                                            <div className="w-8 h-8 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-200 dark:border-amber-800">
+                                                <Clock className="w-4 h-4" />
                                             </div>
-                                        ))
-                                    ) : (
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-xs font-bold text-gray-900 dark:text-gray-100 truncate">{u.name}</p>
+                                                <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">{u.email || u.phone || 'New Signup'}</p>
+                                            </div>
+                                            <span className="text-[9px] font-bold text-amber-700 bg-amber-100 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 px-1.5 py-0.5 rounded shrink-0">
+                                                Review
+                                            </span>
+                                        </div>
+                                    ))}
+
+                                    {/* Section 2: Contact Messages */}
+                                    {unreadMessageCount > 0 && (
+                                        <div className="bg-blue-50/50 dark:bg-blue-950/30 px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-blue-700 dark:text-blue-400 flex items-center justify-between">
+                                            <span>Contact Inquiries</span>
+                                            <span>{unreadMessageCount}</span>
+                                        </div>
+                                    )}
+                                    {unreadMessages.slice(0, 4).map(m => (
+                                        <div
+                                            key={`msg-${m.id}`}
+                                            onClick={() => {
+                                                markMessagesAsSeen();
+                                                setIsNotifOpen(false);
+                                                router.push('/Messages');
+                                            }}
+                                            className="p-3 flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer bg-blue-50/10"
+                                        >
+                                            <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 border border-blue-200 dark:border-blue-800">
+                                                <Mail className="w-4 h-4" />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-xs font-bold text-gray-900 dark:text-gray-100 truncate">{m.email}</p>
+                                                <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">{m.message}</p>
+                                            </div>
+                                            <span className="text-[9px] font-bold text-blue-700 bg-blue-100 dark:bg-blue-950/60 border border-blue-300 dark:border-blue-800 px-1.5 py-0.5 rounded shrink-0">
+                                                Read
+                                            </span>
+                                        </div>
+                                    ))}
+
+                                    {totalNotifications === 0 && (
                                         <div className="p-6 text-center text-xs text-gray-400 font-medium">
-                                            No pending staff registrations.
+                                            No pending registrations or new messages.
                                         </div>
                                     )}
                                 </div>
 
-                                <div className="p-2 bg-gray-50/50 dark:bg-gray-800/40 border-t border-gray-100 dark:border-gray-700 text-center">
+                                <div className="p-2 bg-gray-50/50 dark:bg-gray-800/40 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between text-xs">
                                     <button
                                         onClick={() => {
                                             setIsNotifOpen(false);
                                             router.push('/admin/user-approvals');
                                         }}
-                                        className="w-full py-1.5 px-3 text-xs font-bold text-primary hover:text-primary-hover hover:underline transition-all flex items-center justify-center gap-1"
+                                        className="py-1 px-2 text-[11px] font-bold text-emerald-700 dark:text-emerald-400 hover:underline"
                                     >
-                                        <span>Open Staff Approvals Page</span>
-                                        <ChevronRight className="w-3.5 h-3.5" />
+                                        Staff Approvals ({pendingCount})
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            markMessagesAsSeen();
+                                            setIsNotifOpen(false);
+                                            router.push('/Messages');
+                                        }}
+                                        className="py-1 px-2 text-[11px] font-bold text-blue-700 dark:text-blue-400 hover:underline"
+                                    >
+                                        Messages ({unreadMessageCount})
                                     </button>
                                 </div>
                             </div>
@@ -772,7 +918,7 @@ const Navbar = () => {
                             {cashShortage !== null && (
                                 <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
                                     <p className="font-bold flex items-center gap-2">
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
+                                        <AlertTriangle className="h-4 w-4" />
                                         Cash Shortage Detected!
                                     </p>
                                     <p className="mt-1">Short by: <span className="font-bold">₱{cashShortage.toFixed(2)}</span></p>

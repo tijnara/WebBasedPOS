@@ -1,5 +1,5 @@
 // src/pages/index.js
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { supabase } from '../lib/supabaseClient';
@@ -9,9 +9,6 @@ import { useSettings } from '../hooks/useSettings';
 
 export default function SeasideNewLanding() {
     const router = useRouter();
-
-    // --- Refs for focus management ---
-    const contactEmailRef = useRef(null);
 
     // --- Settings and Global State ---
     const { data: settings } = useSettings() || {};
@@ -168,7 +165,8 @@ export default function SeasideNewLanding() {
         register: registerContact,
         handleSubmit: handleContactSubmit,
         formState: { errors: contactErrors, isSubmitting: isContactSubmitting },
-        reset: resetContact
+        reset: resetContact,
+        setFocus: setContactFocus
     } = useForm({
         mode: 'onBlur',
         defaultValues: {
@@ -206,7 +204,7 @@ export default function SeasideNewLanding() {
         setActiveCard(activeCard === 'contact' ? 'login' : 'contact');
         if (activeCard !== 'contact') {
             setTimeout(() => {
-                contactEmailRef.current?.focus();
+                setContactFocus('email');
             }, 100);
         }
     };
@@ -573,7 +571,7 @@ export default function SeasideNewLanding() {
                                         <div className="hidden"><label htmlFor="honeypot">Do not fill this out</label><input type="text" id="honeypot" {...registerContact('honeypot')} /></div>
                                         <div className="space-y-1">
                                             <label className="text-xs font-bold text-slate-700 ml-1">Your Email Address</label>
-                                            <input type="email" {...registerContact('email', { required: 'Email is required', pattern: { value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i, message: 'Invalid email address' } })} ref={contactEmailRef} className={`w-full px-5 py-4 bg-slate-50 border ${contactErrors.email ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-slate-200 focus:border-green-500 focus:ring-green-500/20'} rounded-2xl focus:outline-none focus:ring-4 transition-all font-medium text-slate-900 placeholder-slate-400 text-sm`} placeholder="@ example@email.com" />
+                                            <input type="email" {...registerContact('email', { required: 'Email is required', pattern: { value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i, message: 'Invalid email address' } })} className={`w-full px-5 py-4 bg-slate-50 border ${contactErrors.email ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-slate-200 focus:border-green-500 focus:ring-green-500/20'} rounded-2xl focus:outline-none focus:ring-4 transition-all font-medium text-slate-900 placeholder-slate-400 text-sm`} placeholder="@ example@email.com" />
                                             {contactErrors.email && <p className="text-red-500 text-xs mt-1 ml-1 font-medium">{contactErrors.email.message}</p>}
                                         </div>
                                         <div className="space-y-1">

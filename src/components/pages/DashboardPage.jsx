@@ -96,7 +96,6 @@ function GraphicalMetricCard({
                                  icon: Icon,
                                  isLoading
                              }) {
-    // Calculate visual pace / progress ratio against prior period
     const ratio = rawPrevious > 0 ? Math.min(100, Math.round((rawCurrent / rawPrevious) * 100)) : 0;
 
     return (
@@ -175,7 +174,7 @@ export default function DashboardPage() {
 
     // Toggles for charts
     const [salesView, setSalesView] = useState('Monthly');
-    const [periodGraphMode, setPeriodGraphMode] = useState('revenue'); // 'revenue' | 'gallons'
+    const [periodGraphMode, setPeriodGraphMode] = useState('revenue');
 
     // Fetch live data from the database
     const { data: summaryData, isLoading: isSummaryLoading } = useSalesSummary();
@@ -213,7 +212,7 @@ export default function DashboardPage() {
     const wLastGal = Number(weeklyGrowthData?.lastWeekGallons) || 0;
     const wGalGrowth = weeklyGrowthData?.gallonsGrowth;
 
-    // Clean Date Ranges (No multiline wrapping)
+    // Clean Date Ranges
     const mRange = useMemo(() => {
         if (!monthlyGrowthData?.thisMonthStart) return null;
         try {
@@ -595,7 +594,6 @@ export default function DashboardPage() {
 
                     {/* --- ROW 2: REFACTORED GRAPHICAL PERIOD METRIC CARDS --- */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                        {/* 1. Monthly Sales */}
                         <GraphicalMetricCard
                             title="Monthly Sales"
                             isLoading={isMonthlyGrowthLoading}
@@ -610,7 +608,6 @@ export default function DashboardPage() {
                             icon={DollarSign}
                         />
 
-                        {/* 2. Monthly Gallons Sold */}
                         <GraphicalMetricCard
                             title="Monthly Gallons"
                             isLoading={isMonthlyGrowthLoading}
@@ -625,7 +622,6 @@ export default function DashboardPage() {
                             icon={Droplets}
                         />
 
-                        {/* 3. Weekly Sales */}
                         <GraphicalMetricCard
                             title="Weekly Sales"
                             isLoading={isWeeklyGrowthLoading}
@@ -640,7 +636,6 @@ export default function DashboardPage() {
                             icon={DollarSign}
                         />
 
-                        {/* 4. Weekly Gallons Sold */}
                         <GraphicalMetricCard
                             title="Weekly Gallons"
                             isLoading={isWeeklyGrowthLoading}
@@ -658,7 +653,6 @@ export default function DashboardPage() {
 
                     {/* --- ROW 3: CHARTS SECTION --- */}
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-2">
-                        {/* Timeline Sales Performance (8 cols) */}
                         <div className="lg:col-span-7 min-h-[380px]">
                             <Card className="h-full shadow-sm flex flex-col bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl">
                                 <CardHeader className="bg-transparent pb-0 flex flex-row items-center justify-between">
@@ -680,7 +674,6 @@ export default function DashboardPage() {
                             </Card>
                         </div>
 
-                        {/* Period Comparison Graphical Business Graph (5 cols) */}
                         <div className="lg:col-span-5 min-h-[380px]">
                             <Card className="h-full shadow-sm flex flex-col bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl">
                                 <CardHeader className="bg-transparent pb-0 flex flex-row items-center justify-between">
@@ -723,8 +716,7 @@ export default function DashboardPage() {
                     </div>
 
                     {/* --- ROW 4: PRODUCT BREAKDOWN & TOP CUSTOMERS --- */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-6">
-                        {/* New Sales by Product */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <Card className="shadow-sm h-[390px] flex flex-col bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl">
                             <CardHeader className="bg-transparent pb-0 shrink-0">
                                 <h3 className="font-bold text-slate-800 dark:text-white text-base">New Sales by Product</h3>
@@ -748,7 +740,6 @@ export default function DashboardPage() {
                             </CardContent>
                         </Card>
 
-                        {/* Top 10 All-Time Customers */}
                         <Card className="shadow-sm h-[390px] flex flex-col bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl">
                             <CardHeader className="bg-transparent pb-0 shrink-0">
                                 <h3 className="font-bold text-slate-800 dark:text-white text-base">Top 10 All-Time Customers</h3>
