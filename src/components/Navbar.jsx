@@ -22,10 +22,12 @@ import {
     UserCheck,
     ChevronRight,
     AlertTriangle,
-    Mail
+    Mail,
+    StickyNote
 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { subHours } from 'date-fns';
+import { useNotes } from '../hooks/useNotes';
 import Link from 'next/link';
 
 // Hamburger Icon
@@ -174,6 +176,7 @@ const Navbar = () => {
     const [isNotifOpen, setIsNotifOpen] = useState(false);
     const notifRef = useRef(null);
     const [lastSeenMessageTime, setLastSeenMessageTime] = useState(null);
+    const [lastSeenNotesTime, setLastSeenNotesTime] = useState(0);
 
     // --- Z-Reading / End Shift State ---
     const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
@@ -203,15 +206,19 @@ const Navbar = () => {
         )
     );
 
-    // Load last seen message timestamp from storage
+    // Load last seen timestamps from storage
     useEffect(() => {
         if (typeof window !== 'undefined') {
-            const stored = localStorage.getItem('last_seen_contact_message_time');
-            if (stored) {
-                setLastSeenMessageTime(stored);
+            const storedMsgTime = localStorage.getItem('last_seen_contact_message_time');
+            if (storedMsgTime) {
+                setLastSeenMessageTime(storedMsgTime);
+            }
+            if (clientUser?.id) {
+                const storedNotesTime = parseInt(localStorage.getItem(`notes_last_seen_${clientUser.id}`) || '0', 10);
+                setLastSeenNotesTime(storedNotesTime);
             }
         }
-    }, []);
+    }, [clientUser?.id]);
 
     // Automatically mark messages as seen when visiting /Messages
     useEffect(() => {
@@ -279,7 +286,6 @@ const Navbar = () => {
         staleTime: 10000
     });
 
-    // Compute unread message count based on last seen timestamp
     const unreadMessages = useMemo(() => {
         if (!recentMessages.length) return [];
         if (!lastSeenMessageTime) {
@@ -290,13 +296,33 @@ const Navbar = () => {
     }, [recentMessages, lastSeenMessageTime]);
 
     const unreadMessageCount = unreadMessages.length;
-    const totalNotifications = pendingCount + unreadMessageCount;
 
-    // --- REALTIME SUBSCRIPTIONS (USERS & CONTACT MESSAGES) ---
+    // --- 3. RECENT SCRATCHPAD NOTES QUERY & UNREAD CALCULATION ---
+    const { data: notes = [] } = useNotes();
+
+    const unreadNotes = useMemo(() => {
+        if (!notes.length || !clientUser) return [];
+        const twentyFourHoursAgo = Date.now() - 24 * 60 * 60 * 1000;
+        return notes.filter(note => {
+            const noteTime = new Date(note.created_at).getTime();
+            return (
+                noteTime > lastSeenNotesTime &&
+                noteTime > twentyFourHoursAgo &&
+                String(note.created_by) !== String(clientUser.id)
+            );
+        });
+    }, [notes, lastSeenNotesTime, clientUser]);
+
+    const unreadNotesCount = unreadNotes.length;
+
+    // Combined notification count for the bell
+    const totalNotifications = (isAdmin ? pendingCount + unreadMessageCount : 0) + unreadNotesCount;
+
+    // --- REALTIME SUBSCRIPTIONS (USERS, CONTACT MESSAGES, & NOTES) ---
     useEffect(() => {
-        if (!isAdmin || isDemo) return;
+        if (!clientUser || isDemo) return;
 
-        const usersChannel = supabase
+        const usersChannel = isAdmin ? supabase
             .channel('realtime:navbar-pending-approvals')
             .on(
                 'postgres_changes',
@@ -305,9 +331,9 @@ const Navbar = () => {
                     queryClient.invalidateQueries({ queryKey: ['pending-approvals-count'] });
                 }
             )
-            .subscribe();
+            .subscribe() : null;
 
-        const messagesChannel = supabase
+        const messagesChannel = isAdmin ? supabase
             .channel('realtime:navbar-contact-messages')
             .on(
                 'postgres_changes',
@@ -316,13 +342,25 @@ const Navbar = () => {
                     queryClient.invalidateQueries({ queryKey: ['recent-contact-messages-count'] });
                 }
             )
+            .subscribe() : null;
+
+        const notesChannel = supabase
+            .channel('realtime:navbar-notes')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'notes' },
+                () => {
+                    queryClient.invalidateQueries({ queryKey: ['notes'] });
+                }
+            )
             .subscribe();
 
         return () => {
-            supabase.removeChannel(usersChannel);
-            supabase.removeChannel(messagesChannel);
+            if (usersChannel) supabase.removeChannel(usersChannel);
+            if (messagesChannel) supabase.removeChannel(messagesChannel);
+            supabase.removeChannel(notesChannel);
         };
-    }, [isAdmin, isDemo, queryClient]);
+    }, [isAdmin, clientUser, isDemo, queryClient]);
 
     const navCategoriesSource = [
         {
@@ -569,7 +607,7 @@ const Navbar = () => {
         const btnContainerClass = isSidebar ? "w-[calc(100%-1.5rem)] mx-3" : "w-full";
         const childContainerClass = isSidebar ? "pl-3 ml-5 mt-1 space-y-0.5" : "pl-2 ml-2 mt-0.5 space-y-0.5";
 
-        const hasAdminAlertsPending = category === 'Administration & Content' && totalNotifications > 0;
+        const hasAdminAlertsPending = category === 'Administration & Content' && (pendingCount > 0 || unreadMessageCount > 0);
 
         return (
             <div key={category ?? '__root__'} className="mb-1">
@@ -598,9 +636,11 @@ const Navbar = () => {
                             const isActive = router.pathname === link.path;
                             const isApprovalsLink = link.path === '/admin/user-approvals';
                             const isMessagesLink = link.path.toLowerCase() === '/messages';
+                            const isDashboardLink = link.path === '/dashboard';
 
                             const showApprovalsNotification = isApprovalsLink && pendingCount > 0;
                             const showMessagesNotification = isMessagesLink && unreadMessageCount > 0;
+                            const showDashboardNotification = isDashboardLink && unreadNotesCount > 0;
 
                             return (
                                 <Button
@@ -620,6 +660,19 @@ const Navbar = () => {
                                             {link.icon}
                                             <span className="text-sm font-medium truncate">{link.name}</span>
                                         </div>
+
+                                        {/* Dashboard Scratchpad Notes Notification Badge */}
+                                        {showDashboardNotification && (
+                                            <div className="flex items-center gap-1.5 ml-auto pl-2 shrink-0">
+                                                <span className="relative flex h-2 w-2">
+                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                                                </span>
+                                                <span className="bg-amber-400 text-amber-950 text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center shadow-xs">
+                                                    {unreadNotesCount}
+                                                </span>
+                                            </div>
+                                        )}
 
                                         {/* Staff Approvals Notification Badge */}
                                         {showApprovalsNotification && (
@@ -683,12 +736,14 @@ const Navbar = () => {
 
                 <div className="mobile-clock-container flex flex-col items-center gap-1 ml-auto">
                     <div className="flex items-center gap-2">
-                        {/* Mobile Admin Notification Bell */}
-                        {isAdmin && (
+                        {/* Mobile Notification Bell */}
+                        {(isAdmin || unreadNotesCount > 0) && (
                             <button
                                 type="button"
                                 onClick={() => {
-                                    if (unreadMessageCount > 0 && pendingCount === 0) {
+                                    if (unreadNotesCount > 0 && pendingCount === 0 && unreadMessageCount === 0) {
+                                        router.push('/dashboard');
+                                    } else if (unreadMessageCount > 0 && pendingCount === 0) {
                                         markMessagesAsSeen();
                                         router.push('/Messages');
                                     } else {
@@ -736,8 +791,8 @@ const Navbar = () => {
                     <LiveClock />
                 </div>
 
-                {/* Admin Notifications Bell & Dropdown */}
-                {isAdmin && (
+                {/* Notifications Bell & Dropdown */}
+                {(isAdmin || unreadNotesCount > 0) && (
                     <div className="relative border-l border-border pl-6 h-8 flex items-center" ref={notifRef}>
                         <Button
                             variant="ghost"
@@ -771,14 +826,47 @@ const Navbar = () => {
                                 </div>
 
                                 <div className="max-h-72 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-800">
-                                    {/* Section 1: Staff Approvals */}
-                                    {pendingCount > 0 && (
+                                    {/* Section 1: Scratchpad Notes */}
+                                    {unreadNotesCount > 0 && (
                                         <div className="bg-amber-50/50 dark:bg-amber-950/30 px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 flex items-center justify-between">
+                                            <span>Scratchpad Notes</span>
+                                            <span>{unreadNotesCount}</span>
+                                        </div>
+                                    )}
+                                    {unreadNotes.slice(0, 3).map(n => (
+                                        <div
+                                            key={`note-${n.id}`}
+                                            onClick={() => {
+                                                setIsNotifOpen(false);
+                                                router.push('/dashboard');
+                                            }}
+                                            className="p-3 flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer bg-amber-50/10"
+                                        >
+                                            <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 flex items-center justify-center shrink-0 border border-amber-200 dark:border-amber-800">
+                                                <StickyNote className="w-4 h-4" />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-xs font-bold text-gray-900 dark:text-gray-100 truncate">
+                                                    {n.users?.name || 'Staff Note'}
+                                                </p>
+                                                <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">
+                                                    {n.content}
+                                                </p>
+                                            </div>
+                                            <span className="text-[9px] font-bold text-amber-800 bg-amber-100 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 px-1.5 py-0.5 rounded shrink-0">
+                                                Open
+                                            </span>
+                                        </div>
+                                    ))}
+
+                                    {/* Section 2: Staff Approvals */}
+                                    {isAdmin && pendingCount > 0 && (
+                                        <div className="bg-rose-50/50 dark:bg-rose-950/30 px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-rose-700 dark:text-rose-400 flex items-center justify-between">
                                             <span>Staff Registrations</span>
                                             <span>{pendingCount}</span>
                                         </div>
                                     )}
-                                    {pendingUsers.map(u => (
+                                    {isAdmin && pendingUsers.map(u => (
                                         <div
                                             key={`user-${u.id}`}
                                             onClick={() => {
@@ -787,27 +875,27 @@ const Navbar = () => {
                                             }}
                                             className="p-3 flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer"
                                         >
-                                            <div className="w-8 h-8 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-200 dark:border-amber-800">
+                                            <div className="w-8 h-8 rounded-full bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 border border-rose-200 dark:border-rose-800">
                                                 <Clock className="w-4 h-4" />
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-xs font-bold text-gray-900 dark:text-gray-100 truncate">{u.name}</p>
                                                 <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">{u.email || u.phone || 'New Signup'}</p>
                                             </div>
-                                            <span className="text-[9px] font-bold text-amber-700 bg-amber-100 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 px-1.5 py-0.5 rounded shrink-0">
+                                            <span className="text-[9px] font-bold text-rose-700 bg-rose-100 dark:bg-rose-950/60 border border-rose-300 dark:border-rose-800 px-1.5 py-0.5 rounded shrink-0">
                                                 Review
                                             </span>
                                         </div>
                                     ))}
 
-                                    {/* Section 2: Contact Messages */}
-                                    {unreadMessageCount > 0 && (
+                                    {/* Section 3: Contact Messages */}
+                                    {isAdmin && unreadMessageCount > 0 && (
                                         <div className="bg-blue-50/50 dark:bg-blue-950/30 px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-blue-700 dark:text-blue-400 flex items-center justify-between">
                                             <span>Contact Inquiries</span>
                                             <span>{unreadMessageCount}</span>
                                         </div>
                                     )}
-                                    {unreadMessages.slice(0, 4).map(m => (
+                                    {isAdmin && unreadMessages.slice(0, 3).map(m => (
                                         <div
                                             key={`msg-${m.id}`}
                                             onClick={() => {
@@ -832,7 +920,7 @@ const Navbar = () => {
 
                                     {totalNotifications === 0 && (
                                         <div className="p-6 text-center text-xs text-gray-400 font-medium">
-                                            No pending registrations or new messages.
+                                            No pending notifications.
                                         </div>
                                     )}
                                 </div>
@@ -841,22 +929,35 @@ const Navbar = () => {
                                     <button
                                         onClick={() => {
                                             setIsNotifOpen(false);
-                                            router.push('/admin/user-approvals');
+                                            router.push('/dashboard');
                                         }}
-                                        className="py-1 px-2 text-[11px] font-bold text-emerald-700 dark:text-emerald-400 hover:underline"
+                                        className="py-1 px-2 text-[11px] font-bold text-amber-700 dark:text-amber-400 hover:underline"
                                     >
-                                        Staff Approvals ({pendingCount})
+                                        Notes ({unreadNotesCount})
                                     </button>
-                                    <button
-                                        onClick={() => {
-                                            markMessagesAsSeen();
-                                            setIsNotifOpen(false);
-                                            router.push('/Messages');
-                                        }}
-                                        className="py-1 px-2 text-[11px] font-bold text-blue-700 dark:text-blue-400 hover:underline"
-                                    >
-                                        Messages ({unreadMessageCount})
-                                    </button>
+                                    {isAdmin && (
+                                        <>
+                                            <button
+                                                onClick={() => {
+                                                    setIsNotifOpen(false);
+                                                    router.push('/admin/user-approvals');
+                                                }}
+                                                className="py-1 px-2 text-[11px] font-bold text-emerald-700 dark:text-emerald-400 hover:underline"
+                                            >
+                                                Staff ({pendingCount})
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    markMessagesAsSeen();
+                                                    setIsNotifOpen(false);
+                                                    router.push('/Messages');
+                                                }}
+                                                className="py-1 px-2 text-[11px] font-bold text-blue-700 dark:text-blue-400 hover:underline"
+                                            >
+                                                Inbox ({unreadMessageCount})
+                                            </button>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         )}
