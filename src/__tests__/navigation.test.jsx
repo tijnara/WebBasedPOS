@@ -104,10 +104,11 @@ describe('Modern Navigation Suite', () => {
         });
 
         it('renders admin dropdown categories for admin user', () => {
+            const pushMock = jest.fn();
             useRouter.mockReturnValue({
                 pathname: '/dashboard',
                 events: { on: jest.fn(), off: jest.fn() },
-                push: jest.fn(),
+                push: pushMock,
             });
 
             useStore.mockReturnValue({
@@ -123,7 +124,32 @@ describe('Modern Navigation Suite', () => {
             expect(screen.getByRole('button', { name: /operations/i })).toBeInTheDocument();
             expect(screen.getByRole('button', { name: /inventory/i })).toBeInTheDocument();
             expect(screen.getByRole('button', { name: /finance/i })).toBeInTheDocument();
-            expect(screen.getByRole('button', { name: /administration/i })).toBeInTheDocument();
+            const administrationButton = screen.getByRole('button', { name: /administration/i });
+            expect(administrationButton).toBeInTheDocument();
+            fireEvent.click(administrationButton);
+            const approvalsButton = screen.getByText('Staff Approvals').closest('button');
+            expect(approvalsButton).toBeInTheDocument();
+            fireEvent.click(approvalsButton);
+            expect(pushMock).toHaveBeenCalledWith('/admin/user-approvals');
+        });
+
+        it('shows Staff Approvals for users with the isadmin flag', () => {
+            useRouter.mockReturnValue({
+                pathname: '/dashboard',
+                events: { on: jest.fn(), off: jest.fn() },
+                push: jest.fn(),
+            });
+
+            useStore.mockReturnValue({
+                user: { ...mockStaffUser, isadmin: true },
+                logout: jest.fn(),
+                darkMode: false,
+                toggleDarkMode: jest.fn(),
+            });
+
+            renderWithQueryClient(<Navbar />);
+            fireEvent.click(screen.getByRole('button', { name: /administration/i }));
+            expect(screen.getByText('Staff Approvals')).toBeInTheDocument();
         });
 
         it('hides administration dropdown category for staff user', () => {

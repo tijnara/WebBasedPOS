@@ -7,7 +7,22 @@ import Image from 'next/image';
 import { supabase } from '../lib/supabaseClient';
 import currency from 'currency.js';
 import { CartIcon, PackageIcon, UserIcon, ChartIcon, UsersIcon, GalleryIcon, HomeIcon, SettingsIcon, DocumentReportIcon, MailIcon } from './Icons';
-import { Landmark, Receipt, ChevronDown, Sun, Moon, LogOut, TrendingUp, TestTube, History } from 'lucide-react';
+import {
+    Landmark,
+    Receipt,
+    ChevronDown,
+    Sun,
+    Moon,
+    LogOut,
+    TrendingUp,
+    TestTube,
+    History,
+    Bell,
+    Clock,
+    UserCheck,
+    ChevronRight,
+    ShieldAlert
+} from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 
@@ -153,6 +168,10 @@ const Navbar = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuRef = useRef(null);
 
+    // --- Notifications State ---
+    const [isNotifOpen, setIsNotifOpen] = useState(false);
+    const notifRef = useRef(null);
+
     // --- Z-Reading / End Shift State ---
     const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
     const [actualCash, setActualCash] = useState('');
@@ -172,6 +191,64 @@ const Navbar = () => {
         next.has(cat) ? next.delete(cat) : next.add(cat);
         return next;
     });
+
+    const isAdmin = Boolean(
+        clientUser && (
+            clientUser.role === 'Admin' ||
+            clientUser.role === 'admin' ||
+            clientUser.isadmin === true
+        )
+    );
+
+    // --- PENDING STAFF APPROVALS QUERY ---
+    const { data: pendingUsers = [] } = useQuery({
+        queryKey: ['pending-approvals-count', clientUser?.id, isAdmin],
+        queryFn: async () => {
+            if (!isAdmin || isDemo) return [];
+
+            const { data, error } = await supabase
+                .from('users')
+                .select('id, name, email, phone, dateadded')
+                .eq('is_approved', false)
+                .eq('isadmin', false)
+                .order('dateadded', { ascending: false });
+
+            if (error) {
+                console.warn('Pending users fetch error:', error.message);
+                return [];
+            }
+            return data || [];
+        },
+        enabled: !!isAdmin && !isDemo,
+        refetchInterval: 30000,
+        staleTime: 10000
+    });
+
+    const pendingCount = pendingUsers.length;
+
+    // --- REALTIME SUBSCRIPTION FOR USERS REGISTRATIONS ---
+    useEffect(() => {
+        if (!isAdmin || isDemo) return;
+
+        const channel = supabase
+            .channel('realtime:navbar-pending-approvals')
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'users'
+                },
+                () => {
+                    queryClient.invalidateQueries({ queryKey: ['pending-approvals-count'] });
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [isAdmin, isDemo, queryClient]);
 
     const navCategoriesSource = [
         {
@@ -211,6 +288,7 @@ const Navbar = () => {
             category: 'Administration & Content',
             links: [
                 { name: 'Users', path: '/user-management', icon: <UsersIcon className="h-5 w-5 menu-icon" />, adminOnly: true },
+                { name: 'Staff Approvals', path: '/admin/user-approvals', icon: <UsersIcon className="h-5 w-5 menu-icon" />, adminOnly: true },
                 { name: 'Articles', path: '/article-management', icon: <DocumentReportIcon className="h-5 w-5 menu-icon" />, adminOnly: true },
                 { name: 'Activity Logs', path: '/activity-logs', icon: <History className="h-5 w-5 menu-icon" />, adminOnly: true },
                 { name: 'Page Settings', path: '/settings', icon: <SettingsIcon className="h-5 w-5 menu-icon" />, adminOnly: true },
@@ -229,8 +307,6 @@ const Navbar = () => {
         return navCategoriesSource;
     }, [isDemo]);
 
-    const isAdmin = clientUser && (clientUser.role === 'Admin' || clientUser.role === 'admin');
-
     useEffect(() => {
         const activeCat = navCategories.find(({ links }) =>
             links.some(link => link.path === router.pathname)
@@ -244,12 +320,18 @@ const Navbar = () => {
             checkActiveShift();
         }
 
-        const handleRouteChange = () => setIsMenuOpen(false);
+        const handleRouteChange = () => {
+            setIsMenuOpen(false);
+            setIsNotifOpen(false);
+        };
         router.events.on('routeChangeComplete', handleRouteChange);
 
         const handleClickOutside = (event) => {
             if (menuRef.current && !menuRef.current.contains(event.target)) {
                 setIsMenuOpen(false);
+            }
+            if (notifRef.current && !notifRef.current.contains(event.target)) {
+                setIsNotifOpen(false);
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
@@ -413,6 +495,8 @@ const Navbar = () => {
         const btnContainerClass = isSidebar ? "w-[calc(100%-1.5rem)] mx-3" : "w-full";
         const childContainerClass = isSidebar ? "pl-3 ml-5 mt-1 space-y-0.5" : "pl-2 ml-2 mt-0.5 space-y-0.5";
 
+        const hasAdminApprovalsPending = category === 'Administration & Content' && pendingCount > 0;
+
         return (
             <div key={category ?? '__root__'} className="mb-1">
                 {category && (
@@ -421,23 +505,53 @@ const Navbar = () => {
                         style={{ background: 'linear-gradient(90deg, #6abf45 0%, #4e9e2d 100%)' }}
                         onClick={() => toggleCategory(category)}
                     >
-                        <span className="drop-shadow-sm">{category}</span>
-                        <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+                        <div className="flex items-center gap-2 min-w-0">
+                            <span className="drop-shadow-sm truncate">{category}</span>
+                            {/* Pulsing Dot on collapsed category */}
+                            {hasAdminApprovalsPending && !isOpen && (
+                                <span className="relative flex h-2 w-2">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                                </span>
+                            )}
+                        </div>
+                        <ChevronDown className={`h-4 w-4 transition-transform duration-200 shrink-0 ${isOpen ? 'rotate-180' : ''}`} />
                     </button>
                 )}
                 {isOpen && (
                     <div className={childContainerClass}>
                         {visibleLinks.map(link => {
                             const isActive = router.pathname === link.path;
+                            const isApprovalsLink = link.path === '/admin/user-approvals';
+                            const showNotification = isApprovalsLink && pendingCount > 0;
+
                             return (
                                 <Button
                                     key={link.name}
                                     variant="ghost"
-                                    className={`nav-item ${isSidebar ? 'w-[calc(100%-1rem)]' : 'w-full'} justify-start gap-4 px-4 py-2 transition-all rounded-md ${isActive ? 'text-white font-bold shadow-md' : (isSidebar ? 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800' : 'text-gray-700 hover:bg-gray-100')}`}
+                                    className={`nav-item ${isSidebar ? 'w-[calc(100%-1rem)]' : 'w-full'} justify-start px-4 py-2 transition-all rounded-md ${isActive ? 'text-white font-bold shadow-md' : (isSidebar ? 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800' : 'text-gray-700 hover:bg-gray-100')}`}
                                     style={isActive ? { background: 'linear-gradient(90deg, rgba(106,191,69,0.95) 0%, rgba(78,158,45,0.9) 100%)' } : {}}
                                     onClick={async () => { if (category) setOpenCategories(new Set([category])); await router.push(link.path); setIsMenuOpen(false); }}
                                 >
-                                    {link.icon} <span className="text-sm font-medium">{link.name}</span>
+                                    <div className="flex items-center justify-between w-full min-w-0">
+                                        <div className="flex items-center gap-4 min-w-0">
+                                            {link.icon}
+                                            <span className="text-sm font-medium truncate">{link.name}</span>
+                                        </div>
+
+                                        {/* Notification Badge Dot + Pill */}
+                                        {showNotification && (
+                                            <div className="flex items-center gap-1.5 ml-auto pl-2 shrink-0">
+                                                <span className="relative flex h-2 w-2">
+                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                                                </span>
+                                                <span className="bg-rose-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center shadow-xs">
+                                                    {pendingCount}
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
                                 </Button>
                             );
                         })}
@@ -460,20 +574,38 @@ const Navbar = () => {
                         </Button>
 
                         {isMenuOpen && (
-                            <div className="absolute left-0 mt-2 w-56 origin-top-left bg-white rounded-2xl shadow-2xl focus:outline-none z-50 max-h-[80vh] overflow-y-auto" id="main-menu-mobile">
+                            <div className="absolute left-0 mt-2 w-56 origin-top-left bg-white dark:bg-gray-900 rounded-2xl shadow-2xl focus:outline-none z-50 max-h-[80vh] overflow-y-auto" id="main-menu-mobile">
                                 <nav className="flex flex-col px-1 py-1">
                                     {renderLinks(false)}
                                 </nav>
                             </div>
                         )}
                     </div>
-                    <div className="brand flex items-center min-w-0 flex-shrink-0" onClick={() => router.push('/')}>
+                    <div className="brand flex items-center min-w-0 flex-shrink-0 cursor-pointer" onClick={() => router.push('/')}>
                         <Image src="/seaside.png" alt="Seaside Logo" width={80} height={80} loading="eager" className="flex-shrink-0" />
                     </div>
                 </div>
 
                 <div className="mobile-clock-container flex flex-col items-center gap-1 ml-auto">
-                    {clientUser && <ActiveShiftIndicator user={clientUser} onOpenStartShift={() => setIsStartShiftModalOpen(true)} />}
+                    <div className="flex items-center gap-2">
+                        {/* Mobile Admin Notification Bell */}
+                        {isAdmin && (
+                            <button
+                                type="button"
+                                onClick={() => router.push('/admin/user-approvals')}
+                                className="relative p-1.5 text-gray-600 dark:text-gray-300 hover:text-primary rounded-lg transition-colors"
+                                title="Pending Staff Approvals"
+                            >
+                                <Bell className="w-5 h-5" />
+                                {pendingCount > 0 && (
+                                    <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-rose-500 text-[8px] font-black text-white shadow-xs">
+                                        {pendingCount > 9 ? '9+' : pendingCount}
+                                    </span>
+                                )}
+                            </button>
+                        )}
+                        {clientUser && <ActiveShiftIndicator user={clientUser} onOpenStartShift={() => setIsStartShiftModalOpen(true)} />}
+                    </div>
                     <LiveClock />
                 </div>
             </div>
@@ -503,6 +635,87 @@ const Navbar = () => {
                 <div className="flex items-center gap-3 border-l border-border pl-6 h-8">
                     <LiveClock />
                 </div>
+
+                {/* Admin Notifications Bell & Dropdown */}
+                {isAdmin && (
+                    <div className="relative border-l border-border pl-6 h-8 flex items-center" ref={notifRef}>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setIsNotifOpen(prev => !prev)}
+                            className="p-1.5 h-8 w-8 text-gray-500 hover:text-primary bg-white dark:bg-gray-800 shadow-sm border border-gray-200 dark:border-gray-700 relative"
+                            title="Staff Approvals Notifications"
+                        >
+                            <Bell className="w-4 h-4" />
+                            {pendingCount > 0 && (
+                                <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-rose-500 text-[9px] font-black text-white shadow-xs">
+                                    {pendingCount > 9 ? '9+' : pendingCount}
+                                </span>
+                            )}
+                        </Button>
+
+                        {/* Notifications Dropdown Panel */}
+                        {isNotifOpen && (
+                            <div className="absolute right-0 top-10 w-80 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-800 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+                                <div className="p-3.5 bg-gray-50/80 dark:bg-gray-800/80 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                                    <span className="text-xs font-bold text-gray-800 dark:text-gray-100 flex items-center gap-1.5">
+                                        <Bell className="w-3.5 h-3.5 text-primary" /> Staff Registration Alerts
+                                    </span>
+                                    {pendingCount > 0 ? (
+                                        <span className="text-[10px] font-bold bg-rose-100 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300 px-2 py-0.5 rounded-full">
+                                            {pendingCount} pending
+                                        </span>
+                                    ) : (
+                                        <span className="text-[10px] text-gray-400">All clear</span>
+                                    )}
+                                </div>
+
+                                <div className="max-h-64 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-800">
+                                    {pendingCount > 0 ? (
+                                        pendingUsers.map(u => (
+                                            <div
+                                                key={u.id}
+                                                onClick={() => {
+                                                    setIsNotifOpen(false);
+                                                    router.push('/admin/user-approvals');
+                                                }}
+                                                className="p-3 flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer"
+                                            >
+                                                <div className="w-8 h-8 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-200 dark:border-amber-800">
+                                                    <Clock className="w-4 h-4" />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-xs font-bold text-gray-900 dark:text-gray-100 truncate">{u.name}</p>
+                                                    <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">{u.email || u.phone || 'New Signup'}</p>
+                                                </div>
+                                                <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 px-1.5 py-0.5 rounded shrink-0">
+                                                    Review
+                                                </span>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="p-6 text-center text-xs text-gray-400 font-medium">
+                                            No pending staff registrations.
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="p-2 bg-gray-50/50 dark:bg-gray-800/40 border-t border-gray-100 dark:border-gray-700 text-center">
+                                    <button
+                                        onClick={() => {
+                                            setIsNotifOpen(false);
+                                            router.push('/admin/user-approvals');
+                                        }}
+                                        className="w-full py-1.5 px-3 text-xs font-bold text-primary hover:text-primary-hover hover:underline transition-all flex items-center justify-center gap-1"
+                                    >
+                                        <span>Open Staff Approvals Page</span>
+                                        <ChevronRight className="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 <div className="flex items-center gap-3 border-l border-border pl-6 h-8">
                     <div className="text-sm font-bold truncate pr-2" style={{ color: clientUser?.color || 'var(--primary)' }}>
