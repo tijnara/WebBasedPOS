@@ -1,8 +1,16 @@
+// src/components/tracking/VehicleList.jsx
 import React from 'react';
 import { Card, CardContent, Button } from '../ui';
-import { Car, History } from 'lucide-react';
+import { Car, History, Edit2 } from 'lucide-react';
 
-export default function VehicleList({ processedVehicles, handleReplace, handleViewHistory, isPurchasing }) {
+export default function VehicleList({
+                                        processedVehicles,
+                                        handleReplace,
+                                        handleViewHistory,
+                                        handleEditVehicle,
+                                        isAdmin,
+                                        isPurchasing
+                                    }) {
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 w-full mt-6">
             <div className="md:col-span-2">
@@ -18,9 +26,19 @@ export default function VehicleList({ processedVehicles, handleReplace, handleVi
                                 </div>
                                 <div>
                                     <h3 className="font-bold text-gray-900">{vehicle.name}</h3>
-                                    <p className="text-[11px] text-gray-500 max-w-[200px] leading-tight mt-0.5">{vehicle.purpose}</p>
+                                    <p className="text-[11px] text-gray-500 max-w-[200px] leading-tight mt-0.5">{vehicle.purpose || 'Delivery & Transport'}</p>
                                 </div>
                             </div>
+                            {isAdmin && (
+                                <button
+                                    type="button"
+                                    onClick={() => handleEditVehicle(vehicle)}
+                                    className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                    title="Edit Vehicle Settings"
+                                >
+                                    <Edit2 className="w-4 h-4" />
+                                </button>
+                            )}
                         </div>
 
                         <div className="space-y-4">
@@ -29,6 +47,7 @@ export default function VehicleList({ processedVehicles, handleReplace, handleVi
                                 <span className="font-semibold text-gray-800">{vehicle.daysPassed} / {vehicle.totalLifespanDays} Days</span>
                             </div>
 
+                            {/* Time Remaining Bar */}
                             <div>
                                 <div className="flex justify-between text-xs mb-1">
                                     <span className="text-gray-600 font-medium">Time Remaining</span>

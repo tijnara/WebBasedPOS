@@ -1,9 +1,17 @@
+// src/components/tracking/FilterList.jsx
 import React from 'react';
 import { Card, CardContent, Button } from '../ui';
 import { PackageIcon } from '../Icons';
-import { History, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { History, CheckCircle2, AlertTriangle, Edit2 } from 'lucide-react';
 
-export default function FilterList({ processedFilters, handleReplace, handleViewHistory, isPurchasing }) {
+export default function FilterList({
+                                       processedFilters,
+                                       handleReplace,
+                                       handleViewHistory,
+                                       handleEditFilter,
+                                       isAdmin,
+                                       isPurchasing
+                                   }) {
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 w-full">
             {processedFilters.map(filter => (
@@ -30,8 +38,21 @@ export default function FilterList({ processedFilters, handleReplace, handleView
                                     <p className="text-[11px] text-gray-500 max-w-[200px] leading-tight mt-0.5">{filter.purpose}</p>
                                 </div>
                             </div>
-                            <div className="text-right shrink-0">
-                                <span className="text-lg font-black text-gray-800">₱{filter.cost * filter.pcs}</span>
+
+                            <div className="text-right shrink-0 flex flex-col items-end gap-1">
+                                <div className="flex items-center gap-1.5">
+                                    <span className="text-lg font-black text-gray-800">₱{filter.cost * filter.pcs}</span>
+                                    {isAdmin && (
+                                        <button
+                                            type="button"
+                                            onClick={() => handleEditFilter(filter)}
+                                            className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                            title="Edit Filter Limits (Admin)"
+                                        >
+                                            <Edit2 className="w-3.5 h-3.5" />
+                                        </button>
+                                    )}
+                                </div>
                                 <p className="text-[10px] text-gray-400">total piece(s) cost</p>
                             </div>
                         </div>
