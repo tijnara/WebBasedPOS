@@ -7,9 +7,7 @@ import { useStore } from '../../store/useStore';
 import {
     Users,
     UserCheck,
-    UserX,
     Shield,
-    ShieldAlert,
     Clock,
     Check,
     Trash2,
@@ -35,7 +33,7 @@ export default function UserApprovalsPage() {
     // Verify Admin Access
     useEffect(() => {
         if (!user) return;
-        if (!user.isadmin) {
+        if (!user.isadmin && user?.role?.toLowerCase() !== 'admin') {
             addToast?.({ title: 'Access Denied', description: 'Administrator privileges required.', variant: 'destructive' });
             router.push('/pos');
         }
@@ -67,7 +65,24 @@ export default function UserApprovalsPage() {
         fetchUsers();
     }, []);
 
-    // Approve Account with Assigned Role
+    // Helper: Write to activity_logs
+    const logUserActivity = async ({ action, description }) => {
+        try {
+            await supabase.from('activity_logs').insert([{
+                user_id: user?.id || null,
+                user_name: user?.name || user?.username || 'Administrator',
+                user_role: user?.isadmin ? 'Admin' : (user?.role || 'Admin'),
+                action,
+                entity_type: 'USER',
+                description,
+                created_at: new Date().toISOString()
+            }]);
+        } catch (logErr) {
+            console.warn('Activity log failed:', logErr.message);
+        }
+    };
+
+    // 1. ACCEPT / APPROVE USER
     const handleApprove = async (targetUser, makeAdmin = false) => {
         setActionLoadingId(targetUser.id);
         try {
@@ -81,17 +96,13 @@ export default function UserApprovalsPage() {
 
             if (error) throw error;
 
-            // Log activity
-            try {
-                await supabase.from('activity_logs').insert([{
-                    user_id: user?.id || null,
-                    action: 'USER_APPROVED',
-                    description: `Admin approved ${targetUser.name} (${targetUser.email}) as ${makeAdmin ? 'Admin' : 'Staff'}.`,
-                    created_at: new Date().toISOString()
-                }]);
-            } catch (logErr) {
-                console.warn('Activity log skipped:', logErr.message);
-            }
+            // Audit Log: Accepting Account
+            await logUserActivity({
+                action: 'CREATE',
+                description: makeAdmin
+                    ? `Admin approved registration for "${targetUser.name}" (${targetUser.email || targetUser.phone || 'No contact'}) and promoted directly to Administrator.`
+                    : `Admin approved staff registration for "${targetUser.name}" (${targetUser.email || targetUser.phone || 'No contact'}) with Staff permissions.`
+            });
 
             addToast?.({
                 title: 'Account Approved',
@@ -108,7 +119,7 @@ export default function UserApprovalsPage() {
         }
     };
 
-    // Reject / Delete User Record
+    // 2. DELETE / REJECT USER REGISTRATION
     const handleReject = async (targetUser) => {
         if (!window.confirm(`Are you sure you want to reject and remove the registration for "${targetUser.name}"?`)) {
             return;
@@ -122,6 +133,12 @@ export default function UserApprovalsPage() {
                 .eq('id', targetUser.id);
 
             if (error) throw error;
+
+            // Audit Log: Deleting Account Request
+            await logUserActivity({
+                action: 'DELETE',
+                description: `Admin rejected and permanently deleted registration for "${targetUser.name}" (${targetUser.email || targetUser.phone || 'No contact'}).`
+            });
 
             addToast?.({
                 title: 'Registration Rejected',
@@ -138,27 +155,35 @@ export default function UserApprovalsPage() {
         }
     };
 
-    // Toggle Role for Existing Approved User
+    // 3. PROMOTING & DEMOTING USER ROLES
     const handleToggleRole = async (targetUser) => {
         if (targetUser.id === user?.id) {
             alert('You cannot change your own administrator status.');
             return;
         }
 
-        const newAdminStatus = !targetUser.isadmin;
+        const willBeAdmin = !targetUser.isadmin;
         setActionLoadingId(targetUser.id);
 
         try {
             const { error } = await supabase
                 .from('users')
-                .update({ isadmin: newAdminStatus })
+                .update({ isadmin: willBeAdmin })
                 .eq('id', targetUser.id);
 
             if (error) throw error;
 
+            // Audit Log: Promoting or Demoting
+            await logUserActivity({
+                action: 'UPDATE',
+                description: willBeAdmin
+                    ? `Admin promoted user "${targetUser.name}" (${targetUser.email || targetUser.phone || 'No contact'}) from Staff to Administrator.`
+                    : `Admin demoted user "${targetUser.name}" (${targetUser.email || targetUser.phone || 'No contact'}) from Administrator to Staff role.`
+            });
+
             addToast?.({
-                title: 'Role Updated',
-                description: `${targetUser.name} is now ${newAdminStatus ? 'an Administrator' : 'Staff'}.`,
+                title: willBeAdmin ? 'User Promoted' : 'User Demoted',
+                description: `${targetUser.name} is now ${willBeAdmin ? 'an Administrator' : 'Staff'}.`,
                 variant: 'success'
             });
 
@@ -171,7 +196,7 @@ export default function UserApprovalsPage() {
         }
     };
 
-    // Revoke Approval (Demote to pending)
+    // 4. REVOKE ACCESS (Demote back to unapproved)
     const handleRevokeApproval = async (targetUser) => {
         if (targetUser.id === user?.id) {
             alert('You cannot revoke access to your own account.');
@@ -191,6 +216,12 @@ export default function UserApprovalsPage() {
 
             if (error) throw error;
 
+            // Audit Log: Revoking Authorization
+            await logUserActivity({
+                action: 'UPDATE',
+                description: `Admin revoked system access for "${targetUser.name}" (${targetUser.email || targetUser.phone || 'No contact'}). Account moved to Pending Approval.`
+            });
+
             addToast?.({
                 title: 'Access Revoked',
                 description: `${targetUser.name} has been moved back to pending approvals.`,
@@ -206,7 +237,6 @@ export default function UserApprovalsPage() {
         }
     };
 
-    // Filter Logic
     const currentList = activeTab === 'pending' ? pendingUsers : approvedUsers;
     const filteredUsers = currentList.filter(u => {
         const query = searchTerm.toLowerCase();
@@ -217,7 +247,7 @@ export default function UserApprovalsPage() {
         );
     });
 
-    if (!user?.isadmin) {
+    if (!user?.isadmin && user?.role?.toLowerCase() !== 'admin') {
         return (
             <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50 text-slate-600">
                 <p className="text-sm font-semibold">Verifying administrator authorization...</p>
@@ -231,7 +261,6 @@ export default function UserApprovalsPage() {
                 <title>User Approvals | Seaside Admin</title>
             </Head>
 
-            {/* Header */}
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                     <div className="flex items-center gap-2.5 text-emerald-800">
@@ -253,7 +282,6 @@ export default function UserApprovalsPage() {
                 </button>
             </div>
 
-            {/* Navigation Tabs & Metrics */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <button
                     type="button"
@@ -298,9 +326,7 @@ export default function UserApprovalsPage() {
                 </button>
             </div>
 
-            {/* List Table Card */}
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-                {/* Search & Actions Bar */}
                 <div className="p-4 sm:p-5 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3">
                     <div className="relative flex-1 max-w-sm">
                         <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -317,7 +343,6 @@ export default function UserApprovalsPage() {
                     </span>
                 </div>
 
-                {/* Content Table */}
                 <div className="overflow-x-auto">
                     {isLoading ? (
                         <div className="py-16 text-center text-xs text-gray-400 font-medium flex flex-col items-center gap-2">
@@ -346,7 +371,6 @@ export default function UserApprovalsPage() {
 
                                 return (
                                     <tr key={u.id} className="hover:bg-gray-50/50 transition-colors">
-                                        {/* Name & ID */}
                                         <td className="py-3.5 px-5">
                                             <div className="font-bold text-gray-900 text-sm">
                                                 {u.name} {isSelf && <span className="text-[10px] text-emerald-600 font-bold ml-1">(You)</span>}
@@ -356,7 +380,6 @@ export default function UserApprovalsPage() {
                                             </div>
                                         </td>
 
-                                        {/* Contact Details */}
                                         <td className="py-3.5 px-4">
                                             <div className="flex items-center gap-1.5 text-gray-800 font-medium">
                                                 <Mail className="w-3.5 h-3.5 text-gray-400 shrink-0" />
@@ -368,7 +391,6 @@ export default function UserApprovalsPage() {
                                             </div>
                                         </td>
 
-                                        {/* Date Added */}
                                         <td className="py-3.5 px-4 text-gray-500 font-medium">
                                             <div className="flex items-center gap-1.5">
                                                 <Calendar className="w-3.5 h-3.5 text-gray-400 shrink-0" />
@@ -378,7 +400,6 @@ export default function UserApprovalsPage() {
                                             </div>
                                         </td>
 
-                                        {/* Role & Approval Badges */}
                                         <td className="py-3.5 px-4 text-center">
                                             {u.isadmin ? (
                                                 <span className="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-md">
@@ -395,22 +416,19 @@ export default function UserApprovalsPage() {
                                             )}
                                         </td>
 
-                                        {/* Action Controls */}
                                         <td className="py-3.5 px-5 text-right">
                                             {activeTab === 'pending' ? (
                                                 <div className="flex items-center justify-end gap-2">
-                                                    {/* Approve as Staff */}
                                                     <button
                                                         type="button"
                                                         disabled={isBusy}
                                                         onClick={() => handleApprove(u, false)}
                                                         className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition-all active:scale-95 disabled:opacity-50 flex items-center gap-1 shadow-xs text-[11px]"
-                                                        title="Approve as Staff member"
+                                                        title="Approve as Staff"
                                                     >
                                                         <Check className="w-3.5 h-3.5" /> Approve Staff
                                                     </button>
 
-                                                    {/* Approve as Admin */}
                                                     <button
                                                         type="button"
                                                         disabled={isBusy}
@@ -421,7 +439,6 @@ export default function UserApprovalsPage() {
                                                         <Shield className="w-3.5 h-3.5" /> Make Admin
                                                     </button>
 
-                                                    {/* Reject / Delete */}
                                                     <button
                                                         type="button"
                                                         disabled={isBusy}
@@ -434,7 +451,6 @@ export default function UserApprovalsPage() {
                                                 </div>
                                             ) : (
                                                 <div className="flex items-center justify-end gap-2">
-                                                    {/* Toggle Role Button */}
                                                     {!isSelf && (
                                                         <>
                                                             <button
@@ -446,18 +462,15 @@ export default function UserApprovalsPage() {
                                                                         ? 'text-amber-700 border-amber-200 bg-amber-50 hover:bg-amber-100'
                                                                         : 'text-indigo-700 border-indigo-200 bg-indigo-50 hover:bg-indigo-100'
                                                                 }`}
-                                                                title={u.isadmin ? 'Demote to Staff' : 'Promote to Admin'}
                                                             >
                                                                 {u.isadmin ? 'Demote to Staff' : 'Promote to Admin'}
                                                             </button>
 
-                                                            {/* Revoke Approval */}
                                                             <button
                                                                 type="button"
                                                                 disabled={isBusy}
                                                                 onClick={() => handleRevokeApproval(u)}
                                                                 className="px-2.5 py-1 text-red-600 border border-red-200 bg-red-50 hover:bg-red-100 rounded-lg font-bold text-[11px] transition-all"
-                                                                title="Revoke access"
                                                             >
                                                                 Revoke
                                                             </button>

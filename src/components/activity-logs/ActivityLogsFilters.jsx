@@ -1,3 +1,4 @@
+// src/components/activity-logs/ActivityLogsFilters.jsx
 import React from 'react';
 import { Search } from 'lucide-react';
 import { Input, Select } from '../ui';
@@ -34,6 +35,7 @@ export default function ActivityLogsFilters({
                     <option value="PRODUCT">Products</option>
                     <option value="CUSTOMER">Customers</option>
                     <option value="EMPLOYEE">Employees & Salary</option>
+                    <option value="USER">Staff & Approvals</option>
                     <option value="SYSTEM">System Settings</option>
                 </Select>
             </div>

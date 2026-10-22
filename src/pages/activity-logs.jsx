@@ -1,4 +1,4 @@
-// C:\Users\tijna\WebstormProjects\WebBasedPOS\src\pages\activity-logs.jsx
+// src/pages/activity-logs.jsx
 import React, { useState } from 'react';
 import Head from 'next/head';
 import { useStore } from '../store/useStore';
@@ -60,9 +60,12 @@ export default function ActivityLogsPage() {
 
             <Card className="shadow-sm overflow-hidden flex flex-col">
                 <ActivityLogsFilters
-                    searchTerm={searchTerm} setSearchTerm={handleSearchChange}
-                    filterAction={filterAction} setFilterAction={handleActionChange}
-                    filterType={filterType} setFilterType={handleTypeChange}
+                    searchTerm={searchTerm}
+                    setSearchTerm={handleSearchChange}
+                    filterAction={filterAction}
+                    setFilterAction={handleActionChange}
+                    filterType={filterType}
+                    setFilterType={handleTypeChange}
                 />
 
                 <CardContent className="p-0">
