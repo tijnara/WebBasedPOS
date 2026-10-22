@@ -40,6 +40,7 @@ export default function SeasideNewLanding() {
 
     const onLogin = async (data) => {
         setAuthError(null);
+        setRegSuccess(null);
 
         if (data.email === 'demo@gmail.com' && data.password === 'demodemo') {
             handleDemoLogin();
@@ -57,7 +58,19 @@ export default function SeasideNewLanding() {
 
             if (rpcError) throw rpcError;
 
-            if (userPayload) {
+            // RPC flagged pending approval
+            if (userPayload?.status === 'PENDING_APPROVAL') {
+                setAuthError(userPayload.message || 'Your account is pending administrator approval before you can access the system.');
+                return;
+            }
+
+            // Client-side fail-safe check for approval status
+            if (userPayload && userPayload.id) {
+                if (userPayload.is_approved === false && !userPayload.isadmin) {
+                    setAuthError('Your account is pending administrator approval before you can access the system.');
+                    return;
+                }
+
                 const finalPayload = { ...userPayload, isDemo: false };
                 setAuth(finalPayload);
                 router.push('/pos');
@@ -96,7 +109,7 @@ export default function SeasideNewLanding() {
         const cleanName = data.name.trim();
 
         try {
-            // 1. Check if email already exists in users table
+            // 1. Check if email already exists
             const { data: existingUser, error: checkError } = await supabase
                 .from('users')
                 .select('id')
@@ -110,7 +123,7 @@ export default function SeasideNewLanding() {
                 return;
             }
 
-            // 2. Insert into users table (strictly set isadmin: false)
+            // 2. Insert record: unapproved (is_approved: false) and non-admin (isadmin: false)
             const { error: insertError } = await supabase
                 .from('users')
                 .insert([{
@@ -119,34 +132,17 @@ export default function SeasideNewLanding() {
                     phone: cleanPhone,
                     password: data.password,
                     isadmin: false,
+                    is_approved: false,
                     is_demo: false,
                     category_id: 2
-                }])
-                .select()
-                .single();
+                }]);
 
             if (insertError) throw insertError;
 
-            // 3. Attempt immediate auto-login via authenticate_user RPC
-            try {
-                const { data: userPayload } = await supabase.rpc('authenticate_user', {
-                    p_email: cleanEmail,
-                    p_password: data.password
-                });
-
-                if (userPayload) {
-                    setAuth({ ...userPayload, isadmin: false, isDemo: false });
-                    router.push('/pos');
-                    return;
-                }
-            } catch (rpcErr) {
-                console.warn('Auto-login RPC skipped:', rpcErr.message);
-            }
-
-            // Fallback: Show success and transition to login tab
-            setRegSuccess('Account created successfully! Admin privileges will be set by an administrator. Please sign in.');
-            setActiveCard('login');
+            // 3. Keep user on landing page, switch back to login card, and prompt for approval
             resetSignUp();
+            setActiveCard('login');
+            setRegSuccess('Registration submitted! Your account is currently pending administrator approval. Please wait for an admin to approve your access before signing in.');
         } catch (err) {
             console.error('Registration exception:', err);
             setRegError(err.message || 'Failed to create staff account. Please try again.');
@@ -307,7 +303,7 @@ export default function SeasideNewLanding() {
                                 <div className="flex bg-slate-200/70 p-1 rounded-2xl mb-6 border border-slate-300/40">
                                     <button
                                         type="button"
-                                        onClick={() => { setActiveCard('login'); setAuthError(null); setRegError(null); setRegSuccess(null); }}
+                                        onClick={() => { setActiveCard('login'); setAuthError(null); setRegError(null); }}
                                         className={`flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
                                             activeCard === 'login'
                                                 ? 'bg-white text-slate-900 shadow-sm'
@@ -318,7 +314,7 @@ export default function SeasideNewLanding() {
                                     </button>
                                     <button
                                         type="button"
-                                        onClick={() => { setActiveCard('signup'); setAuthError(null); setRegError(null); setRegSuccess(null); }}
+                                        onClick={() => { setActiveCard('signup'); setAuthError(null); setRegError(null); }}
                                         className={`flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
                                             activeCard === 'signup'
                                                 ? 'bg-white text-green-700 shadow-sm'
@@ -338,16 +334,20 @@ export default function SeasideNewLanding() {
                                         <p className="text-slate-500 font-medium text-sm">Log in to your Seaside dashboard.</p>
                                     </div>
 
+                                    {/* Success notification after signup */}
                                     {regSuccess && (
-                                        <div className="mb-4 rounded-xl bg-emerald-50 p-3.5 text-xs font-semibold text-emerald-700 border border-emerald-100 flex items-center gap-2">
-                                            <span>✓</span>
+                                        <div className="mb-4 rounded-xl bg-amber-50 p-3.5 text-xs font-semibold text-amber-800 border border-amber-200 flex items-start gap-2">
+                                            <span className="text-base leading-none">⏳</span>
                                             <span>{regSuccess}</span>
                                         </div>
                                     )}
 
+                                    {/* Auth error / pending approval warning */}
                                     {authError && (
                                         <div className="mb-4 rounded-xl bg-red-50 p-4 text-sm font-medium text-red-600 border border-red-100 flex items-start">
-                                            <svg className="w-5 h-5 mr-2 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
+                                            <svg className="w-5 h-5 mr-2 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                            </svg>
                                             {authError}
                                         </div>
                                     )}
@@ -436,7 +436,7 @@ export default function SeasideNewLanding() {
                                     <div className="mb-4">
                                         <h2 className="text-3xl font-extrabold mb-1 text-slate-900">Staff Sign Up</h2>
                                         <p className="text-slate-500 font-medium text-xs">
-                                            Register for a staff account. An administrator will configure your permissions.
+                                            Register for an account. An administrator will review and approve your access before login.
                                         </p>
                                     </div>
 
@@ -538,11 +538,11 @@ export default function SeasideNewLanding() {
                                             {isSignUpSubmitting ? (
                                                 <>
                                                     <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                                                    Registering...
+                                                    Submitting Registration...
                                                 </>
                                             ) : (
                                                 <>
-                                                    Create Staff Account
+                                                    Submit for Admin Approval
                                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                                                 </>
                                             )}

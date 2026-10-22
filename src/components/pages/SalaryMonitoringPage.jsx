@@ -1,5 +1,4 @@
 // src/components/pages/SalaryMonitoringPage.jsx
-// created on 6/16/2026
 import React, { useState, useMemo, useEffect } from 'react';
 import Head from 'next/head';
 import { Button } from '../ui';
@@ -11,6 +10,7 @@ import { format as formatDate, endOfMonth, subMonths, addMonths, startOfDay, end
 import { formatInTimeZone, toDate } from 'date-fns-tz';
 import { Users } from 'lucide-react';
 import { useStore } from '../../store/useStore';
+import { useQueryClient } from '@tanstack/react-query';
 
 // Extracted Modular Components
 import AutoPayrollCard from '../salary/AutoPayrollCard';
@@ -85,6 +85,7 @@ export default function SalaryMonitoringPage() {
         document.title = 'Salary Monitoring | Seaside WRS';
     }, []);
 
+    const queryClient = useQueryClient?.() || null;
     const { user, addToast } = useStore();
     const isAdmin = user?.role === 'Admin' || user?.role === 'admin' || user?.isadmin;
 
@@ -123,7 +124,6 @@ export default function SalaryMonitoringPage() {
     const { data: employees, isLoading: isEmpLoading } = useEmployees();
     const { data: debts = [] } = useDebts();
 
-    // Fetch daily summary for the payoutDate in Manual Record
     const { data: dailySummary } = useSalesSummary({
         startDate: useMemo(() => payoutDate ? startOfDay(toDate(payoutDate, { timeZone: TIME_ZONE })) : null, [payoutDate]),
         endDate: useMemo(() => payoutDate ? endOfDay(toDate(payoutDate, { timeZone: TIME_ZONE })) : null, [payoutDate])
@@ -133,56 +133,80 @@ export default function SalaryMonitoringPage() {
     const processDeductionsMutation = useProcessDeductions();
     const manageEmployee = useManageEmployee();
 
-    const selectedPayrollEmp = employees?.find(e => e.id.toString() === payrollEmpId);
+    const selectedPayrollEmp = employees?.find(e => String(e.id) === String(payrollEmpId));
     const payrollEmpName = selectedPayrollEmp?.name || '';
 
-    // Calculate Gross Salary based on the Salary History for the current period
+    // Calculate Gross Salary based on positive salary entries in Salary History
     const payrollGross = useMemo(() => {
         if (!payrollEmpName || !salaryRecords) return 0;
-        const gross = salaryRecords
+        return salaryRecords
             .filter(r => r.employee_name === payrollEmpName && Number(r.amount) > 0)
             .reduce((sum, r) => sum + Number(r.amount), 0);
-        return gross;
     }, [payrollEmpName, salaryRecords]);
 
+    // Robust bidirectional deduction linking with Employee Debt Management
     const activeDeductions = useMemo(() => {
         if (!payrollEmpId || !payrollDate) return [];
 
-        const payoutDateObj = toDate(payrollDate, { timeZone: TIME_ZONE });
-        const dayOfMonth = payoutDateObj.getDate();
+        const [pYear, pMonth, pDay] = payrollDate.split('-').map(Number);
+        const lastDayOfMonth = new Date(pYear, pMonth, 0).getDate();
 
-        let periodStart, periodEnd;
+        const periodStartStr = pDay <= 15
+            ? `${pYear}-${String(pMonth).padStart(2, '0')}-01`
+            : `${pYear}-${String(pMonth).padStart(2, '0')}-16`;
+        const periodEndStr = pDay <= 15
+            ? `${pYear}-${String(pMonth).padStart(2, '0')}-15`
+            : `${pYear}-${String(pMonth).padStart(2, '0')}-${lastDayOfMonth}`;
 
-        if (dayOfMonth <= 15) {
-            periodStart = startOfDay(new Date(payoutDateObj.getFullYear(), payoutDateObj.getMonth(), 1));
-            periodEnd = endOfDay(new Date(payoutDateObj.getFullYear(), payoutDateObj.getMonth(), 15));
-        } else {
-            periodStart = startOfDay(new Date(payoutDateObj.getFullYear(), payoutDateObj.getMonth(), 16));
-            periodEnd = endOfDay(endOfMonth(payoutDateObj));
-        }
+        const periodStart = new Date(`${periodStartStr}T00:00:00+08:00`);
+        const periodEnd = new Date(`${periodEndStr}T23:59:59.999+08:00`);
 
-        const empDebts = debts.filter(d =>
-            d.type?.toLowerCase() === 'employee' &&
-            (d.employee_id === Number(payrollEmpId) || (d.description && d.description.toLowerCase().includes(payrollEmpName.toLowerCase())))
-        );
+        const cleanEmpName = (payrollEmpName || '').trim().toLowerCase();
+        const firstName = cleanEmpName.split(' ')[0];
 
+        // 1. Identify all employee debts for this staff member
+        const empDebts = debts.filter(d => {
+            const isEmployeeType = d.type?.toLowerCase() === 'employee';
+            if (!isEmployeeType) return false;
+
+            const isIdMatch = d.employee_id && String(d.employee_id) === String(payrollEmpId);
+            const debtDesc = (d.description || '').toLowerCase();
+            const isNameMatch = cleanEmpName && (
+                debtDesc.includes(cleanEmpName) ||
+                cleanEmpName.includes(debtDesc.split(/[-•:]/)[0].trim()) ||
+                (firstName.length >= 2 && debtDesc.includes(firstName))
+            );
+
+            return isIdMatch || isNameMatch;
+        });
+
+        // 2. Calculate remaining balance and active deduction per debt
         return empDebts.map(debt => {
-            const totalPaid = (debt.debt_payments || []).reduce((sum, p) => sum + Number(p.amount_paid), 0);
-            const remainingDebt = Number(debt.total_debt_amount) - totalPaid;
+            const debtPayments = (debt.debt_payments || []).filter(
+                p => !p.debt_id || String(p.debt_id) === String(debt.id)
+            );
+
+            const totalPaid = debtPayments.reduce((sum, p) => sum + Number(p.amount_paid || 0), 0);
+            const remainingDebt = Math.max(0, Number(debt.total_debt_amount || 0) - totalPaid);
 
             if (remainingDebt <= 0) return null;
 
-            let scheduledDeduction = debt.frequency === 'Every 15 days'
-                ? Number(debt.weekly_payment_amount || 0)
-                : Number(debt.weekly_payment_amount || 0) * 2;
+            let scheduledDeduction = Number(debt.weekly_payment_amount || 0);
+            if (debt.frequency === 'Weekly') {
+                scheduledDeduction = scheduledDeduction * 2;
+            }
+            if (scheduledDeduction <= 0) {
+                scheduledDeduction = remainingDebt;
+            }
 
-            const paymentsInPeriod = (debt.debt_payments || []).filter(p => {
+            // Exclude already processed payments in this specific cutoff
+            const paymentsInPeriod = debtPayments.filter(p => {
                 if (!p.date_paid) return false;
-                const pDate = toDate(p.date_paid, { timeZone: TIME_ZONE });
+                const pDate = new Date(`${p.date_paid}T00:00:00+08:00`);
                 return pDate >= periodStart && pDate <= periodEnd;
             });
 
-            const amountPaidInPeriod = paymentsInPeriod.reduce((sum, p) => sum + Number(p.amount_paid), 0);
+            const amountPaidInPeriod = paymentsInPeriod.reduce((sum, p) => sum + Number(p.amount_paid || 0), 0);
             let finalDeduction = scheduledDeduction - amountPaidInPeriod;
 
             if (finalDeduction <= 0) return null;
@@ -194,7 +218,7 @@ export default function SalaryMonitoringPage() {
                 amount: finalDeduction,
                 remaining: remainingDebt,
                 frequency: debt.frequency,
-                baseAmount: Number(debt.weekly_payment_amount),
+                baseAmount: Number(debt.weekly_payment_amount || 0),
                 debtDate: debt.debt_date
             };
         }).filter(Boolean);
@@ -254,7 +278,7 @@ export default function SalaryMonitoringPage() {
         if (!payrollEmpName || !payrollDate) return;
 
         if (activeDeductions.length === 0) {
-            addToast({ title: 'Notice', description: 'No active deductions to process for this date.', variant: 'warning' });
+            addToast({ title: 'Notice', description: 'No active deductions found for this employee.', variant: 'warning' });
             return;
         }
 
@@ -268,17 +292,23 @@ export default function SalaryMonitoringPage() {
                 date: combinedDateTime.toISOString(),
                 deductions: activeDeductions
             });
-            addToast({ title: 'Success', description: 'Automated deductions processed successfully', variant: 'success' });
+            addToast({
+                title: 'Deductions Synchronized',
+                description: `Successfully processed ₱${payrollTotalDeductions.toFixed(2)} in deductions. Updated in Employee Debt Management!`,
+                variant: 'success'
+            });
 
             setPayrollEmpId('');
             setPayrollDate(formatInTimeZone(new Date(), TIME_ZONE, 'yyyy-MM-dd'));
+            queryClient?.invalidateQueries({ queryKey: ['debts'] });
+            queryClient?.invalidateQueries({ queryKey: ['salary-records'] });
         } catch (error) {
             addToast({ title: 'Error', description: error.message, variant: 'destructive' });
         }
     };
 
     // ============================================================
-    // HANDLER: ORIGINAL MANUAL SALARY
+    // HANDLER: MANUAL SALARY ENTRY
     // ============================================================
     const handleEmployeeSelect = (e) => {
         setEmployeeName(e.target.value);

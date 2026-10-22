@@ -178,12 +178,12 @@ export default function DebtManagementPage() {
         }
     };
 
-    // === EMPLOYEE HANDLERS ===
+    // === EMPLOYEE HANDLERS (LINKED TO SALARY MONITORING) ===
     const handleNewEmpDebtSubmit = async (e) => {
         e.preventDefault();
         if (isDemo) return addToast({ title: 'Demo', description: 'Disabled in demo.', variant: 'warning' });
 
-        const employee = employees.find(emp => emp.id.toString() === selectedEmployeeId);
+        const employee = employees.find(emp => String(emp.id) === String(selectedEmployeeId));
         const employeeName = employee ? employee.name : 'Unknown Employee';
         const finalDescription = empReason.trim() ? `${employeeName} • ${empReason.trim()}` : employeeName;
 
@@ -197,7 +197,7 @@ export default function DebtManagementPage() {
                 type: 'employee',
                 employee_id: selectedEmployeeId ? parseInt(selectedEmployeeId, 10) : null
             });
-            addToast({ title: 'Success', description: 'Employee debt logged.', variant: 'success' });
+            addToast({ title: 'Success', description: 'Employee advance logged and linked to Salary Monitoring.', variant: 'success' });
 
             setSelectedEmployeeId('');
             setEmpReason('');
@@ -205,6 +205,8 @@ export default function DebtManagementPage() {
             setEmpWeeklyPaymentAmount('');
             setEmpDebtFrequency('Weekly');
             refetch?.();
+            queryClient?.invalidateQueries({ queryKey: ['debts'] });
+            queryClient?.invalidateQueries({ queryKey: ['salary-records'] });
         } catch (error) {
             addToast({ title: 'Error', description: error.message, variant: 'destructive' });
         }
@@ -223,16 +225,11 @@ export default function DebtManagementPage() {
                 date_paid: empDatePaid
             });
 
-            await createExpenseMutation.mutateAsync({
-                expense_date: empDatePaid,
-                category: 'Debt Repayment',
-                description: `Manual Repayment - ${targetDebt?.description || `Account #${selectedEmpDebtId}`}`,
-                amount: -Math.abs(parseFloat(empAmountPaid))
-            });
-
-            addToast({ title: 'Success', description: 'Employee payment and expense logged.', variant: 'success' });
+            addToast({ title: 'Success', description: 'Payment logged. Updated in Salary Monitoring.', variant: 'success' });
             setEmpAmountPaid(''); setSelectedEmpDebtId('');
             refetch?.();
+            queryClient?.invalidateQueries({ queryKey: ['debts'] });
+            queryClient?.invalidateQueries({ queryKey: ['salary-records'] });
         } catch (error) {
             addToast({ title: 'Error', description: error.message, variant: 'destructive' });
         }
@@ -263,6 +260,7 @@ export default function DebtManagementPage() {
             setEditingDebt(null);
             refetch?.();
             queryClient?.invalidateQueries({ queryKey: ['debts'] });
+            queryClient?.invalidateQueries({ queryKey: ['salary-records'] });
         } catch (err) {
             console.error('Update debt error:', err);
             addToast({ title: 'Update Error', description: err.message, variant: 'destructive' });
@@ -285,6 +283,7 @@ export default function DebtManagementPage() {
             addToast({ title: 'Deleted', description: `Account #${debt.id} deleted successfully.`, variant: 'success' });
             refetch?.();
             queryClient?.invalidateQueries({ queryKey: ['debts'] });
+            queryClient?.invalidateQueries({ queryKey: ['salary-records'] });
         } catch (err) {
             console.error('Delete debt error:', err);
             addToast({ title: 'Delete Error', description: err.message, variant: 'destructive' });
@@ -338,7 +337,6 @@ export default function DebtManagementPage() {
                                 return (
                                     <React.Fragment key={debt.id}>
                                         <TableRow className={`hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors ${isFullyPaid ? 'opacity-60 bg-gray-50/30' : ''}`}>
-                                            {/* Account Details */}
                                             <TableCell className="py-4">
                                                 <div className="flex items-center gap-1.5 flex-wrap">
                                                     <span className="font-bold text-sm text-gray-900 dark:text-gray-100">
@@ -356,7 +354,6 @@ export default function DebtManagementPage() {
                                                     <span>•</span>
                                                     <span>{formatDateSafe(debt.debt_date)}</span>
 
-                                                    {/* Edit & Delete Controls */}
                                                     <div className="flex items-center gap-1.5 ml-2 border-l border-gray-200 dark:border-gray-700 pl-2">
                                                         <button
                                                             type="button"
@@ -378,7 +375,6 @@ export default function DebtManagementPage() {
                                                 </div>
                                             </TableCell>
 
-                                            {/* Terms */}
                                             <TableCell className="text-right py-4">
                                                 <div className="font-bold text-sm text-gray-900 dark:text-gray-100">
                                                     {currency(debt.total_debt_amount, { symbol: '₱' }).format()}
@@ -389,7 +385,6 @@ export default function DebtManagementPage() {
                                                 </div>
                                             </TableCell>
 
-                                            {/* Progress */}
                                             <TableCell className="py-4 px-2">
                                                 <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden flex">
                                                     <div
@@ -407,14 +402,12 @@ export default function DebtManagementPage() {
                                                 </div>
                                             </TableCell>
 
-                                            {/* Remaining */}
                                             <TableCell className="text-right py-4">
                                                 <div className={`font-black text-sm ${isFullyPaid ? 'text-emerald-600' : 'text-red-600'}`}>
                                                     {currency(debt.remainingDebt, { symbol: '₱' }).format()}
                                                 </div>
                                             </TableCell>
 
-                                            {/* History Toggle Button */}
                                             <TableCell className="text-center py-4">
                                                 <Button
                                                     variant="ghost"
@@ -433,7 +426,6 @@ export default function DebtManagementPage() {
                                             </TableCell>
                                         </TableRow>
 
-                                        {/* Full-Width Expandable History Drawer: Uses Native <td colSpan={5}> */}
                                         {isExpanded && (
                                             <tr className="bg-gray-50/70 dark:bg-gray-800/40 border-b-2 border-b-gray-200 dark:border-b-gray-700">
                                                 <td colSpan={5} className="p-0 w-full">
@@ -484,7 +476,7 @@ export default function DebtManagementPage() {
                     </Table>
                 </div>
 
-                {/* --- MOBILE VIEW (Stacked Cards) --- */}
+                {/* --- MOBILE VIEW --- */}
                 <div className="block md:hidden divide-y divide-gray-100 dark:divide-gray-800">
                     {data.map((debt) => {
                         const isExpanded = expandedRows.has(debt.id);
@@ -597,9 +589,7 @@ export default function DebtManagementPage() {
                 <title>Debt Management | Seaside POS</title>
             </Head>
 
-            {/* ========================================================
-                SECTION 1: COMPANY DEBT MANAGEMENT
-                ======================================================== */}
+            {/* SECTION 1: COMPANY DEBT MANAGEMENT */}
             <div className="space-y-6">
                 <div>
                     <h1 className="text-2xl font-bold flex items-center gap-2"><Landmark className="text-primary w-7 h-7" /> Company Debt Management</h1>
@@ -620,7 +610,6 @@ export default function DebtManagementPage() {
 
                 <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 items-start">
                     <div className="space-y-6 xl:col-span-1">
-                        {/* Company Forms */}
                         <Card className="shadow-sm">
                             <CardHeader className="pb-3 border-b"><h3 className="font-bold text-sm flex items-center gap-2"><PlusCircle className="w-4 h-4 text-primary" /> Log Company Debt</h3></CardHeader>
                             <CardContent className="p-5">
@@ -650,6 +639,7 @@ export default function DebtManagementPage() {
                                 </form>
                             </CardContent>
                         </Card>
+
                         <Card className="shadow-sm">
                             <CardHeader className="pb-3 border-b"><h3 className="font-bold text-sm flex items-center gap-2"><Calendar className="w-4 h-4 text-emerald-600" /> Amortization Log</h3></CardHeader>
                             <CardContent className="p-5">
@@ -690,18 +680,15 @@ export default function DebtManagementPage() {
                 </div>
             </div>
 
-            {/* ========================================================
-                SECTION 2: EMPLOYEE DEBT MANAGEMENT
-                ======================================================== */}
+            {/* SECTION 2: EMPLOYEE DEBT MANAGEMENT */}
             <div className="space-y-6 pt-8 border-t border-gray-200 dark:border-slate-800">
                 <div>
                     <h1 className="text-2xl font-bold flex items-center gap-2"><Users className="text-indigo-500 w-7 h-7" /> Employee Debt Management</h1>
-                    <p className="text-sm text-gray-500">Log cash advances/debts for staff. Payments here will NOT trigger company expenses.</p>
+                    <p className="text-sm text-gray-500">Log cash advances/debts for staff. Connected to Salary Monitoring Auto-Deductions.</p>
                 </div>
 
                 <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 items-start">
                     <div className="space-y-6 xl:col-span-1">
-                        {/* Employee Forms */}
                         <Card className="shadow-sm border-indigo-100">
                             <CardHeader className="pb-3 border-b bg-indigo-50/30"><h3 className="font-bold text-sm flex items-center gap-2 text-indigo-700"><PlusCircle className="w-4 h-4" /> Log Employee Advance</h3></CardHeader>
                             <CardContent className="p-5">
@@ -750,6 +737,7 @@ export default function DebtManagementPage() {
                                 </form>
                             </CardContent>
                         </Card>
+
                         <Card className="shadow-sm border-indigo-100">
                             <CardHeader className="pb-3 border-b bg-indigo-50/30"><h3 className="font-bold text-sm flex items-center gap-2 text-indigo-700"><Calendar className="w-4 h-4" /> Employee Payment Log</h3></CardHeader>
                             <CardContent className="p-5">
@@ -790,9 +778,7 @@ export default function DebtManagementPage() {
                 </div>
             </div>
 
-            {/* ========================================================
-                MODAL: EDIT ACCOUNT DETAILS
-                ======================================================== */}
+            {/* MODAL: EDIT ACCOUNT DETAILS */}
             {editingDebt && (
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in-95 duration-150">

@@ -11,7 +11,6 @@ export function useSalaryRecords(startDate, endDate) {
     return useQuery({
         queryKey: ['salary-records', startDate, endDate],
         queryFn: async () => {
-            // Ensure start and end dates are treated as being in the Manila timezone
             const startUTC = startDate ? toDate(`${startDate}T00:00:00`, { timeZone: TIME_ZONE }).toISOString() : null;
             const endUTC = endDate ? toDate(`${endDate}T23:59:59.999`, { timeZone: TIME_ZONE }).toISOString() : null;
 
@@ -41,7 +40,6 @@ export function useCreateSalary() {
 
     return useMutation({
         mutationFn: async ({ employeeName, amount, description, date }) => {
-            // The 'date' is already a UTC ISO string from the frontend
             const { error: expenseError } = await supabase.from('expenses').insert([{
                 amount: parseFloat(amount),
                 category: 'Salary',
@@ -53,13 +51,11 @@ export function useCreateSalary() {
 
             if (expenseError) throw expenseError;
 
-            // This part doesn't need timezone conversion
             await supabase.from('employees').upsert(
                 { name: employeeName, default_salary: parseFloat(amount) },
                 { onConflict: 'name', ignoreDuplicates: true }
             );
 
-            // --- Log Activity ---
             const currentUser = useStore.getState().user;
             logActivity({
                 user: currentUser,
@@ -86,49 +82,55 @@ export function useProcessDeductions() {
         mutationFn: async ({ employeeName, date, deductions = [] }) => {
             if (!deductions || deductions.length === 0) return;
 
-            // The 'date' is already a UTC ISO string from the frontend
             const dateOnly = date.split('T')[0];
             const expensesToInsert = [];
 
             for (const ded of deductions) {
-                // Record debt payment to reduce their debt balance
-                await supabase.from('debt_payments').insert([{
-                    debt_id: ded.debt_id,
-                    amount_paid: ded.amount,
-                    date_paid: dateOnly // date_paid is a 'date' column, so time part is not needed
-                }]);
+                // 1. Record debt payment in debt_payments (updates Employee Debt Management)
+                const { error: paymentError } = await supabase
+                    .from('debt_payments')
+                    .insert([{
+                        debt_id: ded.debt_id,
+                        amount_paid: Number(ded.amount),
+                        date_paid: dateOnly
+                    }]);
 
-                // Add the negative salary entry
+                if (paymentError) throw paymentError;
+
+                // 2. Insert negative salary deduction line in expenses (updates Salary History)
                 expensesToInsert.push({
-                    amount: -Math.abs(ded.amount),
+                    amount: -Math.abs(Number(ded.amount)),
                     category: 'Salary',
-                    description: `Deduction: ${ded.description}`,
-                    expense_date: date, // Use the full ISO string for the 'timestampz' column
+                    description: `Payroll Deduction - ${ded.description || 'Employee Debt'}`,
+                    expense_date: date,
                     created_by: user?.id || null,
                     employee_name: employeeName
                 });
             }
 
             if (expensesToInsert.length > 0) {
-                const { error: expenseError } = await supabase.from('expenses').insert(expensesToInsert);
+                const { error: expenseError } = await supabase
+                    .from('expenses')
+                    .insert(expensesToInsert);
+
                 if (expenseError) throw expenseError;
 
-                // --- Log Activity ---
                 const currentUser = useStore.getState().user;
-                const totalDeducted = deductions.reduce((sum, d) => sum + d.amount, 0);
+                const totalDeducted = deductions.reduce((sum, d) => sum + Number(d.amount), 0);
                 logActivity({
                     user: currentUser,
                     action: 'UPDATE',
                     entity_type: 'SALARY',
-                    description: `Processed ₱${totalDeducted.toFixed(2)} in debt deductions for ${employeeName}`
+                    description: `Processed ₱${totalDeducted.toFixed(2)} in automated debt deductions for ${employeeName}`
                 });
             }
         },
         onSuccess: () => {
+            // Bidirectional Cache Invalidation
             queryClient.invalidateQueries({ queryKey: ['salary-records'] });
+            queryClient.invalidateQueries({ queryKey: ['debts'] });
             queryClient.invalidateQueries({ queryKey: ['expenses'] });
             queryClient.invalidateQueries({ queryKey: ['expense-summary'] });
-            queryClient.invalidateQueries({ queryKey: ['debts'] });
             queryClient.invalidateQueries({ queryKey: ['activity-logs'] });
         },
     });
