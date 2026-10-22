@@ -1,5 +1,5 @@
 // src/components/pages/POSPage.jsx
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useStore } from '../../store/useStore';
 import { useProducts } from '../../hooks/useProducts';
@@ -10,6 +10,14 @@ import { Button, Input } from '../ui';
 import { usePOSModals } from '../../hooks/usePOSModals';
 import { usePOSCheckout, getLocalDateString, getLocalTimeString } from '../../hooks/usePOSCheckout';
 import { DEBOUNCE_DELAY_MS, DEFAULT_ITEMS_PER_PAGE, CUSTOMER_SEARCH_LIMIT } from '../../config/constants';
+
+import {
+    Search,
+    ScanLine,
+    PlusCircle,
+    Filter,
+    Keyboard
+} from 'lucide-react';
 
 import TabBar from '../TabBar';
 import POSCart from '../pos/POSCart';
@@ -393,173 +401,160 @@ export default function POSPage() {
     const handleCameraButtonClick = async () => {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
             addToast({
-                title: 'Camera Blocked by Browser',
-                description: 'Camera access requires a secure connection. If using a phone, access the site via HTTPS or localhost.',
+                title: 'Camera Blocked',
+                description: 'Camera access requires HTTPS or localhost.',
                 variant: 'destructive',
             });
             return;
         }
-
         openScanner();
     };
 
     return (
-        <div className="pos-page responsive-page">
+        <div className="pos-page flex flex-col md:flex-row gap-4 h-[calc(100vh-5rem)] min-h-[600px] max-w-[1920px] mx-auto overflow-hidden p-2 md:p-4 bg-slate-100">
 
-            {/* Quick Keys / Fast Action Touch Row */}
-            <div className="flex items-center gap-2 mb-4 overflow-x-auto no-scrollbar py-1">
-                <span className="hidden sm:inline-flex items-center text-gray-400 uppercase tracking-wider font-bold text-[11px] mr-1">
-                    Quick Keys:
-                </span>
+            {/* --- LEFT PANEL: CATALOG & ACTIONS --- */}
+            <div className="flex-1 flex flex-col min-w-0 bg-white dark:bg-slate-900 rounded-[1.25rem] shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden relative z-10">
 
-                {hotkeyProducts[3] && (
-                    <button
-                        type="button"
-                        onClick={() => {
-                            handleAdd(hotkeyProducts[3]);
-                            addToast({ title: 'Quick Add', description: `${hotkeyProducts[3].name} added.`, variant: 'success' });
-                        }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-emerald-50 border border-gray-200 hover:border-emerald-500 rounded-lg shadow-sm text-xs font-semibold text-gray-700 transition-all flex-shrink-0 active:scale-95"
-                    >
-                        <kbd className="hidden sm:inline-flex min-w-[1.25rem] h-4 items-center justify-center bg-gray-100 border border-gray-300 rounded text-[10px] text-gray-600 font-bold">1</kbd>
-                        <span className="text-emerald-700 font-bold">⚡ {hotkeyProducts[3].name}</span>
-                    </button>
-                )}
-
-                {hotkeyProducts[2] && (
-                    <button
-                        type="button"
-                        onClick={() => {
-                            handleAdd(hotkeyProducts[2]);
-                            addToast({ title: 'Quick Add', description: `${hotkeyProducts[2].name} added.`, variant: 'success' });
-                        }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-emerald-50 border border-gray-200 hover:border-emerald-500 rounded-lg shadow-sm text-xs font-semibold text-gray-700 transition-all flex-shrink-0 active:scale-95"
-                    >
-                        <kbd className="hidden sm:inline-flex min-w-[1.25rem] h-4 items-center justify-center bg-gray-100 border border-gray-300 rounded text-[10px] text-gray-600 font-bold">2</kbd>
-                        <span className="text-emerald-700 font-bold">⚡ {hotkeyProducts[2].name}</span>
-                    </button>
-                )}
-
-                {hotkeyProducts[30] && (
-                    <button
-                        type="button"
-                        onClick={() => {
-                            handleAdd(hotkeyProducts[30]);
-                            addToast({ title: 'Quick Add', description: `${hotkeyProducts[30].name} added.`, variant: 'success' });
-                        }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-emerald-50 border border-gray-200 hover:border-emerald-500 rounded-lg shadow-sm text-xs font-semibold text-gray-700 transition-all flex-shrink-0 active:scale-95"
-                    >
-                        <kbd className="hidden sm:inline-flex min-w-[1.25rem] h-4 items-center justify-center bg-gray-100 border border-gray-300 rounded text-[10px] text-gray-600 font-bold">3</kbd>
-                        <span className="text-emerald-700 font-bold">⚡ {hotkeyProducts[30].name}</span>
-                    </button>
-                )}
-
-                <div className="hidden sm:flex items-center gap-5 ml-auto text-xs text-gray-500">
-                    <span className="flex items-center gap-1.5">
-                        <kbd className="px-1.5 h-5 flex items-center justify-center bg-white border border-gray-300 rounded shadow-sm text-gray-700 font-bold">F4</kbd> Payment
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                        <kbd className="px-1.5 h-5 flex items-center justify-center bg-white border border-gray-300 rounded shadow-sm text-gray-700 font-bold">Esc</kbd> Close/Clear
-                    </span>
-                </div>
-            </div>
-
-            {/* Category Bar */}
-            <div className="category-bar-container mb-4 overflow-x-auto no-scrollbar -mx-2 px-2 sm:mx-0 sm:px-0">
-                <div className="flex items-center gap-2 pb-2 flex-nowrap w-max min-w-full">
-                    {availableCategories.map((cat) => (
-                        <button
-                            key={cat}
-                            onClick={() => { setCategoryFilter(cat); setCurrentPage(1); }}
-                            className={`flex-shrink-0 whitespace-nowrap px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all border-2 select-none ${
-                                categoryFilter === cat
-                                    ? 'bg-primary-soft border-primary text-primary shadow-sm'
-                                    : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300'
-                            }`}
-                        >
-                            {cat}
-                        </button>
-                    ))}
-                </div>
-            </div>
-
-            {/* Action Bar */}
-            <div className="flex flex-col md:flex-row gap-4 mb-6">
-                <div className="w-full md:w-2/3 flex items-center gap-2">
-                    <div className="relative flex w-full sm:w-auto gap-2">
-                        <Input
+                {/* Header Row: Search & Action Buttons */}
+                <div className="p-3 md:p-4 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row gap-3 items-center justify-between bg-white dark:bg-slate-900 shrink-0">
+                    <div className="relative w-full sm:max-w-md flex items-center group">
+                        <Search className="w-5 h-5 absolute left-3.5 text-slate-400 group-focus-within:text-emerald-500 transition-colors pointer-events-none z-10" />
+                        <input
                             ref={productSearchInputRef}
                             type="text"
-                            placeholder="Scan/Search (F1)"
+                            placeholder="Scan Barcode or Search Product (F1)"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="flex-1 sm:w-64 md:w-72 sm:max-w-xs"
+                            style={{ paddingLeft: '2.85rem' }}
+                            className="w-full pr-11 h-12 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all font-medium text-sm text-slate-900 placeholder:text-slate-400 outline-none"
                         />
-                        <Button
-                            variant="secondary"
-                            className="px-3"
+                        <button
+                            type="button"
                             onClick={handleCameraButtonClick}
+                            className="absolute right-2 p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors outline-none z-10"
                             title="Open Camera Scanner"
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />
-                            </svg>
+                            <ScanLine className="w-5 h-5" />
+                        </button>
+                    </div>
+
+                    <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+                        <Button
+                            variant="outline"
+                            onClick={() => setIsScanSalesModalOpen(true)}
+                            className="flex-1 sm:flex-none h-12 px-4 rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-emerald-700 hover:border-emerald-200 font-bold whitespace-nowrap transition-all active:scale-95"
+                        >
+                            <ScanLine className="w-4 h-4 mr-2" /> Scan List
+                        </Button>
+                        <Button
+                            variant="primary"
+                            onClick={openCustomSale}
+                            className="flex-1 sm:flex-none h-12 px-5 rounded-xl shadow-md font-bold whitespace-nowrap transition-all active:scale-95 bg-emerald-600 hover:bg-emerald-700 text-white"
+                            disabled={isDemo}
+                        >
+                            <PlusCircle className="w-4 h-4 mr-2" /> Custom
                         </Button>
                     </div>
                 </div>
 
-                <div className="w-full md:w-1/3 xl:w-1/3 flex-shrink-0 flex items-center gap-2">
-                    <Button
-                        variant="outline"
-                        onClick={() => setIsScanSalesModalOpen(true)}
-                        className="flex-1 h-11 rounded-lg border-emerald-500 text-emerald-700 hover:bg-emerald-50 font-bold whitespace-nowrap shadow-sm flex items-center justify-center gap-1.5 transition-all active:scale-95"
-                        title="Scan Delivery / Sales Log Sheet"
-                    >
-                        <span className="text-base">📷</span> Scan List
-                    </Button>
-                    <Button
-                        variant="primary"
-                        onClick={openCustomSale}
-                        className="flex-1 rounded-lg shadow-md font-semibold whitespace-nowrap h-11"
-                        disabled={isDemo}
-                    >
-                        + Custom
-                    </Button>
+                {/* Filters & Quick Keys Area */}
+                <div className="px-3 md:px-4 py-3 border-b border-slate-100 dark:border-slate-800 flex flex-col gap-3 shrink-0 bg-slate-50/50 dark:bg-slate-900">
+
+                    {/* Visible Category Scrollbar Container */}
+                    <div className="category-scroll-container flex items-center gap-2 overflow-x-auto pb-2.5 pt-0.5 w-full">
+                        <div className="flex items-center gap-1.5 pr-2.5 border-r border-slate-200 mr-1 shrink-0 text-slate-400">
+                            <Filter className="w-4 h-4" />
+                            <span className="text-[10px] font-bold uppercase tracking-widest hidden sm:inline-block">Filter</span>
+                        </div>
+                        {availableCategories.map((cat) => (
+                            <button
+                                key={cat}
+                                onClick={() => { setCategoryFilter(cat); setCurrentPage(1); }}
+                                className={`flex-shrink-0 whitespace-nowrap px-4 py-2 rounded-full text-xs font-bold transition-all select-none ${
+                                    categoryFilter === cat
+                                        ? 'bg-slate-800 text-white shadow-md ring-2 ring-slate-800 ring-offset-1'
+                                        : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300'
+                                }`}
+                            >
+                                {cat}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Quick Add Hotkeys */}
+                    <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-0.5">
+                        <div className="flex items-center gap-1.5 pr-2 border-r border-slate-200 mr-1 shrink-0">
+                            <img src="/seasidelogo_.png" alt="Seaside" className="w-4 h-4 object-contain" />
+                            <span className="text-[10px] font-bold uppercase tracking-widest hidden sm:inline-block text-slate-600">Quick</span>
+                        </div>
+
+                        {[3, 2, 30].map((id, index) => {
+                            const product = hotkeyProducts[id];
+                            if (!product) return null;
+                            const hotkeys = ['1', '2', '3'];
+                            return (
+                                <button
+                                    key={id}
+                                    type="button"
+                                    onClick={() => {
+                                        handleAdd(product);
+                                        addToast({ title: 'Quick Add', description: `${product.name} added.`, variant: 'success' });
+                                    }}
+                                    className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 hover:border-emerald-400 hover:bg-emerald-50 rounded-lg shadow-sm text-xs font-bold text-slate-700 transition-all flex-shrink-0 active:scale-95 group"
+                                >
+                                    <kbd className="hidden sm:flex min-w-[18px] h-5 items-center justify-center bg-slate-100 border border-slate-300 rounded text-[10px] text-slate-600 font-bold group-hover:bg-white group-hover:border-emerald-200 group-hover:text-emerald-700">
+                                        {hotkeys[index]}
+                                    </kbd>
+                                    <span className="truncate max-w-[120px]">{product.name}</span>
+                                </button>
+                            );
+                        })}
+
+                        <div className="hidden md:flex items-center gap-4 ml-auto text-xs text-slate-400 font-medium shrink-0">
+                            <span className="flex items-center gap-1.5">
+                                <Keyboard className="w-3.5 h-3.5" /> <kbd className="font-mono font-bold text-slate-600">F4</kbd> Pay
+                            </span>
+                            <span className="flex items-center gap-1.5">
+                                <kbd className="font-mono font-bold text-slate-600">Esc</kbd> Close
+                            </span>
+                        </div>
+                    </div>
                 </div>
-            </div>
 
-            {/* Product Grid and Cart Panel */}
-            <div className="flex flex-col md:flex-row gap-4 w-full relative items-start">
-                <POSProductGrid
-                    isLoading={isLoadingProducts}
-                    products={products}
-                    handleAdd={handleAdd}
-                    currentPage={currentPage}
-                    totalPages={totalPages}
-                    setCurrentPage={setCurrentPage}
-                />
-
-                <div className="hidden md:flex w-full md:w-1/3 xl:w-1/3 flex-shrink-0 flex-col sticky top-4" style={{ height: '70vh' }}>
-                    <POSCart
-                        currentSale={currentSale}
-                        clearSale={clearSale}
-                        subtotal={subtotal}
-                        handleIncreaseQuantity={handleIncreaseQuantity}
-                        handleDecreaseQuantity={handleDecreaseQuantity}
-                        handleRemoveItem={handleRemoveItem}
-                        openPaymentModal={openPaymentModal}
-                        createSaleMutation={createSaleMutation}
-                        lastCustomer={lastCustomer}
-                        onEditItem={openEditItem}
-                        handleSetQuantity={handleSetQuantity}
-                        stockWarningKey={stockWarningKey}
-                        isDemo={isDemo}
+                {/* Product Grid Area (Scrollable Inner Region) */}
+                <div className="flex-1 overflow-y-auto p-3 md:p-4 bg-slate-50/50 dark:bg-slate-900/50 relative">
+                    <POSProductGrid
+                        isLoading={isLoadingProducts}
+                        products={products}
+                        handleAdd={handleAdd}
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        setCurrentPage={setCurrentPage}
                     />
                 </div>
             </div>
 
-            {/* Modals */}
+            {/* --- RIGHT PANEL: FIXED CART --- */}
+            <div className="hidden md:flex w-full md:w-[360px] lg:w-[420px] xl:w-[460px] flex-shrink-0 flex-col h-full z-10">
+                <POSCart
+                    currentSale={currentSale}
+                    clearSale={clearSale}
+                    subtotal={subtotal}
+                    handleIncreaseQuantity={handleIncreaseQuantity}
+                    handleDecreaseQuantity={handleDecreaseQuantity}
+                    handleRemoveItem={handleRemoveItem}
+                    openPaymentModal={openPaymentModal}
+                    createSaleMutation={createSaleMutation}
+                    lastCustomer={lastCustomer}
+                    onEditItem={openEditItem}
+                    handleSetQuantity={handleSetQuantity}
+                    stockWarningKey={stockWarningKey}
+                    isDemo={isDemo}
+                />
+            </div>
+
+            {/* --- MODALS --- */}
             <CustomerSelectionModal
                 isOpen={isCustomerModalOpen}
                 setIsOpen={closeCustomerModal}
@@ -638,7 +633,6 @@ export default function POSPage() {
                 />
             )}
 
-            {/* --- SCAN SALES LIST MODAL --- */}
             <ScanSalesListModal
                 isOpen={isScanSalesModalOpen}
                 onClose={() => setIsScanSalesModalOpen(false)}

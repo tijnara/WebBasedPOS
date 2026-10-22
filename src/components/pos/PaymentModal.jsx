@@ -1,7 +1,7 @@
 // src/components/pos/PaymentModal.jsx
-import React, { useMemo, useEffect } from 'react';
+import React, { useMemo, useEffect, useRef } from 'react';
 import {
-    Button, Dialog, DialogContent, DialogCloseButton, Input, Label, Select
+    Button, Dialog, DialogContent, DialogCloseButton, Label, Select
 } from '../ui';
 import { UserIcon } from '../Icons';
 import currency from 'currency.js';
@@ -32,6 +32,7 @@ const PaymentModal = ({
                           customerPaymentInputRef,
                           isDemo
                       }) => {
+    const inputRef = useRef(null);
 
     const changeDue = useMemo(() => {
         const received = parseFloat(amountReceived) || 0;
@@ -40,7 +41,7 @@ const PaymentModal = ({
     }, [amountReceived, subtotal]);
 
     const results = Array.isArray(customerSearchResults) ? customerSearchResults : [];
-    const showResults = searchTerm && searchTerm.length > 0;
+    const showResults = Boolean(searchTerm && searchTerm.trim().length > 0);
 
     useEffect(() => {
         const handleKeyDown = (e) => {
@@ -49,7 +50,7 @@ const PaymentModal = ({
                     !(paymentMethod === 'Cash' && parseFloat(amountReceived || 0) < parseFloat(subtotal)) &&
                     !(paymentMethod === 'Cash' && !amountReceived) &&
                     !(paymentMethod === 'Charge' && !selectedCustomer);
-                
+
                 if (isValid) {
                     e.preventDefault();
                     handleFinalizeSale();
@@ -65,8 +66,12 @@ const PaymentModal = ({
             const timer = setTimeout(() => {
                 if (customerPaymentInputRef?.current) {
                     customerPaymentInputRef.current.focus();
+                    customerPaymentInputRef.current.select();
+                } else if (inputRef.current) {
+                    inputRef.current.focus();
+                    inputRef.current.select();
                 }
-            }, 150);
+            }, 100);
             return () => clearTimeout(timer);
         }
     }, [isOpen, customerPaymentInputRef]);
@@ -74,266 +79,340 @@ const PaymentModal = ({
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogContent
-                className="p-0 bg-white overflow-hidden shadow-2xl rounded-2xl"
-                // Safely overriding the default ui.js width limitations using inline styles
-                style={{ zIndex: 50, maxWidth: '900px', width: '95vw' }}
+                className="p-0 bg-white shadow-2xl rounded-2xl overflow-visible border border-slate-200"
+                style={{ zIndex: 50, maxWidth: '820px', width: '92vw' }}
+                closeOnBackdropClick={false}
             >
                 {/* Header */}
-                <div className="px-6 py-4 flex justify-between items-center bg-white">
-                    <h2 className="text-xl font-bold text-gray-900">Complete Sale</h2>
+                <div className="px-5 py-3 border-b border-slate-100 flex justify-between items-center bg-white rounded-t-2xl shrink-0">
+                    <h2 className="text-base font-bold text-gray-900">Complete Sale</h2>
                     <DialogCloseButton onClick={() => setIsOpen(false)} />
                 </div>
 
-                {/* Body - Replaced fragile flex-1 with block max-height scrolling */}
-                <div className="overflow-y-auto bg-white p-4 sm:p-6" style={{ maxHeight: '70vh' }}>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+                {/* Body */}
+                <div className="p-4 sm:p-5 bg-white overflow-visible">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6 items-start">
 
-                        {/* LEFT COLUMN: Customer Selection (Displayed First) */}
-                        <div className="flex flex-col gap-6 lg:pr-8">
-                            <div>
-                                <Label htmlFor="customer-search-payment" className="text-sm font-semibold text-gray-700 mb-2">
+                        {/* LEFT COLUMN: Customer Selection & Transaction Meta */}
+                        <div className="flex flex-col gap-3">
+                            {/* Customer Search */}
+                            <div className="relative">
+                                <Label htmlFor="customer-search-payment" className="text-xs font-semibold text-gray-600 mb-1 block">
                                     Select Customer
                                 </Label>
-                                <div className="relative">
-                                    <Input
+                                <div className="relative flex items-center">
+                                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none z-10">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                        </svg>
+                                    </div>
+                                    <input
                                         id="customer-search-payment"
                                         type="text"
                                         placeholder="Search name or phone..."
                                         value={searchTerm}
                                         onChange={e => setSearchTerm(e.target.value)}
-                                        className="w-full h-12 text-base py-2.5 pl-10 focus:ring-primary focus:border-primary"
+                                        style={{ paddingLeft: '2.5rem', paddingRight: '2rem' }}
+                                        className="w-full h-10 text-xs py-2 bg-slate-50 border border-slate-200 focus:bg-white focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 rounded-xl outline-none text-slate-800 placeholder:text-slate-400 transition-all"
                                         ref={customerPaymentInputRef}
                                         autoComplete="off"
                                         disabled={isDemo}
                                     />
-                                    <div className="absolute left-3 top-3.5 text-gray-400">
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                        </svg>
-                                    </div>
+                                    {searchTerm && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setSearchTerm('')}
+                                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs font-bold z-10"
+                                        >
+                                            ✕
+                                        </button>
+                                    )}
                                 </div>
-                            </div>
 
-                            {/* Last Customer Shortcut */}
-                            {lastCustomer && !showResults && (
-                                <div className="mt-[-10px]">
-                                    <Button
-                                        variant="outline"
-                                        className="w-full justify-start text-left h-auto py-2 px-3 bg-gray-50 hover:bg-gray-100"
-                                        onClick={() => handleSelectCustomerInPayment(lastCustomer)}
-                                        disabled={isDemo}
-                                    >
-                                        <span className="text-xs text-gray-500 mr-2">Last:</span>
-                                        <span className="font-medium text-gray-800">{lastCustomer.name}</span>
-                                    </Button>
-                                </div>
-                            )}
-
-                            {/* Search Results */}
-                            {showResults && (
-                                <div className="w-full rounded-lg bg-gray-50 flex flex-col animate-in fade-in slide-in-from-top-2 duration-200">
-                                    <div className="max-h-60 overflow-y-auto p-1">
-                                        <Button
-                                            variant="ghost"
-                                            className="w-full justify-start text-left h-auto py-3 px-3 text-sm font-medium hover:bg-white hover:border-gray-100"
-                                            onClick={() => handleSelectCustomerInPayment(null)}
+                                {/* Floating Customer Search Dropdown */}
+                                {showResults && (
+                                    <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-xl border border-slate-200 z-50 max-h-48 overflow-y-auto divide-y divide-slate-100">
+                                        <button
+                                            type="button"
+                                            className="w-full text-left py-2 px-3 text-xs font-medium hover:bg-slate-50 flex items-center gap-2 text-slate-700 transition-colors"
+                                            onClick={() => {
+                                                handleSelectCustomerInPayment(null);
+                                                setSearchTerm('');
+                                            }}
                                             disabled={isDemo}
                                         >
-                                            <span className="bg-gray-200 p-1 rounded mr-3 text-gray-600">
-                                                <UserIcon className="w-4 h-4" />
+                                            <span className="bg-slate-100 p-1 rounded text-slate-500">
+                                                <UserIcon className="w-3.5 h-3.5" />
                                             </span>
                                             Use Walk-in Customer
-                                        </Button>
+                                        </button>
 
                                         {isSearchingCustomers ? (
-                                            <div className="p-4 text-center text-sm text-gray-500 flex items-center justify-center gap-2">
-                                                <span className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin"></span>
+                                            <div className="p-3 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
+                                                <span className="w-3.5 h-3.5 border-2 border-slate-300 border-t-emerald-600 rounded-full animate-spin" />
                                                 Searching...
                                             </div>
                                         ) : results.length > 0 ? (
-                                            <>
-                                                <div className="h-px bg-gray-200 my-1 mx-2"></div>
-                                                {results.map(customer => (
-                                                    <Button
-                                                        key={customer.id}
-                                                        variant="ghost"
-                                                        className="w-full justify-start text-left h-auto py-2.5 px-3 hover:bg-white hover:shadow-sm transition-all group"
-                                                        onClick={() => handleSelectCustomerInPayment(customer)}
-                                                        disabled={isDemo}
-                                                    >
-                                                        <div className="flex flex-col items-start">
-                                                            <span className="font-medium text-gray-900 group-hover:text-blue-700">{customer.name}</span>
-                                                            {customer.phone && <span className="text-xs text-gray-500 group-hover:text-blue-500">{customer.phone}</span>}
-                                                        </div>
-                                                    </Button>
-                                                ))}
-                                            </>
+                                            results.map(customer => (
+                                                <button
+                                                    key={customer.id}
+                                                    type="button"
+                                                    className="w-full text-left py-2 px-3 hover:bg-emerald-50/50 transition-colors flex justify-between items-center group"
+                                                    onClick={() => {
+                                                        handleSelectCustomerInPayment(customer);
+                                                        setSearchTerm('');
+                                                    }}
+                                                    disabled={isDemo}
+                                                >
+                                                    <div className="flex flex-col min-w-0">
+                                                        <span className="font-semibold text-xs text-slate-800 group-hover:text-emerald-700 truncate">
+                                                            {customer.name}
+                                                        </span>
+                                                        {customer.phone && (
+                                                            <span className="text-[10px] text-slate-400">
+                                                                {customer.phone}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <span className="text-[10px] font-bold text-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        Select
+                                                    </span>
+                                                </button>
+                                            ))
                                         ) : (
                                             <div className="p-3 text-center">
-                                                <p className="text-sm text-gray-500 mb-2">No customer found.</p>
+                                                <p className="text-xs text-slate-400 mb-1.5">No customer found.</p>
                                                 <Button
                                                     variant="primary"
                                                     size="sm"
-                                                    className="w-full"
+                                                    className="w-full h-7 text-[11px] font-bold"
                                                     onClick={() => handleAddCustomer(searchTerm)}
                                                     disabled={createCustomerMutation.isPending || isDemo}
                                                 >
-                                                    {createCustomerMutation.isPending ? 'Creating...' : `+ Add "${searchTerm}"`}
+                                                    {createCustomerMutation.isPending ? 'Adding...' : `+ Add "${searchTerm}"`}
                                                 </Button>
                                             </div>
                                         )}
                                     </div>
-                                </div>
+                                )}
+                            </div>
+
+                            {/* Last Customer Shortcut */}
+                            {lastCustomer && !showResults && (
+                                <button
+                                    type="button"
+                                    className="w-full text-left py-1.5 px-3 bg-slate-50 hover:bg-slate-100 rounded-lg border border-slate-200/80 flex items-center text-xs transition-colors"
+                                    onClick={() => handleSelectCustomerInPayment(lastCustomer)}
+                                    disabled={isDemo}
+                                >
+                                    <span className="text-[10px] uppercase font-bold text-slate-400 mr-2">Recent:</span>
+                                    <span className="font-semibold text-slate-700 truncate">{lastCustomer.name}</span>
+                                </button>
                             )}
 
-                            {/* Active Selected Customer */}
-                            <div className="bg-blue-50 p-4 rounded-xl flex flex-col justify-center items-center text-center gap-1 mt-auto">
-                                <span className="text-xs font-semibold text-blue-600 uppercase tracking-wide">Selected Customer</span>
-                                <span className="font-bold text-blue-900 text-xl">
-                                    {selectedCustomer ? selectedCustomer.name : 'Walk-in Customer'}
-                                </span>
-                                {selectedCustomer?.phone && (
-                                    <span className="text-sm text-blue-700 font-medium">{selectedCustomer.phone}</span>
+                            {/* Active Customer Card */}
+                            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/90 flex items-center justify-between">
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                    <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                                        <UserIcon className="w-4 h-4" />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-700 block">
+                                            Selected Customer
+                                        </span>
+                                        <span className="text-xs font-bold text-slate-800 truncate block">
+                                            {selectedCustomer ? selectedCustomer.name : 'Walk-in Customer'}
+                                        </span>
+                                        {selectedCustomer?.phone && (
+                                            <span className="text-[10px] text-slate-400 block truncate">
+                                                {selectedCustomer.phone}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                                {selectedCustomer && (
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSelectCustomerInPayment(null)}
+                                        className="text-[11px] font-semibold text-slate-400 hover:text-rose-600 transition-colors shrink-0"
+                                    >
+                                        Reset
+                                    </button>
                                 )}
+                            </div>
+
+                            {/* Transaction Date & Time */}
+                            <div className="grid grid-cols-2 gap-2.5 pt-1">
+                                <div>
+                                    <Label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">
+                                        Date
+                                    </Label>
+                                    <input
+                                        type="date"
+                                        value={saleDate}
+                                        onChange={e => setSaleDate(e.target.value)}
+                                        className="w-full h-8 px-2.5 text-xs bg-slate-50 border border-slate-200 rounded-lg outline-none text-slate-700"
+                                        disabled={isDemo}
+                                    />
+                                </div>
+                                <div>
+                                    <Label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">
+                                        Time
+                                    </Label>
+                                    <input
+                                        type="time"
+                                        value={saleTime}
+                                        onChange={e => setSaleTime(e.target.value)}
+                                        className="w-full h-8 px-2.5 text-xs bg-slate-50 border border-slate-200 rounded-lg outline-none text-slate-700"
+                                        disabled={isDemo}
+                                    />
+                                </div>
                             </div>
                         </div>
 
-                        {/* RIGHT COLUMN: Payment Details */}
-                        <div className="flex flex-col gap-6">
-
-                            {/* Total Amount Display */}
-                            <div className="bg-primary p-6 rounded-2xl text-white shadow-lg text-center flex flex-col justify-center"
-                                 style={{ backgroundColor: 'var(--primary)' }}
-                            >
-                                <span className="text-white/90 text-sm font-medium uppercase tracking-wider opacity-90">Total Amount Due</span>
-                                <span className="text-5xl font-bold mt-1 tracking-tight">
-                                    {currency(subtotal).format({ symbol: '₱' })}
-                                </span>
+                        {/* RIGHT COLUMN: Totals, Payment & Change Breakdown */}
+                        <div className="flex flex-col gap-2.5">
+                            {/* Total Amount Banner */}
+                            <div className="bg-gradient-to-r from-emerald-600 to-lime-600 p-3 rounded-xl text-white shadow-xs flex items-center justify-between">
+                                <div>
+                                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-100 block">
+                                        Total Amount Due
+                                    </span>
+                                    <span className="text-2xl font-black tracking-tight leading-tight">
+                                        {currency(subtotal, { symbol: '₱' }).format()}
+                                    </span>
+                                </div>
                             </div>
 
-                            <div className="space-y-5">
-                                {/* Payment Method Selection */}
-                                <div>
-                                    <Label htmlFor="paymentMethod" className="text-sm font-semibold text-gray-700">Payment Method</Label>
-                                    <Select
-                                        id="paymentMethod"
-                                        value={paymentMethod}
-                                        onChange={(e) => setPaymentMethod(e.target.value)}
-                                        className="w-full h-12 py-2 text-base focus:border-primary focus:ring-primary"
-                                        disabled={isDemo}
-                                    >
-                                        <option value="Cash">Cash</option>
-                                        <option value="Card">Card</option>
-                                        <option value="GCash">GCash</option>
-                                        <option value="Charge">Charge to Account (Utang)</option>
-                                        <option value="Other">Other</option>
-                                    </Select>
-                                </div>
+                            {/* Payment Method Selection */}
+                            <div>
+                                <Label htmlFor="paymentMethod" className="text-xs font-semibold text-gray-600 mb-1 block">
+                                    Payment Method
+                                </Label>
+                                <Select
+                                    id="paymentMethod"
+                                    value={paymentMethod}
+                                    onChange={(e) => setPaymentMethod(e.target.value)}
+                                    className="w-full h-9 py-1 text-xs font-bold bg-slate-50 border-slate-200 rounded-xl"
+                                    disabled={isDemo}
+                                >
+                                    <option value="Cash">Cash</option>
+                                    <option value="Card">Card</option>
+                                    <option value="GCash">GCash</option>
+                                    <option value="Charge">Charge to Account (Utang)</option>
+                                    <option value="Other">Other</option>
+                                </Select>
+                            </div>
 
-                                {/* Dynamic Payment Inputs */}
-                                {paymentMethod === 'Cash' ? (
-                                    <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                                        <Label htmlFor="amountReceived" className="text-sm font-semibold text-gray-700">Cash Received</Label>
-                                        <div className="relative mt-1.5">
-                                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-lg">₱</span>
-                                            <Input
+                            {/* Cash Input & Change Breakdown */}
+                            {paymentMethod === 'Cash' ? (
+                                <div className="space-y-2">
+                                    <div>
+                                        <Label htmlFor="amountReceived" className="text-xs font-semibold text-gray-600 mb-1 block">
+                                            Cash Received
+                                        </Label>
+                                        <div className="relative flex items-center">
+                                            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-base pointer-events-none z-10 select-none">
+                                                ₱
+                                            </span>
+                                            <input
                                                 id="amountReceived"
                                                 type="number"
                                                 step="0.01"
                                                 value={amountReceived}
                                                 onChange={e => setAmountReceived(e.target.value)}
-                                                className="w-full h-14 pl-10 text-3xl font-bold text-gray-900 bg-gray-50 focus:bg-white focus:border-primary transition-all"
+                                                style={{ paddingLeft: '2.5rem' }}
+                                                className="w-full h-10 pr-3 text-lg font-black text-slate-900 bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 rounded-xl outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                                 placeholder="0.00"
+                                                ref={inputRef}
                                                 disabled={isDemo}
                                             />
                                         </div>
-
-                                        <div className="grid grid-cols-4 gap-2 mt-3">
-                                            <Button variant="outline" size="sm" onClick={() => setAmountReceived(subtotal.toFixed(2))} className="text-xs h-9 bg-white hover:bg-gray-50" disabled={isDemo}>Exact</Button>
-                                            {[100, 500, 1000].map(amt => (
-                                                <Button
-                                                    key={amt}
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => setAmountReceived(amt.toString())}
-                                                    className="text-xs h-9 font-medium bg-white hover:bg-gray-50"
-                                                    disabled={isDemo}
-                                                >
-                                                    ₱{amt}
-                                                </Button>
-                                            ))}
-                                        </div>
-
-                                        <div className="mt-4 flex justify-between items-center p-4 bg-green-50 rounded-xl">
-                                            <span className="text-green-700 font-semibold text-sm">Change Due</span>
-                                            <span className="text-green-700 font-bold text-2xl">
-                                                {currency(changeDue).format({ symbol: '₱' })}
-                                            </span>
-                                        </div>
                                     </div>
-                                ) : paymentMethod === 'Charge' ? (
-                                    <div className="animate-in fade-in slide-in-from-top-2 duration-300 space-y-4">
-                                        <div className="p-4 bg-orange-50 rounded-xl">
-                                            <h4 className="text-orange-800 font-bold flex items-center gap-2">
-                                                <span className="text-lg">📝</span> Store Credit (Utang)
-                                            </h4>
-                                            <p className="text-sm text-orange-700 mt-1">
-                                                This amount will be added to the customer's account balance.
-                                            </p>
-                                        </div>
 
-                                        {selectedCustomer ? (
-                                            <div className="p-4 bg-white rounded-xl space-y-2">
-                                                <div className="flex justify-between text-sm">
-                                                    <span className="text-gray-500">Current Balance:</span>
-                                                    <span className="font-semibold">{currency(selectedCustomer.credit_balance || 0, { symbol: '₱' }).format()}</span>
-                                                </div>
-                                                <div className="flex justify-between text-sm text-primary font-bold">
-                                                    <span>+ New Charge:</span>
-                                                    <span>{currency(subtotal, { symbol: '₱' }).format()}</span>
-                                                </div>
-                                                <div className="pt-2 mt-2 flex justify-between text-base font-bold text-gray-900">
-                                                    <span>New Balance:</span>
-                                                    <span>{currency((selectedCustomer.credit_balance || 0) + subtotal, { symbol: '₱' }).format()}</span>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div className="p-4 bg-red-50 rounded-xl text-red-700 text-sm font-medium text-center">
-                                                ⚠ Please select a registered customer to charge.
-                                            </div>
-                                        )}
+                                    {/* Presets */}
+                                    <div className="grid grid-cols-4 gap-1.5">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setAmountReceived(subtotal.toFixed(2))}
+                                            className="text-xs h-7.5 font-bold bg-white hover:bg-slate-50 rounded-lg border-slate-200"
+                                            disabled={isDemo}
+                                        >
+                                            Exact
+                                        </Button>
+                                        {[100, 500, 1000].map(amt => (
+                                            <Button
+                                                key={amt}
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => setAmountReceived(amt.toString())}
+                                                className="text-xs h-7.5 font-bold bg-white hover:bg-slate-50 rounded-lg border-slate-200"
+                                                disabled={isDemo}
+                                            >
+                                                ₱{amt}
+                                            </Button>
+                                        ))}
                                     </div>
-                                ) : (
-                                    <div className="p-6 bg-gray-50 rounded-xl text-center text-gray-500">
-                                        Reference / Transaction ID input can go here.
-                                    </div>
-                                )}
 
-                                <div className="grid grid-cols-2 gap-4 pt-2">
-                                    <div>
-                                        <Label className="text-xs text-gray-500 mb-1 block">Date</Label>
-                                        <Input type="date" value={saleDate} onChange={e => setSaleDate(e.target.value)} className="h-9 text-sm bg-white" disabled={isDemo} />
-                                    </div>
-                                    <div>
-                                        <Label className="text-xs text-gray-500 mb-1 block">Time</Label>
-                                        <Input type="time" value={saleTime} onChange={e => setSaleTime(e.target.value)} className="h-9 text-sm bg-white" disabled={isDemo} />
+                                    {/* Change Due Bar */}
+                                    <div className="flex justify-between items-center py-2 px-3.5 bg-emerald-50/70 border border-emerald-200/70 rounded-xl">
+                                        <span className="text-emerald-800 font-bold text-xs">Change Due</span>
+                                        <span className="text-emerald-700 font-black text-lg">
+                                            {currency(changeDue, { symbol: '₱' }).format()}
+                                        </span>
                                     </div>
                                 </div>
-                            </div>
+                            ) : paymentMethod === 'Charge' ? (
+                                <div className="space-y-2">
+                                    <div className="p-2.5 bg-amber-50 border border-amber-200/80 rounded-xl text-amber-800 text-xs">
+                                        <span className="font-bold block">Charge to Account (Utang)</span>
+                                        <span>Amount will be added to the customer's balance.</span>
+                                    </div>
+                                    {selectedCustomer ? (
+                                        <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs space-y-1">
+                                            <div className="flex justify-between text-slate-500">
+                                                <span>Current Balance:</span>
+                                                <span className="font-bold">{currency(selectedCustomer.credit_balance || 0, { symbol: '₱' }).format()}</span>
+                                            </div>
+                                            <div className="flex justify-between text-emerald-700 font-bold">
+                                                <span>+ New Charge:</span>
+                                                <span>{currency(subtotal, { symbol: '₱' }).format()}</span>
+                                            </div>
+                                            <div className="border-t border-slate-200 pt-1 flex justify-between font-black text-slate-800">
+                                                <span>New Balance:</span>
+                                                <span>{currency((selectedCustomer.credit_balance || 0) + subtotal, { symbol: '₱' }).format()}</span>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="p-2 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs font-semibold text-center">
+                                            ⚠ Select a registered customer to charge.
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-center text-xs text-slate-500">
+                                    Payment processed via {paymentMethod}.
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
 
                 {/* Footer Actions */}
-                <div className="px-6 py-4 bg-gray-50 flex flex-col sm:flex-row justify-end gap-3 rounded-b-xl">
+                <div className="px-5 py-3 bg-slate-50 border-t border-slate-100 flex justify-end gap-2.5 rounded-b-2xl shrink-0">
                     <Button
+                        type="button"
                         variant="outline"
                         onClick={() => setIsOpen(false)}
-                        className="w-full sm:w-auto px-6 h-12 text-base bg-white"
+                        className="px-4 h-9 text-xs font-bold text-slate-600 bg-white border-slate-200 rounded-xl"
                     >
                         Cancel (Esc)
                     </Button>
                     <Button
+                        type="button"
                         onClick={handleFinalizeSale}
                         disabled={
                             createSaleMutation.isPending ||
@@ -343,9 +422,9 @@ const PaymentModal = ({
                             isDemo
                         }
                         variant="primary"
-                        className="w-full sm:w-auto px-8 h-12 text-base font-bold shadow-md hover:shadow-lg transition-all btn--primary"
+                        className="px-6 h-9 text-xs font-extrabold shadow-md bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl"
                     >
-                        {createSaleMutation.isPending ? 'Processing...' : `Confirm Sale (Enter)`}
+                        {createSaleMutation.isPending ? 'Processing...' : 'Confirm Sale (Enter)'}
                     </Button>
                 </div>
             </DialogContent>

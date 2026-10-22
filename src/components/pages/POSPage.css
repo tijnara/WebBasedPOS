@@ -1,87 +1,51 @@
 /* src/components/pages/POSPage.css */
 
+/* Modern Visible Horizontal Scrollbar for Categories */
+.category-scroll-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: #94a3b8 #f1f5f9;
+}
+
+.category-scroll-container::-webkit-scrollbar {
+    height: 7px;
+}
+
+.category-scroll-container::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 9999px;
+}
+
+.category-scroll-container::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 9999px;
+}
+
+.category-scroll-container::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
 /* Hide scrollbar utility */
 .no-scrollbar::-webkit-scrollbar {
     display: none;
 }
 .no-scrollbar {
-    -ms-overflow-style: none; /* IE and Edge */
-    scrollbar-width: none; /* Firefox */
-}
-
-/* Hide scrollbar for Current Order and Product Grid */
-.scroll-area::-webkit-scrollbar {
-    display: none;
-}
-.scroll-area {
     -ms-overflow-style: none;
     scrollbar-width: none;
 }
 
-/* Category Bar Styles */
-.category-bar-container {
-    -webkit-overflow-scrolling: touch;
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+/* Micro-interactions */
+.pos-product-card {
+    transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.15s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.15s ease;
 }
 
-.category-bar-container::-webkit-scrollbar {
-    display: none;
+.pos-product-card:hover {
+    transform: translateY(-2px);
 }
 
-.category-bar-container button {
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-.category-bar-container button:active {
-    transform: scale(0.96);
-}
-
-/* Card hover & active polish */
-.product-card {
-    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
-}
-
-.product-card:active {
-    transform: scale(0.97);
-}
-
-/* --- Mobile scroll height for Current Order --- */
-.current-order-scroll-area {
-    max-height: 200px;
-    overflow-y: auto;
-    scrollbar-width: none;
-}
-.current-order-scroll-area::-webkit-scrollbar {
-    display: none;
-}
-
-/* Mobile product styles override for POS grid */
-@media (max-width: 767px) {
-    .product-card {
-        min-height: 140px;
-    }
-
-    .category-bar-container button {
-        white-space: nowrap;
-        flex-shrink: 0;
-    }
-}
-
-/* Desktop styles for Current Order section */
-@media (min-width: 768px) {
-    .current-order-scroll-area {
-        max-height: 320px;
-        overflow-y: auto;
-        scrollbar-width: thin;
-        scrollbar-color: #d1d5db #f3f4f6;
-    }
-    .current-order-scroll-area::-webkit-scrollbar {
-        width: 8px;
-        background: #f3f4f6;
-    }
-    .current-order-scroll-area::-webkit-scrollbar-thumb {
-        background: #d1d5db;
-        border-radius: 4px;
-    }
+.pos-product-card:active {
+    transform: scale(0.98);
 }
