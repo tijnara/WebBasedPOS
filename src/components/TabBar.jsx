@@ -1,48 +1,103 @@
 // src/components/TabBar.jsx
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { cn } from './ui';
-import { CartIcon, PackageIcon, ChartIcon, DocumentReportIcon } from './Icons';
-import { Receipt } from 'lucide-react';
-
 import { useStore } from '../store/useStore';
-
-const links = [
-    { name: 'POS', path: '/pos', icon: <CartIcon className="h-6 w-6" />, adminOnly: false },
-    { name: 'Salary', path: '/salary-monitoring', icon: <Receipt className="h-6 w-6" />, adminOnly: true },
-    { name: 'Inventory', path: '/inventory', icon: <PackageIcon className="h-6 w-6" />, adminOnly: false },
-    { name: 'Dashboard', path: '/dashboard', icon: <ChartIcon className="h-6 w-6" />, adminOnly: false },
-    { name: 'Sale History', path: '/history', icon: <ChartIcon className="h-6 w-6" />, adminOnly: false },
-    { name: 'Expenses', path: '/expenses', icon: <Receipt className="h-6 w-6" />, adminOnly: false },
-    { name: 'Report', path: '/report', icon: <DocumentReportIcon className="h-6 w-6" />, adminOnly: true },
-];
+import {
+    CartIcon,
+    ChartIcon,
+    DocumentReportIcon,
+    UserIcon
+} from './Icons';
+import { Receipt } from 'lucide-react';
 
 export default function TabBar() {
     const router = useRouter();
-    const user = useStore(s => s.user);
+    const user = useStore(state => state.user);
+    const [mounted, setMounted] = useState(false);
 
-    // Don't show the tab bar on the landing page ('/')
-    if (router.pathname === '/') {
-        return null;
-    }
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
-    const visibleLinks = links.filter(link => !link.adminOnly || (user && (user.role === 'Admin' || user.role === 'admin')));
+    // Comprehensive Admin Check
+    const isAdmin = Boolean(
+        user && (
+            user.isadmin === true ||
+            user.isAdmin === true ||
+            user.role?.toLowerCase() === 'admin'
+        )
+    );
+    const isDemo = Boolean(user?.isDemo);
+
+    const navItems = [
+        {
+            name: 'POS',
+            path: '/pos',
+            icon: CartIcon
+        },
+        {
+            name: 'Dashboard',
+            path: '/dashboard',
+            icon: ChartIcon
+        },
+        {
+            name: 'Salary',
+            path: '/salary-monitoring',
+            icon: UserIcon,
+            adminOnly: true
+        },
+        {
+            name: 'Expenses',
+            path: '/expenses',
+            icon: Receipt
+        },
+        {
+            name: 'Report',
+            path: '/report',
+            icon: DocumentReportIcon,
+            adminOnly: true
+        }
+    ];
+
+    // Filter items based on authorization
+    const visibleItems = navItems.filter(item => {
+        if (item.adminOnly) {
+            return mounted && (isAdmin || isDemo);
+        }
+        return true;
+    });
 
     return (
-        <div className="tab-bar">
-            {visibleLinks.map(link => {
-                const isActive = router.pathname === link.path;
-                return (
-                    <button
-                        key={link.name}
-                        onClick={() => router.push(link.path)}
-                        className={cn('tab-bar-item', { 'active': isActive })}
-                    >
-                        {link.icon}
-                        <span>{link.name}</span>
-                    </button>
-                );
-            })}
-        </div>
+        <nav
+            className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 z-40 h-16 px-1 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]"
+            aria-label="Mobile Bottom Navigation"
+        >
+            <div className="flex items-center justify-around h-full max-w-lg mx-auto">
+                {visibleItems.map(item => {
+                    const isActive = router.pathname === item.path;
+                    const IconComponent = item.icon;
+
+                    return (
+                        <Link
+                            key={item.name}
+                            href={item.path}
+                            className={`flex flex-col items-center justify-center flex-1 py-1 px-0.5 rounded-lg transition-colors group select-none ${
+                                isActive
+                                    ? 'text-emerald-600 dark:text-emerald-400 font-bold'
+                                    : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 font-medium'
+                            }`}
+                        >
+                            <div className={`p-1 rounded-md transition-transform duration-150 ${isActive ? 'scale-110' : 'group-active:scale-95'}`}>
+                                <IconComponent className={`w-5 h-5 ${isActive ? 'stroke-[2.5]' : 'stroke-2'}`} />
+                            </div>
+                            <span className="text-[10px] leading-tight tracking-tight truncate max-w-[54px] text-center mt-0.5">
+                                {item.name}
+                            </span>
+                        </Link>
+                    );
+                })}
+            </div>
+        </nav>
     );
 }

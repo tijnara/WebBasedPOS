@@ -5,15 +5,25 @@ import Image from 'next/image';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { subHours } from 'date-fns';
 import currency from 'currency.js';
-import { Sun, Moon, LogOut, ChevronDown } from 'lucide-react';
+import { Sun, Moon, LogOut, ChevronDown, Landmark, Receipt, TestTube, History } from 'lucide-react';
 
 import { supabase } from '../lib/supabaseClient';
 import { useStore } from '../store/useStore';
 import { useNotes } from '../hooks/useNotes';
 import { Button } from './ui';
+import {
+    CartIcon,
+    PackageIcon,
+    UserIcon,
+    ChartIcon,
+    UsersIcon,
+    GalleryIcon,
+    SettingsIcon,
+    DocumentReportIcon,
+    MailIcon
+} from './Icons';
 
 // Modular Navbar Components
-import { navCategoriesSource } from './navbar/navConfig';
 import LiveClock from './navbar/LiveClock';
 import ActiveShiftIndicator from './navbar/ActiveShiftIndicator';
 import NotificationBell from './navbar/NotificationBell';
@@ -25,6 +35,54 @@ const HamburgerIcon = (props) => (
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7" />
     </svg>
 );
+
+// Navigation Categories Configuration
+const navCategoriesSource = [
+    {
+        category: null,
+        links: [
+            { name: 'Dashboard', path: '/dashboard', icon: <ChartIcon className="h-5 w-5 menu-icon" /> },
+        ]
+    },
+    {
+        category: 'Sales & Operations',
+        links: [
+            { name: 'POS', path: '/pos', icon: <CartIcon className="h-5 w-5 menu-icon" /> },
+            { name: 'Sale History', path: '/history', icon: <ChartIcon className="h-5 w-5 menu-icon" /> },
+            { name: 'Customer', path: '/customer-management', icon: <UserIcon className="h-5 w-5 menu-icon" /> },
+            { name: 'Maintenance', path: '/maintenance', icon: <SettingsIcon className="h-5 w-5 menu-icon" /> },
+        ]
+    },
+    {
+        category: 'Catalog & Inventory',
+        links: [
+            { name: 'Products', path: '/product-management', icon: <PackageIcon className="h-5 w-5 menu-icon" /> },
+            { name: 'Inventory', path: '/inventory', icon: <PackageIcon className="h-5 w-5 menu-icon" /> },
+            { name: 'Gallery', path: '/gallery-management', icon: <GalleryIcon className="h-5 w-5 menu-icon" />, adminOnly: true, hideInDemo: true },
+        ]
+    },
+    {
+        category: 'Finance & Analytics',
+        links: [
+            { name: 'Expenses', path: '/expenses', icon: <Receipt className="h-6 w-6" /> },
+            { name: 'Salary', path: '/salary-monitoring', icon: <UserIcon className="h-5 w-5 menu-icon" />, adminOnly: true },
+            { name: 'Debt Management', path: '/debt-management', icon: <Landmark className="h-6 w-6" />, adminOnly: true },
+            { name: 'Report', path: '/report', icon: <ChartIcon className="h-5 w-5 menu-icon" />, adminOnly: true },
+            { name: 'Mock Sales', path: '/mock-sales-report', icon: <TestTube className="h-6 w-6" />, adminOnly: true },
+        ]
+    },
+    {
+        category: 'Administration & Content',
+        links: [
+            { name: 'Users', path: '/user-management', icon: <UsersIcon className="h-5 w-5 menu-icon" />, adminOnly: true },
+            { name: 'Staff Approvals', path: '/admin/user-approvals', icon: <UsersIcon className="h-5 w-5 menu-icon" />, adminOnly: true },
+            { name: 'Articles', path: '/article-management', icon: <DocumentReportIcon className="h-5 w-5 menu-icon" />, adminOnly: true },
+            { name: 'Activity Logs', path: '/activity-logs', icon: <History className="h-5 w-5 menu-icon" />, adminOnly: true },
+            { name: 'Page Settings', path: '/settings', icon: <SettingsIcon className="h-5 w-5 menu-icon" />, adminOnly: true },
+            { name: 'Messages', path: '/Messages', icon: <MailIcon className="h-5 w-5 menu-icon" />, adminOnly: true },
+        ]
+    },
+];
 
 export default function Navbar() {
     const router = useRouter();
@@ -58,10 +116,15 @@ export default function Navbar() {
     });
 
     const isAdmin = Boolean(
-        clientUser && (clientUser.role === 'Admin' || clientUser.role === 'admin' || clientUser.isadmin === true)
+        clientUser && (
+            clientUser.role === 'Admin' ||
+            clientUser.role === 'admin' ||
+            clientUser.isadmin === true ||
+            clientUser.isAdmin === true
+        )
     );
 
-    // --- Notifications State & Storage ---
+    // Notifications State & Storage
     const [lastSeenMessageTime, setLastSeenMessageTime] = useState(null);
     const [lastSeenNotesTime, setLastSeenNotesTime] = useState(0);
 
@@ -90,7 +153,7 @@ export default function Navbar() {
         setLastSeenMessageTime(now);
     };
 
-    // --- Queries: Pending Approvals & Contact Messages ---
+    // Queries: Pending Approvals & Contact Messages
     const { data: pendingUsers = [] } = useQuery({
         queryKey: ['pending-approvals-count', clientUser?.id, isAdmin],
         queryFn: async () => {
@@ -163,7 +226,6 @@ export default function Navbar() {
         };
     }, [isAdmin, clientUser, isDemo, queryClient]);
 
-    // Navigation Categories setup
     const navCategories = useMemo(() => {
         if (isDemo) {
             return navCategoriesSource.map(cat => ({ ...cat, links: cat.links.filter(l => !l.hideInDemo) })).filter(cat => cat.links.length > 0);
@@ -409,6 +471,23 @@ export default function Navbar() {
 
                 <div className="mobile-clock-container flex flex-col items-center gap-1 ml-auto">
                     <div className="flex items-center gap-2">
+                        {/* Mobile Report Icon Button */}
+                        {(isAdmin || isDemo) && (
+                            <button
+                                type="button"
+                                onClick={() => router.push('/report')}
+                                className={`p-1.5 rounded-lg transition-colors ${
+                                    router.pathname === '/report'
+                                        ? 'text-primary bg-primary/10'
+                                        : 'text-gray-600 dark:text-gray-300 hover:text-primary hover:bg-gray-100 dark:hover:bg-gray-800'
+                                }`}
+                                title="Reports"
+                                aria-label="Reports"
+                            >
+                                <ChartIcon className="w-5 h-5" />
+                            </button>
+                        )}
+
                         <NotificationBell
                             isAdmin={isAdmin}
                             pendingUsers={pendingUsers}
