@@ -1,6 +1,8 @@
+// src/components/reports/SaleCard.jsx
 import React from 'react';
-import { format } from 'date-fns';
 import currency from 'currency.js';
+import { format } from 'date-fns';
+import { Pencil, Trash2 } from 'lucide-react';
 
 const formatCurrency = (amount) => {
     const numericAmount = typeof amount === 'string' ? currency(amount).value : currency(amount).value;
@@ -10,68 +12,104 @@ const formatCurrency = (amount) => {
     return currency(numericAmount, { symbol: '₱', precision: 2 }).format();
 };
 
-const SaleCard = ({ sale, onDelete, isAdmin }) => (
-    <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-        <div className="p-4 space-y-3">
-            <div className="flex justify-between items-start">
+const formatDate = (dateString) => {
+    try {
+        return format(new Date(dateString), 'MMM d, yyyy h:mm a');
+    } catch {
+        return 'Invalid Date';
+    }
+};
+
+const SaleCard = ({ sale, onDelete, onEdit, isAdmin }) => {
+    if (!sale) return null;
+
+    const items = sale.sale_items || sale.items || [];
+
+    return (
+        <div className="bg-white p-4 rounded-2xl border border-gray-200/90 shadow-2xs space-y-3">
+            {/* Header: Date, Customer, Total, Status, and Admin Actions */}
+            <div className="flex justify-between items-start gap-2">
                 <div>
-                    <div className="text-sm font-semibold text-gray-800">
-                        {sale.saleTimestamp ? format(new Date(sale.saleTimestamp), 'MMM d, yyyy h:mm a') : 'N/A'}
+                    <div className="text-xs font-semibold text-gray-800">
+                        {formatDate(sale.saleTimestamp || sale.saletimestamp)}
                     </div>
-                    <div className="text-xs text-gray-500">{sale.customerName}</div>
+                    <div className="text-xs text-gray-500 font-medium mt-0.5">
+                        {sale.customerName || sale.customername || 'Walk-in'}
+                    </div>
                 </div>
-                <div className="text-right flex flex-col items-end gap-2">
-                    <div className="text-lg font-bold text-green-600">
-                        {formatCurrency(sale.totalAmount)}
+
+                <div className="flex flex-col items-end gap-1.5">
+                    <div className="text-sm font-bold text-green-600 font-mono">
+                        {formatCurrency(sale.totalAmount || sale.totalamount || 0)}
                     </div>
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${sale.status === 'Completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                    }`} style={sale.status === 'Unpaid' ? { color: '#EA580C' } : {}}>
-                        {sale.status || 'Unknown'}
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        (sale.status || '').toLowerCase() === 'completed'
+                            ? 'bg-lime-50 text-[#5f7d00] border border-lime-200'
+                            : 'bg-rose-50 text-rose-700 border border-rose-200'
+                    }`}>
+                        {sale.status || 'Completed'}
                     </span>
+
+                    {/* Admin Actions: Edit & Delete Buttons */}
                     {isAdmin && (
-                        <button
-                            className="h-8 w-8 text-red-500 bg-red-50 mt-1 flex items-center justify-center rounded hover:bg-red-100 transition-colors"
-                            onClick={() => onDelete(sale.id)}
-                            title="Delete transaction"
-                        >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                        </button>
+                        <div className="flex items-center gap-1.5 mt-1">
+                            {onEdit && (
+                                <button
+                                    type="button"
+                                    onClick={() => onEdit(sale)}
+                                    className="w-7 h-7 flex items-center justify-center text-blue-600 hover:bg-blue-50 border border-gray-200 rounded-lg transition-colors"
+                                    title="Edit Transaction"
+                                >
+                                    <Pencil className="w-3.5 h-3.5" />
+                                </button>
+                            )}
+                            {onDelete && (
+                                <button
+                                    type="button"
+                                    onClick={() => onDelete(sale.id)}
+                                    className="w-7 h-7 flex items-center justify-center text-red-600 hover:bg-red-50 border border-gray-200 rounded-lg transition-colors"
+                                    title="Delete Transaction"
+                                >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                            )}
+                        </div>
                     )}
                 </div>
             </div>
-            <div className="pt-2">
-                <h4 className="text-xs font-medium text-gray-500 mb-2">Items</h4>
-                {(sale.sale_items || []).map((item, idx) => (
-                    <React.Fragment key={item.id || `${sale.id}-item-${idx}`}>
-                        {idx > 0 && <hr className="border-t border-gray-100 my-2" />}
-                        <div className="flex justify-between items-center text-sm">
-                            <div className="flex-1 truncate pr-2">
-                                <span className="font-medium text-gray-800">{item.productName || item.product_name || 'N/A'}</span>
-                                <span className="text-primary font-bold ml-2">x{item.quantity || 0}</span>
-                            </div>
-                            <div className="text-right">
-                                <div className="text-gray-700 whitespace-nowrap">
-                                    {formatCurrency(item.productPrice || item.price_at_sale || 0)}
-                                </div>
-                                {Number(item.discount_amount) > 0 && (
-                                    <div className="text-xs text-green-600">
-                                        -{formatCurrency(item.discount_amount)}
-                                    </div>
-                                )}
-                            </div>
+
+            {/* Items Breakdown */}
+            <div className="pt-2 border-t border-gray-100">
+                <div className="text-[11px] font-semibold text-gray-400 mb-1">Items</div>
+                <div className="space-y-1">
+                    {items.map((item, idx) => (
+                        <div key={idx} className="flex justify-between items-center text-xs">
+                            <span className="text-gray-800">
+                                {item.productName || item.product_name || 'Item'} <strong className="text-green-600 font-bold">x{item.quantity || 0}</strong>
+                            </span>
+                            <span className="text-gray-600 font-mono">
+                                {formatCurrency(item.productPrice || item.price_at_sale || 0)}
+                            </span>
                         </div>
-                    </React.Fragment>
-                ))}
-            </div>
-            <div className="flex justify-between items-center text-xs text-gray-500 pt-3 border-t border-gray-100 mt-3">
-                <div className="inline-flex items-center space-x-2" style={{ color: sale.userColor }}>
-                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: sale.userColor }}></span>
-                    <span>{sale.staffName || 'Staff'}</span>
+                    ))}
                 </div>
-                <span>Payment: <span className="font-medium text-gray-700">{sale.paymentMethod}</span></span>
+            </div>
+
+            {/* Footer: Staff & Payment Details */}
+            <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
+                <div className="inline-flex items-center gap-1.5 font-medium">
+                    <span
+                        className="w-2 h-2 rounded-full shrink-0"
+                        style={{ backgroundColor: sale.userColor || sale.users?.color || '#3b82f6' }}
+                    />
+                    <span>{sale.staffName || sale.createdBy || sale.users?.name || 'Staff'}</span>
+                </div>
+                <div>
+                    Payment: <span className="font-semibold text-gray-700">{sale.paymentMethod || sale.paymentmethod || 'Cash'}</span>
+                </div>
             </div>
         </div>
-    </div>
-);
+    );
+};
 
 export default SaleCard;

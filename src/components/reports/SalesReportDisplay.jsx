@@ -54,7 +54,7 @@ const SalesReportDisplay = ({
                 </div>
             )}
 
-            {/* Desktop Table View - No Horizontal Scrollbar */}
+            {/* Desktop Table */}
             <div className="w-full overflow-hidden hidden md:block">
                 <table className="w-full table-auto text-xs">
                     <thead className="bg-gray-100/80">
@@ -148,7 +148,6 @@ const SalesReportDisplay = ({
                                     </div>
                                 </td>
 
-                                {/* Admin Actions: Edit & Delete */}
                                 {isAdmin && (
                                     <td className="px-2.5 py-2.5 text-right align-top whitespace-nowrap">
                                         <div className="flex items-center justify-end gap-1">
@@ -178,18 +177,21 @@ const SalesReportDisplay = ({
                 </table>
             </div>
 
-            {/* Mobile View */}
-            <div className="md:hidden p-2 bg-gray-50">
+            {/* Mobile View - Now passes onEdit to SaleCard */}
+            <div className="md:hidden p-3 bg-gray-50/60 space-y-3">
                 {salesList.length === 0 ? (
-                    <div className="text-center p-6 text-gray-500">
+                    <div className="text-center p-6 text-gray-500 text-xs">
                         No sales found for this period.
                     </div>
                 ) : (
-                    salesList.map((sale, index) => (
-                        <div key={sale.id}>
-                            {index > 0 && <hr className="border-t border-gray-200 my-3" />}
-                            <SaleCard sale={sale} onDelete={onDelete} onEdit={onEdit} isAdmin={isAdmin} />
-                        </div>
+                    salesList.map((sale) => (
+                        <SaleCard
+                            key={sale.id}
+                            sale={sale}
+                            onDelete={onDelete}
+                            onEdit={onEdit}
+                            isAdmin={isAdmin}
+                        />
                     ))
                 )}
             </div>
