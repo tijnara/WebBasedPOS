@@ -1,6 +1,6 @@
 /* src/components/pages/POSPage.css */
 
-/* 1. Lock outer window so only internal catalog scrolls */
+/* 1. Prevent outer page scrollbars on POS */
 html:has(.pos-page),
 body:has(.pos-page) {
     overflow: hidden !important;
@@ -10,15 +10,31 @@ body:has(.pos-page) {
     padding: 0 !important;
 }
 
-/* 2. Fix Navbar clearance and lock POS container to exact remaining viewport height */
-body:has(.pos-page) .main,
-.app:has(.pos-page) .main {
-    height: calc(100vh - 4rem) !important;
-    max-height: calc(100vh - 4rem) !important;
-    margin-top: 4rem !important;
-    padding: 0 !important;
-    overflow: hidden !important;
-    box-sizing: border-box !important;
+/* 2. Desktop (>= 768px): Subtract 4rem Navbar only */
+@media (min-width: 768px) {
+    body:has(.pos-page) .main,
+    .app:has(.pos-page) .main {
+        height: calc(100vh - 4rem) !important;
+        max-height: calc(100vh - 4rem) !important;
+        margin-top: 4rem !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+        box-sizing: border-box !important;
+    }
+}
+
+/* 3. Mobile (< 768px): Subtract 4rem Navbar AND 3.75rem Bottom TabBar */
+@media (max-width: 767px) {
+    body:has(.pos-page) .main,
+    .app:has(.pos-page) .main {
+        height: calc(100vh - 4rem - 3.75rem) !important;
+        height: calc(100dvh - 4rem - 3.75rem) !important;
+        max-height: calc(100dvh - 4rem - 3.75rem) !important;
+        margin-top: 4rem !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+        box-sizing: border-box !important;
+    }
 }
 
 body:has(.pos-page) .container,
@@ -31,7 +47,7 @@ body:has(.pos-page) .container,
     overflow: hidden !important;
 }
 
-/* 3. Hide floating circular mascot button on POS to avoid cart footer collisions */
+/* 4. Hide floating mascot button on POS */
 body:has(.pos-page) > div > button.fixed,
 body:has(.pos-page) div[class*="fixed"][class*="bottom-"]:not(.toasts),
 body:has(.pos-page) button[class*="fixed"][class*="bottom-"],
@@ -40,7 +56,7 @@ body:has(.pos-page) .floating-messages {
     display: none !important;
 }
 
-/* 4. Remove sticky browser focus rings on product buttons */
+/* 5. Remove sticky button focus rings */
 .pos-product-card:focus,
 .pos-product-card:focus-visible,
 .pos-product-card:active {
@@ -53,7 +69,7 @@ body:has(.pos-page) .floating-messages {
     transform: translateY(-1.5px);
 }
 
-/* 5. Sleek Product Grid Scrollbar */
+/* 6. Product Grid Scrollbar */
 .pos-product-scroll-area {
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
@@ -62,7 +78,7 @@ body:has(.pos-page) .floating-messages {
 }
 
 .pos-product-scroll-area::-webkit-scrollbar {
-    width: 5px;
+    width: 4px;
 }
 
 .pos-product-scroll-area::-webkit-scrollbar-thumb {
@@ -74,7 +90,7 @@ body:has(.pos-page) .floating-messages {
     background: #8DB600;
 }
 
-/* 6. Horizontal Category Scrollbar */
+/* 7. Horizontal Category Scrollbar */
 .category-scroll-container {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
