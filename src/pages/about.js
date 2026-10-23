@@ -4,7 +4,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 import { useSettings } from '../hooks/useSettings';
-import { useStore } from '../store/useStore';
 
 import BackgroundImage from '../components/landing/BackgroundImage';
 import Meta from '../components/landing/Meta';
@@ -24,7 +23,6 @@ import { Phone, MessageSquare, LogIn } from 'lucide-react';
 export default function SeasideWaterLanding() {
     const { data: settings } = useSettings();
     const router = useRouter();
-    const user = useStore(state => state.user);
     const [scrolled, setScrolled] = useState(false);
 
     useEffect(() => {
@@ -56,6 +54,9 @@ export default function SeasideWaterLanding() {
         return () => router.events.off('hashChangeComplete', handleHashChangeComplete);
     }, [router.isReady, router.events]);
 
+    const contactPhone = settings?.contact_number || '+639602196388';
+    const messengerLink = settings?.messenger_link || 'https://m.me/61587059323111';
+
     return (
         <div className="relative min-h-screen w-full font-sans bg-slate-50 text-slate-800 antialiased selection:bg-[#8DB600] selection:text-white">
             <BackgroundImage />
@@ -72,7 +73,7 @@ export default function SeasideWaterLanding() {
                     <Link href="/" className="flex items-center gap-3 group">
                         <div className="relative w-10 h-10 overflow-hidden rounded-xl bg-white shadow-xs border border-lime-200 flex items-center justify-center group-hover:scale-105 transition-transform">
                             <Image
-                                src="/seaside.png"
+                                src={settings?.logo_url || "/seaside.png"}
                                 alt="Seaside Logo"
                                 width={36}
                                 height={36}
@@ -82,7 +83,7 @@ export default function SeasideWaterLanding() {
                         </div>
                         <div>
                             <span className="text-lg font-black tracking-tight text-slate-900 block leading-tight">
-                                Seaside
+                                {settings?.business_name || 'Seaside'}
                             </span>
                             <span className="text-[10px] font-black tracking-widest uppercase text-[#8DB600] block">
                                 Water Refilling Station
@@ -113,7 +114,7 @@ export default function SeasideWaterLanding() {
             {/* Main Content Sections */}
             <main id="main-content" className="relative z-10 pt-20 md:pt-24 flex flex-col flex-grow">
                 <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 space-y-16 sm:space-y-24">
-                    <Hero />
+                    <Hero settings={settings} />
                     <WhyChooseUs />
                     <Services />
                     <ProcessSection />
@@ -121,7 +122,7 @@ export default function SeasideWaterLanding() {
                     <Location settings={settings} />
                     <Contact settings={settings} />
                 </div>
-                <Footer />
+                <Footer settings={settings} />
             </main>
 
             <ScrollToTop />
@@ -130,13 +131,13 @@ export default function SeasideWaterLanding() {
             <div className="fixed bottom-0 left-0 right-0 p-3 bg-white/95 backdrop-blur-md border-t border-slate-200 shadow-lg flex gap-3 z-50 md:hidden">
                 <Button
                     className="flex-1 bg-[#8DB600] hover:bg-[#7ca000] text-white font-bold h-11 rounded-xl shadow-xs flex items-center justify-center gap-2 text-xs"
-                    onClick={() => window.location.href = 'tel:+639602196388'}
+                    onClick={() => window.location.href = `tel:${contactPhone.replace(/\s+/g, '')}`}
                 >
                     <Phone className="w-4 h-4" /> Call Now
                 </Button>
                 <Button
                     className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold h-11 rounded-xl shadow-xs flex items-center justify-center gap-2 text-xs"
-                    onClick={() => window.open('https://m.me/61587059323111', '_blank')}
+                    onClick={() => window.open(messengerLink, '_blank')}
                 >
                     <MessageSquare className="w-4 h-4" /> Messenger
                 </Button>

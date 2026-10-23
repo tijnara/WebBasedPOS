@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { CheckCircle2, ShieldCheck, MapPin, ArrowRight, Sparkles, HeartHandshake } from 'lucide-react';
 import { useCustomers } from '../../hooks/useCustomers';
 
-export default function Hero() {
+export default function Hero({ settings }) {
     const { data: customersData, isLoading } = useCustomers();
 
     const customerCount = customersData?.totalCount || 10000;
@@ -21,7 +21,7 @@ export default function Hero() {
 
     return (
         <section id="home" className="relative pt-6 pb-12 lg:pt-10 lg:pb-20 overflow-hidden bg-transparent">
-            {/* Ambient Apple Green Glows */}
+            {/* Ambient Apple Green Glow */}
             <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[350px] bg-gradient-to-tr from-[#8DB600]/25 via-lime-200/30 to-[#6abf45]/20 blur-3xl -z-10 rounded-full pointer-events-none" />
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -39,22 +39,28 @@ export default function Hero() {
                             <span className="flex h-2 w-2 rounded-full bg-[#8DB600] animate-pulse" />
                             <MapPin className="w-3.5 h-3.5 text-[#8DB600]" />
                             <span className="text-xs font-bold uppercase tracking-wider text-lime-900">
-                                Labrador, Pangasinan's Pure Hydration
+                                {settings?.physical_address ? `${settings.physical_address}'s Pure Hydration` : "Labrador, Pangasinan's Pure Hydration"}
                             </span>
                         </div>
 
                         {/* Main Headline */}
                         <h1 className="text-3xl sm:text-5xl lg:text-5xl xl:text-6xl font-black text-slate-900 tracking-tight leading-[1.12]">
-                            Your Family's Health,{' '}
-                            <span className="bg-gradient-to-r from-[#8DB600] via-[#6abf45] to-[#4e9e2d] bg-clip-text text-transparent">
-                                Flowing Crystal Clear
-                            </span>{' '}
-                            from Seaside.
+                            {settings?.hero_title ? (
+                                settings.hero_title
+                            ) : (
+                                <>
+                                    Your Family's Health,{' '}
+                                    <span className="bg-gradient-to-r from-[#8DB600] via-[#6abf45] to-[#4e9e2d] bg-clip-text text-transparent">
+                                        Flowing Crystal Clear
+                                    </span>{' '}
+                                    from Seaside.
+                                </>
+                            )}
                         </h1>
 
                         {/* Subheading */}
                         <p className="text-base sm:text-lg text-slate-600 font-medium leading-relaxed max-w-xl">
-                            We combine commercial-grade 21-stage reverse osmosis filtration with warm local care, delivering 100% pure, remineralized drinking water straight to your home and business.
+                            {settings?.hero_subtitle || "We combine commercial-grade 21-stage reverse osmosis filtration with warm local care, delivering 100% pure, remineralized drinking water straight to your home and business."}
                         </p>
 
                         {/* Highlight Cards */}
@@ -110,7 +116,7 @@ export default function Hero() {
                         </div>
                     </motion.div>
 
-                    {/* RIGHT COLUMN: 3D Mascot & Storefront */}
+                    {/* RIGHT COLUMN: 3D Mascot */}
                     <motion.div
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
@@ -131,7 +137,7 @@ export default function Hero() {
 
                             <div className="absolute bottom-4 left-4 right-4 bg-white/95 backdrop-blur-md border border-lime-200/90 rounded-2xl p-3 shadow-md flex items-center justify-between z-20">
                                 <div>
-                                    <div className="text-[10px] font-black uppercase tracking-wider text-[#8DB600]">Labrador Station</div>
+                                    <div className="text-[10px] font-black uppercase tracking-wider text-[#8DB600]">{settings?.business_name || 'Seaside'} Station</div>
                                     <div className="text-xs font-bold text-slate-900">Always Fresh, Cold & Pure</div>
                                 </div>
                                 <span className="text-xs font-black px-2.5 py-1 bg-lime-100 text-[#5f7d00] rounded-lg">

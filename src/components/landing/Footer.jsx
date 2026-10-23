@@ -4,12 +4,17 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Heart, ShieldCheck, MapPin, Phone, Mail } from 'lucide-react';
 
-export default function Footer() {
+export default function Footer({ settings }) {
+    const businessName = settings?.business_name || 'Seaside';
+    const address = settings?.physical_address || 'Laois, Labrador, Pangasinan, Philippines';
+    const phone = settings?.contact_number || '+63 960 219 6388';
+    const email = settings?.email || 'seasidewrs@gmail.com';
+    const aboutContent = settings?.about_content || 'Providing Labrador, Pangasinan and nearby communities with commercial 21-stage reverse osmosis drinking water, container sterilization, and doorstep delivery.';
+
     return (
         <footer className="bg-slate-900 text-slate-300 pt-14 pb-8 border-t border-slate-800 relative z-20">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-                {/* 4-Column Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10 pb-12 border-b border-slate-800">
 
                     {/* Brand Profile */}
@@ -17,7 +22,7 @@ export default function Footer() {
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-xl bg-white p-1 flex items-center justify-center shadow-xs border border-lime-400/40">
                                 <Image
-                                    src="/seaside.png"
+                                    src={settings?.logo_url || "/seaside.png"}
                                     alt="Seaside Logo"
                                     width={36}
                                     height={36}
@@ -25,15 +30,15 @@ export default function Footer() {
                                 />
                             </div>
                             <div>
-                                <span className="text-lg font-black text-white block leading-tight">Seaside</span>
+                                <span className="text-lg font-black text-white block leading-tight">{businessName}</span>
                                 <span className="text-[10px] font-black uppercase tracking-widest text-[#8DB600] block">
                                     Water Refilling Station
                                 </span>
                             </div>
                         </div>
 
-                        <p className="text-xs sm:text-sm text-slate-400 leading-relaxed max-w-sm">
-                            Providing Labrador, Pangasinan and nearby communities with commercial 21-stage reverse osmosis drinking water, container sterilization, and doorstep delivery.
+                        <p className="text-xs sm:text-sm text-slate-400 leading-relaxed max-w-sm whitespace-pre-line">
+                            {aboutContent}
                         </p>
 
                         <div className="flex items-center gap-2 text-xs font-semibold text-[#8DB600] pt-1">
@@ -87,15 +92,15 @@ export default function Footer() {
                         <div className="space-y-2.5 text-xs text-slate-400">
                             <div className="flex items-start gap-2.5">
                                 <MapPin className="w-4 h-4 text-[#8DB600] shrink-0 mt-0.5" />
-                                <span>Laois, Labrador, Pangasinan, Philippines</span>
+                                <span>{address}</span>
                             </div>
                             <div className="flex items-center gap-2.5">
                                 <Phone className="w-4 h-4 text-[#8DB600] shrink-0" />
-                                <span>+63 960 219 6388</span>
+                                <span>{phone}</span>
                             </div>
                             <div className="flex items-center gap-2.5">
                                 <Mail className="w-4 h-4 text-[#8DB600] shrink-0" />
-                                <span>seasidewrs@gmail.com</span>
+                                <span>{email}</span>
                             </div>
                         </div>
                     </div>
@@ -104,7 +109,7 @@ export default function Footer() {
 
                 {/* Subfooter */}
                 <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
-                    <p>© {new Date().getFullYear()} Seaside Water Refilling Station. All rights reserved.</p>
+                    <p>© {new Date().getFullYear()} {businessName}. All rights reserved.</p>
 
                     <a
                         href="https://undergocutlery.com/ngz7b0mms?key=c1cb95a3297c5e2d634e2cbbecde0044"
