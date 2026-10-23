@@ -16,21 +16,18 @@ export function useCreateSale() {
             // --- 0. HANDLE DEMO MODE ---
             if (user?.isDemo) {
                 console.log("Demo Mode detected. Simulating transaction...");
-                await new Promise(resolve => setTimeout(resolve, 800)); // Simulate network delay
+                await new Promise(resolve => setTimeout(resolve, 800));
 
-                // --- NEW: Update demo shift sales in sessionStorage so the Navbar counter updates ---
                 if (salePayload.paymentMethod === 'Cash') {
                     const shiftKey = `demo_shift_${user.id}`;
                     const storedShift = sessionStorage.getItem(shiftKey);
                     if (storedShift) {
                         const shiftData = JSON.parse(storedShift);
-                        // Add the new sale amount to the running demo total
                         shiftData.demo_sales = (shiftData.demo_sales || 0) + salePayload.totalAmount;
                         sessionStorage.setItem(shiftKey, JSON.stringify(shiftData));
                     }
                 }
 
-                // Return mock success response
                 return {
                     id: `demo-sale-${Date.now()}`,
                     ...salePayload,
@@ -44,7 +41,6 @@ export function useCreateSale() {
                     throw new Error("A registered customer is required for 'Charge to Account' transactions.");
                 }
 
-                // Call RPC to increment balance (Positive amount adds to debt)
                 const { error: creditError } = await supabase.rpc('update_customer_credit', {
                     p_customer_id: salePayload.customerId,
                     p_amount: salePayload.totalAmount
@@ -82,22 +78,30 @@ export function useCreateSale() {
 
             const newSaleId = saleData.id;
 
-            // --- 3. Prepare Items with Notes & Discounts ---
+            // --- 3. Prepare Items (Safely map custom / unlisted items to product_id: null) ---
             const itemsToInsert = salePayload.items.map(item => {
                 const base = item.basePrice || item.priceAtSale;
                 const unitDiscount = currency(base).subtract(item.priceAtSale).value;
                 const totalLineDiscount = currency(unitDiscount).multiply(item.quantity).value;
 
+                const isCustom = Boolean(
+                    item.is_custom ||
+                    !item.productId ||
+                    isNaN(Number(item.productId)) ||
+                    String(item.productId).startsWith('custom_')
+                );
+
                 return {
                     sale_id: newSaleId,
-                    product_id: item.productId,
-                    product_name: item.productName,
+                    product_id: isCustom ? null : Number(item.productId),
+                    product_name: item.productName || item.name,
                     quantity: item.quantity,
                     price_at_sale: item.priceAtSale,
                     subtotal: item.subtotal,
                     cost_at_sale: item.cost_at_sale || 0,
                     notes: item.note || null,
-                    discount_amount: Math.max(0, totalLineDiscount)
+                    discount_amount: Math.max(0, totalLineDiscount),
+                    is_custom: isCustom
                 };
             });
 
@@ -115,11 +119,18 @@ export function useCreateSale() {
                 throw new Error(`Sale created (ID: ${newSaleId}), but failed to save items: ${itemsError.message}`);
             }
 
-            // --- 4. Decrement Stock ---
+            // --- 4. Decrement Stock (Only for physical tracked catalog products) ---
             for (const item of salePayload.items) {
-                if (item.productId && item.quantity > 0) {
+                const isCustom = Boolean(
+                    item.is_custom ||
+                    !item.productId ||
+                    isNaN(Number(item.productId)) ||
+                    String(item.productId).startsWith('custom_')
+                );
+
+                if (!isCustom && item.track_stock !== false && item.productId && item.quantity > 0) {
                     const { error: stockError } = await supabase.rpc('decrement_stock', {
-                        product_id: item.productId,
+                        product_id: Number(item.productId),
                         quantity_sold: item.quantity,
                         staff_id_input: user?.id || null
                     });
@@ -141,11 +152,10 @@ export function useCreateSale() {
             return { ...saleData, items: itemsToInsert };
         },
 
-        onSuccess: (data) => {
+        onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['sales'] });
             queryClient.invalidateQueries({ queryKey: ['products'] });
             queryClient.invalidateQueries({ queryKey: ['customers'] });
-            // Explicitly force the active shift indicator to refresh
             queryClient.invalidateQueries({ queryKey: ['sales', 'active-shift'] });
         },
         onError: (error) => {
