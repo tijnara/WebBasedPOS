@@ -116,29 +116,38 @@ export default function Hero({ settings }) {
                         </div>
                     </motion.div>
 
-                    {/* RIGHT COLUMN: 3D Mascot */}
+                    {/* RIGHT COLUMN: 3D Mascot & Storefront (Scaled to Fit Container) */}
                     <motion.div
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.7, delay: 0.15 }}
                         className="lg:col-span-5 flex justify-center relative"
                     >
-                        <div className="relative w-full max-w-lg lg:max-w-none aspect-[4/3.8] rounded-3xl bg-gradient-to-b from-white/95 via-lime-50/40 to-lime-100/30 p-4 sm:p-6 border border-lime-200/80 shadow-xl flex items-center justify-center overflow-hidden">
-                            <div className="absolute inset-0 bg-[radial-gradient(#8DB600_1px,transparent_1px)] [background-size:16px_16px] opacity-15" />
+                        <div className="relative w-full max-w-lg lg:max-w-none rounded-3xl bg-gradient-to-b from-white/95 via-lime-50/40 to-lime-100/30 p-4 sm:p-5 border border-lime-200/80 shadow-xl flex flex-col justify-between overflow-hidden min-h-[360px] sm:min-h-[420px]">
+                            {/* Dot Grid Background Accent */}
+                            <div className="absolute inset-0 bg-[radial-gradient(#8DB600_1px,transparent_1px)] [background-size:16px_16px] opacity-15 pointer-events-none" />
 
-                            <picture className="relative z-10 w-full h-full flex items-center justify-center">
-                                <source media="(min-width: 768px)" srcSet="/seaside3d3.png" />
-                                <img
-                                    src="/seaside3d4.png"
-                                    alt="Seaside Water Refilling Station Mascot and Storefront"
-                                    className="w-full h-full object-contain filter drop-shadow-xl"
-                                />
-                            </picture>
+                            {/* Center-Aligned Scaled Image Viewport */}
+                            <div className="relative z-10 w-full flex-1 flex items-center justify-center my-auto py-3 overflow-hidden">
+                                <picture className="w-full flex items-center justify-center">
+                                    <source media="(min-width: 768px)" srcSet="/seaside3d3.png" />
+                                    <img
+                                        src="/seaside3d4.png"
+                                        alt="Seaside Water Refilling Station Mascot and Storefront"
+                                        className="w-full h-auto max-h-[290px] sm:max-h-[340px] object-contain transform scale-125 sm:scale-135 filter drop-shadow-xl transition-transform duration-300"
+                                    />
+                                </picture>
+                            </div>
 
-                            <div className="absolute bottom-4 left-4 right-4 bg-white/95 backdrop-blur-md border border-lime-200/90 rounded-2xl p-3 shadow-md flex items-center justify-between z-20">
+                            {/* Floating Price Pill */}
+                            <div className="relative z-20 bg-white/95 backdrop-blur-md border border-lime-200/90 rounded-2xl p-3 shadow-md flex items-center justify-between mt-auto">
                                 <div>
-                                    <div className="text-[10px] font-black uppercase tracking-wider text-[#8DB600]">{settings?.business_name || 'Seaside'} Station</div>
-                                    <div className="text-xs font-bold text-slate-900">Always Fresh, Cold & Pure</div>
+                                    <div className="text-[10px] font-black uppercase tracking-wider text-[#8DB600]">
+                                        {settings?.business_name || 'Seaside'} Station
+                                    </div>
+                                    <div className="text-xs font-bold text-slate-900">
+                                        Always Fresh, Cold & Pure
+                                    </div>
                                 </div>
                                 <span className="text-xs font-black px-2.5 py-1 bg-lime-100 text-[#5f7d00] rounded-lg">
                                     ₱20-₱30 / Jug

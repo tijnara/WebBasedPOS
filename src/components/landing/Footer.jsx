@@ -2,7 +2,7 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Heart, ShieldCheck, MapPin, Phone, Mail } from 'lucide-react';
+import { ShieldCheck, MapPin, Phone, Mail } from 'lucide-react';
 
 export default function Footer({ settings }) {
     const businessName = settings?.business_name || 'Seaside';
@@ -15,6 +15,7 @@ export default function Footer({ settings }) {
         <footer className="bg-slate-900 text-slate-300 pt-14 pb-8 border-t border-slate-800 relative z-20">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
+                {/* 4-Column Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10 pb-12 border-b border-slate-800">
 
                     {/* Brand Profile */}
@@ -111,15 +112,10 @@ export default function Footer({ settings }) {
                 <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
                     <p>© {new Date().getFullYear()} {businessName}. All rights reserved.</p>
 
-                    <a
-                        href="https://undergocutlery.com/ngz7b0mms?key=c1cb95a3297c5e2d634e2cbbecde0044"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 text-slate-400 hover:text-[#8DB600] transition-colors px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/60"
-                    >
-                        <Heart className="w-3.5 h-3.5 text-[#8DB600] fill-[#8DB600]" />
-                        <span>Support Our Local Station</span>
-                    </a>
+                    <div className="inline-flex items-center gap-1.5 text-slate-400 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/60 select-none">
+                        <span>tijnara</span>
+                        <span className="text-sm">🫰</span>
+                    </div>
                 </div>
 
             </div>
