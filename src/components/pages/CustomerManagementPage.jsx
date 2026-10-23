@@ -1,6 +1,7 @@
 // src/components/pages/CustomerManagementPage.jsx
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 import { useStore } from '../../store/useStore';
 import {
     Button, Card, CardContent, Table, TableHeader, TableBody, TableRow,
@@ -11,103 +12,94 @@ import {
 import Pagination from '../Pagination';
 import currency from 'currency.js';
 
-// --- Import Customer Hooks ---
 import {
     useCreateCustomer,
     useUpdateCustomer,
     useDeleteCustomer,
     useRepayDebt
 } from '../../hooks/useCustomerMutations';
-import { useCustomers } from '../../hooks/useCustomers';
-
-// Import Repayment Modal
+import { useCustomers, useCustomerStats } from '../../hooks/useCustomers';
 import RepaymentModal from '../customers/RepaymentModal';
 
-// --- Icons for UI ---
-const UserIcon = ({ className }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={className || "w-5 h-5"}>
-        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zM8 11a4 4 0 00-4 4v.5a.5.5 0 00.5.5h11a.5.5 0 00.5-.5V15a4 4 0 00-4-4H8z" clipRule="evenodd" />
-    </svg>
-);
-
-const MailIcon = ({ className }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={className || "w-5 h-5"}>
-        <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
-        <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
-    </svg>
-);
-
-const PhoneIcon = ({ className }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={className || "w-5 h-5"}>
-        <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
-    </svg>
-);
-
-const MapPinIcon = ({ className }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={className || "w-5 h-5"}>
-        <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-    </svg>
-);
+import {
+    Users, UserPlus, FileText, ShoppingBag,
+    Phone, MapPin, Mail, ArrowUpDown, ChevronUp, ChevronDown,
+    DollarSign, AlertCircle, CheckCircle2
+} from 'lucide-react';
 
 const EditIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-        <path d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708l-3-3zm.646 6.061L9.793 2.5 3.293 9H3.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.207l6.5-6.5zm-7.468 7.468A.5.5 0 0 1 6 13.5V13h-.5a.5.5 0 0 1-.5-.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.5-.5V10h-.5a.499.499 0 0 1-.175-.032l-.179.178a.5.5 0 0 0-.11.168l-2 5a.5.5 0 0 0 .65.65l5-2a.5.5 0 0 0 .168-.11l.178-.178z"/>
+    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
     </svg>
 );
 
 const DeleteIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-        <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
-        <path fillRule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
+    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
     </svg>
 );
 
-// High-contrast sort indicator icon
 const SortIcon = ({ columnKey, sortConfig }) => {
     const isActive = sortConfig.key === columnKey;
-    return (
-        <span className={`inline-flex items-center ml-1.5 transition-colors ${isActive ? 'text-blue-600 dark:text-blue-400 font-bold' : 'text-gray-400 opacity-40 group-hover:opacity-80'}`}>
-            {isActive && sortConfig.direction === 'asc' ? (
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clipRule="evenodd" />
-                </svg>
-            ) : isActive && sortConfig.direction === 'desc' ? (
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
-            ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                </svg>
-            )}
-        </span>
+    if (!isActive) {
+        return <ArrowUpDown className="w-3 h-3 text-slate-300 group-hover:text-slate-500 transition-colors ml-1" />;
+    }
+    return sortConfig.direction === 'asc' ? (
+        <ChevronUp className="w-3.5 h-3.5 text-[#8DB600] ml-1 stroke-[2.5]" />
+    ) : (
+        <ChevronDown className="w-3.5 h-3.5 text-[#8DB600] ml-1 stroke-[2.5]" />
     );
 };
 
-// Helper function to capitalize each word
 const capitalizeWords = (str) => {
     if (!str) return '';
     return str.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
 };
 
+const formatRelativeTime = (dateStr) => {
+    if (!dateStr) return '—';
+    try {
+        const date = new Date(dateStr);
+        const now = new Date();
+        const diffMs = now.getTime() - date.getTime();
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+        if (diffDays === 0) return 'Today';
+        if (diffDays === 1) return 'Yesterday';
+        if (diffDays < 7) return `${diffDays}d ago`;
+        if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    } catch {
+        return '—';
+    }
+};
+
 export default function CustomerManagementPage() {
+    const router = useRouter();
     const [searchTerm, setSearchTerm] = useState('');
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
-    const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+    const [balanceFilter, setBalanceFilter] = useState('all'); // 'all' | 'debt' | 'zero'
+    const [sortConfig, setSortConfig] = useState({ key: 'lastSeen', direction: 'desc' });
     const itemsPerPage = 10;
-    const { user } = useStore();
+
+    const { user, addToast, setCurrentCustomer } = useStore();
     const isDemo = user?.isDemo;
 
+    // Server-Side Paginated and Sorted Query
     const { data: customersData = { customers: [], totalPages: 1 }, isLoading } = useCustomers({
         page: currentPage,
         itemsPerPage,
-        searchTerm: debouncedSearchTerm
+        searchTerm: debouncedSearchTerm,
+        balanceFilter,
+        sortBy: sortConfig.key,
+        sortDirection: sortConfig.direction
     });
+
+    const { data: stats = { totalCustomers: 0, totalDebt: 0, customersWithDebt: 0, cleanAccounts: 0 } } = useCustomerStats();
 
     const customers = customersData.customers;
     const totalPages = customersData.totalPages;
-    const addToast = useStore(s => s.addToast);
 
     const createCustomer = useCreateCustomer();
     const updateCustomer = useUpdateCustomer();
@@ -123,15 +115,18 @@ export default function CustomerManagementPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const searchInputRef = useRef(null);
 
-    // Debounce search term
     useEffect(() => {
         const handler = setTimeout(() => {
             setDebouncedSearchTerm(searchTerm);
+            setCurrentPage(1);
         }, 300);
         return () => clearTimeout(handler);
     }, [searchTerm]);
 
-    // Global shortcut for search
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [balanceFilter]);
+
     useEffect(() => {
         const handleKeyDown = (e) => {
             const activeTag = document.activeElement.tagName;
@@ -145,79 +140,15 @@ export default function CustomerManagementPage() {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, []);
 
-    // Toggle sort order reliably
+    // Toggle server-side sort and reset to page 1
     const requestSort = (key) => {
         setSortConfig((prev) => {
-            if (prev.key === key) {
-                return {
-                    key,
-                    direction: prev.direction === 'asc' ? 'desc' : 'asc'
-                };
-            }
-            return {
-                key,
-                direction: 'asc'
-            };
+            const isSameKey = prev.key === key;
+            const newDirection = isSameKey && prev.direction === 'asc' ? 'desc' : 'asc';
+            return { key, direction: newDirection };
         });
+        setCurrentPage(1);
     };
-
-    // Client-side sorting for all columns
-    const sortedCustomers = useMemo(() => {
-        const list = Array.isArray(customers) ? [...customers] : [];
-        if (!sortConfig.key) return list;
-
-        return list.sort((a, b) => {
-            let aVal = '';
-            let bVal = '';
-
-            switch (sortConfig.key) {
-                case 'name':
-                    aVal = (a.name || '').trim().toLowerCase();
-                    bVal = (b.name || '').trim().toLowerCase();
-                    return sortConfig.direction === 'asc'
-                        ? aVal.localeCompare(bVal)
-                        : bVal.localeCompare(aVal);
-
-                case 'phone':
-                    aVal = (a.phone || '').trim().toLowerCase();
-                    bVal = (b.phone || '').trim().toLowerCase();
-                    return sortConfig.direction === 'asc'
-                        ? aVal.localeCompare(bVal)
-                        : bVal.localeCompare(aVal);
-
-                case 'address':
-                    aVal = (a.address || '').trim().toLowerCase();
-                    bVal = (b.address || '').trim().toLowerCase();
-                    return sortConfig.direction === 'asc'
-                        ? aVal.localeCompare(bVal)
-                        : bVal.localeCompare(aVal);
-
-                case 'dateAdded': {
-                    const aDate = a.dateAdded || a.dateadded || a.created_at || a.createdAt;
-                    const bDate = b.dateAdded || b.dateadded || b.created_at || b.createdAt;
-                    const aTime = aDate ? new Date(aDate).getTime() : 0;
-                    const bTime = bDate ? new Date(bDate).getTime() : 0;
-                    return sortConfig.direction === 'asc' ? aTime - bTime : bTime - aTime;
-                }
-
-                case 'created_by':
-                    aVal = (a.users?.name || a.created_by || '').trim().toLowerCase();
-                    bVal = (b.users?.name || b.created_by || '').trim().toLowerCase();
-                    return sortConfig.direction === 'asc'
-                        ? aVal.localeCompare(bVal)
-                        : bVal.localeCompare(aVal);
-
-                case 'credit_balance': {
-                    const aBal = parseFloat(a.credit_balance) || 0;
-                    const bBal = parseFloat(b.credit_balance) || 0;
-                    return sortConfig.direction === 'asc' ? aBal - bBal : bBal - aBal;
-                }
-
-                default:
-                    return 0;
-            }
-        });
-    }, [customers, sortConfig.key, sortConfig.direction]);
 
     const openModal = () => {
         resetForm();
@@ -234,7 +165,7 @@ export default function CustomerManagementPage() {
         setName(c?.name || '');
         setEmail(c?.email === 'N/A' ? '' : c?.email || '');
         setPhone(c?.phone === 'N/A' ? '' : c?.phone || '');
-        setAddress(c?.address || '');
+        setAddress(c?.address === 'N/A' ? '' : c?.address || '');
         setIsModalOpen(true);
     };
 
@@ -249,12 +180,11 @@ export default function CustomerManagementPage() {
     const save = async (e) => {
         e.preventDefault();
         if (!name || !name.trim()) {
-            addToast({ title: 'Error', description: 'Customer Name is required.', variant: 'destructive' });
+            addToast({ title: 'Name Required', description: 'Please enter customer name.', variant: 'destructive' });
             return;
         }
 
         const capitalizedName = capitalizeWords(name.trim());
-
         const payload = {
             name: capitalizedName,
             email: email.trim() || null,
@@ -265,27 +195,30 @@ export default function CustomerManagementPage() {
         try {
             if (editing) {
                 await updateCustomer.mutateAsync({ ...payload, id: editing.id, dateAdded: editing.dateAdded });
-                addToast({ title: 'Updated', description: `Customer ${capitalizedName} updated`, variant: 'success' });
+                addToast({ title: 'Customer Updated', description: `${capitalizedName} was updated.`, variant: 'success' });
             } else {
                 await createCustomer.mutateAsync(payload);
-                addToast({ title: 'Created', description: `Customer ${capitalizedName} created`, variant: 'success' });
+                addToast({ title: 'Customer Created', description: `${capitalizedName} added successfully.`, variant: 'success' });
             }
             closeModal();
-        } catch (e) {
-            console.error(e);
-            addToast({ title: 'Error', description: e.message || 'Failed to save customer', variant: 'destructive' });
+        } catch (err) {
+            addToast({ title: 'Save Failed', description: err.message, variant: 'destructive' });
         }
     };
 
     const remove = async (c) => {
-        if (!confirm(`Delete ${c.name}? This cannot be undone.`)) return;
+        if (!confirm(`Are you sure you want to delete ${c.name}? This action cannot be undone.`)) return;
         try {
             await deleteCustomer.mutateAsync(c.id);
-            addToast({ title: 'Deleted', description: `${c.name} deleted`, variant: 'success' });
-        } catch (e) {
-            console.error(e);
-            addToast({ title: 'Error', description: e.message || 'Failed to delete customer', variant: 'destructive' });
+            addToast({ title: 'Deleted', description: `${c.name} removed.`, variant: 'success' });
+        } catch (err) {
+            addToast({ title: 'Delete Failed', description: err.message, variant: 'destructive' });
         }
+    };
+
+    const handleRingInPOS = (c) => {
+        setCurrentCustomer(c);
+        router.push('/pos');
     };
 
     const handleRepayment = async (id, amount) => {
@@ -300,430 +233,524 @@ export default function CustomerManagementPage() {
     const isMutating = createCustomer.isPending || updateCustomer.isPending || deleteCustomer.isPending;
 
     return (
-        <div className="customer-page responsive-page">
-            <div>
-                {/* Header Section */}
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-                    <div>
-                        <h1 className="text-2xl font-bold text-whites-900 dark:text-white">
-                            Customer Management
-                        </h1>
-                        <p className="text-sm text-gray-500 dark:text-slate-300 mt-1">
-                            Manage your customer records and credit balances
-                        </p>
-                    </div>
-                    <div className="flex flex-col items-end gap-2">
-                        <Button onClick={openModal} variant="primary" className="shadow-sm font-semibold" disabled={isDemo}>
-                            + Add Customer
-                        </Button>
-                        <Link href="/report?tab=customers#inactive-customers" className="text-sm text-blue-600 hover:underline dark:text-blue-400">
-                            View Inactive Customers Report
-                        </Link>
-                    </div>
+        <div className="customer-page responsive-page max-w-7xl mx-auto space-y-6 p-4 md:p-6">
+
+            {/* Header & Primary Actions */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h1 className="text-xl font-bold text-slate-900 tracking-tight">Customer Management</h1>
+                    <p className="text-xs text-slate-500 mt-0.5">Track customer records, delivery landmarks, transaction history, and credit balances.</p>
                 </div>
 
-                {/* Search & Mobile Sort Controls */}
-                <div className="mb-6 flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-                    <div className="relative max-w-md w-full">
-                        <Input
-                            ref={searchInputRef}
-                            placeholder="Search by name, email, phone..."
-                            value={searchTerm}
-                            onChange={e => setSearchTerm(e.target.value)}
-                            className="w-full pl-4 pr-10 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                        />
-                        <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                        </div>
-                    </div>
-
-                    {/* Mobile Sort Dropdown */}
-                    <div className="flex md:hidden items-center gap-2 w-full sm:w-auto">
-                        <span className="text-xs text-gray-500 dark:text-gray-400 font-semibold whitespace-nowrap">Sort:</span>
-                        <select
-                            value={sortConfig.key ? `${sortConfig.key}_${sortConfig.direction}` : ''}
-                            onChange={(e) => {
-                                const val = e.target.value;
-                                if (!val) {
-                                    setSortConfig({ key: null, direction: 'asc' });
-                                } else {
-                                    const [key, direction] = val.split('_');
-                                    setSortConfig({ key, direction });
-                                }
-                            }}
-                            className="w-full sm:w-auto text-xs py-2 px-3 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 outline-none"
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <Link href="/report?tab=customers#inactive-customers">
+                        <Button
+                            variant="outline"
+                            className="h-10 px-3.5 rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-bold flex items-center gap-1.5 shadow-2xs"
                         >
-                            <option value="">Default</option>
-                            <option value="name_asc">Name (A → Z)</option>
-                            <option value="name_desc">Name (Z → A)</option>
-                            <option value="phone_asc">Phone (Ascending)</option>
-                            <option value="phone_desc">Phone (Descending)</option>
-                            <option value="address_asc">Address (A → Z)</option>
-                            <option value="address_desc">Address (Z → A)</option>
-                            <option value="dateAdded_desc">Date (Newest First)</option>
-                            <option value="dateAdded_asc">Date (Oldest First)</option>
-                            <option value="created_by_asc">Created By (A → Z)</option>
-                            <option value="created_by_desc">Created By (Z → A)</option>
-                            <option value="credit_balance_desc">Balance (Highest First)</option>
-                            <option value="credit_balance_asc">Balance (Lowest First)</option>
-                        </select>
+                            <FileText className="w-3.5 h-3.5 text-slate-400" />
+                            <span>Inactive Report</span>
+                        </Button>
+                    </Link>
+                    <Button
+                        onClick={openModal}
+                        variant="primary"
+                        className="h-10 px-4 rounded-xl bg-[#8DB600] hover:bg-[#7ca000] text-white font-bold text-xs shadow-sm flex items-center gap-1.5 active:scale-95 transition-all"
+                        disabled={isDemo}
+                    >
+                        <UserPlus className="w-4 h-4 stroke-[2.5]" />
+                        <span>Add Customer</span>
+                    </Button>
+                </div>
+            </div>
+
+            {/* KPI Summary Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs flex items-center justify-between">
+                    <div>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Customers</span>
+                        <span className="text-xl font-black text-slate-900">{stats.totalCustomers}</span>
+                    </div>
+                    <div className="w-10 h-10 rounded-xl bg-slate-50 text-slate-700 flex items-center justify-center">
+                        <Users className="w-5 h-5" />
                     </div>
                 </div>
 
-                {/* --- DESKTOP TABLE WITH INTERACTIVE SORT BUTTONS --- */}
-                <Card className="mb-4 hidden md:block border border-gray-100 dark:border-gray-800 shadow-sm bg-white dark:bg-gray-900 overflow-hidden rounded-xl">
-                    <CardContent className="p-0">
-                        <ScrollArea>
-                            <Table>
-                                <TableHeader className="bg-gray-50/80 dark:bg-gray-800/80 border-b border-gray-100 dark:border-gray-800">
-                                    <TableRow>
-                                        <TableHead className="p-0">
-                                            <button
-                                                type="button"
-                                                onClick={() => requestSort('name')}
-                                                className="w-full h-full py-3.5 px-4 flex items-center justify-between gap-1 text-left font-semibold text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100/70 dark:hover:bg-gray-800/70 transition-colors group cursor-pointer select-none"
-                                                title="Sort by Customer Name"
-                                            >
-                                                <span>Customer Name</span>
-                                                <SortIcon columnKey="name" sortConfig={sortConfig} />
-                                            </button>
-                                        </TableHead>
+                <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs flex items-center justify-between">
+                    <div>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Outstanding Utang</span>
+                        <span className={`text-xl font-black ${stats.totalDebt > 0 ? 'text-rose-600' : 'text-slate-900'}`}>
+                            {currency(stats.totalDebt, { symbol: '₱' }).format()}
+                        </span>
+                    </div>
+                    <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
+                        <AlertCircle className="w-5 h-5" />
+                    </div>
+                </div>
 
-                                        <TableHead className="p-0">
-                                            <button
-                                                type="button"
-                                                onClick={() => requestSort('phone')}
-                                                className="w-full h-full py-3.5 px-4 flex items-center justify-between gap-1 text-left font-semibold text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100/70 dark:hover:bg-gray-800/70 transition-colors group cursor-pointer select-none"
-                                                title="Sort by Contact Number"
-                                            >
-                                                <span>Contact Number</span>
-                                                <SortIcon columnKey="phone" sortConfig={sortConfig} />
-                                            </button>
-                                        </TableHead>
+                <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs flex items-center justify-between">
+                    <div>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Accounts with Utang</span>
+                        <span className="text-xl font-black text-slate-900">{stats.customersWithDebt}</span>
+                    </div>
+                    <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                        <DollarSign className="w-5 h-5" />
+                    </div>
+                </div>
 
-                                        <TableHead className="p-0">
-                                            <button
-                                                type="button"
-                                                onClick={() => requestSort('address')}
-                                                className="w-full h-full py-3.5 px-4 flex items-center justify-between gap-1 text-left font-semibold text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100/70 dark:hover:bg-gray-800/70 transition-colors group cursor-pointer select-none"
-                                                title="Sort by Address"
-                                            >
-                                                <span>Address</span>
-                                                <SortIcon columnKey="address" sortConfig={sortConfig} />
-                                            </button>
-                                        </TableHead>
+                <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs flex items-center justify-between">
+                    <div>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Clean / Zero Balance</span>
+                        <span className="text-xl font-black text-[#8DB600]">{stats.cleanAccounts}</span>
+                    </div>
+                    <div className="w-10 h-10 rounded-xl bg-lime-50 text-[#8DB600] flex items-center justify-center">
+                        <CheckCircle2 className="w-5 h-5" />
+                    </div>
+                </div>
+            </div>
 
-                                        <TableHead className="p-0">
-                                            <button
-                                                type="button"
-                                                onClick={() => requestSort('dateAdded')}
-                                                className="w-full h-full py-3.5 px-4 flex items-center justify-between gap-1 text-left font-semibold text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100/70 dark:hover:bg-gray-800/70 transition-colors group cursor-pointer select-none"
-                                                title="Sort by Date Added"
-                                            >
-                                                <span>Date Added</span>
-                                                <SortIcon columnKey="dateAdded" sortConfig={sortConfig} />
-                                            </button>
-                                        </TableHead>
+            {/* Filter Bar with Balance Chips */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
+                <div className="relative w-full sm:max-w-md">
+                    <Input
+                        ref={searchInputRef}
+                        placeholder="Search customer by name, contact, or address... (/)"
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                        className="w-full bg-slate-50 border-slate-200 text-xs sm:text-sm h-10 rounded-xl focus:border-[#8DB600] focus:ring-[#8DB600]"
+                    />
+                </div>
 
-                                        <TableHead className="p-0">
-                                            <button
-                                                type="button"
-                                                onClick={() => requestSort('created_by')}
-                                                className="w-full h-full py-3.5 px-4 flex items-center justify-between gap-1 text-left font-semibold text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100/70 dark:hover:bg-gray-800/70 transition-colors group cursor-pointer select-none"
-                                                title="Sort by Created By"
-                                            >
-                                                <span>Created By</span>
-                                                <SortIcon columnKey="created_by" sortConfig={sortConfig} />
-                                            </button>
-                                        </TableHead>
+                <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto no-scrollbar">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mr-1 hidden sm:inline">Filter:</span>
+                    <button
+                        type="button"
+                        onClick={() => setBalanceFilter('all')}
+                        className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
+                            balanceFilter === 'all'
+                                ? 'bg-slate-900 text-white shadow-2xs'
+                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        }`}
+                    >
+                        All ({stats.totalCustomers})
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setBalanceFilter('debt')}
+                        className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1 ${
+                            balanceFilter === 'debt'
+                                ? 'bg-rose-600 text-white shadow-2xs'
+                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        }`}
+                    >
+                        <span>With Utang</span>
+                        {stats.customersWithDebt > 0 && (
+                            <span className="w-2 h-2 rounded-full bg-rose-400"></span>
+                        )}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setBalanceFilter('zero')}
+                        className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
+                            balanceFilter === 'zero'
+                                ? 'bg-slate-900 text-white shadow-2xs'
+                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        }`}
+                    >
+                        Zero Balance
+                    </button>
+                </div>
+            </div>
 
-                                        <TableHead className="p-0">
-                                            <button
-                                                type="button"
-                                                onClick={() => requestSort('credit_balance')}
-                                                className="w-full h-full py-3.5 px-4 flex items-center justify-center gap-1 font-semibold text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100/70 dark:hover:bg-gray-800/70 transition-colors group cursor-pointer select-none"
-                                                title="Sort by Balance"
-                                            >
-                                                <span>Balance (Utang)</span>
-                                                <SortIcon columnKey="credit_balance" sortConfig={sortConfig} />
-                                            </button>
-                                        </TableHead>
+            {/* Desktop Table View */}
+            <Card className="hidden md:block border border-slate-200 shadow-sm bg-white overflow-hidden rounded-2xl">
+                <CardContent className="p-0">
+                    <ScrollArea>
+                        <Table>
+                            <TableHeader>
+                                <TableRow className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200/80">
+                                    <TableHead className="w-[24%] p-0">
+                                        <button
+                                            type="button"
+                                            onClick={() => requestSort('name')}
+                                            className="w-full h-full py-3.5 px-4 flex items-center justify-between text-left font-bold text-slate-600 hover:text-slate-900 transition-colors group cursor-pointer select-none outline-none"
+                                        >
+                                            <span>Customer Name</span>
+                                            <SortIcon columnKey="name" sortConfig={sortConfig} />
+                                        </button>
+                                    </TableHead>
 
-                                        <TableHead className="text-right font-semibold text-gray-600 dark:text-gray-300 py-3.5 px-4 select-none">
-                                            Actions
-                                        </TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {isLoading ? (
-                                        <TableRow>
-                                            <TableCell colSpan={7} className="text-center text-muted py-12">
-                                                <div className="flex justify-center items-center text-gray-500 dark:text-gray-400">
-                                                    <svg className="animate-spin h-5 w-5 text-blue-600 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                    </svg>
-                                                    Loading customers...
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    ) : sortedCustomers.length === 0 ? (
-                                        <TableRow>
-                                            <TableCell colSpan={7} className="text-center text-white-500 dark:text-white-400 py-12">
-                                                {debouncedSearchTerm ? `No customers found matching "${debouncedSearchTerm}".` : 'No customers found.'}
-                                            </TableCell>
-                                        </TableRow>
-                                    ) : (
-                                        sortedCustomers.map(c => (
-                                            <TableRow key={c.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors border-b border-gray-50 dark:border-gray-800 last:border-0">
-                                                <TableCell className="font-bold text-white-900 dark:text-white">{c.name}</TableCell>
-                                                <TableCell className="text-gray-600 dark:text-slate-300">{c.phone || 'N/A'}</TableCell>
-                                                <TableCell className="text-sm text-gray-500 dark:text-slate-400 truncate max-w-[200px]" title={c.address}>{c.address || 'N/A'}</TableCell>
-                                                <TableCell className="text-sm text-gray-500 dark:text-gray-400">
-                                                    {c.dateAdded ? new Date(c.dateAdded).toLocaleDateString() : '-'}
+                                    <TableHead className="p-0">
+                                        <button
+                                            type="button"
+                                            onClick={() => requestSort('phone')}
+                                            className="w-full h-full py-3.5 px-4 flex items-center justify-between text-left font-bold text-slate-600 hover:text-slate-900 transition-colors group cursor-pointer select-none outline-none"
+                                        >
+                                            <span>Contact</span>
+                                            <SortIcon columnKey="phone" sortConfig={sortConfig} />
+                                        </button>
+                                    </TableHead>
+
+                                    <TableHead className="p-0">
+                                        <button
+                                            type="button"
+                                            onClick={() => requestSort('address')}
+                                            className="w-full h-full py-3.5 px-4 flex items-center justify-between text-left font-bold text-slate-600 hover:text-slate-900 transition-colors group cursor-pointer select-none outline-none"
+                                        >
+                                            <span>Delivery Address</span>
+                                            <SortIcon columnKey="address" sortConfig={sortConfig} />
+                                        </button>
+                                    </TableHead>
+
+                                    <TableHead className="p-0">
+                                        <button
+                                            type="button"
+                                            onClick={() => requestSort('dateAdded')}
+                                            className="w-full h-full py-3.5 px-4 flex items-center justify-between text-left font-bold text-slate-600 hover:text-slate-900 transition-colors group cursor-pointer select-none outline-none"
+                                        >
+                                            <span>Date Added</span>
+                                            <SortIcon columnKey="dateAdded" sortConfig={sortConfig} />
+                                        </button>
+                                    </TableHead>
+
+                                    <TableHead className="p-0">
+                                        <button
+                                            type="button"
+                                            onClick={() => requestSort('lastSeen')}
+                                            className="w-full h-full py-3.5 px-4 flex items-center justify-between text-left font-bold text-slate-600 hover:text-slate-900 transition-colors group cursor-pointer select-none outline-none"
+                                        >
+                                            <span>Last Refill</span>
+                                            <SortIcon columnKey="lastSeen" sortConfig={sortConfig} />
+                                        </button>
+                                    </TableHead>
+
+                                    <TableHead className="p-0 text-center">
+                                        <button
+                                            type="button"
+                                            onClick={() => requestSort('credit_balance')}
+                                            className="w-full h-full py-3.5 px-4 flex items-center justify-center text-center font-bold text-slate-600 hover:text-slate-900 transition-colors group cursor-pointer select-none outline-none"
+                                        >
+                                            <span>Utang Balance</span>
+                                            <SortIcon columnKey="credit_balance" sortConfig={sortConfig} />
+                                        </button>
+                                    </TableHead>
+
+                                    <TableHead className="text-right px-4 py-3.5 font-bold text-slate-600">
+                                        Actions
+                                    </TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody className="divide-y divide-slate-100 text-xs sm:text-sm">
+                                {isLoading ? (
+                                    <TableRow><TableCell colSpan={7} className="text-center py-12 text-slate-400">Loading customers...</TableCell></TableRow>
+                                ) : customers.length === 0 ? (
+                                    <TableRow><TableCell colSpan={7} className="text-center py-12 text-slate-400">No customers found.</TableCell></TableRow>
+                                ) : (
+                                    customers.map(c => {
+                                        const debt = Number(c.credit_balance || 0);
+                                        const hasDebt = debt > 0;
+
+                                        return (
+                                            <tr key={c.id} className="hover:bg-slate-50/70 transition-colors">
+                                                <TableCell className="px-4 py-3">
+                                                    <div className="flex items-center gap-2.5">
+                                                        <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200/80 flex items-center justify-center font-black text-xs text-slate-600 shrink-0">
+                                                            {c.name?.charAt(0)?.toUpperCase() || 'C'}
+                                                        </div>
+                                                        <div className="flex flex-col min-w-0">
+                                                            <span className="font-bold text-slate-900 truncate">{c.name}</span>
+                                                            {c.users?.name && (
+                                                                <span className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
+                                                                    <span
+                                                                        className="w-1.5 h-1.5 rounded-full inline-block shrink-0"
+                                                                        style={{ backgroundColor: c.users?.color || '#94a3b8' }}
+                                                                    />
+                                                                    <span className="truncate max-w-[120px]">By {c.users.name}</span>
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
                                                 </TableCell>
-                                                <TableCell className="text-sm">
-                                                    <span style={{ color: c.users?.color || 'inherit' }} className="font-medium drop-shadow-sm">
-                                                        {c.users?.name || 'N/A'}
+
+                                                <TableCell className="px-4 py-3 text-slate-600 font-medium">
+                                                    {c.phone && c.phone !== 'N/A' ? (
+                                                        <span className="font-mono text-xs text-slate-700">{c.phone}</span>
+                                                    ) : (
+                                                        <span className="text-slate-300 font-normal">—</span>
+                                                    )}
+                                                </TableCell>
+
+                                                <TableCell className="px-4 py-3 text-slate-600 text-xs max-w-[180px] truncate" title={c.address}>
+                                                    {c.address && c.address !== 'N/A' ? (
+                                                        <span>{c.address}</span>
+                                                    ) : (
+                                                        <span className="text-slate-300 font-normal">—</span>
+                                                    )}
+                                                </TableCell>
+
+                                                <TableCell className="px-4 py-3 text-xs text-slate-500">
+                                                    {c.dateAdded ? new Date(c.dateAdded).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                                                </TableCell>
+
+                                                <TableCell className="px-4 py-3 text-xs">
+                                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold ${
+                                                        c.lastSeen ? 'bg-slate-100 text-slate-700' : 'text-slate-400'
+                                                    }`}>
+                                                        {formatRelativeTime(c.lastSeen)}
                                                     </span>
                                                 </TableCell>
-                                                <TableCell className="text-center font-semibold">
-                                                    <span className={c.credit_balance > 0 ? "text-red-600 bg-red-50 dark:bg-red-900/50 dark:text-red-400 px-2.5 py-1 rounded-md" : "text-green-600 dark:text-green-400"}>
-                                                        {currency(c.credit_balance || 0, { symbol: '₱' }).format()}
-                                                    </span>
+
+                                                <TableCell className="px-4 py-3 text-center">
+                                                    {hasDebt ? (
+                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-black bg-rose-50 text-rose-700 border border-rose-200 shadow-2xs">
+                                                            {currency(debt, { symbol: '₱' }).format()}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-xs font-semibold text-slate-400">
+                                                            ₱0.00
+                                                        </span>
+                                                    )}
                                                 </TableCell>
-                                                <TableCell className="text-right">
-                                                    <div className="flex justify-end items-center space-x-2">
-                                                        {c.credit_balance > 0 && (
-                                                            <Button
-                                                                variant="outline"
-                                                                size="sm"
-                                                                className="h-8 text-xs font-semibold bg-green-50 text-green-700 border-green-200 hover:bg-green-100 hover:text-green-800 dark:bg-green-900/50 dark:text-green-300 dark:border-green-800 dark:hover:bg-green-800/50 dark:hover:text-green-200 transition-colors"
+
+                                                <TableCell className="px-4 py-3 text-right">
+                                                    <div className="flex items-center justify-end gap-1.5">
+                                                        {hasDebt && (
+                                                            <button
+                                                                type="button"
                                                                 onClick={() => setRepayCustomer(c)}
+                                                                className="px-2.5 py-1 text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 rounded-lg transition-colors"
+                                                                title="Record Debt Repayment"
                                                                 disabled={isDemo}
                                                             >
                                                                 Pay
-                                                            </Button>
+                                                            </button>
                                                         )}
-                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/50 rounded-lg transition-colors" onClick={() => startEdit(c)} title="Edit Customer" disabled={isDemo}>
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleRingInPOS(c)}
+                                                            className="p-1.5 text-slate-500 hover:text-[#5f7d00] hover:bg-lime-50 border border-slate-200 rounded-lg transition-colors"
+                                                            title="Ring up in POS"
+                                                        >
+                                                            <ShoppingBag className="w-3.5 h-3.5" />
+                                                        </button>
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => startEdit(c)}
+                                                            className="p-1.5 text-blue-600 hover:bg-blue-50 border border-slate-200 rounded-lg transition-colors"
+                                                            title="Edit Details"
+                                                            disabled={isDemo}
+                                                        >
                                                             <EditIcon />
-                                                        </Button>
-                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/50 rounded-lg transition-colors" onClick={() => remove(c)} title="Delete Customer" disabled={isDemo}>
+                                                        </button>
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => remove(c)}
+                                                            className="p-1.5 text-rose-600 hover:bg-rose-50 border border-slate-200 rounded-lg transition-colors"
+                                                            title="Delete"
+                                                            disabled={isDemo}
+                                                        >
                                                             <DeleteIcon />
-                                                        </Button>
+                                                        </button>
                                                     </div>
                                                 </TableCell>
-                                            </TableRow>
-                                        ))
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </ScrollArea>
-                        <div className="p-4 border-t border-gray-50 dark:border-gray-800">
-                            <Pagination currentPage={currentPage} totalPages={totalPages || 1} onPageChange={page => setCurrentPage(page)} />
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* --- MOBILE LIST VIEW --- */}
-                <div className="block md:hidden">
-                    <Card className="border-0 shadow-none bg-transparent">
-                        <CardContent className="p-0">
-                            {isLoading ? (
-                                <div className="text-center text-muted p-6">Loading customers...</div>
-                            ) : sortedCustomers.length === 0 ? (
-                                <div className="text-center text-gray-500 dark:text-gray-400 p-8 bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800">
-                                    {debouncedSearchTerm ? `No customers found for "${debouncedSearchTerm}".` : 'No customers found.'}
-                                </div>
-                            ) : (
-                                <div className="space-y-4">
-                                    {sortedCustomers.map(c => (
-                                        <div key={c.id} className="bg-white dark:bg-gray-900 p-5 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col space-y-4">
-                                            <div className="flex items-start justify-between">
-                                                <div className="flex items-center space-x-3">
-                                                    <div className="flex-shrink-0">
-                                                        <span className="w-12 h-12 rounded-full bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-                                                            <UserIcon className="w-6 h-6" />
-                                                        </span>
-                                                    </div>
-                                                    <div>
-                                                        <div className="font-bold text-gray-900 dark:text-white text-lg">{c.name}</div>
-                                                        <div className="text-sm text-gray-500 dark:text-slate-300 mt-0.5">{c.phone || 'No phone'}</div>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div className="flex justify-between items-center bg-gray-50 dark:bg-gray-800 p-3 rounded-xl">
-                                                <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">Balance</span>
-                                                <div className={`font-bold text-lg ${c.credit_balance > 0 ? "text-red-600 dark:text-red-400" : "text-green-600 dark:text-green-400"}`}>
-                                                    {currency(c.credit_balance || 0, { symbol: '₱' }).format()}
-                                                </div>
-                                            </div>
-
-                                            <div className="text-xs mt-1 px-1 flex justify-between items-center">
-                                                <span className="text-gray-500 dark:text-gray-400">Created by:</span>
-                                                <span style={{ color: c.users?.color || 'inherit' }} className="font-semibold text-sm">
-                                                    {c.users?.name || 'N/A'}
-                                                </span>
-                                            </div>
-
-                                            <div className="flex justify-end items-center gap-2 pt-2">
-                                                {c.credit_balance > 0 && (
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        className="h-9 text-sm font-semibold bg-green-50 text-green-700 border-green-200 w-full mr-2 dark:bg-green-900/50 dark:text-green-300 dark:border-green-800"
-                                                        onClick={() => setRepayCustomer(c)}
-                                                        disabled={isDemo}
-                                                    >
-                                                        Repay Debt
-                                                    </Button>
-                                                )}
-                                                <Button variant="ghost" size="icon" className="h-9 w-9 text-gray-500 hover:text-blue-600 bg-gray-50 hover:bg-blue-50 dark:bg-gray-800 dark:hover:bg-blue-900/50 rounded-xl" onClick={() => startEdit(c)} disabled={isDemo}>
-                                                    <EditIcon />
-                                                </Button>
-                                                <Button variant="ghost" size="icon" className="h-9 w-9 text-gray-500 hover:text-red-600 bg-gray-50 hover:bg-red-50 dark:bg-gray-800 dark:hover:bg-red-900/50 rounded-xl" onClick={() => remove(c)} disabled={isDemo}>
-                                                    <DeleteIcon />
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                    <div className="mt-6 pb-6">
-                        <Pagination currentPage={currentPage} totalPages={totalPages || 1} onPageChange={page => setCurrentPage(page)} />
+                                            </tr>
+                                        );
+                                    })
+                                )}
+                            </TableBody>
+                        </Table>
+                    </ScrollArea>
+                    <div className="p-3.5 border-t border-slate-100 flex justify-end">
+                        <Pagination currentPage={currentPage} totalPages={totalPages || 1} onPageChange={setCurrentPage} />
                     </div>
-                </div>
+                </CardContent>
+            </Card>
 
-                {/* --- MODAL (Edit / Add Customer) --- */}
-                <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                    <DialogContent className="p-0 sm:max-w-[500px] w-full bg-white dark:bg-gray-900 shadow-2xl border-0 overflow-hidden rounded-2xl">
-                        <DialogHeader className="px-6 py-5 border-b border-gray-100 dark:border-gray-800 bg-gray-50/80 dark:bg-gray-800/80 flex flex-row items-center justify-between">
-                            <div>
-                                <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">
-                                    {editing ? 'Edit Customer Details' : 'Add New Customer'}
-                                </DialogTitle>
-                                <p className="text-sm text-gray-500 dark:text-slate-300 mt-1 font-medium">
-                                    {editing ? 'Update the details below.' : 'Enter customer information below.'}
-                                </p>
-                            </div>
-                            <DialogCloseButton onClick={closeModal} className="text-gray-400 hover:text-gray-600 bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 rounded-full p-1.5 transition-colors" />
-                        </DialogHeader>
+            {/* Mobile Card List View */}
+            <div className="block md:hidden space-y-3">
+                {isLoading ? (
+                    <div className="text-center text-slate-400 p-8">Loading customers...</div>
+                ) : customers.length === 0 ? (
+                    <div className="text-center text-slate-400 p-8 bg-white rounded-2xl border border-slate-200">
+                        No customers found.
+                    </div>
+                ) : (
+                    customers.map(c => {
+                        const debt = Number(c.credit_balance || 0);
+                        const hasDebt = debt > 0;
 
-                        <form onSubmit={save} className="flex flex-col max-h-[80vh]">
-                            <div className="overflow-y-auto px-6 py-6 space-y-5">
-                                <div className="space-y-1.5">
-                                    <Label htmlFor="name" className="text-sm font-semibold text-gray-700 dark:text-slate-200">
-                                        Full Name <span className="text-red-500">*</span>
-                                    </Label>
-                                    <div className="relative">
-                                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
-                                            <UserIcon className="w-5 h-5" />
+                        return (
+                            <div key={c.id} className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-3">
+                                <div className="flex items-start justify-between gap-3">
+                                    <div className="flex items-center gap-3 min-w-0">
+                                        <div className="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-black text-sm text-slate-600 shrink-0">
+                                            {c.name?.charAt(0)?.toUpperCase() || 'C'}
                                         </div>
-                                        <Input
-                                            id="name"
-                                            value={name}
-                                            onChange={(e) => setName(e.target.value)}
-                                            required
-                                            placeholder="e.g. Juan Dela Cruz"
-                                            autoFocus
-                                            disabled={isDemo}
-                                            className="w-full pl-11 py-2.5 h-11 rounded-xl bg-gray-50/50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-gray-900 dark:text-gray-100"
-                                        />
+                                        <div className="min-w-0">
+                                            <h4 className="font-bold text-sm text-slate-900 truncate">{c.name}</h4>
+                                            <div className="text-xs text-slate-500 font-mono mt-0.5">{c.phone || 'No contact'}</div>
+                                        </div>
                                     </div>
+
+                                    {hasDebt ? (
+                                        <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
+                                            {currency(debt, { symbol: '₱' }).format()}
+                                        </span>
+                                    ) : (
+                                        <span className="text-xs font-semibold text-slate-400">
+                                            ₱0.00
+                                        </span>
+                                    )}
                                 </div>
 
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                                    <div className="space-y-1.5">
-                                        <Label htmlFor="phone" className="text-sm font-semibold text-gray-700 dark:text-gray-300">Phone Number</Label>
-                                        <div className="relative">
-                                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
-                                                <PhoneIcon className="w-4 h-4" />
-                                            </div>
-                                            <Input
-                                                id="phone"
-                                                value={phone}
-                                                onChange={(e) => setPhone(e.target.value)}
-                                                placeholder="0917 123 4567"
-                                                disabled={isDemo}
-                                                className="w-full pl-10 py-2.5 h-11 rounded-xl bg-gray-50/50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-mono text-sm"
-                                            />
-                                        </div>
+                                {c.address && c.address !== 'N/A' && (
+                                    <div className="text-xs text-slate-500 flex items-center gap-1.5 bg-slate-50 p-2 rounded-xl">
+                                        <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                        <span className="truncate">{c.address}</span>
                                     </div>
+                                )}
 
-                                    <div className="space-y-1.5">
-                                        <Label htmlFor="email" className="text-sm font-semibold text-gray-700 dark:text-gray-300">Email Address</Label>
-                                        <div className="relative">
-                                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
-                                                <MailIcon className="w-4 h-4" />
-                                            </div>
-                                            <Input
-                                                id="email"
-                                                type="email"
-                                                value={email}
-                                                onChange={(e) => setEmail(e.target.value)}
-                                                placeholder="juan@email.com"
+                                <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-[11px] text-slate-400">
+                                    <span>Last: <strong>{formatRelativeTime(c.lastSeen)}</strong></span>
+                                    <div className="flex items-center gap-1.5">
+                                        {hasDebt && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setRepayCustomer(c)}
+                                                className="px-2.5 py-1 text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200 rounded-lg"
                                                 disabled={isDemo}
-                                                className="w-full pl-10 py-2.5 h-11 rounded-xl bg-gray-50/50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-1.5">
-                                    <Label htmlFor="address" className="text-sm font-semibold text-gray-700 dark:text-gray-300">Physical Address</Label>
-                                    <div className="relative">
-                                        <div className="absolute inset-y-0 left-0 pl-3.5 top-3 pointer-events-none text-gray-400">
-                                            <MapPinIcon className="w-5 h-5" />
-                                        </div>
-                                        <Input
-                                            id="address"
-                                            value={address}
-                                            onChange={(e) => setAddress(e.target.value)}
-                                            placeholder="House No., Street, Barangay, City"
-                                            disabled={isDemo}
-                                            className="w-full pl-11 py-2.5 h-11 rounded-xl bg-gray-50/50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                                        />
+                                            >
+                                                Pay
+                                            </button>
+                                        )}
+                                        <button onClick={() => handleRingInPOS(c)} className="p-1.5 text-slate-600 border border-slate-200 rounded-lg">
+                                            <ShoppingBag className="w-3.5 h-3.5" />
+                                        </button>
+                                        <button onClick={() => startEdit(c)} className="p-1.5 text-blue-600 border border-slate-200 rounded-lg" disabled={isDemo}>
+                                            <EditIcon />
+                                        </button>
+                                        <button onClick={() => remove(c)} className="p-1.5 text-rose-600 border border-slate-200 rounded-lg" disabled={isDemo}>
+                                            <DeleteIcon />
+                                        </button>
                                     </div>
                                 </div>
                             </div>
-
-                            <DialogFooter className="px-6 py-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/80 flex items-center justify-end gap-3 mt-auto">
-                                <Button
-                                    variant="outline"
-                                    type="button"
-                                    onClick={closeModal}
-                                    disabled={isMutating}
-                                    className="px-5 h-10 rounded-lg bg-white dark:bg-gray-700 shadow-sm font-medium text-gray-600 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 border-gray-200 dark:border-gray-600 transition-colors"
-                                >
-                                    Cancel
-                                </Button>
-                                <Button
-                                    type="submit"
-                                    disabled={isMutating || isDemo}
-                                    className="px-6 h-10 rounded-lg shadow-sm btn--primary font-semibold text-sm hover:-translate-y-0.5 transition-transform bg-blue-600 hover:bg-blue-700 text-white"
-                                >
-                                    {isMutating ? 'Saving...' : (editing ? 'Update Customer' : 'Save Customer')}
-                                </Button>
-                            </DialogFooter>
-                        </form>
-                    </DialogContent>
-                </Dialog>
-
-                {/* --- MODAL: Repayment --- */}
-                {repayCustomer && (
-                    <RepaymentModal
-                        isOpen={!!repayCustomer}
-                        onClose={() => setRepayCustomer(null)}
-                        customer={repayCustomer}
-                        onRepay={handleRepayment}
-                        isMutating={repayDebt.isPending}
-                        isDemo={isDemo}
-                    />
+                        );
+                    })
                 )}
+                <div className="pt-2">
+                    <Pagination currentPage={currentPage} totalPages={totalPages || 1} onPageChange={setCurrentPage} />
+                </div>
             </div>
+
+            {/* ADD / EDIT CUSTOMER MODAL */}
+            <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+                <DialogContent className="p-0 sm:max-w-[500px] w-full bg-white shadow-2xl border-0 overflow-hidden rounded-3xl">
+                    <DialogHeader className="px-6 py-4 border-b border-slate-100 bg-slate-50/80 flex items-center justify-between">
+                        <div>
+                            <DialogTitle className="text-lg font-black text-slate-900 tracking-tight">
+                                {editing ? 'Edit Customer Details' : 'Add New Customer'}
+                            </DialogTitle>
+                            <p className="text-xs text-slate-500 mt-0.5">
+                                {editing ? 'Update customer delivery details below.' : 'Register customer for delivery routing and credit accounts.'}
+                            </p>
+                        </div>
+                        <DialogCloseButton onClick={closeModal} className="p-1.5 rounded-full text-slate-400 hover:text-slate-600" />
+                    </DialogHeader>
+
+                    <form onSubmit={save}>
+                        <div className="p-6 space-y-4">
+                            <div>
+                                <Label htmlFor="customerName" className="text-xs font-bold text-slate-700">
+                                    Full Name <span className="text-rose-500">*</span>
+                                </Label>
+                                <Input
+                                    id="customerName"
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
+                                    required
+                                    placeholder="e.g. Juan Dela Cruz"
+                                    autoFocus
+                                    disabled={isDemo}
+                                    className="h-10 mt-1 text-sm rounded-xl border-slate-200 focus:border-[#8DB600] focus:ring-[#8DB600]"
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <Label htmlFor="customerPhone" className="text-xs font-bold text-slate-700">Phone Number</Label>
+                                    <Input
+                                        id="customerPhone"
+                                        value={phone}
+                                        onChange={(e) => setPhone(e.target.value)}
+                                        placeholder="0917 123 4567"
+                                        disabled={isDemo}
+                                        className="h-10 mt-1 text-xs font-mono rounded-xl border-slate-200"
+                                    />
+                                </div>
+                                <div>
+                                    <Label htmlFor="customerEmail" className="text-xs font-bold text-slate-700">Email (Optional)</Label>
+                                    <Input
+                                        id="customerEmail"
+                                        type="email"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        placeholder="customer@email.com"
+                                        disabled={isDemo}
+                                        className="h-10 mt-1 text-xs rounded-xl border-slate-200"
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <Label htmlFor="customerAddress" className="text-xs font-bold text-slate-700">Delivery Address / Landmark</Label>
+                                <Input
+                                    id="customerAddress"
+                                    value={address}
+                                    onChange={(e) => setAddress(e.target.value)}
+                                    placeholder="e.g. Purok 3, Brgy. Laois (Near Solar Dryer)"
+                                    disabled={isDemo}
+                                    className="h-10 mt-1 text-xs rounded-xl border-slate-200"
+                                />
+                            </div>
+                        </div>
+
+                        <DialogFooter className="px-6 py-4 border-t border-slate-100 bg-slate-50/80 flex items-center justify-end gap-2.5">
+                            <Button
+                                variant="outline"
+                                type="button"
+                                onClick={closeModal}
+                                disabled={isMutating}
+                                className="h-10 px-5 rounded-xl text-xs font-bold border-slate-200"
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="submit"
+                                disabled={isMutating || isDemo}
+                                className="h-10 px-6 rounded-xl bg-[#8DB600] hover:bg-[#7ca000] text-white text-xs font-bold shadow-md"
+                            >
+                                {isMutating ? 'Saving...' : (editing ? 'Update Customer' : 'Save Customer')}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Repayment Modal */}
+            {repayCustomer && (
+                <RepaymentModal
+                    isOpen={!!repayCustomer}
+                    onClose={() => setRepayCustomer(null)}
+                    customer={repayCustomer}
+                    onRepay={handleRepayment}
+                    isMutating={repayDebt.isPending}
+                    isDemo={isDemo}
+                />
+            )}
         </div>
     );
 }

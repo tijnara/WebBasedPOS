@@ -35,7 +35,10 @@ export function useCreateSale() {
                 };
             }
 
-            // --- 1. HANDLE CREDIT (UTANG) LOGIC ---
+            const staffId = user?.id || null;
+            const staffName = user?.name || user?.username || 'Staff';
+
+            // --- 1. HANDLE CREDIT (UTANG) BALANCE INCREMENT ---
             if (salePayload.paymentMethod === 'Charge') {
                 if (!salePayload.customerId) {
                     throw new Error("A registered customer is required for 'Charge to Account' transactions.");
@@ -62,7 +65,7 @@ export function useCreateSale() {
                 amountreceived: salePayload.paymentMethod === 'Charge' ? 0 : salePayload.amountReceived,
                 changegiven: salePayload.paymentMethod === 'Charge' ? 0 : salePayload.changeGiven,
                 status: salePayload.paymentMethod === 'Charge' ? 'Unpaid' : salePayload.status,
-                created_by: user?.id || null,
+                created_by: staffId,
             };
 
             const { data: saleData, error: saleError } = await supabase
@@ -78,7 +81,28 @@ export function useCreateSale() {
 
             const newSaleId = saleData.id;
 
-            // --- 3. Prepare Items (Safely map custom / unlisted items to product_id: null) ---
+            // --- 3. Log into customer_debts table (Customer Utang Audit) ---
+            if (salePayload.paymentMethod === 'Charge') {
+                const { error: debtLogError } = await supabase
+                    .from('customer_debts')
+                    .insert({
+                        customer_id: salePayload.customerId,
+                        sale_id: newSaleId,
+                        amount: salePayload.totalAmount,
+                        remaining_balance: salePayload.totalAmount,
+                        staff_id: staffId,
+                        staff_name: staffName,
+                        incurred_at: salePayload.saleTimestamp,
+                        status: 'Unpaid',
+                        notes: `Credit transaction #${newSaleId} approved by ${staffName}`
+                    });
+
+                if (debtLogError) {
+                    console.error('useCreateSale: Warning - failed to write to customer_debts ledger:', debtLogError.message);
+                }
+            }
+
+            // --- 4. Insert Sale Items (Map custom items to product_id: null) ---
             const itemsToInsert = salePayload.items.map(item => {
                 const base = item.basePrice || item.priceAtSale;
                 const unitDiscount = currency(base).subtract(item.priceAtSale).value;
@@ -119,7 +143,7 @@ export function useCreateSale() {
                 throw new Error(`Sale created (ID: ${newSaleId}), but failed to save items: ${itemsError.message}`);
             }
 
-            // --- 4. Decrement Stock (Only for physical tracked catalog products) ---
+            // --- 5. Decrement Stock (Only for physical tracked catalog products) ---
             for (const item of salePayload.items) {
                 const isCustom = Boolean(
                     item.is_custom ||
@@ -132,7 +156,7 @@ export function useCreateSale() {
                     const { error: stockError } = await supabase.rpc('decrement_stock', {
                         product_id: Number(item.productId),
                         quantity_sold: item.quantity,
-                        staff_id_input: user?.id || null
+                        staff_id_input: staffId
                     });
                     if (stockError) {
                         console.error('useCreateSale: Failed to decrement stock for product', item.productId, stockError.message);
@@ -140,22 +164,34 @@ export function useCreateSale() {
                 }
             }
 
-            // --- 5. Log Activity ---
+            // --- 6. Log Activity Audit ---
             const currentUser = useStore.getState().user;
-            logActivity({
-                user: currentUser,
-                action: 'CREATE',
-                entity_type: 'SALE',
-                description: `Processed POS transaction for ${saleDataToInsert.customername || 'Walk-in'} (₱${saleDataToInsert.totalamount})`
-            });
+            if (salePayload.paymentMethod === 'Charge') {
+                logActivity({
+                    user: currentUser,
+                    action: 'APPROVE_UTANG',
+                    entity_type: 'CUSTOMER_CREDIT',
+                    description: `Approved ₱${Number(saleDataToInsert.totalamount).toFixed(2)} utang for ${saleDataToInsert.customername} by ${staffName} on ${new Date(salePayload.saleTimestamp).toLocaleString('en-US', { timeZone: 'Asia/Manila' })}`
+                });
+            } else {
+                logActivity({
+                    user: currentUser,
+                    action: 'CREATE',
+                    entity_type: 'SALE',
+                    description: `Processed POS transaction for ${saleDataToInsert.customername || 'Walk-in'} (₱${Number(saleDataToInsert.totalamount).toFixed(2)})`
+                });
+            }
 
             return { ...saleData, items: itemsToInsert };
         },
 
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['sales'] });
+            queryClient.invalidateQueries({ queryKey: ['customer_debts'] });
             queryClient.invalidateQueries({ queryKey: ['products'] });
             queryClient.invalidateQueries({ queryKey: ['customers'] });
+            queryClient.invalidateQueries({ queryKey: ['customer-stats'] });
+            queryClient.invalidateQueries({ queryKey: ['activity-logs'] });
             queryClient.invalidateQueries({ queryKey: ['sales', 'active-shift'] });
         },
         onError: (error) => {
