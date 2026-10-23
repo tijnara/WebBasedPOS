@@ -3,43 +3,45 @@ import React, { memo } from 'react';
 import { motion } from 'framer-motion';
 import { Droplet, Truck, Package, Snowflake, ArrowRight } from 'lucide-react';
 
-const SERVICES_DATA = [
+const DEFAULT_SERVICES = [
     {
-        icon: Droplet,
+        id: 'walk_in',
         badge: 'In-Store',
         title: 'Walk-In Refills',
-        description: 'Fast, sanitary refilling right in front of you. Bring your 5-gallon slim or round containers for full high-pressure interior wash and seal.',
-        price: '₱20 - ₱25'
+        price: '₱20 - ₱25',
+        description: 'Fast, sanitary refilling right in front of you. Bring your 5-gallon slim or round containers for full high-pressure interior wash and seal.'
     },
     {
-        icon: Truck,
+        id: 'delivery',
         badge: 'Delivery',
         title: 'Door-to-Door Delivery',
-        description: 'Stay relaxed while we deliver freshly filtered jugs directly to your doorstep anywhere in Labrador and nearby barangays.',
-        price: '₱25 - ₱30'
+        price: '₱25 - ₱30',
+        description: 'Stay relaxed while we deliver freshly filtered jugs directly to your doorstep anywhere in Labrador and nearby barangays.'
     },
     {
-        icon: Package,
+        id: 'bottles',
         badge: 'Grab & Go',
         title: 'Bottled Water Pack',
-        description: 'Convenient 350ml and 500ml sealed PET bottles. Ideal for family gatherings, school snacks, road trips, and store resale.',
-        price: 'From ₱6.00'
+        price: 'From ₱6.00',
+        description: 'Convenient 350ml and 500ml sealed PET bottles. Ideal for family gatherings, school snacks, road trips, and store resale.'
     },
     {
-        icon: Snowflake,
+        id: 'ice',
         badge: 'Food Safe',
         title: 'Purified Tube Ice',
-        description: 'Crystal-clear, food-grade ice cubes manufactured solely from our 21-stage RO filtered water. Melts slow and stays pure.',
-        price: 'From ₱20.00'
+        price: 'From ₱20.00',
+        description: 'Crystal-clear, food-grade ice cubes manufactured solely from our 21-stage RO filtered water. Melts slow and stays pure.'
     }
 ];
 
-const ServiceCard = memo(({ item }) => {
-    const Icon = item.icon;
+const ICONS = [Droplet, Truck, Package, Snowflake];
+
+const ServiceCard = memo(({ item, index }) => {
+    const Icon = ICONS[index % ICONS.length];
 
     return (
         <div className="group bg-white rounded-2xl border border-slate-200/90 p-6 flex flex-col justify-between shadow-xs hover:shadow-xl hover:border-lime-400 transition-all duration-300 relative overflow-hidden">
-            {/* Apple Green Top Strip */}
+            {/* Apple Green Top Accent */}
             <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#8DB600] via-[#6abf45] to-[#4e9e2d] opacity-0 group-hover:opacity-100 transition-opacity" />
 
             <div>
@@ -78,7 +80,14 @@ const ServiceCard = memo(({ item }) => {
 });
 ServiceCard.displayName = 'ServiceCard';
 
-export default function Services() {
+export default function Services({ settings }) {
+    const servicesList = (settings?.services_data && Array.isArray(settings.services_data) && settings.services_data.length > 0)
+        ? settings.services_data
+        : DEFAULT_SERVICES;
+
+    const sectionTitle = settings?.services_title || 'Our Refill & Supply Services';
+    const sectionSubtitle = settings?.services_subtitle || 'Whether visiting our physical refilling bay or requesting high-volume delivery for your business, we keep you effortlessly supplied.';
+
     return (
         <motion.section
             id="services"
@@ -96,19 +105,27 @@ export default function Services() {
                         </span>
                     </div>
                     <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight leading-tight">
-                        Our Refill & Supply{' '}
-                        <span className="bg-gradient-to-r from-[#8DB600] to-[#6abf45] bg-clip-text text-transparent">
-                            Services
-                        </span>
+                        {sectionTitle.includes('Services') ? (
+                            <>
+                                {sectionTitle.replace('Services', '').trim()}{' '}
+                                <span className="bg-gradient-to-r from-[#8DB600] to-[#6abf45] bg-clip-text text-transparent">
+                                    Services
+                                </span>
+                            </>
+                        ) : (
+                            <span className="bg-gradient-to-r from-[#8DB600] to-[#6abf45] bg-clip-text text-transparent">
+                                {sectionTitle}
+                            </span>
+                        )}
                     </h2>
                     <p className="text-slate-600 text-sm sm:text-base font-medium mt-3">
-                        Whether visiting our physical refilling bay or requesting high-volume delivery for your business, we keep you effortlessly supplied.
+                        {sectionSubtitle}
                     </p>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-                    {SERVICES_DATA.map((service, index) => (
-                        <ServiceCard key={index} item={service} />
+                    {servicesList.map((service, index) => (
+                        <ServiceCard key={service.id || index} item={service} index={index} />
                     ))}
                 </div>
             </div>

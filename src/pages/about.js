@@ -116,7 +116,7 @@ export default function SeasideWaterLanding() {
                 <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 space-y-16 sm:space-y-24">
                     <Hero settings={settings} />
                     <WhyChooseUs />
-                    <Services />
+                    <Services settings={settings} />
                     <ProcessSection />
                     <Gallery />
                     <Location settings={settings} />
