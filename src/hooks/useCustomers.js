@@ -4,12 +4,48 @@ import { supabase } from '../lib/supabaseClient';
 import { useStore } from '../store/useStore';
 
 const MOCK_CUSTOMERS = [
-    { id: 'mock-c-1', name: 'Demo Customer A', phone: '09110000001', address: '123 Demo St.', credit_balance: 0, created_by_name: 'Demo Staff', created_by_color: '#3b82f6', created_at: new Date(), last_seen: new Date() },
-    { id: 'mock-c-2', name: 'Demo Customer B', phone: '09110000002', address: '456 Demo Ave.', credit_balance: 250, created_by_name: 'Demo Staff', created_by_color: '#10b981', created_at: new Date(Date.now() - 86400000 * 5), last_seen: new Date(Date.now() - 86400000 * 2) },
-    { id: 'mock-c-3', name: 'Demo Customer C', phone: '09110000003', address: '789 Demo Blvd.', credit_balance: 0, created_by_name: 'Demo Staff', created_by_color: '#f59e0b', created_at: new Date(Date.now() - 86400000 * 20), last_seen: null },
+    {
+        id: 'mock-c-1',
+        name: 'Demo Customer A',
+        phone: '09110000001',
+        address: '123 Demo St.',
+        credit_balance: 0,
+        created_by_name: 'Demo Staff',
+        created_by_color: '#3b82f6',
+        created_at: new Date(),
+        last_seen: new Date(),
+        utang_approved_at: null,
+        utang_approved_by: null
+    },
+    {
+        id: 'mock-c-2',
+        name: 'Demo Customer B',
+        phone: '09110000002',
+        address: '456 Demo Ave.',
+        credit_balance: 250,
+        created_by_name: 'Demo Staff',
+        created_by_color: '#10b981',
+        created_at: new Date(Date.now() - 86400000 * 5),
+        last_seen: new Date(Date.now() - 86400000 * 2),
+        utang_approved_at: new Date(Date.now() - 86400000 * 2),
+        utang_approved_by: 'Estelita Archita'
+    },
+    {
+        id: 'mock-c-3',
+        name: 'Demo Customer C',
+        phone: '09110000003',
+        address: '789 Demo Blvd.',
+        credit_balance: 0,
+        created_by_name: 'Demo Staff',
+        created_by_color: '#f59e0b',
+        created_at: new Date(Date.now() - 86400000 * 20),
+        last_seen: null,
+        utang_approved_at: null,
+        utang_approved_by: null
+    },
 ];
 
-// Map frontend UI sort keys to database column names
+// Map frontend UI sort keys to database column names in customers_view
 const SORT_COLUMN_MAP = {
     name: 'name',
     phone: 'phone',
@@ -18,6 +54,8 @@ const SORT_COLUMN_MAP = {
     lastSeen: 'last_seen',
     created_by: 'created_by_name',
     credit_balance: 'credit_balance',
+    utangDate: 'utang_approved_at',
+    approvedBy: 'utang_approved_by',
 };
 
 export function useCustomers({
@@ -59,7 +97,8 @@ export function useCustomers({
                     filtered = filtered.filter(c =>
                         (c.name && c.name.toLowerCase().includes(term)) ||
                         (c.phone && c.phone.toLowerCase().includes(term)) ||
-                        (c.address && c.address.toLowerCase().includes(term))
+                        (c.address && c.address.toLowerCase().includes(term)) ||
+                        (c.utang_approved_by && c.utang_approved_by.toLowerCase().includes(term))
                     );
                 }
 
@@ -78,6 +117,9 @@ export function useCustomers({
                     if (typeof aVal === 'string') {
                         return isAscending ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
                     }
+                    if (aVal instanceof Date && bVal instanceof Date) {
+                        return isAscending ? aVal.getTime() - bVal.getTime() : bVal.getTime() - aVal.getTime();
+                    }
                     return isAscending ? aVal - bVal : bVal - aVal;
                 });
 
@@ -91,6 +133,8 @@ export function useCustomers({
                         ...c,
                         dateAdded: c.created_at ? new Date(c.created_at) : null,
                         lastSeen: c.last_seen || null,
+                        utangApprovedAt: c.utang_approved_at || null,
+                        utangApprovedBy: c.utang_approved_by || null,
                         users: { name: c.created_by_name, color: c.created_by_color }
                     })),
                     totalPages,
@@ -99,7 +143,6 @@ export function useCustomers({
             }
 
             // --- 1. SERVER-SIDE QUERY ON CUSTOMERS_VIEW ---
-            // Target the SQL view for sorting across all records in the database
             let query = supabase
                 .from('customers_view')
                 .select('*', { count: 'exact' });
@@ -124,7 +167,7 @@ export function useCustomers({
             // Search Term Filter
             if (term) {
                 query = query.or(
-                    `name.ilike.%${term}%,email.ilike.%${term}%,phone.ilike.%${term}%,address.ilike.%${term}%`
+                    `name.ilike.%${term}%,email.ilike.%${term}%,phone.ilike.%${term}%,address.ilike.%${term}%,utang_approved_by.ilike.%${term}%`
                 );
             }
 
@@ -154,6 +197,8 @@ export function useCustomers({
                     ...c,
                     dateAdded: c.created_at ? new Date(c.created_at) : null,
                     lastSeen: c.last_seen || null,
+                    utangApprovedAt: c.utang_approved_at || null,
+                    utangApprovedBy: c.utang_approved_by || null,
                     users: {
                         name: c.created_by_name || null,
                         color: c.created_by_color || null

@@ -5,7 +5,7 @@ import { useRouter } from 'next/router';
 import { useStore } from '../../store/useStore';
 import {
     Button, Card, CardContent, Table, TableHeader, TableBody, TableRow,
-    TableHead, TableCell, ScrollArea, Input, Label, Dialog, DialogContent,
+    TableHead, TableCell, Input, Label, Dialog, DialogContent,
     DialogHeader, DialogTitle, DialogFooter, DialogCloseButton
 } from '../ui';
 
@@ -24,17 +24,17 @@ import RepaymentModal from '../customers/RepaymentModal';
 import {
     Users, UserPlus, FileText, ShoppingBag,
     Phone, MapPin, Mail, ArrowUpDown, ChevronUp, ChevronDown,
-    DollarSign, AlertCircle, CheckCircle2
+    DollarSign, AlertCircle, CheckCircle2, User, Calendar
 } from 'lucide-react';
 
 const EditIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
     </svg>
 );
 
 const DeleteIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
     </svg>
 );
@@ -42,12 +42,12 @@ const DeleteIcon = () => (
 const SortIcon = ({ columnKey, sortConfig }) => {
     const isActive = sortConfig.key === columnKey;
     if (!isActive) {
-        return <ArrowUpDown className="w-3 h-3 text-slate-300 group-hover:text-slate-500 transition-colors ml-1" />;
+        return <ArrowUpDown className="w-2.5 h-2.5 text-slate-300 group-hover:text-slate-500 transition-colors shrink-0 ml-1" />;
     }
     return sortConfig.direction === 'asc' ? (
-        <ChevronUp className="w-3.5 h-3.5 text-[#8DB600] ml-1 stroke-[2.5]" />
+        <ChevronUp className="w-3 h-3 text-[#8DB600] shrink-0 ml-1 stroke-[2.5]" />
     ) : (
-        <ChevronDown className="w-3.5 h-3.5 text-[#8DB600] ml-1 stroke-[2.5]" />
+        <ChevronDown className="w-3 h-3 text-[#8DB600] shrink-0 ml-1 stroke-[2.5]" />
     );
 };
 
@@ -74,19 +74,46 @@ const formatRelativeTime = (dateStr) => {
     }
 };
 
+const formatDateTime = (dateStr) => {
+    if (!dateStr) return '—';
+    try {
+        const d = new Date(dateStr);
+        return d.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+        });
+    } catch {
+        return '—';
+    }
+};
+
+const formatTime = (dateStr) => {
+    if (!dateStr) return '';
+    try {
+        const d = new Date(dateStr);
+        return d.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+        });
+    } catch {
+        return '';
+    }
+};
+
 export default function CustomerManagementPage() {
     const router = useRouter();
     const [searchTerm, setSearchTerm] = useState('');
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
-    const [balanceFilter, setBalanceFilter] = useState('all'); // 'all' | 'debt' | 'zero'
+    const [balanceFilter, setBalanceFilter] = useState('all');
     const [sortConfig, setSortConfig] = useState({ key: 'lastSeen', direction: 'desc' });
     const itemsPerPage = 10;
 
     const { user, addToast, setCurrentCustomer } = useStore();
     const isDemo = user?.isDemo;
 
-    // Server-Side Paginated and Sorted Query
     const { data: customersData = { customers: [], totalPages: 1 }, isLoading } = useCustomers({
         page: currentPage,
         itemsPerPage,
@@ -140,7 +167,6 @@ export default function CustomerManagementPage() {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, []);
 
-    // Toggle server-side sort and reset to page 1
     const requestSort = (key) => {
         setSortConfig((prev) => {
             const isSameKey = prev.key === key;
@@ -221,19 +247,33 @@ export default function CustomerManagementPage() {
         router.push('/pos');
     };
 
-    const handleRepayment = async (id, amount) => {
+    const handleRepayment = async (id, amount, debtId = null) => {
         try {
-            await repayDebt.mutateAsync({ customerId: id, amount });
+            await repayDebt.mutateAsync({
+                customerId: id,
+                amount,
+                debtId: debtId || repayCustomer?.debt_id || null
+            });
             setRepayCustomer(null);
+            addToast({
+                title: 'Payment Recorded',
+                description: `Successfully credited ₱${Number(amount).toFixed(2)} to account.`,
+                variant: 'success'
+            });
         } catch (e) {
-            console.error(e);
+            console.error('Repayment error:', e);
+            addToast({
+                title: 'Repayment Failed',
+                description: e.message || 'Database rejected payment update.',
+                variant: 'destructive'
+            });
         }
     };
 
     const isMutating = createCustomer.isPending || updateCustomer.isPending || deleteCustomer.isPending;
 
     return (
-        <div className="customer-page responsive-page max-w-7xl mx-auto space-y-6 p-4 md:p-6">
+        <div className="customer-page responsive-page max-w-7xl mx-auto space-y-6 p-4 md:p-6 overflow-x-hidden">
 
             {/* Header & Primary Actions */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -309,7 +349,7 @@ export default function CustomerManagementPage() {
                 </div>
             </div>
 
-            {/* Filter Bar with Balance Chips */}
+            {/* Filter Bar */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
                 <div className="relative w-full sm:max-w-md">
                     <Input
@@ -362,208 +402,266 @@ export default function CustomerManagementPage() {
                 </div>
             </div>
 
-            {/* Desktop Table View */}
-            <Card className="hidden md:block border border-slate-200 shadow-sm bg-white overflow-hidden rounded-2xl">
-                <CardContent className="p-0">
-                    <ScrollArea>
-                        <Table>
-                            <TableHeader>
-                                <TableRow className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200/80">
-                                    <TableHead className="w-[24%] p-0">
-                                        <button
-                                            type="button"
-                                            onClick={() => requestSort('name')}
-                                            className="w-full h-full py-3.5 px-4 flex items-center justify-between text-left font-bold text-slate-600 hover:text-slate-900 transition-colors group cursor-pointer select-none outline-none"
-                                        >
-                                            <span>Customer Name</span>
-                                            <SortIcon columnKey="name" sortConfig={sortConfig} />
-                                        </button>
-                                    </TableHead>
+            {/* Desktop Table View - No Horizontal Scrollbar */}
+            <Card className="hidden md:block border border-slate-200 shadow-sm bg-white rounded-2xl overflow-hidden">
+                <CardContent className="p-0 overflow-x-hidden">
+                    <div className="w-full overflow-x-hidden">
+                        <table className="w-full table-fixed text-xs divide-y divide-slate-100">
+                            <thead>
+                            <tr className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200/80">
+                                <th className="w-[17%] py-2.5 px-2 text-left">
+                                    <button
+                                        type="button"
+                                        onClick={() => requestSort('name')}
+                                        className="w-full flex items-center justify-between text-left font-bold text-slate-600 hover:text-slate-900 transition-colors group cursor-pointer select-none outline-none"
+                                    >
+                                        <span className="truncate">Customer Name</span>
+                                        <SortIcon columnKey="name" sortConfig={sortConfig} />
+                                    </button>
+                                </th>
 
-                                    <TableHead className="p-0">
-                                        <button
-                                            type="button"
-                                            onClick={() => requestSort('phone')}
-                                            className="w-full h-full py-3.5 px-4 flex items-center justify-between text-left font-bold text-slate-600 hover:text-slate-900 transition-colors group cursor-pointer select-none outline-none"
-                                        >
-                                            <span>Contact</span>
-                                            <SortIcon columnKey="phone" sortConfig={sortConfig} />
-                                        </button>
-                                    </TableHead>
+                                <th className="w-[10%] py-2.5 px-2 text-left">
+                                    <button
+                                        type="button"
+                                        onClick={() => requestSort('phone')}
+                                        className="w-full flex items-center justify-between text-left font-bold text-slate-600 hover:text-slate-900 transition-colors group cursor-pointer select-none outline-none"
+                                    >
+                                        <span className="truncate">Contact</span>
+                                        <SortIcon columnKey="phone" sortConfig={sortConfig} />
+                                    </button>
+                                </th>
 
-                                    <TableHead className="p-0">
-                                        <button
-                                            type="button"
-                                            onClick={() => requestSort('address')}
-                                            className="w-full h-full py-3.5 px-4 flex items-center justify-between text-left font-bold text-slate-600 hover:text-slate-900 transition-colors group cursor-pointer select-none outline-none"
-                                        >
-                                            <span>Delivery Address</span>
-                                            <SortIcon columnKey="address" sortConfig={sortConfig} />
-                                        </button>
-                                    </TableHead>
+                                <th className="w-[13%] py-2.5 px-2 text-left">
+                                    <button
+                                        type="button"
+                                        onClick={() => requestSort('address')}
+                                        className="w-full flex items-center justify-between text-left font-bold text-slate-600 hover:text-slate-900 transition-colors group cursor-pointer select-none outline-none"
+                                    >
+                                        <span className="truncate">Delivery Address</span>
+                                        <SortIcon columnKey="address" sortConfig={sortConfig} />
+                                    </button>
+                                </th>
 
-                                    <TableHead className="p-0">
-                                        <button
-                                            type="button"
-                                            onClick={() => requestSort('dateAdded')}
-                                            className="w-full h-full py-3.5 px-4 flex items-center justify-between text-left font-bold text-slate-600 hover:text-slate-900 transition-colors group cursor-pointer select-none outline-none"
-                                        >
-                                            <span>Date Added</span>
-                                            <SortIcon columnKey="dateAdded" sortConfig={sortConfig} />
-                                        </button>
-                                    </TableHead>
+                                <th className="w-[9%] py-2.5 px-2 text-left">
+                                    <button
+                                        type="button"
+                                        onClick={() => requestSort('dateAdded')}
+                                        className="w-full flex items-center justify-between text-left font-bold text-slate-600 hover:text-slate-900 transition-colors group cursor-pointer select-none outline-none"
+                                    >
+                                        <span className="truncate">Date Added</span>
+                                        <SortIcon columnKey="dateAdded" sortConfig={sortConfig} />
+                                    </button>
+                                </th>
 
-                                    <TableHead className="p-0">
-                                        <button
-                                            type="button"
-                                            onClick={() => requestSort('lastSeen')}
-                                            className="w-full h-full py-3.5 px-4 flex items-center justify-between text-left font-bold text-slate-600 hover:text-slate-900 transition-colors group cursor-pointer select-none outline-none"
-                                        >
-                                            <span>Last Refill</span>
-                                            <SortIcon columnKey="lastSeen" sortConfig={sortConfig} />
-                                        </button>
-                                    </TableHead>
+                                <th className="w-[8%] py-2.5 px-2 text-left">
+                                    <button
+                                        type="button"
+                                        onClick={() => requestSort('lastSeen')}
+                                        className="w-full flex items-center justify-between text-left font-bold text-slate-600 hover:text-slate-900 transition-colors group cursor-pointer select-none outline-none"
+                                    >
+                                        <span className="truncate">Last Refill</span>
+                                        <SortIcon columnKey="lastSeen" sortConfig={sortConfig} />
+                                    </button>
+                                </th>
 
-                                    <TableHead className="p-0 text-center">
-                                        <button
-                                            type="button"
-                                            onClick={() => requestSort('credit_balance')}
-                                            className="w-full h-full py-3.5 px-4 flex items-center justify-center text-center font-bold text-slate-600 hover:text-slate-900 transition-colors group cursor-pointer select-none outline-none"
-                                        >
-                                            <span>Utang Balance</span>
-                                            <SortIcon columnKey="credit_balance" sortConfig={sortConfig} />
-                                        </button>
-                                    </TableHead>
+                                <th className="w-[9%] py-2.5 px-2 text-center">
+                                    <button
+                                        type="button"
+                                        onClick={() => requestSort('credit_balance')}
+                                        className="w-full flex items-center justify-center text-center font-bold text-slate-600 hover:text-slate-900 transition-colors group cursor-pointer select-none outline-none"
+                                    >
+                                        <span className="truncate">Utang</span>
+                                        <SortIcon columnKey="credit_balance" sortConfig={sortConfig} />
+                                    </button>
+                                </th>
 
-                                    <TableHead className="text-right px-4 py-3.5 font-bold text-slate-600">
-                                        Actions
-                                    </TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody className="divide-y divide-slate-100 text-xs sm:text-sm">
-                                {isLoading ? (
-                                    <TableRow><TableCell colSpan={7} className="text-center py-12 text-slate-400">Loading customers...</TableCell></TableRow>
-                                ) : customers.length === 0 ? (
-                                    <TableRow><TableCell colSpan={7} className="text-center py-12 text-slate-400">No customers found.</TableCell></TableRow>
-                                ) : (
-                                    customers.map(c => {
-                                        const debt = Number(c.credit_balance || 0);
-                                        const hasDebt = debt > 0;
+                                <th className="w-[11%] py-2.5 px-2 text-left">
+                                    <button
+                                        type="button"
+                                        onClick={() => requestSort('utangDate')}
+                                        className="w-full flex items-center justify-between text-left font-bold text-slate-600 hover:text-slate-900 transition-colors group cursor-pointer select-none outline-none"
+                                    >
+                                        <span className="truncate">Utang Date</span>
+                                        <SortIcon columnKey="utangDate" sortConfig={sortConfig} />
+                                    </button>
+                                </th>
 
-                                        return (
-                                            <tr key={c.id} className="hover:bg-slate-50/70 transition-colors">
-                                                <TableCell className="px-4 py-3">
-                                                    <div className="flex items-center gap-2.5">
-                                                        <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200/80 flex items-center justify-center font-black text-xs text-slate-600 shrink-0">
-                                                            {c.name?.charAt(0)?.toUpperCase() || 'C'}
-                                                        </div>
-                                                        <div className="flex flex-col min-w-0">
-                                                            <span className="font-bold text-slate-900 truncate">{c.name}</span>
-                                                            {c.users?.name && (
-                                                                <span className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
+                                <th className="w-[11%] py-2.5 px-2 text-left">
+                                    <button
+                                        type="button"
+                                        onClick={() => requestSort('approvedBy')}
+                                        className="w-full flex items-center justify-between text-left font-bold text-slate-600 hover:text-slate-900 transition-colors group cursor-pointer select-none outline-none"
+                                    >
+                                        <span className="truncate">Approved By</span>
+                                        <SortIcon columnKey="approvedBy" sortConfig={sortConfig} />
+                                    </button>
+                                </th>
+
+                                <th className="w-[12%] py-2.5 px-2 text-right font-bold text-slate-600">
+                                    Actions
+                                </th>
+                            </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 bg-white">
+                            {isLoading ? (
+                                <tr><td colSpan={9} className="text-center py-8 text-slate-400">Loading customers...</td></tr>
+                            ) : customers.length === 0 ? (
+                                <tr><td colSpan={9} className="text-center py-8 text-slate-400">No customers found.</td></tr>
+                            ) : (
+                                customers.map(c => {
+                                    const debt = Number(c.credit_balance || 0);
+                                    const hasDebt = debt > 0;
+                                    const utangDate = c.utangApprovedAt || c.utang_approved_at;
+                                    const utangStaff = c.utangApprovedBy || c.utang_approved_by;
+
+                                    return (
+                                        <tr key={c.id} className="hover:bg-slate-50/70 transition-colors">
+                                            <td className="py-2.5 px-2 truncate">
+                                                <div className="flex items-center gap-1.5 min-w-0">
+                                                    <div className="w-6 h-6 rounded-full bg-slate-100 border border-slate-200/80 flex items-center justify-center font-black text-[10px] text-slate-600 shrink-0">
+                                                        {c.name?.charAt(0)?.toUpperCase() || 'C'}
+                                                    </div>
+                                                    <div className="flex flex-col min-w-0 truncate">
+                                                        <span className="font-bold text-slate-900 truncate" title={c.name}>{c.name}</span>
+                                                        {c.users?.name && (
+                                                            <span className="text-[10px] text-slate-400 flex items-center gap-1 truncate">
                                                                     <span
                                                                         className="w-1.5 h-1.5 rounded-full inline-block shrink-0"
                                                                         style={{ backgroundColor: c.users?.color || '#94a3b8' }}
                                                                     />
-                                                                    <span className="truncate max-w-[120px]">By {c.users.name}</span>
+                                                                    <span className="truncate">By {c.users.name}</span>
                                                                 </span>
-                                                            )}
-                                                        </div>
+                                                        )}
                                                     </div>
-                                                </TableCell>
+                                                </div>
+                                            </td>
 
-                                                <TableCell className="px-4 py-3 text-slate-600 font-medium">
-                                                    {c.phone && c.phone !== 'N/A' ? (
-                                                        <span className="font-mono text-xs text-slate-700">{c.phone}</span>
-                                                    ) : (
-                                                        <span className="text-slate-300 font-normal">—</span>
-                                                    )}
-                                                </TableCell>
+                                            <td className="py-2.5 px-2 text-slate-600 font-medium truncate" title={c.phone}>
+                                                {c.phone && c.phone !== 'N/A' ? (
+                                                    <span className="font-mono text-xs text-slate-700 truncate">{c.phone}</span>
+                                                ) : (
+                                                    <span className="text-slate-300 font-normal">—</span>
+                                                )}
+                                            </td>
 
-                                                <TableCell className="px-4 py-3 text-slate-600 text-xs max-w-[180px] truncate" title={c.address}>
-                                                    {c.address && c.address !== 'N/A' ? (
-                                                        <span>{c.address}</span>
-                                                    ) : (
-                                                        <span className="text-slate-300 font-normal">—</span>
-                                                    )}
-                                                </TableCell>
+                                            <td className="py-2.5 px-2 text-slate-600 text-xs truncate" title={c.address}>
+                                                {c.address && c.address !== 'N/A' ? (
+                                                    <span className="truncate">{c.address}</span>
+                                                ) : (
+                                                    <span className="text-slate-300 font-normal">—</span>
+                                                )}
+                                            </td>
 
-                                                <TableCell className="px-4 py-3 text-xs text-slate-500">
-                                                    {c.dateAdded ? new Date(c.dateAdded).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
-                                                </TableCell>
+                                            <td className="py-2.5 px-2 text-[11px] text-slate-500 whitespace-nowrap">
+                                                {c.dateAdded ? new Date(c.dateAdded).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                                            </td>
 
-                                                <TableCell className="px-4 py-3 text-xs">
-                                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold ${
+                                            <td className="py-2.5 px-2 text-xs whitespace-nowrap">
+                                                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-semibold ${
                                                         c.lastSeen ? 'bg-slate-100 text-slate-700' : 'text-slate-400'
                                                     }`}>
                                                         {formatRelativeTime(c.lastSeen)}
                                                     </span>
-                                                </TableCell>
+                                            </td>
 
-                                                <TableCell className="px-4 py-3 text-center">
-                                                    {hasDebt ? (
-                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-black bg-rose-50 text-rose-700 border border-rose-200 shadow-2xs">
+                                            <td className="py-2.5 px-2 text-center whitespace-nowrap">
+                                                {hasDebt ? (
+                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-black bg-rose-50 text-rose-700 border border-rose-200">
                                                             {currency(debt, { symbol: '₱' }).format()}
                                                         </span>
-                                                    ) : (
-                                                        <span className="text-xs font-semibold text-slate-400">
+                                                ) : (
+                                                    <span className="text-xs font-semibold text-slate-400">
                                                             ₱0.00
                                                         </span>
-                                                    )}
-                                                </TableCell>
+                                                )}
+                                            </td>
 
-                                                <TableCell className="px-4 py-3 text-right">
-                                                    <div className="flex items-center justify-end gap-1.5">
-                                                        {hasDebt && (
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => setRepayCustomer(c)}
-                                                                className="px-2.5 py-1 text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 rounded-lg transition-colors"
-                                                                title="Record Debt Repayment"
-                                                                disabled={isDemo}
-                                                            >
-                                                                Pay
-                                                            </button>
-                                                        )}
-
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleRingInPOS(c)}
-                                                            className="p-1.5 text-slate-500 hover:text-[#5f7d00] hover:bg-lime-50 border border-slate-200 rounded-lg transition-colors"
-                                                            title="Ring up in POS"
-                                                        >
-                                                            <ShoppingBag className="w-3.5 h-3.5" />
-                                                        </button>
-
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => startEdit(c)}
-                                                            className="p-1.5 text-blue-600 hover:bg-blue-50 border border-slate-200 rounded-lg transition-colors"
-                                                            title="Edit Details"
-                                                            disabled={isDemo}
-                                                        >
-                                                            <EditIcon />
-                                                        </button>
-
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => remove(c)}
-                                                            className="p-1.5 text-rose-600 hover:bg-rose-50 border border-slate-200 rounded-lg transition-colors"
-                                                            title="Delete"
-                                                            disabled={isDemo}
-                                                        >
-                                                            <DeleteIcon />
-                                                        </button>
+                                            <td className="py-2.5 px-2 text-[11px] whitespace-nowrap">
+                                                {hasDebt && utangDate ? (
+                                                    <div className="flex flex-col leading-tight">
+                                                        <span className="font-semibold text-slate-800">{formatDateTime(utangDate)}</span>
+                                                        <span className="text-[10px] text-slate-400 font-mono">{formatTime(utangDate)}</span>
                                                     </div>
-                                                </TableCell>
-                                            </tr>
-                                        );
-                                    })
-                                )}
-                            </TableBody>
-                        </Table>
-                    </ScrollArea>
-                    <div className="p-3.5 border-t border-slate-100 flex justify-end">
+                                                ) : hasDebt ? (
+                                                    <span className="text-slate-400 italic text-[11px]">Recent</span>
+                                                ) : (
+                                                    <span className="text-slate-300 font-normal">—</span>
+                                                )}
+                                            </td>
+
+                                            <td className="py-2.5 px-2 text-xs truncate">
+                                                {hasDebt && utangStaff ? (
+                                                    <div className="inline-flex items-center gap-1 font-bold text-slate-700 truncate" title={utangStaff}>
+                                                        <User className="w-3 h-3 text-slate-400 shrink-0" />
+                                                        <span className="truncate">{utangStaff}</span>
+                                                    </div>
+                                                ) : hasDebt ? (
+                                                    <span className="text-slate-400 italic text-[11px]">Staff</span>
+                                                ) : (
+                                                    <span className="text-slate-300 font-normal">—</span>
+                                                )}
+                                            </td>
+
+                                            <td className="py-2.5 px-2 text-right">
+                                                <div className="flex items-center justify-end gap-1 whitespace-nowrap">
+                                                    {hasDebt && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setRepayCustomer({
+                                                                id: c.id,
+                                                                name: c.name,
+                                                                phone: c.phone || '',
+                                                                address: c.address || '',
+                                                                credit_balance: debt,
+                                                                remaining_balance: debt,
+                                                                debt_id: null
+                                                            })}
+                                                            className="px-2 py-0.5 text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 rounded-md transition-colors"
+                                                            title="Record Debt Repayment"
+                                                            disabled={isDemo}
+                                                        >
+                                                            Pay
+                                                        </button>
+                                                    )}
+
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleRingInPOS(c)}
+                                                        className="w-6 h-6 flex items-center justify-center text-slate-500 hover:text-[#5f7d00] hover:bg-lime-50 border border-slate-200 rounded-md transition-colors"
+                                                        title="Ring up in POS"
+                                                    >
+                                                        <ShoppingBag className="w-3 h-3" />
+                                                    </button>
+
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => startEdit(c)}
+                                                        className="w-6 h-6 flex items-center justify-center text-blue-600 hover:bg-blue-50 border border-slate-200 rounded-md transition-colors"
+                                                        title="Edit Details"
+                                                        disabled={isDemo}
+                                                    >
+                                                        <EditIcon />
+                                                    </button>
+
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => remove(c)}
+                                                        className="w-6 h-6 flex items-center justify-center text-rose-600 hover:bg-rose-50 border border-slate-200 rounded-md transition-colors"
+                                                        title="Delete"
+                                                        disabled={isDemo}
+                                                    >
+                                                        <DeleteIcon />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })
+                            )}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div className="p-3 border-t border-slate-100 flex justify-end">
                         <Pagination currentPage={currentPage} totalPages={totalPages || 1} onPageChange={setCurrentPage} />
                     </div>
                 </CardContent>
@@ -581,6 +679,8 @@ export default function CustomerManagementPage() {
                     customers.map(c => {
                         const debt = Number(c.credit_balance || 0);
                         const hasDebt = debt > 0;
+                        const utangDate = c.utangApprovedAt || c.utang_approved_at;
+                        const utangStaff = c.utangApprovedBy || c.utang_approved_by;
 
                         return (
                             <div key={c.id} className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-3">
@@ -613,14 +713,39 @@ export default function CustomerManagementPage() {
                                     </div>
                                 )}
 
+                                {hasDebt && (
+                                    <div className="flex items-center justify-between bg-rose-50/70 border border-rose-100 p-2.5 rounded-xl text-xs">
+                                        <div>
+                                            <span className="text-[9px] font-bold text-rose-500 uppercase tracking-wider block">Utang Date</span>
+                                            <span className="font-semibold text-rose-900">
+                                                {utangDate ? formatDateTime(utangDate) : 'Recent'}
+                                            </span>
+                                        </div>
+                                        <div className="text-right">
+                                            <span className="text-[9px] font-bold text-rose-500 uppercase tracking-wider block">Approved By</span>
+                                            <span className="font-bold text-rose-900">
+                                                {utangStaff || 'Staff'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                )}
+
                                 <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-[11px] text-slate-400">
                                     <span>Last: <strong>{formatRelativeTime(c.lastSeen)}</strong></span>
                                     <div className="flex items-center gap-1.5">
                                         {hasDebt && (
                                             <button
                                                 type="button"
-                                                onClick={() => setRepayCustomer(c)}
-                                                className="px-2.5 py-1 text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200 rounded-lg"
+                                                onClick={() => setRepayCustomer({
+                                                    id: c.id,
+                                                    name: c.name,
+                                                    phone: c.phone || '',
+                                                    address: c.address || '',
+                                                    credit_balance: debt,
+                                                    remaining_balance: debt,
+                                                    debt_id: null
+                                                })}
+                                                className="px-2.5 py-1 text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200 rounded-lg shadow-2xs"
                                                 disabled={isDemo}
                                             >
                                                 Pay
