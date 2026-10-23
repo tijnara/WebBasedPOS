@@ -1,139 +1,148 @@
+// src/components/landing/Hero.jsx
 import React from 'react';
-import { CheckCircle2, Sparkles } from 'lucide-react';
-import { useCustomers } from '../../hooks/useCustomers'; // Import the hook
-// NOTE: AdsterraBanner import removed
+import { motion } from 'framer-motion';
+import { CheckCircle2, ShieldCheck, MapPin, ArrowRight, Sparkles, HeartHandshake } from 'lucide-react';
+import { useCustomers } from '../../hooks/useCustomers';
 
-const Hero = () => {
-    const { data: customersData, isLoading } = useCustomers(); // Use the hook to fetch customers
-    const features = [
-        'Advanced 21-stage reverse osmosis filtration system',
-        'Carefully remineralized to deliver crisp, healthy hydration for your whole family',
-        'Eco-friendly station—bring your jugs and save the planet',
-    ];
+export default function Hero() {
+    const { data: customersData, isLoading } = useCustomers();
 
-    // Format the customer count
     const customerCount = customersData?.totalCount || 10000;
     const formattedCount = new Intl.NumberFormat('en-US', {
         notation: 'compact',
         compactDisplay: 'short',
     }).format(customerCount);
 
+    const keyHighlights = [
+        'Advanced 21-stage reverse osmosis multi-barrier purification',
+        'Naturally remineralized for crisp taste and optimal body hydration',
+        'Eco-friendly bottle reuse & automated container sterilization'
+    ];
 
     return (
-        // Adjusted padding top to reduce the space above the text
-        <section id="home" className="relative min-h-screen pt-8 md:pt-12 flex items-center bg-white overflow-hidden responsive-page">
+        <section id="home" className="relative pt-6 pb-12 lg:pt-10 lg:pb-20 overflow-hidden bg-transparent">
+            {/* Ambient Apple Green Glows */}
+            <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[350px] bg-gradient-to-tr from-[#8DB600]/25 via-lime-200/30 to-[#6abf45]/20 blur-3xl -z-10 rounded-full pointer-events-none" />
 
-            {/* Decorative Elements */}
-            <div className="absolute top-32 right-10 w-72 h-72 bg-teal-400/20 rounded-full blur-3xl animate-pulse"></div>
-            <div className="absolute bottom-20 left-10 w-96 h-96 bg-cyan-400/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-8 items-center">
 
-            {/* Background Image - ensure full image is visible and not cut off */}
-            <div className="absolute inset-0 top-24 md:top-28 z-0 w-full h-full flex items-center justify-center pointer-events-none select-none">
-                <picture>
-                    <source media="(min-width: 768px)" srcSet="/seaside3d3.png" />
-                    <img
-                        src="/seaside3d4.png"
-                        alt="Crystal clear water"
-                        className="w-full h-full object-contain opacity-100"
-                        style={{ maxHeight: '80vh', maxWidth: '100vw' }}
-                    />
-                </picture>
-            </div>
-
-            {/* Content - Reduced vertical padding to close the top gap */}
-            <div className="relative z-10 w-full lg:w-1/2 mx-auto lg:mx-0 lg:mr-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
-                <div className="max-w-lg">
-
-                    {/* A soft white card behind the text to guarantee contrast on smaller screens where the image spans full width */}
-                    <div className="bg-white/80 lg:bg-transparent backdrop-blur-sm lg:backdrop-blur-none p-6 lg:p-0 rounded-3xl">
-
-                        {/* NOTE: Advertisement block removed from here */}
-
-                        {/* Main Heading - REDUCED FONT SIZES */}
-                        <h1 className="text-3xl sm:text-4xl lg:text-4xl xl:text-5xl font-extrabold tracking-tight text-gray-900 mb-6 leading-tight">
-                            Your Family's Health in Labrador, Pangasinan,<br />{' '}
-                            <span style={{
-                                background: 'linear-gradient(to right, #8DB600, #0d9488)', // Apple green to teal
-                                WebkitBackgroundClip: 'text',
-                                WebkitTextFillColor: 'transparent',
-                                backgroundClip: 'text',
-                                color: 'transparent'
-                            }}>
-                                Flowing Crystal Clear from Seaside.
+                    {/* LEFT COLUMN: Value Proposition */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6 }}
+                        className="lg:col-span-7 flex flex-col space-y-6 text-left"
+                    >
+                        {/* Apple Green Tag */}
+                        <div className="inline-flex items-center gap-2 w-max px-3.5 py-1.5 rounded-full bg-lime-50 border border-lime-200/90 shadow-xs">
+                            <span className="flex h-2 w-2 rounded-full bg-[#8DB600] animate-pulse" />
+                            <MapPin className="w-3.5 h-3.5 text-[#8DB600]" />
+                            <span className="text-xs font-bold uppercase tracking-wider text-lime-900">
+                                Labrador, Pangasinan's Pure Hydration
                             </span>
+                        </div>
+
+                        {/* Main Headline */}
+                        <h1 className="text-3xl sm:text-5xl lg:text-5xl xl:text-6xl font-black text-slate-900 tracking-tight leading-[1.12]">
+                            Your Family's Health,{' '}
+                            <span className="bg-gradient-to-r from-[#8DB600] via-[#6abf45] to-[#4e9e2d] bg-clip-text text-transparent">
+                                Flowing Crystal Clear
+                            </span>{' '}
+                            from Seaside.
                         </h1>
 
-
-                        {/* Subheading - UPDATED with 75% hex transparent background */}
-                        <p
-                            className="text-lg sm:text-xl lg:text-lg xl:text-xl text-gray-800 mb-10 leading-relaxed font-medium p-4 rounded-xl shadow-sm"
-                            style={{ backgroundColor: '#ffffffBF' }}
-                        >
-                            Proudly serving the families of Labrador, Pangasinan. At Seaside, we believe our community deserves
-                            world-class hydration without leaving town. We combine state-of-the-art 21-stage reverse osmosis with
-                            the warm, local service you know and trust.
+                        {/* Subheading */}
+                        <p className="text-base sm:text-lg text-slate-600 font-medium leading-relaxed max-w-xl">
+                            We combine commercial-grade 21-stage reverse osmosis filtration with warm local care, delivering 100% pure, remineralized drinking water straight to your home and business.
                         </p>
 
-                        {/* Features List - REDUCED FONT SIZES */}
-                        <div className="space-y-4 mb-10">
-                            {features.map((feature, index) => (
+                        {/* Highlight Cards */}
+                        <div className="space-y-2.5 max-w-xl pt-1">
+                            {keyHighlights.map((text, i) => (
                                 <div
-                                    key={index}
-                                    className="flex items-start gap-4 p-3 rounded-xl shadow-sm transition-all hover:scale-[1.02]"
-                                    style={{ backgroundColor: '#ffffffBF' }} // UPDATED with 75% hex transparent background
+                                    key={i}
+                                    className="flex items-center gap-3 p-3 rounded-2xl bg-white/90 backdrop-blur-sm border border-slate-200/70 shadow-2xs hover:border-[#8DB600]/60 transition-colors"
                                 >
-                                    <div className="flex-shrink-0 mt-0.5">
-                                        <div className="w-6 h-6 bg-gradient-to-br from-teal-500 to-emerald-500 rounded-full flex items-center justify-center shadow-md">
-                                            <CheckCircle2 className="w-4 h-4 text-white" strokeWidth={3} />
-                                        </div>
+                                    <div className="w-6 h-6 rounded-lg bg-lime-100 text-[#8DB600] flex items-center justify-center shrink-0">
+                                        <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
                                     </div>
-                                    {/* Changed from text-base lg:text-lg to text-sm lg:text-base */}
-                                    <span className="text-gray-900 font-bold text-sm lg:text-base">{feature}</span>
+                                    <span className="text-xs sm:text-sm font-bold text-slate-800 leading-snug">
+                                        {text}
+                                    </span>
                                 </div>
                             ))}
                         </div>
 
                         {/* CTA Buttons */}
-                        <div className="flex flex-col sm:flex-row gap-4">
-                            <a href="#location" className="w-full sm:w-auto">
-                                {/* CHANGED text-lg to text-base AND px-8 py-4 to px-6 py-3.5 */}
-                                <button className="w-full px-6 py-3.5 rounded-2xl hover:shadow-lg transition-all duration-300 font-bold text-base hover:scale-105 shadow-md" style={{ backgroundColor: '#4CAF50', color: 'white' }}>
-                                    Visit Us Today
-                                </button>
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-3">
+                            <a
+                                href="#location"
+                                className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl bg-[#8DB600] hover:bg-[#7ca000] text-white font-extrabold text-sm shadow-md hover:shadow-lg transition-all active:scale-95"
+                            >
+                                <span>Visit Station</span>
+                                <ArrowRight className="w-4 h-4" />
                             </a>
-                            <a href="#services" className="w-full sm:w-auto">
-                                {/* CHANGED text-lg to text-base AND px-8 py-4 to px-6 py-3.5 */}
-                                <button className="w-full px-6 py-3.5 bg-white text-teal-700 border-2 border-teal-600 rounded-2xl hover:bg-teal-50 transition-all duration-300 font-bold text-base shadow-sm hover:scale-105">
-                                    Learn More
-                                </button>
+                            <a
+                                href="#services"
+                                className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-white hover:bg-lime-50 text-slate-800 border border-slate-200 font-bold text-sm shadow-2xs transition-all active:scale-95"
+                            >
+                                <span>View Refill Options</span>
                             </a>
                         </div>
 
-
-                        {/* Trust Indicators */}
-                        <div className="mt-10 flex flex-wrap items-center gap-6 text-sm text-gray-800 p-3 rounded-xl inline-flex" style={{ backgroundColor: '#ffffffBF' }}>
-                            <div className="flex items-center gap-2">
-                                <div className="w-2 h-2 bg-teal-500 rounded-full animate-pulse"></div>
-                                <span className="font-bold">
-                    {isLoading ? 'Loading...' : `${formattedCount}+ Happy Families`}
-                  </span>
+                        {/* Trust Badges */}
+                        <div className="pt-4 flex flex-wrap items-center gap-4 border-t border-slate-200/80">
+                            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-slate-200/60 shadow-2xs">
+                                <HeartHandshake className="w-4 h-4 text-[#8DB600]" />
+                                <span className="text-xs font-bold text-slate-700">
+                                    {isLoading ? '10k+' : `${formattedCount}+`} Served
+                                </span>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                                <span className="font-bold">DOH Certified</span>
+                            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-slate-200/60 shadow-2xs">
+                                <ShieldCheck className="w-4 h-4 text-[#6abf45]" />
+                                <span className="text-xs font-bold text-slate-700">Sanitary DOH Standards</span>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <div className="w-2 h-2 bg-cyan-500 rounded-full animate-pulse"></div>
-                                <span className="font-bold">Eco-Friendly</span>
+                            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-slate-200/60 shadow-2xs">
+                                <Sparkles className="w-4 h-4 text-[#8DB600]" />
+                                <span className="text-xs font-bold text-slate-700">Zero Plastic Waste Model</span>
                             </div>
                         </div>
+                    </motion.div>
 
-                    </div>
+                    {/* RIGHT COLUMN: 3D Mascot & Storefront */}
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.7, delay: 0.15 }}
+                        className="lg:col-span-5 flex justify-center relative"
+                    >
+                        <div className="relative w-full max-w-lg lg:max-w-none aspect-[4/3.8] rounded-3xl bg-gradient-to-b from-white/95 via-lime-50/40 to-lime-100/30 p-4 sm:p-6 border border-lime-200/80 shadow-xl flex items-center justify-center overflow-hidden">
+                            <div className="absolute inset-0 bg-[radial-gradient(#8DB600_1px,transparent_1px)] [background-size:16px_16px] opacity-15" />
+
+                            <picture className="relative z-10 w-full h-full flex items-center justify-center">
+                                <source media="(min-width: 768px)" srcSet="/seaside3d3.png" />
+                                <img
+                                    src="/seaside3d4.png"
+                                    alt="Seaside Water Refilling Station Mascot and Storefront"
+                                    className="w-full h-full object-contain filter drop-shadow-xl"
+                                />
+                            </picture>
+
+                            <div className="absolute bottom-4 left-4 right-4 bg-white/95 backdrop-blur-md border border-lime-200/90 rounded-2xl p-3 shadow-md flex items-center justify-between z-20">
+                                <div>
+                                    <div className="text-[10px] font-black uppercase tracking-wider text-[#8DB600]">Labrador Station</div>
+                                    <div className="text-xs font-bold text-slate-900">Always Fresh, Cold & Pure</div>
+                                </div>
+                                <span className="text-xs font-black px-2.5 py-1 bg-lime-100 text-[#5f7d00] rounded-lg">
+                                    ₱20-₱30 / Jug
+                                </span>
+                            </div>
+                        </div>
+                    </motion.div>
+
                 </div>
             </div>
-
         </section>
     );
-};
-
-export default Hero;
+}

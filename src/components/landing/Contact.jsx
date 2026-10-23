@@ -1,52 +1,104 @@
+// src/components/landing/Contact.jsx
 import React from 'react';
 import { motion } from 'framer-motion';
-import { useInView } from '../../hooks/useInView';
+import { MessageSquare, Phone, Clock, Send } from 'lucide-react';
 import ContactForm from './ContactForm';
 
-const Contact = ({ settings }) => {
-    const [ref, isInView] = useInView();
+export default function Contact({ settings }) {
     const businessHours = settings?.business_hours || 'Monday - Saturday: 8:00 AM - 5:00 PM';
-    const physicalAddress = settings?.physical_address || 'Laois, Labrador, Pangasinan';
 
     return (
-        <motion.section 
-            id="contact" 
-            ref={ref}
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: isInView ? 1 : 0, y: isInView ? 0 : 50 }}
+        <motion.section
+            id="contact"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-50px' }}
             transition={{ duration: 0.6 }}
-            className="bg-transparent relative z-20 responsive-page"
+            className="py-12 lg:py-16 relative"
             aria-labelledby="contact-heading"
         >
-            <div className="px-6 py-20 pb-32 max-w-4xl mx-auto text-center">
-                <div className="mb-12">
-                    <span className="inline-block py-2 px-6 rounded-full bg-teal-50 mb-4">
-                        <h2 className="text-3xl lg:text-[4rem] sm:text-[5.5rem] lg:text-[7rem] font-bold text-[#0f172a] mb-8 tracking-tight leading-none">
-                            <span style={{
-                                background: 'linear-gradient(to right, #8DB600, #0d9488)', // Apple green to teal
-                                WebkitBackgroundClip: 'text',
-                                WebkitTextFillColor: 'transparent',
-                                backgroundClip: 'text',
-                                color: 'transparent'
-                            }}>CONTACT US</span></h2>
-                    </span>
-                    <p className="text-3xl md:text-4xl font-extrabold text-slate-800 drop-shadow-sm">
-                        We'd love to hear from you
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                {/* Header */}
+                <div className="text-center max-w-2xl mx-auto mb-12 sm:mb-16">
+                    <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-lime-50 border border-lime-200 text-[#5f7d00] text-xs font-bold uppercase tracking-wider mb-4">
+                        <MessageSquare className="w-3.5 h-3.5 text-[#8DB600]" />
+                        We're Here to Help
+                    </div>
+                    <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight leading-tight">
+                        Get in Touch with{' '}
+                        <span className="bg-gradient-to-r from-[#8DB600] to-[#6abf45] bg-clip-text text-transparent">
+                            Seaside
+                        </span>
+                    </h2>
+                    <p className="text-slate-600 text-sm sm:text-base font-medium mt-3">
+                        Have questions regarding commercial jug supply, corporate accounts, or residential delivery? Send us a message below.
                     </p>
                 </div>
 
-                <div className="p-8 md:p-12 rounded-[2rem] bg-white/60 backdrop-blur-md shadow-[0_8px_32px_0_rgba(31,38,135,0.1)] text-left">
-                    <div className="mb-6 text-center">
-                        <p className="text-lg font-semibold text-gray-800">Business Hours:</p>
-                        <p className="text-gray-700">{businessHours}</p>
-                        <p className="mt-4 text-lg font-semibold text-gray-800">Our Address:</p>
-                        <p className="text-gray-700">{physicalAddress}</p>
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                    {/* Left Contact Options */}
+                    <div className="lg:col-span-5 space-y-4">
+                        <div className="p-6 bg-white rounded-3xl border border-slate-200/90 shadow-sm space-y-5">
+                            <h3 className="text-base font-black text-slate-900 border-b border-slate-100 pb-3">
+                                Direct Inquiries & Orders
+                            </h3>
+
+                            <div className="space-y-4 text-xs sm:text-sm">
+                                <a
+                                    href="tel:+639602196388"
+                                    className="flex items-center gap-3.5 p-3 rounded-2xl hover:bg-lime-50/50 transition-colors group"
+                                >
+                                    <div className="w-10 h-10 rounded-xl bg-lime-50 text-[#8DB600] flex items-center justify-center shrink-0 border border-lime-200 group-hover:bg-[#8DB600] group-hover:text-white transition-colors">
+                                        <Phone className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <span className="text-slate-400 text-[11px] font-bold uppercase tracking-wider block">Call or Text</span>
+                                        <span className="font-bold text-slate-900 text-sm sm:text-base">+63 960 219 6388</span>
+                                    </div>
+                                </a>
+
+                                <a
+                                    href="https://m.me/61587059323111"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-3.5 p-3 rounded-2xl hover:bg-blue-50/50 transition-colors group"
+                                >
+                                    <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center shrink-0 border border-blue-100 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                                        <MessageSquare className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <span className="text-slate-400 text-[11px] font-bold uppercase tracking-wider block">Facebook Messenger</span>
+                                        <span className="font-bold text-slate-900 text-sm sm:text-base">Seaside Water Refilling</span>
+                                    </div>
+                                </a>
+
+                                <div className="flex items-start gap-3.5 p-3">
+                                    <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center shrink-0">
+                                        <Clock className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <span className="text-slate-400 text-[11px] font-bold uppercase tracking-wider block">Station Schedule</span>
+                                        <span className="font-semibold text-slate-800 text-xs sm:text-sm">{businessHours}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Fast Response Box */}
+                        <div className="p-5 rounded-2xl bg-gradient-to-r from-[#8DB600] to-[#6abf45] text-white shadow-sm flex items-center gap-3">
+                            <Send className="w-6 h-6 shrink-0 opacity-80" />
+                            <p className="text-xs font-semibold leading-relaxed">
+                                Deliveries sent via form or messenger during operating hours are dispatched promptly with our multicab team.
+                            </p>
+                        </div>
                     </div>
-                    <ContactForm settings={settings} />
+
+                    {/* Right Contact Form */}
+                    <div className="lg:col-span-7 bg-white rounded-3xl border border-slate-200/90 shadow-sm p-6 sm:p-8">
+                        <ContactForm settings={settings} />
+                    </div>
                 </div>
             </div>
         </motion.section>
     );
-};
-
-export default Contact;
+}
