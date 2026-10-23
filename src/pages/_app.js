@@ -16,9 +16,8 @@ import { Button } from '../components/ui';
 import { QueryClient, QueryClientProvider, HydrationBoundary, MutationCache } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import Head from 'next/head';
-import { SpeedInsights } from "@vercel/speed-insights/next"
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/next";
-import { supabase } from '../lib/supabaseClient';
 
 const titleMap = {
     '/': 'Seaside Purified Water Refilling Station | Labrador, Pangasinan',
@@ -151,7 +150,7 @@ export default function App({ Component, pageProps }) {
             },
         },
         mutationCache: new MutationCache({
-            onMutate: async (variables) => {
+            onMutate: async () => {
                 const { user, addToast } = useStore.getState();
 
                 if (user?.isDemo) {
@@ -198,13 +197,12 @@ export default function App({ Component, pageProps }) {
                     <meta property="fb:app_id" content="27475487768800861" />
                     <link rel="icon" href="/seaside.png" />
                     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
-                    <meta name="theme-color" content="#0ea5e9" />
+                    <meta name="theme-color" content="#8DB600" />
                     <link rel="manifest" href="/manifest.json" />
                     <link rel="apple-touch-icon" href="/seasidelogo_.png" />
                     <meta name="google-site-verification" content="kd1wSsNQZCjJmyp4LaQKI9Mr7s6Z9_I5Z3ETpaW1EVc" />
                 </Head>
                 <AuthGate>
-                    {/* MODIFIED: Added md:pl-64 to make room for the sticky desktop sidebar */}
                     <div className={`app responsive-page ${!hideNav ? 'md:pl-64' : ''}`}>
                         {!hideNav && <Navbar />}
                         {!hideNav && <TabBar />}
@@ -221,9 +219,10 @@ export default function App({ Component, pageProps }) {
 
                         <div className="toasts fixed bottom-4 right-4 z-50 flex flex-col items-end gap-3" aria-live="polite">
                             {toasts.map(t => (
-                                <div key={t.id} className={`toast bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4 rounded-lg shadow-xl w-80 max-w-[calc(100vw-2rem)] flex items-start gap-3 ${t.variant === 'destructive' ? 'border-l-4 border-red-500' :
-                                    t.variant === 'success' ? 'border-l-4 border-green-500' :
-                                        t.variant === 'warning' ? 'border-l-4 border-yellow-500' : 'border-l-4 border-blue-500'
+                                <div key={t.id} className={`toast bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4 rounded-lg shadow-xl w-80 max-w-[calc(100vw-2rem)] flex items-start gap-3 ${
+                                    t.variant === 'destructive' ? 'border-l-4 border-red-500' :
+                                        t.variant === 'success' ? 'border-l-4 border-[#8DB600]' :
+                                            t.variant === 'warning' ? 'border-l-4 border-amber-500' : 'border-l-4 border-blue-500'
                                 }`}>
                                     <div className="flex-1">
                                         <div className="toast__title font-semibold text-gray-800 dark:text-gray-100">{t.title}</div>

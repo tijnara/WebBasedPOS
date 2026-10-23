@@ -1,51 +1,92 @@
 /* src/components/pages/POSPage.css */
 
-/* Modern Visible Horizontal Scrollbar for Categories */
+/* 1. Lock outer window so only internal catalog scrolls */
+html:has(.pos-page),
+body:has(.pos-page) {
+    overflow: hidden !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* 2. Fix Navbar clearance and lock POS container to exact remaining viewport height */
+body:has(.pos-page) .main,
+.app:has(.pos-page) .main {
+    height: calc(100vh - 4rem) !important;
+    max-height: calc(100vh - 4rem) !important;
+    margin-top: 4rem !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+}
+
+body:has(.pos-page) .container,
+.app:has(.pos-page) .container {
+    height: 100% !important;
+    max-height: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+}
+
+/* 3. Hide floating circular mascot button on POS to avoid cart footer collisions */
+body:has(.pos-page) > div > button.fixed,
+body:has(.pos-page) div[class*="fixed"][class*="bottom-"]:not(.toasts),
+body:has(.pos-page) button[class*="fixed"][class*="bottom-"],
+body:has(.pos-page) .floating-notes,
+body:has(.pos-page) .floating-messages {
+    display: none !important;
+}
+
+/* 4. Remove sticky browser focus rings on product buttons */
+.pos-product-card:focus,
+.pos-product-card:focus-visible,
+.pos-product-card:active {
+    outline: none !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+}
+
+.pos-product-card:hover {
+    border-color: #8DB600 !important;
+    transform: translateY(-1.5px);
+}
+
+/* 5. Sleek Product Grid Scrollbar */
+.pos-product-scroll-area {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+}
+
+.pos-product-scroll-area::-webkit-scrollbar {
+    width: 5px;
+}
+
+.pos-product-scroll-area::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 9999px;
+}
+
+.pos-product-scroll-area::-webkit-scrollbar-thumb:hover {
+    background: #8DB600;
+}
+
+/* 6. Horizontal Category Scrollbar */
 .category-scroll-container {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
-    scrollbar-color: #94a3b8 #f1f5f9;
+    scrollbar-color: #8DB600 #f1f5f9;
 }
 
 .category-scroll-container::-webkit-scrollbar {
-    height: 7px;
-}
-
-.category-scroll-container::-webkit-scrollbar-track {
-    background: #f1f5f9;
-    border-radius: 9999px;
+    height: 4px;
 }
 
 .category-scroll-container::-webkit-scrollbar-thumb {
     background: #cbd5e1;
     border-radius: 9999px;
-}
-
-.category-scroll-container::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
-}
-
-/* Hide scrollbar utility */
-.no-scrollbar::-webkit-scrollbar {
-    display: none;
-}
-.no-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-}
-
-/* Micro-interactions */
-.pos-product-card {
-    transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 0.15s cubic-bezier(0.16, 1, 0.3, 1),
-    border-color 0.15s ease;
-}
-
-.pos-product-card:hover {
-    transform: translateY(-2px);
-}
-
-.pos-product-card:active {
-    transform: scale(0.98);
 }

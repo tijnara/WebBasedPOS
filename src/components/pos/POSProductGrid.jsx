@@ -2,60 +2,66 @@
 import React from 'react';
 import { ProductImage } from './ProductImage';
 import currency from 'currency.js';
-import { Plus, Package, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Package, ChevronLeft, ChevronRight, PlusCircle } from 'lucide-react';
 
 const POSProductGrid = ({
                             isLoading,
                             products = [],
                             handleAdd,
+                            openCustomSale,
                             currentPage = 1,
                             totalPages = 1,
                             setCurrentPage,
                         }) => {
+    // Detect service items (custom sales or non-tracked items)
     const isServiceItem = (p) => {
         if (!p) return false;
+        if (p.is_custom || p.track_stock === false) return true;
         const cat = (p.category || '').toLowerCase();
         const name = (p.name || '').toLowerCase();
-        const stock = p.stock ?? p.stock_quantity;
-        return cat.includes('refill') || cat.includes('service') || name.includes('refill') || (stock !== null && stock > 9999);
+        return cat.includes('refill') || cat.includes('service') || name.startsWith('refill');
     };
+
+    // Filter out hidden, unpriced, or soft-deleted dummy rows
+    const validProducts = products.filter(p =>
+        !p.is_hidden &&
+        (Number(p.price) > 0 || p.is_custom) &&
+        p.name?.toLowerCase() !== 'unknown' &&
+        !p.name?.toLowerCase().includes('removed')
+    );
 
     return (
         <div className="w-full flex-1 flex flex-col justify-between min-h-0">
             {isLoading ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-3.5">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
                     {Array.from({ length: 8 }).map((_, i) => (
-                        <div key={i} className="animate-pulse bg-white rounded-2xl border border-slate-100 p-3 h-56 flex flex-col justify-between">
-                            <div className="w-full h-28 bg-slate-100 rounded-xl" />
-                            <div className="space-y-2 mt-3">
-                                <div className="h-3 bg-slate-100 rounded-md w-1/2" />
-                                <div className="h-4 bg-slate-100 rounded-md w-3/4" />
-                                <div className="h-5 bg-slate-100 rounded-md w-1/3" />
+                        <div key={i} className="animate-pulse bg-white rounded-2xl border border-slate-100 p-2.5 h-44 flex flex-col justify-between">
+                            <div className="w-full h-20 bg-slate-100 rounded-xl" />
+                            <div className="space-y-1.5 mt-2">
+                                <div className="h-2.5 bg-slate-100 rounded w-1/3" />
+                                <div className="h-3.5 bg-slate-100 rounded w-3/4" />
                             </div>
                         </div>
                     ))}
                 </div>
-            ) : !products.length ? (
-                <div className="flex flex-col items-center justify-center h-80 text-slate-400 bg-white rounded-2xl border border-slate-200/80 p-8 w-full text-center shadow-xs">
-                    <div className="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center mb-4 text-slate-300">
-                        <Package className="w-8 h-8" />
-                    </div>
-                    <h3 className="text-base font-bold text-slate-700">No products found</h3>
-                    <p className="text-xs text-slate-400 mt-1.5 max-w-sm">
-                        No catalog items match your search or category filter. Try selecting another category or clearing your search.
-                    </p>
+            ) : !validProducts.length ? (
+                <div className="flex flex-col items-center justify-center h-64 text-slate-400 bg-white rounded-2xl border border-slate-200/80 p-6 w-full text-center shadow-2xs">
+                    <Package className="w-8 h-8 text-slate-300 mb-2" />
+                    <h3 className="text-xs font-bold text-slate-700">No products found</h3>
+                    <p className="text-[11px] text-slate-400 mt-0.5">Try changing category or clearing your search.</p>
                 </div>
             ) : (
                 <>
                     {/* Balanced Responsive Grid */}
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-3.5 items-stretch">
-                        {products.map((p) => {
-                            const hotkey = p.id === 3 ? '1' : p.id === 2 ? '2' : p.id === 30 ? '3' : null;
-                            const stock = p.stock ?? p.stock_quantity;
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 items-stretch">
+                        {validProducts.map((p) => {
+                            const hotkey = p.id === 30 ? '1' : p.id === 3 ? '2' : p.id === 2 ? '3' : null;
+                            const stockNum = Number(p.stock ?? p.stock_quantity ?? 0);
+                            const minStockNum = Number(p.min_stock_level ?? p.minStock ?? 5);
                             const isService = isServiceItem(p);
-                            const minStock = p.min_stock_level ?? p.minStock ?? 5;
-                            const isOutOfStock = !isService && stock !== null && stock !== undefined && stock <= 0;
-                            const isLowStock = !isService && !isOutOfStock && stock !== null && stock <= minStock;
+
+                            const isOutOfStock = !isService && stockNum <= 0;
+                            const isLowStock = !isService && !isOutOfStock && stockNum <= minStockNum;
 
                             return (
                                 <button
@@ -63,45 +69,39 @@ const POSProductGrid = ({
                                     type="button"
                                     onClick={() => handleAdd(p)}
                                     disabled={isOutOfStock}
-                                    className={`pos-product-card text-left bg-white rounded-2xl border p-3 flex flex-col justify-between relative group select-none shadow-[0_2px_6px_rgba(0,0,0,0.03)] hover:shadow-md transition-all duration-150 outline-none min-h-[220px] ${
+                                    className={`pos-product-card text-left bg-white rounded-2xl border p-2.5 flex flex-col justify-between relative group select-none shadow-2xs hover:shadow-md transition-all duration-150 outline-none min-h-[168px] ${
                                         isOutOfStock
-                                            ? 'opacity-50 cursor-not-allowed border-slate-200'
-                                            : 'border-slate-200/90 hover:border-emerald-500/80 cursor-pointer active:scale-[0.98]'
+                                            ? 'opacity-40 cursor-not-allowed border-slate-200 bg-slate-50/50'
+                                            : 'border-slate-200/90 hover:border-[#8DB600] active:scale-[0.98]'
                                     }`}
                                 >
-                                    {/* Product Image Stage */}
-                                    <div className="relative w-full h-28 bg-gradient-to-b from-slate-50/80 to-slate-100/60 rounded-xl p-2 flex items-center justify-center overflow-hidden mb-2.5 border border-slate-100 shrink-0">
+                                    {/* Product Image Stage (Always from Database image_url) */}
+                                    <div className="relative w-full h-20 rounded-xl p-1.5 flex items-center justify-center overflow-hidden mb-1.5 border border-slate-100 bg-gradient-to-b from-slate-50/80 to-slate-100/50 shrink-0">
                                         {/* Hotkey Tag Badge */}
                                         {hotkey && (
-                                            <div
-                                                className="absolute top-1.5 left-1.5 w-5 h-5 flex items-center justify-center bg-slate-900/90 text-white font-mono text-[10px] font-black rounded-md shadow-xs z-10"
-                                                title={`Keyboard Shortcut: ${hotkey}`}
-                                            >
+                                            <div className="absolute top-1.5 left-1.5 w-4.5 h-4.5 flex items-center justify-center bg-slate-900 text-white font-mono text-[9px] font-black rounded shadow-2xs z-10">
                                                 {hotkey}
                                             </div>
                                         )}
 
-                                        {/* Stock Status Badge */}
-                                        {!isService && stock !== null && stock !== undefined && (
-                                            <div
-                                                className={`absolute top-1.5 right-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full z-10 shadow-2xs ${
-                                                    isOutOfStock
-                                                        ? 'bg-rose-100 text-rose-700 border border-rose-200'
-                                                        : isLowStock
-                                                            ? 'bg-amber-100 text-amber-800 border border-amber-200'
-                                                            : 'bg-emerald-50 text-emerald-700 border border-emerald-200/80'
-                                                }`}
-                                            >
-                                                {isOutOfStock ? '0' : stock}
+                                        {/* Physical Stock Counter */}
+                                        {!isService ? (
+                                            <div className={`absolute top-1.5 right-1.5 text-[9px] font-bold px-1.5 py-0.2 rounded-full z-10 shadow-2xs ${
+                                                isOutOfStock
+                                                    ? 'bg-rose-100 text-rose-700 border border-rose-200'
+                                                    : isLowStock
+                                                        ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                                                        : 'bg-lime-50 text-[#5f7d00] border border-lime-200'
+                                            }`}>
+                                                {isOutOfStock ? '0' : stockNum.toLocaleString()}
                                             </div>
-                                        )}
-
-                                        {isService && (
-                                            <div className="absolute top-1.5 right-1.5 text-[9px] font-bold px-2 py-0.5 rounded-full z-10 bg-indigo-50 text-indigo-700 border border-indigo-200/80 shadow-2xs">
+                                        ) : (
+                                            <div className="absolute top-1.5 right-1.5 text-[8px] font-black tracking-wider uppercase px-1.5 py-0.2 rounded-full z-10 border shadow-2xs bg-lime-100 text-[#5f7d00] border-lime-200">
                                                 Refill
                                             </div>
                                         )}
 
+                                        {/* Dynamic Product Image from Database */}
                                         <div className="w-full h-full flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
                                             <ProductImage
                                                 product={p}
@@ -110,53 +110,76 @@ const POSProductGrid = ({
                                         </div>
                                     </div>
 
-                                    {/* Product Details Header */}
-                                    <div className="flex-1 flex flex-col justify-start">
-                                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block truncate">
+                                    {/* Database Name & Category */}
+                                    <div className="flex-1 flex flex-col justify-start min-w-0">
+                                        <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400 block truncate">
                                             {p.category || 'General'}
                                         </span>
-                                        <h4 className="font-bold text-xs sm:text-sm text-slate-800 line-clamp-2 leading-snug min-h-[2.25rem] group-hover:text-emerald-700 transition-colors mt-0.5">
+                                        <h4 className="font-bold text-xs text-slate-800 line-clamp-1 leading-snug group-hover:text-[#5f7d00] transition-colors mt-0.5" title={p.name}>
                                             {p.name}
                                         </h4>
                                     </div>
 
-                                    {/* Footer: Price + Plus Button (Always pinned and fully visible) */}
-                                    <div className="flex items-center justify-between pt-2.5 mt-2 border-t border-slate-100 shrink-0 w-full">
-                                        <div className="text-sm sm:text-base font-black text-emerald-600 tracking-tight">
+                                    {/* Database Price & Action */}
+                                    <div className="flex items-center justify-between pt-1.5 mt-1 border-t border-slate-100 shrink-0 w-full">
+                                        <div className="text-xs sm:text-sm font-black text-[#8DB600] tracking-tight">
                                             {currency(p.price, { symbol: '₱' }).format()}
                                         </div>
 
-                                        <div className="w-7 h-7 rounded-lg bg-slate-100 text-slate-600 group-hover:bg-emerald-600 group-hover:text-white flex items-center justify-center transition-all duration-150 shadow-2xs shrink-0">
-                                            <Plus className="w-4 h-4 stroke-[2.5]" />
+                                        <div className="w-5.5 h-5.5 rounded-md bg-slate-100 text-slate-600 group-hover:bg-[#8DB600] group-hover:text-white flex items-center justify-center transition-all duration-150 shadow-2xs shrink-0">
+                                            <Plus className="w-3.5 h-3.5 stroke-[3]" />
                                         </div>
                                     </div>
                                 </button>
                             );
                         })}
+
+                        {/* 8th Slot: Quick Custom Item Tile to keep a balanced 2x4 layout */}
+                        {validProducts.length === 7 && (
+                            <button
+                                type="button"
+                                onClick={openCustomSale}
+                                className="pos-product-card text-left bg-gradient-to-br from-lime-50/50 via-white to-lime-50/80 rounded-2xl border-2 border-dashed border-lime-300 hover:border-[#8DB600] p-2.5 flex flex-col justify-between items-center text-center group cursor-pointer active:scale-[0.98] transition-all min-h-[168px]"
+                            >
+                                <div className="w-9 h-9 rounded-xl bg-lime-100 text-[#8DB600] flex items-center justify-center my-auto group-hover:scale-110 transition-transform">
+                                    <PlusCircle className="w-5 h-5 stroke-[2.2]" />
+                                </div>
+                                <div className="my-auto">
+                                    <span className="text-[9px] font-black uppercase tracking-wider text-[#8DB600] block">Open Sale</span>
+                                    <h4 className="font-extrabold text-xs text-slate-800 mt-0.5">Custom Item / Fee</h4>
+                                    <span className="text-[10px] font-semibold text-slate-400 mt-0.5 block">Shortcut: F3</span>
+                                </div>
+                                <div className="w-full pt-1.5 border-t border-lime-100 mt-auto">
+                                    <span className="text-[10px] font-bold text-[#5f7d00] bg-lime-100 px-2 py-0.5 rounded-md">
+                                        Open Price (₱)
+                                    </span>
+                                </div>
+                            </button>
+                        )}
                     </div>
 
-                    {/* Pagination Controls */}
+                    {/* Pagination Bar */}
                     {totalPages > 1 && (
-                        <div className="flex items-center justify-between bg-white px-4 py-2.5 mt-4 rounded-xl border border-slate-200/80 text-xs text-slate-600 shadow-xs">
+                        <div className="flex items-center justify-between bg-white px-3 py-1.5 mt-2 rounded-xl border border-slate-200/80 text-[11px] text-slate-600 shadow-2xs">
                             <span className="font-semibold text-slate-500">
                                 Page <strong className="text-slate-800">{currentPage}</strong> of {totalPages}
                             </span>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1">
                                 <button
                                     type="button"
                                     disabled={currentPage <= 1}
                                     onClick={() => setCurrentPage && setCurrentPage((prev) => Math.max(1, prev - 1))}
-                                    className="px-3 py-1.5 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed font-bold text-slate-700 flex items-center gap-1 transition-colors"
+                                    className="px-2 py-0.5 border border-slate-200 rounded hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed font-bold text-slate-700 flex items-center gap-0.5 transition-colors text-[10px]"
                                 >
-                                    <ChevronLeft className="w-3.5 h-3.5" /> Prev
+                                    <ChevronLeft className="w-3 h-3" /> Prev
                                 </button>
                                 <button
                                     type="button"
                                     disabled={currentPage >= totalPages}
                                     onClick={() => setCurrentPage && setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                                    className="px-3 py-1.5 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed font-bold text-slate-700 flex items-center gap-1 transition-colors"
+                                    className="px-2 py-0.5 border border-slate-200 rounded hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed font-bold text-slate-700 flex items-center gap-0.5 transition-colors text-[10px]"
                                 >
-                                    Next <ChevronRight className="w-3.5 h-3.5" />
+                                    Next <ChevronRight className="w-3 h-3" />
                                 </button>
                             </div>
                         </div>

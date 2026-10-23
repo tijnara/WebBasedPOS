@@ -1,12 +1,12 @@
 // src/components/pages/POSPage.jsx
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useStore } from '../../store/useStore';
 import { useProducts } from '../../hooks/useProducts';
 import { useCreateSale } from '../../hooks/useCreateSale';
 import { useCreateCustomer } from '../../hooks/useCustomerMutations';
 import { useProductByBarcode } from '../../hooks/useProductByBarcode';
-import { Button, Input } from '../ui';
+import { Button } from '../ui';
 import { usePOSModals } from '../../hooks/usePOSModals';
 import { usePOSCheckout, getLocalDateString, getLocalTimeString } from '../../hooks/usePOSCheckout';
 import { DEBOUNCE_DELAY_MS, DEFAULT_ITEMS_PER_PAGE, CUSTOMER_SEARCH_LIMIT } from '../../config/constants';
@@ -19,7 +19,6 @@ import {
     Keyboard
 } from 'lucide-react';
 
-import TabBar from '../TabBar';
 import POSCart from '../pos/POSCart';
 import POSProductGrid from '../pos/POSProductGrid';
 import CustomerSelectionModal from '../pos/CustomerSelectionModal';
@@ -35,8 +34,22 @@ import { supabase } from '../../lib/supabaseClient';
 export default function POSPage() {
     const queryClient = useQueryClient();
 
+    // Lock page scrolling while on POS
+    useEffect(() => {
+        const originalBodyOverflow = document.body.style.overflow;
+        const originalHtmlOverflow = document.documentElement.style.overflow;
+
+        document.body.style.overflow = 'hidden';
+        document.documentElement.style.overflow = 'hidden';
+
+        return () => {
+            document.body.style.overflow = originalBodyOverflow;
+            document.documentElement.style.overflow = originalHtmlOverflow;
+        };
+    }, []);
+
     const {
-        isCustomerModalOpen, closeCustomerModal,
+        isCustomerModalOpen, openCustomerModal, closeCustomerModal,
         isCustomSaleModalOpen, openCustomSale, closeCustomSale,
         isPaymentModalOpen, openPaymentModal: openPaymentModalHandler, closePaymentModal,
         isCartDrawerOpen, openCartDrawer, closeCartDrawer,
@@ -193,6 +206,7 @@ export default function POSPage() {
         openPaymentModalHandler();
     };
 
+    // Hotkey Products (Dynamically reloaded from DB whenever productsData changes)
     const [hotkeyProducts, setHotkeyProducts] = useState({});
 
     useEffect(() => {
@@ -200,7 +214,7 @@ export default function POSPage() {
             const { data, error } = await supabase
                 .from('products')
                 .select('*')
-                .in('id', [2, 3, 30]);
+                .in('id', [30, 3, 2]);
 
             if (!error && data) {
                 const mapping = {};
@@ -215,15 +229,14 @@ export default function POSPage() {
             }
         };
         fetchHotkeys();
-    }, []);
+    }, [productsData]);
 
     const isServiceProduct = (p) => {
         if (!p) return false;
         if (p.is_custom || p.track_stock === false || String(p.id).startsWith('custom_')) return true;
         const cat = (p.category || '').toLowerCase();
         const name = (p.name || '').toLowerCase();
-        const stock = p.stock ?? p.stock_quantity;
-        return cat.includes('refill') || cat.includes('service') || name.includes('refill') || (stock !== null && stock > 9999);
+        return cat.includes('refill') || cat.includes('service') || name.startsWith('refill');
     };
 
     const handleAdd = (product) => {
@@ -251,8 +264,16 @@ export default function POSPage() {
                 productSearchInputRef.current?.focus();
             }
 
+            if (event.key === 'F2') {
+                event.preventDefault();
+                if (!isCustomerModalOpen && !isPaymentModalOpen) {
+                    openCustomerModal();
+                }
+            }
+
+            // Ascending numeric shortcuts: '1' -> ID 30, '2' -> ID 3, '3' -> ID 2
             if (!isTyping && ['1', '2', '3'].includes(event.key)) {
-                const idMap = { '1': 3, '2': 2, '3': 30 };
+                const idMap = { '1': 30, '2': 3, '3': 2 };
                 const productId = idMap[event.key];
                 const product = hotkeyProducts[productId];
 
@@ -267,7 +288,6 @@ export default function POSPage() {
                 }
             }
 
-            // F3 Hotkey to trigger Custom Sale Item Modal
             if (event.key === 'F3') {
                 event.preventDefault();
                 if (!isCustomSaleModalOpen && !isPaymentModalOpen) {
@@ -310,7 +330,7 @@ export default function POSPage() {
     }, [
         isPaymentModalOpen, isCustomerModalOpen, isCustomSaleModalOpen,
         isScannerOpen, editItemKey, isCartDrawerOpen,
-        openPaymentModal, clearSale, closePaymentModal, closeCustomerModal,
+        openPaymentModal, clearSale, closePaymentModal, openCustomerModal, closeCustomerModal,
         openCustomSale, closeCustomSale, closeScanner, closeEditItem, closeCartDrawer, setSearchTerm,
         hotkeyProducts
     ]);
@@ -340,7 +360,6 @@ export default function POSPage() {
     const handleIncreaseQuantity = (key) => {
         const item = currentSale[key];
         if (item) {
-            // Bypass stock checks for custom / unlisted items or non-stock services
             const isCustom = item.is_custom || item.track_stock === false || String(item.productId || item.id).startsWith('custom_');
             if (isCustom) {
                 addItemToSale({ ...item, id: item.productId || item.id, stock: null }, 1);
@@ -373,7 +392,6 @@ export default function POSPage() {
         const item = currentSale[key];
         if (!item) return;
 
-        // Bypass stock limits for custom items
         const isCustom = item.is_custom || item.track_stock === false || String(item.productId || item.id).startsWith('custom_');
         if (isCustom) {
             updateCartItem(key, { quantity: qty });
@@ -434,31 +452,31 @@ export default function POSPage() {
     };
 
     return (
-        <div className="pos-page flex flex-col md:flex-row gap-4 h-[calc(100vh-5rem)] min-h-[600px] max-w-[1920px] mx-auto overflow-hidden p-2 md:p-4 bg-slate-100">
+        <div className="pos-page flex flex-col md:flex-row gap-2.5 h-full max-h-full w-full overflow-hidden p-2 md:p-2.5 bg-slate-100 box-border">
 
             {/* --- LEFT PANEL: CATALOG & ACTIONS --- */}
-            <div className="flex-1 flex flex-col min-w-0 bg-white dark:bg-slate-900 rounded-[1.25rem] shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden relative z-10">
+            <div className="flex-1 flex flex-col min-w-0 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs border border-slate-200 dark:border-slate-800 overflow-hidden relative z-10 h-full max-h-full min-h-0">
 
-                {/* Header Row: Search & Action Buttons (Apple Green Themed) */}
-                <div className="p-3 md:p-4 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row gap-3 items-center justify-between bg-white dark:bg-slate-900 shrink-0">
+                {/* Header Row: Search & Actions */}
+                <div className="p-2.5 md:p-3 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row gap-2.5 items-center justify-between bg-white dark:bg-slate-900 shrink-0">
                     <div className="relative w-full sm:max-w-md flex items-center group">
-                        <Search className="w-5 h-5 absolute left-3.5 text-slate-400 group-focus-within:text-[#8DB600] transition-colors pointer-events-none z-10" />
+                        <Search className="w-4 h-4 absolute left-3.5 text-slate-400 group-focus-within:text-[#8DB600] transition-colors pointer-events-none z-10" />
                         <input
                             ref={productSearchInputRef}
                             type="text"
                             placeholder="Scan Barcode or Search Product (F1)"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            style={{ paddingLeft: '2.85rem' }}
-                            className="w-full pr-11 h-12 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-[#8DB600] focus:ring-4 focus:ring-[#8DB600]/10 transition-all font-medium text-sm text-slate-900 placeholder:text-slate-400 outline-none"
+                            style={{ paddingLeft: '2.6rem' }}
+                            className="w-full pr-10 h-10 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-[#8DB600] focus:ring-4 focus:ring-[#8DB600]/10 transition-all font-medium text-xs text-slate-900 placeholder:text-slate-400 outline-none"
                         />
                         <button
                             type="button"
                             onClick={handleCameraButtonClick}
-                            className="absolute right-2 p-2 text-slate-400 hover:text-[#8DB600] hover:bg-lime-50 rounded-lg transition-colors outline-none z-10"
+                            className="absolute right-2 p-1.5 text-slate-400 hover:text-[#8DB600] hover:bg-lime-50 rounded-lg transition-colors outline-none z-10"
                             title="Open Camera Scanner"
                         >
-                            <ScanLine className="w-5 h-5" />
+                            <ScanLine className="w-4 h-4" />
                         </button>
                     </div>
 
@@ -466,38 +484,38 @@ export default function POSPage() {
                         <Button
                             variant="outline"
                             onClick={() => setIsScanSalesModalOpen(true)}
-                            className="flex-1 sm:flex-none h-12 px-4 rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-[#5f7d00] hover:border-lime-300 font-bold whitespace-nowrap transition-all active:scale-95"
+                            className="flex-1 sm:flex-none h-10 px-3.5 rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-[#5f7d00] hover:border-lime-300 font-bold whitespace-nowrap transition-all active:scale-95 text-xs"
                         >
-                            <ScanLine className="w-4 h-4 mr-2" /> Scan List
+                            <ScanLine className="w-3.5 h-3.5 mr-1.5" /> Scan List
                         </Button>
                         <Button
                             variant="primary"
                             onClick={openCustomSale}
-                            className="flex-1 sm:flex-none h-12 px-5 rounded-xl shadow-md font-bold whitespace-nowrap transition-all active:scale-95 bg-[#8DB600] hover:bg-[#7ca000] text-white"
+                            className="flex-1 sm:flex-none h-10 px-4 rounded-xl shadow-xs font-bold whitespace-nowrap transition-all active:scale-95 bg-[#8DB600] hover:bg-[#7ca000] text-white text-xs"
                             disabled={isDemo}
                         >
-                            <PlusCircle className="w-4 h-4 mr-2" /> Custom (F3)
+                            <PlusCircle className="w-3.5 h-3.5 mr-1.5" /> Custom (F3)
                         </Button>
                     </div>
                 </div>
 
                 {/* Filters & Quick Keys Area */}
-                <div className="px-3 md:px-4 py-3 border-b border-slate-100 dark:border-slate-800 flex flex-col gap-3 shrink-0 bg-slate-50/50 dark:bg-slate-900">
+                <div className="px-2.5 md:px-3 py-2 border-b border-slate-100 dark:border-slate-800 flex flex-col gap-1.5 shrink-0 bg-slate-50/50 dark:bg-slate-900">
 
                     {/* Category Scroll Container */}
-                    <div className="category-scroll-container flex items-center gap-2 overflow-x-auto pb-2.5 pt-0.5 w-full">
-                        <div className="flex items-center gap-1.5 pr-2.5 border-r border-slate-200 mr-1 shrink-0 text-slate-400">
-                            <Filter className="w-4 h-4" />
-                            <span className="text-[10px] font-bold uppercase tracking-widest hidden sm:inline-block">Filter</span>
+                    <div className="category-scroll-container flex items-center gap-1.5 overflow-x-auto pb-1 w-full">
+                        <div className="flex items-center gap-1 pr-2 border-r border-slate-200 mr-0.5 shrink-0 text-slate-400">
+                            <Filter className="w-3 h-3" />
+                            <span className="text-[9px] font-bold uppercase tracking-wider hidden sm:inline-block">Filter</span>
                         </div>
                         {availableCategories.map((cat) => (
                             <button
                                 key={cat}
                                 onClick={() => { setCategoryFilter(cat); setCurrentPage(1); }}
-                                className={`flex-shrink-0 whitespace-nowrap px-4 py-2 rounded-full text-xs font-bold transition-all select-none ${
+                                className={`flex-shrink-0 whitespace-nowrap px-3 py-1 rounded-full text-[11px] font-bold transition-all select-none ${
                                     categoryFilter === cat
-                                        ? 'bg-slate-800 text-white shadow-md ring-2 ring-slate-800 ring-offset-1'
-                                        : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300'
+                                        ? 'bg-[#8DB600] text-white shadow-2xs'
+                                        : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
                                 }`}
                             >
                                 {cat}
@@ -505,59 +523,65 @@ export default function POSPage() {
                         ))}
                     </div>
 
-                    {/* Quick Add Hotkeys & Shortcut Indicators */}
-                    <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-0.5">
-                        <div className="flex items-center gap-1.5 pr-2 border-r border-slate-200 mr-1 shrink-0">
-                            <img src="/seasidelogo_.png" alt="Seaside" className="w-4 h-4 object-contain" />
-                            <span className="text-[10px] font-bold uppercase tracking-widest hidden sm:inline-block text-slate-600">Quick</span>
+                    {/* Dynamic Quick Add Hotkeys Bar */}
+                    <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+                        <div className="flex items-center gap-1 pr-2 border-r border-slate-200 mr-0.5 shrink-0">
+                            <img src="/seasidelogo_.png" alt="Seaside" className="w-3.5 h-3.5 object-contain" />
+                            <span className="text-[9px] font-bold uppercase tracking-widest hidden sm:inline-block text-slate-600">Quick</span>
                         </div>
 
-                        {[3, 2, 30].map((id, index) => {
-                            const product = hotkeyProducts[id];
-                            if (!product) return null;
-                            const hotkeys = ['1', '2', '3'];
+                        {[
+                            { id: 30, key: '1' },
+                            { id: 3, key: '2' },
+                            { id: 2, key: '3' }
+                        ].map(({ id, key }) => {
+                            const prod = hotkeyProducts[id];
+                            if (!prod) return null;
+
                             return (
                                 <button
                                     key={id}
                                     type="button"
                                     onClick={() => {
-                                        handleAdd(product);
-                                        addToast({ title: 'Quick Add', description: `${product.name} added.`, variant: 'success' });
+                                        handleAdd(prod);
+                                        addToast({ title: 'Quick Add', description: `${prod.name} added.`, variant: 'success' });
                                     }}
-                                    className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 hover:border-lime-400 hover:bg-lime-50 rounded-lg shadow-sm text-xs font-bold text-slate-700 transition-all flex-shrink-0 active:scale-95 group"
+                                    className="flex items-center gap-1.5 px-2.5 py-0.5 bg-white border border-slate-200 hover:border-lime-400 hover:bg-lime-50 rounded-lg shadow-2xs text-[11px] font-bold text-slate-700 transition-all flex-shrink-0 active:scale-95 group"
                                 >
-                                    <kbd className="hidden sm:flex min-w-[18px] h-5 items-center justify-center bg-slate-100 border border-slate-300 rounded text-[10px] text-slate-600 font-bold group-hover:bg-white group-hover:border-lime-300 group-hover:text-[#5f7d00]">
-                                        {hotkeys[index]}
+                                    <kbd className="flex min-w-[16px] h-4 items-center justify-center bg-slate-100 border border-slate-300 rounded text-[9px] text-slate-600 font-bold group-hover:bg-white group-hover:border-lime-300 group-hover:text-[#5f7d00]">
+                                        {key}
                                     </kbd>
-                                    <span className="truncate max-w-[120px]">{product.name}</span>
+                                    <span className="truncate max-w-[130px]">{prod.name}</span>
+                                    <span className="text-[#8DB600] font-black">₱{Number(prod.price).toFixed(2)}</span>
                                 </button>
                             );
                         })}
 
-                        <div className="hidden md:flex items-center gap-3.5 ml-auto text-xs text-slate-400 font-medium shrink-0">
+                        <div className="hidden md:flex items-center gap-2.5 ml-auto text-[11px] text-slate-400 font-medium shrink-0">
                             <span className="flex items-center gap-1">
-                                <Keyboard className="w-3.5 h-3.5 text-slate-400" />
-                                <kbd className="font-mono font-bold text-slate-600 bg-slate-100 px-1 rounded">F1</kbd> Search
+                                <Keyboard className="w-3 h-3 text-slate-400" />
+                                <kbd className="font-mono font-bold text-slate-600 bg-slate-100 px-1 rounded text-[9px]">F1</kbd> Search
                             </span>
                             <span className="flex items-center gap-1">
-                                <kbd className="font-mono font-bold text-[#5f7d00] bg-lime-100 px-1 rounded">F3</kbd> Custom
+                                <kbd className="font-mono font-bold text-slate-600 bg-slate-100 px-1 rounded text-[9px]">F2</kbd> Cust
                             </span>
                             <span className="flex items-center gap-1">
-                                <kbd className="font-mono font-bold text-slate-600 bg-slate-100 px-1 rounded">F4</kbd> Pay
+                                <kbd className="font-mono font-bold text-[#5f7d00] bg-lime-100 px-1 rounded text-[9px]">F3</kbd> Custom
                             </span>
                             <span className="flex items-center gap-1">
-                                <kbd className="font-mono font-bold text-slate-600 bg-slate-100 px-1 rounded">Esc</kbd> Close
+                                <kbd className="font-mono font-bold text-slate-600 bg-slate-100 px-1 rounded text-[9px]">F4</kbd> Pay
                             </span>
                         </div>
                     </div>
                 </div>
 
-                {/* Product Grid Area */}
-                <div className="flex-1 overflow-y-auto p-3 md:p-4 bg-slate-50/50 dark:bg-slate-900/50 relative">
+                {/* --- Product Grid Region --- */}
+                <div className="pos-product-scroll-area flex-1 p-2.5 bg-slate-50/50 dark:bg-slate-900/50 relative min-h-0">
                     <POSProductGrid
                         isLoading={isLoadingProducts}
                         products={products}
                         handleAdd={handleAdd}
+                        openCustomSale={openCustomSale}
                         currentPage={currentPage}
                         totalPages={totalPages}
                         setCurrentPage={setCurrentPage}
@@ -565,8 +589,8 @@ export default function POSPage() {
                 </div>
             </div>
 
-            {/* --- RIGHT PANEL: FIXED CART --- */}
-            <div className="hidden md:flex w-full md:w-[360px] lg:w-[420px] xl:w-[460px] flex-shrink-0 flex-col h-full z-10">
+            {/* --- RIGHT PANEL: CART --- */}
+            <div className="hidden md:flex w-full md:w-[340px] lg:w-[380px] xl:w-[420px] flex-shrink-0 flex-col h-full max-h-full z-10 min-h-0">
                 <POSCart
                     currentSale={currentSale}
                     clearSale={clearSale}
@@ -577,6 +601,8 @@ export default function POSPage() {
                     openPaymentModal={openPaymentModal}
                     createSaleMutation={createSaleMutation}
                     lastCustomer={lastCustomer}
+                    selectedCustomer={selectedCustomer}
+                    openCustomerModal={openCustomerModal}
                     onEditItem={openEditItem}
                     handleSetQuantity={handleSetQuantity}
                     stockWarningKey={stockWarningKey}
@@ -584,7 +610,7 @@ export default function POSPage() {
                 />
             </div>
 
-            {/* --- MODALS --- */}
+            {/* Modals */}
             <CustomerSelectionModal
                 isOpen={isCustomerModalOpen}
                 setIsOpen={closeCustomerModal}
@@ -680,7 +706,7 @@ export default function POSPage() {
                 }}
             />
 
-            {/* --- MOBILE CART BAR --- */}
+            {/* Mobile Cart Bar */}
             {!(isCartDrawerOpen || isPaymentModalOpen) && (
                 <MobileCartBar
                     itemCount={Object.keys(currentSale).length}
@@ -706,8 +732,6 @@ export default function POSPage() {
                 stockWarningKey={stockWarningKey}
                 isDemo={isDemo}
             />
-
-            <TabBar />
         </div>
     );
 }
