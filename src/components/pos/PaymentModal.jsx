@@ -79,26 +79,58 @@ const PaymentModal = ({
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogContent
-                className="p-0 bg-white shadow-2xl rounded-2xl overflow-visible border border-slate-200"
-                style={{ zIndex: 50, maxWidth: '820px', width: '92vw' }}
+                className="p-0 bg-white shadow-2xl rounded-3xl border border-slate-200 overflow-hidden"
+                style={{
+                    zIndex: 100,
+                    width: '94vw',
+                    maxWidth: '820px',
+                    height: '86vh',
+                    maxHeight: '760px',
+                    display: 'flex',
+                    flexDirection: 'column'
+                }}
                 closeOnBackdropClick={false}
             >
-                {/* Header */}
-                <div className="px-5 py-3 border-b border-slate-100 flex justify-between items-center bg-white rounded-t-2xl shrink-0">
-                    <h2 className="text-base font-bold text-gray-900">Complete Sale</h2>
+                {/* Header (Always Visible) */}
+                <div className="px-5 py-3.5 border-b border-slate-100 flex justify-between items-center bg-slate-50/90 shrink-0">
+                    <div className="flex items-center gap-2">
+                        <h2 className="text-base font-bold text-slate-900">Complete Sale</h2>
+                        <span className="text-xs font-black text-[#5f7d00] bg-lime-100 px-2.5 py-0.5 rounded-full">
+                            {currency(subtotal, { symbol: '₱' }).format()}
+                        </span>
+                    </div>
                     <DialogCloseButton onClick={() => setIsOpen(false)} />
                 </div>
 
-                {/* Body */}
-                <div className="p-4 sm:p-5 bg-white overflow-visible">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6 items-start">
+                {/* Body (Scrolls smoothly on all mobile heights) */}
+                <div className="p-4 sm:p-5 bg-white overflow-y-auto flex-1 min-h-0 space-y-4">
 
-                        {/* LEFT COLUMN: Customer Selection & Transaction Meta */}
-                        <div className="flex flex-col gap-3">
-                            {/* Customer Search */}
+                    {/* Top Total Banner */}
+                    <div className="bg-gradient-to-r from-emerald-600 to-lime-600 p-4 rounded-2xl text-white shadow-sm flex items-center justify-between">
+                        <div>
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-100 block">
+                                Total Amount Due
+                            </span>
+                            <span className="text-2xl sm:text-3xl font-black tracking-tight leading-tight">
+                                {currency(subtotal, { symbol: '₱' }).format()}
+                            </span>
+                        </div>
+                        <div className="text-right">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-100 block">
+                                Method
+                            </span>
+                            <span className="text-sm font-extrabold bg-white/20 px-2.5 py-0.5 rounded-lg">
+                                {paymentMethod}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                        {/* Column 1: Customer & Metadata */}
+                        <div className="space-y-3">
                             <div className="relative">
-                                <Label htmlFor="customer-search-payment" className="text-xs font-semibold text-gray-600 mb-1 block">
-                                    Select Customer
+                                <Label htmlFor="customer-search-payment" className="text-xs font-semibold text-gray-700 mb-1 block">
+                                    Customer Account
                                 </Label>
                                 <div className="relative flex items-center">
                                     <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none z-10">
@@ -109,7 +141,7 @@ const PaymentModal = ({
                                     <input
                                         id="customer-search-payment"
                                         type="text"
-                                        placeholder="Search name or phone..."
+                                        placeholder="Search customer name or phone..."
                                         value={searchTerm}
                                         onChange={e => setSearchTerm(e.target.value)}
                                         style={{ paddingLeft: '2.5rem', paddingRight: '2rem' }}
@@ -129,7 +161,6 @@ const PaymentModal = ({
                                     )}
                                 </div>
 
-                                {/* Floating Customer Search Dropdown */}
                                 {showResults && (
                                     <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-xl border border-slate-200 z-50 max-h-48 overflow-y-auto divide-y divide-slate-100">
                                         <button
@@ -197,28 +228,15 @@ const PaymentModal = ({
                                 )}
                             </div>
 
-                            {/* Last Customer Shortcut */}
-                            {lastCustomer && !showResults && (
-                                <button
-                                    type="button"
-                                    className="w-full text-left py-1.5 px-3 bg-slate-50 hover:bg-slate-100 rounded-lg border border-slate-200/80 flex items-center text-xs transition-colors"
-                                    onClick={() => handleSelectCustomerInPayment(lastCustomer)}
-                                    disabled={isDemo}
-                                >
-                                    <span className="text-[10px] uppercase font-bold text-slate-400 mr-2">Recent:</span>
-                                    <span className="font-semibold text-slate-700 truncate">{lastCustomer.name}</span>
-                                </button>
-                            )}
-
-                            {/* Active Customer Card */}
-                            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/90 flex items-center justify-between">
+                            {/* Active Customer Status Card */}
+                            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
                                 <div className="flex items-center gap-2.5 min-w-0">
                                     <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
                                         <UserIcon className="w-4 h-4" />
                                     </div>
                                     <div className="min-w-0">
                                         <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-700 block">
-                                            Selected Customer
+                                            Assigned Customer
                                         </span>
                                         <span className="text-xs font-bold text-slate-800 truncate block">
                                             {selectedCustomer ? selectedCustomer.name : 'Walk-in Customer'}
@@ -241,8 +259,8 @@ const PaymentModal = ({
                                 )}
                             </div>
 
-                            {/* Transaction Date & Time */}
-                            <div className="grid grid-cols-2 gap-2.5 pt-1">
+                            {/* Date / Time */}
+                            <div className="grid grid-cols-2 gap-2.5">
                                 <div>
                                     <Label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">
                                         Date
@@ -251,7 +269,7 @@ const PaymentModal = ({
                                         type="date"
                                         value={saleDate}
                                         onChange={e => setSaleDate(e.target.value)}
-                                        className="w-full h-8 px-2.5 text-xs bg-slate-50 border border-slate-200 rounded-lg outline-none text-slate-700"
+                                        className="w-full h-9 px-2 text-xs bg-slate-50 border border-slate-200 rounded-xl outline-none text-slate-700"
                                         disabled={isDemo}
                                     />
                                 </div>
@@ -263,37 +281,24 @@ const PaymentModal = ({
                                         type="time"
                                         value={saleTime}
                                         onChange={e => setSaleTime(e.target.value)}
-                                        className="w-full h-8 px-2.5 text-xs bg-slate-50 border border-slate-200 rounded-lg outline-none text-slate-700"
+                                        className="w-full h-9 px-2 text-xs bg-slate-50 border border-slate-200 rounded-xl outline-none text-slate-700"
                                         disabled={isDemo}
                                     />
                                 </div>
                             </div>
                         </div>
 
-                        {/* RIGHT COLUMN: Totals, Payment & Change Breakdown */}
-                        <div className="flex flex-col gap-2.5">
-                            {/* Total Amount Banner */}
-                            <div className="bg-gradient-to-r from-emerald-600 to-lime-600 p-3 rounded-xl text-white shadow-xs flex items-center justify-between">
-                                <div>
-                                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-100 block">
-                                        Total Amount Due
-                                    </span>
-                                    <span className="text-2xl font-black tracking-tight leading-tight">
-                                        {currency(subtotal, { symbol: '₱' }).format()}
-                                    </span>
-                                </div>
-                            </div>
-
-                            {/* Payment Method Selection */}
+                        {/* Column 2: Payment Method, Cash Input, & Change Due */}
+                        <div className="space-y-3">
                             <div>
-                                <Label htmlFor="paymentMethod" className="text-xs font-semibold text-gray-600 mb-1 block">
+                                <Label htmlFor="paymentMethod" className="text-xs font-semibold text-gray-700 mb-1 block">
                                     Payment Method
                                 </Label>
                                 <Select
                                     id="paymentMethod"
                                     value={paymentMethod}
                                     onChange={(e) => setPaymentMethod(e.target.value)}
-                                    className="w-full h-9 py-1 text-xs font-bold bg-slate-50 border-slate-200 rounded-xl"
+                                    className="w-full h-10 py-1 text-xs font-bold bg-slate-50 border-slate-200 rounded-xl"
                                     disabled={isDemo}
                                 >
                                     <option value="Cash">Cash</option>
@@ -304,15 +309,14 @@ const PaymentModal = ({
                                 </Select>
                             </div>
 
-                            {/* Cash Input & Change Breakdown */}
                             {paymentMethod === 'Cash' ? (
-                                <div className="space-y-2">
+                                <div className="space-y-2.5">
                                     <div>
-                                        <Label htmlFor="amountReceived" className="text-xs font-semibold text-gray-600 mb-1 block">
+                                        <Label htmlFor="amountReceived" className="text-xs font-semibold text-gray-700 mb-1 block">
                                             Cash Received
                                         </Label>
                                         <div className="relative flex items-center">
-                                            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-base pointer-events-none z-10 select-none">
+                                            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-base pointer-events-none select-none">
                                                 ₱
                                             </span>
                                             <input
@@ -322,7 +326,7 @@ const PaymentModal = ({
                                                 value={amountReceived}
                                                 onChange={e => setAmountReceived(e.target.value)}
                                                 style={{ paddingLeft: '2.5rem' }}
-                                                className="w-full h-10 pr-3 text-lg font-black text-slate-900 bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 rounded-xl outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                className="w-full h-11 pr-3 text-lg font-black text-slate-900 bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 rounded-xl outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                                 placeholder="0.00"
                                                 ref={inputRef}
                                                 disabled={isDemo}
@@ -330,14 +334,14 @@ const PaymentModal = ({
                                         </div>
                                     </div>
 
-                                    {/* Presets */}
+                                    {/* Cash Presets */}
                                     <div className="grid grid-cols-4 gap-1.5">
                                         <Button
                                             type="button"
                                             variant="outline"
                                             size="sm"
                                             onClick={() => setAmountReceived(subtotal.toFixed(2))}
-                                            className="text-xs h-7.5 font-bold bg-white hover:bg-slate-50 rounded-lg border-slate-200"
+                                            className="text-xs h-8 font-bold bg-white hover:bg-slate-50 rounded-xl border-slate-200"
                                             disabled={isDemo}
                                         >
                                             Exact
@@ -349,7 +353,7 @@ const PaymentModal = ({
                                                 variant="outline"
                                                 size="sm"
                                                 onClick={() => setAmountReceived(amt.toString())}
-                                                className="text-xs h-7.5 font-bold bg-white hover:bg-slate-50 rounded-lg border-slate-200"
+                                                className="text-xs h-8 font-bold bg-white hover:bg-slate-50 rounded-xl border-slate-200"
                                                 disabled={isDemo}
                                             >
                                                 ₱{amt}
@@ -358,21 +362,21 @@ const PaymentModal = ({
                                     </div>
 
                                     {/* Change Due Bar */}
-                                    <div className="flex justify-between items-center py-2 px-3.5 bg-emerald-50/70 border border-emerald-200/70 rounded-xl">
+                                    <div className="flex justify-between items-center py-2.5 px-4 bg-emerald-50/80 border border-emerald-200 rounded-2xl">
                                         <span className="text-emerald-800 font-bold text-xs">Change Due</span>
-                                        <span className="text-emerald-700 font-black text-lg">
+                                        <span className="text-emerald-700 font-black text-xl">
                                             {currency(changeDue, { symbol: '₱' }).format()}
                                         </span>
                                     </div>
                                 </div>
                             ) : paymentMethod === 'Charge' ? (
                                 <div className="space-y-2">
-                                    <div className="p-2.5 bg-amber-50 border border-amber-200/80 rounded-xl text-amber-800 text-xs">
+                                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs">
                                         <span className="font-bold block">Charge to Account (Utang)</span>
                                         <span>Amount will be added to the customer's balance.</span>
                                     </div>
                                     {selectedCustomer ? (
-                                        <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs space-y-1">
+                                        <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs space-y-1">
                                             <div className="flex justify-between text-slate-500">
                                                 <span>Current Balance:</span>
                                                 <span className="font-bold">{currency(selectedCustomer.credit_balance || 0, { symbol: '₱' }).format()}</span>
@@ -387,13 +391,13 @@ const PaymentModal = ({
                                             </div>
                                         </div>
                                     ) : (
-                                        <div className="p-2 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs font-semibold text-center">
+                                        <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs font-semibold text-center">
                                             ⚠ Select a registered customer to charge.
                                         </div>
                                     )}
                                 </div>
                             ) : (
-                                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-center text-xs text-slate-500">
+                                <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-center text-xs text-slate-500">
                                     Payment processed via {paymentMethod}.
                                 </div>
                             )}
@@ -401,15 +405,15 @@ const PaymentModal = ({
                     </div>
                 </div>
 
-                {/* Footer Actions */}
-                <div className="px-5 py-3 bg-slate-50 border-t border-slate-100 flex justify-end gap-2.5 rounded-b-2xl shrink-0">
+                {/* Footer (Pinned) */}
+                <div className="px-5 py-3.5 bg-slate-50 border-t border-slate-100 flex justify-end gap-2.5 shrink-0">
                     <Button
                         type="button"
                         variant="outline"
                         onClick={() => setIsOpen(false)}
-                        className="px-4 h-9 text-xs font-bold text-slate-600 bg-white border-slate-200 rounded-xl"
+                        className="px-4 h-10 text-xs font-bold text-slate-600 bg-white border-slate-200 rounded-xl"
                     >
-                        Cancel (Esc)
+                        Cancel
                     </Button>
                     <Button
                         type="button"
@@ -422,7 +426,7 @@ const PaymentModal = ({
                             isDemo
                         }
                         variant="primary"
-                        className="px-6 h-9 text-xs font-extrabold shadow-md bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl"
+                        className="px-6 h-10 text-xs font-extrabold shadow-md bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl"
                     >
                         {createSaleMutation.isPending ? 'Processing...' : 'Confirm Sale (Enter)'}
                     </Button>

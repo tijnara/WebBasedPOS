@@ -203,7 +203,16 @@ export default function POSPage() {
 
         setCustomerSearchTerm('');
         setCustomerSearchResults([]);
-        openPaymentModalHandler();
+
+        // If drawer is currently open on mobile, close it first and mount payment modal smoothly
+        if (isCartDrawerOpen) {
+            closeCartDrawer();
+            setTimeout(() => {
+                openPaymentModalHandler();
+            }, 120);
+        } else {
+            openPaymentModalHandler();
+        }
     };
 
     // Hotkey Products loaded dynamically from DB
@@ -450,13 +459,16 @@ export default function POSPage() {
         openScanner();
     };
 
+    // Helper flag to suppress floating mobile bottom bar when any modal/drawer is open
+    const isAnyModalOpen = isCartDrawerOpen || isPaymentModalOpen || isCustomerModalOpen || isCustomSaleModalOpen || Boolean(editItemKey) || isScannerOpen || isScanSalesModalOpen;
+
     return (
         <div className="pos-page flex flex-col md:flex-row gap-2 h-full max-h-full w-full overflow-hidden p-1.5 md:p-2.5 bg-slate-100 box-border">
 
             {/* --- LEFT PANEL: CATALOG & ACTIONS --- */}
             <div className="flex-1 flex flex-col min-w-0 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs border border-slate-200 dark:border-slate-800 overflow-hidden relative z-10 h-full max-h-full min-h-0">
 
-                {/* Ultra-Compact Header Row: Search + Action Buttons (Single Row on Mobile) */}
+                {/* Ultra-Compact Header Row: Search + Action Buttons */}
                 <div className="p-2 sm:p-2.5 md:p-3 border-b border-slate-100 dark:border-slate-800 flex items-center gap-1.5 sm:gap-2 bg-white dark:bg-slate-900 shrink-0">
                     <div className="relative flex-1 flex items-center group min-w-0">
                         <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 absolute left-3 text-slate-400 group-focus-within:text-[#8DB600] transition-colors pointer-events-none z-10" />
@@ -578,7 +590,7 @@ export default function POSPage() {
                     </div>
                 </div>
 
-                {/* --- Scrollable Product Grid Region with pb-24 for Mobile TabBar clearance --- */}
+                {/* --- Scrollable Product Grid Region --- */}
                 <div className="pos-product-scroll-area flex-1 p-2 sm:p-2.5 pb-24 md:pb-2.5 bg-slate-50/50 dark:bg-slate-900/50 relative min-h-0">
                     <POSProductGrid
                         isLoading={isLoadingProducts}
@@ -592,7 +604,7 @@ export default function POSPage() {
                 </div>
             </div>
 
-            {/* --- RIGHT PANEL: CART (Hidden on mobile, Drawer used instead) --- */}
+            {/* --- RIGHT PANEL: CART (Desktop View) --- */}
             <div className="hidden md:flex w-full md:w-[340px] lg:w-[380px] xl:w-[420px] flex-shrink-0 flex-col h-full max-h-full z-10 min-h-0">
                 <POSCart
                     currentSale={currentSale}
@@ -613,7 +625,7 @@ export default function POSPage() {
                 />
             </div>
 
-            {/* Modals */}
+            {/* Modals & Dialogs */}
             <CustomerSelectionModal
                 isOpen={isCustomerModalOpen}
                 setIsOpen={closeCustomerModal}
@@ -709,16 +721,18 @@ export default function POSPage() {
                 }}
             />
 
-            {/* Mobile Cart Bar */}
-            {!(isCartDrawerOpen || isPaymentModalOpen) && (
+            {/* Mobile Cart Floating Action Bar */}
+            {!isAnyModalOpen && (
                 <MobileCartBar
                     itemCount={Object.keys(currentSale).length}
                     totalQty={totalQty}
                     subtotal={subtotal}
                     onOpenCart={openCartDrawer}
+                    onDirectCheckout={openPaymentModal}
                 />
             )}
 
+            {/* Mobile Slide-Up Cart Drawer */}
             <CartDrawer
                 isOpen={isCartDrawerOpen}
                 onClose={closeCartDrawer}

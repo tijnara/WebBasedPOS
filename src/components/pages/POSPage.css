@@ -47,10 +47,8 @@ body:has(.pos-page) .container,
     overflow: hidden !important;
 }
 
-/* 4. Hide floating mascot button on POS */
-body:has(.pos-page) > div > button.fixed,
-body:has(.pos-page) div[class*="fixed"][class*="bottom-"]:not(.toasts),
-body:has(.pos-page) button[class*="fixed"][class*="bottom-"],
+/* 4. Hide floating mascot and notes buttons on POS, but preserve POS drawers and bars */
+body:has(.pos-page) > div > button.fixed:not(.pos-action),
 body:has(.pos-page) .floating-notes,
 body:has(.pos-page) .floating-messages {
     display: none !important;
