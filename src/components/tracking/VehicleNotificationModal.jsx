@@ -1,21 +1,71 @@
-import React from 'react';
+// src/components/tracking/VehicleNotificationModal.jsx
+import React, { useState, useEffect } from 'react';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { Button } from '../ui';
 
+// Helper to get current date (YYYY-MM-DD) in Asia/Manila timezone
+const getTodayDateString = () => {
+    try {
+        return new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'Asia/Manila',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        }).format(new Date());
+    } catch {
+        return new Date().toISOString().split('T')[0];
+    }
+};
+
+const STORAGE_KEY = 'maintenance_alert_last_shown_date';
+
 export default function VehicleNotificationModal({
-    isOpen,
-    onClose,
-    overdueVehicles = [],
-    dueVehicles = overdueVehicles,
-    overdueFilters = [],
-    dueFilters = overdueFilters,
-    goodFilters = [],
-    allFilters = []
-}) {
+                                                     isOpen,
+                                                     onClose,
+                                                     overdueVehicles = [],
+                                                     dueVehicles = overdueVehicles,
+                                                     overdueFilters = [],
+                                                     dueFilters = overdueFilters,
+                                                     goodFilters = [],
+                                                     allFilters = []
+                                                 }) {
+    const [mounted, setMounted] = useState(false);
+    const [isDismissedToday, setIsDismissedToday] = useState(true);
+
     const vehicles = dueVehicles && dueVehicles.length > 0 ? dueVehicles : (overdueVehicles || []);
     const filters = dueFilters && dueFilters.length > 0 ? dueFilters : (overdueFilters || []);
 
-    if (!isOpen || (vehicles.length === 0 && filters.length === 0)) return null;
+    useEffect(() => {
+        setMounted(true);
+        if (typeof window === 'undefined') return;
+
+        const today = getTodayDateString();
+        const lastShownDate = localStorage.getItem(STORAGE_KEY);
+
+        if (lastShownDate === today) {
+            // Already appeared today: keep disabled and notify parent
+            setIsDismissedToday(true);
+            if (isOpen && onClose) {
+                onClose();
+            }
+        } else if (isOpen && (vehicles.length > 0 || filters.length > 0)) {
+            // First appearance of the day: mark today's date immediately so refreshes won't re-trigger it
+            localStorage.setItem(STORAGE_KEY, today);
+            setIsDismissedToday(false);
+        }
+    }, [isOpen, vehicles.length, filters.length, onClose]);
+
+    // Do not render if not yet mounted, modal closed, already shown today, or no items due
+    if (!mounted || !isOpen || isDismissedToday || (vehicles.length === 0 && filters.length === 0)) {
+        return null;
+    }
+
+    const handleDismiss = () => {
+        const today = getTodayDateString();
+        localStorage.setItem(STORAGE_KEY, today);
+        setIsDismissedToday(true);
+        if (onClose) onClose();
+    };
 
     const hasVehicles = vehicles.length > 0;
     const hasFilters = filters.length > 0;
@@ -58,10 +108,10 @@ export default function VehicleNotificationModal({
                     <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
                         <p className="text-sm text-gray-600 leading-relaxed">
                             {hasVehicles && hasFilters
-                                ? "The following vehicle maintenance and water filters have reached their due interval and require immediate attention:"
+                                ? "The following vehicle maintenance and water filters have reached their maintenance interval and require immediate attention:"
                                 : hasVehicles
-                                ? "The following vehicles have exceeded their maintenance interval and require immediate attention:"
-                                : "The following filters have reached their maintenance interval and require immediate replacement:"}
+                                    ? "The following vehicles have exceeded their maintenance interval and require immediate attention:"
+                                    : "The following filters have reached their maintenance interval and require immediate replacement:"}
                         </p>
 
                         {/* Vehicles Section */}
@@ -138,8 +188,8 @@ export default function VehicleNotificationModal({
                                                     {filter.daysLeft !== undefined && filter.containersLeft !== undefined
                                                         ? `${filter.daysLeft}d left • ${filter.containersLeft} cont. left`
                                                         : filter.daysLeft !== undefined
-                                                        ? `${filter.daysLeft} days left`
-                                                        : 'Good condition'}
+                                                            ? `${filter.daysLeft} days left`
+                                                            : 'Good condition'}
                                                 </span>
                                             </li>
                                         ))}
@@ -159,15 +209,15 @@ export default function VehicleNotificationModal({
                             {hasVehicles && hasFilters
                                 ? "Please complete the required maintenance and update the tracking records to dismiss this alert."
                                 : hasVehicles
-                                ? "Please schedule an oil change and update the tracking records to dismiss this alert."
-                                : "Please schedule filter replacement and update the tracking records to dismiss this alert."}
+                                    ? "Please schedule an oil change and update the tracking records to dismiss this alert."
+                                    : "Please schedule filter replacement and update the tracking records to dismiss this alert."}
                         </p>
                     </div>
 
                     {/* Footer Action */}
                     <div className="pt-2">
                         <Button
-                            onClick={onClose}
+                            onClick={handleDismiss}
                             className="w-full h-11 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-sm"
                         >
                             OK
