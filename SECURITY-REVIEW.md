@@ -1,28 +1,30 @@
 # Security Review
 
 **Review date:** 2026-10-27  
-**Scope:** Checked-out application source, API routes, Supabase client/auth flows, SQL schema and migrations, and Next.js configuration. No live service was contacted.
+**Scope:** Rechecked the current authentication changes and Supabase schema/policies. No live services were contacted.
 
 ## Findings
 
-### HIGH — Plaintext password storage and client-side authentication
+### HIGH — Plaintext password storage and missing user-table RLS
 
-**Files and lines:** `supabase_schema.sql:7-16,68-79,85-107`; `src/lib/api.js:12-16,26-28`; `src/pages/index.js:124-134`  
-**Confidence:** 8/10
+**Files and lines:** `supabase_schema.sql:7-16,86-104`
+**Confidence:** 9/10
 
-The schema stores passwords in plaintext and does not enable row-level security on `public.users`. The app queries that table directly, and registration writes the password into it. If this schema is deployed with the usual Supabase public-schema API grants, an unauthenticated caller may be able to read user records and recover passwords. Writable access could also permit account or role tampering. The checked-in authentication function compares stored plaintext passwords.
+The schema still stores passwords in `public.users.password` as plaintext, and `authenticate_user` compares them directly. Row-level security is not enabled on `public.users`; if the table has standard Supabase anonymous grants, unauthenticated clients may be able to query user rows and obtain passwords. The landing page now calls an RPC instead of selecting the user row directly, but this does not address the underlying storage or table-access risk.
 
-**Recommended remediation:** Use Supabase Auth or a server-side authentication service with strong password hashing. Deny anonymous access to the users table, enable RLS with narrowly scoped policies, and never expose password fields through client queries.
+**Recommended remediation:** Use Supabase Auth or a server-side authentication service with strong password hashing. Deny direct anonymous access to the users table and enable restrictive RLS.
 
 ### HIGH — Unconditional access policies on gallery and incentives
 
-**File and lines:** `supabase_schema.sql:72-79`  
-**Confidence:** 8/10
+**File and lines:** `supabase_schema.sql:75,79`
+**Confidence:** 9/10
 
-The `gallery` and `incentives` tables have `FOR ALL` policies with unconditional `USING (true)` and `WITH CHECK (true)`. These policies are not restricted to an authenticated or authorized role, so any API role granted table access can read, insert, update, or delete these records. This could allow gallery tampering and unauthorized changes to incentive or payout records.
+The `gallery` and `incentives` policies still grant `FOR ALL` access with unconditional `USING (true)` and `WITH CHECK (true)`. These policies are not restricted to authenticated or authorized users, so roles with table grants can read, insert, update, and delete these records, including incentive data.
 
-**Recommended remediation:** Remove the unconditional policies and replace them with least-privilege policies that restrict writes to verified, authorized administrators.
+**Recommended remediation:** Replace the unconditional policies with least-privilege policies tied to authenticated users and server-verified roles.
 
-## Limitations
+## Change status and limitations
 
-The repository alone cannot establish whether the checked-in schema and migrations match the deployed database, the live Supabase grants and RLS configuration, deployment environment variables, or production hosting headers. Exposure depends in part on the deployed Supabase grants. Dependency advisories and runtime behavior were not tested.
+The landing page no longer directly selects users or compares passwords in the browser; it now calls `authenticate_user` (`src/lib/api.js:27-32`). This improves the client-side access path but does not remediate plaintext password storage or missing RLS.
+
+The registration code calls `create_new_user` (`src/lib/api.js:94-103`), which is not defined in the checked-in repository. Its password hashing and server-side enforcement of admin/approval flags could not be verified. The deployed database's actual schema, grants, policies, and production configuration also could not be confirmed from repository files alone.
