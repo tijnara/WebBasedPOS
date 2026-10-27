@@ -136,7 +136,7 @@ export default function SalaryMonitoringPage() {
     const selectedPayrollEmp = employees?.find(e => String(e.id) === String(payrollEmpId));
     const payrollEmpName = selectedPayrollEmp?.name || '';
 
-    // Calculate Gross Salary based on positive salary entries in Salary History
+    // Gross Salary based on positive salary entries
     const payrollGross = useMemo(() => {
         if (!payrollEmpName || !salaryRecords) return 0;
         return salaryRecords
@@ -144,7 +144,7 @@ export default function SalaryMonitoringPage() {
             .reduce((sum, r) => sum + Number(r.amount), 0);
     }, [payrollEmpName, salaryRecords]);
 
-    // Robust bidirectional deduction linking with Employee Debt Management
+    // Active deduction mapping
     const activeDeductions = useMemo(() => {
         if (!payrollEmpId || !payrollDate) return [];
 
@@ -164,7 +164,6 @@ export default function SalaryMonitoringPage() {
         const cleanEmpName = (payrollEmpName || '').trim().toLowerCase();
         const firstName = cleanEmpName.split(' ')[0];
 
-        // 1. Identify all employee debts for this staff member
         const empDebts = debts.filter(d => {
             const isEmployeeType = d.type?.toLowerCase() === 'employee';
             if (!isEmployeeType) return false;
@@ -180,7 +179,6 @@ export default function SalaryMonitoringPage() {
             return isIdMatch || isNameMatch;
         });
 
-        // 2. Calculate remaining balance and active deduction per debt
         return empDebts.map(debt => {
             const debtPayments = (debt.debt_payments || []).filter(
                 p => !p.debt_id || String(p.debt_id) === String(debt.id)
@@ -199,7 +197,6 @@ export default function SalaryMonitoringPage() {
                 scheduledDeduction = remainingDebt;
             }
 
-            // Exclude already processed payments in this specific cutoff
             const paymentsInPeriod = debtPayments.filter(p => {
                 if (!p.date_paid) return false;
                 const pDate = new Date(`${p.date_paid}T00:00:00+08:00`);
@@ -228,10 +225,11 @@ export default function SalaryMonitoringPage() {
     const payrollNet = payrollGross - payrollTotalDeductions;
 
     const filteredRecords = useMemo(() => {
+        if (!salaryRecords) return [];
         if (filterEmployee === 'all') {
             return salaryRecords;
         }
-        return salaryRecords?.filter(r => r.employee_name === filterEmployee);
+        return salaryRecords.filter(r => r.employee_name === filterEmployee);
     }, [salaryRecords, filterEmployee]);
 
     const groupedRecords = useMemo(() => {
@@ -247,14 +245,13 @@ export default function SalaryMonitoringPage() {
     }, [filteredRecords]);
 
     const periodTotal = useMemo(() => {
-        return filteredRecords?.reduce((sum, record) => sum + Number(record.amount), 0) || 0;
+        return filteredRecords.reduce((sum, record) => sum + Number(record.amount || 0), 0);
     }, [filteredRecords]);
 
     if (!isAdmin) {
         return <div className="p-10 text-center text-red-500 font-bold">Access Denied. Admins only.</div>;
     }
 
-    // --- DATE FILTER LOGIC ---
     const handleApplyCustomDate = () => {
         if (customStartDate && customEndDate) {
             setPeriod({
@@ -270,9 +267,6 @@ export default function SalaryMonitoringPage() {
         setIsCustomRangeActive(false);
     };
 
-    // ============================================================
-    // HANDLER: AUTOMATED PAYROLL
-    // ============================================================
     const handleProcessPayroll = async (e) => {
         e.preventDefault();
         if (!payrollEmpName || !payrollDate) return;
@@ -307,9 +301,6 @@ export default function SalaryMonitoringPage() {
         }
     };
 
-    // ============================================================
-    // HANDLER: MANUAL SALARY ENTRY
-    // ============================================================
     const handleEmployeeSelect = (e) => {
         setEmployeeName(e.target.value);
         setExcessMultiplier('1');
@@ -369,7 +360,6 @@ export default function SalaryMonitoringPage() {
         }
     };
 
-    // --- EMPLOYEE MANAGEMENT LOGIC ---
     const handleSaveEmployee = async (e) => {
         e.preventDefault();
         if (!empFormName.trim()) return;
@@ -447,7 +437,6 @@ export default function SalaryMonitoringPage() {
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
-                {/* Automated Payroll Calculator */}
                 <AutoPayrollCard
                     payrollEmpId={payrollEmpId}
                     setPayrollEmpId={setPayrollEmpId}
@@ -462,7 +451,6 @@ export default function SalaryMonitoringPage() {
                     isPending={processDeductionsMutation.isPending}
                 />
 
-                {/* Manual Record Salary Entry */}
                 <ManualSalaryCard
                     employeeName={employeeName}
                     handleEmployeeSelect={handleEmployeeSelect}
@@ -495,13 +483,13 @@ export default function SalaryMonitoringPage() {
                 handleApplyCustomDate={handleApplyCustomDate}
                 isSalaryLoading={isSalaryLoading}
                 groupedRecords={groupedRecords}
+                filteredRecords={filteredRecords}
                 handleSetPeriod={handleSetPeriod}
                 getPrevPeriod={getPrevPeriod}
                 getNextPeriod={getNextPeriod}
                 isCustomRangeActive={isCustomRangeActive}
             />
 
-            {/* Employee Management Modal */}
             <EmployeeManagementModal
                 isManageModalOpen={isManageModalOpen}
                 setIsManageModalOpen={setIsManageModalOpen}
