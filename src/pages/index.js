@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabaseClient';
 import { useStore } from '../store/useStore';
 import { useForm } from 'react-hook-form';
 import { useSettings } from '../hooks/useSettings';
+import { login, register as registerAccount } from '../lib/api';
 
 export default function SeasideNewLanding() {
     const router = useRouter();
@@ -45,30 +46,23 @@ export default function SeasideNewLanding() {
         }
 
         try {
-            const { data: userPayload, error: rpcError } = await supabase.rpc(
-                'authenticate_user',
-                {
-                    p_email: data.email.trim().toLowerCase(),
-                    p_password: data.password,
-                }
-            );
+            const user = await login({
+                email: data.email,
+                password: data.password,
+            });
 
-            if (rpcError) throw rpcError;
-
-            // RPC flagged pending approval
-            if (userPayload?.status === 'PENDING_APPROVAL') {
-                setAuthError(userPayload.message || 'Your account is pending administrator approval before you can access the system.');
+            if (user?.status === 'PENDING_APPROVAL') {
+                setAuthError(user.message || 'Your account is pending administrator approval before you can access the system.');
                 return;
             }
 
-            // Client-side fail-safe check for approval status
-            if (userPayload && userPayload.id) {
-                if (userPayload.is_approved === false && !userPayload.isadmin) {
+            if (user && user.id) {
+                if (user.is_approved === false && !user.isadmin && user.role !== 'Admin') {
                     setAuthError('Your account is pending administrator approval before you can access the system.');
                     return;
                 }
 
-                const finalPayload = { ...userPayload, isDemo: false };
+                const finalPayload = { ...user, isDemo: false };
                 setAuth(finalPayload);
                 router.push('/pos');
             } else {
@@ -76,7 +70,7 @@ export default function SeasideNewLanding() {
             }
         } catch (err) {
             console.error('Login exception:', err.message);
-            setAuthError('An error occurred during login. Please try again.');
+            setAuthError(err.message || 'An error occurred during login. Please try again.');
         }
     };
 
@@ -106,37 +100,17 @@ export default function SeasideNewLanding() {
         const cleanName = data.name.trim();
 
         try {
-            // 1. Check if email already exists
-            const { data: existingUser, error: checkError } = await supabase
-                .from('users')
-                .select('id')
-                .eq('email', cleanEmail)
-                .maybeSingle();
+            // Register through secure server-side RPC (pgcrypto bcrypt hashing)
+            await registerAccount({
+                name: cleanName,
+                email: cleanEmail,
+                phone: cleanPhone,
+                password: data.password,
+                isAdmin: false,
+                isApproved: false,
+                categoryId: 2
+            });
 
-            if (checkError) console.warn('Check user error:', checkError.message);
-
-            if (existingUser) {
-                setRegError('An account with this email already exists. Please sign in instead.');
-                return;
-            }
-
-            // 2. Insert record: unapproved (is_approved: false) and non-admin (isadmin: false)
-            const { error: insertError } = await supabase
-                .from('users')
-                .insert([{
-                    name: cleanName,
-                    email: cleanEmail,
-                    phone: cleanPhone,
-                    password: data.password,
-                    isadmin: false,
-                    is_approved: false,
-                    is_demo: false,
-                    category_id: 2
-                }]);
-
-            if (insertError) throw insertError;
-
-            // 3. Keep user on landing page, switch back to login card, and prompt for approval
             resetSignUp();
             setActiveCard('login');
             setRegSuccess('Registration submitted! Your account is currently pending administrator approval. Please wait for an admin to approve your access before signing in.');
@@ -230,7 +204,6 @@ export default function SeasideNewLanding() {
                 </div>
 
                 <div className="flex items-center space-x-6 sm:space-x-8 md:space-x-12 text-sm font-semibold tracking-wide relative z-50">
-                    {/* About Link */}
                     <div className="relative flex justify-center">
                         <a
                             href="/about"
@@ -240,7 +213,6 @@ export default function SeasideNewLanding() {
                             About
                         </a>
 
-                        {/* Rainbow Pointer */}
                         <div className="absolute top-[120%] left-1/2 transform -translate-x-1/2 flex flex-col items-center pointer-events-none w-[160px] sm:w-[200px] z-[100]">
                             <svg className="w-5 h-5 sm:w-6 sm:h-6 animate-bounce mb-1 drop-shadow-md" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <defs>
@@ -257,7 +229,6 @@ export default function SeasideNewLanding() {
                         </div>
                     </div>
 
-                    {/* Contact Link */}
                     <button onClick={handleContactClick} className="hover:text-green-700 transition-colors duration-300 cursor-pointer outline-none font-bold">
                         {activeCard === 'contact' ? 'Login' : 'Contact'}
                     </button>
@@ -296,7 +267,6 @@ export default function SeasideNewLanding() {
                         <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-gradient-to-br from-lime-400 to-green-500 rounded-full blur-2xl opacity-50 z-0"></div>
                         <div className="relative z-10 w-full">
 
-                            {/* --- TAB SELECTOR (SIGN IN VS STAFF SIGN UP) --- */}
                             {activeCard !== 'contact' && (
                                 <div className="flex bg-slate-200/70 p-1 rounded-2xl mb-6 border border-slate-300/40">
                                     <button
@@ -332,7 +302,6 @@ export default function SeasideNewLanding() {
                                         <p className="text-slate-500 font-medium text-sm">Log in to your Seaside dashboard.</p>
                                     </div>
 
-                                    {/* Success notification after signup */}
                                     {regSuccess && (
                                         <div className="mb-4 rounded-xl bg-amber-50 p-3.5 text-xs font-semibold text-amber-800 border border-amber-200 flex items-start gap-2">
                                             <span className="text-base leading-none">⏳</span>
@@ -340,7 +309,6 @@ export default function SeasideNewLanding() {
                                         </div>
                                     )}
 
-                                    {/* Auth error / pending approval warning */}
                                     {authError && (
                                         <div className="mb-4 rounded-xl bg-red-50 p-4 text-sm font-medium text-red-600 border border-red-100 flex items-start">
                                             <svg className="w-5 h-5 mr-2 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
@@ -354,7 +322,7 @@ export default function SeasideNewLanding() {
                                         <div className="space-y-1">
                                             <label className="text-xs font-bold uppercase tracking-wider text-slate-700 ml-1">Username or Email</label>
                                             <input
-                                                type="email"
+                                                type="text"
                                                 {...registerLogin('email', { required: true })}
                                                 className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-green-500/20 focus:border-green-500 transition-all font-medium text-sm text-slate-900 placeholder-slate-400"
                                                 placeholder="name@seaside.com"
@@ -446,7 +414,6 @@ export default function SeasideNewLanding() {
                                     )}
 
                                     <form className="space-y-2.5" onSubmit={handleSignUpSubmit(onSignUp)}>
-                                        {/* Name Field */}
                                         <div className="space-y-0.5">
                                             <label className="text-[11px] font-bold uppercase tracking-wider text-slate-700 ml-1">
                                                 Full Name <span className="text-red-500">*</span>
@@ -460,7 +427,6 @@ export default function SeasideNewLanding() {
                                             {signUpErrors.name && <p className="text-red-500 text-[10px] ml-1 font-semibold">{signUpErrors.name.message}</p>}
                                         </div>
 
-                                        {/* Email Field */}
                                         <div className="space-y-0.5">
                                             <label className="text-[11px] font-bold uppercase tracking-wider text-slate-700 ml-1">
                                                 Email Address <span className="text-red-500">*</span>
@@ -477,7 +443,6 @@ export default function SeasideNewLanding() {
                                             {signUpErrors.email && <p className="text-red-500 text-[10px] ml-1 font-semibold">{signUpErrors.email.message}</p>}
                                         </div>
 
-                                        {/* Phone Number Field */}
                                         <div className="space-y-0.5">
                                             <label className="text-[11px] font-bold uppercase tracking-wider text-slate-700 ml-1">
                                                 Phone Number <span className="text-red-500">*</span>
@@ -494,7 +459,6 @@ export default function SeasideNewLanding() {
                                             {signUpErrors.phone && <p className="text-red-500 text-[10px] ml-1 font-semibold">{signUpErrors.phone.message}</p>}
                                         </div>
 
-                                        {/* Password Field */}
                                         <div className="space-y-0.5">
                                             <label className="text-[11px] font-bold uppercase tracking-wider text-slate-700 ml-1">
                                                 Password <span className="text-red-500">*</span>
@@ -511,7 +475,6 @@ export default function SeasideNewLanding() {
                                             {signUpErrors.password && <p className="text-red-500 text-[10px] ml-1 font-semibold">{signUpErrors.password.message}</p>}
                                         </div>
 
-                                        {/* Confirm Password Field */}
                                         <div className="space-y-0.5">
                                             <label className="text-[11px] font-bold uppercase tracking-wider text-slate-700 ml-1">
                                                 Confirm Password <span className="text-red-500">*</span>
@@ -613,7 +576,6 @@ export default function SeasideNewLanding() {
     );
 }
 
-// Helper component for the dynamic feature list items
 function Feature({ icon, text }) {
     const renderIcon = () => {
         switch (icon) {
