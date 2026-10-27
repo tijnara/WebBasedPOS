@@ -9,7 +9,15 @@ import { useProducts } from '../../hooks/useProducts';
 import { useDeleteSale } from '../../hooks/useDeleteSale';
 import { useDebounce } from '../../hooks/useDebounce';
 import { useStore } from '../../store/useStore';
-import { format, startOfWeek, endOfWeek } from 'date-fns';
+import {
+    format,
+    startOfWeek,
+    endOfWeek,
+    startOfMonth,
+    endOfMonth,
+    subDays,
+    subWeeks
+} from 'date-fns';
 import {
     Button, Input, Select, Dialog, DialogContent,
     DialogTitle, DialogCloseButton, Label
@@ -52,7 +60,9 @@ const EditSaleModal = ({ sale, isOpen, onClose }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         const amt = parseFloat(amountReceived);
-        const change = paymentMethod === 'Cash' && amt >= sale.totalAmount ? amt - sale.totalAmount : 0;
+        const change = paymentMethod === 'Cash' && amt >= sale.totalAmount
+            ? amt - sale.totalAmount
+            : 0;
 
         await updateSaleMutation.mutateAsync({
             saleId: sale.id,
@@ -163,7 +173,6 @@ const ReportPage = () => {
     const searchParams = useSearchParams();
     const user = useStore(state => state.user);
 
-    // Comprehensive Admin / Owner resolution
     const isAdmin = useMemo(() => {
         if (!user) return false;
         if (user.isAdmin || user.is_admin || user.isSuperAdmin) return true;
@@ -255,7 +264,7 @@ const ReportPage = () => {
         }
         const startStr = interval.start ? format(interval.start, 'MMM d, yyyy') : 'Start';
         const endStr = interval.end ? format(interval.end, 'MMM d, yyyy') : 'Present';
-        return `${startStr} - ${endStr}`;
+        return `${startStr} — ${endStr}`;
     }, [interval]);
 
     const {
@@ -412,7 +421,7 @@ const ReportPage = () => {
         }
         const startStr = interval.start ? format(interval.start, 'MMM d, yyyy') : 'Start';
         const endStr = interval.end ? format(interval.end, 'MMM d, yyyy') : 'Present';
-        return `${startStr} - ${endStr}`;
+        return `${startStr} — ${endStr}`;
     }, [interval]);
 
     const handleTabChange = (tab) => {
@@ -429,6 +438,45 @@ const ReportPage = () => {
     const handleToDateChange = (e) => {
         setToDate(e.target.value);
         setCurrentPage(1);
+    };
+
+    // Quick Date Presets Handler
+    const handlePresetRange = (preset) => {
+        const today = new Date();
+        setCurrentPage(1);
+
+        switch (preset) {
+            case 'today': {
+                const d = format(today, 'yyyy-MM-dd');
+                setFromDate(d);
+                setToDate(d);
+                break;
+            }
+            case 'yesterday': {
+                const y = format(subDays(today, 1), 'yyyy-MM-dd');
+                setFromDate(y);
+                setToDate(y);
+                break;
+            }
+            case 'this_week': {
+                setFromDate(format(startOfWeek(today, { weekStartsOn: 1 }), 'yyyy-MM-dd'));
+                setToDate(format(endOfWeek(today, { weekStartsOn: 1 }), 'yyyy-MM-dd'));
+                break;
+            }
+            case 'last_week': {
+                const lastWeekDate = subWeeks(today, 1);
+                setFromDate(format(startOfWeek(lastWeekDate, { weekStartsOn: 1 }), 'yyyy-MM-dd'));
+                setToDate(format(endOfWeek(lastWeekDate, { weekStartsOn: 1 }), 'yyyy-MM-dd'));
+                break;
+            }
+            case 'this_month': {
+                setFromDate(format(startOfMonth(today), 'yyyy-MM-dd'));
+                setToDate(format(endOfMonth(today), 'yyyy-MM-dd'));
+                break;
+            }
+            default:
+                break;
+        }
     };
 
     const handleClearRange = () => {
@@ -486,9 +534,9 @@ const ReportPage = () => {
                     value={`₱${(monthlyGrowthData?.thisMonthSales || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                     previousValue={`₱${(monthlyGrowthData?.lastMonthSales || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                     previousPeriodRange={monthlyGrowthData?.lastMonthStart ? `(${format(monthlyGrowthData.lastMonthStart, 'MMM d')} - ${format(monthlyGrowthData.lastMonthEnd, 'd')})` : undefined}
-                    percentage={Math.abs(monthlyGrowthData?.salesGrowth)}
-                    isPositive={monthlyGrowthData?.salesGrowth >= 0}
-                    isPositiveColor={monthlyGrowthData?.thisMonthSales >= monthlyGrowthData?.lastMonthSales}
+                    percentage={Math.abs(monthlyGrowthData?.salesGrowth || 0)}
+                    isPositive={(monthlyGrowthData?.salesGrowth || 0) >= 0}
+                    isPositiveColor={(monthlyGrowthData?.thisMonthSales || 0) >= (monthlyGrowthData?.lastMonthSales || 0)}
                     comparisonText={`(${format(monthlyGrowthData?.thisMonthStart || new Date(), 'MMM d')} - ${format(monthlyGrowthData?.thisMonthEnd || new Date(), 'd')}) vs. (${format(monthlyGrowthData?.lastMonthStart || new Date(), 'MMM d')} - ${format(monthlyGrowthData?.lastMonthEnd || new Date(), 'd')})`}
                 />
                 <SummaryCard
@@ -497,9 +545,9 @@ const ReportPage = () => {
                     value={`${(monthlyGrowthData?.thisMonthGallons || 0).toLocaleString()} gal`}
                     previousValue={`${(monthlyGrowthData?.lastMonthGallons || 0).toLocaleString()} gal`}
                     previousPeriodRange={monthlyGrowthData?.lastMonthStart ? `(${format(monthlyGrowthData.lastMonthStart, 'MMM d')} - ${format(monthlyGrowthData.lastMonthEnd, 'd')})` : undefined}
-                    percentage={Math.abs(monthlyGrowthData?.gallonsGrowth)}
-                    isPositive={monthlyGrowthData?.gallonsGrowth >= 0}
-                    isPositiveColor={monthlyGrowthData?.thisMonthGallons >= monthlyGrowthData?.lastMonthGallons}
+                    percentage={Math.abs(monthlyGrowthData?.gallonsGrowth || 0)}
+                    isPositive={(monthlyGrowthData?.gallonsGrowth || 0) >= 0}
+                    isPositiveColor={(monthlyGrowthData?.thisMonthGallons || 0) >= (monthlyGrowthData?.lastMonthGallons || 0)}
                     comparisonText={`(${format(monthlyGrowthData?.thisMonthStart || new Date(), 'MMM d')} - ${format(monthlyGrowthData?.thisMonthEnd || new Date(), 'd')}) vs. (${format(monthlyGrowthData?.lastMonthStart || new Date(), 'MMM d')} - ${format(monthlyGrowthData?.lastMonthEnd || new Date(), 'd')})`}
                 />
                 <SummaryCard
@@ -508,9 +556,9 @@ const ReportPage = () => {
                     value={`₱${(weeklyGrowthData?.thisWeekSales || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                     previousValue={`₱${(weeklyGrowthData?.lastWeekSales || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                     previousPeriodRange={weeklyGrowthData?.lastWeekStart ? `(${format(weeklyGrowthData.lastWeekStart, 'MMM d')} - ${format(weeklyGrowthData.lastWeekEnd, 'd')})` : undefined}
-                    percentage={Math.abs(weeklyGrowthData?.salesGrowth)}
-                    isPositive={weeklyGrowthData?.salesGrowth >= 0}
-                    isPositiveColor={weeklyGrowthData?.thisWeekSales >= weeklyGrowthData?.lastWeekSales}
+                    percentage={Math.abs(weeklyGrowthData?.salesGrowth || 0)}
+                    isPositive={(weeklyGrowthData?.salesGrowth || 0) >= 0}
+                    isPositiveColor={(weeklyGrowthData?.thisWeekSales || 0) >= (weeklyGrowthData?.lastWeekSales || 0)}
                     comparisonText={`(${format(weeklyGrowthData?.thisWeekStart || new Date(), 'MMM d')} - ${format(weeklyGrowthData?.thisWeekEnd || new Date(), 'd')}) vs. (${format(weeklyGrowthData?.lastWeekStart || new Date(), 'MMM d')} - ${format(weeklyGrowthData?.lastWeekEnd || new Date(), 'd')})`}
                 />
                 <SummaryCard
@@ -519,9 +567,9 @@ const ReportPage = () => {
                     value={`${(weeklyGrowthData?.thisWeekGallons || 0).toLocaleString()} gal`}
                     previousValue={`${(weeklyGrowthData?.lastWeekGallons || 0).toLocaleString()} gal`}
                     previousPeriodRange={weeklyGrowthData?.lastWeekStart ? `(${format(weeklyGrowthData.lastWeekStart, 'MMM d')} - ${format(weeklyGrowthData.lastWeekEnd, 'd')})` : undefined}
-                    percentage={Math.abs(weeklyGrowthData?.gallonsGrowth)}
-                    isPositive={weeklyGrowthData?.gallonsGrowth >= 0}
-                    isPositiveColor={weeklyGrowthData?.thisWeekGallons >= weeklyGrowthData?.lastWeekGallons}
+                    percentage={Math.abs(weeklyGrowthData?.gallonsGrowth || 0)}
+                    isPositive={(weeklyGrowthData?.gallonsGrowth || 0) >= 0}
+                    isPositiveColor={(weeklyGrowthData?.thisWeekGallons || 0) >= (weeklyGrowthData?.lastWeekGallons || 0)}
                     comparisonText={`(${format(weeklyGrowthData?.thisWeekStart || new Date(), 'MMM d')} - ${format(weeklyGrowthData?.thisWeekEnd || new Date(), 'd')}) vs. (${format(weeklyGrowthData?.lastWeekStart || new Date(), 'MMM d')} - ${format(weeklyGrowthData?.lastWeekEnd || new Date(), 'd')})`}
                 />
             </div>
@@ -574,6 +622,7 @@ const ReportPage = () => {
                     handleFromDateChange={handleFromDateChange}
                     toDate={toDate}
                     handleToDateChange={handleToDateChange}
+                    handlePresetRange={handlePresetRange}
                     selectedProductId={selectedProductId}
                     setSelectedProductId={setSelectedProductId}
                     availableProducts={availableProducts}
@@ -601,7 +650,6 @@ const ReportPage = () => {
 
             {activeTab === 'inactive' && <LapsedCustomersTab enabled={activeTab === 'inactive'} />}
 
-            {/* Admin Delete Confirmation Modal */}
             <DeleteConfirmationModal
                 isOpen={isModalOpen}
                 onClose={closeDeleteModal}
@@ -610,7 +658,6 @@ const ReportPage = () => {
                 isSuccess={deleteSaleMutation.isSuccess}
             />
 
-            {/* Admin Edit Sale Modal */}
             <EditSaleModal
                 sale={editingSale}
                 isOpen={!!editingSale}

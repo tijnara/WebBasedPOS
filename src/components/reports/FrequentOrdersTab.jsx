@@ -1,140 +1,236 @@
+// src/components/reports/FrequentOrdersTab.jsx
+import React from 'react';
 import { Input } from '../ui';
 import Pagination from '../Pagination';
+import { Trophy, Search, ArrowUpDown, ArrowUp, ArrowDown, X } from 'lucide-react';
+
+const highlightMatch = (text = '', query = '') => {
+    if (!query.trim() || !text) return text;
+    const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    const parts = text.split(regex);
+    return parts.map((part, i) =>
+        regex.test(part) ? (
+            <mark key={i} className="bg-lime-200 text-slate-900 rounded-xs px-0.5 font-black">
+                {part}
+            </mark>
+        ) : (
+            part
+        )
+    );
+};
 
 const FrequentOrdersTab = ({
-    customerSearch,
-    setCustomerSearch,
-    frequentMonth,
-    setFrequentMonth,
-    frequentPage,
-    setFrequentPage,
-    isLoadingFrequent,
-    frequentData,
-    handleFrequentSort,
-    frequentSortCol,
-    frequentSortDesc,
-    FREQUENT_PAGE_SIZE,
-}) => (
-    <div className="bg-white rounded-lg shadow-sm p-4 md:p-6">
-        <div className="flex flex-col md:flex-row justify-between md:items-end mb-6 gap-4">
-            <div>
-                <h2 className="text-lg font-semibold text-gray-800">Frequent Customers</h2>
-                <p className="text-sm text-gray-500">Customers with the most orders for the selected month.</p>
-            </div>
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full md:w-auto">
-                <div className="flex-1 w-full sm:w-56">
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Search Customer</label>
-                    <div className="flex items-center gap-2">
+                               customerSearch,
+                               setCustomerSearch,
+                               frequentMonth,
+                               setFrequentMonth,
+                               frequentPage,
+                               setFrequentPage,
+                               isLoadingFrequent,
+                               frequentData,
+                               handleFrequentSort,
+                               frequentSortCol,
+                               frequentSortDesc,
+                               FREQUENT_PAGE_SIZE = 10,
+                           }) => {
+    const customers = frequentData?.customers || [];
+    const totalCount = frequentData?.totalCount || 0;
+    const totalPages = frequentData?.totalPages || 1;
+
+    const renderRankBadge = (rank) => {
+        if (rank === 1) {
+            return (
+                <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-100 text-amber-800 border border-amber-300 font-black text-xs shadow-2xs">
+                    1
+                </span>
+            );
+        }
+        if (rank === 2) {
+            return (
+                <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-200 text-slate-700 border border-slate-300 font-black text-xs shadow-2xs">
+                    2
+                </span>
+            );
+        }
+        if (rank === 3) {
+            return (
+                <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-orange-100 text-orange-800 border border-orange-200 font-black text-xs shadow-2xs">
+                    3
+                </span>
+            );
+        }
+        return <span className="font-bold text-slate-400 text-xs pl-1.5">{rank}</span>;
+    };
+
+    return (
+        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-4 sm:p-6 space-y-5 animate-in fade-in duration-200">
+            {/* Header Toolbar */}
+            <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 pb-4 border-b border-slate-100">
+                <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-lime-100 text-[#5f7d00] flex items-center justify-center shrink-0 shadow-2xs">
+                        <Trophy className="w-5 h-5 stroke-[2.2]" />
+                    </div>
+                    <div>
+                        <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+                            Frequent Customers & Order Leaders
+                        </h2>
+                        <p className="text-xs text-slate-500 font-medium">
+                            Customers with highest order frequency for the selected calendar month.
+                        </p>
+                    </div>
+                </div>
+
+                {/* Filters */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full md:w-auto">
+                    {/* Fixed Search Input */}
+                    <div className="relative w-full sm:w-64">
+                        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                         <Input
                             type="text"
-                            placeholder="Search by name..."
+                            placeholder="Filter by customer name..."
                             value={customerSearch}
                             onChange={(e) => {
                                 setCustomerSearch(e.target.value);
                                 setFrequentPage(1);
                             }}
-                            className="h-10 w-full"
+                            className="h-9 !pl-10 !pr-8 text-xs rounded-xl bg-slate-50/70 border-slate-200 focus:bg-white w-full"
+                            style={{ paddingLeft: '2.5rem', paddingRight: customerSearch ? '2rem' : '0.75rem' }}
                         />
                         {customerSearch && (
                             <button
-                                className="text-gray-500 hover:text-gray-700 h-10 px-2 flex-shrink-0"
+                                type="button"
                                 onClick={() => {
                                     setCustomerSearch('');
                                     setFrequentPage(1);
                                 }}
+                                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-700 transition-colors"
                                 title="Clear search"
                             >
-                                ✕
+                                <X className="w-3.5 h-3.5" />
                             </button>
                         )}
                     </div>
+
+                    {/* Month Selector */}
+                    <div className="flex items-center gap-1.5">
+                        <Input
+                            type="month"
+                            value={frequentMonth}
+                            onChange={(e) => {
+                                setFrequentMonth(e.target.value);
+                                setFrequentPage(1);
+                            }}
+                            className="h-9 text-xs rounded-xl bg-slate-50/70 border-slate-200 focus:bg-white font-bold text-slate-700 w-full sm:w-auto"
+                        />
+                    </div>
                 </div>
-                <div className="flex-shrink-0">
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Select Month</label>
-                    <Input
-                        type="month"
-                        value={frequentMonth}
-                        onChange={(e) => {
-                            setFrequentMonth(e.target.value);
-                            setFrequentPage(1);
-                        }}
-                        className="h-10 w-full sm:w-auto"
+            </div>
+
+            {/* Table */}
+            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-2xs">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                        <thead className="bg-slate-100/70 border-b border-slate-200">
+                        <tr>
+                            <th className="px-4 py-3 text-left font-bold text-slate-600 w-20">Rank</th>
+                            <th className="px-4 py-3 text-left font-bold text-slate-600">Customer Name</th>
+                            <th
+                                className="px-4 py-3 text-center font-bold text-slate-600 cursor-pointer hover:bg-slate-200/70 select-none transition-colors w-44"
+                                onClick={() => handleFrequentSort('monthly')}
+                                title="Click to sort by monthly orders"
+                            >
+                                <div className="inline-flex items-center gap-1.5">
+                                    <span>Monthly Orders</span>
+                                    {frequentSortCol === 'monthly' ? (
+                                        frequentSortDesc ? (
+                                            <ArrowDown className="w-3.5 h-3.5 text-[#5f7d00]" />
+                                        ) : (
+                                            <ArrowUp className="w-3.5 h-3.5 text-[#5f7d00]" />
+                                        )
+                                    ) : (
+                                        <ArrowUpDown className="w-3.5 h-3.5 text-slate-300" />
+                                    )}
+                                </div>
+                            </th>
+                            <th
+                                className="px-4 py-3 text-center font-bold text-slate-600 cursor-pointer hover:bg-slate-200/70 select-none transition-colors w-44"
+                                onClick={() => handleFrequentSort('weekly')}
+                                title="Click to sort by weekly orders"
+                            >
+                                <div className="inline-flex items-center gap-1.5">
+                                    <span>Orders This Week</span>
+                                    {frequentSortCol === 'weekly' ? (
+                                        frequentSortDesc ? (
+                                            <ArrowDown className="w-3.5 h-3.5 text-emerald-600" />
+                                        ) : (
+                                            <ArrowUp className="w-3.5 h-3.5 text-emerald-600" />
+                                        )
+                                    ) : (
+                                        <ArrowUpDown className="w-3.5 h-3.5 text-slate-300" />
+                                    )}
+                                </div>
+                            </th>
+                        </tr>
+                        </thead>
+
+                        <tbody className="divide-y divide-slate-100">
+                        {isLoadingFrequent ? (
+                            <tr>
+                                <td colSpan="4" className="text-center py-12 text-slate-400 font-semibold">
+                                    Loading frequent customers...
+                                </td>
+                            </tr>
+                        ) : customers.length === 0 ? (
+                            <tr>
+                                <td colSpan="4" className="text-center py-12 text-slate-400 font-semibold">
+                                    No customer order records found for this period.
+                                </td>
+                            </tr>
+                        ) : (
+                            customers.map((c, idx) => {
+                                const rank = (frequentPage - 1) * FREQUENT_PAGE_SIZE + idx + 1;
+                                return (
+                                    <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
+                                        <td className="px-4 py-3 whitespace-nowrap">
+                                            {renderRankBadge(rank)}
+                                        </td>
+                                        <td className="px-4 py-3 font-bold text-slate-800 text-xs sm:text-sm">
+                                            {highlightMatch(c.customername, customerSearch)}
+                                        </td>
+                                        <td className="px-4 py-3 text-center whitespace-nowrap">
+                                                <span className="inline-block px-3 py-1 rounded-full text-xs font-black bg-lime-100 text-[#5f7d00] border border-lime-200 shadow-2xs">
+                                                    {c.monthly_order_count || 0} orders
+                                                </span>
+                                        </td>
+                                        <td className="px-4 py-3 text-center whitespace-nowrap">
+                                                <span className="inline-block px-3 py-1 rounded-full text-xs font-black bg-teal-50 text-teal-800 border border-teal-200 shadow-2xs">
+                                                    {c.weekly_order_count || 0} orders
+                                                </span>
+                                        </td>
+                                    </tr>
+                                );
+                            })
+                        )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 pt-2">
+                    <span className="text-xs text-slate-500 font-medium">
+                        Showing page <strong className="text-slate-800">{frequentPage}</strong> of <strong>{totalPages}</strong> ({totalCount} total customers)
+                    </span>
+                    <Pagination
+                        currentPage={frequentPage}
+                        totalPages={totalPages}
+                        onPageChange={setFrequentPage}
                     />
                 </div>
-            </div>
+            )}
         </div>
-
-        <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-                <thead className="bg-gray-100">
-                <tr>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700 w-16">Rank</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Customer Name</th>
-                    <th
-                        className="px-4 py-3 text-center font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 select-none transition-colors"
-                        onClick={() => handleFrequentSort('monthly')}
-                        title="Click to sort"
-                    >
-                        Monthly Orders
-                        {frequentSortCol === 'monthly' && (
-                            <span className="ml-1 text-gray-500">
-                                {frequentSortDesc ? '↓' : '↑'}
-                            </span>
-                        )}
-                    </th>
-                    <th
-                        className="px-4 py-3 text-center font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 select-none transition-colors"
-                        onClick={() => handleFrequentSort('weekly')}
-                        title="Click to sort"
-                    >
-                        Orders This Week
-                        {frequentSortCol === 'weekly' && (
-                            <span className="ml-1 text-gray-500">
-                                {frequentSortDesc ? '↓' : '↑'}
-                            </span>
-                        )}
-                    </th>
-                </tr>
-                </thead>
-                <tbody>
-                {isLoadingFrequent ? (
-                    <tr><td colSpan="4" className="text-center p-6 text-gray-500">Loading frequent customers...</td></tr>
-                ) : frequentData?.customers?.length === 0 ? (
-                    <tr><td colSpan="4" className="text-center p-6 text-gray-500">No orders found.</td></tr>
-                ) : (
-                    frequentData?.customers?.map((c, idx) => (
-                        <tr key={idx} className="border-b border-gray-100 last:border-0">
-                            <td className="px-4 py-3 font-medium text-gray-500">
-                                {(frequentPage - 1) * FREQUENT_PAGE_SIZE + idx + 1}
-                            </td>
-                            <td className="px-4 py-3 font-semibold text-gray-800">{c.customername}</td>
-                            <td className="px-4 py-3 text-center">
-                                    <span className="bg-primary-soft text-primary font-bold px-3 py-1 rounded-full">
-                                        {c.monthly_order_count}
-                                    </span>
-                            </td>
-                            <td className="px-4 py-3 text-center">
-                                    <span className="bg-green-100 text-green-700 font-bold px-3 py-1 rounded-full">
-                                        {c.weekly_order_count}
-                                    </span>
-                            </td>
-                        </tr>
-                    ))
-                )}
-                </tbody>
-            </table>
-        </div>
-
-        {frequentData?.totalPages > 1 && (
-            <div className="mt-4">
-                <Pagination
-                    currentPage={frequentPage}
-                    totalPages={frequentData.totalPages}
-                    onPageChange={setFrequentPage}
-                />
-            </div>
-        )}
-    </div>
-);
+    );
+};
 
 export default FrequentOrdersTab;
