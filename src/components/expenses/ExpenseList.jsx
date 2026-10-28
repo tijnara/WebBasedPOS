@@ -14,6 +14,7 @@ export default function ExpenseList({
                                         setGroupBy,
                                         categoryStyles,
                                         categories,
+                                        employees = [],
                                         editingExpense,
                                         handleEditClick,
                                         handleDeleteClick,
@@ -62,6 +63,25 @@ export default function ExpenseList({
                                 const isRecurring = categoryInfo?.is_recurring || categoryInfo?.is_recurring_daily;
                                 const isVoided = exp.amount === 0 || exp.amount === "0.00";
 
+                                // Identify recording employee and custom color
+                                const staffName =
+                                    exp.staffName ||
+                                    exp.staff_name ||
+                                    exp.user_name ||
+                                    exp.userName ||
+                                    exp.created_by_name ||
+                                    exp.user?.name ||
+                                    exp.users?.name ||
+                                    employees.find(e => e.id === exp.user_id || e.id === exp.created_by)?.name;
+
+                                const staffColor =
+                                    exp.userColor ||
+                                    exp.user_color ||
+                                    exp.user?.color ||
+                                    exp.users?.color ||
+                                    employees.find(e => e.id === exp.user_id || e.id === exp.created_by)?.color ||
+                                    '#8DB600';
+
                                 return (
                                     <div key={exp.id}>
                                         {index > 0 && <hr className="border-t border-slate-100 my-1.5 dark:border-slate-800" />}
@@ -70,21 +90,35 @@ export default function ExpenseList({
                                                 <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 ${style.colorClass}`}>
                                                     <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
                                                 </div>
-                                                <div className="flex flex-col min-w-0">
-                                                    <span className="font-semibold text-text text-xs sm:text-sm truncate">
+                                                <div className="flex flex-col min-w-0 flex-1">
+                                                    <span className="font-semibold text-text text-xs sm:text-sm truncate" title={exp.description}>
                                                         {exp.employee_name ? `${exp.employee_name} - ` : ''}{exp.description}
                                                     </span>
 
-                                                    <span className="text-[11px] font-medium text-text-muted truncate">
-                                                        {exp.category} &bull; {format(parseISO(exp.expense_date), 'EEE, MMM d, yyyy h:mm a')}
+                                                    {/* Metadata row: Date truncates independently; Employee pill is shrink-0 */}
+                                                    <div className="flex items-center gap-1.5 text-[11px] font-medium text-text-muted mt-0.5">
+                                                        <span className="truncate">
+                                                            {exp.category} &bull; {format(parseISO(exp.expense_date), groupBy === 'date' ? 'h:mm a' : 'MMM d, h:mm a')}
+                                                        </span>
 
-                                                        {exp.staffName && (
-                                                            <span className="inline-flex items-center ml-1 font-semibold" style={{ color: exp.userColor }}>
-                                                                <span className="w-1.5 h-1.5 rounded-full inline-block mr-1" style={{ backgroundColor: exp.userColor }}></span>
-                                                                {exp.staffName}
+                                                        {staffName && (
+                                                            <span
+                                                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold shrink-0 select-none shadow-2xs"
+                                                                style={{
+                                                                    color: staffColor,
+                                                                    backgroundColor: `${staffColor}18`,
+                                                                    border: `1px solid ${staffColor}35`
+                                                                }}
+                                                                title={`Recorded by ${staffName}`}
+                                                            >
+                                                                <span
+                                                                    className="w-1.5 h-1.5 rounded-full shrink-0"
+                                                                    style={{ backgroundColor: staffColor }}
+                                                                />
+                                                                <span className="truncate max-w-[100px]">{staffName}</span>
                                                             </span>
                                                         )}
-                                                    </span>
+                                                    </div>
                                                 </div>
                                             </div>
 

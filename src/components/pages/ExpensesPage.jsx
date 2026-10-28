@@ -40,16 +40,6 @@ const capitalizeWords = (str) => {
 
 const formatPeso = (val) => currency(Number(val) || 0, { symbol: '₱', precision: 2 }).format();
 
-const formatDateSafe = (dateStr, formatPattern = 'MMM dd, yyyy') => {
-    if (!dateStr) return 'N/A';
-    try {
-        const d = typeof dateStr === 'string' ? parseISO(dateStr) : new Date(dateStr);
-        return isNaN(d.getTime()) ? dateStr : format(d, formatPattern);
-    } catch {
-        return dateStr;
-    }
-};
-
 export default function ExpensesPage() {
     const queryClient = useQueryClient();
     const { user, addToast } = useStore();
@@ -77,7 +67,7 @@ export default function ExpensesPage() {
     const [page, setPage] = useState(1);
     const pageSize = 1000;
 
-    const { data: employees } = useEmployees();
+    const { data: employees = [] } = useEmployees();
 
     const fetchStart = dateFrom ? format(subDays(parseISO(dateFrom), 1), 'yyyy-MM-dd') : undefined;
     const fetchEnd = dateTo ? format(addDays(parseISO(dateTo), 1), 'yyyy-MM-dd') : undefined;
@@ -166,7 +156,7 @@ export default function ExpensesPage() {
     const [amount, setAmount] = useState('');
     const [category, setCategory] = useState('');
     const [description, setDescription] = useState('Payment for ');
-    const [expenseDate, setExpenseDate] = useState(todayStr); // Defaults to today's date
+    const [expenseDate, setExpenseDate] = useState(todayStr);
     const [employeeName, setEmployeeName] = useState('');
     const [editingExpense, setEditingExpense] = useState(null);
 
@@ -535,6 +525,7 @@ export default function ExpensesPage() {
                                 setGroupBy={setGroupBy}
                                 categoryStyles={categoryStyles}
                                 categories={categories}
+                                employees={employees}
                                 editingExpense={editingExpense}
                                 handleEditClick={handleEditClick}
                                 handleDeleteClick={handleDeleteClick}
