@@ -26,6 +26,23 @@ export default function ExpenseList({
                                         handlePrevPage,
                                         handleNextPage
                                     }) {
+    // Helper to extract exact input time (hours, minutes, seconds)
+    const getInputTimeDetails = (exp) => {
+        const raw = exp.created_at || exp.expense_date;
+        if (!raw) return null;
+        try {
+            const parsed = typeof raw === 'string' ? parseISO(raw) : new Date(raw);
+            if (isNaN(parsed.getTime())) return null;
+            const hasSeconds = parsed.getSeconds() > 0;
+            return {
+                timeDisplay: format(parsed, hasSeconds ? 'h:mm:ss a' : 'h:mm a'),
+                fullDisplay: format(parsed, 'MMM d, yyyy h:mm:ss a')
+            };
+        } catch {
+            return null;
+        }
+    };
+
     return (
         <>
             <div className="flex justify-between items-end mb-4">
@@ -39,10 +56,18 @@ export default function ExpenseList({
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
-                    <button onClick={() => setGroupBy('date')} className={`p-1.5 rounded-xl transition-colors ${groupBy === 'date' ? 'bg-primary text-white' : 'bg-background text-text-muted'}`} title="Group by Date">
+                    <button
+                        onClick={() => setGroupBy('date')}
+                        className={`p-1.5 rounded-xl transition-colors ${groupBy === 'date' ? 'bg-primary text-white' : 'bg-background text-text-muted'}`}
+                        title="Group by Date"
+                    >
                         <Clock className="w-4 h-4" />
                     </button>
-                    <button onClick={() => setGroupBy('category')} className={`p-1.5 rounded-xl transition-colors ${groupBy === 'category' ? 'bg-primary text-white' : 'bg-background text-text-muted'}`} title="Group by Category">
+                    <button
+                        onClick={() => setGroupBy('category')}
+                        className={`p-1.5 rounded-xl transition-colors ${groupBy === 'category' ? 'bg-primary text-white' : 'bg-background text-text-muted'}`}
+                        title="Group by Category"
+                    >
                         <Layers className="w-4 h-4" />
                     </button>
                     <span className="text-xs font-medium text-text-muted pb-0.5">{localTotalCount} total</span>
@@ -50,7 +75,9 @@ export default function ExpenseList({
             </div>
 
             <div className="flex-1 space-y-2 mb-6">
-                {isLoading ? <p className="text-center py-8 text-text-muted text-xs">Loading records...</p> :
+                {isLoading ? (
+                    <p className="text-center py-8 text-text-muted text-xs">Loading records...</p>
+                ) : (
                     Object.entries(groupedExpenses).map(([groupTitle, groupExpenses]) => (
                         <div key={groupTitle}>
                             <h4 className="text-xs sm:text-sm font-bold text-primary bg-primary/10 px-3 py-1.5 rounded-xl my-2.5 sticky top-0 z-10 backdrop-blur-md">
@@ -62,6 +89,9 @@ export default function ExpenseList({
                                 const categoryInfo = categories.find(c => c.name === exp.category);
                                 const isRecurring = categoryInfo?.is_recurring || categoryInfo?.is_recurring_daily;
                                 const isVoided = exp.amount === 0 || exp.amount === "0.00";
+
+                                // Exact input time details
+                                const inputTime = getInputTimeDetails(exp);
 
                                 // Identify recording employee and custom color
                                 const staffName =
@@ -95,27 +125,43 @@ export default function ExpenseList({
                                                         {exp.employee_name ? `${exp.employee_name} - ` : ''}{exp.description}
                                                     </span>
 
-                                                    {/* Metadata row: Date truncates independently; Employee pill is shrink-0 */}
-                                                    <div className="flex items-center gap-1.5 text-[11px] font-medium text-text-muted mt-0.5">
-                                                        <span className="truncate">
-                                                            {exp.category} &bull; {format(parseISO(exp.expense_date), groupBy === 'date' ? 'h:mm a' : 'MMM d, h:mm a')}
+                                                    {/* Metadata Row: Category, Date, Exact Input Time, and Employee Tag */}
+                                                    <div className="flex items-center gap-1.5 flex-wrap text-[11px] font-medium text-text-muted mt-1">
+                                                        <span className="font-bold text-slate-700 dark:text-slate-300">
+                                                            {exp.category}
+                                                        </span>
+                                                        <span className="text-slate-300 dark:text-slate-700">&bull;</span>
+                                                        <span className="text-slate-500 dark:text-slate-400">
+                                                            {format(parseISO(exp.expense_date), 'EEE, MMM d, yyyy')}
                                                         </span>
 
+                                                        {/* Exact Input Time Badge */}
+                                                        {inputTime && (
+                                                            <span
+                                                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 select-none shrink-0"
+                                                                title={`Exact time inputted: ${inputTime.fullDisplay}`}
+                                                            >
+                                                                <Clock className="w-2.5 h-2.5 text-slate-400 shrink-0" />
+                                                                <span>Inputted {inputTime.timeDisplay}</span>
+                                                            </span>
+                                                        )}
+
+                                                        {/* Employee Who Inputted Badge */}
                                                         {staffName && (
                                                             <span
-                                                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold shrink-0 select-none shadow-2xs"
+                                                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold select-none shrink-0"
                                                                 style={{
                                                                     color: staffColor,
                                                                     backgroundColor: `${staffColor}18`,
                                                                     border: `1px solid ${staffColor}35`
                                                                 }}
-                                                                title={`Recorded by ${staffName}`}
+                                                                title={`Inputted by ${staffName}`}
                                                             >
                                                                 <span
                                                                     className="w-1.5 h-1.5 rounded-full shrink-0"
                                                                     style={{ backgroundColor: staffColor }}
                                                                 />
-                                                                <span className="truncate max-w-[100px]">{staffName}</span>
+                                                                <span className="truncate max-w-[110px]">{staffName}</span>
                                                             </span>
                                                         )}
                                                     </div>
@@ -182,7 +228,7 @@ export default function ExpenseList({
                             })}
                         </div>
                     ))
-                }
+                )}
 
                 {!isLoading && validExpenses.length === 0 && (
                     <div className="text-center py-10">
@@ -191,7 +237,7 @@ export default function ExpenseList({
                 )}
             </div>
 
-            {/* Pagination Controls with Safe Bottom Tab Clearance */}
+            {/* Pagination Controls */}
             <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-4 mt-auto pb-28 md:pb-6">
                 <button
                     onClick={handlePrevPage}

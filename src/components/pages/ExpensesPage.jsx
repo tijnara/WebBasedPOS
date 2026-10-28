@@ -259,10 +259,16 @@ export default function ExpensesPage() {
         if (!amount || !description || !category || !expenseDate) return;
 
         const capitalizedDescription = capitalizeWords(description);
+
+        // Accurate local timestamp with Asia/Manila (+08:00) alignment
         const now = new Date();
-        const [year, month, day] = expenseDate.split('-').map(Number);
-        const combinedDateTime = new Date(year, month - 1, day, now.getHours(), now.getMinutes(), now.getSeconds());
-        const localISOString = format(combinedDateTime, "yyyy-MM-dd'T'HH:mm:ss");
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        const localISOString = `${expenseDate}T${hours}:${minutes}:${seconds}+08:00`;
+        const exactCreatedAt = now.toISOString();
+
+        const currentStaffName = user?.name || user?.username || 'Staff';
 
         try {
             if (editingExpense) {
@@ -282,6 +288,10 @@ export default function ExpensesPage() {
                     category,
                     description: capitalizedDescription,
                     expense_date: localISOString,
+                    created_at: exactCreatedAt,
+                    user_id: user?.id || null,
+                    created_by: user?.id || null,
+                    staff_name: currentStaffName,
                     employee_name: category === 'Salary' ? employeeName : null
                 });
                 addToast({ title: 'Expense Added', message: 'Transaction saved.', type: 'success' });
