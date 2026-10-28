@@ -1,3 +1,4 @@
+// src/components/expenses/ExpenseForm.jsx
 import React from 'react';
 import { Plus, Edit, X } from 'lucide-react';
 
@@ -23,37 +24,45 @@ export default function ExpenseForm({
                                     }) {
     return (
         <>
-            <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-bold text-text">
+            <div className="flex justify-between items-center mb-3">
+                <h3 className="text-lg sm:text-xl font-bold text-text">
                     {editingExpense ? 'Edit Expense' : 'Quick Add'}
                 </h3>
                 {editingExpense && (
-                    <button onClick={cancelEdit} className="text-text-muted hover:text-text flex items-center gap-1 text-sm font-medium">
+                    <button onClick={cancelEdit} className="text-text-muted hover:text-text flex items-center gap-1 text-xs font-semibold">
                         <X className="w-4 h-4" /> Cancel
                     </button>
                 )}
             </div>
-            <form onSubmit={handleManualSubmit} className={`${editingExpense ? 'bg-amber-50 border-transparent' : 'bg-surface border-transparent'} p-4 rounded-3xl border-transparent shadow-sm mb-6 transition-colors`}>
+            <form onSubmit={handleManualSubmit} className={`${editingExpense ? 'bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800' : 'bg-surface border-slate-100 dark:border-slate-800'} p-4 rounded-3xl border shadow-sm mb-6 transition-colors`}>
                 <div className="flex flex-col sm:flex-row gap-3 mb-3 items-stretch">
-                    <input
-                        type="number"
-                        value={amount}
-                        onChange={(e) => setAmount(e.target.value)}
-                        placeholder="₱0.00"
-                        required
-                        step="0.01"
-                        className="input flex-[1]"
-                        disabled={isDemo}
-                    />
+                    {/* Amount Input with Dedicated Left Clearance */}
+                    <div className="relative flex-[1]">
+                        <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-xs font-bold text-slate-400 select-none z-10">
+                            ₱
+                        </span>
+                        <input
+                            type="number"
+                            step="0.01"
+                            inputMode="decimal"
+                            value={amount}
+                            onChange={(e) => setAmount(e.target.value)}
+                            placeholder="0.00"
+                            required
+                            style={{ paddingLeft: '2rem' }}
+                            className="input !pl-8 w-full h-11 text-xs sm:text-sm font-mono font-bold"
+                            disabled={isDemo}
+                        />
+                    </div>
 
+                    {/* Date Input */}
                     <div className="flex-[1] flex flex-col">
-                        <span className="text-[10px] uppercase font-bold text-text-muted ml-2 mb-1">Date</span>
                         <input
                             type="date"
                             value={expenseDate}
                             onChange={(e) => setExpenseDate(e.target.value)}
                             required
-                            className="input"
+                            className="input h-11 text-xs sm:text-sm font-semibold"
                             disabled={isDemo}
                         />
                     </div>
@@ -63,7 +72,7 @@ export default function ExpenseForm({
                         <select
                             value={category}
                             onChange={(e) => handleCategoryChange(e.target.value)}
-                            className="input w-full h-full cursor-pointer"
+                            className="input w-full h-11 text-xs sm:text-sm cursor-pointer"
                             required
                             disabled={isDemo}
                         >
@@ -76,7 +85,7 @@ export default function ExpenseForm({
                         <button
                             type="button"
                             onClick={handleEditCategory}
-                            className="btn bg-background text-text-muted hover:bg-border p-2 shrink-0"
+                            className="btn bg-background text-text-muted hover:bg-border h-11 w-11 p-0 flex items-center justify-center shrink-0 rounded-2xl"
                             title="Edit Category Defaults"
                             disabled={isDemo}
                         >
@@ -85,14 +94,14 @@ export default function ExpenseForm({
                     </div>
                 </div>
 
-                {/* ONLY SHOW EMPLOYEE NAME INPUT IF CATEGORY IS SALARY */}
+                {/* Salary Employee Dropdown */}
                 {category === 'Salary' && (
                     <div className="flex flex-col sm:flex-row gap-3 mb-3">
                         <select
                             value={employeeName}
                             onChange={(e) => setEmployeeName(e.target.value)}
                             required={category === 'Salary'}
-                            className="input w-full border-blue-300 bg-blue-50"
+                            className="input w-full h-11 text-xs sm:text-sm border-blue-300 bg-blue-50 dark:bg-blue-950/30"
                             disabled={isDemo}
                         >
                             <option value="" disabled>Select Employee...</option>
@@ -108,13 +117,13 @@ export default function ExpenseForm({
                         type="text"
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
-                        placeholder="What did you buy?"
+                        placeholder="What did you buy? (e.g., Diesel, Water Testing, Mineral Seals)"
                         required
-                        className="input flex-[2]"
+                        className="input flex-[2] h-11 text-xs sm:text-sm"
                         disabled={isDemo}
                     />
-                    <button type="submit" disabled={isPending || isDemo} className="btn btn--primary flex-1 flex justify-center items-center gap-2">
-                        {isPending ? '...' : (editingExpense ? 'Update' : 'Add')}
+                    <button type="submit" disabled={isPending || isDemo} className="btn btn--primary flex-1 h-11 flex justify-center items-center gap-2 font-bold text-xs sm:text-sm">
+                        {isPending ? 'Saving...' : (editingExpense ? 'Update Expense' : 'Add Expense')}
                         {editingExpense ? <Edit className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                     </button>
                 </div>

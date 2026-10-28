@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 import Head from 'next/head';
 import currency from 'currency.js';
 import { startOfWeek, endOfWeek, parseISO, format, subWeeks, addWeeks, subDays, addDays } from 'date-fns';
-import { Utensils, Car, ShoppingBag, Zap, Receipt } from 'lucide-react';
+import { Utensils, Car, ShoppingBag, Zap, Receipt, BarChart3 } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -55,11 +55,15 @@ export default function ExpensesPage() {
     const { user, addToast } = useStore();
     const isDemo = user?.isDemo;
 
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
     const initialDateFrom = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
     const initialDateTo = format(endOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
     const initialSearchTerm = '';
     const initialFilterCategory = 'All';
     const initialFilterEmployee = 'all';
+
+    // Mobile Navigation Sub-Tab State ('operations' | 'analytics')
+    const [mobileTab, setMobileTab] = useState('operations');
 
     const [dateFrom, setDateFrom] = useState(initialDateFrom);
     const [dateTo, setDateTo] = useState(initialDateTo);
@@ -120,8 +124,10 @@ export default function ExpensesPage() {
         if (!previousWeekData) return null;
         const cur = weekNetSales;
         const prev = previousWeekData.net;
-        if (prev === 0) return cur > 0 ? 100 : 0;
-        return (((cur - prev) / Math.abs(prev)) * 100).toFixed(1);
+        if (!prev || prev === 0) return cur > 0 ? 100 : 0;
+        const pct = ((cur - prev) / Math.abs(prev)) * 100;
+        if (!isFinite(pct) || Math.abs(pct) > 9999) return cur >= prev ? 999 : -999;
+        return Number(pct.toFixed(1));
     }, [weekNetSales, previousWeekData]);
 
     const createExpense = useCreateExpense();
@@ -160,7 +166,7 @@ export default function ExpensesPage() {
     const [amount, setAmount] = useState('');
     const [category, setCategory] = useState('');
     const [description, setDescription] = useState('Payment for ');
-    const [expenseDate, setExpenseDate] = useState('');
+    const [expenseDate, setExpenseDate] = useState(todayStr); // Defaults to today's date
     const [employeeName, setEmployeeName] = useState('');
     const [editingExpense, setEditingExpense] = useState(null);
 
@@ -292,7 +298,7 @@ export default function ExpensesPage() {
             }
             setAmount('');
             setDescription('Payment for ');
-            setExpenseDate('');
+            setExpenseDate(todayStr);
             setCategory('');
             setEmployeeName('');
         } catch (error) {
@@ -343,7 +349,7 @@ export default function ExpensesPage() {
         setEditingExpense(null);
         setAmount('');
         setDescription('Payment for ');
-        setExpenseDate('');
+        setExpenseDate(todayStr);
         setCategory('');
         setEmployeeName('');
     };
@@ -371,144 +377,176 @@ export default function ExpensesPage() {
     };
 
     return (
-        <div className="responsive-page min-h-screen bg-background p-4 sm:p-6 lg:p-8 space-y-6">
+        <div className="responsive-page min-h-screen bg-background p-3 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 pb-28 md:pb-8">
             <Head><title>Expenses & Financial Performance | Seaside POS</title></Head>
 
-            <div className="max-w-7xl mx-auto space-y-6">
+            <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
 
-                {/* 1. EXTRACTED GRAPHICAL BUSINESS SECTION */}
-                <FinancialPerformanceSection
-                    dateFrom={dateFrom}
-                    setDateFrom={setDateFrom}
-                    setDateTo={setDateTo}
-                    initialDateFrom={initialDateFrom}
-                    dateTo={dateTo}
-                    weekGrossSales={weekGrossSales}
-                    localTotalSum={localTotalSum}
-                    weekNetSales={weekNetSales}
-                    weekNetMargin={weekNetMargin}
-                    previousWeekData={previousWeekData}
-                    wowNetGrowth={wowNetGrowth}
-                    monthlyComparisonData={monthlyComparisonData}
-                    momNetGrowth={momNetGrowth}
-                    selectedMonth={selectedMonth}
-                    setSelectedMonth={setSelectedMonth}
-                />
+                {/* Mobile Sub-Tab Navigation Bar */}
+                <div className="flex lg:hidden bg-surface p-1 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs">
+                    <button
+                        type="button"
+                        onClick={() => setMobileTab('operations')}
+                        className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+                            mobileTab === 'operations'
+                                ? 'bg-[#8DB600] text-white shadow-xs'
+                                : 'text-text-muted hover:text-text'
+                        }`}
+                    >
+                        <Receipt className="w-3.5 h-3.5" />
+                        <span>Receipts & Add</span>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setMobileTab('analytics')}
+                        className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+                            mobileTab === 'analytics'
+                                ? 'bg-slate-900 dark:bg-slate-700 text-white shadow-xs'
+                                : 'text-text-muted hover:text-text'
+                        }`}
+                    >
+                        <BarChart3 className="w-3.5 h-3.5" />
+                        <span>Analytics & Margins</span>
+                    </button>
+                </div>
+
+                {/* 1. FINANCIAL PERFORMANCE & MARGINS SECTION */}
+                <div className={mobileTab === 'analytics' ? 'block' : 'hidden lg:block'}>
+                    <FinancialPerformanceSection
+                        dateFrom={dateFrom}
+                        setDateFrom={setDateFrom}
+                        setDateTo={setDateTo}
+                        initialDateFrom={initialDateFrom}
+                        dateTo={dateTo}
+                        weekGrossSales={weekGrossSales}
+                        localTotalSum={localTotalSum}
+                        weekNetSales={weekNetSales}
+                        weekNetMargin={weekNetMargin}
+                        previousWeekData={previousWeekData}
+                        wowNetGrowth={wowNetGrowth}
+                        monthlyComparisonData={monthlyComparisonData}
+                        momNetGrowth={momNetGrowth}
+                        selectedMonth={selectedMonth}
+                        setSelectedMonth={setSelectedMonth}
+                    />
+                </div>
 
                 {/* 2. EXPENSE LOGGING & TRANSACTION MANAGEMENT */}
-                <div className="w-full bg-surface shadow-xl flex flex-col lg:flex-row rounded-3xl border-transparent overflow-hidden">
-                    <div className="w-full lg:w-7/12 flex flex-col bg-surface">
-                        <div className="bg-surface text-text p-6 sm:p-8 rounded-br-[3rem] shadow-sm z-10 border-b border-slate-100 dark:border-slate-800">
-                            <div className="flex justify-between items-start mb-4">
-                                <div>
-                                    <h1 className="text-2xl font-bold flex items-center gap-2 text-text">
-                                        <Receipt className="text-emerald-600" /> Expense Operations
-                                    </h1>
-                                    <p className="text-xs text-text-muted mt-1">
-                                        Record payouts, daily operations, and recurring utilities
-                                    </p>
-                                </div>
-                                <div className="text-right">
-                                    <p className="text-text-muted text-[10px] font-bold uppercase tracking-wider">
-                                        {dateFrom === initialDateFrom ? 'Week Gross Revenue' : 'Period Gross'}
-                                    </p>
-                                    <p className="text-base sm:text-lg font-bold text-emerald-600">
-                                        {formatPeso(salesSummary?.totalRevenue || 0)}
-                                    </p>
-                                    <p className="text-text-muted text-[10px] font-bold uppercase tracking-wider mt-1.5">
-                                        {dateFrom === initialDateFrom ? 'Week Net Income' : 'Period Net'}
-                                    </p>
-                                    <p className="text-lg sm:text-xl font-black" style={{ color: weekNetSales >= 0 ? '#10b981' : '#dc2626' }}>
-                                        {weekNetSales >= 0 ? '+' : ''}{formatPeso(weekNetSales)}
-                                    </p>
-                                </div>
-                            </div>
-
-                            <p className="text-text-muted text-xs font-semibold uppercase tracking-wider">Selected Period Expenses</p>
-                            <h2 className="text-3xl sm:text-4xl font-extrabold mb-4 text-red-600">{formatPeso(localTotalSum || 0)}</h2>
-
-                            <div className="flex flex-wrap gap-8 border-t border-slate-100 dark:border-slate-800 pt-3 items-end">
-                                <div>
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <p className="text-xs uppercase font-semibold text-text-muted">Monthly Filter</p>
-                                        <input
-                                            type="month"
-                                            value={selectedMonth}
-                                            onChange={(e) => setSelectedMonth(e.target.value)}
-                                            className="text-xs bg-background border border-gray-200 dark:border-gray-800 rounded-lg px-2 py-1 text-text cursor-pointer focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                                        />
+                <div className={mobileTab === 'operations' ? 'block' : 'hidden lg:block'}>
+                    <div className="w-full bg-surface shadow-xl flex flex-col lg:flex-row rounded-3xl border-transparent overflow-hidden">
+                        <div className="w-full lg:w-7/12 flex flex-col bg-surface">
+                            <div className="bg-surface text-text p-5 sm:p-8 rounded-br-[3rem] shadow-sm z-10 border-b border-slate-100 dark:border-slate-800">
+                                <div className="flex justify-between items-start mb-3 sm:mb-4">
+                                    <div>
+                                        <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2 text-text">
+                                            <Receipt className="text-emerald-600 w-5 h-5 sm:w-6 sm:h-6" /> Expense Operations
+                                        </h1>
+                                        <p className="text-xs text-text-muted mt-0.5">
+                                            Record payouts, daily operations, and recurring utilities
+                                        </p>
                                     </div>
-                                    <p className="text-base font-bold text-text">{formatPeso(summary?.monthlyTotal || 0)}</p>
+                                    <div className="text-right">
+                                        <p className="text-text-muted text-[9px] sm:text-[10px] font-bold uppercase tracking-wider">
+                                            {dateFrom === initialDateFrom ? 'Week Gross' : 'Period Gross'}
+                                        </p>
+                                        <p className="text-sm sm:text-lg font-bold text-emerald-600">
+                                            {formatPeso(salesSummary?.totalRevenue || 0)}
+                                        </p>
+                                        <p className="text-text-muted text-[9px] sm:text-[10px] font-bold uppercase tracking-wider mt-1">
+                                            {dateFrom === initialDateFrom ? 'Week Net' : 'Period Net'}
+                                        </p>
+                                        <p className="text-base sm:text-xl font-black" style={{ color: weekNetSales >= 0 ? '#10b981' : '#dc2626' }}>
+                                            {weekNetSales >= 0 ? '+' : ''}{formatPeso(weekNetSales)}
+                                        </p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <p className="text-xs uppercase font-semibold text-text-muted mb-1 pb-[10px]">All-Time Expenses</p>
-                                    <p className="text-base font-bold text-text">{formatPeso(summary?.grandTotal || 0)}</p>
+
+                                <p className="text-text-muted text-[10px] sm:text-xs font-semibold uppercase tracking-wider">Selected Period Expenses</p>
+                                <h2 className="text-2xl sm:text-4xl font-extrabold mb-3 sm:mb-4 text-red-600">{formatPeso(localTotalSum || 0)}</h2>
+
+                                <div className="flex flex-wrap gap-4 sm:gap-8 border-t border-slate-100 dark:border-slate-800 pt-3 items-end">
+                                    <div>
+                                        <div className="flex items-center gap-1.5 mb-1">
+                                            <p className="text-[10px] sm:text-xs uppercase font-semibold text-text-muted">Monthly Filter</p>
+                                            <input
+                                                type="month"
+                                                value={selectedMonth}
+                                                onChange={(e) => setSelectedMonth(e.target.value)}
+                                                className="text-[11px] sm:text-xs bg-background border border-gray-200 dark:border-gray-800 rounded-lg px-2 py-0.5 text-text cursor-pointer focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                                            />
+                                        </div>
+                                        <p className="text-sm sm:text-base font-bold text-text">{formatPeso(summary?.monthlyTotal || 0)}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] sm:text-xs uppercase font-semibold text-text-muted mb-1 pb-1">All-Time Expenses</p>
+                                        <p className="text-sm sm:text-base font-bold text-text">{formatPeso(summary?.grandTotal || 0)}</p>
+                                    </div>
                                 </div>
+                            </div>
+
+                            <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+                                <ExpenseForm
+                                    amount={amount}
+                                    setAmount={setAmount}
+                                    category={category}
+                                    handleCategoryChange={handleCategoryChange}
+                                    description={description}
+                                    setDescription={setDescription}
+                                    expenseDate={expenseDate}
+                                    setExpenseDate={setExpenseDate}
+                                    employeeName={employeeName}
+                                    setEmployeeName={setEmployeeName}
+                                    editingExpense={editingExpense}
+                                    cancelEdit={cancelEdit}
+                                    handleManualSubmit={handleManualSubmit}
+                                    handleEditCategory={handleEditCategory}
+                                    categories={categories}
+                                    employees={employees}
+                                    isDemo={isDemo}
+                                    isPending={createExpense.isPending || updateExpense.isPending}
+                                />
+                                <ExpenseFilters
+                                    searchTerm={searchTerm}
+                                    setSearchTerm={setSearchTerm}
+                                    filterCategory={filterCategory}
+                                    setFilterCategory={setFilterCategory}
+                                    filterEmployee={filterEmployee}
+                                    setFilterEmployee={setFilterEmployee}
+                                    dateFrom={dateFrom}
+                                    setDateFrom={setDateFrom}
+                                    dateTo={dateTo}
+                                    setDateTo={setDateTo}
+                                    setPage={setPage}
+                                    handleResetFilters={handleResetFilters}
+                                    categories={categories}
+                                    employees={employees}
+                                />
                             </div>
                         </div>
 
-                        <div className="p-5 sm:p-6 space-y-6">
-                            <ExpenseForm
-                                amount={amount}
-                                setAmount={setAmount}
-                                category={category}
-                                handleCategoryChange={handleCategoryChange}
-                                description={description}
-                                setDescription={setDescription}
-                                expenseDate={expenseDate}
-                                setExpenseDate={setExpenseDate}
-                                employeeName={employeeName}
-                                setEmployeeName={setEmployeeName}
+                        <div className="w-full lg:w-5/12 bg-surface flex flex-col p-4 sm:p-6 lg:border-l border-slate-100 dark:border-slate-800 h-full">
+                            <ExpenseList
+                                groupedExpenses={groupedExpenses}
+                                isLoading={isLoading}
+                                validExpenses={validExpenses}
+                                localTotalSum={localTotalSum}
+                                localTotalCount={localTotalCount}
+                                groupBy={groupBy}
+                                setGroupBy={setGroupBy}
+                                categoryStyles={categoryStyles}
+                                categories={categories}
                                 editingExpense={editingExpense}
-                                cancelEdit={cancelEdit}
-                                handleManualSubmit={handleManualSubmit}
-                                handleEditCategory={handleEditCategory}
-                                categories={categories}
-                                employees={employees}
+                                handleEditClick={handleEditClick}
+                                handleDeleteClick={handleDeleteClick}
+                                setReasonModal={setReasonModal}
+                                setReasonText={setReasonText}
                                 isDemo={isDemo}
-                                isPending={createExpense.isPending || updateExpense.isPending}
-                            />
-                            <ExpenseFilters
-                                searchTerm={searchTerm}
-                                setSearchTerm={setSearchTerm}
-                                filterCategory={filterCategory}
-                                setFilterCategory={setFilterCategory}
-                                filterEmployee={filterEmployee}
-                                setFilterEmployee={setFilterEmployee}
+                                page={page}
                                 dateFrom={dateFrom}
-                                setDateFrom={setDateFrom}
-                                dateTo={dateTo}
-                                setDateTo={setDateTo}
-                                setPage={setPage}
-                                handleResetFilters={handleResetFilters}
-                                categories={categories}
-                                employees={employees}
+                                handlePrevPage={handlePrevPage}
+                                handleNextPage={handleNextPage}
                             />
                         </div>
-                    </div>
-
-                    <div className="w-full lg:w-5/12 bg-surface flex flex-col p-5 sm:p-6 lg:border-l border-slate-100 dark:border-slate-800 h-full">
-                        <ExpenseList
-                            groupedExpenses={groupedExpenses}
-                            isLoading={isLoading}
-                            validExpenses={validExpenses}
-                            localTotalSum={localTotalSum}
-                            localTotalCount={localTotalCount}
-                            groupBy={groupBy}
-                            setGroupBy={setGroupBy}
-                            categoryStyles={categoryStyles}
-                            categories={categories}
-                            editingExpense={editingExpense}
-                            handleEditClick={handleEditClick}
-                            handleDeleteClick={handleDeleteClick}
-                            setReasonModal={setReasonModal}
-                            setReasonText={setReasonText}
-                            isDemo={isDemo}
-                            page={page}
-                            dateFrom={dateFrom}
-                            handlePrevPage={handlePrevPage}
-                            handleNextPage={handleNextPage}
-                        />
                     </div>
                 </div>
             </div>
