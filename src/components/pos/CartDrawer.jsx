@@ -3,7 +3,7 @@ import React from 'react';
 import { Button, Dialog, DialogContent } from '../ui';
 import { ProductImage } from './ProductImage';
 import currency from 'currency.js';
-import { Edit2, Trash2, ShoppingBag } from 'lucide-react';
+import { Edit2, Trash2, ShoppingBag, X } from 'lucide-react';
 
 const CartDrawer = ({
                         isOpen,
@@ -41,7 +41,7 @@ const CartDrawer = ({
                     <div className="w-10 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
                 </div>
 
-                {/* Header */}
+                {/* Header with Title and Dismiss Target */}
                 <div className="flex items-center justify-between px-4 sm:px-5 py-2.5 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex-shrink-0">
                     <div className="flex items-center gap-2">
                         <h2 className="text-sm font-extrabold text-[#8DB600] uppercase tracking-wide">Current Order</h2>
@@ -49,21 +49,32 @@ const CartDrawer = ({
                             {cartItems.reduce((acc, [, item]) => acc + (item.quantity || 0), 0)} items
                         </span>
                     </div>
-                    <button
-                        type="button"
-                        onClick={() => {
-                            if (cartItems.length > 0 && confirm("Clear current order?")) {
-                                clearSale();
-                                onClose();
-                            } else if (cartItems.length === 0) {
-                                onClose();
-                            }
-                        }}
-                        className="text-rose-500 text-xs font-bold hover:bg-rose-50 dark:hover:bg-rose-950/30 px-2.5 py-1 rounded-lg transition-colors"
-                        disabled={isDemo}
-                    >
-                        Clear Cart
-                    </button>
+
+                    <div className="flex items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                if (cartItems.length > 0 && confirm("Clear current order?")) {
+                                    clearSale();
+                                    onClose();
+                                } else if (cartItems.length === 0) {
+                                    onClose();
+                                }
+                            }}
+                            className="text-rose-500 text-xs font-bold hover:bg-rose-50 dark:hover:bg-rose-950/30 px-2 py-1 rounded-lg transition-colors"
+                            disabled={isDemo}
+                        >
+                            Clear Cart
+                        </button>
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
+                            title="Back to product list"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                    </div>
                 </div>
 
                 {/* Items List */}
@@ -178,8 +189,8 @@ const CartDrawer = ({
                     )}
                 </div>
 
-                {/* Footer with Bottom Clearance */}
-                <div className="p-4 pb-6 sm:pb-4 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-200 dark:border-slate-800 flex-shrink-0 space-y-2">
+                {/* Footer with Subtotal, Total, Cancel, & Proceed Buttons */}
+                <div className="p-4 pb-6 sm:pb-4 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-200 dark:border-slate-800 flex-shrink-0 space-y-2.5">
                     <div className="flex justify-between items-center text-xs text-slate-500 dark:text-slate-400 font-semibold">
                         <span>Subtotal</span>
                         <span className="font-mono">{currency(subtotal, { symbol: '₱' }).format()}</span>
@@ -192,14 +203,25 @@ const CartDrawer = ({
                         </span>
                     </div>
 
-                    <Button
-                        variant="primary"
-                        className="w-full h-11 text-xs sm:text-sm font-black rounded-xl shadow-md bg-[#8DB600] hover:bg-[#7ca000] text-white active:scale-[0.98] transition-transform flex items-center justify-center"
-                        onClick={handleProceedToPayment}
-                        disabled={cartItems.length === 0 || createSaleMutation.isPending || isDemo}
-                    >
-                        {createSaleMutation.isPending ? 'Processing...' : 'Proceed to Payment'}
-                    </Button>
+                    {/* Dual Action Row: Cancel (Back to Products) + Proceed to Payment */}
+                    <div className="flex items-center gap-2 pt-0.5">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            className="h-11 px-4 text-xs font-bold rounded-xl border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                            onClick={onClose}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="primary"
+                            className="flex-1 h-11 text-xs sm:text-sm font-black rounded-xl shadow-md bg-[#8DB600] hover:bg-[#7ca000] text-white active:scale-[0.98] transition-transform flex items-center justify-center"
+                            onClick={handleProceedToPayment}
+                            disabled={cartItems.length === 0 || createSaleMutation.isPending || isDemo}
+                        >
+                            {createSaleMutation.isPending ? 'Processing...' : 'Proceed to Payment'}
+                        </Button>
+                    </div>
                 </div>
             </DialogContent>
         </Dialog>

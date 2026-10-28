@@ -12,6 +12,7 @@ const POSProductGrid = ({
                             currentPage = 1,
                             totalPages = 1,
                             setCurrentPage,
+                            currentSale = {},
                         }) => {
     const isServiceItem = (p) => {
         if (!p) return false;
@@ -87,6 +88,12 @@ const POSProductGrid = ({
                             const isOutOfStock = !isService && stockNum <= 0;
                             const isLowStock = !isService && !isOutOfStock && stockNum <= minStockNum;
 
+                            // Calculate total quantity of this product currently in cart
+                            const qtyInCart = Object.values(currentSale).reduce((sum, item) => {
+                                const matches = item.productId === p.id || item.id === p.id;
+                                return matches ? sum + (item.quantity || 0) : sum;
+                            }, 0);
+
                             return (
                                 <button
                                     key={p.id}
@@ -96,8 +103,8 @@ const POSProductGrid = ({
                                     className={`pos-product-card text-left bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl border p-1.5 sm:p-2.5 flex flex-col justify-between relative group select-none shadow-2xs transition-all duration-150 outline-none min-h-[126px] sm:min-h-[156px] ${
                                         isOutOfStock
                                             ? 'opacity-40 cursor-not-allowed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40'
-                                            : isService
-                                                ? 'border-slate-200/90 hover:border-[#8DB600] dark:border-slate-800 dark:hover:border-[#8DB600] active:scale-[0.97]'
+                                            : qtyInCart > 0
+                                                ? 'border-[#8DB600] dark:border-[#8DB600] ring-1.5 ring-[#8DB600]/40 bg-lime-50/15 dark:bg-lime-950/15 active:scale-[0.97]'
                                                 : 'border-slate-200/90 dark:border-slate-800 hover:border-[#8DB600] dark:hover:border-[#8DB600] active:scale-[0.97]'
                                     }`}
                                 >
@@ -127,6 +134,13 @@ const POSProductGrid = ({
                                             </div>
                                         )}
 
+                                        {/* In-Cart Quantity Pill */}
+                                        {qtyInCart > 0 && (
+                                            <div className="absolute bottom-1 left-1 z-10 flex items-center gap-1 bg-[#8DB600] text-white text-[7.5px] sm:text-[8.5px] font-black px-1.5 py-0.5 rounded-md shadow-xs font-mono animate-in zoom-in-90 duration-100">
+                                                <span>{qtyInCart} in cart</span>
+                                            </div>
+                                        )}
+
                                         {/* Dynamic Product Graphic */}
                                         <div className="w-full h-full flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
                                             <ProductImage
@@ -152,7 +166,11 @@ const POSProductGrid = ({
                                             {currency(p.price, { symbol: '₱' }).format()}
                                         </div>
 
-                                        <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-md sm:rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 group-hover:bg-[#8DB600] group-hover:text-white dark:group-hover:bg-[#8DB600] dark:group-hover:text-white flex items-center justify-center transition-all duration-150 shadow-2xs shrink-0">
+                                        <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded-md sm:rounded-lg flex items-center justify-center transition-all duration-150 shadow-2xs shrink-0 ${
+                                            qtyInCart > 0
+                                                ? 'bg-[#8DB600] text-white'
+                                                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 group-hover:bg-[#8DB600] group-hover:text-white dark:group-hover:bg-[#8DB600] dark:group-hover:text-white'
+                                        }`}>
                                             <Plus className="w-3 h-3 stroke-[2.5]" />
                                         </div>
                                     </div>

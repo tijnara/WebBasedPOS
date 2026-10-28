@@ -689,7 +689,7 @@ export default function POSPage() {
                     </div>
                 </div>
 
-                {/* --- Scrollable Product Grid Region --- */}
+                {/* --- Scrollable Product Grid Region with currentSale passed for In-Cart badges --- */}
                 <div className="pos-product-scroll-area flex-1 p-2 sm:p-2.5 pb-36 sm:pb-32 md:pb-2.5 bg-slate-50/50 dark:bg-slate-900/50 relative min-h-0 overflow-y-auto">
                     <POSProductGrid
                         isLoading={isLoadingProducts}
@@ -699,6 +699,7 @@ export default function POSPage() {
                         currentPage={currentPage}
                         totalPages={totalPages}
                         setCurrentPage={setCurrentPage}
+                        currentSale={currentSale}
                     />
                 </div>
             </div>
