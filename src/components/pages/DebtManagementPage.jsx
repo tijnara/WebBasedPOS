@@ -202,7 +202,7 @@ export default function DebtManagementPage() {
     };
 
     return (
-        <div className="debt-page responsive-page max-w-7xl mx-auto space-y-6 p-4 md:p-6 overflow-x-hidden">
+        <div className="debt-page responsive-page max-w-7xl mx-auto space-y-6 p-4 md:p-6 pb-28 md:pb-8 overflow-x-hidden">
             <Head>
                 <title>Debt Management | Seaside POS</title>
             </Head>
