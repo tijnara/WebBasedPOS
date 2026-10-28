@@ -1,5 +1,5 @@
 // src/components/pages/POSPage.jsx
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useStore } from '../../store/useStore';
 import { useProducts } from '../../hooks/useProducts';
@@ -16,7 +16,8 @@ import {
     ScanLine,
     PlusCircle,
     Filter,
-    Keyboard
+    Keyboard,
+    ArrowUpDown
 } from 'lucide-react';
 
 import POSCart from '../pos/POSCart';
@@ -63,6 +64,9 @@ export default function POSPage() {
 
     const [categoryFilter, setCategoryFilter] = useState('All');
     const [availableCategories, setAvailableCategories] = useState(['All']);
+
+    // Sort State: Defaults to 'highest_sold'
+    const [sortBy, setSortBy] = useState('highest_sold');
 
     const [searchTerm, setSearchTerm] = useState('');
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
@@ -116,10 +120,54 @@ export default function POSPage() {
         category: categoryFilter,
         page: currentPage,
         itemsPerPage,
-        excludeHidden: true
+        excludeHidden: true,
+        sortBy
     });
-    const products = productsData.products || [];
+
+    const rawProducts = productsData.products || [];
     const totalPages = productsData.totalPages || 1;
+
+    // Client-side sort guarantees highest sold on top
+    const sortedProducts = useMemo(() => {
+        if (!rawProducts.length) return [];
+        const copy = [...rawProducts];
+
+        switch (sortBy) {
+            case 'highest_sold':
+                return copy.sort((a, b) => {
+                    const soldA = Number(a.total_sold ?? a.sales_count ?? a.sold_quantity ?? 0);
+                    const soldB = Number(b.total_sold ?? b.sales_count ?? b.sold_quantity ?? 0);
+
+                    if (soldB !== soldA) {
+                        return soldB - soldA;
+                    }
+
+                    // Prioritize refills to the top when counts are equal
+                    const aIsRefill = (a.category || '').toLowerCase().includes('refill') || (a.name || '').toLowerCase().startsWith('refill') || [30, 3, 2].includes(Number(a.id));
+                    const bIsRefill = (b.category || '').toLowerCase().includes('refill') || (b.name || '').toLowerCase().startsWith('refill') || [30, 3, 2].includes(Number(b.id));
+
+                    if (aIsRefill && !bIsRefill) return -1;
+                    if (!aIsRefill && bIsRefill) return 1;
+
+                    return (a.name || '').localeCompare(b.name || '');
+                });
+
+            case 'stock_desc':
+                return copy.sort((a, b) => Number(b.stock ?? b.stock_quantity ?? 0) - Number(a.stock ?? a.stock_quantity ?? 0));
+
+            case 'stock_asc':
+                return copy.sort((a, b) => Number(a.stock ?? a.stock_quantity ?? 0) - Number(b.stock ?? b.stock_quantity ?? 0));
+
+            case 'price_asc':
+                return copy.sort((a, b) => Number(a.price || 0) - Number(b.price || 0));
+
+            case 'price_desc':
+                return copy.sort((a, b) => Number(b.price || 0) - Number(a.price || 0));
+
+            default:
+                return copy;
+        }
+    }, [rawProducts, sortBy]);
 
     const isBarcodeScan = /^[0-9]{3,}$/.test(searchTerm.trim());
     const { data: scannedProduct } = useProductByBarcode(isBarcodeScan ? searchTerm.trim() : null);
@@ -204,7 +252,6 @@ export default function POSPage() {
         setCustomerSearchTerm('');
         setCustomerSearchResults([]);
 
-        // If drawer is currently open on mobile, close it first and mount payment modal smoothly
         if (isCartDrawerOpen) {
             closeCartDrawer();
             setTimeout(() => {
@@ -215,7 +262,6 @@ export default function POSPage() {
         }
     };
 
-    // Hotkey Products loaded dynamically from DB
     const [hotkeyProducts, setHotkeyProducts] = useState({});
 
     useEffect(() => {
@@ -374,7 +420,7 @@ export default function POSPage() {
                 return;
             }
 
-            const product = products.find(p => p.id === item.productId);
+            const product = sortedProducts.find(p => p.id === item.productId);
             const stock = product ? (product.stock ?? product.stock_quantity) : null;
             const isService = isServiceProduct(product);
 
@@ -406,7 +452,7 @@ export default function POSPage() {
             return;
         }
 
-        const product = products.find(p => p.id === item.productId);
+        const product = sortedProducts.find(p => p.id === item.productId);
         const stock = product ? (product.stock ?? product.stock_quantity) : null;
         const isService = isServiceProduct(product);
         let finalQty = qty;
@@ -459,16 +505,15 @@ export default function POSPage() {
         openScanner();
     };
 
-    // Helper flag to suppress floating mobile bottom bar when any modal/drawer is open
     const isAnyModalOpen = isCartDrawerOpen || isPaymentModalOpen || isCustomerModalOpen || isCustomSaleModalOpen || Boolean(editItemKey) || isScannerOpen || isScanSalesModalOpen;
 
     return (
-        <div className="pos-page flex flex-col md:flex-row gap-2 h-full max-h-full w-full overflow-hidden p-1.5 md:p-2.5 bg-slate-100 box-border">
+        <div className="pos-page flex flex-col md:flex-row gap-2 h-full max-h-full w-full overflow-hidden p-1.5 md:p-2.5 bg-slate-100 dark:bg-slate-950 box-border">
 
             {/* --- LEFT PANEL: CATALOG & ACTIONS --- */}
             <div className="flex-1 flex flex-col min-w-0 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs border border-slate-200 dark:border-slate-800 overflow-hidden relative z-10 h-full max-h-full min-h-0">
 
-                {/* Ultra-Compact Header Row: Search + Action Buttons */}
+                {/* Header Row: Search + Action Buttons */}
                 <div className="p-2 sm:p-2.5 md:p-3 border-b border-slate-100 dark:border-slate-800 flex items-center gap-1.5 sm:gap-2 bg-white dark:bg-slate-900 shrink-0">
                     <div className="relative flex-1 flex items-center group min-w-0">
                         <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 absolute left-3 text-slate-400 group-focus-within:text-[#8DB600] transition-colors pointer-events-none z-10" />
@@ -479,12 +524,12 @@ export default function POSPage() {
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             style={{ paddingLeft: '2.2rem' }}
-                            className="w-full pr-8 h-9 sm:h-10 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-[#8DB600] focus:ring-2 focus:ring-[#8DB600]/20 transition-all font-medium text-xs text-slate-900 placeholder:text-slate-400 outline-none"
+                            className="w-full pr-8 h-9 sm:h-10 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-900 focus:border-[#8DB600] focus:ring-2 focus:ring-[#8DB600]/20 transition-all font-medium text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 outline-none"
                         />
                         <button
                             type="button"
                             onClick={handleCameraButtonClick}
-                            className="absolute right-1.5 p-1 text-slate-400 hover:text-[#8DB600] hover:bg-lime-50 rounded-lg transition-colors outline-none z-10"
+                            className="absolute right-1.5 p-1 text-slate-400 hover:text-[#8DB600] hover:bg-lime-50 dark:hover:bg-lime-950/30 rounded-lg transition-colors outline-none z-10"
                             title="Open Camera Scanner"
                         >
                             <ScanLine className="w-3.5 h-3.5" />
@@ -495,7 +540,7 @@ export default function POSPage() {
                         <Button
                             variant="outline"
                             onClick={() => setIsScanSalesModalOpen(true)}
-                            className="h-9 sm:h-10 px-2 sm:px-3 rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-[#5f7d00] hover:border-lime-300 font-bold whitespace-nowrap transition-all active:scale-95 text-xs"
+                            className="h-9 sm:h-10 px-2 sm:px-3 rounded-xl border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-[#5f7d00] hover:border-lime-300 font-bold whitespace-nowrap transition-all active:scale-95 text-xs"
                             title="Scan Sales List"
                         >
                             <ScanLine className="w-3.5 h-3.5 sm:mr-1" />
@@ -514,12 +559,10 @@ export default function POSPage() {
                     </div>
                 </div>
 
-                {/* Filters & Quick Keys Area */}
+                {/* Categories & Hotkeys Area */}
                 <div className="px-2 sm:px-2.5 md:px-3 py-1.5 border-b border-slate-100 dark:border-slate-800 flex flex-col gap-1 shrink-0 bg-slate-50/50 dark:bg-slate-900">
-
-                    {/* Category Scroll Container */}
-                    <div className="category-scroll-container flex items-center gap-1.5 overflow-x-auto pb-1 w-full">
-                        <div className="flex items-center gap-1 pr-1.5 border-r border-slate-200 mr-0.5 shrink-0 text-slate-400">
+                    <div className="category-scroll-container flex items-center gap-1.5 overflow-x-auto pb-1 w-full no-scrollbar">
+                        <div className="flex items-center gap-1 pr-1.5 border-r border-slate-200 dark:border-slate-700 mr-0.5 shrink-0 text-slate-400">
                             <Filter className="w-3 h-3" />
                             <span className="text-[9px] font-bold uppercase tracking-wider hidden sm:inline-block">Filter</span>
                         </div>
@@ -530,7 +573,7 @@ export default function POSPage() {
                                 className={`flex-shrink-0 whitespace-nowrap px-2.5 sm:px-3 py-1 rounded-full text-[10px] sm:text-[11px] font-bold transition-all select-none ${
                                     categoryFilter === cat
                                         ? 'bg-[#8DB600] text-white shadow-2xs'
-                                        : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                                        : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
                                 }`}
                             >
                                 {cat}
@@ -538,11 +581,10 @@ export default function POSPage() {
                         ))}
                     </div>
 
-                    {/* Quick Add Hotkeys Bar */}
                     <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
-                        <div className="flex items-center gap-1 pr-1.5 border-r border-slate-200 mr-0.5 shrink-0">
+                        <div className="flex items-center gap-1 pr-1.5 border-r border-slate-200 dark:border-slate-700 mr-0.5 shrink-0">
                             <img src="/seasidelogo_.png" alt="Seaside" className="w-3 h-3 object-contain" />
-                            <span className="text-[9px] font-bold uppercase tracking-widest hidden sm:inline-block text-slate-600">Quick</span>
+                            <span className="text-[9px] font-bold uppercase tracking-widest hidden sm:inline-block text-slate-600 dark:text-slate-300">Quick</span>
                         </div>
 
                         {[
@@ -561,13 +603,13 @@ export default function POSPage() {
                                         handleAdd(prod);
                                         addToast({ title: 'Quick Add', description: `${prod.name} added.`, variant: 'success' });
                                     }}
-                                    className="flex items-center gap-1 px-2 py-0.5 bg-white border border-slate-200 hover:border-lime-400 hover:bg-lime-50 rounded-lg shadow-2xs text-[10px] sm:text-[11px] font-bold text-slate-700 transition-all flex-shrink-0 active:scale-95 group"
+                                    className="flex items-center gap-1 px-2 py-0.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-lime-400 hover:bg-lime-50 dark:hover:bg-lime-950/20 rounded-lg shadow-2xs text-[10px] sm:text-[11px] font-bold text-slate-700 dark:text-slate-200 transition-all flex-shrink-0 active:scale-95 group"
                                 >
-                                    <kbd className="flex min-w-[14px] h-3.5 items-center justify-center bg-slate-100 border border-slate-300 rounded text-[8px] text-slate-600 font-bold group-hover:bg-white group-hover:border-lime-300 group-hover:text-[#5f7d00]">
+                                    <kbd className="flex min-w-[14px] h-3.5 items-center justify-center bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded text-[8px] text-slate-600 dark:text-slate-300 font-bold group-hover:bg-white dark:group-hover:bg-slate-600 group-hover:border-lime-300 group-hover:text-[#5f7d00]">
                                         {key}
                                     </kbd>
                                     <span className="truncate max-w-[110px]">{prod.name}</span>
-                                    <span className="text-[#8DB600] font-black">₱{Number(prod.price).toFixed(2)}</span>
+                                    <span className="text-[#8DB600] font-black font-mono">₱{Number(prod.price).toFixed(2)}</span>
                                 </button>
                             );
                         })}
@@ -575,26 +617,65 @@ export default function POSPage() {
                         <div className="hidden md:flex items-center gap-2.5 ml-auto text-[11px] text-slate-400 font-medium shrink-0">
                             <span className="flex items-center gap-1">
                                 <Keyboard className="w-3 h-3 text-slate-400" />
-                                <kbd className="font-mono font-bold text-slate-600 bg-slate-100 px-1 rounded text-[9px]">F1</kbd> Search
+                                <kbd className="font-mono font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-1 rounded text-[9px]">F1</kbd> Search
                             </span>
                             <span className="flex items-center gap-1">
-                                <kbd className="font-mono font-bold text-slate-600 bg-slate-100 px-1 rounded text-[9px]">F2</kbd> Cust
+                                <kbd className="font-mono font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-1 rounded text-[9px]">F2</kbd> Cust
                             </span>
                             <span className="flex items-center gap-1">
-                                <kbd className="font-mono font-bold text-[#5f7d00] bg-lime-100 px-1 rounded text-[9px]">F3</kbd> Custom
+                                <kbd className="font-mono font-bold text-[#5f7d00] bg-lime-100 dark:bg-lime-950/40 px-1 rounded text-[9px]">F3</kbd> Custom
                             </span>
                             <span className="flex items-center gap-1">
-                                <kbd className="font-mono font-bold text-slate-600 bg-slate-100 px-1 rounded text-[9px]">F4</kbd> Pay
+                                <kbd className="font-mono font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-1 rounded text-[9px]">F4</kbd> Pay
                             </span>
                         </div>
                     </div>
                 </div>
 
+                {/* --- Direct Header on Top of the Products Container --- */}
+                <div className="px-2.5 sm:px-3 py-1.5 bg-slate-50 dark:bg-slate-850 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-2 shrink-0">
+                    <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400 text-[11px] font-bold">
+                        <span className="uppercase tracking-wider text-[9px] text-slate-400">Products</span>
+                        <span className="text-[10px] bg-slate-200/80 dark:bg-slate-700 text-slate-700 dark:text-slate-200 px-1.5 py-0.2 rounded-full font-mono font-bold">
+                            {sortedProducts.length}
+                        </span>
+                        {categoryFilter !== 'All' && (
+                            <span className="text-[10px] text-[#5f7d00] dark:text-lime-400 font-semibold truncate max-w-[120px]">
+                                • {categoryFilter}
+                            </span>
+                        )}
+                    </div>
+
+                    {/* Arrangement / Sort Options */}
+                    <div className="flex items-center gap-1.5">
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 hidden sm:inline-block">Arrange by:</span>
+                        <div className="relative flex items-center">
+                            <ArrowUpDown className="w-3 h-3 text-[#8DB600] absolute left-2 pointer-events-none" />
+                            <select
+                                value={sortBy}
+                                onChange={(e) => {
+                                    setSortBy(e.target.value);
+                                    setCurrentPage(1);
+                                }}
+                                style={{ paddingLeft: '1.6rem' }}
+                                className="h-7 text-[10px] sm:text-[11px] font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-lg pr-2 py-0 outline-none cursor-pointer hover:border-[#8DB600] transition-colors shadow-2xs"
+                                title="Arrange Products"
+                            >
+                                <option value="highest_sold">🔥 Highest Sold</option>
+                                <option value="stock_desc">📦 Stock: High to Low</option>
+                                <option value="stock_asc">⚠️ Stock: Low to High</option>
+                                <option value="price_asc">₱ Price: Low to High</option>
+                                <option value="price_desc">₱ Price: High to Low</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
                 {/* --- Scrollable Product Grid Region --- */}
-                <div className="pos-product-scroll-area flex-1 p-2 sm:p-2.5 pb-24 md:pb-2.5 bg-slate-50/50 dark:bg-slate-900/50 relative min-h-0">
+                <div className="pos-product-scroll-area flex-1 p-2 sm:p-2.5 pb-36 sm:pb-32 md:pb-2.5 bg-slate-50/50 dark:bg-slate-900/50 relative min-h-0 overflow-y-auto">
                     <POSProductGrid
                         isLoading={isLoadingProducts}
-                        products={products}
+                        products={sortedProducts}
                         handleAdd={handleAdd}
                         openCustomSale={openCustomSale}
                         currentPage={currentPage}
@@ -671,7 +752,7 @@ export default function POSPage() {
             <CustomSaleModal
                 isOpen={isCustomSaleModalOpen}
                 onClose={closeCustomSale}
-                products={products}
+                products={sortedProducts}
                 onAddItem={(product, quantity, price) => addItemToSale(product, quantity, price)}
                 isDemo={isDemo}
             />
@@ -684,7 +765,7 @@ export default function POSPage() {
                     onSave={(updatedItem) => {
                         const isCustom = updatedItem.is_custom || updatedItem.track_stock === false || String(updatedItem.productId || updatedItem.id).startsWith('custom_');
                         if (!isCustom) {
-                            const product = products.find(p => p.id === updatedItem.productId);
+                            const product = sortedProducts.find(p => p.id === updatedItem.productId);
                             const stock = product ? (product.stock ?? product.stock_quantity) : null;
                             const isService = isServiceProduct(product);
                             if (product && !isService && stock !== null && updatedItem.quantity > stock) {
@@ -710,7 +791,7 @@ export default function POSPage() {
             <ScanSalesListModal
                 isOpen={isScanSalesModalOpen}
                 onClose={() => setIsScanSalesModalOpen(false)}
-                products={products}
+                products={sortedProducts}
                 onSuccess={() => {
                     queryClient.invalidateQueries({ queryKey: ['products'] });
                     queryClient.invalidateQueries({ queryKey: ['sales'] });
