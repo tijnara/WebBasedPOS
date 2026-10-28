@@ -45,16 +45,39 @@ const POSProductGrid = ({
                         </div>
                     ))}
                 </div>
-            ) : !validProducts.length ? (
-                <div className="flex flex-col items-center justify-center h-56 sm:h-64 text-slate-400 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-4 sm:p-6 w-full text-center shadow-2xs">
-                    <Package className="w-7 h-7 text-slate-300 dark:text-slate-600 mb-1.5" />
-                    <h3 className="text-xs font-bold text-slate-700 dark:text-slate-200">No products found</h3>
-                    <p className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5">Try changing category or clearing your search.</p>
-                </div>
             ) : (
                 <>
-                    {/* Balanced Ergonomic 2-Column Mobile Grid */}
+                    {/* Balanced Ergonomic Responsive Grid */}
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-2.5 items-stretch">
+
+                        {/* --- ALWAYS FIRST SLOT: Custom Item / Open Sale Tile --- */}
+                        <button
+                            type="button"
+                            onClick={openCustomSale}
+                            className="pos-product-card text-left bg-gradient-to-br from-lime-50/70 via-white to-lime-50/90 dark:from-slate-900 dark:via-slate-850 dark:to-lime-950/30 rounded-2xl border-2 border-dashed border-lime-400 dark:border-lime-700/80 hover:border-[#8DB600] dark:hover:border-lime-400 p-2 sm:p-2.5 flex flex-col justify-between items-center text-center group cursor-pointer active:scale-[0.97] transition-all min-h-[148px] sm:min-h-[168px] shadow-2xs select-none"
+                        >
+                            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-lime-100 dark:bg-lime-950/60 text-[#8DB600] dark:text-lime-400 flex items-center justify-center my-auto group-hover:scale-110 transition-transform">
+                                <PlusCircle className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.2]" />
+                            </div>
+                            <div className="my-auto">
+                                <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-wider text-[#8DB600] dark:text-lime-400 block">
+                                    Open Sale
+                                </span>
+                                <h4 className="font-extrabold text-[11px] sm:text-xs text-slate-800 dark:text-slate-100 mt-0.5">
+                                    Custom Item
+                                </h4>
+                                <span className="text-[9px] font-semibold text-slate-400 mt-0.5 block">
+                                    Tap to add
+                                </span>
+                            </div>
+                            <div className="w-full pt-1 sm:pt-1.5 border-t border-lime-100 dark:border-lime-950/40 mt-auto">
+                                <span className="text-[9px] sm:text-[10px] font-bold text-[#5f7d00] dark:text-lime-300 bg-lime-100 dark:bg-lime-950/50 px-1.5 py-0.5 rounded-md">
+                                    Open Price (₱)
+                                </span>
+                            </div>
+                        </button>
+
+                        {/* --- Catalog Products --- */}
                         {validProducts.map((p) => {
                             const hotkey = p.id === 30 ? '1' : p.id === 3 ? '2' : p.id === 2 ? '3' : null;
                             const stockNum = Number(p.stock ?? p.stock_quantity ?? 0);
@@ -134,29 +157,6 @@ const POSProductGrid = ({
                                 </button>
                             );
                         })}
-
-                        {/* Custom Item Tile (if 7 products on page) */}
-                        {validProducts.length === 7 && (
-                            <button
-                                type="button"
-                                onClick={openCustomSale}
-                                className="pos-product-card text-left bg-gradient-to-br from-lime-50/50 via-white to-lime-50/80 dark:from-slate-900 dark:via-slate-850 dark:to-lime-950/20 rounded-2xl border-2 border-dashed border-lime-300 dark:border-lime-700/60 hover:border-[#8DB600] p-2 sm:p-2.5 flex flex-col justify-between items-center text-center group cursor-pointer active:scale-[0.97] transition-all min-h-[148px] sm:min-h-[168px]"
-                            >
-                                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-lime-100 dark:bg-lime-950/60 text-[#8DB600] flex items-center justify-center my-auto group-hover:scale-110 transition-transform">
-                                    <PlusCircle className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.2]" />
-                                </div>
-                                <div className="my-auto">
-                                    <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-wider text-[#8DB600] block">Open Sale</span>
-                                    <h4 className="font-extrabold text-[11px] sm:text-xs text-slate-800 dark:text-slate-100 mt-0.5">Custom Item</h4>
-                                    <span className="text-[9px] font-semibold text-slate-400 mt-0.5 block">Tap to add</span>
-                                </div>
-                                <div className="w-full pt-1 sm:pt-1.5 border-t border-lime-100 dark:border-lime-950/40 mt-auto">
-                                    <span className="text-[9px] sm:text-[10px] font-bold text-[#5f7d00] dark:text-lime-300 bg-lime-100 dark:bg-lime-950/50 px-1.5 py-0.5 rounded-md">
-                                        Open Price (₱)
-                                    </span>
-                                </div>
-                            </button>
-                        )}
                     </div>
 
                     {/* Pagination Bar with Comfortable Thumb Targets */}
