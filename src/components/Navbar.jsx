@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { subHours } from 'date-fns';
 import currency from 'currency.js';
-import { Sun, Moon, LogOut, ChevronDown, Landmark, Receipt, TestTube, History } from 'lucide-react';
+import { Sun, Moon, LogOut, ChevronDown, Landmark, Receipt, TestTube, History, X } from 'lucide-react';
 
 import { supabase } from '../lib/supabaseClient';
 import { useStore } from '../store/useStore';
@@ -169,6 +169,16 @@ export default function Navbar() {
         setLastSeenMessageTime(now);
     };
 
+    // Listen to custom drawer trigger from TabBar.jsx
+    useEffect(() => {
+        const handleOpenDrawerEvent = () => setIsMenuOpen(true);
+        window.addEventListener('open-mobile-drawer', handleOpenDrawerEvent);
+
+        return () => {
+            window.removeEventListener('open-mobile-drawer', handleOpenDrawerEvent);
+        };
+    }, []);
+
     // Queries: Pending Approvals & Contact Messages
     const { data: pendingUsers = [] } = useQuery({
         queryKey: ['pending-approvals-count', clientUser?.id, isAdmin],
@@ -232,7 +242,6 @@ export default function Navbar() {
     useEffect(() => {
         if (!clientUser || isDemo) return;
 
-        // Scoped unique channel prevents collision upon React component remounts / Fast Refresh
         const navChannel = supabase.channel(`rt:navbar-${clientUser.id}-${Date.now()}`);
 
         if (isAdmin) {
@@ -275,13 +284,8 @@ export default function Navbar() {
         const handleRouteChange = () => setIsMenuOpen(false);
         router.events.on('routeChangeComplete', handleRouteChange);
 
-        const handleClickOutside = (e) => {
-            if (menuRef.current && !menuRef.current.contains(e.target)) setIsMenuOpen(false);
-        };
-        document.addEventListener('mousedown', handleClickOutside);
         return () => {
             router.events.off('routeChangeComplete', handleRouteChange);
-            document.removeEventListener('mousedown', handleClickOutside);
         };
     }, [user, router.events]);
 
@@ -388,15 +392,16 @@ export default function Navbar() {
         const hasAlerts = category === 'Administration & Content' && (pendingCount > 0 || unreadMessageCount > 0);
 
         return (
-            <div key={category ?? '__root__'} className="mb-1">
+            <div key={category ?? '__root__'} className="mb-2">
                 {category && (
                     <button
-                        className={`${isSidebar ? 'w-[calc(100%-1.5rem)] mx-3' : 'w-full'} flex items-center justify-between px-4 py-2.5 font-semibold text-xs uppercase tracking-widest text-white rounded-lg shadow-sm transition-all duration-150 active:scale-[0.98]`}
+                        type="button"
+                        className={`${isSidebar ? 'w-[calc(100%-1.5rem)] mx-3' : 'w-full'} flex items-center justify-between px-3.5 py-2.5 font-bold text-[11px] uppercase tracking-wider text-white rounded-xl shadow-xs transition-all duration-150 active:scale-[0.98]`}
                         style={{ background: 'linear-gradient(90deg, #6abf45 0%, #4e9e2d 100%)' }}
                         onClick={() => toggleCategory(category)}
                     >
                         <div className="flex items-center gap-2 min-w-0">
-                            <span className="drop-shadow-sm truncate">{category}</span>
+                            <span className="drop-shadow-xs truncate">{category}</span>
                             {hasAlerts && !isOpen && (
                                 <span className="relative flex h-2 w-2">
                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
@@ -408,7 +413,7 @@ export default function Navbar() {
                     </button>
                 )}
                 {isOpen && (
-                    <div className={isSidebar ? "pl-3 ml-5 mt-1 space-y-0.5" : "pl-2 ml-2 mt-0.5 space-y-0.5"}>
+                    <div className={isSidebar ? "pl-3 ml-5 mt-1 space-y-0.5" : "pl-1.5 mt-1 space-y-1"}>
                         {visibleLinks.map(link => {
                             const isActive = router.pathname === link.path;
                             const isApprovals = link.path === '/admin/user-approvals';
@@ -419,7 +424,11 @@ export default function Navbar() {
                                 <Button
                                     key={link.name}
                                     variant="ghost"
-                                    className={`nav-item ${isSidebar ? 'w-[calc(100%-1rem)]' : 'w-full'} justify-start px-4 py-2 transition-all rounded-md ${isActive ? 'text-white font-bold shadow-md' : (isSidebar ? 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800' : 'text-gray-700 hover:bg-gray-100')}`}
+                                    className={`nav-item w-full justify-start px-3.5 py-2.5 transition-all rounded-xl ${
+                                        isActive
+                                            ? 'text-white font-black shadow-md'
+                                            : 'text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold'
+                                    }`}
                                     style={isActive ? { background: 'linear-gradient(90deg, rgba(106,191,69,0.95) 0%, rgba(78,158,45,0.9) 100%)' } : {}}
                                     onClick={async () => {
                                         if (category) setOpenCategories(new Set([category]));
@@ -429,45 +438,31 @@ export default function Navbar() {
                                     }}
                                 >
                                     <div className="flex items-center justify-between w-full min-w-0">
-                                        <div className="flex items-center gap-4 min-w-0">
-                                            {link.icon}
-                                            <span className="text-sm font-medium truncate">{link.name}</span>
+                                        <div className="flex items-center gap-3 min-w-0">
+                                            <span className={isActive ? 'text-white' : 'text-slate-600 dark:text-slate-400'}>
+                                                {link.icon}
+                                            </span>
+                                            <span className={`text-xs truncate ${isActive ? 'text-white' : 'text-slate-800 dark:text-slate-100'}`}>
+                                                {link.name}
+                                            </span>
                                         </div>
 
                                         {isDashboard && unreadNotesCount > 0 && (
-                                            <div className="flex items-center gap-1.5 ml-auto pl-2 shrink-0">
-                                                <span className="relative flex h-2 w-2">
-                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
-                                                </span>
-                                                <span className="bg-amber-400 text-amber-950 text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center shadow-xs">
-                                                    {unreadNotesCount}
-                                                </span>
-                                            </div>
+                                            <span className="bg-amber-400 text-amber-950 text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center shadow-xs">
+                                                {unreadNotesCount}
+                                            </span>
                                         )}
 
                                         {isApprovals && pendingCount > 0 && (
-                                            <div className="flex items-center gap-1.5 ml-auto pl-2 shrink-0">
-                                                <span className="relative flex h-2 w-2">
-                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
-                                                </span>
-                                                <span className="bg-rose-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center shadow-xs">
-                                                    {pendingCount}
-                                                </span>
-                                            </div>
+                                            <span className="bg-rose-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center shadow-xs">
+                                                {pendingCount}
+                                            </span>
                                         )}
 
                                         {isMessages && unreadMessageCount > 0 && (
-                                            <div className="flex items-center gap-1.5 ml-auto pl-2 shrink-0">
-                                                <span className="relative flex h-2 w-2">
-                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
-                                                </span>
-                                                <span className="bg-blue-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center shadow-xs">
-                                                    {unreadMessageCount}
-                                                </span>
-                                            </div>
+                                            <span className="bg-blue-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center shadow-xs">
+                                                {unreadMessageCount}
+                                            </span>
                                         )}
                                     </div>
                                 </Button>
@@ -481,40 +476,39 @@ export default function Navbar() {
 
     return (
         <>
-            {/* MOBILE LAYOUT */}
-            <div className="navbar md:hidden">
-                <div className="flex items-center">
-                    <div className="relative" ref={menuRef}>
-                        <Button variant="ghost" onClick={() => setIsMenuOpen(!isMenuOpen)}>
-                            <HamburgerIcon className="h-6 w-6 hamburger-icon" />
-                        </Button>
-                        {isMenuOpen && (
-                            <div className="absolute left-0 mt-2 w-56 origin-top-left bg-white dark:bg-gray-900 rounded-2xl shadow-2xl focus:outline-none z-50 max-h-[80vh] overflow-y-auto" id="main-menu-mobile">
-                                <nav className="flex flex-col px-1 py-1">{renderLinks(false)}</nav>
-                            </div>
-                        )}
-                    </div>
-                    <div className="brand flex items-center min-w-0 flex-shrink-0 cursor-pointer" onClick={() => router.push('/')}>
-                        <Image src="/seaside.png" alt="Seaside Logo" width={80} height={80} loading="eager" className="flex-shrink-0" />
+            {/* MOBILE HEADER BAR */}
+            <div className="navbar md:hidden flex items-center justify-between px-3 py-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 z-30">
+                <div className="flex items-center gap-2 min-w-0">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setIsMenuOpen(true)}
+                        aria-label="Open Navigation Drawer"
+                        className="p-1.5 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl"
+                    >
+                        <HamburgerIcon className="h-6 w-6" />
+                    </Button>
+
+                    <div className="brand flex items-center min-w-0 flex-shrink-0 cursor-pointer" onClick={() => router.push('/pos')}>
+                        <Image
+                            src="/seaside.png"
+                            alt="Seaside Logo"
+                            width={40}
+                            height={40}
+                            style={{ width: 'auto', height: 'auto' }}
+                            loading="eager"
+                            className="flex-shrink-0 object-contain"
+                        />
                     </div>
                 </div>
 
-                <div className="mobile-clock-container flex flex-col items-center gap-1 ml-auto">
+                {/* Right Actions: Shift Indicator, Notifications & LiveClock (Time and Date) */}
+                <div className="mobile-clock-container flex flex-col items-end gap-0.5 ml-auto">
                     <div className="flex items-center gap-2">
-                        {(isAdmin || isDemo) && (
-                            <button
-                                type="button"
-                                onClick={() => router.push('/report')}
-                                className={`p-1.5 rounded-lg transition-colors ${
-                                    router.pathname === '/report'
-                                        ? 'text-primary bg-primary/10'
-                                        : 'text-gray-600 dark:text-gray-300 hover:text-primary hover:bg-gray-100 dark:hover:bg-gray-800'
-                                }`}
-                                title="Reports"
-                                aria-label="Reports"
-                            >
-                                <ChartIcon className="w-5 h-5" />
-                            </button>
+                        {clientUser && (
+                            <div className="scale-95 origin-right">
+                                <ActiveShiftIndicator user={clientUser} onOpenStartShift={() => setIsStartShiftModalOpen(true)} />
+                            </div>
                         )}
 
                         <NotificationBell
@@ -529,16 +523,93 @@ export default function Navbar() {
                             onMarkMessagesSeen={markMessagesAsSeen}
                             isMobile={true}
                         />
-                        {clientUser && <ActiveShiftIndicator user={clientUser} onOpenStartShift={() => setIsStartShiftModalOpen(true)} />}
                     </div>
                     <LiveClock />
                 </div>
             </div>
 
+            {/* MOBILE FULL SLIDE-OVER DRAWER WITH BACKDROP */}
+            {isMenuOpen && (
+                <div
+                    className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-[60] transition-opacity duration-200 md:hidden"
+                    onClick={() => setIsMenuOpen(false)}
+                />
+            )}
+
+            <aside
+                id="main-menu-mobile"
+                className={`fixed top-0 bottom-0 left-0 w-[84%] max-w-xs bg-white dark:bg-slate-900 z-[60] shadow-2xl flex flex-col transform transition-transform duration-200 ease-out md:hidden ${
+                    isMenuOpen ? 'translate-x-0' : '-translate-x-full'
+                }`}
+            >
+                {/* Drawer Header: User Info Card & Close Button */}
+                <div className="p-4 bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0">
+                    <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-10 h-10 rounded-full bg-lime-100 text-[#5f7d00] font-black flex items-center justify-center text-sm border border-lime-300 shrink-0">
+                            {clientUser?.name?.[0] || 'S'}
+                        </div>
+                        <div className="min-w-0">
+                            <p className="text-sm font-bold text-slate-900 dark:text-white truncate leading-tight">
+                                {clientUser?.name || 'Staff User'}
+                            </p>
+                            <span className="inline-block mt-0.5 text-[10px] font-bold px-2 py-0.5 rounded-full bg-lime-100 dark:bg-lime-900/40 text-[#5f7d00] dark:text-lime-300 border border-lime-200 dark:border-lime-800">
+                                {isAdmin ? 'Administrator' : 'Staff'}
+                            </span>
+                        </div>
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={() => setIsMenuOpen(false)}
+                        className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors"
+                        aria-label="Close Drawer"
+                    >
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
+
+                {/* Drawer Scrollable Navigation Links */}
+                <nav className="flex-1 overflow-y-auto p-3 space-y-1 menu-scrollbar">
+                    {renderLinks(false)}
+                </nav>
+
+                {/* Drawer Footer: Quick Theme & Logout Actions */}
+                <div className="p-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex items-center justify-between shrink-0 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]">
+                    <button
+                        type="button"
+                        onClick={toggleDarkMode}
+                        className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-700 transition-colors"
+                    >
+                        {darkMode ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-slate-600" />}
+                        <span>{darkMode ? 'Light' : 'Dark'}</span>
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setIsMenuOpen(false);
+                            prepareZReading();
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+                    >
+                        <LogOut className="w-4 h-4" />
+                        <span>Sign Out</span>
+                    </button>
+                </div>
+            </aside>
+
             {/* DESKTOP SIDEBAR */}
             <aside className="hidden md:flex flex-col w-64 fixed inset-y-0 left-0 bg-surface border-r border-border z-40 shadow-lg">
                 <div className="h-16 flex items-center px-6 border-b border-border shrink-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors" onClick={() => router.push('/')}>
-                    <Image src="/seaside.png" alt="Seaside Logo" width={40} height={40} loading="eager" className="shrink-0" />
+                    <Image
+                        src="/seaside.png"
+                        alt="Seaside Logo"
+                        width={40}
+                        height={40}
+                        style={{ width: 'auto', height: 'auto' }}
+                        loading="eager"
+                        className="shrink-0"
+                    />
                     <span className="font-bold text-lg text-primary ml-3 tracking-wide">Seaside</span>
                 </div>
                 <nav className="flex-1 overflow-y-auto py-4 menu-scrollbar flex flex-col gap-1">{renderLinks(true)}</nav>
