@@ -3,14 +3,14 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { useStore } from '../../store/useStore';
 import { useCreateExpense } from '../../hooks/useExpenses';
-import { startOfWeek, addWeeks, addMonths, format } from 'date-fns';
+import { startOfWeek, addWeeks, format } from 'date-fns';
 import { useQueryClient } from '@tanstack/react-query';
 import {
     Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
     Button, Input, Label, Table, TableHeader, TableRow, TableHead,
     TableBody, TableCell
 } from '../ui';
-import { Plus, History, Edit2, Trash2, X, Sliders } from 'lucide-react';
+import { Edit2, Trash2, Sliders, Droplets, Truck, AlertTriangle } from 'lucide-react';
 
 import PendingPurchases from '../tracking/PendingPurchases';
 import FilterList from '../tracking/FilterList';
@@ -30,10 +30,12 @@ export default function MaintenanceTrackingPage() {
         )
     );
 
+    // Segmented Active Tab: 'filters' or 'fleet'
+    const [activeTab, setActiveTab] = useState('filters');
+
     const [filterConfigs, setFilterConfigs] = useState(FILTER_CONFIG);
     const [trackingData, setTrackingData] = useState({});
     const [usageData, setUsageData] = useState({});
-    const [vehicleUsageData, setVehicleUsageData] = useState({});
     const [dbVehicles, setDbVehicles] = useState([]);
     const [fullHistory, setFullHistory] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -66,7 +68,6 @@ export default function MaintenanceTrackingPage() {
         name: '',
         lifespanDays: 180,
         lifespanMonths: 6,
-        gallonLimit: 2000,
         purpose: '',
         lastMaintenanceDate: format(new Date(), 'yyyy-MM-dd')
     });
@@ -125,7 +126,7 @@ export default function MaintenanceTrackingPage() {
             });
             setTrackingData(latestDates);
 
-            // 3. Compute Filter Usages (Sold since last replacement)
+            // 3. Compute Filter Usages (Sold since last replacement for volume monitoring)
             const mappedUsage = {};
             for (const filter of activeFilters) {
                 if (latestDates[filter.id]) {
@@ -144,25 +145,7 @@ export default function MaintenanceTrackingPage() {
             }
             setUsageData(mappedUsage);
 
-            // 4. Compute Vehicle Usage (Gallons sold since last maintenance)
-            const mappedVehiclesUsage = {};
-            for (const vehicle of vehiclesList) {
-                if (latestDates[vehicle.id]) {
-                    const { data: vSalesData } = await supabase
-                        .from('sale_items')
-                        .select('quantity, sales!inner(saletimestamp, status)')
-                        .in('product_id', [2, 3, 30])
-                        .eq('sales.status', 'Completed')
-                        .gte('sales.saletimestamp', latestDates[vehicle.id]);
-
-                    mappedVehiclesUsage[vehicle.id] = vSalesData ? vSalesData.reduce((sum, item) => sum + (item.quantity || 0), 0) : 0;
-                } else {
-                    mappedVehiclesUsage[vehicle.id] = 0;
-                }
-            }
-            setVehicleUsageData(mappedVehiclesUsage);
-
-            checkNotifications(latestDates, mappedUsage, activeFilters);
+            checkNotifications(latestDates, activeFilters);
         } catch (error) {
             console.error("Error fetching data:", error);
             addToast({ title: 'Error', description: 'Failed to load tracking data.', variant: 'destructive' });
@@ -175,14 +158,13 @@ export default function MaintenanceTrackingPage() {
         fetchTrackingData();
     }, []);
 
-    const checkNotifications = (dates, usages, filters) => {
+    const checkNotifications = (dates, filters) => {
         let overdueItems = [];
 
         filters.forEach(filter => {
             const lastReplaced = dates[filter.id] ? new Date(dates[filter.id]) : new Date();
             const daysPassed = Math.floor((new Date() - lastReplaced) / (1000 * 60 * 60 * 24));
-            const containersSold = usages[filter.id] || 0;
-            if (daysPassed >= filter.lifespanDays || containersSold >= filter.containerLimit) {
+            if (daysPassed >= filter.lifespanDays) {
                 overdueItems.push(filter.name);
             }
         });
@@ -190,53 +172,49 @@ export default function MaintenanceTrackingPage() {
         if (overdueItems.length > 0) {
             addToast({
                 title: 'Filter Replacement Required!',
-                description: `Filters overdue by time or usage: ${overdueItems.join(', ')}`,
+                description: `Filters overdue by time: ${overdueItems.join(', ')}`,
                 variant: 'destructive'
             });
         }
     };
 
-    // Calculate processed values using active filterConfigs limits
+    // Calculate processed values: Time is the replacement driver; Gallons are for volume monitoring
     const processedFilters = filterConfigs.map(filter => {
         const lastReplaced = trackingData[filter.id] ? new Date(trackingData[filter.id]) : new Date();
-        const daysPassed = Math.floor((new Date() - lastReplaced) / (1000 * 60 * 60 * 24));
+        const daysPassed = Math.max(0, Math.floor((new Date() - lastReplaced) / (1000 * 60 * 60 * 24)));
         const daysLeft = Math.max(0, filter.lifespanDays - daysPassed);
-        const timePercent = Math.min(100, (daysPassed / filter.lifespanDays) * 100);
+        const timePercent = Math.min(100, Math.max(0, (daysPassed / filter.lifespanDays) * 100));
+        const isTimeOverdue = daysPassed >= filter.lifespanDays;
 
         const containersSold = usageData[filter.id] || 0;
-        const containersLeft = Math.max(0, filter.containerLimit - containersSold);
-        const usagePercent = Math.min(100, (containersSold / filter.containerLimit) * 100);
+        const containerLimit = Number(filter.containerLimit || 1500);
+        const containersLeft = Math.max(0, containerLimit - containersSold);
+        const usagePercent = Math.min(100, Math.max(0, (containersSold / containerLimit) * 100));
 
         return {
             ...filter,
             daysPassed,
             daysLeft,
             timePercent,
-            isTimeOverdue: daysLeft === 0,
+            isTimeOverdue,
             containersSold,
+            containerLimit,
             containersLeft,
             usagePercent,
-            isUsageOverdue: containersSold >= filter.containerLimit,
-            isOverdue: (daysLeft === 0 || containersSold >= filter.containerLimit)
+            isOverdue: isTimeOverdue // Strictly time/day driven
         };
     });
 
-    // Calculate processed values for vehicles
+    // Calculate processed values for vehicles strictly by time/days
     const processedVehicles = dbVehicles.map(vehicle => {
         const lastReplaced = trackingData[vehicle.id] ? new Date(trackingData[vehicle.id]) : new Date();
         const now = new Date();
 
         const totalLifespanDays = vehicle.lifespan_days || (vehicle.lifespan_months ? vehicle.lifespan_months * 30 : 180);
-        const daysPassed = Math.floor((now - lastReplaced) / (1000 * 60 * 60 * 24));
+        const daysPassed = Math.max(0, Math.floor((now - lastReplaced) / (1000 * 60 * 60 * 24)));
         const daysLeft = Math.max(0, totalLifespanDays - daysPassed);
-        const timePercent = Math.min(100, (daysPassed / totalLifespanDays) * 100);
-        const isTimeOverdue = daysLeft === 0;
-
-        const gallonLimit = vehicle.gallon_limit || 0;
-        const gallonsSold = vehicleUsageData[vehicle.id] || 0;
-        const gallonsLeft = gallonLimit > 0 ? Math.max(0, gallonLimit - gallonsSold) : 0;
-        const gallonPercent = gallonLimit > 0 ? Math.min(100, (gallonsSold / gallonLimit) * 100) : 0;
-        const isGallonOverdue = gallonLimit > 0 && gallonsSold >= gallonLimit;
+        const timePercent = Math.min(100, Math.max(0, (daysPassed / totalLifespanDays) * 100));
+        const isTimeOverdue = daysPassed >= totalLifespanDays;
 
         return {
             ...vehicle,
@@ -245,17 +223,12 @@ export default function MaintenanceTrackingPage() {
             totalLifespanDays,
             timePercent,
             isTimeOverdue,
-            gallonLimit,
-            gallonsSold,
-            gallonsLeft,
-            gallonPercent,
-            isGallonOverdue,
-            isOverdue: isTimeOverdue || isGallonOverdue
+            isOverdue: isTimeOverdue
         };
     });
 
     const overdueFilters = processedFilters.filter(f => f.isOverdue);
-    const totalOverdueCost = overdueFilters.reduce((sum, f) => sum + (f.cost * f.pcs), 0);
+    const totalOverdueCost = overdueFilters.reduce((sum, f) => sum + (Number(f.cost || 0) * Number(f.pcs || 1)), 0);
     const overdueVehicles = processedVehicles.filter(v => v.isOverdue);
 
     // Filter limits edit
@@ -266,7 +239,7 @@ export default function MaintenanceTrackingPage() {
             filterId: filter.id,
             filterName: filter.name,
             lifespanDays: filter.lifespanDays,
-            containerLimit: filter.containerLimit,
+            containerLimit: filter.containerLimit || 1000,
             cost: filter.cost
         });
     };
@@ -293,7 +266,6 @@ export default function MaintenanceTrackingPage() {
 
             if (error) throw error;
 
-            // Activity Log
             await supabase.from('activity_logs').insert([{
                 user_id: user?.id || null,
                 user_name: user?.name || user?.username || 'Administrator',
@@ -304,7 +276,7 @@ export default function MaintenanceTrackingPage() {
                 created_at: new Date().toISOString()
             }]);
 
-            addToast({ title: 'Limits Updated', description: 'Filter thresholds and counters refreshed.', variant: 'success' });
+            addToast({ title: 'Limits Updated', description: 'Filter lifespan and container target updated.', variant: 'success' });
             setEditFilterModal(prev => ({ ...prev, isOpen: false }));
             await fetchTrackingData();
         } catch (err) {
@@ -354,13 +326,13 @@ export default function MaintenanceTrackingPage() {
             const expensePromises = [];
 
             overdueFilters.forEach(filter => {
-                const weeklyCost = (filter.cost * filter.pcs) / filter.lifespanWeeks;
-                for (let i = 0; i < filter.lifespanWeeks; i++) {
+                const weeklyCost = (Number(filter.cost || 0) * Number(filter.pcs || 1)) / (filter.lifespanWeeks || 1);
+                for (let i = 0; i < (filter.lifespanWeeks || 1); i++) {
                     expensePromises.push(
                         createExpense.mutateAsync({
                             amount: weeklyCost.toFixed(2),
                             category: 'Maintenance',
-                            description: `Filter Replacement (${filter.name}) - Week ${i + 1}/${filter.lifespanWeeks}`,
+                            description: `Filter Replacement (${filter.name}) - Week ${i + 1}/${filter.lifespanWeeks || 1}`,
                             expense_date: addWeeks(startOfCurrentWeek, i).toISOString()
                         })
                     );
@@ -399,7 +371,6 @@ export default function MaintenanceTrackingPage() {
         try {
             let vehicleId = vehicleForm.id;
             const lifespanDays = parseInt(vehicleForm.lifespanDays, 10) || Math.max(1, (vehicleForm.lifespanMonths || 6) * 30);
-            const gallonLimit = parseInt(vehicleForm.gallonLimit, 10) || 0;
             const lifespanMonths = Math.max(1, Math.round(lifespanDays / 30));
 
             if (vehicleId) {
@@ -407,7 +378,6 @@ export default function MaintenanceTrackingPage() {
                     name: vehicleForm.name,
                     lifespan_days: lifespanDays,
                     lifespan_months: lifespanMonths,
-                    gallon_limit: gallonLimit,
                     purpose: vehicleForm.purpose
                 }).eq('id', vehicleId);
 
@@ -418,7 +388,6 @@ export default function MaintenanceTrackingPage() {
                     name: vehicleForm.name,
                     lifespan_days: lifespanDays,
                     lifespan_months: lifespanMonths,
-                    gallon_limit: gallonLimit,
                     purpose: vehicleForm.purpose
                 }).select().single();
 
@@ -427,7 +396,6 @@ export default function MaintenanceTrackingPage() {
                 addToast({ title: 'Added', description: 'New vehicle added.', variant: 'success' });
             }
 
-            // Sync chosen maintenance date
             const currentTrackedDate = trackingData[vehicleId] ? format(new Date(trackingData[vehicleId]), 'yyyy-MM-dd') : null;
 
             if (!currentTrackedDate || currentTrackedDate !== vehicleForm.lastMaintenanceDate) {
@@ -446,7 +414,6 @@ export default function MaintenanceTrackingPage() {
                 name: '',
                 lifespanDays: 180,
                 lifespanMonths: 6,
-                gallonLimit: 2000,
                 purpose: '',
                 lastMaintenanceDate: format(new Date(), 'yyyy-MM-dd')
             });
@@ -484,7 +451,6 @@ export default function MaintenanceTrackingPage() {
             name: v.name,
             lifespanDays: days,
             lifespanMonths: v.lifespan_months || Math.round(days / 30),
-            gallonLimit: v.gallon_limit ?? 2000,
             purpose: v.purpose || '',
             lastMaintenanceDate: lastDate
         });
@@ -492,51 +458,121 @@ export default function MaintenanceTrackingPage() {
     };
 
     return (
-        <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="p-3 sm:p-5 md:p-6 max-w-7xl mx-auto space-y-4">
+            {/* Top Bar: Title & Admin Settings Trigger */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
                 <div>
-                    <h1 className="text-xl font-bold text-gray-900 tracking-tight">Filter & Maintenance Tracking</h1>
-                    <p className="text-gray-500 text-xs mt-0.5">Monitor water filters and vehicle maintenance.</p>
+                    <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
+                        Filter & Maintenance Tracking
+                    </h1>
+                    <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">
+                        Monitor water filtration lifespans and delivery vehicle servicing schedules.
+                    </p>
                 </div>
                 {isAdmin && (
-                    <Button onClick={() => setManageVehiclesModal(true)} className="btn-primary">
-                        Manage Vehicles
+                    <Button
+                        variant="primary"
+                        onClick={() => setManageVehiclesModal(true)}
+                        className="h-9 px-3.5 text-xs font-bold bg-[#8DB600] hover:bg-[#7ca000] text-white rounded-xl shadow-xs flex items-center gap-1.5 transition-all active:scale-95 shrink-0"
+                    >
+                        <Sliders className="w-3.5 h-3.5" />
+                        <span>Manage Vehicles</span>
                     </Button>
                 )}
             </div>
 
-            {isLoading ? (
-                <div className="text-center py-10 text-gray-500">Loading tracking data...</div>
-            ) : (
-                <div className="flex flex-col lg:flex-row gap-6 items-start">
-                    <div className="w-full lg:w-80 shrink-0 order-first lg:order-last">
-                        <PendingPurchases
-                            overdueFilters={overdueFilters}
-                            totalOverdueCost={totalOverdueCost}
-                            handlePurchaseAndRecord={handlePurchaseAndRecord}
-                            isPurchasing={isPurchasing}
-                            isDemo={isDemo}
-                        />
-                    </div>
+            {/* Segmented Control Tabs */}
+            <div className="flex items-center gap-2 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-2xl w-full sm:w-max border border-slate-200/80 dark:border-slate-700/60 select-none">
+                <button
+                    type="button"
+                    onClick={() => setActiveTab('filters')}
+                    className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-extrabold transition-all duration-150 cursor-pointer ${
+                        activeTab === 'filters'
+                            ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
+                            : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                    }`}
+                >
+                    <Droplets className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
+                    <span>Water Filters</span>
+                    <span className="font-mono text-[10px] bg-slate-100 dark:bg-slate-800 px-1.5 py-0.2 rounded-full font-bold">
+                        {processedFilters.length}
+                    </span>
+                    {overdueFilters.length > 0 && (
+                        <span className="flex items-center gap-0.5 text-[9px] font-black bg-rose-500 text-white px-1.5 py-0.2 rounded-full animate-pulse">
+                            <AlertTriangle className="w-2.5 h-2.5" /> {overdueFilters.length}
+                        </span>
+                    )}
+                </button>
 
-                    <div className="flex-1 w-full order-last lg:order-first flex flex-col space-y-6">
-                        <FilterList
-                            processedFilters={processedFilters}
-                            handleReplace={(id) => handleOpenRecordModal(id, filterConfigs.find(f => f.id === id)?.name, 'filter')}
-                            handleViewHistory={(id) => setHistoryModal({ isOpen: true, itemId: id, itemName: filterConfigs.find(f => f.id === id)?.name })}
-                            handleEditFilter={handleOpenEditFilter}
-                            isAdmin={isAdmin}
-                            isPurchasing={isPurchasing}
-                        />
-                        <VehicleList
-                            processedVehicles={processedVehicles}
-                            handleReplace={(id) => handleOpenRecordModal(id, dbVehicles.find(v => v.id === id)?.name, 'vehicle')}
-                            handleViewHistory={(id) => setHistoryModal({ isOpen: true, itemId: id, itemName: dbVehicles.find(v => v.id === id)?.name })}
-                            handleEditVehicle={handleEditVehicleClick}
-                            isAdmin={isAdmin}
-                            isPurchasing={isPurchasing}
-                        />
-                    </div>
+                <button
+                    type="button"
+                    onClick={() => setActiveTab('fleet')}
+                    className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-extrabold transition-all duration-150 cursor-pointer ${
+                        activeTab === 'fleet'
+                            ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
+                            : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                    }`}
+                >
+                    <Truck className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                    <span>Fleet & Logistics</span>
+                    <span className="font-mono text-[10px] bg-slate-100 dark:bg-slate-800 px-1.5 py-0.2 rounded-full font-bold">
+                        {processedVehicles.length}
+                    </span>
+                    {overdueVehicles.length > 0 && (
+                        <span className="flex items-center gap-0.5 text-[9px] font-black bg-rose-500 text-white px-1.5 py-0.2 rounded-full animate-pulse">
+                            <AlertTriangle className="w-2.5 h-2.5" /> {overdueVehicles.length}
+                        </span>
+                    )}
+                </button>
+            </div>
+
+            {isLoading ? (
+                <div className="text-center py-16 text-slate-400 text-xs font-semibold">
+                    Loading maintenance records...
+                </div>
+            ) : (
+                <div className="space-y-4">
+                    {/* Tab 1: Water Filtration */}
+                    {activeTab === 'filters' && (
+                        <div className="flex flex-col lg:flex-row gap-5 items-start">
+                            {/* Pending Purchases Banner / Card */}
+                            <div className="w-full lg:w-80 shrink-0 order-first lg:order-last">
+                                <PendingPurchases
+                                    overdueFilters={overdueFilters}
+                                    totalOverdueCost={totalOverdueCost}
+                                    handlePurchaseAndRecord={handlePurchaseAndRecord}
+                                    isPurchasing={isPurchasing}
+                                    isDemo={isDemo}
+                                />
+                            </div>
+
+                            {/* Filter Cards List */}
+                            <div className="flex-1 w-full order-last lg:order-first">
+                                <FilterList
+                                    processedFilters={processedFilters}
+                                    handleReplace={(id) => handleOpenRecordModal(id, filterConfigs.find(f => f.id === id)?.name, 'filter')}
+                                    handleViewHistory={(id) => setHistoryModal({ isOpen: true, itemId: id, itemName: filterConfigs.find(f => f.id === id)?.name })}
+                                    handleEditFilter={handleOpenEditFilter}
+                                    isAdmin={isAdmin}
+                                    isPurchasing={isPurchasing}
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Tab 2: Delivery Fleet */}
+                    {activeTab === 'fleet' && (
+                        <div className="w-full">
+                            <VehicleList
+                                processedVehicles={processedVehicles}
+                                handleReplace={(id) => handleOpenRecordModal(id, dbVehicles.find(v => v.id === id)?.name, 'vehicle')}
+                                handleViewHistory={(id) => setHistoryModal({ isOpen: true, itemId: id, itemName: dbVehicles.find(v => v.id === id)?.name })}
+                                handleEditVehicle={handleEditVehicleClick}
+                                isAdmin={isAdmin}
+                                isPurchasing={isPurchasing}
+                            />
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -549,7 +585,7 @@ export default function MaintenanceTrackingPage() {
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <Sliders className="w-5 h-5 text-emerald-600" />
-                            Edit Filter Limits: {editFilterModal.filterName}
+                            Edit Filter Targets: {editFilterModal.filterName}
                         </DialogTitle>
                     </DialogHeader>
                     <form onSubmit={handleSaveFilterLimits} className="p-4 space-y-4">
@@ -562,11 +598,11 @@ export default function MaintenanceTrackingPage() {
                                 onChange={e => setEditFilterModal(prev => ({ ...prev, lifespanDays: e.target.value }))}
                                 required
                             />
-                            <p className="text-[11px] text-gray-400 mt-1">Adjusting this directly recalibrates the Time Remaining counter.</p>
+                            <p className="text-[11px] text-gray-400 mt-1">Primary trigger for filter replacement.</p>
                         </div>
 
                         <div>
-                            <Label className="text-xs font-bold text-gray-700">Total Containers Sold Limit</Label>
+                            <Label className="text-xs font-bold text-gray-700">Volume Capacity Target (Containers)</Label>
                             <Input
                                 type="number"
                                 min="1"
@@ -574,7 +610,7 @@ export default function MaintenanceTrackingPage() {
                                 onChange={e => setEditFilterModal(prev => ({ ...prev, containerLimit: e.target.value }))}
                                 required
                             />
-                            <p className="text-[11px] text-gray-400 mt-1">Adjusting this directly recalibrates the Containers Remaining counter.</p>
+                            <p className="text-[11px] text-gray-400 mt-1">Calibrates the Gallon Volume Filtered monitoring bar.</p>
                         </div>
 
                         <div>
@@ -606,7 +642,7 @@ export default function MaintenanceTrackingPage() {
             </Dialog>
 
             {/* Record Custom Date Modal */}
-            <Dialog open={recordModal.isOpen} onOpenChange={(open) => !open && setRecordModal(prev => ({...prev, isOpen: false}))}>
+            <Dialog open={recordModal.isOpen} onOpenChange={(open) => !open && setRecordModal(prev => ({ ...prev, isOpen: false }))}>
                 <DialogContent className="max-w-md">
                     <DialogHeader>
                         <DialogTitle>Record Maintenance: {recordModal.itemName}</DialogTitle>
@@ -617,12 +653,12 @@ export default function MaintenanceTrackingPage() {
                             <Input
                                 type="datetime-local"
                                 value={recordModal.customDate}
-                                onChange={e => setRecordModal(prev => ({...prev, customDate: e.target.value}))}
+                                onChange={e => setRecordModal(prev => ({ ...prev, customDate: e.target.value }))}
                                 required
                             />
                         </div>
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setRecordModal(prev => ({...prev, isOpen: false}))}>Cancel</Button>
+                            <Button type="button" variant="outline" onClick={() => setRecordModal(prev => ({ ...prev, isOpen: false }))}>Cancel</Button>
                             <Button type="submit" variant="primary">Save Record</Button>
                         </DialogFooter>
                     </form>
@@ -630,7 +666,7 @@ export default function MaintenanceTrackingPage() {
             </Dialog>
 
             {/* View History Modal */}
-            <Dialog open={historyModal.isOpen} onOpenChange={(open) => !open && setHistoryModal(prev => ({...prev, isOpen: false}))}>
+            <Dialog open={historyModal.isOpen} onOpenChange={(open) => !open && setHistoryModal(prev => ({ ...prev, isOpen: false }))}>
                 <DialogContent className="max-w-lg">
                     <DialogHeader>
                         <DialogTitle>History: {historyModal.itemName}</DialogTitle>
@@ -657,7 +693,7 @@ export default function MaintenanceTrackingPage() {
                         </Table>
                     </div>
                     <DialogFooter className="p-4 border-t border-gray-100">
-                        <Button variant="outline" onClick={() => setHistoryModal(prev => ({...prev, isOpen: false}))}>
+                        <Button variant="outline" onClick={() => setHistoryModal(prev => ({ ...prev, isOpen: false }))}>
                             Close
                         </Button>
                     </DialogFooter>
@@ -669,7 +705,7 @@ export default function MaintenanceTrackingPage() {
                 <DialogContent className="max-w-2xl w-full">
                     <DialogHeader><DialogTitle>Manage Vehicles</DialogTitle></DialogHeader>
                     <div className="p-4 space-y-6">
-                        <form onSubmit={handleSaveVehicle} className="space-y-4 bg-gray-50 p-4 rounded-lg border">
+                        <form onSubmit={handleSaveVehicle} className="space-y-4 bg-gray-50 dark:bg-slate-800/60 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <Label>Vehicle Name</Label>
@@ -698,17 +734,6 @@ export default function MaintenanceTrackingPage() {
                                     />
                                 </div>
                                 <div>
-                                    <Label>Gallons / Containers Sold Limit</Label>
-                                    <Input
-                                        type="number"
-                                        min="0"
-                                        value={vehicleForm.gallonLimit}
-                                        onChange={e => setVehicleForm(prev => ({ ...prev, gallonLimit: e.target.value }))}
-                                        placeholder="e.g. 2000"
-                                    />
-                                    <p className="text-[10px] text-gray-400 mt-0.5">Set to 0 if not monitoring usage by gallons.</p>
-                                </div>
-                                <div>
                                     <Label>Last Maintained Date</Label>
                                     <Input
                                         type="date"
@@ -717,12 +742,12 @@ export default function MaintenanceTrackingPage() {
                                         required
                                     />
                                 </div>
-                                <div className="md:col-span-2">
+                                <div>
                                     <Label>Maintenance Purpose / Note</Label>
                                     <Input
                                         value={vehicleForm.purpose}
                                         onChange={e => setVehicleForm(prev => ({ ...prev, purpose: e.target.value }))}
-                                        placeholder="e.g. Change oil, tune-up, filter check"
+                                        placeholder="e.g. Change engine oil, tune-up, filter check"
                                         required
                                     />
                                 </div>
@@ -737,7 +762,6 @@ export default function MaintenanceTrackingPage() {
                                             name: '',
                                             lifespanDays: 180,
                                             lifespanMonths: 6,
-                                            gallonLimit: 2000,
                                             purpose: '',
                                             lastMaintenanceDate: format(new Date(), 'yyyy-MM-dd')
                                         })}
@@ -749,13 +773,12 @@ export default function MaintenanceTrackingPage() {
                             </div>
                         </form>
 
-                        <div className="max-h-80 overflow-y-auto border rounded-lg">
+                        <div className="max-h-80 overflow-y-auto border border-slate-200 dark:border-slate-700 rounded-xl">
                             <Table>
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>Name</TableHead>
                                         <TableHead>Interval (Days)</TableHead>
-                                        <TableHead>Gallon Limit</TableHead>
                                         <TableHead className="text-right">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -764,7 +787,6 @@ export default function MaintenanceTrackingPage() {
                                         <TableRow key={v.id}>
                                             <TableCell className="font-medium">{v.name}</TableCell>
                                             <TableCell>{v.lifespan_days || (v.lifespan_months ? v.lifespan_months * 30 : 180)} Days</TableCell>
-                                            <TableCell>{v.gallon_limit ? `${v.gallon_limit.toLocaleString()} gal` : 'None'}</TableCell>
                                             <TableCell className="text-right space-x-2">
                                                 <button onClick={() => handleEditVehicleClick(v)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md"><Edit2 className="w-4 h-4" /></button>
                                                 <button onClick={() => handleDeleteVehicle(v.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-md"><Trash2 className="w-4 h-4" /></button>
