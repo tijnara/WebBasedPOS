@@ -8,7 +8,7 @@ import { useDebts } from '../../hooks/useDebts';
 import { useSalesSummary } from '../../hooks/useSalesSummary';
 import { format as formatDate, endOfMonth, subMonths, addMonths, startOfDay, endOfDay } from 'date-fns';
 import { formatInTimeZone, toDate } from 'date-fns-tz';
-import { Users } from 'lucide-react';
+import { Users, Calculator, History } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -88,6 +88,9 @@ export default function SalaryMonitoringPage() {
     const queryClient = useQueryClient?.() || null;
     const { user, addToast } = useStore();
     const isAdmin = user?.role === 'Admin' || user?.role === 'admin' || user?.isadmin;
+
+    // Mobile Navigation Sub-Tab ('payroll' | 'history')
+    const [mobileTab, setMobileTab] = useState('payroll');
 
     const [period, setPeriod] = useState(getInitialPeriod());
     const [filterEmployee, setFilterEmployee] = useState('all');
@@ -418,25 +421,61 @@ export default function SalaryMonitoringPage() {
     };
 
     return (
-        <div className="p-6 space-y-6 responsive-page max-w-7xl mx-auto">
+        <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 responsive-page max-w-7xl mx-auto pb-28 md:pb-8">
             <Head>
                 <title>Salary Monitoring | Seaside POS</title>
             </Head>
 
-            <div className="flex justify-between items-center">
-                <div>
-                    <h1 className="text-2xl font-bold">Salary Monitoring</h1>
-                    <p className="text-gray-500 text-sm">Manage staff salaries, automated payrolls, and manual records.</p>
+            {/* Header with Compact Manage Employees Action */}
+            <div className="flex justify-between items-center gap-3">
+                <div className="min-w-0">
+                    <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white truncate">
+                        Salary Monitoring
+                    </h1>
+                    <p className="text-slate-500 text-xs sm:text-sm mt-0.5 truncate hidden sm:block">
+                        Manage staff salaries, automated payrolls, and manual records.
+                    </p>
                 </div>
                 <Button
                     onClick={() => setIsManageModalOpen(true)}
-                    className="flex items-center gap-2 btn-apple-green text-white"
+                    variant="outline"
+                    className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-2xs shrink-0"
                 >
-                    <Users className="w-4 h-4" /> Manage Employees
+                    <Users className="w-4 h-4 text-[#8DB600]" />
+                    <span>Manage Staff</span>
                 </Button>
             </div>
 
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
+            {/* Mobile Sub-Tab Navigation Bar */}
+            <div className="flex xl:hidden bg-white dark:bg-slate-800 p-1 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xs">
+                <button
+                    type="button"
+                    onClick={() => setMobileTab('payroll')}
+                    className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+                        mobileTab === 'payroll'
+                            ? 'bg-[#8DB600] text-white shadow-xs'
+                            : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                    }`}
+                >
+                    <Calculator className="w-3.5 h-3.5" />
+                    <span>Process & Log</span>
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setMobileTab('history')}
+                    className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+                        mobileTab === 'history'
+                            ? 'bg-slate-900 dark:bg-slate-700 text-white shadow-xs'
+                            : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                    }`}
+                >
+                    <History className="w-3.5 h-3.5" />
+                    <span>Payout History</span>
+                </button>
+            </div>
+
+            {/* Section 1: Process & Log (Auto-Payroll & Manual Cards) */}
+            <div className={mobileTab === 'payroll' ? 'grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6 items-start' : 'hidden xl:grid xl:grid-cols-2 gap-4 sm:gap-6 items-start'}>
                 <AutoPayrollCard
                     payrollEmpId={payrollEmpId}
                     setPayrollEmpId={setPayrollEmpId}
@@ -469,26 +508,28 @@ export default function SalaryMonitoringPage() {
                 />
             </div>
 
-            {/* Salary History & Filters */}
-            <SalaryHistoryCard
-                period={period}
-                filterEmployee={filterEmployee}
-                setFilterEmployee={setFilterEmployee}
-                employees={employees}
-                periodTotal={periodTotal}
-                customStartDate={customStartDate}
-                setCustomStartDate={setCustomStartDate}
-                customEndDate={customEndDate}
-                setCustomEndDate={setCustomEndDate}
-                handleApplyCustomDate={handleApplyCustomDate}
-                isSalaryLoading={isSalaryLoading}
-                groupedRecords={groupedRecords}
-                filteredRecords={filteredRecords}
-                handleSetPeriod={handleSetPeriod}
-                getPrevPeriod={getPrevPeriod}
-                getNextPeriod={getNextPeriod}
-                isCustomRangeActive={isCustomRangeActive}
-            />
+            {/* Section 2: Salary History & Records */}
+            <div className={mobileTab === 'history' ? 'block' : 'hidden xl:block'}>
+                <SalaryHistoryCard
+                    period={period}
+                    filterEmployee={filterEmployee}
+                    setFilterEmployee={setFilterEmployee}
+                    employees={employees}
+                    periodTotal={periodTotal}
+                    customStartDate={customStartDate}
+                    setCustomStartDate={setCustomStartDate}
+                    customEndDate={customEndDate}
+                    setCustomEndDate={setCustomEndDate}
+                    handleApplyCustomDate={handleApplyCustomDate}
+                    isSalaryLoading={isSalaryLoading}
+                    groupedRecords={groupedRecords}
+                    filteredRecords={filteredRecords}
+                    handleSetPeriod={handleSetPeriod}
+                    getPrevPeriod={getPrevPeriod}
+                    getNextPeriod={getNextPeriod}
+                    isCustomRangeActive={isCustomRangeActive}
+                />
+            </div>
 
             <EmployeeManagementModal
                 isManageModalOpen={isManageModalOpen}
