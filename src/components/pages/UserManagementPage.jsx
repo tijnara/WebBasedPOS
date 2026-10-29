@@ -34,8 +34,8 @@ const RoleBadge = ({ categoryName, isAdmin }) => {
         <span
             className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
                 isAdmin
-                    ? 'bg-purple-50 text-purple-700 border border-purple-200'
-                    : 'bg-blue-50 text-blue-700 border border-blue-200'
+                    ? 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60'
+                    : 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60'
             }`}
         >
             {categoryName || (isAdmin ? 'Admin' : 'Staff')}
@@ -297,12 +297,12 @@ export default function UserManagementPage() {
     const isMutating = createUser.isPending || updateUser.isPending || deleteUser.isPending;
 
     return (
-        <div className="user-page responsive-page max-w-7xl mx-auto space-y-6 p-4 md:p-6 overflow-x-hidden">
+        <div className="user-page responsive-page max-w-7xl mx-auto space-y-6 p-4 md:p-6 overflow-x-hidden transition-colors">
             {/* Header & Primary Actions */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h1 className="text-xl font-bold text-slate-900 tracking-tight">User Management</h1>
-                    <p className="text-xs text-slate-500 mt-0.5">Add, edit, or manage staff and administrator credentials.</p>
+                    <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">User Management</h1>
+                    <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">Add, edit, or manage staff and administrator credentials.</p>
                 </div>
 
                 <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -310,7 +310,7 @@ export default function UserManagementPage() {
                         onClick={openModal}
                         variant="primary"
                         disabled={isDemo || !canManageUsers}
-                        className="h-10 px-4 rounded-xl bg-[#8DB600] hover:bg-[#7ca000] text-white font-bold text-xs shadow-sm flex items-center gap-1.5 active:scale-95 transition-all disabled:opacity-50"
+                        className="h-10 px-4 rounded-xl bg-[#8DB600] hover:bg-[#7ca000] text-white font-bold text-xs shadow-sm flex items-center gap-1.5 active:scale-95 transition-all disabled:opacity-50 cursor-pointer"
                         title={!canManageUsers ? "Only Admins can add users" : ""}
                     >
                         <UserPlus className="w-4 h-4 stroke-[2.5]" />
@@ -321,32 +321,32 @@ export default function UserManagementPage() {
 
             {/* Top KPI Metric Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs flex items-center justify-between">
+                <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs flex items-center justify-between transition-colors">
                     <div>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Accounts</span>
-                        <span className="text-xl font-black text-slate-900">{userStats.total || users.length}</span>
+                        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Total Accounts</span>
+                        <span className="text-xl font-black text-slate-900 dark:text-slate-100">{userStats.total || users.length}</span>
                     </div>
-                    <div className="w-10 h-10 rounded-xl bg-slate-50 text-slate-700 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center">
                         <Users className="w-5 h-5" />
                     </div>
                 </div>
 
-                <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs flex items-center justify-between">
+                <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs flex items-center justify-between transition-colors">
                     <div>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Administrators</span>
-                        <span className="text-xl font-black text-purple-700">{userStats.admins || adminCount}</span>
+                        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Administrators</span>
+                        <span className="text-xl font-black text-purple-700 dark:text-purple-400">{userStats.admins || adminCount}</span>
                     </div>
-                    <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-400 flex items-center justify-center">
                         <ShieldCheck className="w-5 h-5" />
                     </div>
                 </div>
 
-                <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs flex items-center justify-between">
+                <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs flex items-center justify-between transition-colors">
                     <div>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Staff & Cashiers</span>
-                        <span className="text-xl font-black text-blue-600">{userStats.staff}</span>
+                        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Staff & Cashiers</span>
+                        <span className="text-xl font-black text-blue-600 dark:text-blue-400">{userStats.staff}</span>
                     </div>
-                    <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center">
                         <UserCheck className="w-5 h-5" />
                     </div>
                 </div>
@@ -354,20 +354,20 @@ export default function UserManagementPage() {
                 <Link href="/admin/user-approvals" className="block group">
                     <div className={`p-4 rounded-2xl border transition-all flex items-center justify-between ${
                         userStats.pending > 0
-                            ? 'bg-amber-50/70 border-amber-200 shadow-2xs hover:border-amber-300'
-                            : 'bg-white border-slate-200/90 shadow-2xs hover:border-slate-300'
+                            ? 'bg-amber-50/70 dark:bg-amber-950/40 border-amber-200 dark:border-amber-900/60 shadow-2xs hover:border-amber-300 dark:hover:border-amber-800'
+                            : 'bg-white dark:bg-slate-900 border-slate-200/90 dark:border-slate-800 shadow-2xs hover:border-slate-300 dark:hover:border-slate-700'
                     }`}>
                         <div>
                             <div className="flex items-center gap-1">
-                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Pending Approvals</span>
-                                <ArrowUpRight className="w-3 h-3 text-slate-400 group-hover:text-slate-600 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                                <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Pending Approvals</span>
+                                <ArrowUpRight className="w-3 h-3 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                             </div>
-                            <span className={`text-xl font-black ${userStats.pending > 0 ? 'text-amber-700' : 'text-slate-900'}`}>
+                            <span className={`text-xl font-black ${userStats.pending > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-slate-900 dark:text-slate-100'}`}>
                                 {userStats.pending}
                             </span>
                         </div>
                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                            userStats.pending > 0 ? 'bg-amber-100 text-amber-700' : 'bg-slate-50 text-slate-400'
+                            userStats.pending > 0 ? 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300' : 'bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500'
                         }`}>
                             <AlertCircle className="w-5 h-5" />
                         </div>
@@ -376,9 +376,9 @@ export default function UserManagementPage() {
             </div>
 
             {/* Filter / Search Bar with Role Chips */}
-            <div className="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-3 transition-colors">
                 <div className="relative w-full sm:max-w-md">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 z-10">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 dark:text-slate-500 z-10">
                         <Search className="w-4 h-4" />
                     </div>
                     <Input
@@ -387,20 +387,20 @@ export default function UserManagementPage() {
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
                         style={{ paddingLeft: '2.5rem' }}
-                        className="w-full bg-slate-50 border-slate-200 text-xs sm:text-sm h-10 rounded-xl focus:border-[#8DB600] focus:ring-[#8DB600]"
+                        className="w-full bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-xs sm:text-sm h-10 rounded-xl focus:bg-white dark:focus:bg-slate-900 focus:border-[#8DB600] focus:ring-[#8DB600]"
                     />
                 </div>
 
                 {/* Role Filter Chips */}
-                <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto no-scrollbar">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mr-1 hidden sm:inline">Role:</span>
+                <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden py-0.5">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mr-1 hidden sm:inline">Role:</span>
                     <button
                         type="button"
                         onClick={() => setRoleFilter('all')}
-                        className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
+                        className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                             roleFilter === 'all'
-                                ? 'bg-slate-900 text-white shadow-2xs'
-                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-2xs'
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-transparent dark:border-slate-700/60 hover:bg-slate-200 dark:hover:bg-slate-700'
                         }`}
                     >
                         All ({users.length})
@@ -408,28 +408,36 @@ export default function UserManagementPage() {
                     <button
                         type="button"
                         onClick={() => setRoleFilter('admin')}
-                        className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1 ${
+                        className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1 cursor-pointer whitespace-nowrap ${
                             roleFilter === 'admin'
-                                ? 'bg-purple-700 text-white shadow-2xs'
-                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                ? 'bg-purple-700 dark:bg-purple-600 text-white shadow-2xs'
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-transparent dark:border-slate-700/60 hover:bg-slate-200 dark:hover:bg-slate-700'
                         }`}
                     >
                         <span>Admins</span>
-                        <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${roleFilter === 'admin' ? 'bg-purple-500 text-white' : 'bg-purple-100 text-purple-700'}`}>
+                        <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                            roleFilter === 'admin'
+                                ? 'bg-purple-500 text-white'
+                                : 'bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300'
+                        }`}>
                             {adminCount}
                         </span>
                     </button>
                     <button
                         type="button"
                         onClick={() => setRoleFilter('staff')}
-                        className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1 ${
+                        className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1 cursor-pointer whitespace-nowrap ${
                             roleFilter === 'staff'
-                                ? 'bg-blue-600 text-white shadow-2xs'
-                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                ? 'bg-blue-600 dark:bg-blue-500 text-white shadow-2xs'
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-transparent dark:border-slate-700/60 hover:bg-slate-200 dark:hover:bg-slate-700'
                         }`}
                     >
                         <span>Staff</span>
-                        <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${roleFilter === 'staff' ? 'bg-blue-400 text-white' : 'bg-blue-100 text-blue-700'}`}>
+                        <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                            roleFilter === 'staff'
+                                ? 'bg-blue-400 text-white'
+                                : 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300'
+                        }`}>
                             {Math.max(0, users.length - adminCount)}
                         </span>
                     </button>
@@ -437,12 +445,12 @@ export default function UserManagementPage() {
             </div>
 
             {/* Desktop Table View */}
-            <Card className="hidden md:block border border-slate-200 shadow-sm bg-white rounded-2xl overflow-hidden">
+            <Card className="hidden md:block border border-slate-200 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900 rounded-2xl overflow-hidden transition-colors">
                 <CardContent className="p-0 overflow-x-hidden">
                     <div className="w-full overflow-hidden">
                         <Table className="w-full table-auto text-xs sm:text-sm">
                             <TableHeader>
-                                <TableRow className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200/80">
+                                <TableRow className="bg-slate-50 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200/80 dark:border-slate-800">
                                     <TableHead className="py-3 px-4 text-left">Staff Name</TableHead>
                                     <TableHead className="py-3 px-4 text-left">Email Address</TableHead>
                                     <TableHead className="py-3 px-4 text-left">Role</TableHead>
@@ -450,16 +458,16 @@ export default function UserManagementPage() {
                                     <TableHead className="py-3 px-4 text-right w-24">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
-                            <TableBody className="divide-y divide-slate-100 bg-white">
+                            <TableBody className="divide-y divide-slate-100 dark:divide-slate-800/80 bg-white dark:bg-slate-900">
                                 {isLoading ? (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="text-center py-12 text-slate-400 text-xs">
+                                        <TableCell colSpan={5} className="text-center py-12 text-slate-400 dark:text-slate-500 text-xs">
                                             Loading users...
                                         </TableCell>
                                     </TableRow>
                                 ) : filteredUsers.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="text-center py-12 text-slate-400 text-xs">
+                                        <TableCell colSpan={5} className="text-center py-12 text-slate-400 dark:text-slate-500 text-xs">
                                             No users found matching your filter.
                                         </TableCell>
                                     </TableRow>
@@ -470,7 +478,7 @@ export default function UserManagementPage() {
                                         const isProtectedLastAdmin = isUserAdmin && adminCount <= 1;
 
                                         return (
-                                            <TableRow key={u.id} className="hover:bg-slate-50/70 transition-colors">
+                                            <TableRow key={u.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors">
                                                 {/* Staff Name with Avatar Badge */}
                                                 <TableCell className="py-3 px-4">
                                                     <div className="flex items-center gap-2.5">
@@ -481,10 +489,10 @@ export default function UserManagementPage() {
                                                             {u.name?.charAt(0)?.toUpperCase() || 'U'}
                                                         </div>
                                                         <div className="flex flex-col min-w-0">
-                                                            <span className="font-bold text-slate-900 truncate">
+                                                            <span className="font-bold text-slate-900 dark:text-slate-100 truncate">
                                                                 {u.name}
                                                                 {isSelf && (
-                                                                    <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded ml-1.5">
+                                                                    <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-1.5 py-0.5 rounded ml-1.5">
                                                                         You
                                                                     </span>
                                                                 )}
@@ -494,7 +502,7 @@ export default function UserManagementPage() {
                                                 </TableCell>
 
                                                 {/* Email Address */}
-                                                <TableCell className="py-3 px-4 text-slate-600 font-medium">
+                                                <TableCell className="py-3 px-4 text-slate-600 dark:text-slate-300 font-medium">
                                                     {u.email || '—'}
                                                 </TableCell>
 
@@ -504,7 +512,7 @@ export default function UserManagementPage() {
                                                 </TableCell>
 
                                                 {/* Date Added */}
-                                                <TableCell className="py-3 px-4 text-xs text-slate-500 whitespace-nowrap">
+                                                <TableCell className="py-3 px-4 text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
                                                     {u.dateAdded instanceof Date && !isNaN(u.dateAdded)
                                                         ? u.dateAdded.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
                                                         : '—'}
@@ -517,7 +525,7 @@ export default function UserManagementPage() {
                                                             type="button"
                                                             onClick={() => startEdit(u)}
                                                             disabled={isDemo || !canManageUsers}
-                                                            className="w-7 h-7 flex items-center justify-center text-blue-600 hover:bg-blue-50 border border-slate-200 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                                            className="w-7 h-7 flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/50 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
                                                             title="Edit user credentials"
                                                         >
                                                             <Pencil className="w-3.5 h-3.5" />
@@ -527,10 +535,10 @@ export default function UserManagementPage() {
                                                             type="button"
                                                             onClick={() => remove(u)}
                                                             disabled={isDemo || !canManageUsers || isSelf || isProtectedLastAdmin}
-                                                            className={`w-7 h-7 flex items-center justify-center border rounded-lg transition-colors ${
+                                                            className={`w-7 h-7 flex items-center justify-center border rounded-lg transition-colors cursor-pointer ${
                                                                 isSelf || isProtectedLastAdmin
-                                                                    ? 'text-slate-300 border-slate-100 cursor-not-allowed bg-slate-50'
-                                                                    : 'text-rose-600 hover:bg-rose-50 border-slate-200'
+                                                                    ? 'text-slate-300 dark:text-slate-600 border-slate-100 dark:border-slate-800 cursor-not-allowed bg-slate-50 dark:bg-slate-800/40'
+                                                                    : 'text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 border-slate-200 dark:border-slate-700'
                                                             }`}
                                                             title={
                                                                 isSelf
@@ -552,7 +560,7 @@ export default function UserManagementPage() {
                         </Table>
                     </div>
 
-                    <div className="p-3 border-t border-slate-100 flex justify-end">
+                    <div className="p-3 border-t border-slate-100 dark:border-slate-800 flex justify-end">
                         <Pagination
                             currentPage={currentPage}
                             totalPages={totalPages || 1}
@@ -565,9 +573,9 @@ export default function UserManagementPage() {
             {/* Mobile Card List View */}
             <div className="space-y-3 md:hidden">
                 {isLoading ? (
-                    <div className="text-center py-12 text-slate-400 text-xs">Loading users...</div>
+                    <div className="text-center py-12 text-slate-400 dark:text-slate-500 text-xs">Loading users...</div>
                 ) : filteredUsers.length === 0 ? (
-                    <div className="text-center py-12 text-slate-400 text-xs bg-white rounded-2xl border border-slate-200">
+                    <div className="text-center py-12 text-slate-400 dark:text-slate-500 text-xs bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
                         No users found matching your filter.
                     </div>
                 ) : (
@@ -577,7 +585,7 @@ export default function UserManagementPage() {
                         const isProtectedLastAdmin = isUserAdmin && adminCount <= 1;
 
                         return (
-                            <div key={u.id} className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-3">
+                            <div key={u.id} className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs space-y-3 transition-colors">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2.5 min-w-0">
                                         <div
@@ -587,16 +595,16 @@ export default function UserManagementPage() {
                                             {u.name?.charAt(0)?.toUpperCase() || 'U'}
                                         </div>
                                         <div className="min-w-0">
-                                            <p className="font-bold text-sm text-slate-900 truncate">
-                                                {u.name} {isSelf && <span className="text-[10px] text-slate-400 font-normal ml-1">(You)</span>}
+                                            <p className="font-bold text-sm text-slate-900 dark:text-slate-100 truncate">
+                                                {u.name} {isSelf && <span className="text-[10px] text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-1.5 py-0.5 rounded font-normal ml-1">You</span>}
                                             </p>
-                                            <p className="text-xs text-slate-500 truncate">{u.email}</p>
+                                            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{u.email}</p>
                                         </div>
                                     </div>
                                     <RoleBadge categoryName={u.categoryName} isAdmin={u.isAdmin || u.isadmin} />
                                 </div>
 
-                                <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs text-slate-400">
+                                <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-400 dark:text-slate-500">
                                     <span>
                                         Added: {u.dateAdded instanceof Date && !isNaN(u.dateAdded)
                                         ? u.dateAdded.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
@@ -607,7 +615,7 @@ export default function UserManagementPage() {
                                             type="button"
                                             onClick={() => startEdit(u)}
                                             disabled={isDemo || !canManageUsers}
-                                            className="p-1.5 text-blue-600 border border-slate-200 rounded-lg hover:bg-blue-50 transition-colors"
+                                            className="p-1.5 text-blue-600 dark:text-blue-400 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/50 transition-colors cursor-pointer"
                                             title="Edit user"
                                         >
                                             <Pencil className="w-3.5 h-3.5" />
@@ -616,10 +624,10 @@ export default function UserManagementPage() {
                                             type="button"
                                             onClick={() => remove(u)}
                                             disabled={isDemo || !canManageUsers || isSelf || isProtectedLastAdmin}
-                                            className={`p-1.5 border rounded-lg transition-colors ${
+                                            className={`p-1.5 border rounded-lg transition-colors cursor-pointer ${
                                                 isSelf || isProtectedLastAdmin
-                                                    ? 'text-slate-300 border-slate-100 bg-slate-50 cursor-not-allowed'
-                                                    : 'text-rose-600 hover:bg-rose-50 border-slate-200'
+                                                    ? 'text-slate-300 dark:text-slate-600 border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 cursor-not-allowed'
+                                                    : 'text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 border-slate-200 dark:border-slate-700'
                                             }`}
                                             title={isSelf ? "Cannot delete yourself" : isProtectedLastAdmin ? "Sole admin" : "Delete"}
                                         >
@@ -642,30 +650,30 @@ export default function UserManagementPage() {
                 )}
             </div>
 
-            {/* MODAL: Add / Edit User (Fixed Icon Overlaps & Improved Layout) */}
+            {/* MODAL: Add / Edit User */}
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                <DialogContent className="p-0 sm:max-w-xl w-full bg-white shadow-2xl border-0 overflow-hidden rounded-3xl">
-                    <DialogHeader className="px-6 py-4 border-b border-slate-100 bg-slate-50/80 flex items-center justify-between">
+                <DialogContent className="p-0 sm:max-w-xl w-full bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden rounded-3xl dark:[color-scheme:dark]">
+                    <DialogHeader className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/70 flex items-center justify-between">
                         <div>
-                            <DialogTitle className="text-lg font-black text-slate-900 tracking-tight">
+                            <DialogTitle className="text-lg font-black text-slate-900 dark:text-slate-100 tracking-tight">
                                 {editing ? 'Edit User Credentials' : 'Add New User'}
                             </DialogTitle>
-                            <p className="text-xs text-slate-500 mt-0.5">
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                                 {editing ? 'Update staff roles and authentication details.' : 'Register new cashier or administrator account.'}
                             </p>
                         </div>
-                        <DialogCloseButton onClick={closeModal} className="p-1.5 rounded-full text-slate-400 hover:text-slate-600" />
+                        <DialogCloseButton onClick={closeModal} className="p-1.5 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer" />
                     </DialogHeader>
 
                     <form onSubmit={save} className="flex flex-col max-h-[80vh]">
                         <div className="overflow-y-auto px-6 py-5 space-y-5">
                             {/* Full Name Input */}
                             <div>
-                                <Label htmlFor="name" className="text-xs font-bold text-slate-700">
+                                <Label htmlFor="name" className="text-xs font-bold text-slate-700 dark:text-slate-300">
                                     Full Name <span className="text-rose-500">*</span>
                                 </Label>
                                 <div className="relative mt-1">
-                                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 z-10">
+                                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 dark:text-slate-500 z-10">
                                         <UserIcon className="w-4 h-4" />
                                     </div>
                                     <Input
@@ -676,7 +684,7 @@ export default function UserManagementPage() {
                                         autoFocus
                                         placeholder="e.g. Juan Dela Cruz"
                                         style={{ paddingLeft: '2.5rem' }}
-                                        className="w-full text-xs py-2 border-slate-200 rounded-xl h-10"
+                                        className="w-full text-xs py-2 bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl h-10 focus:bg-white dark:focus:bg-slate-900"
                                         disabled={isDemo}
                                     />
                                 </div>
@@ -685,11 +693,11 @@ export default function UserManagementPage() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {/* Email Address Input */}
                                 <div>
-                                    <Label htmlFor="email" className="text-xs font-bold text-slate-700">
+                                    <Label htmlFor="email" className="text-xs font-bold text-slate-700 dark:text-slate-300">
                                         Email Address <span className="text-rose-500">*</span>
                                     </Label>
                                     <div className="relative mt-1">
-                                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 z-10">
+                                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 dark:text-slate-500 z-10">
                                             <Mail className="w-4 h-4" />
                                         </div>
                                         <Input
@@ -700,7 +708,7 @@ export default function UserManagementPage() {
                                             required
                                             placeholder="staff@seaside.com"
                                             style={{ paddingLeft: '2.5rem' }}
-                                            className="w-full text-xs py-2 border-slate-200 rounded-xl h-10"
+                                            className="w-full text-xs py-2 bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl h-10 focus:bg-white dark:focus:bg-slate-900"
                                             disabled={isDemo}
                                         />
                                     </div>
@@ -708,10 +716,10 @@ export default function UserManagementPage() {
 
                                 {/* User Role Select */}
                                 <div>
-                                    <Label htmlFor="category_id" className="text-xs font-bold text-slate-700">User Role</Label>
+                                    <Label htmlFor="category_id" className="text-xs font-bold text-slate-700 dark:text-slate-300">User Role</Label>
                                     <div className="flex items-center space-x-2 mt-1">
                                         <div className="relative flex-1">
-                                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 z-10">
+                                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 dark:text-slate-500 z-10">
                                                 <Briefcase className="w-4 h-4" />
                                             </div>
                                             <Select
@@ -719,12 +727,12 @@ export default function UserManagementPage() {
                                                 value={categoryId}
                                                 onChange={(e) => setCategoryId(e.target.value)}
                                                 style={{ paddingLeft: '2.5rem' }}
-                                                className="w-full text-xs py-2 border-slate-200 rounded-xl h-10 appearance-none bg-white cursor-pointer"
+                                                className="w-full text-xs py-2 bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl h-10 appearance-none cursor-pointer focus:bg-white dark:focus:bg-slate-900"
                                                 disabled={isDemo || categories.length === 0}
                                             >
-                                                <option value="" disabled>Select a role...</option>
+                                                <option value="" disabled className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Select a role...</option>
                                                 {categories.map(c => (
-                                                    <option key={c.id} value={c.id}>{c.name}</option>
+                                                    <option key={c.id} value={c.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{c.name}</option>
                                                 ))}
                                             </Select>
                                         </div>
@@ -733,7 +741,7 @@ export default function UserManagementPage() {
                                             <Button
                                                 type="button"
                                                 variant="outline"
-                                                className="h-10 px-3 rounded-xl text-xs font-bold border-slate-200"
+                                                className="h-10 px-3 rounded-xl text-xs font-bold border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer"
                                                 onClick={openAddRoleModal}
                                                 disabled={isDemo || createCategory.isPending}
                                                 title="Add new role"
@@ -745,9 +753,9 @@ export default function UserManagementPage() {
                                 </div>
                             </div>
 
-                            {/* Assigned Station Palette with Quick Preset Swatches */}
+                            {/* Assigned Station Palette */}
                             <div>
-                                <Label htmlFor="color" className="text-xs font-bold text-slate-700">Assigned Station Palette</Label>
+                                <Label htmlFor="color" className="text-xs font-bold text-slate-700 dark:text-slate-300">Assigned Station Palette</Label>
                                 <div className="flex items-center gap-3 mt-1.5 flex-wrap">
                                     <div className="flex items-center gap-1.5">
                                         {['#3B82F6', '#10B981', '#8B5CF6', '#F59E0B', '#EC4899', '#8DB600'].map(presetColor => (
@@ -756,8 +764,8 @@ export default function UserManagementPage() {
                                                 type="button"
                                                 onClick={() => setColor(presetColor)}
                                                 style={{ backgroundColor: presetColor }}
-                                                className={`w-7 h-7 rounded-lg transition-transform active:scale-95 ${
-                                                    color.toLowerCase() === presetColor.toLowerCase() ? 'ring-2 ring-offset-2 ring-slate-800 scale-110' : 'opacity-80 hover:opacity-100'
+                                                className={`w-7 h-7 rounded-lg transition-transform active:scale-95 cursor-pointer ${
+                                                    color.toLowerCase() === presetColor.toLowerCase() ? 'ring-2 ring-offset-2 ring-slate-800 dark:ring-slate-100 scale-110' : 'opacity-80 hover:opacity-100'
                                                 }`}
                                                 title={presetColor}
                                             />
@@ -769,27 +777,27 @@ export default function UserManagementPage() {
                                             type="color"
                                             value={color}
                                             onChange={(e) => setColor(e.target.value)}
-                                            className="w-9 h-8 p-0.5 cursor-pointer border border-slate-200 rounded-lg bg-white shadow-2xs"
+                                            className="w-9 h-8 p-0.5 cursor-pointer border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 shadow-2xs"
                                             disabled={isDemo}
                                         />
-                                        <span className="text-[11px] text-slate-500 font-medium">Color badge used in receipts and activity audit trails.</span>
+                                        <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Color badge used in receipts and activity audit trails.</span>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Password Credentials */}
-                            <div className="pt-2 border-t border-slate-100 space-y-4">
-                                <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                            <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-4">
+                                <h3 className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                                     {editing ? 'Change Password (Leave blank to keep existing)' : 'Security / Initial Password'}
                                 </h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     {/* Password */}
                                     <div>
-                                        <Label htmlFor="password" className="text-xs font-bold text-slate-700">
+                                        <Label htmlFor="password" className="text-xs font-bold text-slate-700 dark:text-slate-300">
                                             Password {!editing && <span className="text-rose-500">*</span>}
                                         </Label>
                                         <div className="relative mt-1">
-                                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 z-10">
+                                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 dark:text-slate-500 z-10">
                                                 <Lock className="w-4 h-4" />
                                             </div>
                                             <Input
@@ -800,7 +808,7 @@ export default function UserManagementPage() {
                                                 required={!editing}
                                                 placeholder="••••••••"
                                                 style={{ paddingLeft: '2.5rem' }}
-                                                className="w-full text-xs py-2 border-slate-200 rounded-xl h-10"
+                                                className="w-full text-xs py-2 bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl h-10 focus:bg-white dark:focus:bg-slate-900"
                                                 disabled={isDemo}
                                             />
                                         </div>
@@ -808,11 +816,11 @@ export default function UserManagementPage() {
 
                                     {/* Confirm Password */}
                                     <div>
-                                        <Label htmlFor="confirmPassword" className="text-xs font-bold text-slate-700">
+                                        <Label htmlFor="confirmPassword" className="text-xs font-bold text-slate-700 dark:text-slate-300">
                                             Confirm Password {!editing && <span className="text-rose-500">*</span>}
                                         </Label>
                                         <div className="relative mt-1">
-                                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 z-10">
+                                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 dark:text-slate-500 z-10">
                                                 <Lock className="w-4 h-4" />
                                             </div>
                                             <Input
@@ -823,7 +831,7 @@ export default function UserManagementPage() {
                                                 required={!editing}
                                                 placeholder="••••••••"
                                                 style={{ paddingLeft: '2.5rem' }}
-                                                className="w-full text-xs py-2 border-slate-200 rounded-xl h-10"
+                                                className="w-full text-xs py-2 bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl h-10 focus:bg-white dark:focus:bg-slate-900"
                                                 disabled={isDemo}
                                             />
                                         </div>
@@ -832,20 +840,20 @@ export default function UserManagementPage() {
                             </div>
                         </div>
 
-                        <DialogFooter className="px-6 py-4 border-t border-slate-100 bg-slate-50/80 flex items-center justify-end gap-2.5 mt-auto">
+                        <DialogFooter className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/60 flex items-center justify-end gap-2.5 mt-auto">
                             <Button
                                 variant="outline"
                                 type="button"
                                 onClick={closeModal}
                                 disabled={isMutating}
-                                className="h-10 px-5 rounded-xl text-xs font-bold border-slate-200"
+                                className="h-10 px-5 rounded-xl text-xs font-bold border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer"
                             >
                                 Cancel
                             </Button>
                             <Button
                                 type="submit"
                                 disabled={isMutating || isDemo}
-                                className="h-10 px-6 rounded-xl bg-[#8DB600] hover:bg-[#7ca000] text-white text-xs font-bold shadow-md"
+                                className="h-10 px-6 rounded-xl bg-[#8DB600] hover:bg-[#7ca000] text-white text-xs font-bold shadow-md cursor-pointer active:scale-95 transition-all"
                             >
                                 {isMutating ? 'Saving...' : (editing ? 'Update User' : 'Create User')}
                             </Button>
@@ -856,17 +864,17 @@ export default function UserManagementPage() {
 
             {/* MODAL: Add New Role */}
             <Dialog open={isAddRoleModalOpen} onOpenChange={setIsAddRoleModalOpen}>
-                <DialogContent className="p-0 sm:max-w-md w-full bg-white shadow-2xl border-0 overflow-hidden rounded-3xl">
-                    <DialogHeader className="px-6 py-4 border-b border-slate-100 bg-slate-50/80 flex items-center justify-between">
-                        <DialogTitle className="text-base font-black text-slate-900 tracking-tight">
+                <DialogContent className="p-0 sm:max-w-md w-full bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden rounded-3xl dark:[color-scheme:dark]">
+                    <DialogHeader className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/70 flex items-center justify-between">
+                        <DialogTitle className="text-base font-black text-slate-900 dark:text-slate-100 tracking-tight">
                             Add New Role Category
                         </DialogTitle>
-                        <DialogCloseButton onClick={closeAddRoleModal} className="p-1.5 rounded-full text-slate-400 hover:text-slate-600" />
+                        <DialogCloseButton onClick={closeAddRoleModal} className="p-1.5 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer" />
                     </DialogHeader>
                     <form onSubmit={handleAddRole}>
                         <div className="p-6 space-y-4">
                             <div>
-                                <Label htmlFor="newRoleName" className="text-xs font-bold text-slate-700">Role Name</Label>
+                                <Label htmlFor="newRoleName" className="text-xs font-bold text-slate-700 dark:text-slate-300">Role Name</Label>
                                 <Input
                                     id="newRoleName"
                                     value={newRoleName}
@@ -874,7 +882,7 @@ export default function UserManagementPage() {
                                     placeholder="e.g., Manager, Cashier, Delivery Staff"
                                     required
                                     autoFocus
-                                    className="h-10 mt-1 text-xs rounded-xl border-slate-200"
+                                    className="h-10 mt-1 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-900"
                                 />
                             </div>
                             <div className="flex items-center space-x-2 pt-1">
@@ -883,19 +891,19 @@ export default function UserManagementPage() {
                                     checked={newRoleIsAdmin}
                                     onChange={(e) => setNewRoleIsAdmin(e.target.checked)}
                                 />
-                                <Label htmlFor="newRoleIsAdmin" className="text-xs font-semibold text-slate-700 cursor-pointer">
+                                <Label htmlFor="newRoleIsAdmin" className="text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
                                     Grant Administrator Privileges
                                 </Label>
                             </div>
                         </div>
-                        <DialogFooter className="px-6 py-4 border-t border-slate-100 bg-slate-50/80 flex items-center justify-end gap-2.5">
-                            <Button variant="outline" type="button" onClick={closeAddRoleModal} className="h-10 px-5 rounded-xl text-xs font-bold border-slate-200">
+                        <DialogFooter className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/60 flex items-center justify-end gap-2.5">
+                            <Button variant="outline" type="button" onClick={closeAddRoleModal} className="h-10 px-5 rounded-xl text-xs font-bold border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer">
                                 Cancel
                             </Button>
                             <Button
                                 type="submit"
                                 disabled={createCategory.isPending}
-                                className="h-10 px-6 rounded-xl bg-[#8DB600] hover:bg-[#7ca000] text-white text-xs font-bold shadow-md"
+                                className="h-10 px-6 rounded-xl bg-[#8DB600] hover:bg-[#7ca000] text-white text-xs font-bold shadow-md cursor-pointer active:scale-95 transition-all"
                             >
                                 {createCategory.isPending ? 'Creating...' : 'Create Role'}
                             </Button>

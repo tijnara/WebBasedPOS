@@ -107,7 +107,7 @@ export default function PageSettings() {
     };
 
     const handleFileSelect = (e) => {
-        const file = e.target.files[0];
+        const file = e.target.files?.[0];
         if (file) {
             setImageFile(file);
             setImagePreview(URL.createObjectURL(file));
@@ -149,70 +149,138 @@ export default function PageSettings() {
         }
     };
 
-    if (isLoading) return <div className="p-4 text-gray-500">Loading settings...</div>;
+    if (isLoading) {
+        return (
+            <div className="p-8 text-center text-slate-400 dark:text-slate-500 text-sm">
+                Loading settings...
+            </div>
+        );
+    }
 
     return (
-        <Card className="shadow-sm mt-6 responsive-page border border-slate-200">
-            <CardHeader className="bg-lime-50/70 border-b border-lime-100 pb-3 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <Sliders className="w-5 h-5 text-[#8DB600]" />
-                    <h3 className="font-extrabold text-base text-slate-900">Landing Page Content & Settings (Admin)</h3>
+        <Card className="shadow-sm mt-6 responsive-page bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden transition-colors">
+            {/* Header */}
+            <CardHeader className="bg-slate-50/90 dark:bg-slate-800/80 border-b border-slate-200/80 dark:border-slate-800 py-4 px-6 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-lime-100 dark:bg-lime-950/60 text-[#5f7d00] dark:text-lime-400 flex items-center justify-center shrink-0 shadow-2xs">
+                        <Sliders className="w-4 h-4 stroke-[2.5]" />
+                    </div>
+                    <div>
+                        <h3 className="font-extrabold text-base text-slate-900 dark:text-slate-100 tracking-tight">
+                            Landing Page Content & Settings (Admin)
+                        </h3>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                            Customize customer-facing branding, operational details, and featured services.
+                        </p>
+                    </div>
                 </div>
             </CardHeader>
-            <CardContent className="p-6">
+
+            <CardContent className="p-5 sm:p-7">
                 <form onSubmit={handleSave} className="space-y-8">
 
                     {/* Brand & Logo */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                         <div className="space-y-2">
-                            <Label className="font-bold text-xs text-slate-700">Business Logo</Label>
+                            <Label className="font-bold text-xs text-slate-700 dark:text-slate-300">
+                                Business Logo
+                            </Label>
                             <div
-                                onClick={() => fileInputRef.current.click()}
-                                className="cursor-pointer group relative w-44 h-44 bg-slate-50 border-2 border-dashed border-slate-200 hover:border-[#8DB600] rounded-2xl flex flex-col items-center justify-center transition-all overflow-hidden"
+                                onClick={() => fileInputRef.current?.click()}
+                                className="cursor-pointer group relative w-48 h-48 bg-slate-50 dark:bg-slate-800/60 border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-[#8DB600] dark:hover:border-lime-500 rounded-2xl flex flex-col items-center justify-center transition-all overflow-hidden"
                             >
                                 {imagePreview ? (
-                                    <img src={imagePreview} alt="Logo Preview" className="w-full h-full object-contain p-2" />
+                                    <>
+                                        <img src={imagePreview} alt="Logo Preview" className="w-full h-full object-contain p-3" />
+                                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <span className="text-white font-bold text-xs bg-black/60 px-3 py-1.5 rounded-lg">
+                                                Change Logo
+                                            </span>
+                                        </div>
+                                    </>
                                 ) : (
-                                    <div className="flex flex-col items-center text-slate-400">
+                                    <div className="flex flex-col items-center text-slate-400 dark:text-slate-500 group-hover:text-[#8DB600] dark:group-hover:text-lime-400 transition-colors p-4 text-center">
                                         <ImageIcon className="w-8 h-8 mb-2" />
-                                        <span className="text-xs font-semibold">Upload Station Logo</span>
+                                        <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">Upload Station Logo</span>
+                                        <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">PNG, JPG, WebP</span>
                                     </div>
                                 )}
                             </div>
-                            <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileSelect} disabled={isDemo} />
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                className="hidden"
+                                accept="image/*"
+                                onChange={handleFileSelect}
+                                disabled={isDemo}
+                            />
                         </div>
 
                         <div className="space-y-4">
                             <div>
-                                <Label className="font-bold text-xs text-slate-700">Business Name</Label>
-                                <Input name="business_name" value={formData.business_name} onChange={handleInputChange} placeholder="Seaside Water Refilling Station" disabled={isDemo} />
+                                <Label className="font-bold text-xs text-slate-700 dark:text-slate-300">
+                                    Business Name
+                                </Label>
+                                <Input
+                                    name="business_name"
+                                    value={formData.business_name}
+                                    onChange={handleInputChange}
+                                    placeholder="Seaside Water Refilling Station"
+                                    disabled={isDemo}
+                                    className="h-10 mt-1 text-xs sm:text-sm bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl focus:bg-white dark:focus:bg-slate-900 focus:border-[#8DB600]"
+                                />
                             </div>
                             <div>
-                                <Label className="font-bold text-xs text-slate-700">Station Contact Number</Label>
-                                <Input name="contact_number" value={formData.contact_number} onChange={handleInputChange} placeholder="+63 960 219 6388" disabled={isDemo} />
+                                <Label className="font-bold text-xs text-slate-700 dark:text-slate-300">
+                                    Station Contact Number
+                                </Label>
+                                <Input
+                                    name="contact_number"
+                                    value={formData.contact_number}
+                                    onChange={handleInputChange}
+                                    placeholder="+63 960 219 6388"
+                                    disabled={isDemo}
+                                    className="h-10 mt-1 text-xs sm:text-sm bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl focus:bg-white dark:focus:bg-slate-900 focus:border-[#8DB600]"
+                                />
                             </div>
                             <div>
-                                <Label className="font-bold text-xs text-slate-700">Inquiry Email</Label>
-                                <Input name="email" value={formData.email} onChange={handleInputChange} placeholder="seasidewrs@gmail.com" disabled={isDemo} />
+                                <Label className="font-bold text-xs text-slate-700 dark:text-slate-300">
+                                    Inquiry Email
+                                </Label>
+                                <Input
+                                    name="email"
+                                    value={formData.email}
+                                    onChange={handleInputChange}
+                                    placeholder="seasidewrs@gmail.com"
+                                    disabled={isDemo}
+                                    className="h-10 mt-1 text-xs sm:text-sm bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl focus:bg-white dark:focus:bg-slate-900 focus:border-[#8DB600]"
+                                />
                             </div>
                         </div>
                     </div>
 
                     {/* Hero Section */}
-                    <div className="space-y-4 pt-4 border-t border-slate-100">
-                        <h4 className="text-xs font-black uppercase tracking-wider text-[#8DB600]">Hero Section Content</h4>
+                    <div className="space-y-4 pt-6 border-t border-slate-100 dark:border-slate-800">
+                        <h4 className="text-xs font-black uppercase tracking-wider text-[#8DB600] dark:text-lime-400">
+                            Hero Section Content
+                        </h4>
                         <div>
-                            <Label className="font-bold text-xs text-slate-700">Hero Main Headline (Leave blank for default)</Label>
+                            <Label className="font-bold text-xs text-slate-700 dark:text-slate-300">
+                                Hero Main Headline (Leave blank for default)
+                            </Label>
                             <Input
                                 name="hero_title"
                                 value={formData.hero_title}
                                 onChange={handleInputChange}
                                 placeholder="Your Family's Health, Flowing Crystal Clear from Seaside."
                                 disabled={isDemo}
+                                className="h-10 mt-1 text-xs sm:text-sm bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl focus:bg-white dark:focus:bg-slate-900 focus:border-[#8DB600]"
                             />
                         </div>
                         <div>
-                            <Label className="font-bold text-xs text-slate-700">Hero Subtitle / Description</Label>
+                            <Label className="font-bold text-xs text-slate-700 dark:text-slate-300">
+                                Hero Subtitle / Description
+                            </Label>
                             <Textarea
                                 name="hero_subtitle"
                                 value={formData.hero_subtitle}
@@ -220,38 +288,45 @@ export default function PageSettings() {
                                 rows={2}
                                 placeholder="We combine commercial-grade 21-stage reverse osmosis filtration with warm local care..."
                                 disabled={isDemo}
+                                className="w-full mt-1 text-xs sm:text-sm p-3 bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl focus:bg-white dark:focus:bg-slate-900 focus:border-[#8DB600]"
                             />
                         </div>
                     </div>
 
                     {/* Refill & Supply Services Section Editor */}
-                    <div className="space-y-5 pt-4 border-t border-slate-100">
+                    <div className="space-y-5 pt-6 border-t border-slate-100 dark:border-slate-800">
                         <div className="flex items-center gap-2">
-                            <Layers className="w-4 h-4 text-[#8DB600]" />
-                            <h4 className="text-xs font-black uppercase tracking-wider text-[#8DB600]">
+                            <Layers className="w-4 h-4 text-[#8DB600] dark:text-lime-400" />
+                            <h4 className="text-xs font-black uppercase tracking-wider text-[#8DB600] dark:text-lime-400">
                                 Refill & Supply Services Cards (Landing Section)
                             </h4>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <Label className="font-bold text-xs text-slate-700">Services Section Title</Label>
+                                <Label className="font-bold text-xs text-slate-700 dark:text-slate-300">
+                                    Services Section Title
+                                </Label>
                                 <Input
                                     name="services_title"
                                     value={formData.services_title}
                                     onChange={handleInputChange}
                                     placeholder="Our Refill & Supply Services"
                                     disabled={isDemo}
+                                    className="h-10 mt-1 text-xs sm:text-sm bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl focus:bg-white dark:focus:bg-slate-900 focus:border-[#8DB600]"
                                 />
                             </div>
                             <div>
-                                <Label className="font-bold text-xs text-slate-700">Services Section Subtitle</Label>
+                                <Label className="font-bold text-xs text-slate-700 dark:text-slate-300">
+                                    Services Section Subtitle
+                                </Label>
                                 <Input
                                     name="services_subtitle"
                                     value={formData.services_subtitle}
                                     onChange={handleInputChange}
                                     placeholder="Whether visiting our physical refilling bay or requesting high-volume delivery..."
                                     disabled={isDemo}
+                                    className="h-10 mt-1 text-xs sm:text-sm bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl focus:bg-white dark:focus:bg-slate-900 focus:border-[#8DB600]"
                                 />
                             </div>
                         </div>
@@ -259,56 +334,56 @@ export default function PageSettings() {
                         {/* Grid of 4 Service Cards */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                             {servicesData.map((service, index) => (
-                                <div key={service.id || index} className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
-                                    <div className="flex items-center justify-between pb-1 border-b border-slate-200">
-                                        <span className="text-xs font-black text-[#8DB600] uppercase tracking-wider">
+                                <div key={service.id || index} className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80 space-y-3">
+                                    <div className="flex items-center justify-between pb-1 border-b border-slate-200 dark:border-slate-700/80">
+                                        <span className="text-xs font-black text-[#8DB600] dark:text-lime-400 uppercase tracking-wider">
                                             Card #{index + 1}
                                         </span>
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-3">
                                         <div>
-                                            <Label className="text-[11px] font-bold text-slate-600">Service Title</Label>
+                                            <Label className="text-[11px] font-bold text-slate-600 dark:text-slate-400">Service Title</Label>
                                             <Input
                                                 value={service.title}
                                                 onChange={e => handleServiceChange(index, 'title', e.target.value)}
                                                 placeholder="e.g. Walk-In Refills"
                                                 disabled={isDemo}
-                                                className="h-9 text-xs"
+                                                className="h-9 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl"
                                             />
                                         </div>
                                         <div>
-                                            <Label className="text-[11px] font-bold text-slate-600">Badge Label</Label>
+                                            <Label className="text-[11px] font-bold text-slate-600 dark:text-slate-400">Badge Label</Label>
                                             <Input
                                                 value={service.badge}
                                                 onChange={e => handleServiceChange(index, 'badge', e.target.value)}
                                                 placeholder="e.g. In-Store"
                                                 disabled={isDemo}
-                                                className="h-9 text-xs"
+                                                className="h-9 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl"
                                             />
                                         </div>
                                     </div>
 
                                     <div>
-                                        <Label className="text-[11px] font-bold text-slate-600">Starting Price / Display Rate</Label>
+                                        <Label className="text-[11px] font-bold text-slate-600 dark:text-slate-400">Starting Price / Display Rate</Label>
                                         <Input
                                             value={service.price}
                                             onChange={e => handleServiceChange(index, 'price', e.target.value)}
                                             placeholder="e.g. ₱20 - ₱25 or From ₱6.00"
                                             disabled={isDemo}
-                                            className="h-9 text-xs"
+                                            className="h-9 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl font-mono"
                                         />
                                     </div>
 
                                     <div>
-                                        <Label className="text-[11px] font-bold text-slate-600">Short Description</Label>
+                                        <Label className="text-[11px] font-bold text-slate-600 dark:text-slate-400">Short Description</Label>
                                         <Textarea
                                             value={service.description}
                                             onChange={e => handleServiceChange(index, 'description', e.target.value)}
                                             rows={2}
                                             placeholder="Card details..."
                                             disabled={isDemo}
-                                            className="text-xs"
+                                            className="text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl"
                                         />
                                     </div>
                                 </div>
@@ -317,25 +392,27 @@ export default function PageSettings() {
                     </div>
 
                     {/* Address & Hours */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-100">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-slate-100 dark:border-slate-800">
                         <div>
-                            <Label className="font-bold text-xs text-slate-700">Station Business Hours</Label>
+                            <Label className="font-bold text-xs text-slate-700 dark:text-slate-300">Station Business Hours</Label>
                             <Input
                                 name="business_hours"
                                 value={formData.business_hours}
                                 onChange={handleInputChange}
                                 placeholder="Monday - Saturday: 8:00 AM - 5:00 PM"
                                 disabled={isDemo}
+                                className="h-10 mt-1 text-xs sm:text-sm bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl focus:bg-white dark:focus:bg-slate-900 focus:border-[#8DB600]"
                             />
                         </div>
                         <div>
-                            <Label className="font-bold text-xs text-slate-700">Physical Address</Label>
+                            <Label className="font-bold text-xs text-slate-700 dark:text-slate-300">Physical Address</Label>
                             <Input
                                 name="physical_address"
                                 value={formData.physical_address}
                                 onChange={handleInputChange}
                                 placeholder="Barangay Laois, Labrador, Pangasinan"
                                 disabled={isDemo}
+                                className="h-10 mt-1 text-xs sm:text-sm bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl focus:bg-white dark:focus:bg-slate-900 focus:border-[#8DB600]"
                             />
                         </div>
                     </div>
@@ -343,18 +420,32 @@ export default function PageSettings() {
                     {/* Social & Messenger */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <Label className="font-bold text-xs text-slate-700">Facebook Page URL</Label>
-                            <Input name="facebook_link" value={formData.facebook_link} onChange={handleInputChange} placeholder="https://facebook.com/..." disabled={isDemo} />
+                            <Label className="font-bold text-xs text-slate-700 dark:text-slate-300">Facebook Page URL</Label>
+                            <Input
+                                name="facebook_link"
+                                value={formData.facebook_link}
+                                onChange={handleInputChange}
+                                placeholder="https://facebook.com/..."
+                                disabled={isDemo}
+                                className="h-10 mt-1 text-xs sm:text-sm bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl focus:bg-white dark:focus:bg-slate-900 focus:border-[#8DB600]"
+                            />
                         </div>
                         <div>
-                            <Label className="font-bold text-xs text-slate-700">Messenger Link</Label>
-                            <Input name="messenger_link" value={formData.messenger_link} onChange={handleInputChange} placeholder="https://m.me/61587059323111" disabled={isDemo} />
+                            <Label className="font-bold text-xs text-slate-700 dark:text-slate-300">Messenger Link</Label>
+                            <Input
+                                name="messenger_link"
+                                value={formData.messenger_link}
+                                onChange={handleInputChange}
+                                placeholder="https://m.me/61587059323111"
+                                disabled={isDemo}
+                                className="h-10 mt-1 text-xs sm:text-sm bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl focus:bg-white dark:focus:bg-slate-900 focus:border-[#8DB600]"
+                            />
                         </div>
                     </div>
 
                     {/* Footer Content */}
-                    <div className="pt-4 border-t border-slate-100">
-                        <Label className="font-bold text-xs text-slate-700">About / Community Roots (Footer Display)</Label>
+                    <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
+                        <Label className="font-bold text-xs text-slate-700 dark:text-slate-300">About / Community Roots (Footer Display)</Label>
                         <Textarea
                             name="about_content"
                             value={formData.about_content}
@@ -362,17 +453,30 @@ export default function PageSettings() {
                             rows={3}
                             placeholder="Founded on 2020, our station was born from a desire for local self-reliance in Labrador, Pangasinan..."
                             disabled={isDemo}
+                            className="w-full mt-1 text-xs sm:text-sm p-3 bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl focus:bg-white dark:focus:bg-slate-900 focus:border-[#8DB600]"
                         />
                     </div>
 
                     {/* Location Embed */}
                     <div>
-                        <Label className="font-bold text-xs text-slate-700">Location Map Embed URL (iframe src)</Label>
-                        <Input name="location_embed" value={formData.location_embed} onChange={handleInputChange} placeholder="https://www.google.com/maps/embed?pb=..." disabled={isDemo} />
+                        <Label className="font-bold text-xs text-slate-700 dark:text-slate-300">Location Map Embed URL (iframe src)</Label>
+                        <Input
+                            name="location_embed"
+                            value={formData.location_embed}
+                            onChange={handleInputChange}
+                            placeholder="https://www.google.com/maps/embed?pb=..."
+                            disabled={isDemo}
+                            className="h-10 mt-1 text-xs sm:text-sm bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl focus:bg-white dark:focus:bg-slate-900 focus:border-[#8DB600]"
+                        />
                     </div>
 
                     <div className="flex justify-end pt-4">
-                        <Button type="submit" variant="primary" className="bg-[#8DB600] hover:bg-[#7ca000] text-white font-bold h-11 px-8 rounded-xl shadow-md" disabled={isSaving || isDemo}>
+                        <Button
+                            type="submit"
+                            variant="primary"
+                            className="bg-[#8DB600] hover:bg-[#7ca000] text-white font-bold h-11 px-8 rounded-xl shadow-md cursor-pointer active:scale-95 transition-all"
+                            disabled={isSaving || isDemo}
+                        >
                             {isSaving ? 'Saving Changes...' : 'Save Settings'}
                         </Button>
                     </div>

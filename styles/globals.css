@@ -2033,3 +2033,93 @@ aside,
     border-right: none !important;
     box-shadow: none !important;
 }
+
+/* --- Fix Dark Mode Reports Table Contrast --- */
+.dark .report-page table thead tr,
+.dark .report-page thead th {
+    background-color: #1e293b !important; /* slate-800 */
+    color: #cbd5e1 !important;          /* slate-300 */
+    border-color: #334155 !important;    /* slate-700 */
+}
+
+.dark .report-page table tbody tr {
+    border-color: #1e293b !important;    /* slate-800 */
+}
+
+.dark .report-page table tbody tr:hover {
+    background-color: rgba(30, 41, 59, 0.5) !important;
+}
+
+/* Force Customer Names, Prices, Totals, and Quantities to High Contrast */
+.dark .report-page table tbody td,
+.dark .report-page table tbody td span,
+.dark .report-page table tbody td div {
+    color: #e2e8f0; /* slate-200 */
+}
+
+/* Emphasize Transaction Total and Customer Name */
+.dark .report-page table tbody td:nth-child(2) div,
+.dark .report-page table tbody td:nth-child(7) {
+    color: #ffffff !important;
+    font-weight: 700;
+}
+
+/* Light Banners Fix (Date Group Header & Insights Strip) */
+.dark .report-page [class*="bg-white"],
+.dark .report-page [class*="bg-slate-50"] {
+    background-color: #0f172a !important; /* slate-900 */
+    border-color: #1e293b !important;     /* slate-800 */
+    color: #f8fafc !important;
+}
+
+/* --- Fix Payment & Status Badges in Dark Mode --- */
+/* Payment Pill (Cash / GCash / Charge) */
+.dark .report-page table td:nth-child(8) span,
+.dark .report-page table td:has(> span:first-child:last-child) span:not([class*="text-emerald"]):not([class*="text-rose"]) {
+    background-color: #1e293b !important; /* slate-800 */
+    color: #f1f5f9 !important;          /* slate-100 */
+    border: 1px solid #334155 !important;/* slate-700 */
+}
+
+/* Status Pill (Completed / Paid) */
+.dark .report-page table td:nth-child(9) span,
+.dark .report-page table td [class*="bg-lime"],
+.dark .report-page table td [class*="bg-emerald"] {
+    background-color: rgba(6, 78, 59, 0.4) !important; /* emerald-950/40 */
+    color: #4ade80 !important;                          /* emerald-400 */
+    border: 1px solid rgba(5, 150, 105, 0.5) !important;/* emerald-600 */
+}
+
+/* Status Pill (Unpaid / Cancelled / Refunded) */
+.dark .report-page table td [class*="bg-rose"],
+.dark .report-page table td [class*="bg-red"] {
+    background-color: rgba(136, 19, 55, 0.4) !important; /* rose-950/40 */
+    color: #fb7185 !important;                           /* rose-400 */
+    border: 1px solid rgba(225, 29, 72, 0.5) !important; /* rose-600 */
+}
+
+/* Restore Date Banner Title (Wednesday, October 28, 2026) */
+.dark .report-page [class*="rounded"] h3,
+.dark .report-page [class*="rounded"] h2,
+.dark .report-page div[class*="Daily Total"] ~ * {
+    color: #f8fafc !important; /* white/slate-50 */
+}
+
+/* Remove gray backdrop on Settings page in dark mode */
+.dark body:has([href*="settings"]) main,
+.dark div[class*="bg-slate-300"],
+.dark div[class*="bg-gray-300"],
+.dark div[class*="bg-stone-300"] {
+    background-color: transparent !important;
+}
+
+/* Remove gray backdrop on Messages page in dark mode */
+.dark body:has([href*="messages"]) main,
+.dark body:has([href*="Messages"]) main,
+.dark main:has(h1:contains("Contact Messages")),
+.dark div[class*="bg-slate-400"],
+.dark div[class*="bg-slate-500"],
+.dark div[class*="bg-gray-400"],
+.dark div[class*="bg-gray-500"] {
+    background-color: transparent !important;
+}

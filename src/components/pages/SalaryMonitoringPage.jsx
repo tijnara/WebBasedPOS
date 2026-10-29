@@ -124,7 +124,7 @@ export default function SalaryMonitoringPage() {
     const [empFormMultiplier, setEmpFormMultiplier] = useState('');
 
     const { data: salaryRecords, isLoading: isSalaryLoading } = useSalaryRecords(period.start, period.end);
-    const { data: employees, isLoading: isEmpLoading } = useEmployees();
+    const { data: employees = [], isLoading: isEmpLoading } = useEmployees();
     const { data: debts = [] } = useDebts();
 
     const { data: dailySummary } = useSalesSummary({
@@ -225,7 +225,7 @@ export default function SalaryMonitoringPage() {
     }, [debts, payrollEmpId, payrollEmpName, payrollDate]);
 
     const payrollTotalDeductions = activeDeductions.reduce((sum, d) => sum + d.amount, 0);
-    const payrollNet = payrollGross - payrollTotalDeductions;
+    const payrollNet = Math.max(0, payrollGross - payrollTotalDeductions);
 
     const filteredRecords = useMemo(() => {
         if (!salaryRecords) return [];
@@ -421,7 +421,7 @@ export default function SalaryMonitoringPage() {
     };
 
     return (
-        <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 responsive-page max-w-7xl mx-auto pb-28 md:pb-8">
+        <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 responsive-page max-w-7xl mx-auto pb-28 md:pb-8 transition-colors">
             <Head>
                 <title>Salary Monitoring | Seaside POS</title>
             </Head>
@@ -429,19 +429,19 @@ export default function SalaryMonitoringPage() {
             {/* Header with Compact Manage Employees Action */}
             <div className="flex justify-between items-center gap-3">
                 <div className="min-w-0">
-                    <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white truncate">
+                    <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 truncate">
                         Salary Monitoring
                     </h1>
-                    <p className="text-slate-500 text-xs sm:text-sm mt-0.5 truncate hidden sm:block">
+                    <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm mt-0.5 truncate hidden sm:block">
                         Manage staff salaries, automated payrolls, and manual records.
                     </p>
                 </div>
                 <Button
                     onClick={() => setIsManageModalOpen(true)}
                     variant="outline"
-                    className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-2xs shrink-0"
+                    className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-2xs shrink-0 cursor-pointer"
                 >
-                    <Users className="w-4 h-4 text-[#8DB600]" />
+                    <Users className="w-4 h-4 text-[#8DB600] dark:text-lime-400" />
                     <span>Manage Staff</span>
                 </Button>
             </div>
@@ -451,10 +451,10 @@ export default function SalaryMonitoringPage() {
                 <button
                     type="button"
                     onClick={() => setMobileTab('payroll')}
-                    className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+                    className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                         mobileTab === 'payroll'
                             ? 'bg-[#8DB600] text-white shadow-xs'
-                            : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
                     }`}
                 >
                     <Calculator className="w-3.5 h-3.5" />
@@ -463,10 +463,10 @@ export default function SalaryMonitoringPage() {
                 <button
                     type="button"
                     onClick={() => setMobileTab('history')}
-                    className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+                    className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                         mobileTab === 'history'
                             ? 'bg-slate-900 dark:bg-slate-700 text-white shadow-xs'
-                            : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
                     }`}
                 >
                     <History className="w-3.5 h-3.5" />

@@ -96,7 +96,6 @@ export default function UserApprovalsPage() {
 
             if (error) throw error;
 
-            // Audit Log: Accepting Account
             await logUserActivity({
                 action: 'CREATE',
                 description: makeAdmin
@@ -134,7 +133,6 @@ export default function UserApprovalsPage() {
 
             if (error) throw error;
 
-            // Audit Log: Deleting Account Request
             await logUserActivity({
                 action: 'DELETE',
                 description: `Admin rejected and permanently deleted registration for "${targetUser.name}" (${targetUser.email || targetUser.phone || 'No contact'}).`
@@ -173,7 +171,6 @@ export default function UserApprovalsPage() {
 
             if (error) throw error;
 
-            // Audit Log: Promoting or Demoting
             await logUserActivity({
                 action: 'UPDATE',
                 description: willBeAdmin
@@ -216,7 +213,6 @@ export default function UserApprovalsPage() {
 
             if (error) throw error;
 
-            // Audit Log: Revoking Authorization
             await logUserActivity({
                 action: 'UPDATE',
                 description: `Admin revoked system access for "${targetUser.name}" (${targetUser.email || targetUser.phone || 'No contact'}). Account moved to Pending Approval.`
@@ -249,25 +245,26 @@ export default function UserApprovalsPage() {
 
     if (!user?.isadmin && user?.role?.toLowerCase() !== 'admin') {
         return (
-            <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50 text-slate-600">
+            <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-400">
                 <p className="text-sm font-semibold">Verifying administrator authorization...</p>
             </div>
         );
     }
 
     return (
-        <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+        <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 transition-colors">
             <Head>
                 <title>User Approvals | Seaside Admin</title>
             </Head>
 
+            {/* Header */}
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
-                    <div className="flex items-center gap-2.5 text-emerald-800">
-                        <Shield className="w-6 h-6 text-emerald-600" />
+                    <div className="flex items-center gap-2.5 text-slate-900 dark:text-slate-100">
+                        <Shield className="w-6 h-6 text-[#8DB600] dark:text-lime-400" />
                         <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Staff Account Management</h1>
                     </div>
-                    <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
+                    <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
                         Authorize incoming registrations and configure user permission levels.
                     </p>
                 </div>
@@ -275,87 +272,89 @@ export default function UserApprovalsPage() {
                 <button
                     onClick={fetchUsers}
                     disabled={isLoading}
-                    className="flex items-center gap-2 px-3.5 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-all shadow-xs"
+                    className="flex items-center gap-2 px-3.5 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-xs cursor-pointer select-none"
                 >
                     <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
                     Refresh
                 </button>
             </div>
 
+            {/* KPI Metric Toggle Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <button
                     type="button"
                     onClick={() => setActiveTab('pending')}
-                    className={`p-5 rounded-2xl border text-left transition-all ${
+                    className={`p-5 rounded-2xl border text-left transition-all cursor-pointer select-none ${
                         activeTab === 'pending'
-                            ? 'bg-amber-50/60 border-amber-300 ring-2 ring-amber-400/20 shadow-sm'
-                            : 'bg-white border-gray-200 hover:border-gray-300'
+                            ? 'bg-amber-50/70 dark:bg-amber-950/25 border-amber-300 dark:border-amber-600/70 ring-2 ring-amber-400/20 dark:ring-amber-500/20 shadow-sm'
+                            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
                     }`}
                 >
                     <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-bold uppercase tracking-wider text-amber-700 flex items-center gap-1.5">
+                        <span className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
                             <Clock className="w-4 h-4" /> Pending Approvals
                         </span>
-                        <span className="text-xs font-black bg-amber-100 text-amber-800 px-2.5 py-0.5 rounded-full">
+                        <span className="text-xs font-black bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 px-2.5 py-0.5 rounded-full border border-amber-200 dark:border-amber-800/80">
                             {pendingUsers.length}
                         </span>
                     </div>
-                    <p className="text-2xl font-extrabold text-gray-900">{pendingUsers.length}</p>
-                    <p className="text-[11px] text-gray-500 mt-1">New accounts awaiting administrator confirmation.</p>
+                    <p className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">{pendingUsers.length}</p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">New accounts awaiting administrator confirmation.</p>
                 </button>
 
                 <button
                     type="button"
                     onClick={() => setActiveTab('approved')}
-                    className={`p-5 rounded-2xl border text-left transition-all ${
+                    className={`p-5 rounded-2xl border text-left transition-all cursor-pointer select-none ${
                         activeTab === 'approved'
-                            ? 'bg-emerald-50/60 border-emerald-300 ring-2 ring-emerald-400/20 shadow-sm'
-                            : 'bg-white border-gray-200 hover:border-gray-300'
+                            ? 'bg-emerald-50/70 dark:bg-emerald-950/25 border-emerald-300 dark:border-emerald-600/70 ring-2 ring-emerald-400/20 dark:ring-emerald-500/20 shadow-sm'
+                            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
                     }`}
                 >
                     <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 flex items-center gap-1.5">
+                        <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
                             <UserCheck className="w-4 h-4" /> Active Staff & Admins
                         </span>
-                        <span className="text-xs font-black bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full">
+                        <span className="text-xs font-black bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800/80">
                             {approvedUsers.length}
                         </span>
                     </div>
-                    <p className="text-2xl font-extrabold text-gray-900">{approvedUsers.length}</p>
-                    <p className="text-[11px] text-gray-500 mt-1">Authorized personnel with active POS system access.</p>
+                    <p className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">{approvedUsers.length}</p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Authorized personnel with active POS system access.</p>
                 </button>
             </div>
 
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-                <div className="p-4 sm:p-5 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3">
+            {/* Registry Card */}
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-colors">
+                <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
                     <div className="relative flex-1 max-w-sm">
-                        <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                        <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
                         <input
                             type="text"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             placeholder="Search by name, email, or phone..."
-                            className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium text-gray-800 placeholder-gray-400 outline-none focus:border-emerald-500 transition-colors"
+                            className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:border-[#8DB600] dark:focus:border-lime-500 focus:bg-white dark:focus:bg-slate-900 transition-colors"
                         />
                     </div>
-                    <span className="text-xs text-gray-500 font-medium">
-                        Showing <strong>{filteredUsers.length}</strong> {activeTab === 'pending' ? 'requests' : 'accounts'}
+                    <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                        Showing <strong className="text-slate-900 dark:text-slate-100">{filteredUsers.length}</strong> {activeTab === 'pending' ? 'requests' : 'accounts'}
                     </span>
                 </div>
 
                 <div className="overflow-x-auto">
                     {isLoading ? (
-                        <div className="py-16 text-center text-xs text-gray-400 font-medium flex flex-col items-center gap-2">
-                            <RefreshCw className="w-6 h-6 animate-spin text-emerald-600" />
+                        <div className="py-16 text-center text-xs text-slate-400 dark:text-slate-500 font-medium flex flex-col items-center gap-2">
+                            <RefreshCw className="w-6 h-6 animate-spin text-[#8DB600] dark:text-lime-400" />
                             Loading accounts...
                         </div>
                     ) : filteredUsers.length === 0 ? (
-                        <div className="py-16 text-center text-gray-400 text-xs font-medium">
+                        <div className="py-16 text-center text-slate-400 dark:text-slate-500 text-xs font-medium">
                             {searchTerm ? 'No accounts matched your search filter.' : activeTab === 'pending' ? 'No new accounts are pending approval.' : 'No active staff accounts found.'}
                         </div>
                     ) : (
-                        <table className="w-full text-left text-xs divide-y divide-gray-100">
-                            <thead className="bg-gray-50/80 text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                        <table className="w-full text-left text-xs divide-y divide-slate-100 dark:divide-slate-800">
+                            <thead className="bg-slate-50/80 dark:bg-slate-800/90 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200/80 dark:border-slate-800">
                             <tr>
                                 <th className="py-3 px-5">Staff Member</th>
                                 <th className="py-3 px-4">Contact Info</th>
@@ -364,66 +363,66 @@ export default function UserApprovalsPage() {
                                 <th className="py-3 px-5 text-right">Actions</th>
                             </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-100 text-gray-700">
+                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 text-slate-700 dark:text-slate-300">
                             {filteredUsers.map((u) => {
                                 const isBusy = actionLoadingId === u.id;
                                 const isSelf = u.id === user?.id;
 
                                 return (
-                                    <tr key={u.id} className="hover:bg-gray-50/50 transition-colors">
+                                    <tr key={u.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
                                         <td className="py-3.5 px-5">
-                                            <div className="font-bold text-gray-900 text-sm">
-                                                {u.name} {isSelf && <span className="text-[10px] text-emerald-600 font-bold ml-1">(You)</span>}
+                                            <div className="font-bold text-slate-900 dark:text-slate-100 text-sm">
+                                                {u.name} {isSelf && <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold ml-1">(You)</span>}
                                             </div>
-                                            <div className="text-[11px] text-gray-400 font-mono mt-0.5">
+                                            <div className="text-[11px] text-slate-400 dark:text-slate-500 font-mono mt-0.5">
                                                 ID #{u.id}
                                             </div>
                                         </td>
 
                                         <td className="py-3.5 px-4">
-                                            <div className="flex items-center gap-1.5 text-gray-800 font-medium">
-                                                <Mail className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                                                <span>{u.email || 'No email provided'}</span>
+                                            <div className="flex items-center gap-1.5 text-slate-800 dark:text-slate-200 font-medium">
+                                                <Mail className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
+                                                <span className="truncate max-w-[200px]">{u.email || 'No email provided'}</span>
                                             </div>
-                                            <div className="flex items-center gap-1.5 text-gray-500 text-[11px] mt-0.5">
-                                                <Phone className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                                            <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 text-[11px] mt-0.5">
+                                                <Phone className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
                                                 <span>{u.phone || 'No phone'}</span>
                                             </div>
                                         </td>
 
-                                        <td className="py-3.5 px-4 text-gray-500 font-medium">
-                                            <div className="flex items-center gap-1.5">
-                                                <Calendar className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                                        <td className="py-3.5 px-4 text-slate-500 dark:text-slate-400 font-medium">
+                                            <div className="flex items-center gap-1.5 whitespace-nowrap">
+                                                <Calendar className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
                                                 <span>
                                                         {u.dateadded ? format(parseISO(u.dateadded), 'MMM dd, yyyy') : 'N/A'}
                                                     </span>
                                             </div>
                                         </td>
 
-                                        <td className="py-3.5 px-4 text-center">
+                                        <td className="py-3.5 px-4 text-center whitespace-nowrap">
                                             {u.isadmin ? (
-                                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-md">
-                                                        <Shield className="w-3 h-3" /> Admin
+                                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800/60 px-2.5 py-0.5 rounded-md shadow-2xs">
+                                                        <Shield className="w-3 h-3 text-indigo-500 dark:text-indigo-400" /> Admin
                                                     </span>
                                             ) : u.is_approved ? (
-                                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
-                                                        <UserCheck className="w-3 h-3" /> Staff
+                                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/60 px-2.5 py-0.5 rounded-md shadow-2xs">
+                                                        <UserCheck className="w-3 h-3 text-emerald-500 dark:text-emerald-400" /> Staff
                                                     </span>
                                             ) : (
-                                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md">
-                                                        <Clock className="w-3 h-3" /> Pending Review
+                                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800/60 px-2.5 py-0.5 rounded-md shadow-2xs">
+                                                        <Clock className="w-3 h-3 text-amber-500 dark:text-amber-400" /> Pending Review
                                                     </span>
                                             )}
                                         </td>
 
-                                        <td className="py-3.5 px-5 text-right">
+                                        <td className="py-3.5 px-5 text-right whitespace-nowrap">
                                             {activeTab === 'pending' ? (
                                                 <div className="flex items-center justify-end gap-2">
                                                     <button
                                                         type="button"
                                                         disabled={isBusy}
                                                         onClick={() => handleApprove(u, false)}
-                                                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition-all active:scale-95 disabled:opacity-50 flex items-center gap-1 shadow-xs text-[11px]"
+                                                        className="px-3 py-1.5 bg-[#8DB600] hover:bg-[#7ca000] text-white font-bold rounded-lg transition-all active:scale-95 disabled:opacity-50 flex items-center gap-1 shadow-xs text-[11px] cursor-pointer"
                                                         title="Approve as Staff"
                                                     >
                                                         <Check className="w-3.5 h-3.5" /> Approve Staff
@@ -433,7 +432,7 @@ export default function UserApprovalsPage() {
                                                         type="button"
                                                         disabled={isBusy}
                                                         onClick={() => handleApprove(u, true)}
-                                                        className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg transition-all active:scale-95 disabled:opacity-50 flex items-center gap-1 shadow-xs text-[11px]"
+                                                        className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg transition-all active:scale-95 disabled:opacity-50 flex items-center gap-1 shadow-xs text-[11px] cursor-pointer"
                                                         title="Approve as Administrator"
                                                     >
                                                         <Shield className="w-3.5 h-3.5" /> Make Admin
@@ -443,7 +442,7 @@ export default function UserApprovalsPage() {
                                                         type="button"
                                                         disabled={isBusy}
                                                         onClick={() => handleReject(u)}
-                                                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                                                        className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
                                                         title="Reject Registration"
                                                     >
                                                         <Trash2 className="w-4 h-4" />
@@ -457,10 +456,10 @@ export default function UserApprovalsPage() {
                                                                 type="button"
                                                                 disabled={isBusy}
                                                                 onClick={() => handleToggleRole(u)}
-                                                                className={`px-2.5 py-1 font-bold rounded-lg transition-all text-[11px] border ${
+                                                                className={`px-2.5 py-1 font-bold rounded-lg transition-all text-[11px] border cursor-pointer ${
                                                                     u.isadmin
-                                                                        ? 'text-amber-700 border-amber-200 bg-amber-50 hover:bg-amber-100'
-                                                                        : 'text-indigo-700 border-indigo-200 bg-indigo-50 hover:bg-indigo-100'
+                                                                        ? 'text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/80 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/50'
+                                                                        : 'text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800/80 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/50'
                                                                 }`}
                                                             >
                                                                 {u.isadmin ? 'Demote to Staff' : 'Promote to Admin'}
@@ -470,7 +469,7 @@ export default function UserApprovalsPage() {
                                                                 type="button"
                                                                 disabled={isBusy}
                                                                 onClick={() => handleRevokeApproval(u)}
-                                                                className="px-2.5 py-1 text-red-600 border border-red-200 bg-red-50 hover:bg-red-100 rounded-lg font-bold text-[11px] transition-all"
+                                                                className="px-2.5 py-1 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/50 rounded-lg font-bold text-[11px] transition-all cursor-pointer"
                                                             >
                                                                 Revoke
                                                             </button>

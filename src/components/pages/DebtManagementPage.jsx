@@ -202,7 +202,7 @@ export default function DebtManagementPage() {
     };
 
     return (
-        <div className="debt-page responsive-page max-w-7xl mx-auto space-y-6 p-4 md:p-6 pb-28 md:pb-8 overflow-x-hidden">
+        <div className="debt-page responsive-page max-w-7xl mx-auto space-y-6 p-4 md:p-6 pb-28 md:pb-8 overflow-x-hidden transition-colors">
             <Head>
                 <title>Debt Management | Seaside POS</title>
             </Head>
@@ -210,45 +210,50 @@ export default function DebtManagementPage() {
             {/* Header & Segmented Domain Switcher */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h1 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                    <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
                         {activeTab === 'company' ? (
                             <>
-                                <Landmark className="text-[#8DB600] w-6 h-6" />
+                                <Landmark className="text-[#8DB600] dark:text-lime-400 w-6 h-6 shrink-0" />
                                 <span>Company Debt Management</span>
                             </>
                         ) : (
                             <>
-                                <Users className="text-indigo-600 w-6 h-6" />
+                                <Users className="text-indigo-600 dark:text-indigo-400 w-6 h-6 shrink-0" />
                                 <span>Employee Debt Management</span>
                             </>
                         )}
                     </h1>
-                    <p className="text-xs text-slate-500 mt-0.5">
+                    <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
                         {activeTab === 'company'
                             ? 'Log capital liabilities and track real-time amortization balances.'
                             : 'Log cash advances/debts for staff. Connected to Salary Monitoring Auto-Deductions.'}
                     </p>
                 </div>
 
-                <div className="flex bg-slate-100 p-1 rounded-2xl w-full sm:w-auto border border-slate-200/80">
+                {/* Segmented Top Switcher */}
+                <div className="flex bg-slate-100 dark:bg-slate-800/90 p-1 rounded-2xl w-full sm:w-auto border border-slate-200/80 dark:border-slate-700/80 shadow-2xs">
                     <button
                         type="button"
                         onClick={() => { setActiveTab('company'); setStatusFilter('active'); }}
-                        className={`flex-1 sm:flex-initial px-4 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
-                            activeTab === 'company' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                        className={`flex-1 sm:flex-initial px-4 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer select-none ${
+                            activeTab === 'company'
+                                ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs'
+                                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
                         }`}
                     >
-                        <Landmark className="w-3.5 h-3.5 text-[#8DB600]" />
+                        <Landmark className="w-3.5 h-3.5 text-[#8DB600] dark:text-lime-400" />
                         <span>Company ({companyMetrics.activeCount})</span>
                     </button>
                     <button
                         type="button"
                         onClick={() => { setActiveTab('employee'); setStatusFilter('active'); }}
-                        className={`flex-1 sm:flex-initial px-4 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
-                            activeTab === 'employee' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                        className={`flex-1 sm:flex-initial px-4 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer select-none ${
+                            activeTab === 'employee'
+                                ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs'
+                                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
                         }`}
                     >
-                        <Users className="w-3.5 h-3.5 text-indigo-600" />
+                        <Users className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
                         <span>Employees ({employeeMetrics.activeCount})</span>
                     </button>
                 </div>
@@ -259,6 +264,7 @@ export default function DebtManagementPage() {
 
             {/* Main Section */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                {/* Left Column: Form */}
                 <div className="lg:col-span-4 space-y-4">
                     {activeTab === 'company' ? (
                         <CompanyDebtForm
@@ -276,42 +282,58 @@ export default function DebtManagementPage() {
                     )}
                 </div>
 
+                {/* Right Column: Registry Table & Filters */}
                 <div className="lg:col-span-8 space-y-4">
-                    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5 rounded-2xl bg-white border border-slate-200 shadow-2xs">
-                        <div className="text-xs font-bold text-slate-700">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-2xs transition-colors">
+                        <div className="text-xs font-bold text-slate-700 dark:text-slate-300">
                             {activeTab === 'company' ? 'Company Liability Registry' : 'Employee Liability Registry'}
                         </div>
 
-                        <div className="flex items-center gap-1.5 w-full sm:w-auto">
+                        {/* Filter Pills with Suppressed Glare in Dark Mode */}
+                        <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden py-0.5">
                             <button
                                 type="button"
                                 onClick={() => setStatusFilter('active')}
-                                className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1 ${
-                                    statusFilter === 'active' ? 'bg-slate-900 text-white shadow-2xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer select-none ${
+                                    statusFilter === 'active'
+                                        ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-2xs'
+                                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-transparent dark:border-slate-700/60 hover:bg-slate-200 dark:hover:bg-slate-700'
                                 }`}
                             >
                                 <span>Active</span>
-                                <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${statusFilter === 'active' ? 'bg-rose-500 text-white' : 'bg-slate-200 text-slate-700'}`}>
+                                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                                    statusFilter === 'active'
+                                        ? 'bg-rose-500 text-white'
+                                        : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+                                }`}>
                                     {currentMetrics.activeCount}
                                 </span>
                             </button>
                             <button
                                 type="button"
                                 onClick={() => setStatusFilter('cleared')}
-                                className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1 ${
-                                    statusFilter === 'cleared' ? 'bg-slate-900 text-white shadow-2xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer select-none ${
+                                    statusFilter === 'cleared'
+                                        ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-2xs'
+                                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-transparent dark:border-slate-700/60 hover:bg-slate-200 dark:hover:bg-slate-700'
                                 }`}
                             >
                                 <span>Cleared</span>
-                                <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${statusFilter === 'cleared' ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'}`}>
+                                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                                    statusFilter === 'cleared'
+                                        ? 'bg-emerald-600 text-white'
+                                        : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+                                }`}>
                                     {currentMetrics.clearedCount}
                                 </span>
                             </button>
                             <button
                                 type="button"
                                 onClick={() => setStatusFilter('all')}
-                                className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
-                                    statusFilter === 'all' ? 'bg-slate-900 text-white shadow-2xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap cursor-pointer select-none ${
+                                    statusFilter === 'all'
+                                        ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-2xs'
+                                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-transparent dark:border-slate-700/60 hover:bg-slate-200 dark:hover:bg-slate-700'
                                 }`}
                             >
                                 All ({currentMetrics.totalCount})
@@ -319,7 +341,7 @@ export default function DebtManagementPage() {
                         </div>
                     </div>
 
-                    <Card className="border border-slate-200 shadow-sm bg-white rounded-2xl overflow-hidden">
+                    <Card className="border border-slate-200/90 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900 rounded-2xl overflow-hidden transition-colors">
                         <CardContent className="p-0">
                             <DebtRegistryTable
                                 data={displayedDebts}

@@ -4,12 +4,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabaseClient';
 import { useStore } from '../../store/useStore';
 import {
-    Button, Card, CardContent, Input, Label,
+    Button, Input, Label,
     Dialog, DialogContent, DialogTitle, DialogCloseButton
 } from '../ui';
 import {
     Image as ImageIcon, Upload, Trash2, Pencil, Plus,
-    Search, Eye, Calendar, User
+    Search, Eye, Calendar, Sparkles, X
 } from 'lucide-react';
 
 const CATEGORIES = [
@@ -64,7 +64,7 @@ export default function GalleryManagementPage() {
     const [isUploadingFile, setIsUploadingFile] = useState(false);
     const fileInputRef = useRef(null);
 
-    // Resilient Gallery Query (select('*') prevents 400 Bad Request if FK relationship is syncing)
+    // Resilient Gallery Query
     const { data: galleryItems = [], isLoading } = useQuery({
         queryKey: ['gallery', isDemo],
         queryFn: async () => {
@@ -81,7 +81,6 @@ export default function GalleryManagementPage() {
                 ];
             }
 
-            // Direct select avoids PostgREST embed failures
             const { data, error } = await supabase
                 .from('gallery')
                 .select('*')
@@ -247,19 +246,19 @@ export default function GalleryManagementPage() {
     }, [galleryItems, selectedCategory, searchTerm]);
 
     return (
-        <div className="gallery-page max-w-7xl mx-auto space-y-6 p-4 md:p-6 overflow-x-hidden">
+        <div className="gallery-page max-w-7xl mx-auto space-y-6 p-4 md:p-6 overflow-x-hidden transition-colors">
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h1 className="text-xl font-bold text-slate-900 tracking-tight">Gallery Management</h1>
-                    <p className="text-xs text-slate-500 mt-0.5">Manage station photos, equipment records, facility images, and certificates.</p>
+                    <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">Gallery Management</h1>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Manage station photos, equipment records, facility images, and certificates.</p>
                 </div>
 
                 <div className="flex items-center gap-2 w-full sm:w-auto">
                     <Button
                         onClick={openCreateModal}
                         variant="primary"
-                        className="h-10 px-4 rounded-xl bg-[#8DB600] hover:bg-[#7ca000] text-white font-bold text-xs shadow-sm flex items-center gap-1.5 active:scale-95 transition-all"
+                        className="h-10 px-4 rounded-xl bg-[#8DB600] hover:bg-[#7ca000] text-white font-bold text-xs shadow-sm flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer"
                         disabled={isDemo}
                     >
                         <Plus className="w-4 h-4 stroke-[2.5]" />
@@ -269,49 +268,69 @@ export default function GalleryManagementPage() {
             </div>
 
             {/* Filter Bar */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
-                <div className="relative w-full sm:max-w-md">
+            <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-2xs transition-colors">
+                {/* Search Textfield with Overlap Prevention */}
+                <div className="relative flex-1 max-w-md group">
+                    <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-400 group-focus-within:text-[#8DB600] dark:group-focus-within:text-lime-400 transition-colors pointer-events-none z-10" />
                     <Input
                         placeholder="Search photos by title or description..."
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
-                        className="w-full bg-slate-50 border-slate-200 text-xs sm:text-sm h-10 rounded-xl focus:border-[#8DB600] focus:ring-[#8DB600]"
+                        style={{
+                            paddingLeft: '2.5rem',
+                            paddingRight: searchTerm ? '2.5rem' : '0.75rem'
+                        }}
+                        className="w-full bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-xs sm:text-sm h-10 rounded-xl focus:bg-white dark:focus:bg-slate-900 focus:border-[#8DB600] dark:focus:border-lime-500 transition-all outline-none"
                     />
+                    {searchTerm && (
+                        <button
+                            type="button"
+                            onClick={() => setSearchTerm('')}
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-full cursor-pointer transition-colors z-10"
+                            title="Clear search"
+                        >
+                            <X className="w-3.5 h-3.5" />
+                        </button>
+                    )}
                 </div>
 
-                <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto no-scrollbar">
-                    {CATEGORIES.map(cat => (
-                        <button
-                            key={cat}
-                            type="button"
-                            onClick={() => setSelectedCategory(cat)}
-                            className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap ${
-                                selectedCategory === cat
-                                    ? 'bg-slate-900 text-white shadow-2xs'
-                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                            }`}
-                        >
-                            {cat}
-                        </button>
-                    ))}
+                {/* Filter Pills with Suppressed Scrollbars */}
+                <div className="flex items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden py-1">
+                    {CATEGORIES.map(cat => {
+                        const isSelected = selectedCategory === cat;
+                        return (
+                            <button
+                                key={cat}
+                                type="button"
+                                onClick={() => setSelectedCategory(cat)}
+                                className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap cursor-pointer select-none ${
+                                    isSelected
+                                        ? 'bg-[#8DB600] dark:bg-lime-500 text-white shadow-xs'
+                                        : 'bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 border border-transparent dark:border-slate-700/60 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'
+                                }`}
+                            >
+                                {cat}
+                            </button>
+                        );
+                    })}
                 </div>
             </div>
 
             {/* Photo Cards Grid */}
             {isLoading ? (
-                <div className="text-center py-16 text-slate-400 text-xs">
+                <div className="text-center py-20 text-slate-400 dark:text-slate-500 text-xs font-semibold">
                     Loading station photos...
                 </div>
             ) : filteredItems.length === 0 ? (
-                <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center space-y-3">
-                    <div className="w-12 h-12 rounded-2xl bg-slate-50 text-slate-400 flex items-center justify-center mx-auto">
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-12 text-center space-y-3 shadow-2xs transition-colors">
+                    <div className="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 flex items-center justify-center mx-auto">
                         <ImageIcon className="w-6 h-6" />
                     </div>
-                    <div className="text-slate-800 font-bold text-sm">No photos found</div>
-                    <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                    <div className="text-slate-800 dark:text-slate-100 font-bold text-sm">No photos found</div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
                         Add images of your station equipment, water test certifications, or delivery vehicles.
                     </p>
-                    <Button onClick={openCreateModal} className="h-9 px-4 rounded-xl bg-[#8DB600] hover:bg-[#7ca000] text-white text-xs font-bold">
+                    <Button onClick={openCreateModal} className="h-9 px-4 rounded-xl bg-[#8DB600] hover:bg-[#7ca000] text-white text-xs font-bold shadow-xs cursor-pointer">
                         Add First Image
                     </Button>
                 </div>
@@ -320,9 +339,9 @@ export default function GalleryManagementPage() {
                     {filteredItems.map(item => (
                         <div
                             key={item.id}
-                            className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-2xs hover:shadow-md transition-shadow group flex flex-col"
+                            className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl overflow-hidden shadow-2xs hover:shadow-md dark:hover:border-slate-700 transition-all group flex flex-col"
                         >
-                            <div className="relative aspect-video bg-slate-100 overflow-hidden cursor-pointer" onClick={() => setPreviewImage(item)}>
+                            <div className="relative aspect-video bg-slate-100 dark:bg-slate-800 overflow-hidden cursor-pointer" onClick={() => setPreviewImage(item)}>
                                 <img
                                     src={item.image_url}
                                     alt={item.title}
@@ -332,30 +351,30 @@ export default function GalleryManagementPage() {
                                         e.target.src = '/seaside.png';
                                     }}
                                 />
-                                <span className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-white/90 backdrop-blur-xs text-slate-800 shadow-2xs border border-white/50">
+                                <span className="absolute top-2.5 left-2.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/95 dark:bg-slate-900/90 backdrop-blur-md text-slate-800 dark:text-slate-200 shadow-2xs border border-white/40 dark:border-slate-700/70">
                                     {item.category || 'General'}
                                 </span>
                             </div>
 
                             <div className="p-3.5 flex-1 flex flex-col justify-between space-y-2">
                                 <div>
-                                    <h3 className="font-bold text-sm text-slate-900 line-clamp-1">{item.title}</h3>
+                                    <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100 line-clamp-1">{item.title}</h3>
                                     {item.description && (
-                                        <p className="text-xs text-slate-500 line-clamp-2 mt-0.5">{item.description}</p>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mt-0.5">{item.description}</p>
                                     )}
                                 </div>
 
-                                <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
-                                    <span className="flex items-center gap-1">
-                                        <Calendar className="w-3 h-3" />
+                                <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-400 dark:text-slate-500">
+                                    <span className="flex items-center gap-1 font-medium">
+                                        <Calendar className="w-3.5 h-3.5" />
                                         {item.created_at ? new Date(item.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recent'}
                                     </span>
 
-                                    <div className="flex items-center gap-1">
+                                    <div className="flex items-center gap-1.5">
                                         <button
                                             type="button"
                                             onClick={() => setPreviewImage(item)}
-                                            className="w-7 h-7 flex items-center justify-center text-slate-500 hover:text-blue-600 hover:bg-blue-50 border border-slate-200 rounded-lg transition-colors"
+                                            className="w-7 h-7 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors cursor-pointer"
                                             title="View Full Image"
                                         >
                                             <Eye className="w-3.5 h-3.5" />
@@ -366,7 +385,7 @@ export default function GalleryManagementPage() {
                                                 <button
                                                     type="button"
                                                     onClick={() => openEditModal(item)}
-                                                    className="w-7 h-7 flex items-center justify-center text-blue-600 hover:bg-blue-50 border border-slate-200 rounded-lg transition-colors"
+                                                    className="w-7 h-7 flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors cursor-pointer"
                                                     title="Edit Photo Details"
                                                     disabled={isDemo}
                                                 >
@@ -379,7 +398,7 @@ export default function GalleryManagementPage() {
                                                             deleteMutation.mutate(item.id);
                                                         }
                                                     }}
-                                                    className="w-7 h-7 flex items-center justify-center text-rose-600 hover:bg-rose-50 border border-slate-200 rounded-lg transition-colors"
+                                                    className="w-7 h-7 flex items-center justify-center text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors cursor-pointer"
                                                     title="Delete Photo"
                                                     disabled={isDemo}
                                                 >
@@ -397,45 +416,45 @@ export default function GalleryManagementPage() {
 
             {/* Upload / Edit Modal */}
             <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
-                <DialogContent className="p-0 sm:max-w-md w-full bg-white shadow-2xl border-0 overflow-hidden rounded-3xl">
-                    <div className="px-6 py-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
-                        <DialogTitle className="text-base font-black text-slate-900 flex items-center gap-2">
-                            <div className="w-7 h-7 rounded-lg bg-lime-100 text-[#5f7d00] flex items-center justify-center">
+                <DialogContent className="p-0 sm:max-w-md w-full bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden rounded-3xl dark:[color-scheme:dark]">
+                    <div className="px-6 py-4 bg-slate-50 dark:bg-slate-900/95 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                        <DialogTitle className="text-base font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-lg bg-lime-100 dark:bg-lime-950/60 text-[#5f7d00] dark:text-lime-400 flex items-center justify-center">
                                 <ImageIcon className="w-4 h-4 stroke-[2.5]" />
                             </div>
                             <span>{editingItem ? 'Edit Photo Details' : 'Add Photo to Gallery'}</span>
                         </DialogTitle>
-                        <DialogCloseButton onClick={closeModal} className="p-1.5 rounded-full text-slate-400 hover:text-slate-600" />
+                        <DialogCloseButton onClick={closeModal} className="p-1.5 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" />
                     </div>
 
                     <form onSubmit={handleSubmit}>
                         <div className="p-6 space-y-4">
                             <div>
-                                <Label className="text-xs font-bold text-slate-700">Photo Title <span className="text-rose-500">*</span></Label>
+                                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Photo Title <span className="text-rose-500">*</span></Label>
                                 <Input
                                     value={title}
                                     onChange={(e) => setTitle(e.target.value)}
                                     required
                                     placeholder="e.g. Reverse Osmosis Filtration System"
-                                    className="h-10 mt-1 text-xs rounded-xl border-slate-200"
+                                    className="h-10 mt-1 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900"
                                 />
                             </div>
 
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
-                                    <Label className="text-xs font-bold text-slate-700">Category</Label>
+                                    <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Category</Label>
                                     <select
                                         value={category}
                                         onChange={(e) => setCategory(e.target.value)}
-                                        className="h-10 mt-1 w-full text-xs rounded-xl border border-slate-200 px-3 bg-white text-slate-700 outline-none"
+                                        className="h-10 mt-1 w-full text-xs rounded-xl border border-slate-200 dark:border-slate-700 px-3 bg-slate-50 dark:bg-slate-800/90 text-slate-900 dark:text-slate-100 outline-none cursor-pointer"
                                     >
                                         {CATEGORIES.filter(c => c !== 'All Categories').map(cat => (
-                                            <option key={cat} value={cat}>{cat}</option>
+                                            <option key={cat} value={cat} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{cat}</option>
                                         ))}
                                     </select>
                                 </div>
                                 <div>
-                                    <Label className="text-xs font-bold text-slate-700">Upload File</Label>
+                                    <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Upload File</Label>
                                     <input
                                         type="file"
                                         ref={fileInputRef}
@@ -447,50 +466,50 @@ export default function GalleryManagementPage() {
                                         type="button"
                                         variant="outline"
                                         onClick={() => fileInputRef.current?.click()}
-                                        className="h-10 mt-1 w-full text-xs rounded-xl border-slate-200 flex items-center justify-center gap-1.5 text-slate-600"
+                                        className="h-10 mt-1 w-full text-xs rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center justify-center gap-1.5 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700"
                                     >
-                                        <Upload className="w-3.5 h-3.5 text-slate-400" />
+                                        <Upload className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
                                         <span>{isUploadingFile ? 'Uploading...' : 'Choose File'}</span>
                                     </Button>
                                 </div>
                             </div>
 
                             <div>
-                                <Label className="text-xs font-bold text-slate-700">Image URL <span className="text-rose-500">*</span></Label>
+                                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Image URL <span className="text-rose-500">*</span></Label>
                                 <Input
                                     value={imageUrl}
                                     onChange={(e) => setImageUrl(e.target.value)}
                                     required
                                     placeholder="https://... or upload path"
-                                    className="h-10 mt-1 text-xs rounded-xl border-slate-200 font-mono"
+                                    className="h-10 mt-1 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 font-mono focus:bg-white dark:focus:bg-slate-900"
                                 />
                             </div>
 
                             {imageUrl && (
-                                <div className="p-2 border border-slate-200 rounded-2xl bg-slate-50 flex items-center justify-center aspect-video overflow-hidden">
+                                <div className="p-2 border border-slate-200 dark:border-slate-700 rounded-2xl bg-slate-50 dark:bg-slate-800/60 flex items-center justify-center aspect-video overflow-hidden">
                                     <img src={imageUrl} alt="Preview" className="max-h-36 object-contain rounded-lg" />
                                 </div>
                             )}
 
                             <div>
-                                <Label className="text-xs font-bold text-slate-700">Description (Optional)</Label>
+                                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Description (Optional)</Label>
                                 <Input
                                     value={description}
                                     onChange={(e) => setDescription(e.target.value)}
                                     placeholder="Short description or notes..."
-                                    className="h-10 mt-1 text-xs rounded-xl border-slate-200"
+                                    className="h-10 mt-1 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900"
                                 />
                             </div>
                         </div>
 
-                        <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2.5">
-                            <Button variant="outline" type="button" onClick={closeModal} className="h-10 px-5 rounded-xl text-xs font-bold border-slate-200">
+                        <div className="px-6 py-4 bg-slate-50 dark:bg-slate-900/95 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2.5">
+                            <Button variant="outline" type="button" onClick={closeModal} className="h-10 px-5 rounded-xl text-xs font-bold border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700">
                                 Cancel
                             </Button>
                             <Button
                                 type="submit"
                                 disabled={saveMutation.isPending || isUploadingFile || isDemo}
-                                className="h-10 px-6 rounded-xl bg-[#8DB600] hover:bg-[#7ca000] text-white text-xs font-bold shadow-md"
+                                className="h-10 px-6 rounded-xl bg-[#8DB600] hover:bg-[#7ca000] text-white text-xs font-bold shadow-md cursor-pointer"
                             >
                                 {saveMutation.isPending ? 'Saving...' : (editingItem ? 'Update Photo' : 'Save Photo')}
                             </Button>
@@ -502,20 +521,20 @@ export default function GalleryManagementPage() {
             {/* Full Image Preview Modal */}
             {previewImage && (
                 <Dialog open={!!previewImage} onOpenChange={() => setPreviewImage(null)}>
-                    <DialogContent className="p-0 sm:max-w-2xl w-full bg-white shadow-2xl border-0 overflow-hidden rounded-3xl">
+                    <DialogContent className="p-0 sm:max-w-2xl w-full bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden rounded-3xl dark:[color-scheme:dark]">
                         <div className="relative bg-slate-950 flex items-center justify-center max-h-[70vh] overflow-hidden">
                             <img src={previewImage.image_url} alt={previewImage.title} className="max-h-[70vh] w-auto object-contain" />
-                            <DialogCloseButton onClick={() => setPreviewImage(null)} className="absolute top-3 right-3 text-white bg-black/40 hover:bg-black/60 p-2 rounded-full" />
+                            <DialogCloseButton onClick={() => setPreviewImage(null)} className="absolute top-3 right-3 text-white bg-black/60 hover:bg-black/80 p-2 rounded-full cursor-pointer" />
                         </div>
-                        <div className="p-5 space-y-1 bg-white">
+                        <div className="p-5 space-y-1 bg-white dark:bg-slate-900">
                             <div className="flex items-center justify-between">
-                                <h3 className="font-bold text-slate-900 text-base">{previewImage.title}</h3>
-                                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-lime-50 text-[#5f7d00] border border-lime-200">
+                                <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base">{previewImage.title}</h3>
+                                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-lime-50 dark:bg-lime-950/60 text-[#5f7d00] dark:text-lime-400 border border-lime-200 dark:border-lime-900/60">
                                     {previewImage.category}
                                 </span>
                             </div>
                             {previewImage.description && (
-                                <p className="text-xs text-slate-500">{previewImage.description}</p>
+                                <p className="text-xs text-slate-500 dark:text-slate-400">{previewImage.description}</p>
                             )}
                         </div>
                     </DialogContent>
