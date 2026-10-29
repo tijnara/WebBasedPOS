@@ -36,7 +36,6 @@ import { supabase } from '../../lib/supabaseClient';
 export default function POSPage() {
     const queryClient = useQueryClient();
 
-    // Lock page scrolling while on POS
     useEffect(() => {
         const originalBodyOverflow = document.body.style.overflow;
         const originalHtmlOverflow = document.documentElement.style.overflow;
@@ -65,8 +64,6 @@ export default function POSPage() {
 
     const [categoryFilter, setCategoryFilter] = useState('All');
     const [availableCategories, setAvailableCategories] = useState(['All']);
-
-    // Sort State: Defaults to 'highest_sold'
     const [sortBy, setSortBy] = useState('highest_sold');
 
     const [searchTerm, setSearchTerm] = useState('');
@@ -128,7 +125,6 @@ export default function POSPage() {
     const rawProducts = productsData.products || [];
     const totalPages = productsData.totalPages || 1;
 
-    // Client-side fallback sorting
     const sortedProducts = useMemo(() => {
         if (!rawProducts.length) return [];
         const copy = [...rawProducts];
@@ -138,32 +134,21 @@ export default function POSPage() {
                 return copy.sort((a, b) => {
                     const soldA = Number(a.total_sold ?? a.sales_count ?? a.sold_quantity ?? 0);
                     const soldB = Number(b.total_sold ?? b.sales_count ?? b.sold_quantity ?? 0);
-
-                    if (soldB !== soldA) {
-                        return soldB - soldA;
-                    }
-
+                    if (soldB !== soldA) return soldB - soldA;
                     const aIsRefill = (a.category || '').toLowerCase().includes('refill') || (a.name || '').toLowerCase().startsWith('refill') || [30, 3, 2].includes(Number(a.id));
                     const bIsRefill = (b.category || '').toLowerCase().includes('refill') || (b.name || '').toLowerCase().startsWith('refill') || [30, 3, 2].includes(Number(b.id));
-
                     if (aIsRefill && !bIsRefill) return -1;
                     if (!aIsRefill && bIsRefill) return 1;
-
                     return (a.name || '').localeCompare(b.name || '');
                 });
-
             case 'stock_desc':
                 return copy.sort((a, b) => Number(b.stock ?? b.stock_quantity ?? 0) - Number(a.stock ?? a.stock_quantity ?? 0));
-
             case 'stock_asc':
                 return copy.sort((a, b) => Number(a.stock ?? a.stock_quantity ?? 0) - Number(b.stock ?? b.stock_quantity ?? 0));
-
             case 'price_asc':
                 return copy.sort((a, b) => Number(a.price || 0) - Number(b.price || 0));
-
             case 'price_desc':
                 return copy.sort((a, b) => Number(b.price || 0) - Number(a.price || 0));
-
             default:
                 return copy;
         }
@@ -248,7 +233,6 @@ export default function POSPage() {
         setPaymentMethod('Cash');
         setSaleDate(getLocalDateString());
         setSaleTime(getLocalTimeString());
-
         setCustomerSearchTerm('');
         setCustomerSearchResults([]);
 
@@ -307,7 +291,6 @@ export default function POSPage() {
             return;
         }
 
-        // Haptic feedback on tap
         if (typeof navigator !== 'undefined' && navigator.vibrate) {
             navigator.vibrate(25);
         }
@@ -323,14 +306,12 @@ export default function POSPage() {
                 event.preventDefault();
                 productSearchInputRef.current?.focus();
             }
-
             if (event.key === 'F2') {
                 event.preventDefault();
                 if (!isCustomerModalOpen && !isPaymentModalOpen) {
                     openCustomerModal();
                 }
             }
-
             if (!isTyping && ['1', '2', '3'].includes(event.key)) {
                 const idMap = { '1': 30, '2': 3, '3': 2 };
                 const productId = idMap[event.key];
@@ -346,42 +327,30 @@ export default function POSPage() {
                     });
                 }
             }
-
             if (event.key === 'F3') {
                 event.preventDefault();
                 if (!isCustomSaleModalOpen && !isPaymentModalOpen) {
                     openCustomSale();
                 }
             }
-
             if (event.key === 'F4') {
                 event.preventDefault();
                 if (!isPaymentModalOpen) {
                     openPaymentModal();
                 }
             }
-
             if (event.shiftKey && event.key === 'Delete') {
                 event.preventDefault();
                 clearSale();
             }
-
             if (event.key === 'Escape') {
-                if (isPaymentModalOpen) {
-                    closePaymentModal();
-                } else if (isCustomerModalOpen) {
-                    closeCustomerModal();
-                } else if (isCustomSaleModalOpen) {
-                    closeCustomSale();
-                } else if (isScannerOpen) {
-                    closeScanner();
-                } else if (editItemKey) {
-                    closeEditItem();
-                } else if (isCartDrawerOpen) {
-                    closeCartDrawer();
-                } else {
-                    setSearchTerm('');
-                }
+                if (isPaymentModalOpen) closePaymentModal();
+                else if (isCustomerModalOpen) closeCustomerModal();
+                else if (isCustomSaleModalOpen) closeCustomSale();
+                else if (isScannerOpen) closeScanner();
+                else if (editItemKey) closeEditItem();
+                else if (isCartDrawerOpen) closeCartDrawer();
+                else setSearchTerm('');
             }
         };
         window.addEventListener('keydown', handleKeyDown);
@@ -393,28 +362,6 @@ export default function POSPage() {
         openCustomSale, closeCustomSale, closeScanner, closeEditItem, closeCartDrawer, setSearchTerm,
         hotkeyProducts
     ]);
-
-    useEffect(() => {
-        if (!(isCustomerModalOpen || isPaymentModalOpen) || !debouncedCustomerSearchTerm) {
-            setCustomerSearchResults([]);
-            setIsSearchingCustomers(false);
-            return;
-        }
-        const searchCustomers = async () => {
-            setIsSearchingCustomers(true);
-            try {
-                const { data, error } = await supabase
-                    .from('customers')
-                    .select('*')
-                    .or(`name.ilike.%${debouncedCustomerSearchTerm}%,phone.ilike.%${debouncedCustomerSearchTerm}%`)
-                    .limit(CUSTOMER_SEARCH_LIMIT);
-                if (!error) setCustomerSearchResults(data || []);
-            } finally {
-                setIsSearchingCustomers(false);
-            }
-        };
-        searchCustomers();
-    }, [debouncedCustomerSearchTerm, isCustomerModalOpen, isPaymentModalOpen]);
 
     const handleIncreaseQuantity = (key) => {
         const item = currentSale[key];
@@ -518,8 +465,8 @@ export default function POSPage() {
             {/* --- LEFT PANEL: CATALOG & ACTIONS --- */}
             <div className="flex-1 flex flex-col min-w-0 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs border border-slate-200/90 dark:border-slate-800/80 overflow-hidden relative z-10 h-full max-h-full min-h-0">
 
-                {/* Header Row: Clean Search + Desktop Action Buttons */}
-                <div className="p-2 sm:p-2.5 border-b border-slate-100 dark:border-slate-800/80 flex items-center gap-1.5 bg-white dark:bg-slate-900 shrink-0">
+                {/* Header Row: Seamless borderless search header */}
+                <div className="p-2 sm:p-2.5 flex items-center gap-1.5 bg-white dark:bg-slate-900 shrink-0">
                     <div className="relative flex-1 flex items-center group min-w-0">
                         <Search className="w-3.5 h-3.5 absolute left-3 text-slate-400 dark:text-slate-500 group-focus-within:text-[#8DB600] dark:group-focus-within:text-lime-400 transition-colors pointer-events-none z-10" />
                         <input
@@ -541,7 +488,6 @@ export default function POSPage() {
                         </button>
                     </div>
 
-                    {/* Active Customer Indicator Pill */}
                     {selectedCustomer && (
                         <div
                             onClick={openCustomerModal}
@@ -553,7 +499,6 @@ export default function POSPage() {
                         </div>
                     )}
 
-                    {/* Desktop Utility Buttons */}
                     <div className="hidden md:flex items-center gap-1.5 shrink-0">
                         <Button
                             variant="outline"
@@ -576,10 +521,10 @@ export default function POSPage() {
                     </div>
                 </div>
 
-                {/* Categories & Desktop Quick Hotkeys Bar */}
-                <div className="px-2 sm:px-2.5 py-1.5 border-b border-slate-100 dark:border-slate-800/80 flex flex-col gap-1 shrink-0 bg-slate-50/50 dark:bg-slate-900/60">
+                {/* Categories & Desktop Quick Hotkeys Bar (Lines removed) */}
+                <div className="px-2 sm:px-2.5 py-1.5 flex flex-col gap-1 shrink-0 bg-slate-50/50 dark:bg-slate-900/60">
                     <div className="category-scroll-container flex items-center gap-1.5 overflow-x-auto pb-0.5 w-full no-scrollbar">
-                        <div className="flex items-center gap-1 pr-1.5 border-r border-slate-200 dark:border-slate-700/80 mr-0.5 shrink-0 text-slate-400 dark:text-slate-500">
+                        <div className="flex items-center gap-1 pr-1.5 mr-0.5 shrink-0 text-slate-400 dark:text-slate-500">
                             <Filter className="w-3 h-3" />
                             <span className="text-[9px] font-bold uppercase tracking-wider hidden sm:inline-block">Filter</span>
                         </div>
@@ -598,9 +543,9 @@ export default function POSPage() {
                         ))}
                     </div>
 
-                    {/* Quick Hotkeys Bar: Desktop Only */}
+                    {/* Quick Hotkeys Bar: Desktop Only (Divider lines removed) */}
                     <div className="hidden md:flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-0.5">
-                        <div className="flex items-center gap-1 pr-1.5 border-r border-slate-200 dark:border-slate-700/80 mr-0.5 shrink-0">
+                        <div className="flex items-center gap-1 pr-1.5 mr-0.5 shrink-0">
                             <img src="/seasidelogo_.png" alt="Seaside" className="w-3 h-3 object-contain dark:brightness-110" />
                             <span className="text-[9px] font-bold uppercase tracking-widest text-slate-600 dark:text-slate-400">Quick</span>
                         </div>
@@ -650,8 +595,8 @@ export default function POSPage() {
                     </div>
                 </div>
 
-                {/* --- Sub-header: Count + Arrange by dropdown --- */}
-                <div className="px-2.5 sm:px-3 py-1 bg-slate-50 dark:bg-slate-900/90 border-b border-slate-200/80 dark:border-slate-800/80 flex items-center justify-between gap-2 shrink-0">
+                {/* Sub-header: Count + Arrange by dropdown (Line removed) */}
+                <div className="px-2.5 sm:px-3 py-1 bg-slate-50 dark:bg-slate-900/90 flex items-center justify-between gap-2 shrink-0">
                     <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400 text-[11px] font-bold">
                         <span className="uppercase tracking-wider text-[9px] text-slate-400 dark:text-slate-500">Products</span>
                         <span className="text-[10px] bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-1.5 py-0.2 rounded-full font-mono font-bold border border-transparent dark:border-slate-700">
@@ -664,7 +609,6 @@ export default function POSPage() {
                         )}
                     </div>
 
-                    {/* Arrangement Options */}
                     <div className="flex items-center gap-1.5">
                         <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 hidden sm:inline-block">Arrange by:</span>
                         <div className="relative flex items-center">
@@ -689,7 +633,7 @@ export default function POSPage() {
                     </div>
                 </div>
 
-                {/* --- Scrollable Product Grid Region --- */}
+                {/* Scrollable Product Grid */}
                 <div className="pos-product-scroll-area flex-1 p-2 sm:p-2.5 pb-36 sm:pb-32 md:pb-2.5 bg-slate-50/50 dark:bg-slate-950/40 relative min-h-0 overflow-y-auto">
                     <POSProductGrid
                         isLoading={isLoadingProducts}
@@ -704,7 +648,7 @@ export default function POSPage() {
                 </div>
             </div>
 
-            {/* --- RIGHT PANEL: CART (Desktop View) --- */}
+            {/* --- RIGHT PANEL: CART --- */}
             <div className="hidden md:flex w-full md:w-[340px] lg:w-[380px] xl:w-[420px] flex-shrink-0 flex-col h-full max-h-full z-10 min-h-0">
                 <POSCart
                     currentSale={currentSale}
@@ -821,7 +765,6 @@ export default function POSPage() {
                 }}
             />
 
-            {/* Mobile Cart Floating Action Bar */}
             {!isAnyModalOpen && (
                 <MobileCartBar
                     itemCount={Object.keys(currentSale).length}
@@ -833,7 +776,6 @@ export default function POSPage() {
                 />
             )}
 
-            {/* Mobile Slide-Up Cart Drawer */}
             <CartDrawer
                 isOpen={isCartDrawerOpen}
                 onClose={closeCartDrawer}
