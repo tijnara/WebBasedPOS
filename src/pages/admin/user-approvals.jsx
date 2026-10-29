@@ -84,6 +84,10 @@ export default function UserApprovalsPage() {
 
     // 1. ACCEPT / APPROVE USER
     const handleApprove = async (targetUser, makeAdmin = false) => {
+        if (user?.isDemo) {
+            addToast?.({ title: 'Demo Mode', description: 'Approving users is disabled in demo mode.', variant: 'warning' });
+            return;
+        }
         setActionLoadingId(targetUser.id);
         try {
             const { error } = await supabase
@@ -120,6 +124,10 @@ export default function UserApprovalsPage() {
 
     // 2. DELETE / REJECT USER REGISTRATION
     const handleReject = async (targetUser) => {
+        if (user?.isDemo) {
+            addToast?.({ title: 'Demo Mode', description: 'Rejecting users is disabled in demo mode.', variant: 'warning' });
+            return;
+        }
         if (!window.confirm(`Are you sure you want to reject and remove the registration for "${targetUser.name}"?`)) {
             return;
         }
@@ -155,6 +163,10 @@ export default function UserApprovalsPage() {
 
     // 3. PROMOTING & DEMOTING USER ROLES
     const handleToggleRole = async (targetUser) => {
+        if (user?.isDemo) {
+            addToast?.({ title: 'Demo Mode', description: 'Changing user roles is disabled in demo mode.', variant: 'warning' });
+            return;
+        }
         if (targetUser.id === user?.id) {
             alert('You cannot change your own administrator status.');
             return;
@@ -195,6 +207,10 @@ export default function UserApprovalsPage() {
 
     // 4. REVOKE ACCESS (Demote back to unapproved)
     const handleRevokeApproval = async (targetUser) => {
+        if (user?.isDemo) {
+            addToast?.({ title: 'Demo Mode', description: 'Revoking access is disabled in demo mode.', variant: 'warning' });
+            return;
+        }
         if (targetUser.id === user?.id) {
             alert('You cannot revoke access to your own account.');
             return;

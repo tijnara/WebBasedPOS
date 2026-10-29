@@ -258,6 +258,10 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
     };
 
     const handleConfirmAndRecord = async () => {
+        if (user?.isDemo) {
+            addToast({ title: 'Demo Mode', description: 'Recording sales from scanned lists is disabled in demo mode.', variant: 'warning' });
+            return;
+        }
         if (!parsedItems.length) return;
         setIsSaving(true);
 

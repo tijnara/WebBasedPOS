@@ -218,6 +218,7 @@ export default function InventoryPage() {
     // Restock submit
     const handleConfirmRestock = async (e) => {
         e.preventDefault();
+        if (isDemo) return addToast({ title: 'Demo Mode', description: 'Adding stock is disabled in demo mode.', variant: 'warning' });
         const { product, qty, expiry } = restockModal;
         const addQty = parseInt(qty, 10);
 
@@ -252,6 +253,7 @@ export default function InventoryPage() {
     // Adjustment submit
     const handleConfirmAdjustment = async (e) => {
         e.preventDefault();
+        if (isDemo) return addToast({ title: 'Demo Mode', description: 'Adjusting stock is disabled in demo mode.', variant: 'warning' });
         const { product, qty, reason } = adjustModal;
         const adjQty = parseInt(qty, 10);
 

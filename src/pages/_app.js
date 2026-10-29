@@ -138,7 +138,7 @@ function AuthGate({ children }) {
 }
 
 export default function App({ Component, pageProps }) {
-    const { toasts, dismissToast, darkMode } = useStore();
+    const { toasts, dismissToast, darkMode, user } = useStore();
     const router = useRouter();
 
     const [queryClient] = useState(() => new QueryClient({
@@ -204,6 +204,14 @@ export default function App({ Component, pageProps }) {
                 </Head>
                 <AuthGate>
                     <div className={`app responsive-page ${!hideNav ? 'md:pl-64' : ''}`}>
+                        {user?.isDemo && !isPublicPage && (
+                            <div className="fixed top-0 left-0 right-0 z-[9999] bg-amber-50 dark:bg-amber-950/60 border-b border-amber-200 dark:border-amber-800/60 shadow-sm">
+                                <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-center gap-2 text-amber-800 dark:text-amber-200">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-amber-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                                    <span className="text-xs font-bold">Demo Mode — All data is read-only. Adding, editing, and deleting are disabled.</span>
+                                </div>
+                            </div>
+                        )}
                         {!hideNav && <Navbar />}
                         {!hideNav && <TabBar />}
 

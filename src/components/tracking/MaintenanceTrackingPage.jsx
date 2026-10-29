@@ -426,6 +426,7 @@ export default function MaintenanceTrackingPage() {
     };
 
     const handleDeleteVehicle = async (id) => {
+        if (isDemo) return addToast({ title: 'Demo Mode', description: 'Deleting vehicles is disabled in demo mode.', variant: 'warning' });
         if (!window.confirm("Delete this vehicle? Its history will remain but detached.")) return;
 
         const { error } = await supabase.from('vehicles').delete().eq('id', id);
