@@ -2023,3 +2023,13 @@ input[type="checkbox"]:focus {
 .text-negative {
     color: var(--danger);
 }
+/* --- Remove Global Layout Borders (Top Navbar & Sidebar) --- */
+header,
+nav,
+.navbar,
+aside,
+.sidebar {
+    border-bottom: none !important;
+    border-right: none !important;
+    box-shadow: none !important;
+}
