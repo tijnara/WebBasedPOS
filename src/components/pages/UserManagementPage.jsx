@@ -378,11 +378,15 @@ export default function UserManagementPage() {
             {/* Filter / Search Bar with Role Chips */}
             <div className="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-3">
                 <div className="relative w-full sm:max-w-md">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 z-10">
+                        <Search className="w-4 h-4" />
+                    </div>
                     <Input
                         ref={searchInputRef}
                         placeholder="Search users by name, email... (/)"
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
+                        style={{ paddingLeft: '2.5rem' }}
                         className="w-full bg-slate-50 border-slate-200 text-xs sm:text-sm h-10 rounded-xl focus:border-[#8DB600] focus:ring-[#8DB600]"
                     />
                 </div>
@@ -506,7 +510,7 @@ export default function UserManagementPage() {
                                                         : '—'}
                                                 </TableCell>
 
-                                                {/* Standardized Action Buttons with Guardrails */}
+                                                {/* Action Buttons */}
                                                 <TableCell className="py-3 px-4 text-right">
                                                     <div className="flex items-center justify-end gap-1">
                                                         <button
@@ -638,7 +642,7 @@ export default function UserManagementPage() {
                 )}
             </div>
 
-            {/* MODAL: Add / Edit User */}
+            {/* MODAL: Add / Edit User (Fixed Icon Overlaps & Improved Layout) */}
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
                 <DialogContent className="p-0 sm:max-w-xl w-full bg-white shadow-2xl border-0 overflow-hidden rounded-3xl">
                     <DialogHeader className="px-6 py-4 border-b border-slate-100 bg-slate-50/80 flex items-center justify-between">
@@ -655,12 +659,13 @@ export default function UserManagementPage() {
 
                     <form onSubmit={save} className="flex flex-col max-h-[80vh]">
                         <div className="overflow-y-auto px-6 py-5 space-y-5">
+                            {/* Full Name Input */}
                             <div>
                                 <Label htmlFor="name" className="text-xs font-bold text-slate-700">
                                     Full Name <span className="text-rose-500">*</span>
                                 </Label>
                                 <div className="relative mt-1">
-                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 z-10">
                                         <UserIcon className="w-4 h-4" />
                                     </div>
                                     <Input
@@ -670,19 +675,21 @@ export default function UserManagementPage() {
                                         required
                                         autoFocus
                                         placeholder="e.g. Juan Dela Cruz"
-                                        className="w-full text-xs pl-9 py-2 border-slate-200 rounded-xl h-10"
+                                        style={{ paddingLeft: '2.5rem' }}
+                                        className="w-full text-xs py-2 border-slate-200 rounded-xl h-10"
                                         disabled={isDemo}
                                     />
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {/* Email Address Input */}
                                 <div>
                                     <Label htmlFor="email" className="text-xs font-bold text-slate-700">
                                         Email Address <span className="text-rose-500">*</span>
                                     </Label>
                                     <div className="relative mt-1">
-                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 z-10">
                                             <Mail className="w-4 h-4" />
                                         </div>
                                         <Input
@@ -692,24 +699,27 @@ export default function UserManagementPage() {
                                             onChange={(e) => setEmail(e.target.value)}
                                             required
                                             placeholder="staff@seaside.com"
-                                            className="w-full text-xs pl-9 py-2 border-slate-200 rounded-xl h-10"
+                                            style={{ paddingLeft: '2.5rem' }}
+                                            className="w-full text-xs py-2 border-slate-200 rounded-xl h-10"
                                             disabled={isDemo}
                                         />
                                     </div>
                                 </div>
 
+                                {/* User Role Select */}
                                 <div>
                                     <Label htmlFor="category_id" className="text-xs font-bold text-slate-700">User Role</Label>
                                     <div className="flex items-center space-x-2 mt-1">
                                         <div className="relative flex-1">
-                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 z-10">
                                                 <Briefcase className="w-4 h-4" />
                                             </div>
                                             <Select
                                                 id="category_id"
                                                 value={categoryId}
                                                 onChange={(e) => setCategoryId(e.target.value)}
-                                                className="w-full text-xs pl-9 py-2 border-slate-200 rounded-xl h-10 appearance-none bg-white"
+                                                style={{ paddingLeft: '2.5rem' }}
+                                                className="w-full text-xs py-2 border-slate-200 rounded-xl h-10 appearance-none bg-white cursor-pointer"
                                                 disabled={isDemo || categories.length === 0}
                                             >
                                                 <option value="" disabled>Select a role...</option>
@@ -735,32 +745,51 @@ export default function UserManagementPage() {
                                 </div>
                             </div>
 
+                            {/* Assigned Station Palette with Quick Preset Swatches */}
                             <div>
                                 <Label htmlFor="color" className="text-xs font-bold text-slate-700">Assigned Station Palette</Label>
-                                <div className="flex items-center space-x-3 mt-1">
-                                    <Input
-                                        id="color"
-                                        type="color"
-                                        value={color}
-                                        onChange={(e) => setColor(e.target.value)}
-                                        className="w-12 h-9 p-0.5 cursor-pointer border border-slate-200 rounded-xl bg-white shadow-2xs"
-                                        disabled={isDemo}
-                                    />
-                                    <span className="text-xs text-slate-500">Color badge used in receipts and activity audit trails.</span>
+                                <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                                    <div className="flex items-center gap-1.5">
+                                        {['#3B82F6', '#10B981', '#8B5CF6', '#F59E0B', '#EC4899', '#8DB600'].map(presetColor => (
+                                            <button
+                                                key={presetColor}
+                                                type="button"
+                                                onClick={() => setColor(presetColor)}
+                                                style={{ backgroundColor: presetColor }}
+                                                className={`w-7 h-7 rounded-lg transition-transform active:scale-95 ${
+                                                    color.toLowerCase() === presetColor.toLowerCase() ? 'ring-2 ring-offset-2 ring-slate-800 scale-110' : 'opacity-80 hover:opacity-100'
+                                                }`}
+                                                title={presetColor}
+                                            />
+                                        ))}
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Input
+                                            id="color"
+                                            type="color"
+                                            value={color}
+                                            onChange={(e) => setColor(e.target.value)}
+                                            className="w-9 h-8 p-0.5 cursor-pointer border border-slate-200 rounded-lg bg-white shadow-2xs"
+                                            disabled={isDemo}
+                                        />
+                                        <span className="text-[11px] text-slate-500 font-medium">Color badge used in receipts and activity audit trails.</span>
+                                    </div>
                                 </div>
                             </div>
 
+                            {/* Password Credentials */}
                             <div className="pt-2 border-t border-slate-100 space-y-4">
                                 <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                                     {editing ? 'Change Password (Leave blank to keep existing)' : 'Security / Initial Password'}
                                 </h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {/* Password */}
                                     <div>
                                         <Label htmlFor="password" className="text-xs font-bold text-slate-700">
                                             Password {!editing && <span className="text-rose-500">*</span>}
                                         </Label>
                                         <div className="relative mt-1">
-                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 z-10">
                                                 <Lock className="w-4 h-4" />
                                             </div>
                                             <Input
@@ -770,17 +799,20 @@ export default function UserManagementPage() {
                                                 onChange={(e) => setPassword(e.target.value)}
                                                 required={!editing}
                                                 placeholder="••••••••"
-                                                className="w-full text-xs pl-9 py-2 border-slate-200 rounded-xl h-10"
+                                                style={{ paddingLeft: '2.5rem' }}
+                                                className="w-full text-xs py-2 border-slate-200 rounded-xl h-10"
                                                 disabled={isDemo}
                                             />
                                         </div>
                                     </div>
+
+                                    {/* Confirm Password */}
                                     <div>
                                         <Label htmlFor="confirmPassword" className="text-xs font-bold text-slate-700">
                                             Confirm Password {!editing && <span className="text-rose-500">*</span>}
                                         </Label>
                                         <div className="relative mt-1">
-                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 z-10">
                                                 <Lock className="w-4 h-4" />
                                             </div>
                                             <Input
@@ -790,7 +822,8 @@ export default function UserManagementPage() {
                                                 onChange={(e) => setConfirmPassword(e.target.value)}
                                                 required={!editing}
                                                 placeholder="••••••••"
-                                                className="w-full text-xs pl-9 py-2 border-slate-200 rounded-xl h-10"
+                                                style={{ paddingLeft: '2.5rem' }}
+                                                className="w-full text-xs py-2 border-slate-200 rounded-xl h-10"
                                                 disabled={isDemo}
                                             />
                                         </div>
