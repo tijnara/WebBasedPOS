@@ -478,20 +478,21 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
 
     return (
         <div className="fixed inset-0 bg-black/60 z-[120] flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 border border-slate-200 dark:border-slate-800 transition-colors">
+
                 {/* Header with Seaside Logo & Delivery Date Picker */}
-                <div className="bg-emerald-600 text-white px-5 py-3.5 flex flex-wrap items-center justify-between gap-3">
+                <div className="bg-emerald-600 text-white px-5 py-3.5 flex flex-wrap items-center justify-between gap-3 shrink-0">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center p-1.5 shadow-sm overflow-hidden shrink-0">
                             <img
-                                src="/seasidelogo_.png"
+                                src="/seaside.png"
                                 alt="Seaside Logo"
                                 className="w-full h-full object-contain"
                             />
                         </div>
                         <div>
-                            <h2 className="text-base font-bold leading-tight">Scan Sales Sheet / Log</h2>
-                            <p className="text-xs text-emerald-100">AI auto-extracts customer orders & links accounts</p>
+                            <h2 className="text-base font-bold leading-tight tracking-tight">Scan Sales Sheet / Log</h2>
+                            <p className="text-[11px] text-emerald-100 font-medium">AI auto-extracts customer orders & links accounts</p>
                         </div>
                     </div>
 
@@ -514,7 +515,7 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
                         <button
                             onClick={onClose}
                             disabled={isSaving}
-                            className="text-white/80 hover:text-white text-lg font-bold p-1 leading-none transition-colors"
+                            className="text-white/80 hover:text-white text-lg font-bold p-1 leading-none transition-colors cursor-pointer"
                             title="Close modal"
                         >
                             ✕
@@ -525,7 +526,7 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
                 <div className="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
                     {/* Inline Error Banner */}
                     {errorMessage && (
-                        <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-center gap-2">
+                        <div className="p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 rounded-xl text-xs text-red-700 dark:text-red-400 flex items-center gap-2">
                             <span>⚠️</span>
                             <span className="font-medium">{errorMessage}</span>
                         </div>
@@ -533,7 +534,7 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
 
                     {/* Capture / Upload Buttons */}
                     {!imagePreview && (
-                        <div className="border-2 border-dashed border-gray-200 hover:border-emerald-500 rounded-2xl p-6 sm:p-8 text-center transition-colors bg-gray-50/50">
+                        <div className="border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-500 rounded-2xl p-6 sm:p-8 text-center transition-colors bg-slate-50/50 dark:bg-slate-800/50">
                             <input
                                 ref={cameraInputRef}
                                 type="file"
@@ -550,15 +551,15 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
                                 onChange={handleFileChange}
                             />
 
-                            <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-sm border border-gray-100 p-2 overflow-hidden">
+                            <div className="w-16 h-16 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-sm border border-slate-100 dark:border-slate-700 p-2 overflow-hidden">
                                 <img
-                                    src="/seasidelogo_.png"
+                                    src="/seaside.png"
                                     alt="Seaside Logo"
                                     className="w-full h-full object-contain"
                                 />
                             </div>
-                            <h3 className="font-bold text-gray-800 text-sm mb-1">Scan or Upload Delivery Log</h3>
-                            <p className="text-xs text-gray-500 mb-6 max-w-sm mx-auto">
+                            <h3 className="font-bold text-slate-800 dark:text-slate-100 text-sm mb-1">Scan or Upload Delivery Log</h3>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mb-6 max-w-sm mx-auto">
                                 Point your camera at a notebook list or upload a photo to auto-record orders, sync inventory, and link customer accounts.
                             </p>
 
@@ -566,16 +567,16 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
                                 <button
                                     type="button"
                                     onClick={() => cameraInputRef.current?.click()}
-                                    className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95"
+                                    className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95 cursor-pointer"
                                 >
                                     <Camera className="w-4 h-4" /> Take Photo
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => uploadInputRef.current?.click()}
-                                    className="px-4 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-xl flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95"
+                                    className="px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold rounded-xl flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95 cursor-pointer"
                                 >
-                                    <FileImage className="w-4 h-4 text-emerald-600" /> Upload Image
+                                    <FileImage className="w-4 h-4 text-emerald-600 dark:text-emerald-500" /> Upload Image
                                 </button>
                             </div>
                         </div>
@@ -583,14 +584,14 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
 
                     {/* Image Preview & Status */}
                     {imagePreview && (
-                        <div className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-xl p-3">
+                        <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl p-3">
                             <div className="flex items-center gap-3">
-                                <img src={imagePreview} alt="Log preview" className="w-12 h-12 object-cover rounded-lg border border-gray-200" />
+                                <img src={imagePreview} alt="Log preview" className="w-12 h-12 object-cover rounded-lg border border-slate-200 dark:border-slate-700" />
                                 <div>
-                                    <p className="text-xs font-bold text-gray-800">
+                                    <p className="text-xs font-bold text-slate-800 dark:text-slate-100">
                                         {isAnalyzing ? 'Analyzing photo...' : `Extracted ${parsedItems.length} transactions`}
                                     </p>
-                                    <p className="text-[11px] text-gray-500">
+                                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
                                         {isAnalyzing ? 'Reading handwriting & linking customer accounts' : 'Review rows, accounts, and payments before saving'}
                                     </p>
                                 </div>
@@ -603,7 +604,7 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
                                     setParsedItems([]);
                                     setErrorMessage('');
                                 }}
-                                className="text-xs text-gray-500 hover:text-red-600 font-semibold px-2 py-1"
+                                className="text-xs text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 font-bold px-2 py-1 transition-colors cursor-pointer"
                             >
                                 Retake
                             </button>
@@ -613,49 +614,49 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
                     {/* Loader */}
                     {isAnalyzing && (
                         <div className="py-12 flex flex-col items-center justify-center text-center space-y-3">
-                            <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
-                            <p className="text-sm font-semibold text-gray-700">AI is parsing the delivery log...</p>
-                            <p className="text-xs text-gray-400">Transcribing names, matching products & checking registered customers</p>
+                            <Loader2 className="w-8 h-8 text-emerald-600 dark:text-emerald-500 animate-spin" />
+                            <p className="text-sm font-bold text-slate-700 dark:text-slate-200">AI is parsing the delivery log...</p>
+                            <p className="text-xs text-slate-400 dark:text-slate-500">Transcribing names, matching products & checking registered customers</p>
                         </div>
                     )}
 
                     {/* Editable Review Table */}
                     {!isAnalyzing && parsedItems.length > 0 && (
-                        <div className="space-y-3">
-                            <div className="flex flex-wrap items-center justify-between text-xs text-gray-500 px-1 gap-2">
+                        <div className="space-y-3 animate-in fade-in duration-200">
+                            <div className="flex flex-wrap items-center justify-between text-xs text-slate-500 dark:text-slate-400 px-1 gap-2">
                                 <span className="font-bold uppercase tracking-wider">Review & Edit Items</span>
                                 <div className="flex items-center gap-3">
                                     {totalCreditAmount > 0 && (
-                                        <span className="text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md font-semibold">
+                                        <span className="text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 px-2 py-0.5 rounded-md font-semibold">
                                             Utang: <strong>{currency(totalCreditAmount, { symbol: '₱' }).format()}</strong>
                                         </span>
                                     )}
-                                    <span>Total: <strong className="text-emerald-700 font-bold">{currency(grandTotal, { symbol: '₱' }).format()}</strong></span>
+                                    <span>Total: <strong className="text-emerald-700 dark:text-emerald-400 font-bold text-sm">{currency(grandTotal, { symbol: '₱' }).format()}</strong></span>
                                 </div>
                             </div>
 
-                            <div className="border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-100 bg-white">
+                            <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800/80 bg-white dark:bg-slate-900">
                                 {parsedItems.map((item, idx) => {
                                     const isCredit = item.payment_method === 'Credit';
                                     const isUnlinkedNewCustomer = !item.customer_id && item.customer_name && item.customer_name.toLowerCase() !== 'walk-in';
 
                                     return (
-                                        <div key={idx} className="p-3 flex flex-wrap sm:flex-nowrap items-center gap-2.5 hover:bg-gray-50/70 transition-colors">
+                                        <div key={idx} className="p-3 flex flex-wrap sm:flex-nowrap items-center gap-2.5 hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors">
                                             {/* Row Number Badge */}
-                                            <div className="w-6 h-6 rounded-lg bg-gray-100 text-gray-500 text-[11px] font-bold flex items-center justify-center shrink-0 border border-gray-200">
+                                            <div className="w-6 h-6 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[11px] font-bold flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700 shadow-2xs">
                                                 {idx + 1}
                                             </div>
 
                                             {/* Customer Name & Link Dropdown */}
                                             <div className="flex-1 min-w-[150px]">
                                                 <div className="flex items-center justify-between mb-0.5">
-                                                    <label className="text-[9px] uppercase font-bold text-gray-400">Customer</label>
+                                                    <label className="text-[9px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-wider">Customer</label>
                                                     {item.customer_id ? (
-                                                        <span className="text-[9px] text-emerald-600 font-bold flex items-center gap-0.5">
+                                                        <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-0.5">
                                                             <UserCheck className="w-3 h-3" /> Linked
                                                         </span>
                                                     ) : isUnlinkedNewCustomer ? (
-                                                        <span className="text-[9px] text-blue-500 font-bold flex items-center gap-0.5" title="This customer will be auto-created in the database">
+                                                        <span className="text-[9px] text-blue-500 dark:text-blue-400 font-bold flex items-center gap-0.5" title="This customer will be auto-created in the database">
                                                             <UserPlus className="w-3 h-3" /> Auto-Add
                                                         </span>
                                                     ) : null}
@@ -665,18 +666,18 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
                                                     value={item.customer_name}
                                                     onChange={(e) => updateItem(idx, 'customer_name', e.target.value)}
                                                     placeholder="Name on paper"
-                                                    className="w-full text-xs font-semibold bg-transparent border-b border-gray-200 focus:border-emerald-500 outline-none pb-0.5"
+                                                    className="w-full text-xs font-bold text-slate-800 dark:text-slate-100 bg-transparent border-b border-slate-200 dark:border-slate-700 focus:border-emerald-500 dark:focus:border-emerald-500 outline-none pb-0.5 placeholder:font-normal"
                                                 />
                                                 <select
                                                     value={item.customer_id || ''}
                                                     onChange={(e) => updateItem(idx, 'customer_id', e.target.value)}
-                                                    className="w-full text-[10px] mt-1 text-gray-500 bg-gray-50 border border-gray-200 rounded px-1.5 py-0.5 outline-none focus:border-emerald-500 truncate"
+                                                    className="w-full text-[10px] mt-1 text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-1.5 py-0.5 outline-none focus:border-emerald-500 dark:focus:border-emerald-500 truncate cursor-pointer"
                                                 >
-                                                    <option value="">
+                                                    <option value="" className="bg-white dark:bg-slate-900">
                                                         {isUnlinkedNewCustomer ? "-- Create New Account --" : "-- Unlinked / Walk-in --"}
                                                     </option>
                                                     {customers.map(c => (
-                                                        <option key={c.id} value={c.id}>
+                                                        <option key={c.id} value={c.id} className="bg-white dark:bg-slate-900">
                                                             {c.name} {Number(c.credit_balance) > 0 ? `(Debt: ₱${c.credit_balance})` : ''}
                                                         </option>
                                                     ))}
@@ -685,7 +686,7 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
 
                                             {/* Product Select */}
                                             <div className="w-36 min-w-[120px]">
-                                                <label className="text-[9px] uppercase font-bold text-gray-400 block mb-0.5">Product</label>
+                                                <label className="text-[9px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-wider block mb-0.5">Product</label>
                                                 <select
                                                     value={item.product_id || ''}
                                                     onChange={(e) => {
@@ -697,36 +698,36 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
                                                             updateItem(idx, 'unit_price', Number(prod.price) || 0);
                                                         }
                                                     }}
-                                                    className="w-full text-xs bg-transparent border-b border-gray-200 focus:border-emerald-500 outline-none pb-0.5 truncate"
+                                                    className="w-full text-xs font-semibold text-slate-700 dark:text-slate-200 bg-transparent border-b border-slate-200 dark:border-slate-700 focus:border-emerald-500 dark:focus:border-emerald-500 outline-none pb-0.5 truncate cursor-pointer"
                                                 >
                                                     {products.map(p => (
-                                                        <option key={p.id} value={p.id}>{p.name}</option>
+                                                        <option key={p.id} value={p.id} className="bg-white dark:bg-slate-900">{p.name}</option>
                                                     ))}
                                                 </select>
                                             </div>
 
                                             {/* Qty */}
                                             <div className="w-14 text-center">
-                                                <label className="text-[9px] uppercase font-bold text-gray-400 block mb-0.5">Qty</label>
+                                                <label className="text-[9px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-wider block mb-0.5">Qty</label>
                                                 <input
                                                     type="number"
                                                     min="1"
                                                     value={item.quantity}
                                                     onChange={(e) => updateItem(idx, 'quantity', e.target.value)}
-                                                    className="w-full text-xs font-bold text-center bg-gray-50 rounded py-1 border border-gray-200 outline-none focus:border-emerald-500"
+                                                    className="w-full text-xs font-black text-slate-800 dark:text-slate-100 text-center bg-slate-50 dark:bg-slate-800 rounded py-1 border border-slate-200 dark:border-slate-700 outline-none focus:border-emerald-500 dark:focus:border-emerald-500"
                                                 />
                                             </div>
 
                                             {/* Payment Method Toggle (Cash vs Utang) */}
                                             <div className="w-20 text-center">
-                                                <label className="text-[9px] uppercase font-bold text-gray-400 block mb-0.5">Payment</label>
+                                                <label className="text-[9px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-wider block mb-0.5">Payment</label>
                                                 <button
                                                     type="button"
                                                     onClick={() => updateItem(idx, 'payment_method', isCredit ? 'Cash' : 'Credit')}
-                                                    className={`w-full text-[10px] font-bold py-1 px-1.5 rounded-lg border transition-all ${
+                                                    className={`w-full text-[10px] font-bold py-1 px-1.5 rounded-lg border transition-all cursor-pointer ${
                                                         isCredit
-                                                            ? 'bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-200'
-                                                            : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                                                            ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-400 border-amber-300 dark:border-amber-800/60 hover:bg-amber-200 dark:hover:bg-amber-950'
+                                                            : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/40'
                                                     }`}
                                                     title="Click to toggle Cash vs Credit (Utang)"
                                                 >
@@ -736,8 +737,8 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
 
                                             {/* Row Total */}
                                             <div className="w-16 text-right pr-1">
-                                                <label className="text-[9px] uppercase font-bold text-gray-400 block mb-0.5">Total</label>
-                                                <span className={`text-xs font-bold ${isCredit ? 'text-amber-700' : 'text-emerald-600'}`}>
+                                                <label className="text-[9px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-wider block mb-0.5">Total</label>
+                                                <span className={`text-xs font-black font-mono ${isCredit ? 'text-amber-700 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
                                                     ₱{Number(item.total_amount || 0).toFixed(0)}
                                                 </span>
                                             </div>
@@ -746,7 +747,7 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
                                             <button
                                                 type="button"
                                                 onClick={() => removeItem(idx)}
-                                                className="p-1.5 text-gray-400 hover:text-red-500 transition-colors ml-1"
+                                                className="p-1.5 text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 transition-colors ml-1 cursor-pointer"
                                                 title="Remove entry"
                                             >
                                                 <Trash2 className="w-3.5 h-3.5" />
@@ -761,7 +762,7 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
                                 <button
                                     type="button"
                                     onClick={handleAddNewItem}
-                                    className="text-xs font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all active:scale-95 shadow-sm"
+                                    className="text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 border border-emerald-200 dark:border-emerald-800/60 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all active:scale-95 shadow-2xs cursor-pointer"
                                 >
                                     <Plus className="w-3.5 h-3.5" /> Add Customer Row
                                 </button>
@@ -771,12 +772,12 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
                 </div>
 
                 {/* Footer Controls */}
-                <div className="p-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between gap-3">
+                <div className="p-4 bg-slate-50 dark:bg-slate-900/95 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3 shrink-0 transition-colors">
                     <button
                         type="button"
                         onClick={onClose}
                         disabled={isSaving}
-                        className="px-4 py-2 border border-gray-200 rounded-xl text-xs font-semibold text-gray-600 hover:bg-gray-100 transition-colors"
+                        className="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
                     >
                         Cancel
                     </button>
@@ -785,7 +786,7 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
                         type="button"
                         onClick={handleConfirmAndRecord}
                         disabled={isSaving || isAnalyzing || parsedItems.length === 0}
-                        className="flex-1 max-w-xs px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-md flex items-center justify-center gap-2 transition-all active:scale-95"
+                        className="flex-1 max-w-xs px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-xs font-black shadow-md flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer"
                     >
                         {isSaving ? (
                             <>
