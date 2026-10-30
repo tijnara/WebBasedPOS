@@ -2114,9 +2114,9 @@ aside,
 }
 
 /* Remove gray backdrop on Messages page in dark mode */
+.dark main:has([data-page="messages"]),
 .dark body:has([href*="messages"]) main,
 .dark body:has([href*="Messages"]) main,
-.dark main:has(h1:contains("Contact Messages")),
 .dark div[class*="bg-slate-400"],
 .dark div[class*="bg-slate-500"],
 .dark div[class*="bg-gray-400"],

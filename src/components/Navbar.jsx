@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { subHours } from 'date-fns';
 import currency from 'currency.js';
-import { Sun, Moon, LogOut, ChevronDown, Landmark, Receipt, TestTube, History, X } from 'lucide-react';
+import { Sun, Moon, LogOut, ChevronDown, Landmark, Receipt, TestTube, History, X, User } from 'lucide-react';
 
 import { supabase } from '../lib/supabaseClient';
 import { useStore } from '../store/useStore';
@@ -97,7 +97,6 @@ export default function Navbar() {
 
     const [clientUser, setClientUser] = useState(null);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const menuRef = useRef(null);
 
     // Shift modals state
     const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
@@ -238,7 +237,7 @@ export default function Navbar() {
     const unreadNotesCount = unreadNotes.length;
     const totalNotifications = (isAdmin ? pendingCount + unreadMessageCount : 0) + unreadNotesCount;
 
-    // Realtime Subscriptions with Safe Unique Channels
+    // Realtime Subscriptions
     useEffect(() => {
         if (!clientUser || isDemo) return;
 
@@ -477,8 +476,8 @@ export default function Navbar() {
     return (
         <>
             {/* MOBILE HEADER BAR */}
-            <div className="navbar md:hidden flex items-center justify-between px-3 py-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 z-30">
-                <div className="flex items-center gap-2 min-w-0">
+            <div className="navbar md:hidden flex items-center justify-between px-3.5 py-2.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 z-30 sticky top-0 shadow-2xs">
+                <div className="flex items-center gap-2.5 min-w-0">
                     <Button
                         variant="ghost"
                         size="sm"
@@ -493,8 +492,8 @@ export default function Navbar() {
                         <Image
                             src="/seaside.png"
                             alt="Seaside Logo"
-                            width={40}
-                            height={40}
+                            width={36}
+                            height={36}
                             style={{ width: 'auto', height: 'auto' }}
                             loading="eager"
                             className="flex-shrink-0 object-contain"
@@ -502,29 +501,30 @@ export default function Navbar() {
                     </div>
                 </div>
 
-                {/* Right Actions: Shift Indicator, Notifications & LiveClock (Time and Date) */}
-                <div className="mobile-clock-container flex flex-col items-end gap-0.5 ml-auto">
-                    <div className="flex items-center gap-2">
-                        {clientUser && (
-                            <div className="scale-95 origin-right">
-                                <ActiveShiftIndicator user={clientUser} onOpenStartShift={() => setIsStartShiftModalOpen(true)} />
-                            </div>
-                        )}
+                {/* Right Actions: Shift Indicator, Notifications & LiveClock */}
+                <div className="flex items-center gap-2 ml-auto">
+                    {clientUser && (
+                        <div className="scale-90 origin-right">
+                            <ActiveShiftIndicator user={clientUser} onOpenStartShift={() => setIsStartShiftModalOpen(true)} />
+                        </div>
+                    )}
 
-                        <NotificationBell
-                            isAdmin={isAdmin}
-                            pendingUsers={pendingUsers}
-                            pendingCount={pendingCount}
-                            unreadMessages={unreadMessages}
-                            unreadMessageCount={unreadMessageCount}
-                            unreadNotes={unreadNotes}
-                            unreadNotesCount={unreadNotesCount}
-                            totalNotifications={totalNotifications}
-                            onMarkMessagesSeen={markMessagesAsSeen}
-                            isMobile={true}
-                        />
+                    <NotificationBell
+                        isAdmin={isAdmin}
+                        pendingUsers={pendingUsers}
+                        pendingCount={pendingCount}
+                        unreadMessages={unreadMessages}
+                        unreadMessageCount={unreadMessageCount}
+                        unreadNotes={unreadNotes}
+                        unreadNotesCount={unreadNotesCount}
+                        totalNotifications={totalNotifications}
+                        onMarkMessagesSeen={markMessagesAsSeen}
+                        isMobile={true}
+                    />
+
+                    <div className="border-l border-slate-200 dark:border-slate-700/80 pl-2">
+                        <LiveClock />
                     </div>
-                    <LiveClock />
                 </div>
             </div>
 
@@ -542,10 +542,10 @@ export default function Navbar() {
                     isMenuOpen ? 'translate-x-0' : '-translate-x-full'
                 }`}
             >
-                {/* Drawer Header: User Info Card & Close Button */}
+                {/* Drawer Header */}
                 <div className="p-4 bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0">
                     <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-10 h-10 rounded-full bg-lime-100 text-[#5f7d00] font-black flex items-center justify-center text-sm border border-lime-300 shrink-0">
+                        <div className="w-10 h-10 rounded-full bg-lime-100 dark:bg-lime-900/40 text-[#5f7d00] dark:text-lime-400 font-black flex items-center justify-center text-sm border border-lime-300 dark:border-lime-700/80 shrink-0 shadow-2xs">
                             {clientUser?.name?.[0] || 'S'}
                         </div>
                         <div className="min-w-0">
@@ -599,49 +599,79 @@ export default function Navbar() {
             </aside>
 
             {/* DESKTOP SIDEBAR */}
-            <aside className="hidden md:flex flex-col w-64 fixed inset-y-0 left-0 bg-surface border-r border-border z-40 shadow-lg">
-                <div className="h-16 flex items-center px-6 border-b border-border shrink-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors" onClick={() => router.push('/')}>
+            <aside className="hidden md:flex flex-col w-64 fixed inset-y-0 left-0 bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-slate-800 z-40 shadow-xs">
+                <div className="h-16 flex items-center px-6 border-b border-slate-200/80 dark:border-slate-800 shrink-0 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors" onClick={() => router.push('/')}>
                     <Image
                         src="/seaside.png"
                         alt="Seaside Logo"
-                        width={40}
-                        height={40}
+                        width={38}
+                        height={38}
                         style={{ width: 'auto', height: 'auto' }}
                         loading="eager"
                         className="shrink-0"
                     />
-                    <span className="font-bold text-lg text-primary ml-3 tracking-wide">Seaside</span>
+                    <span className="font-black text-lg text-green-800 dark:text-lime-400 ml-3 tracking-tight">Seaside</span>
                 </div>
                 <nav className="flex-1 overflow-y-auto py-4 menu-scrollbar flex flex-col gap-1">{renderLinks(true)}</nav>
             </aside>
 
-            {/* DESKTOP TOP HEADER */}
-            <header className="hidden md:flex h-16 fixed top-0 left-64 right-0 bg-surface border-b border-border z-30 items-center justify-end px-6 gap-6 shadow-sm">
-                {clientUser && <ActiveShiftIndicator user={clientUser} onOpenStartShift={() => setIsStartShiftModalOpen(true)} />}
-                <div className="flex items-center gap-3 border-l border-border pl-6 h-8">
+            {/* DESKTOP TOP HEADER (Fixed High Contrast User Badge & Actions) */}
+            <header className="hidden md:flex h-16 fixed top-0 left-64 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 z-30 items-center justify-end px-6 gap-5 shadow-xs transition-colors">
+                {clientUser && (
+                    <div className="flex items-center">
+                        <ActiveShiftIndicator user={clientUser} onOpenStartShift={() => setIsStartShiftModalOpen(true)} />
+                    </div>
+                )}
+
+                <div className="flex items-center gap-3 border-l border-slate-200 dark:border-slate-800 pl-5 h-8">
                     <LiveClock />
                 </div>
 
-                <NotificationBell
-                    isAdmin={isAdmin}
-                    pendingUsers={pendingUsers}
-                    pendingCount={pendingCount}
-                    unreadMessages={unreadMessages}
-                    unreadMessageCount={unreadMessageCount}
-                    unreadNotes={unreadNotes}
-                    unreadNotesCount={unreadNotesCount}
-                    totalNotifications={totalNotifications}
-                    onMarkMessagesSeen={markMessagesAsSeen}
-                />
+                <div className="flex items-center gap-3 border-l border-slate-200 dark:border-slate-800 pl-5 h-8">
+                    <NotificationBell
+                        isAdmin={isAdmin}
+                        pendingUsers={pendingUsers}
+                        pendingCount={pendingCount}
+                        unreadMessages={unreadMessages}
+                        unreadMessageCount={unreadMessageCount}
+                        unreadNotes={unreadNotes}
+                        unreadNotesCount={unreadNotesCount}
+                        totalNotifications={totalNotifications}
+                        onMarkMessagesSeen={markMessagesAsSeen}
+                    />
+                </div>
 
-                <div className="flex items-center gap-3 border-l border-border pl-6 h-8">
-                    <div className="text-sm font-bold truncate pr-2" style={{ color: clientUser?.color || 'var(--primary)' }}>
-                        {clientUser?.name || 'Loading...'}
+                {/* High Contrast User Badge & Actions */}
+                <div className="flex items-center gap-3 border-l border-slate-200 dark:border-slate-800 pl-5 h-8">
+                    <div className="flex items-center gap-2.5 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs">
+                        <div className="w-6 h-6 rounded-full bg-lime-500 text-white font-black text-xs flex items-center justify-center shrink-0">
+                            {clientUser?.name?.[0]?.toUpperCase() || <User className="w-3.5 h-3.5" />}
+                        </div>
+                        <span className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate max-w-[130px]">
+                            {clientUser?.name || 'Staff User'}
+                        </span>
+                        <span className="text-[10px] font-black uppercase tracking-wider text-green-700 dark:text-lime-400 bg-white dark:bg-slate-900 px-1.5 py-0.5 rounded-full border border-slate-200/60 dark:border-slate-700/60">
+                            {isAdmin ? 'Admin' : 'Staff'}
+                        </span>
                     </div>
-                    <Button variant="ghost" size="sm" onClick={toggleDarkMode} className="p-1.5 h-8 w-8 text-gray-500 hover:text-primary bg-white dark:bg-gray-800 shadow-sm border border-gray-200 dark:border-gray-700" title="Toggle Theme">
-                        {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={toggleDarkMode}
+                        className="p-1.5 h-8 w-8 text-slate-600 dark:text-slate-300 hover:text-green-700 dark:hover:text-lime-400 bg-white dark:bg-slate-800 shadow-2xs border border-slate-200 dark:border-slate-700 rounded-xl"
+                        title="Toggle Theme"
+                    >
+                        {darkMode ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-slate-600" />}
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={prepareZReading} className="p-1.5 h-8 w-8 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 bg-white dark:bg-gray-800 shadow-sm border border-gray-200 dark:border-gray-700" title="Z-Reading / Logout">
+
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={prepareZReading}
+                        className="p-1.5 h-8 w-8 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 bg-white dark:bg-slate-800 shadow-2xs border border-slate-200 dark:border-slate-700 rounded-xl"
+                        title="Z-Reading / End Shift"
+                    >
                         <LogOut className="w-4 h-4" />
                     </Button>
                 </div>

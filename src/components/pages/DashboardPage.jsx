@@ -3,7 +3,6 @@ import React, { useState, useMemo } from 'react';
 import Head from 'next/head';
 import dynamic from 'next/dynamic';
 import { Card, CardHeader, CardContent, Select } from '../ui';
-import SummaryCard from '../ui/SummaryCard';
 import {
     Chart as ChartJS,
     CategoryScale,
@@ -32,19 +31,15 @@ import { useMonthlyGrowth } from '../../hooks/useMonthlyGrowth';
 
 import { format } from 'date-fns';
 import {
-    TrendingUp,
-    TrendingDown,
     Droplets,
-    DollarSign,
     Calendar,
     BarChart3,
     ArrowUpRight,
-    ArrowDownRight
+    ArrowDownRight,
+    Clock,
+    Award,
+    Users
 } from 'lucide-react';
-
-// Floating action buttons
-import FloatingMessages from '../FloatingMessages';
-import FloatingNotes from '../FloatingNotes';
 
 // Loading placeholder for dynamic charts
 const ChartLoading = () => (
@@ -62,7 +57,7 @@ const Bar = dynamic(() => import('react-chartjs-2').then((mod) => mod.Bar), {
     ssr: false,
     loading: () => <ChartLoading />
 });
-const Pie = dynamic(() => import('react-chartjs-2').then((mod) => mod.Pie), {
+const Doughnut = dynamic(() => import('react-chartjs-2').then((mod) => mod.Doughnut), {
     ssr: false,
     loading: () => <ChartLoading />
 });
@@ -81,88 +76,114 @@ ChartJS.register(
     Filler
 );
 
-// Executive Graphical Business KPI Card
-function GraphicalMetricCard({
-                                 title,
-                                 currentValue,
-                                 previousValue,
-                                 percentage,
-                                 isPositive,
-                                 currentRange,
-                                 previousRange,
-                                 unit = '₱',
-                                 rawCurrent = 0,
-                                 rawPrevious = 0,
-                                 icon: Icon,
-                                 isLoading
-                             }) {
-    const ratio = rawPrevious > 0 ? Math.min(100, Math.round((rawCurrent / rawPrevious) * 100)) : 0;
+// =========================================================================
+// UNIFIED DUAL-METRIC PERIOD CARD (Sales Revenue + Gallon Volume Consolidated)
+// =========================================================================
+function UnifiedPeriodCard({
+                               title,
+                               currentSales,
+                               previousSales,
+                               salesGrowth,
+                               currentGallons,
+                               previousGallons,
+                               gallonsGrowth,
+                               currentRange,
+                               previousRange,
+                               rawCurrentSales = 0,
+                               rawPreviousSales = 0,
+                               isLoading
+                           }) {
+    const isSalesPositive = (salesGrowth || 0) >= 0;
+    const isGalPositive = (gallonsGrowth || 0) >= 0;
+    const paceRatio = rawPreviousSales > 0 ? Math.min(100, Math.round((rawCurrentSales / rawPreviousSales) * 100)) : 0;
 
     return (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between hover:shadow-md transition-all duration-200">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-3.5 sm:p-5 border border-slate-100 dark:border-slate-800 shadow-xs flex flex-col justify-between hover:shadow-md transition-all duration-200">
             <div>
-                {/* Header: Title + Icon + Trend Pill */}
-                <div className="flex items-center justify-between gap-2 mb-2">
-                    <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-emerald-600 dark:text-emerald-400 border border-slate-100 dark:border-slate-700/60">
-                            {Icon && <Icon className="w-4 h-4" />}
+                {/* Header: Title + Revenue Trend Pill */}
+                <div className="flex items-center justify-between gap-1.5 mb-2">
+                    <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800/60 shrink-0">
+                            <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         </div>
-                        <span className="text-xs font-bold text-slate-600 dark:text-slate-300 tracking-tight">
+                        <span className="text-[11px] sm:text-xs font-bold text-slate-700 dark:text-slate-200 truncate">
                             {title}
                         </span>
                     </div>
 
-                    {percentage !== undefined && percentage !== null && !isLoading && (
+                    {salesGrowth !== undefined && salesGrowth !== null && !isLoading && (
                         <div
-                            className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[11px] font-black border ${
-                                isPositive
+                            className={`inline-flex items-center gap-0.5 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black border shrink-0 ${
+                                isSalesPositive
                                     ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
                                     : 'bg-rose-50 text-rose-700 border-rose-200/80 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800'
                             }`}
                         >
-                            {isPositive ? (
-                                <ArrowUpRight className="w-3 h-3 stroke-[2.5]" />
+                            {isSalesPositive ? (
+                                <ArrowUpRight className="w-2.5 h-2.5 sm:w-3 sm:h-3 stroke-[2.5]" />
                             ) : (
-                                <ArrowDownRight className="w-3 h-3 stroke-[2.5]" />
+                                <ArrowDownRight className="w-2.5 h-2.5 sm:w-3 sm:h-3 stroke-[2.5]" />
                             )}
-                            <span>{Math.abs(percentage).toFixed(1)}%</span>
+                            <span>{Math.abs(salesGrowth).toFixed(1)}%</span>
                         </div>
                     )}
                 </div>
 
-                {/* Primary Metric Value */}
-                <div className="mt-2">
+                {/* Primary Metric: Monetary Revenue */}
+                <div className="mt-1">
                     {isLoading ? (
-                        <div className="h-7 w-28 bg-slate-100 dark:bg-slate-800 animate-pulse rounded-lg" />
+                        <div className="h-6 sm:h-7 w-24 bg-slate-100 dark:bg-slate-800 animate-pulse rounded-lg" />
                     ) : (
-                        <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-                            {currentValue}
+                        <h2 className="text-lg sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                            {currentSales}
                         </h2>
                     )}
                 </div>
 
-                {/* Visual Comparative Progress Bar */}
-                <div className="mt-3.5 space-y-1.5">
-                    <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden flex">
+                {/* Secondary Metric: Physical Gallon Volume (Integrated Chip) */}
+                <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300 font-bold truncate">
+                        <Droplets className="w-3.5 h-3.5 text-sky-500 shrink-0" />
+                        <span className="text-xs sm:text-sm font-black text-slate-800 dark:text-slate-200">
+                            {isLoading ? '...' : currentGallons}
+                        </span>
+                    </div>
+
+                    {gallonsGrowth !== undefined && gallonsGrowth !== null && !isLoading && (
+                        <span
+                            className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
+                                isGalPositive
+                                    ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/50'
+                                    : 'text-rose-600 bg-rose-50 dark:bg-rose-950/50'
+                            }`}
+                        >
+                            {isGalPositive ? '↗' : '↘'} {Math.abs(gallonsGrowth).toFixed(1)}%
+                        </span>
+                    )}
+                </div>
+
+                {/* Progress Pace Bar */}
+                <div className="mt-2.5 space-y-1">
+                    <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden flex">
                         <div
                             className={`h-full rounded-full transition-all duration-500 ${
-                                isPositive ? 'bg-emerald-500' : 'bg-amber-500'
+                                isSalesPositive ? 'bg-emerald-500' : 'bg-amber-500'
                             }`}
-                            style={{ width: `${ratio}%` }}
+                            style={{ width: `${paceRatio}%` }}
                         />
                     </div>
-                    <div className="flex items-center justify-between text-[10px] font-semibold text-slate-400">
-                        <span>Pace: <strong className="text-slate-700 dark:text-slate-300">{ratio}%</strong> of prior</span>
-                        <span>Prior: <strong className="text-slate-600 dark:text-slate-400">{previousValue}</strong></span>
+                    <div className="flex items-center justify-between text-[9px] sm:text-[10px] font-semibold text-slate-400">
+                        <span>Pace: <strong className="text-slate-700 dark:text-slate-300">{paceRatio}%</strong></span>
+                        <span className="truncate pl-1">Prior: <strong className="text-slate-600 dark:text-slate-400">{previousSales}</strong></span>
                     </div>
                 </div>
             </div>
 
-            {/* Bottom Comparison Date Range */}
-            <div className="mt-4 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[10px] text-slate-400">
+            {/* Bottom Period Label */}
+            <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[9px] sm:text-[10px] text-slate-400">
                 <span className="font-semibold text-slate-500 dark:text-slate-400">Period:</span>
                 <span className="font-medium truncate pl-1">
-                    {currentRange && previousRange ? `${currentRange} vs. ${previousRange}` : 'Current vs Prior Period'}
+                    {currentRange && previousRange ? `${currentRange} vs. ${previousRange}` : 'Current vs Prior'}
                 </span>
             </div>
         </div>
@@ -286,6 +307,11 @@ export default function DashboardPage() {
         staleTime: 1000 * 60 * 60
     });
 
+    const topCustomersTotal = useMemo(() => {
+        if (!topCustomers || !topCustomers.length) return 0;
+        return topCustomers.reduce((acc, c) => acc + (Number(c.revenue) || 0), 0);
+    }, [topCustomers]);
+
     // Comparative Bar Graph: Current Period vs Previous Period
     const periodComparisonBarData = useMemo(() => {
         const isRev = periodGraphMode === 'revenue';
@@ -351,7 +377,7 @@ export default function DashboardPage() {
             },
             y: {
                 beginAtZero: true,
-                grid: { color: '#f1f5f9' },
+                grid: { color: 'rgba(241, 245, 249, 0.8)' },
                 ticks: {
                     color: '#64748b',
                     font: { size: 11 },
@@ -361,7 +387,9 @@ export default function DashboardPage() {
         }
     };
 
-    // Line Chart Data: Live Monthly/Weekly Sales
+    // =========================================================================
+    // STEP 3 CHART 1: LINE CHART WITH HORIZONTAL, AUTO-SKIPPED X-AXIS TICKS
+    // =========================================================================
     const lineChartData = useMemo(() => {
         if (!summaryData) return { labels: [], datasets: [] };
 
@@ -373,7 +401,8 @@ export default function DashboardPage() {
             labels = sortedMonths.map(month => {
                 const [year, m] = month.split('-');
                 const date = new Date(year, Number(m) - 1);
-                return date.toLocaleString('default', { month: 'short', year: 'numeric' });
+                // Clean short format: e.g., Oct '25
+                return `${date.toLocaleString('default', { month: 'short' })} '${String(year).slice(-2)}`;
             });
             data = sortedMonths.map(month => summaryData.monthlyRevenue[month]);
 
@@ -382,7 +411,7 @@ export default function DashboardPage() {
             labels = sortedWeeks.map(weekStart => {
                 const [year, m, d] = weekStart.split('-');
                 const date = new Date(year, Number(m) - 1, d);
-                return `Week of ${date.toLocaleString('default', { month: 'short', day: 'numeric' })}`;
+                return `${date.toLocaleString('default', { month: 'short', day: 'numeric' })}`;
             });
             data = sortedWeeks.map(week => summaryData.weeklyRevenue[week]);
         }
@@ -393,13 +422,15 @@ export default function DashboardPage() {
                 {
                     label: `${salesView} Sales`,
                     data: data,
-                    borderColor: 'rgba(16, 185, 129, 1)',
-                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.12)',
                     fill: true,
-                    tension: 0.4,
+                    tension: 0.35,
                     pointBackgroundColor: '#fff',
-                    pointBorderColor: 'rgba(16, 185, 129, 1)',
+                    pointBorderColor: '#10b981',
+                    pointBorderWidth: 2,
                     pointRadius: 4,
+                    pointHoverRadius: 6,
                 }
             ]
         };
@@ -415,20 +446,19 @@ export default function DashboardPage() {
                 align: 'start',
                 labels: {
                     usePointStyle: true,
-                    boxWidth: 10,
+                    boxWidth: 8,
                     color: '#64748b',
-                    font: { family: 'Inter', weight: '600', size: 14 }
+                    font: { family: 'Inter', weight: '600', size: 13 }
                 }
             },
             tooltip: {
-                backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                titleColor: '#1e293b',
-                bodyColor: '#475569',
-                borderColor: '#e2e8f0',
-                borderWidth: 0,
+                backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                titleColor: '#ffffff',
+                bodyColor: '#cbd5e1',
                 padding: 12,
-                titleFont: { size: 14, weight: 'bold' },
-                bodyFont: { size: 14 },
+                cornerRadius: 8,
+                titleFont: { size: 13, weight: 'bold' },
+                bodyFont: { size: 13 },
                 callbacks: {
                     label: (context) => {
                         let label = context.dataset.label || '';
@@ -443,23 +473,32 @@ export default function DashboardPage() {
             x: {
                 grid: { display: false },
                 border: { display: false },
-                ticks: { color: '#64748b', font: { size: 13, weight: '500' } }
+                ticks: {
+                    color: '#64748b',
+                    font: { size: 11, weight: '600' },
+                    maxRotation: 0,
+                    minRotation: 0,
+                    autoSkip: true,
+                    maxTicksLimit: 7
+                }
             },
             y: {
                 beginAtZero: true,
+                border: { display: false },
+                grid: { color: 'rgba(241, 245, 249, 0.8)' },
                 ticks: {
-                    callback: (value) => `₱${(value).toLocaleString()}`,
-                    color: '#64748b',
-                    font: { size: 13, weight: '500' },
+                    callback: (value) => `₱${(value / 1000).toFixed(0)}k`,
+                    color: '#94a3b8',
+                    font: { size: 11, weight: '500' },
                     padding: 8
-                },
-                grid: { display: false },
-                border: { display: false }
+                }
             }
         }
     };
 
-    // Bar Chart Data: Top 10 All-Time Customers
+    // =========================================================================
+    // STEP 3 CHART 2: TOP 10 ALL-TIME CUSTOMERS (HORIZONTAL BAR WITH TICKS)
+    // =========================================================================
     const topCustomersBarChartData = useMemo(() => {
         if (!topCustomers || topCustomers.length === 0) {
             return { labels: [], datasets: [] };
@@ -474,8 +513,8 @@ export default function DashboardPage() {
                 label: 'Total Revenue',
                 data: data,
                 backgroundColor: '#10b981',
-                borderRadius: 4,
-                barPercentage: 0.6
+                borderRadius: 6,
+                barPercentage: 0.65
             }]
         };
     }, [topCustomers]);
@@ -487,78 +526,101 @@ export default function DashboardPage() {
         plugins: {
             legend: { display: false },
             tooltip: {
+                backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                titleColor: '#ffffff',
+                bodyColor: '#cbd5e1',
+                padding: 10,
+                cornerRadius: 8,
                 callbacks: {
-                    label: (context) => `₱${context.parsed.x.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                    label: (context) => ` Total Spend: ₱${context.parsed.x.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                 }
             }
         },
         scales: {
             x: {
-                grid: { display: false },
+                grid: { color: 'rgba(241, 245, 249, 0.8)' },
                 border: { display: false },
                 ticks: {
-                    callback: (value) => `₱${(value / 1000).toFixed(0)}K`,
-                    color: '#94a3b8'
+                    callback: (value) => `₱${(value / 1000).toFixed(0)}k`,
+                    color: '#94a3b8',
+                    font: { size: 11, weight: '500' }
                 }
             },
             y: {
                 grid: { display: false },
                 border: { display: false },
-                ticks: { color: '#64748b', font: { weight: '500' } }
+                ticks: {
+                    color: '#475569',
+                    font: { size: 12, weight: '600' }
+                }
             }
         }
     };
 
-    // Pie Chart Data: Top Products
-    const pieChartData = useMemo(() => {
+    // =========================================================================
+    // STEP 3 CHART 3: DOUGHNUT CHART WITH STRUCTURED SIDE/BOTTOM LEGEND
+    // =========================================================================
+    const productStats = useMemo(() => {
         if (!Array.isArray(topProducts) || topProducts.length === 0) {
-            return { labels: [], datasets: [] };
+            return { items: [], total: 0 };
         }
-        const totalRevenue = topProducts.reduce((sum, p) => {
+        const total = topProducts.reduce((sum, p) => {
             const rev = Number(p.total_revenue) || Number(p.revenue) || 0;
             return sum + rev;
         }, 0);
 
-        const percentages = topProducts.map(p => {
+        const palette = ['#10b981', '#06b6d4', '#f59e0b', '#8b5cf6', '#ec4899', '#3b82f6'];
+
+        const items = topProducts.map((p, idx) => {
             const rev = Number(p.total_revenue) || Number(p.revenue) || 0;
-            return totalRevenue > 0 ? parseFloat(((rev / totalRevenue) * 100).toFixed(1)) : 0;
+            const pct = total > 0 ? parseFloat(((rev / total) * 100).toFixed(1)) : 0;
+            return {
+                name: p.name || 'Unknown',
+                revenue: rev,
+                percentage: pct,
+                color: palette[idx % palette.length]
+            };
         });
 
-        return {
-            labels: topProducts.map(p => p.name || 'Unknown'),
-            datasets: [{
-                data: percentages,
-                backgroundColor: ['#10b981', '#06b6d4', '#f59e0b', '#8b5cf6', '#ec4899'],
-                borderWidth: 0,
-                hoverOffset: 4
-            }]
-        };
+        return { items, total };
     }, [topProducts]);
 
-    const pieChartOptions = {
+    const doughnutChartData = useMemo(() => {
+        if (!productStats.items.length) {
+            return { labels: [], datasets: [] };
+        }
+
+        return {
+            labels: productStats.items.map(i => i.name),
+            datasets: [{
+                data: productStats.items.map(i => i.revenue),
+                backgroundColor: productStats.items.map(i => i.color),
+                borderWidth: 2,
+                borderColor: '#ffffff',
+                hoverOffset: 6
+            }]
+        };
+    }, [productStats]);
+
+    const doughnutChartOptions = {
         responsive: true,
         maintainAspectRatio: false,
+        cutout: '70%',
         plugins: {
             legend: {
-                position: 'top',
-                labels: {
-                    usePointStyle: true,
-                    boxWidth: 8,
-                    padding: 20,
-                    color: '#475569',
-                    font: { weight: '500' }
-                }
+                display: false // Turned off in favor of clean side legend
             },
             tooltip: {
+                backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                titleColor: '#ffffff',
+                bodyColor: '#cbd5e1',
+                padding: 10,
+                cornerRadius: 8,
                 callbacks: {
                     label: (context) => {
-                        if (!Array.isArray(topProducts) || !topProducts[context.dataIndex]) {
-                            return ` ${context.label}: ${context.parsed}%`;
-                        }
-                        const product = topProducts[context.dataIndex];
-                        const revenue = Number(product.total_revenue) || Number(product.revenue) || 0;
-                        const revenueFormatted = `₱${revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                        return ` ${context.label}: ${context.parsed}% (${revenueFormatted})`;
+                        const item = productStats.items[context.dataIndex];
+                        if (!item) return '';
+                        return ` ₱${item.revenue.toLocaleString(undefined, { minimumFractionDigits: 2 })} (${item.percentage}%)`;
                     }
                 }
             }
@@ -570,112 +632,167 @@ export default function DashboardPage() {
             <Head>
                 <title>Dashboard | Seaside POS</title>
             </Head>
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 mt-6">
-                <div className="flex flex-col gap-6">
+            <main className="max-w-7xl mx-auto px-3.5 sm:px-6 mt-4 sm:mt-6">
+                <div className="flex flex-col gap-5 sm:gap-6">
 
-                    {/* --- ROW 1: LIFETIME & TODAY'S METRICS --- */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <SummaryCard
-                            title="Overall Lifetime Sales"
-                            isLoading={isSummaryLoading}
-                            value={`₱${overallSalesTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                            isPositive={true}
-                            comparisonText={firstTransactionDate ? `First Transaction: ${firstTransactionDate}` : "Lifetime total"}
-                        />
-                        <SummaryCard
-                            title="Today's Sales"
-                            isLoading={isTodayLoading}
-                            value={`₱${todaySales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                            percentage={recentSalesPct !== null ? Math.abs(recentSalesPct) : undefined}
-                            isPositive={recentSalesPct !== null ? recentSalesPct >= 0 : true}
-                            comparisonText="vs. Yesterday"
-                        />
-                    </div>
+                    {/* --- ROW 1: CONSOLIDATED 4-CARD EXECUTIVE KPI MATRIX --- */}
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
 
-                    {/* --- ROW 2: REFACTORED GRAPHICAL PERIOD METRIC CARDS --- */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <GraphicalMetricCard
-                            title="Monthly Sales"
+                        {/* TILE 1: TODAY'S SALES */}
+                        <div className="bg-white dark:bg-slate-900 rounded-2xl p-3.5 sm:p-5 border-2 border-emerald-500/30 dark:border-emerald-500/40 shadow-xs flex flex-col justify-between hover:shadow-md transition-all duration-200">
+                            <div>
+                                <div className="flex items-center justify-between gap-1 mb-2">
+                                    <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                                        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-[#8DB600]/15 dark:bg-lime-950/50 flex items-center justify-center text-[#8DB600] dark:text-lime-400 border border-[#8DB600]/30 shrink-0">
+                                            <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.5]" />
+                                        </div>
+                                        <span className="text-[11px] sm:text-xs font-black text-slate-800 dark:text-slate-100 truncate">
+                                            Today's Sales
+                                        </span>
+                                    </div>
+
+                                    {recentSalesPct !== null && !isTodayLoading && (
+                                        <div
+                                            className={`inline-flex items-center gap-0.5 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black border shrink-0 ${
+                                                recentSalesPct >= 0
+                                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
+                                                    : 'bg-rose-50 text-rose-700 border-rose-200/80 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800'
+                                            }`}
+                                        >
+                                            {recentSalesPct >= 0 ? (
+                                                <ArrowUpRight className="w-2.5 h-2.5 sm:w-3 sm:h-3 stroke-[2.5]" />
+                                            ) : (
+                                                <ArrowDownRight className="w-2.5 h-2.5 sm:w-3 sm:h-3 stroke-[2.5]" />
+                                            )}
+                                            <span>{Math.abs(recentSalesPct)}%</span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="mt-1">
+                                    {isTodayLoading ? (
+                                        <div className="h-6 sm:h-7 w-24 bg-slate-100 dark:bg-slate-800 animate-pulse rounded-lg" />
+                                    ) : (
+                                        <h2 className="text-lg sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                                            ₱{todaySales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </h2>
+                                    )}
+                                </div>
+
+                                <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] sm:text-xs text-slate-500">
+                                    <span className="text-[10px] sm:text-[11px] font-medium text-slate-400">vs Yesterday:</span>
+                                    <span className="font-bold text-slate-700 dark:text-slate-300">
+                                        ₱{yesterdaySales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[9px] sm:text-[10px] text-slate-400">
+                                <span className="font-semibold text-slate-500 dark:text-slate-400">Status:</span>
+                                <span className="font-bold text-[#8DB600] dark:text-lime-400">Active Register</span>
+                            </div>
+                        </div>
+
+                        {/* TILE 2: THIS MONTH */}
+                        <UnifiedPeriodCard
+                            title="This Month"
                             isLoading={isMonthlyGrowthLoading}
-                            currentValue={`₱${mThisSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                            previousValue={`₱${mLastSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                            percentage={mSalesGrowth}
-                            isPositive={mSalesGrowth >= 0}
+                            currentSales={`₱${mThisSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                            previousSales={`₱${mLastSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                            salesGrowth={mSalesGrowth}
+                            currentGallons={`${mThisGal.toLocaleString()} gal`}
+                            previousGallons={`${mLastGal.toLocaleString()} gal`}
+                            gallonsGrowth={mGalGrowth}
                             currentRange={mRange?.current}
                             previousRange={mRange?.previous}
-                            rawCurrent={mThisSales}
-                            rawPrevious={mLastSales}
-                            icon={DollarSign}
+                            rawCurrentSales={mThisSales}
+                            rawPreviousSales={mLastSales}
                         />
 
-                        <GraphicalMetricCard
-                            title="Monthly Gallons"
-                            isLoading={isMonthlyGrowthLoading}
-                            currentValue={`${mThisGal.toLocaleString()} gal`}
-                            previousValue={`${mLastGal.toLocaleString()} gal`}
-                            percentage={mGalGrowth}
-                            isPositive={mGalGrowth >= 0}
-                            currentRange={mRange?.current}
-                            previousRange={mRange?.previous}
-                            rawCurrent={mThisGal}
-                            rawPrevious={mLastGal}
-                            icon={Droplets}
-                        />
-
-                        <GraphicalMetricCard
-                            title="Weekly Sales"
+                        {/* TILE 3: THIS WEEK */}
+                        <UnifiedPeriodCard
+                            title="This Week"
                             isLoading={isWeeklyGrowthLoading}
-                            currentValue={`₱${wThisSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                            previousValue={`₱${wLastSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                            percentage={wSalesGrowth}
-                            isPositive={wSalesGrowth >= 0}
+                            currentSales={`₱${wThisSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                            previousSales={`₱${wLastSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                            salesGrowth={wSalesGrowth}
+                            currentGallons={`${wThisGal.toLocaleString()} gal`}
+                            previousGallons={`${wLastGal.toLocaleString()} gal`}
+                            gallonsGrowth={wGalGrowth}
                             currentRange={wRange?.current}
                             previousRange={wRange?.previous}
-                            rawCurrent={wThisSales}
-                            rawPrevious={wLastSales}
-                            icon={DollarSign}
+                            rawCurrentSales={wThisSales}
+                            rawPreviousSales={wLastSales}
                         />
 
-                        <GraphicalMetricCard
-                            title="Weekly Gallons"
-                            isLoading={isWeeklyGrowthLoading}
-                            currentValue={`${wThisGal.toLocaleString()} gal`}
-                            previousValue={`${wLastGal.toLocaleString()} gal`}
-                            percentage={wGalGrowth}
-                            isPositive={wGalGrowth >= 0}
-                            currentRange={wRange?.current}
-                            previousRange={wRange?.previous}
-                            rawCurrent={wThisGal}
-                            rawPrevious={wLastGal}
-                            icon={Droplets}
-                        />
+                        {/* TILE 4: OVERALL LIFETIME SALES */}
+                        <div className="bg-white dark:bg-slate-900 rounded-2xl p-3.5 sm:p-5 border border-slate-100 dark:border-slate-800 shadow-xs flex flex-col justify-between hover:shadow-md transition-all duration-200">
+                            <div>
+                                <div className="flex items-center justify-between gap-1 mb-2">
+                                    <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                                        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-blue-50 dark:bg-blue-950/50 flex items-center justify-center text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800/60 shrink-0">
+                                            <Award className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.5]" />
+                                        </div>
+                                        <span className="text-[11px] sm:text-xs font-bold text-slate-700 dark:text-slate-200 truncate">
+                                            Lifetime Sales
+                                        </span>
+                                    </div>
+                                    <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/60 px-1.5 py-0.5 rounded-full border border-blue-200 dark:border-blue-800 shrink-0">
+                                        All-Time
+                                    </span>
+                                </div>
+
+                                <div className="mt-1">
+                                    {isSummaryLoading ? (
+                                        <div className="h-6 sm:h-7 w-24 bg-slate-100 dark:bg-slate-800 animate-pulse rounded-lg" />
+                                    ) : (
+                                        <h2 className="text-lg sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                                            ₱{overallSalesTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </h2>
+                                    )}
+                                </div>
+
+                                <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800/80 text-[10px] sm:text-[11px] font-medium text-slate-400 leading-tight">
+                                    <span>Milestone:</span>
+                                    <p className="font-semibold text-slate-600 dark:text-slate-300 truncate mt-0.5">
+                                        {firstTransactionDate ? `Since ${firstTransactionDate}` : 'Total Station Receipts'}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[9px] sm:text-[10px] text-slate-400">
+                                <span className="font-semibold text-slate-500 dark:text-slate-400">System:</span>
+                                <span className="font-semibold text-slate-600 dark:text-slate-300">Live Database</span>
+                            </div>
+                        </div>
+
                     </div>
 
-                    {/* --- ROW 3: CHARTS SECTION --- */}
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-2">
-                        <div className="lg:col-span-7 min-h-[380px]">
-                            <Card className="h-full shadow-sm flex flex-col bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl">
+                    {/* --- ROW 2: CHARTS SECTION --- */}
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 mt-1">
+                        <div className="lg:col-span-7 min-h-[360px] sm:min-h-[380px]">
+                            <Card className="h-full shadow-xs flex flex-col bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl">
                                 <CardHeader className="bg-transparent pb-0 flex flex-row items-center justify-between">
                                     <h3 className="font-bold text-slate-800 dark:text-white text-base">Sales Performance Over Time</h3>
                                     <Select
                                         value={salesView}
                                         onChange={(e) => setSalesView(e.target.value)}
-                                        className="w-32 h-8 py-1 px-3 text-xs bg-slate-50 dark:bg-slate-800 dark:text-white rounded-lg font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 shadow-xs outline-none"
+                                        className="w-32 h-8 py-1 px-3 text-xs bg-slate-50 dark:bg-slate-800 dark:text-white rounded-lg font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 shadow-2xs outline-none"
                                     >
                                         <option value="Monthly">Monthly</option>
                                         <option value="Weekly">Weekly</option>
                                     </Select>
                                 </CardHeader>
                                 <CardContent className="p-4 pt-4 flex-1 flex flex-col w-full h-full">
-                                    <div className="flex-1 w-full h-full min-h-[300px]">
+                                    <div className="flex-1 w-full h-full min-h-[280px] sm:min-h-[300px]">
                                         <Line data={lineChartData} options={lineChartOptions} />
                                     </div>
                                 </CardContent>
                             </Card>
                         </div>
 
-                        <div className="lg:col-span-5 min-h-[380px]">
-                            <Card className="h-full shadow-sm flex flex-col bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl">
+                        <div className="lg:col-span-5 min-h-[360px] sm:min-h-[380px]">
+                            <Card className="h-full shadow-xs flex flex-col bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl">
                                 <CardHeader className="bg-transparent pb-0 flex flex-row items-center justify-between">
                                     <div className="flex items-center gap-2">
                                         <BarChart3 className="w-4 h-4 text-emerald-600" />
@@ -687,7 +804,7 @@ export default function DashboardPage() {
                                             onClick={() => setPeriodGraphMode('revenue')}
                                             className={`px-2.5 py-1 rounded-md font-bold transition-all ${
                                                 periodGraphMode === 'revenue'
-                                                    ? 'bg-white dark:bg-slate-900 text-emerald-600 shadow-xs'
+                                                    ? 'bg-white dark:bg-slate-900 text-emerald-600 shadow-2xs'
                                                     : 'text-slate-500 hover:text-slate-800'
                                             }`}
                                         >
@@ -698,7 +815,7 @@ export default function DashboardPage() {
                                             onClick={() => setPeriodGraphMode('gallons')}
                                             className={`px-2.5 py-1 rounded-md font-bold transition-all ${
                                                 periodGraphMode === 'gallons'
-                                                    ? 'bg-white dark:bg-slate-900 text-sky-600 shadow-xs'
+                                                    ? 'bg-white dark:bg-slate-900 text-sky-600 shadow-2xs'
                                                     : 'text-slate-500 hover:text-slate-800'
                                             }`}
                                         >
@@ -707,7 +824,7 @@ export default function DashboardPage() {
                                     </div>
                                 </CardHeader>
                                 <CardContent className="p-4 pt-3 flex-1 flex flex-col w-full h-full">
-                                    <div className="flex-1 w-full h-full min-h-[300px]">
+                                    <div className="flex-1 w-full h-full min-h-[280px] sm:min-h-[300px]">
                                         <Bar data={periodComparisonBarData} options={periodComparisonBarOptions} />
                                     </div>
                                 </CardContent>
@@ -715,43 +832,83 @@ export default function DashboardPage() {
                         </div>
                     </div>
 
-                    {/* --- ROW 4: PRODUCT BREAKDOWN & TOP CUSTOMERS --- */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <Card className="shadow-sm h-[390px] flex flex-col bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl">
-                            <CardHeader className="bg-transparent pb-0 shrink-0">
+                    {/* --- ROW 3: PRODUCT BREAKDOWN (DONUT + SIDE LEGEND) & TOP CUSTOMERS --- */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6">
+
+                        {/* DONUT CHART: NEW SALES BY PRODUCT */}
+                        <Card className="shadow-xs min-h-[390px] flex flex-col bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl">
+                            <CardHeader className="bg-transparent pb-0 shrink-0 flex items-center justify-between">
                                 <h3 className="font-bold text-slate-800 dark:text-white text-base">New Sales by Product</h3>
+                                <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500">
+                                    Total: ₱{Number(productStats.total).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                </span>
                             </CardHeader>
                             <CardContent className="p-4 flex-1 flex flex-col w-full h-full">
-                                <div className="flex-1 w-full h-full relative flex justify-center items-center">
-                                    {isTopProductsLoading ? (
-                                        <div className="text-slate-400 text-sm">Loading...</div>
-                                    ) : isTopProductsError ? (
-                                        <div className="text-red-400 text-sm">Error loading data.</div>
-                                    ) : !Array.isArray(topProducts) || topProducts.length === 0 ? (
-                                        <div className="text-slate-400 text-sm">No sales data available.</div>
-                                    ) : (
-                                        <div className="w-full flex justify-center items-center" style={{ height: '270px' }}>
-                                            <div className="relative h-full w-full max-w-[270px]">
-                                                <Pie data={pieChartData} options={pieChartOptions} />
+                                {isTopProductsLoading ? (
+                                    <div className="flex items-center justify-center flex-1 text-slate-400 text-sm">Loading products...</div>
+                                ) : isTopProductsError ? (
+                                    <div className="flex items-center justify-center flex-1 text-red-400 text-sm">Error loading data.</div>
+                                ) : !productStats.items.length ? (
+                                    <div className="flex items-center justify-center flex-1 text-slate-400 text-sm">No sales data available.</div>
+                                ) : (
+                                    <div className="flex-1 flex flex-col sm:flex-row items-center justify-between gap-6 py-2">
+                                        {/* Donut with Center Total */}
+                                        <div className="relative w-44 h-44 sm:w-48 sm:h-48 shrink-0 flex items-center justify-center">
+                                            <Doughnut data={doughnutChartData} options={doughnutChartOptions} />
+                                            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                                <span className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Top Share</span>
+                                                <span className="text-base font-black text-slate-900 dark:text-white">
+                                                    ₱{Number(productStats.total).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                                </span>
                                             </div>
                                         </div>
-                                    )}
-                                </div>
+
+                                        {/* Structured High-Information Side Legend */}
+                                        <div className="flex-1 w-full flex flex-col justify-center space-y-2 max-h-[260px] overflow-y-auto pr-1">
+                                            {productStats.items.map((item) => (
+                                                <div
+                                                    key={item.name}
+                                                    className="flex items-center justify-between text-xs py-1.5 px-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800"
+                                                >
+                                                    <div className="flex items-center gap-2 truncate pr-2 min-w-0">
+                                                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
+                                                        <span className="font-bold text-slate-800 dark:text-slate-200 truncate">{item.name}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 shrink-0">
+                                                        <span className="text-[10px] font-black text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 px-1.5 py-0.5 rounded border border-slate-200/80 dark:border-slate-700/80">
+                                                            {item.percentage}%
+                                                        </span>
+                                                        <span className="font-black text-slate-900 dark:text-white text-xs">
+                                                            ₱{Number(item.revenue).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </CardContent>
                         </Card>
 
-                        <Card className="shadow-sm h-[390px] flex flex-col bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl">
-                            <CardHeader className="bg-transparent pb-0 shrink-0">
-                                <h3 className="font-bold text-slate-800 dark:text-white text-base">Top 10 All-Time Customers</h3>
-                            </CardHeader>
-                            <CardContent className="p-4 pt-0 flex-1 flex flex-col w-full h-full">
-                                <div className="flex items-center gap-2 mb-2 ml-4 text-xs text-slate-500 font-semibold shrink-0">
-                                    <div className="w-2.5 h-2.5 bg-emerald-500 rounded-sm" />
-                                    Total Revenue
+                        {/* TOP 10 ALL-TIME CUSTOMERS */}
+                        <Card className="shadow-xs min-h-[390px] flex flex-col bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl">
+                            <CardHeader className="bg-transparent pb-0 shrink-0 flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <Users className="w-4 h-4 text-emerald-600" />
+                                    <h3 className="font-bold text-slate-800 dark:text-white text-base">Top 10 All-Time Customers</h3>
                                 </div>
-                                <div className="flex-1 w-full h-full relative">
+                                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+                                    ₱{(topCustomersTotal / 1000).toFixed(0)}k Cumulative
+                                </span>
+                            </CardHeader>
+                            <CardContent className="p-4 pt-1 flex-1 flex flex-col w-full h-full">
+                                <div className="flex items-center gap-2 mb-2 ml-1 text-xs text-slate-500 font-semibold shrink-0">
+                                    <div className="w-2.5 h-2.5 bg-emerald-500 rounded-xs" />
+                                    Total Revenue (₱)
+                                </div>
+                                <div className="flex-1 w-full h-full min-h-[270px] relative">
                                     {isTopCustomersLoading ? (
-                                        <div className="flex items-center justify-center w-full h-full text-slate-400 text-sm">Loading...</div>
+                                        <div className="flex items-center justify-center w-full h-full text-slate-400 text-sm">Loading customers...</div>
                                     ) : topCustomers?.length === 0 ? (
                                         <div className="flex items-center justify-center w-full h-full text-slate-400 text-sm">No sales data available.</div>
                                     ) : (
@@ -760,14 +917,11 @@ export default function DashboardPage() {
                                 </div>
                             </CardContent>
                         </Card>
+
                     </div>
 
                 </div>
             </main>
-
-            {/* Floating Action Buttons */}
-            <FloatingMessages />
-            <FloatingNotes />
         </div>
     );
 }
