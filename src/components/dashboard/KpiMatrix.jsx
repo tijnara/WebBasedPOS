@@ -102,11 +102,15 @@ export default function KpiMatrix({
                                       yesterdaySales,
                                       recentSalesPct,
                                       isTodayLoading,
+                                      todayOrdersCount = 0,
+                                      isOrdersLoading = false,
                                       monthlyGrowthData,
                                       isMonthlyGrowthLoading,
                                       weeklyGrowthData,
                                       isWeeklyGrowthLoading,
                                       overallSalesTotal,
+                                      lifetimeContainers = 0,
+                                      isLifetimeContainersLoading = false,
                                       firstTransactionDate,
                                       isSummaryLoading
                                   }) {
@@ -124,12 +128,17 @@ export default function KpiMatrix({
     const wLastGal = Number(weeklyGrowthData?.lastWeekGallons) || 0;
     const wGalGrowth = weeklyGrowthData?.gallonsGrowth;
 
+    // Cleaned: Fixed syntax errors and string interpolation
     const mRange = useMemo(() => {
         if (!monthlyGrowthData?.thisMonthStart) return null;
         try {
+            const curStart = format(new Date(monthlyGrowthData.thisMonthStart), 'MMM d');
+            const curEnd = format(new Date(monthlyGrowthData.thisMonthEnd || monthlyGrowthData.thisMonthStart), 'd');
+            const prevStart = format(new Date(monthlyGrowthData.lastMonthStart), 'MMM d');
+            const prevEnd = format(new Date(monthlyGrowthData.lastMonthEnd || monthlyGrowthData.lastMonthStart), 'd');
             return {
-                current: `${format(new Date(monthlyGrowthData.thisMonthStart), 'MMM d')} - ${format(new Date(monthlyGrowthData.thisMonthEnd || monthlyGrowthData.thisMonthStart), 'd')}`,
-                previous: `${format(new Date(monthlyGrowthData.lastMonthStart), 'MMM d')} - ${format(new Date(monthlyGrowthData.lastMonthEnd || monthlyGrowthData.lastMonthStart), 'd')}`
+                current: `${curStart} - ${curEnd}`,
+                previous: `${prevStart} - ${prevEnd}`
             };
         } catch {
             return null;
@@ -139,9 +148,13 @@ export default function KpiMatrix({
     const wRange = useMemo(() => {
         if (!weeklyGrowthData?.thisWeekStart) return null;
         try {
+            const curStart = format(new Date(weeklyGrowthData.thisWeekStart), 'MMM d');
+            const curEnd = format(new Date(weeklyGrowthData.thisWeekEnd || weeklyGrowthData.thisWeekStart), 'd');
+            const prevStart = format(new Date(weeklyGrowthData.lastWeekStart), 'MMM d');
+            const prevEnd = format(new Date(weeklyGrowthData.lastWeekEnd || weeklyGrowthData.lastWeekStart), 'd');
             return {
-                current: `${format(new Date(weeklyGrowthData.thisWeekStart), 'MMM d')} - ${format(new Date(weeklyGrowthData.thisWeekEnd || weeklyGrowthData.thisWeekStart), 'd')}`,
-                previous: `${format(new Date(weeklyGrowthData.lastWeekStart), 'MMM d')} - ${format(new Date(weeklyGrowthData.lastWeekEnd || weeklyGrowthData.lastWeekStart), 'd')}`
+                current: `${curStart} - ${curEnd}`,
+                previous: `${prevStart} - ${prevEnd}`
             };
         } catch {
             return null;
@@ -150,7 +163,7 @@ export default function KpiMatrix({
 
     return (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
-            {/* TILE 1: TODAY'S SALES */}
+            {/* TILE 1: TODAY'S SALES & COMPLETED ORDERS */}
             <div className="bg-white dark:bg-slate-900 rounded-2xl p-3.5 sm:p-5 border-2 border-emerald-500/30 dark:border-emerald-500/40 shadow-xs flex flex-col justify-between hover:shadow-md transition-all duration-200">
                 <div>
                     <div className="flex items-center justify-between gap-1 mb-2">
@@ -190,8 +203,10 @@ export default function KpiMatrix({
                 </div>
 
                 <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[9px] sm:text-[10px] text-slate-400">
-                    <span className="font-semibold text-slate-500 dark:text-slate-400">Status:</span>
-                    <span className="font-bold text-[#8DB600] dark:text-lime-400">Active Register</span>
+                    <span className="font-semibold text-slate-500 dark:text-slate-400">Orders:</span>
+                    <span className="font-bold text-[#8DB600] dark:text-lime-400">
+                        {isOrdersLoading ? '...' : `${todayOrdersCount} Completed ${todayOrdersCount === 1 ? 'Order' : 'Orders'}`}
+                    </span>
                 </div>
             </div>
 
@@ -202,8 +217,8 @@ export default function KpiMatrix({
                 currentSales={`₱${mThisSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                 previousSales={`₱${mLastSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                 salesGrowth={mSalesGrowth}
-                currentGallons={`${mThisGal.toLocaleString()} gal`}
-                previousGallons={`${mLastGal.toLocaleString()} gal`}
+                currentGallons={`${mThisGal.toLocaleString()} containers`}
+                previousGallons={`${mLastGal.toLocaleString()} containers`}
                 gallonsGrowth={mGalGrowth}
                 currentRange={mRange?.current}
                 previousRange={mRange?.previous}
@@ -218,8 +233,8 @@ export default function KpiMatrix({
                 currentSales={`₱${wThisSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                 previousSales={`₱${wLastSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                 salesGrowth={wSalesGrowth}
-                currentGallons={`${wThisGal.toLocaleString()} gal`}
-                previousGallons={`${wLastGal.toLocaleString()} gal`}
+                currentGallons={`${wThisGal.toLocaleString()} containers`}
+                previousGallons={`${wLastGal.toLocaleString()} containers`}
                 gallonsGrowth={wGalGrowth}
                 currentRange={wRange?.current}
                 previousRange={wRange?.previous}
@@ -227,7 +242,7 @@ export default function KpiMatrix({
                 rawPreviousSales={wLastSales}
             />
 
-            {/* TILE 4: OVERALL LIFETIME SALES */}
+            {/* TILE 4: OVERALL LIFETIME SALES & LIFETIME CONTAINERS */}
             <div className="bg-white dark:bg-slate-900 rounded-2xl p-3.5 sm:p-5 border border-slate-100 dark:border-slate-800 shadow-xs flex flex-col justify-between hover:shadow-md transition-all duration-200">
                 <div>
                     <div className="flex items-center justify-between gap-1 mb-2">
@@ -262,9 +277,12 @@ export default function KpiMatrix({
                     </div>
                 </div>
 
+                {/* Lifetime Containers Counted by Product IDs (2, 3, 30) */}
                 <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[9px] sm:text-[10px] text-slate-400">
-                    <span className="font-semibold text-slate-500 dark:text-slate-400">System:</span>
-                    <span className="font-semibold text-slate-600 dark:text-slate-300">Live Database</span>
+                    <span className="font-semibold text-slate-500 dark:text-slate-400">Containers Sold:</span>
+                    <span className="font-bold text-sky-600 dark:text-sky-400">
+                        {isLifetimeContainersLoading ? '...' : `${Number(lifetimeContainers || 0).toLocaleString()} containers`}
+                    </span>
                 </div>
             </div>
         </div>
