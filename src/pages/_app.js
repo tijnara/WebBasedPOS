@@ -19,6 +19,9 @@ import Head from 'next/head';
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/next";
 
+// Transition Component
+import CinematicTransition from '../components/transitions/CinematicTransition';
+
 const titleMap = {
     '/': 'Seaside Purified Water Refilling Station | Labrador, Pangasinan',
     '/about': 'About Us | Seaside WRS',
@@ -141,6 +144,35 @@ export default function App({ Component, pageProps }) {
     const { toasts, dismissToast, darkMode, user } = useStore();
     const router = useRouter();
 
+    // Transition state for root '/' and '/about'
+    const [isTransitionActive, setIsTransitionActive] = useState(false);
+
+    useEffect(() => {
+        const checkShouldTransition = (path) => {
+            const cleanPath = (path || router.pathname).split('?')[0].split('#')[0].toLowerCase();
+            return cleanPath === '/' || cleanPath === '/about';
+        };
+
+        // Trigger on initial entry if visiting '/' or '/about'
+        if (checkShouldTransition(router.pathname)) {
+            setIsTransitionActive(true);
+        }
+
+        // Trigger whenever user navigates into '/' or '/about'
+        const handleRouteChangeStart = (url) => {
+            const targetPath = url.split('?')[0].split('#')[0].toLowerCase();
+            const currentPath = router.asPath.split('?')[0].split('#')[0].toLowerCase();
+            if ((targetPath === '/' || targetPath === '/about') && targetPath !== currentPath) {
+                setIsTransitionActive(true);
+            }
+        };
+
+        router.events.on('routeChangeStart', handleRouteChangeStart);
+        return () => {
+            router.events.off('routeChangeStart', handleRouteChangeStart);
+        };
+    }, [router]);
+
     const [queryClient] = useState(() => new QueryClient({
         defaultOptions: {
             queries: {
@@ -202,6 +234,12 @@ export default function App({ Component, pageProps }) {
                     <link rel="apple-touch-icon" href="/seasidelogo_.png" />
                     <meta name="google-site-verification" content="kd1wSsNQZCjJmyp4LaQKI9Mr7s6Z9_I5Z3ETpaW1EVc" />
                 </Head>
+
+                {/* Refilling Transition Overlay */}
+                {isTransitionActive && (
+                    <CinematicTransition onComplete={() => setIsTransitionActive(false)} />
+                )}
+
                 <AuthGate>
                     <div className={`app responsive-page ${!hideNav ? 'md:pl-64' : ''}`}>
                         {user?.isDemo && !isPublicPage && (
