@@ -9,7 +9,15 @@ import { useProducts } from '../../hooks/useProducts';
 import { useDeleteSale } from '../../hooks/useDeleteSale';
 import { useDebounce } from '../../hooks/useDebounce';
 import { useStore } from '../../store/useStore';
-import { format, startOfWeek, endOfWeek } from 'date-fns';
+import {
+    format,
+    startOfWeek,
+    endOfWeek,
+    startOfMonth,
+    endOfMonth,
+    subDays,
+    subWeeks
+} from 'date-fns';
 import {
     Button, Input, Select, Dialog, DialogContent,
     DialogTitle, DialogCloseButton, Label
@@ -52,7 +60,9 @@ const EditSaleModal = ({ sale, isOpen, onClose }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         const amt = parseFloat(amountReceived);
-        const change = paymentMethod === 'Cash' && amt >= sale.totalAmount ? amt - sale.totalAmount : 0;
+        const change = paymentMethod === 'Cash' && amt >= sale.totalAmount
+            ? amt - sale.totalAmount
+            : 0;
 
         await updateSaleMutation.mutateAsync({
             saleId: sale.id,
@@ -70,85 +80,85 @@ const EditSaleModal = ({ sale, isOpen, onClose }) => {
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="p-0 sm:max-w-md w-full bg-white shadow-2xl border-0 overflow-hidden rounded-3xl">
-                <div className="px-6 py-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
-                    <DialogTitle className="text-base font-black text-slate-900 flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-lg bg-lime-100 text-[#5f7d00] flex items-center justify-center">
+            <DialogContent className="p-0 sm:max-w-md w-full bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden rounded-3xl dark:[color-scheme:dark] transition-colors">
+                <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between">
+                    <DialogTitle className="text-base font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-lime-100 dark:bg-lime-950/60 text-[#5f7d00] dark:text-lime-400 flex items-center justify-center">
                             <Pencil className="w-4 h-4 stroke-[2.5]" />
                         </div>
                         <span>Edit Transaction #{sale.id}</span>
                     </DialogTitle>
-                    <DialogCloseButton onClick={onClose} className="p-1.5 rounded-full text-slate-400 hover:text-slate-600" />
+                    <DialogCloseButton onClick={onClose} className="p-1.5 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer" />
                 </div>
 
                 <form onSubmit={handleSubmit}>
                     <div className="p-6 space-y-4">
-                        <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/80 flex justify-between items-center text-xs">
-                            <span className="text-slate-500 font-semibold">Total Amount:</span>
-                            <span className="text-base font-black text-slate-900">{formatCurrency(sale.totalAmount)}</span>
+                        <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 flex justify-between items-center text-xs">
+                            <span className="text-slate-500 dark:text-slate-400 font-semibold">Total Amount:</span>
+                            <span className="text-base font-black text-slate-900 dark:text-slate-100 font-mono">{formatCurrency(sale.totalAmount)}</span>
                         </div>
 
                         <div>
-                            <Label className="text-xs font-bold text-slate-700">Customer Name</Label>
+                            <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Customer Name</Label>
                             <Input
                                 value={customerName}
                                 onChange={(e) => setCustomerName(e.target.value)}
                                 required
-                                className="h-10 mt-1 text-xs rounded-xl border-slate-200"
+                                className="h-10 mt-1 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:border-[#8DB600]"
                             />
                         </div>
 
                         <div className="grid grid-cols-2 gap-3">
                             <div>
-                                <Label className="text-xs font-bold text-slate-700">Payment Method</Label>
+                                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Payment Method</Label>
                                 <Select
                                     value={paymentMethod}
                                     onChange={(e) => setPaymentMethod(e.target.value)}
-                                    className="h-10 mt-1 text-xs rounded-xl border-slate-200"
+                                    className="h-10 mt-1 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:border-[#8DB600] cursor-pointer"
                                 >
-                                    <option value="Cash">Cash</option>
-                                    <option value="GCash">GCash</option>
-                                    <option value="Charge">Charge (Utang)</option>
+                                    <option value="Cash" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Cash</option>
+                                    <option value="GCash" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">GCash</option>
+                                    <option value="Charge" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Charge (Utang)</option>
                                 </Select>
                             </div>
 
                             <div>
-                                <Label className="text-xs font-bold text-slate-700">Status</Label>
+                                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Status</Label>
                                 <Select
                                     value={status}
                                     onChange={(e) => setStatus(e.target.value)}
-                                    className="h-10 mt-1 text-xs rounded-xl border-slate-200"
+                                    className="h-10 mt-1 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:border-[#8DB600] cursor-pointer"
                                 >
-                                    <option value="Completed">Completed</option>
-                                    <option value="Unpaid">Unpaid</option>
-                                    <option value="Pending">Pending</option>
-                                    <option value="Cancelled">Cancelled</option>
+                                    <option value="Completed" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Completed</option>
+                                    <option value="Unpaid" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Unpaid</option>
+                                    <option value="Pending" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Pending</option>
+                                    <option value="Cancelled" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Cancelled</option>
                                 </Select>
                             </div>
                         </div>
 
                         {paymentMethod === 'Cash' && (
                             <div>
-                                <Label className="text-xs font-bold text-slate-700">Amount Received (₱)</Label>
+                                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Amount Received (₱)</Label>
                                 <Input
                                     type="number"
                                     step="0.01"
                                     value={amountReceived}
                                     onChange={(e) => setAmountReceived(e.target.value)}
-                                    className="h-10 mt-1 text-xs rounded-xl border-slate-200 font-mono"
+                                    className="h-10 mt-1 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 font-mono focus:bg-white dark:focus:bg-slate-900 focus:border-[#8DB600]"
                                 />
                             </div>
                         )}
                     </div>
 
-                    <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2.5">
-                        <Button variant="outline" type="button" onClick={onClose} className="h-10 px-5 rounded-xl text-xs font-bold border-slate-200">
+                    <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-200/80 dark:border-slate-800 flex items-center justify-end gap-2.5">
+                        <Button variant="outline" type="button" onClick={onClose} className="h-10 px-5 rounded-xl text-xs font-bold border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer">
                             Cancel
                         </Button>
                         <Button
                             type="submit"
                             disabled={updateSaleMutation.isPending}
-                            className="h-10 px-6 rounded-xl bg-[#8DB600] hover:bg-[#7ca000] text-white text-xs font-bold shadow-md"
+                            className="h-10 px-6 rounded-xl bg-[#8DB600] hover:bg-[#7ca000] text-white text-xs font-bold shadow-md cursor-pointer active:scale-95 transition-all"
                         >
                             {updateSaleMutation.isPending ? 'Saving...' : 'Save Changes'}
                         </Button>
@@ -163,7 +173,6 @@ const ReportPage = () => {
     const searchParams = useSearchParams();
     const user = useStore(state => state.user);
 
-    // Comprehensive Admin / Owner resolution
     const isAdmin = useMemo(() => {
         if (!user) return false;
         if (user.isAdmin || user.is_admin || user.isSuperAdmin) return true;
@@ -255,7 +264,7 @@ const ReportPage = () => {
         }
         const startStr = interval.start ? format(interval.start, 'MMM d, yyyy') : 'Start';
         const endStr = interval.end ? format(interval.end, 'MMM d, yyyy') : 'Present';
-        return `${startStr} - ${endStr}`;
+        return `${startStr} — ${endStr}`;
     }, [interval]);
 
     const {
@@ -412,7 +421,7 @@ const ReportPage = () => {
         }
         const startStr = interval.start ? format(interval.start, 'MMM d, yyyy') : 'Start';
         const endStr = interval.end ? format(interval.end, 'MMM d, yyyy') : 'Present';
-        return `${startStr} - ${endStr}`;
+        return `${startStr} — ${endStr}`;
     }, [interval]);
 
     const handleTabChange = (tab) => {
@@ -429,6 +438,45 @@ const ReportPage = () => {
     const handleToDateChange = (e) => {
         setToDate(e.target.value);
         setCurrentPage(1);
+    };
+
+    // Quick Date Presets Handler
+    const handlePresetRange = (preset) => {
+        const today = new Date();
+        setCurrentPage(1);
+
+        switch (preset) {
+            case 'today': {
+                const d = format(today, 'yyyy-MM-dd');
+                setFromDate(d);
+                setToDate(d);
+                break;
+            }
+            case 'yesterday': {
+                const y = format(subDays(today, 1), 'yyyy-MM-dd');
+                setFromDate(y);
+                setToDate(y);
+                break;
+            }
+            case 'this_week': {
+                setFromDate(format(startOfWeek(today, { weekStartsOn: 1 }), 'yyyy-MM-dd'));
+                setToDate(format(endOfWeek(today, { weekStartsOn: 1 }), 'yyyy-MM-dd'));
+                break;
+            }
+            case 'last_week': {
+                const lastWeekDate = subWeeks(today, 1);
+                setFromDate(format(startOfWeek(lastWeekDate, { weekStartsOn: 1 }), 'yyyy-MM-dd'));
+                setToDate(format(endOfWeek(lastWeekDate, { weekStartsOn: 1 }), 'yyyy-MM-dd'));
+                break;
+            }
+            case 'this_month': {
+                setFromDate(format(startOfMonth(today), 'yyyy-MM-dd'));
+                setToDate(format(endOfMonth(today), 'yyyy-MM-dd'));
+                break;
+            }
+            default:
+                break;
+        }
     };
 
     const handleClearRange = () => {
@@ -476,19 +524,26 @@ const ReportPage = () => {
     };
 
     return (
-        <div className="report-page max-w-7xl mx-auto p-2 md:p-4 space-y-4 responsive-page">
-            <h1 className="text-2xl font-bold dark:text-white">Reports</h1>
+        <div className="report-page max-w-7xl mx-auto p-3 sm:p-6 space-y-6 responsive-page transition-colors">
+            {/* Page Header */}
+            <div>
+                <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Reports</h1>
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                    Track station revenue, sales velocity, volume trends, and customer purchase patterns.
+                </p>
+            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+            {/* Growth KPI Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                 <SummaryCard
                     title="Monthly Sales"
                     isLoading={isMonthlyGrowthLoading}
                     value={`₱${(monthlyGrowthData?.thisMonthSales || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                     previousValue={`₱${(monthlyGrowthData?.lastMonthSales || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                     previousPeriodRange={monthlyGrowthData?.lastMonthStart ? `(${format(monthlyGrowthData.lastMonthStart, 'MMM d')} - ${format(monthlyGrowthData.lastMonthEnd, 'd')})` : undefined}
-                    percentage={Math.abs(monthlyGrowthData?.salesGrowth)}
-                    isPositive={monthlyGrowthData?.salesGrowth >= 0}
-                    isPositiveColor={monthlyGrowthData?.thisMonthSales >= monthlyGrowthData?.lastMonthSales}
+                    percentage={Math.abs(monthlyGrowthData?.salesGrowth || 0)}
+                    isPositive={(monthlyGrowthData?.salesGrowth || 0) >= 0}
+                    isPositiveColor={(monthlyGrowthData?.thisMonthSales || 0) >= (monthlyGrowthData?.lastMonthSales || 0)}
                     comparisonText={`(${format(monthlyGrowthData?.thisMonthStart || new Date(), 'MMM d')} - ${format(monthlyGrowthData?.thisMonthEnd || new Date(), 'd')}) vs. (${format(monthlyGrowthData?.lastMonthStart || new Date(), 'MMM d')} - ${format(monthlyGrowthData?.lastMonthEnd || new Date(), 'd')})`}
                 />
                 <SummaryCard
@@ -497,9 +552,9 @@ const ReportPage = () => {
                     value={`${(monthlyGrowthData?.thisMonthGallons || 0).toLocaleString()} gal`}
                     previousValue={`${(monthlyGrowthData?.lastMonthGallons || 0).toLocaleString()} gal`}
                     previousPeriodRange={monthlyGrowthData?.lastMonthStart ? `(${format(monthlyGrowthData.lastMonthStart, 'MMM d')} - ${format(monthlyGrowthData.lastMonthEnd, 'd')})` : undefined}
-                    percentage={Math.abs(monthlyGrowthData?.gallonsGrowth)}
-                    isPositive={monthlyGrowthData?.gallonsGrowth >= 0}
-                    isPositiveColor={monthlyGrowthData?.thisMonthGallons >= monthlyGrowthData?.lastMonthGallons}
+                    percentage={Math.abs(monthlyGrowthData?.gallonsGrowth || 0)}
+                    isPositive={(monthlyGrowthData?.gallonsGrowth || 0) >= 0}
+                    isPositiveColor={(monthlyGrowthData?.thisMonthGallons || 0) >= (monthlyGrowthData?.lastMonthGallons || 0)}
                     comparisonText={`(${format(monthlyGrowthData?.thisMonthStart || new Date(), 'MMM d')} - ${format(monthlyGrowthData?.thisMonthEnd || new Date(), 'd')}) vs. (${format(monthlyGrowthData?.lastMonthStart || new Date(), 'MMM d')} - ${format(monthlyGrowthData?.lastMonthEnd || new Date(), 'd')})`}
                 />
                 <SummaryCard
@@ -508,9 +563,9 @@ const ReportPage = () => {
                     value={`₱${(weeklyGrowthData?.thisWeekSales || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                     previousValue={`₱${(weeklyGrowthData?.lastWeekSales || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                     previousPeriodRange={weeklyGrowthData?.lastWeekStart ? `(${format(weeklyGrowthData.lastWeekStart, 'MMM d')} - ${format(weeklyGrowthData.lastWeekEnd, 'd')})` : undefined}
-                    percentage={Math.abs(weeklyGrowthData?.salesGrowth)}
-                    isPositive={weeklyGrowthData?.salesGrowth >= 0}
-                    isPositiveColor={weeklyGrowthData?.thisWeekSales >= weeklyGrowthData?.lastWeekSales}
+                    percentage={Math.abs(weeklyGrowthData?.salesGrowth || 0)}
+                    isPositive={(weeklyGrowthData?.salesGrowth || 0) >= 0}
+                    isPositiveColor={(weeklyGrowthData?.thisWeekSales || 0) >= (weeklyGrowthData?.lastWeekSales || 0)}
                     comparisonText={`(${format(weeklyGrowthData?.thisWeekStart || new Date(), 'MMM d')} - ${format(weeklyGrowthData?.thisWeekEnd || new Date(), 'd')}) vs. (${format(weeklyGrowthData?.lastWeekStart || new Date(), 'MMM d')} - ${format(weeklyGrowthData?.lastWeekEnd || new Date(), 'd')})`}
                 />
                 <SummaryCard
@@ -519,34 +574,51 @@ const ReportPage = () => {
                     value={`${(weeklyGrowthData?.thisWeekGallons || 0).toLocaleString()} gal`}
                     previousValue={`${(weeklyGrowthData?.lastWeekGallons || 0).toLocaleString()} gal`}
                     previousPeriodRange={weeklyGrowthData?.lastWeekStart ? `(${format(weeklyGrowthData.lastWeekStart, 'MMM d')} - ${format(weeklyGrowthData.lastWeekEnd, 'd')})` : undefined}
-                    percentage={Math.abs(weeklyGrowthData?.gallonsGrowth)}
-                    isPositive={weeklyGrowthData?.gallonsGrowth >= 0}
-                    isPositiveColor={weeklyGrowthData?.thisWeekGallons >= weeklyGrowthData?.lastWeekGallons}
+                    percentage={Math.abs(weeklyGrowthData?.gallonsGrowth || 0)}
+                    isPositive={(weeklyGrowthData?.gallonsGrowth || 0) >= 0}
+                    isPositiveColor={(weeklyGrowthData?.thisWeekGallons || 0) >= (weeklyGrowthData?.lastWeekGallons || 0)}
                     comparisonText={`(${format(weeklyGrowthData?.thisWeekStart || new Date(), 'MMM d')} - ${format(weeklyGrowthData?.thisWeekEnd || new Date(), 'd')}) vs. (${format(weeklyGrowthData?.lastWeekStart || new Date(), 'MMM d')} - ${format(weeklyGrowthData?.lastWeekEnd || new Date(), 'd')})`}
                 />
             </div>
 
-            <div className="flex gap-2 flex-wrap">
-                <Button
+            {/* Modular Tab Switcher */}
+            <div className="flex bg-slate-100 dark:bg-slate-800/90 p-1 rounded-2xl w-full sm:w-auto border border-slate-200/80 dark:border-slate-700/80 shadow-2xs">
+                <button
+                    type="button"
                     onClick={() => handleTabChange('sales')}
-                    className={`px-4 py-2 font-semibold rounded-md ${activeTab === 'sales' ? 'btn--primary' : 'btn--soft'}`}
+                    className={`flex-1 sm:flex-initial px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                        activeTab === 'sales'
+                            ? 'bg-[#8DB600] text-white shadow-xs'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
+                    }`}
                 >
                     Sales Report
-                </Button>
-                <Button
+                </button>
+                <button
+                    type="button"
                     onClick={() => handleTabChange('frequent')}
-                    className={`px-4 py-2 font-semibold rounded-md ${activeTab === 'frequent' ? 'btn--primary' : 'btn--soft'}`}
+                    className={`flex-1 sm:flex-initial px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                        activeTab === 'frequent'
+                            ? 'bg-[#8DB600] text-white shadow-xs'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
+                    }`}
                 >
                     Frequent Orders
-                </Button>
-                <Button
+                </button>
+                <button
+                    type="button"
                     onClick={() => handleTabChange('inactive')}
-                    className={`px-4 py-2 font-semibold rounded-md ${activeTab === 'inactive' ? 'btn--primary' : 'btn--soft'}`}
+                    className={`flex-1 sm:flex-initial px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                        activeTab === 'inactive'
+                            ? 'bg-[#8DB600] text-white shadow-xs'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
+                    }`}
                 >
                     Dropped Off
-                </Button>
+                </button>
             </div>
 
+            {/* Active Tab View */}
             {activeTab === 'frequent' && (
                 <FrequentOrdersTab
                     customerSearch={customerSearch}
@@ -574,6 +646,7 @@ const ReportPage = () => {
                     handleFromDateChange={handleFromDateChange}
                     toDate={toDate}
                     handleToDateChange={handleToDateChange}
+                    handlePresetRange={handlePresetRange}
                     selectedProductId={selectedProductId}
                     setSelectedProductId={setSelectedProductId}
                     availableProducts={availableProducts}
@@ -601,7 +674,6 @@ const ReportPage = () => {
 
             {activeTab === 'inactive' && <LapsedCustomersTab enabled={activeTab === 'inactive'} />}
 
-            {/* Admin Delete Confirmation Modal */}
             <DeleteConfirmationModal
                 isOpen={isModalOpen}
                 onClose={closeDeleteModal}
@@ -610,7 +682,6 @@ const ReportPage = () => {
                 isSuccess={deleteSaleMutation.isSuccess}
             />
 
-            {/* Admin Edit Sale Modal */}
             <EditSaleModal
                 sale={editingSale}
                 isOpen={!!editingSale}

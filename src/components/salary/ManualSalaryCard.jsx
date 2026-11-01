@@ -1,7 +1,8 @@
+// src/components/salary/ManualSalaryCard.jsx
 import React from 'react';
 import currency from 'currency.js';
 import { Card, CardHeader, CardContent, Button, Input, Label, Select } from '../ui';
-import { FileText, AlertCircle } from 'lucide-react';
+import { FileText, AlertCircle, Plus } from 'lucide-react';
 
 export default function ManualSalaryCard({
                                              employeeName,
@@ -20,36 +21,78 @@ export default function ManualSalaryCard({
                                              isPending
                                          }) {
     return (
-        <Card>
-            <CardHeader className="bg-blue-50 border-b border-blue-100">
-                <h3 className="font-bold text-blue-800 flex items-center gap-2"><FileText className="w-5 h-5"/> Manual Record Salary Entry</h3>
-                <p className="text-xs text-blue-600">Record a salary payout or bonus into the Salary History below.</p>
+        <Card className="rounded-2xl border border-blue-100 dark:border-blue-950/60 shadow-2xs bg-white dark:bg-slate-900 overflow-hidden">
+            <CardHeader className="bg-blue-50/60 dark:bg-blue-950/30 border-b border-blue-100 dark:border-blue-900/40 p-4 sm:p-5">
+                <h3 className="font-bold text-sm sm:text-base text-blue-900 dark:text-blue-200 flex items-center gap-2">
+                    <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
+                    <span>Manual Record Salary Entry</span>
+                </h3>
+                <p className="text-[11px] sm:text-xs text-blue-600 dark:text-blue-400 mt-0.5">
+                    Record a salary payout or bonus into the Salary History below.
+                </p>
             </CardHeader>
-            <CardContent className="pt-6">
-                <form onSubmit={handleAddSalary} className="grid grid-cols-1 md:grid-cols-2 gap-4 md:items-end">
+            <CardContent className="p-4 sm:p-5">
+                <form onSubmit={handleAddSalary} className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 md:items-end">
                     <div className="md:col-span-2">
-                        <Label>Employee</Label>
-                        <Select value={employeeName} onChange={handleEmployeeSelect} required className="h-11 w-full">
+                        <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Employee</Label>
+                        <Select
+                            value={employeeName}
+                            onChange={handleEmployeeSelect}
+                            required
+                            className="h-10 sm:h-11 mt-1 text-xs sm:text-sm rounded-xl w-full border-slate-200 dark:border-slate-700"
+                        >
                             <option value="" disabled>Select Staff...</option>
                             {employees?.map(emp => (
                                 <option key={emp.id} value={emp.name}>{emp.name}</option>
                             ))}
                         </Select>
                     </div>
+
+                    {/* Gross Amount with Dedicated ₱ Badge & Decimal InputMode */}
                     <div className="md:col-span-1">
-                        <Label>Gross Amount (₱)</Label>
-                        <Input type="number" step="0.01" min="1" value={amount} onChange={e => setAmount(e.target.value)} required className="h-11 w-full" />
-                    </div>
-                    <div className="md:col-span-1">
-                        <Label>Payout Date</Label>
-                        <Input type="date" value={payoutDate} onChange={e => { setPayoutDate(e.target.value); setExcessMultiplier('1'); }} required className="h-11 w-full" />
-                    </div>
-                    <div className="md:col-span-2">
-                        <Label>Description</Label>
-                        <Input type="text" value={description} onChange={e => setDescription(e.target.value)} required className="h-11 w-full" />
+                        <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Gross Amount (₱)</Label>
+                        <div className="relative mt-1">
+                            <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-xs font-bold text-slate-400 select-none z-10">
+                                ₱
+                            </span>
+                            <Input
+                                type="number"
+                                step="0.01"
+                                inputMode="decimal"
+                                min="1"
+                                value={amount}
+                                onChange={e => setAmount(e.target.value)}
+                                placeholder="0.00"
+                                required
+                                style={{ paddingLeft: '2rem' }}
+                                className="h-10 sm:h-11 w-full !pl-8 text-xs sm:text-sm font-mono font-bold rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800"
+                            />
+                        </div>
                     </div>
 
-                    {/* Calculation Info Helper */}
+                    <div className="md:col-span-1">
+                        <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Payout Date</Label>
+                        <Input
+                            type="date"
+                            value={payoutDate}
+                            onChange={e => { setPayoutDate(e.target.value); setExcessMultiplier('1'); }}
+                            required
+                            className="h-10 sm:h-11 mt-1 text-xs sm:text-sm rounded-xl w-full border-slate-200 dark:border-slate-700 font-semibold"
+                        />
+                    </div>
+
+                    <div className="md:col-span-2">
+                        <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Description</Label>
+                        <Input
+                            type="text"
+                            value={description}
+                            onChange={e => setDescription(e.target.value)}
+                            required
+                            className="h-10 sm:h-11 mt-1 text-xs sm:text-sm rounded-xl w-full border-slate-200 dark:border-slate-700"
+                        />
+                    </div>
+
+                    {/* Calculation Helper Info */}
                     {(employeeName && employees?.find(e => e.name === employeeName)) && (
                         <div className="md:col-span-2">
                             {(() => {
@@ -58,11 +101,11 @@ export default function ManualSalaryCard({
                                 if (!isPerContainer && dailyGallons <= 100) return null;
 
                                 return (
-                                    <div className="bg-blue-50/50 p-2 rounded-lg border border-blue-100 text-[11px] sm:text-xs text-blue-800 flex flex-wrap gap-x-4 gap-y-1">
+                                    <div className="bg-blue-50/60 dark:bg-blue-950/30 p-2.5 rounded-xl border border-blue-100 dark:border-blue-900/50 text-[11px] text-blue-900 dark:text-blue-200 flex flex-wrap gap-x-4 gap-y-1">
                                         {isPerContainer && (
                                             <span>
-                                                <span className="font-bold opacity-70 uppercase mr-1">Base Calculation:</span>
-                                                {dailyGallons} gal × ₱{emp.container_multiplier} = {currency(dailyGallons * Number(emp.container_multiplier), { symbol: '₱' }).format()}
+                                                <span className="font-bold opacity-70 uppercase mr-1">Base:</span>
+                                                {dailyGallons} gal × ₱{emp.container_multiplier} = {currency(dailyGallons * Number(emp.container_multiplier || 1), { symbol: '₱' }).format()}
                                             </span>
                                         )}
                                         {dailyGallons > 100 && (
@@ -78,17 +121,17 @@ export default function ManualSalaryCard({
                     )}
 
                     {dailyGallons > 100 && (
-                        <div className="md:col-span-2 bg-orange-50 p-3 rounded-lg border border-orange-100 flex flex-col sm:flex-row justify-between items-center gap-3">
-                            <div className="flex items-center gap-2 text-orange-800 text-sm font-medium">
-                                <AlertCircle className="w-5 h-5 text-orange-500 shrink-0" />
-                                <span>Quota exceeded: {dailyGallons - 100} gallons exceed the 100-gal daily quota.</span>
+                        <div className="md:col-span-2 bg-amber-50 dark:bg-amber-950/30 p-3 rounded-xl border border-amber-200 dark:border-amber-900/50 flex flex-col sm:flex-row justify-between items-center gap-2.5">
+                            <div className="flex items-center gap-2 text-amber-900 dark:text-amber-300 text-xs font-medium">
+                                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                                <span>Quota Exceeded: {dailyGallons - 100} gallons exceed the 100-gal quota.</span>
                             </div>
                             <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
-                                <Label className="whitespace-nowrap text-orange-900 mb-0">Multiplier:</Label>
+                                <Label className="whitespace-nowrap text-amber-950 dark:text-amber-200 text-xs mb-0 font-bold">Multiplier:</Label>
                                 <Select
                                     value={excessMultiplier}
                                     onChange={e => setExcessMultiplier(e.target.value)}
-                                    className="h-10 w-full sm:w-32 bg-white border-orange-200"
+                                    className="h-9 w-full sm:w-28 text-xs bg-white dark:bg-slate-800 border-amber-200 dark:border-amber-800 rounded-lg"
                                 >
                                     <option value="0">x0</option>
                                     <option value="0.5">x0.5</option>
@@ -107,8 +150,13 @@ export default function ManualSalaryCard({
                     )}
 
                     <div className="md:col-span-2">
-                        <Button type="submit" disabled={isPending} className="btn--primary w-full h-11">
-                            {isPending ? 'Saving...' : 'Record Salary'}
+                        <Button
+                            type="submit"
+                            disabled={isPending}
+                            className="w-full h-11 bg-[#8DB600] hover:bg-[#7ca000] text-white font-bold text-xs sm:text-sm rounded-xl shadow-xs transition-all active:scale-[0.99] flex items-center justify-center gap-2"
+                        >
+                            <Plus className="w-4 h-4" />
+                            <span>{isPending ? 'Saving...' : 'Record Salary'}</span>
                         </Button>
                     </div>
                 </form>

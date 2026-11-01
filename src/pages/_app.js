@@ -1,4 +1,4 @@
-// pages/_app.js
+// src/pages/_app.js
 import '../../styles/globals.css';
 import '../../styles/navbar.css';
 import 'react-day-picker/dist/style.css';
@@ -18,6 +18,9 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import Head from 'next/head';
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/next";
+
+// Transition Component
+import CinematicTransition from '../components/transitions/CinematicTransition';
 
 const titleMap = {
     '/': 'Seaside Purified Water Refilling Station | Labrador, Pangasinan',
@@ -138,8 +141,37 @@ function AuthGate({ children }) {
 }
 
 export default function App({ Component, pageProps }) {
-    const { toasts, dismissToast, darkMode } = useStore();
+    const { toasts, dismissToast, darkMode, user } = useStore();
     const router = useRouter();
+
+    // Transition state for root '/' and '/about'
+    const [isTransitionActive, setIsTransitionActive] = useState(false);
+
+    useEffect(() => {
+        const checkShouldTransition = (path) => {
+            const cleanPath = (path || router.pathname).split('?')[0].split('#')[0].toLowerCase();
+            return cleanPath === '/' || cleanPath === '/about';
+        };
+
+        // Trigger on initial entry if visiting '/' or '/about'
+        if (checkShouldTransition(router.pathname)) {
+            setIsTransitionActive(true);
+        }
+
+        // Trigger whenever user navigates into '/' or '/about'
+        const handleRouteChangeStart = (url) => {
+            const targetPath = url.split('?')[0].split('#')[0].toLowerCase();
+            const currentPath = router.asPath.split('?')[0].split('#')[0].toLowerCase();
+            if ((targetPath === '/' || targetPath === '/about') && targetPath !== currentPath) {
+                setIsTransitionActive(true);
+            }
+        };
+
+        router.events.on('routeChangeStart', handleRouteChangeStart);
+        return () => {
+            router.events.off('routeChangeStart', handleRouteChangeStart);
+        };
+    }, [router]);
 
     const [queryClient] = useState(() => new QueryClient({
         defaultOptions: {
@@ -202,22 +234,36 @@ export default function App({ Component, pageProps }) {
                     <link rel="apple-touch-icon" href="/seasidelogo_.png" />
                     <meta name="google-site-verification" content="kd1wSsNQZCjJmyp4LaQKI9Mr7s6Z9_I5Z3ETpaW1EVc" />
                 </Head>
+
+                {/* Refilling Transition Overlay */}
+                {isTransitionActive && (
+                    <CinematicTransition onComplete={() => setIsTransitionActive(false)} />
+                )}
+
                 <AuthGate>
                     <div className={`app responsive-page ${!hideNav ? 'md:pl-64' : ''}`}>
+                        {user?.isDemo && !isPublicPage && (
+                            <div className="fixed top-0 left-0 right-0 z-[9999] bg-amber-50 dark:bg-amber-950/60 border-b border-amber-200 dark:border-amber-800/60 shadow-sm">
+                                <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-center gap-2 text-amber-800 dark:text-amber-200">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-amber-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                                    <span className="text-xs font-bold">Demo Mode — All data is read-only. Adding, editing, and deleting are disabled.</span>
+                                </div>
+                            </div>
+                        )}
                         {!hideNav && <Navbar />}
                         {!hideNav && <TabBar />}
 
                         {isPublicPage ? (
                             <Component {...pageProps} />
                         ) : (
-                            <main className="main">
+                            <main className="main pb-20 md:pb-6">
                                 <div className="container">
                                     <Component {...pageProps} />
                                 </div>
                             </main>
                         )}
 
-                        <div className="toasts fixed bottom-4 right-4 z-50 flex flex-col items-end gap-3" aria-live="polite">
+                        <div className="toasts fixed bottom-20 md:bottom-4 right-4 z-50 flex flex-col items-end gap-3" aria-live="polite">
                             {toasts.map(t => (
                                 <div key={t.id} className={`toast bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4 rounded-lg shadow-xl w-80 max-w-[calc(100vw-2rem)] flex items-start gap-3 ${
                                     t.variant === 'destructive' ? 'border-l-4 border-red-500' :

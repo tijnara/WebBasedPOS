@@ -3,11 +3,26 @@ import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabaseClient';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell, Input, Button } from '../ui';
-import { format, parseISO } from 'date-fns';
-import { Search, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
+import { format, parseISO, differenceInDays } from 'date-fns';
+import { Search, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, ArrowUpDown, UserX, X, Clock } from 'lucide-react';
 import { useDebounce } from '../../hooks/useDebounce';
 
 const PAGE_SIZE = 10;
+
+const highlightMatch = (text = '', query = '') => {
+    if (!query.trim() || !text) return text;
+    const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    const parts = text.split(regex);
+    return parts.map((part, i) =>
+        regex.test(part) ? (
+            <mark key={i} className="bg-lime-200 text-slate-900 rounded-xs px-0.5 font-black">
+                {part}
+            </mark>
+        ) : (
+            part
+        )
+    );
+};
 
 export default function LapsedCustomersTab({ enabled }) {
     const [searchTerm, setSearchTerm] = useState('');
@@ -65,20 +80,25 @@ export default function LapsedCustomersTab({ enabled }) {
         const isActive = sortConfig.key === key;
         return (
             <TableHead
-                className={`font-semibold text-gray-600 ${align === 'right' ? 'text-right' : ''}`}
+                className={`font-bold text-slate-600 text-xs ${align === 'right' ? 'text-right' : ''}`}
             >
                 <button
                     type="button"
                     onClick={() => handleSort(key)}
                     aria-label={`Sort by ${label}; currently ${isActive ? sortConfig.direction : 'unsorted'}`}
-                    aria-pressed={isActive}
-                    className={`flex w-full items-center gap-1 text-left font-semibold text-gray-600 select-none hover:text-gray-900 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${align === 'right' ? 'justify-end text-right' : ''}`}
+                    className={`flex items-center gap-1.5 font-bold text-slate-600 select-none hover:text-slate-900 transition-colors ${
+                        align === 'right' ? 'ml-auto justify-end text-right' : 'text-left'
+                    }`}
                 >
-                    {label}
+                    <span>{label}</span>
                     {isActive ? (
-                        sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3 text-primary" /> : <ArrowDown className="w-3 h-3 text-primary" />
+                        sortConfig.direction === 'asc' ? (
+                            <ArrowUp className="w-3.5 h-3.5 text-[#5f7d00]" />
+                        ) : (
+                            <ArrowDown className="w-3.5 h-3.5 text-[#5f7d00]" />
+                        )
                     ) : (
-                        <ArrowUpDown className="w-3 h-3 text-gray-300" />
+                        <ArrowUpDown className="w-3.5 h-3.5 text-slate-300" />
                     )}
                 </button>
             </TableHead>
@@ -87,116 +107,165 @@ export default function LapsedCustomersTab({ enabled }) {
 
     if (!enabled) return null;
 
-    return (
-        <div className="space-y-4 animate-in fade-in duration-300">
-            <div className="bg-white rounded-lg p-3 sm:p-5 shadow-sm border border-gray-100">
-                <h3 className="text-lg font-bold text-gray-900 mb-2">Inactive / Dropped-Off Customers</h3>
-                <p className="text-sm text-gray-500 mb-4">
-                    Customers registered for more than a month whose last order was over a month ago.
-                    Averages are calculated across their entire lifetime order history.
-                </p>
+    const customers = data?.customers || [];
+    const totalCount = data?.totalCount || 0;
+    const totalPages = Math.max(1, data?.totalPages || 1);
 
-                <div className="relative w-full sm:max-w-sm mb-4">
-                    <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+    return (
+        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-4 sm:p-6 space-y-5 animate-in fade-in duration-200">
+            {/* Header Toolbar */}
+            <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 pb-4 border-b border-slate-100">
+                <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0 shadow-2xs">
+                        <UserX className="w-5 h-5 stroke-[2.2]" />
+                    </div>
+                    <div>
+                        <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+                            Inactive / Dropped-Off Customers
+                        </h2>
+                        <p className="text-xs text-slate-500 font-medium">
+                            Customers registered over a month ago whose last refill order was 30+ days ago.
+                        </p>
+                    </div>
+                </div>
+
+                {/* Fixed Search Input */}
+                <div className="relative w-full sm:w-72">
+                    <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                     <Input
                         type="text"
                         placeholder="Search lapsed customers..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10"
+                        className="h-9 !pl-10 !pr-8 text-xs rounded-xl bg-slate-50/70 border-slate-200 focus:bg-white w-full"
+                        style={{ paddingLeft: '2.5rem', paddingRight: searchTerm ? '2rem' : '0.75rem' }}
                     />
+                    {searchTerm && (
+                        <button
+                            type="button"
+                            onClick={() => setSearchTerm('')}
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-700 transition-colors"
+                            title="Clear search"
+                        >
+                            <X className="w-3.5 h-3.5" />
+                        </button>
+                    )}
                 </div>
-
-                <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
-                    <div className="overflow-x-auto overscroll-x-contain">
-                        <div className="min-w-[640px]">
-                            <Table className="!block">
-                                <TableHeader>
-                                    <TableRow className="bg-gray-50/50">
-                                        {renderSortHeader('Customer', 'customer_name')}
-                                        {renderSortHeader('Phone', 'customer_phone')}
-                                        {renderSortHeader('Registered', 'date_registered')}
-                                        {renderSortHeader('Last Order', 'last_order_date')}
-                                        {renderSortHeader('Average Refills', 'avg_refills', 'right')}
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {isLoading ? (
-                                        <TableRow>
-                                            <TableCell colSpan={5} className="text-center py-8 text-gray-500">Loading data...</TableCell>
-                                        </TableRow>
-                                    ) : isError ? (
-                                        <TableRow>
-                                            <TableCell colSpan={5} className="text-center py-8 text-red-500">Failed to load customers.</TableCell>
-                                        </TableRow>
-                                    ) : data?.customers.length === 0 ? (
-                                        <TableRow>
-                                            <TableCell colSpan={5} className="text-center py-8 text-gray-500">No dropped off customers found.</TableCell>
-                                        </TableRow>
-                                    ) : (
-                                        data.customers.map(c => (
-                                            <TableRow key={c.customer_id} className="hover:bg-gray-50 transition-colors">
-                                                <TableCell className="font-medium text-gray-900">{c.customer_name}</TableCell>
-                                                <TableCell className="text-gray-500">{c.customer_phone || 'N/A'}</TableCell>
-                                                <TableCell className="text-gray-500">
-                                                    {c.date_registered ? format(parseISO(c.date_registered), 'MMM dd, yyyy') : 'N/A'}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {c.last_order_date ? (
-                                                        <span className="text-gray-700">
-                                                            {format(parseISO(c.last_order_date), 'MMM dd, yyyy')}
-                                                        </span>
-                                                    ) : (
-                                                        <span className="text-gray-400 italic">No orders</span>
-                                                    )}
-                                                </TableCell>
-                                                <TableCell className="text-right">
-                                                    <div className="font-bold text-gray-900">{c.avg_refills} gal</div>
-                                                    <div className="text-[10px] text-gray-500 uppercase tracking-wider mt-0.5">
-                                                        ({c.total_orders} total orders)
-                                                    </div>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Pagination Controls */}
-                {data && data.totalCount > 0 && (
-                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mt-4 text-sm bg-white p-3 border rounded-lg shadow-sm">
-                        <span className="text-gray-500 font-medium">
-                            Showing {data.customers.length} of {data.totalCount} customers
-                        </span>
-                        <div className="flex flex-wrap items-center gap-2">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                disabled={page <= 1 || isLoading}
-                                onClick={() => setPage(p => Math.max(1, p - 1))}
-                                className="flex items-center gap-1"
-                            >
-                                <ChevronLeft className="w-4 h-4 mr-1" /> Prev
-                            </Button>
-                            <span className="font-bold text-gray-700 px-2">
-                                Page {page} of {Math.max(1, data.totalPages)}
-                            </span>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                disabled={page >= data.totalPages || isLoading}
-                                onClick={() => setPage(p => p + 1)}
-                                className="flex items-center gap-1"
-                            >
-                                Next <ChevronRight className="w-4 h-4 ml-1" />
-                            </Button>
-                        </div>
-                    </div>
-                )}
             </div>
+
+            {/* Table */}
+            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-2xs">
+                <div className="overflow-x-auto">
+                    <Table>
+                        <TableHeader>
+                            <TableRow className="bg-slate-100/70 border-b border-slate-200">
+                                {renderSortHeader('Customer', 'customer_name')}
+                                {renderSortHeader('Phone', 'customer_phone')}
+                                {renderSortHeader('Registered', 'date_registered')}
+                                {renderSortHeader('Last Order', 'last_order_date')}
+                                {renderSortHeader('Lifetime Averages', 'avg_refills', 'right')}
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {isLoading ? (
+                                <TableRow>
+                                    <TableCell colSpan={5} className="text-center py-12 text-slate-400 font-semibold">
+                                        Loading dropped-off customers...
+                                    </TableCell>
+                                </TableRow>
+                            ) : isError ? (
+                                <TableRow>
+                                    <TableCell colSpan={5} className="text-center py-12 text-rose-500 font-semibold">
+                                        Failed to load inactive customer data.
+                                    </TableCell>
+                                </TableRow>
+                            ) : customers.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={5} className="text-center py-12 text-slate-400 font-semibold">
+                                        No dropped-off customer records found.
+                                    </TableCell>
+                                </TableRow>
+                            ) : (
+                                customers.map((c) => {
+                                    const parsedLastDate = c.last_order_date ? parseISO(c.last_order_date) : null;
+                                    const daysAgo = parsedLastDate ? differenceInDays(new Date(), parsedLastDate) : null;
+
+                                    return (
+                                        <TableRow key={c.customer_id} className="hover:bg-slate-50/70 transition-colors text-xs">
+                                            <td className="px-4 py-3 font-bold text-slate-800 text-xs sm:text-sm">
+                                                {highlightMatch(c.customer_name, searchTerm)}
+                                            </td>
+                                            <td className="px-4 py-3 text-slate-500 font-medium">
+                                                {c.customer_phone || <span className="text-slate-300">N/A</span>}
+                                            </td>
+                                            <td className="px-4 py-3 text-slate-500 font-medium whitespace-nowrap">
+                                                {c.date_registered ? format(parseISO(c.date_registered), 'MMM d, yyyy') : 'N/A'}
+                                            </td>
+                                            <td className="px-4 py-3 whitespace-nowrap">
+                                                {parsedLastDate ? (
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="font-semibold text-slate-700">
+                                                            {format(parsedLastDate, 'MMM d, yyyy')}
+                                                        </span>
+                                                        {daysAgo !== null && (
+                                                            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
+                                                                <Clock className="w-2.5 h-2.5" />
+                                                                {daysAgo}d inactive
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-slate-400 italic">No orders</span>
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-3 text-right whitespace-nowrap">
+                                                <div className="font-black text-slate-800 text-xs">
+                                                    {c.avg_refills} gal / order
+                                                </div>
+                                                <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mt-0.5">
+                                                    {c.total_orders} total orders
+                                                </div>
+                                            </td>
+                                        </TableRow>
+                                    );
+                                })
+                            )}
+                        </TableBody>
+                    </Table>
+                </div>
+            </div>
+
+            {/* Pagination Controls */}
+            {totalCount > 0 && (
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 pt-2">
+                    <span className="text-xs text-slate-500 font-medium">
+                        Showing <strong className="text-slate-800">{customers.length}</strong> of <strong className="text-slate-800">{totalCount}</strong> dropped-off customers
+                    </span>
+                    <div className="flex items-center gap-1.5 self-end sm:self-auto">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={page <= 1 || isLoading}
+                            onClick={() => setPage((p) => Math.max(1, p - 1))}
+                            className="h-8 px-3 rounded-lg border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-bold"
+                        >
+                            <ChevronLeft className="w-3.5 h-3.5 mr-1" /> Prev
+                        </Button>
+                        <span className="text-xs font-bold text-slate-700 px-2">
+                            {page} / {totalPages}
+                        </span>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={page >= totalPages || isLoading}
+                            onClick={() => setPage((p) => p + 1)}
+                            className="h-8 px-3 rounded-lg border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-bold"
+                        >
+                            Next <ChevronRight className="w-3.5 h-3.5 ml-1" />
+                        </Button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

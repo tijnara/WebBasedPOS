@@ -5,17 +5,21 @@ html:has(.pos-page),
 body:has(.pos-page) {
     overflow: hidden !important;
     height: 100vh !important;
+    height: 100dvh !important;
     max-height: 100vh !important;
+    max-height: 100dvh !important;
     margin: 0 !important;
     padding: 0 !important;
 }
 
-/* 2. Desktop (>= 768px): Subtract 4rem Navbar only */
+/* 2. Desktop (>= 768px): Subtract 4rem (h-16) Header */
 @media (min-width: 768px) {
     body:has(.pos-page) .main,
     .app:has(.pos-page) .main {
         height: calc(100vh - 4rem) !important;
+        height: calc(100dvh - 4rem) !important;
         max-height: calc(100vh - 4rem) !important;
+        max-height: calc(100dvh - 4rem) !important;
         margin-top: 4rem !important;
         padding: 0 !important;
         overflow: hidden !important;
@@ -23,14 +27,14 @@ body:has(.pos-page) {
     }
 }
 
-/* 3. Mobile (< 768px): Subtract 4rem Navbar AND 3.75rem Bottom TabBar */
+/* 3. Mobile (< 768px): Subtract 3.5rem (h-14) Header AND 4rem (h-16) Bottom TabBar */
 @media (max-width: 767px) {
     body:has(.pos-page) .main,
     .app:has(.pos-page) .main {
-        height: calc(100vh - 4rem - 3.75rem) !important;
-        height: calc(100dvh - 4rem - 3.75rem) !important;
-        max-height: calc(100dvh - 4rem - 3.75rem) !important;
-        margin-top: 4rem !important;
+        height: calc(100vh - 3.5rem - 4rem) !important;
+        height: calc(100dvh - 3.5rem - 4rem) !important;
+        max-height: calc(100dvh - 3.5rem - 4rem) !important;
+        margin-top: 3.5rem !important;
         padding: 0 !important;
         overflow: hidden !important;
         box-sizing: border-box !important;
@@ -47,14 +51,29 @@ body:has(.pos-page) .container,
     overflow: hidden !important;
 }
 
-/* 4. Hide floating mascot and notes buttons on POS, but preserve POS drawers and bars */
+/* 4. Hide floating mascot and notes buttons on POS, but preserve POS action bars */
 body:has(.pos-page) > div > button.fixed:not(.pos-action),
 body:has(.pos-page) .floating-notes,
 body:has(.pos-page) .floating-messages {
     display: none !important;
 }
 
-/* 5. Remove sticky button focus rings */
+/* 5. Mobile Floating Cart & Action Bar Alignment */
+@media (max-width: 767px) {
+    .mobile-cart-bar,
+    .pos-mobile-cart-footer,
+    .pos-mobile-cart-bar {
+        position: fixed !important;
+        bottom: calc(4.25rem + env(safe-area-inset-bottom, 0px)) !important;
+        left: 0.75rem !important;
+        right: 0.75rem !important;
+        z-index: 39 !important;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
+        border-radius: 1rem !important;
+    }
+}
+
+/* 6. Remove sticky button focus rings */
 .pos-product-card:focus,
 .pos-product-card:focus-visible,
 .pos-product-card:active {
@@ -67,7 +86,7 @@ body:has(.pos-page) .floating-messages {
     transform: translateY(-1.5px);
 }
 
-/* 6. Product Grid Scrollbar */
+/* 7. Product Grid Scrollbar */
 .pos-product-scroll-area {
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
@@ -88,7 +107,7 @@ body:has(.pos-page) .floating-messages {
     background: #8DB600;
 }
 
-/* 7. Horizontal Category Scrollbar */
+/* 8. Horizontal Category Scrollbar */
 .category-scroll-container {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;

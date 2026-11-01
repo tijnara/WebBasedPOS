@@ -6,7 +6,7 @@ import {
     Table, TableHeader, TableRow, TableHead, TableBody, TableCell
 } from '../ui';
 import { formatInTimeZone, toDate } from 'date-fns-tz';
-import { ChevronLeft, ChevronRight, Calendar, FileDown, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, FileDown, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
 
 const TIME_ZONE = 'Asia/Manila';
 
@@ -104,6 +104,16 @@ export default function SalaryHistoryCard({
                                               isCustomRangeActive
                                           }) {
     const [isExporting, setIsExporting] = useState(false);
+    // Employee accordion state for mobile view
+    const [expandedEmployees, setExpandedEmployees] = useState(() => new Set());
+
+    const toggleEmployee = (empName) => {
+        setExpandedEmployees(prev => {
+            const next = new Set(prev);
+            next.has(empName) ? next.delete(empName) : next.add(empName);
+            return next;
+        });
+    };
 
     const handleDownloadPDF = async () => {
         setIsExporting(true);
@@ -169,7 +179,6 @@ export default function SalaryHistoryCard({
                 doc.text('No salary records found for this period.', 14, currentY + 10);
             } else {
                 entries.forEach(([empName, records]) => {
-                    // Check remaining vertical height before drawing next employee table
                     if (currentY > doc.internal.pageSize.height - 45) {
                         doc.addPage();
                         currentY = 20;
@@ -325,24 +334,24 @@ export default function SalaryHistoryCard({
     };
 
     return (
-        <Card className="rounded-2xl border border-slate-200/90 shadow-2xs bg-white overflow-hidden">
-            <CardHeader className="border-b border-gray-100 p-4 sm:p-5 space-y-4">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div className="flex-1">
-                        <h3 className="font-bold text-base sm:text-lg text-slate-900">
+        <Card className="rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs bg-white dark:bg-slate-900 overflow-hidden">
+            <CardHeader className="border-b border-gray-100 dark:border-slate-800 p-4 sm:p-5 space-y-4">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+                    <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-base sm:text-lg text-slate-900 dark:text-white truncate">
                             Salary History (Gross Payouts)
                         </h3>
-                        <p className="text-xs text-gray-500 mt-1 uppercase tracking-wider font-semibold">
-                            Period: {formatInTimeZone(toDate(period.start), TIME_ZONE, 'EEE, MMM d, yyyy')} — {formatInTimeZone(toDate(period.end), TIME_ZONE, 'EEE, MMM d, yyyy')}
+                        <p className="text-[11px] sm:text-xs text-gray-500 dark:text-slate-400 mt-0.5 uppercase tracking-wider font-semibold truncate">
+                            Period: {formatInTimeZone(toDate(period.start), TIME_ZONE, 'EEE, MMM d')} — {formatInTimeZone(toDate(period.end), TIME_ZONE, 'EEE, MMM d, yyyy')}
                         </p>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-                        <div className="w-full sm:w-48">
+                    <div className="flex flex-wrap items-center justify-between md:justify-end gap-3 w-full md:w-auto">
+                        <div className="w-full sm:w-44">
                             <Select
                                 value={filterEmployee}
                                 onChange={e => setFilterEmployee(e.target.value)}
-                                className="w-full h-9 text-xs"
+                                className="w-full h-9 text-xs rounded-xl"
                             >
                                 <option value="all">All Employees</option>
                                 {employees?.map(emp => (
@@ -351,99 +360,137 @@ export default function SalaryHistoryCard({
                             </Select>
                         </div>
 
-                        <div className="text-right">
-                            <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Period Total</p>
-                            <p className="text-xl font-bold text-red-600">
-                                {currency(periodTotal, { symbol: '₱' }).format()}
-                            </p>
-                        </div>
+                        <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto pt-1 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-slate-800">
+                            <div className="text-left sm:text-right">
+                                <p className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Period Total</p>
+                                <p className="text-base sm:text-lg font-black text-red-600">
+                                    {currency(periodTotal, { symbol: '₱' }).format()}
+                                </p>
+                            </div>
 
-                        {/* PDF Download Button */}
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={handleDownloadPDF}
-                            disabled={isExporting || isSalaryLoading || Object.keys(groupedRecords || {}).length === 0}
-                            className="h-9 px-3 rounded-xl border-slate-200 text-slate-700 hover:text-emerald-700 hover:border-emerald-300 hover:bg-emerald-50 text-xs font-bold flex items-center gap-1.5 transition-all shadow-2xs active:scale-95 shrink-0"
-                            title="Download Salary History as PDF"
-                        >
-                            {isExporting ? (
-                                <>
-                                    <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600" />
-                                    <span>Exporting...</span>
-                                </>
-                            ) : (
-                                <>
-                                    <FileDown className="w-4 h-4 text-emerald-600" />
-                                    <span>Download PDF</span>
-                                </>
-                            )}
-                        </Button>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={handleDownloadPDF}
+                                disabled={isExporting || isSalaryLoading || Object.keys(groupedRecords || {}).length === 0}
+                                className="h-9 px-3 rounded-xl border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:text-emerald-700 hover:border-emerald-300 hover:bg-emerald-50 text-xs font-bold flex items-center gap-1.5 transition-all shadow-2xs active:scale-95 shrink-0"
+                                title="Download Salary History as PDF"
+                            >
+                                {isExporting ? (
+                                    <>
+                                        <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600" />
+                                        <span>Exporting...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <FileDown className="w-4 h-4 text-emerald-600" />
+                                        <span>PDF</span>
+                                    </>
+                                )}
+                            </Button>
+                        </div>
                     </div>
                 </div>
 
-                {/* Custom Date Filter */}
-                <div className="flex flex-col md:flex-row items-center gap-2 p-3 bg-gray-50 rounded-xl border border-gray-100">
-                    <Calendar className="w-5 h-5 text-gray-500 shrink-0" />
-                    <Label className="font-semibold text-xs sm:text-sm shrink-0">Custom Date Range:</Label>
-                    <Input
-                        type="date"
-                        value={customStartDate}
-                        onChange={e => setCustomStartDate(e.target.value)}
-                        className="h-9 w-full sm:max-w-xs text-xs bg-white"
-                    />
-                    <span className="hidden sm:inline text-gray-500">-</span>
-                    <Input
-                        type="date"
-                        value={customEndDate}
-                        onChange={e => setCustomEndDate(e.target.value)}
-                        className="h-9 w-full sm:max-w-xs text-xs bg-white"
-                    />
-                    <Button onClick={handleApplyCustomDate} className="h-9 btn-primary w-full sm:w-auto text-xs font-bold">
-                        Apply
-                    </Button>
+                {/* Compact Custom Date Range: 2-column row on mobile */}
+                <div className="p-3 bg-gray-50 dark:bg-slate-800/60 rounded-xl border border-gray-100 dark:border-slate-800 space-y-2.5">
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300">
+                        <Calendar className="w-4 h-4 text-[#8DB600] shrink-0" />
+                        <span>Custom Date Range</span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-end">
+                        <div className="sm:col-span-5">
+                            <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Start Date</span>
+                            <Input
+                                type="date"
+                                value={customStartDate}
+                                onChange={e => setCustomStartDate(e.target.value)}
+                                className="h-9 w-full text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 rounded-lg"
+                            />
+                        </div>
+                        <div className="sm:col-span-5">
+                            <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">End Date</span>
+                            <Input
+                                type="date"
+                                value={customEndDate}
+                                onChange={e => setCustomEndDate(e.target.value)}
+                                className="h-9 w-full text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 rounded-lg"
+                            />
+                        </div>
+                        <div className="sm:col-span-2">
+                            <Button
+                                onClick={handleApplyCustomDate}
+                                className="h-9 w-full bg-[#8DB600] hover:bg-[#7ca000] text-white text-xs font-bold rounded-lg shadow-2xs active:scale-95"
+                            >
+                                Apply
+                            </Button>
+                        </div>
+                    </div>
                 </div>
             </CardHeader>
 
             <CardContent className="p-0">
                 {isSalaryLoading ? (
-                    <p className="text-center py-8 text-sm text-gray-500">Loading salary records...</p>
+                    <p className="text-center py-8 text-xs text-gray-500">Loading salary records...</p>
                 ) : Object.keys(groupedRecords || {}).length === 0 ? (
-                    <p className="text-center py-8 text-sm text-gray-500">No records found for this period.</p>
+                    <p className="text-center py-8 text-xs text-gray-500">No records found for this period.</p>
                 ) : (
                     Object.entries(groupedRecords).map(([employeeName, records]) => {
                         const employeeTotal = records.reduce((sum, record) => sum + Number(record.amount || 0), 0);
                         const splitItems = records.flatMap(splitSalaryRecord);
+                        const isExpanded = filterEmployee !== 'all' || expandedEmployees.has(employeeName);
 
                         return (
-                            <div key={employeeName} className="border-b last:border-b-0">
-                                <div className="bg-gray-50/70 p-3.5 flex justify-between items-center border-b border-gray-100">
-                                    <h4 className="font-bold text-sm text-slate-800">{employeeName}</h4>
-                                    <div className="text-right">
-                                        <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">Employee Total</p>
-                                        <p className="font-bold text-red-600 text-sm">{currency(employeeTotal, { symbol: '₱' }).format()}</p>
+                            <div key={employeeName} className="border-b last:border-b-0 border-gray-100 dark:border-slate-800">
+                                {/* Employee Header Card / Accordion Trigger */}
+                                <div
+                                    onClick={() => toggleEmployee(employeeName)}
+                                    className="bg-gray-50/80 dark:bg-slate-800/60 p-3 sm:p-3.5 flex justify-between items-center border-b border-gray-100 dark:border-slate-800 cursor-pointer select-none transition-colors hover:bg-gray-100/70 dark:hover:bg-slate-800"
+                                >
+                                    <div className="flex items-center gap-2.5 min-w-0">
+                                        <div className="w-7 h-7 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-black text-xs flex items-center justify-center shrink-0">
+                                            {employeeName.charAt(0)}
+                                        </div>
+                                        <div className="min-w-0">
+                                            <h4 className="font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-200 truncate">{employeeName}</h4>
+                                            <span className="text-[10px] text-slate-400 font-medium md:hidden block">
+                                                {splitItems.length} payout item{splitItems.length === 1 ? '' : 's'}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-3 shrink-0">
+                                        <div className="text-right">
+                                            <p className="text-[9px] sm:text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Subtotal</p>
+                                            <p className="font-bold text-red-600 dark:text-red-400 text-xs sm:text-sm">
+                                                {currency(employeeTotal, { symbol: '₱' }).format()}
+                                            </p>
+                                        </div>
+                                        <div className="md:hidden p-1 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-500">
+                                            {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                                        </div>
                                     </div>
                                 </div>
 
-                                {/* Desktop Table */}
+                                {/* Desktop Table View: always rendered on large screens */}
                                 <div className="hidden md:block">
                                     <Table>
                                         <TableHeader>
                                             <TableRow>
-                                                <TableHead className="w-56">Date</TableHead>
-                                                <TableHead>Description</TableHead>
-                                                <TableHead className="text-right w-40">Gross Amount</TableHead>
+                                                <TableHead className="w-56 text-[11px]">Date</TableHead>
+                                                <TableHead className="text-[11px]">Description</TableHead>
+                                                <TableHead className="text-right w-40 text-[11px]">Gross Amount</TableHead>
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
                                             {splitItems.map(item => (
-                                                <TableRow key={item.id} className={item.isBonus ? 'bg-amber-50/30' : ''}>
-                                                    <TableCell className="text-xs text-gray-600">
+                                                <TableRow key={item.id} className={item.isBonus ? 'bg-amber-50/30 dark:bg-amber-950/10' : ''}>
+                                                    <TableCell className="text-xs text-gray-600 dark:text-slate-300">
                                                         {item.date ? formatInTimeZone(toDate(item.date), TIME_ZONE, 'EEE, MMM d, yyyy h:mm a') : 'N/A'}
                                                     </TableCell>
                                                     <TableCell className="text-xs font-medium">
                                                         {item.isBonus ? (
-                                                            <span className="text-amber-800 font-bold flex items-center gap-1.5">
+                                                            <span className="text-amber-800 dark:text-amber-400 font-bold flex items-center gap-1.5">
                                                                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
                                                                 {item.description}
                                                             </span>
@@ -451,7 +498,7 @@ export default function SalaryHistoryCard({
                                                             item.description
                                                         )}
                                                     </TableCell>
-                                                    <TableCell className={`text-right font-bold text-xs ${item.isBonus ? 'text-amber-700' : Number(item.amount) < 0 ? 'text-red-600' : 'text-gray-800'}`}>
+                                                    <TableCell className={`text-right font-bold text-xs ${item.isBonus ? 'text-amber-700 dark:text-amber-400' : Number(item.amount) < 0 ? 'text-red-600' : 'text-gray-800 dark:text-slate-200'}`}>
                                                         {currency(item.amount, { symbol: '₱' }).format()}
                                                     </TableCell>
                                                 </TableRow>
@@ -460,25 +507,27 @@ export default function SalaryHistoryCard({
                                     </Table>
                                 </div>
 
-                                {/* Mobile List */}
-                                <div className="block md:hidden p-4 space-y-3">
+                                {/* Mobile List View: Accordion-Controlled */}
+                                <div className={`block md:hidden ${isExpanded ? 'p-3 space-y-2' : 'hidden'}`}>
                                     {splitItems.map(item => (
                                         <div
                                             key={item.id}
-                                            className={`p-3 rounded-xl shadow-2xs border ${
-                                                item.isBonus ? 'bg-amber-50/50 border-amber-200/80' : 'bg-white border-gray-100'
+                                            className={`p-2.5 rounded-xl border transition-all ${
+                                                item.isBonus
+                                                    ? 'bg-amber-50/70 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800/70'
+                                                    : 'bg-white dark:bg-slate-850 border-gray-100 dark:border-slate-800 shadow-2xs'
                                             }`}
                                         >
-                                            <div className="flex justify-between items-start">
-                                                <span className={`text-xs flex-1 pr-2 font-medium ${item.isBonus ? 'text-amber-900 font-bold' : 'text-slate-800'}`}>
+                                            <div className="flex justify-between items-start gap-2">
+                                                <span className={`text-xs flex-1 min-w-0 font-medium ${item.isBonus ? 'text-amber-900 dark:text-amber-300 font-bold' : 'text-slate-800 dark:text-slate-200'}`}>
                                                     {item.description}
                                                 </span>
-                                                <span className={`font-bold text-sm ${item.isBonus ? 'text-amber-700' : Number(item.amount) < 0 ? 'text-red-600' : 'text-gray-800'}`}>
+                                                <span className={`font-bold text-xs sm:text-sm shrink-0 ${item.isBonus ? 'text-amber-700 dark:text-amber-400' : Number(item.amount) < 0 ? 'text-red-600' : 'text-slate-900 dark:text-slate-100'}`}>
                                                     {currency(item.amount, { symbol: '₱' }).format()}
                                                 </span>
                                             </div>
-                                            <p className="text-[11px] text-gray-400 mt-1 text-right">
-                                                {item.date ? formatInTimeZone(toDate(item.date), TIME_ZONE, 'EEE, MMM d, h:mm a') : 'N/A'}
+                                            <p className="text-[10px] text-gray-400 mt-1 text-right font-mono">
+                                                {item.date ? formatInTimeZone(toDate(item.date), TIME_ZONE, 'EEE, MMM d • h:mm a') : 'N/A'}
                                             </p>
                                         </div>
                                     ))}
@@ -490,16 +539,16 @@ export default function SalaryHistoryCard({
             </CardContent>
 
             {/* Period Navigation */}
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-b-xl border-t border-gray-100">
+            <div className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 dark:bg-slate-800/60 rounded-b-xl border-t border-gray-100 dark:border-slate-800">
                 <Button
                     onClick={() => handleSetPeriod(getPrevPeriod(period.start))}
                     disabled={isCustomRangeActive}
                     variant="outline"
-                    className="flex items-center gap-1 text-xs font-bold disabled:opacity-50"
+                    className="flex items-center gap-1 text-xs font-bold disabled:opacity-50 h-8 sm:h-9 px-2.5 sm:px-3"
                 >
-                    <ChevronLeft className="w-4 h-4" /> Prev 15-Day
+                    <ChevronLeft className="w-4 h-4" /> <span className="hidden sm:inline">Prev 15-Day</span><span className="sm:hidden">Prev</span>
                 </Button>
-                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                <span className="text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-wider text-center">
                     {isCustomRangeActive
                         ? 'Custom Range'
                         : `${formatInTimeZone(toDate(period.start), TIME_ZONE, 'MMM d')} - ${formatInTimeZone(toDate(period.end), TIME_ZONE, 'MMM d')}`}
@@ -508,9 +557,9 @@ export default function SalaryHistoryCard({
                     onClick={() => handleSetPeriod(getNextPeriod(period.start))}
                     disabled={isCustomRangeActive}
                     variant="outline"
-                    className="flex items-center gap-1 text-xs font-bold disabled:opacity-50"
+                    className="flex items-center gap-1 text-xs font-bold disabled:opacity-50 h-8 sm:h-9 px-2.5 sm:px-3"
                 >
-                    Next 15-Day <ChevronRight className="w-4 h-4" />
+                    <span className="hidden sm:inline">Next 15-Day</span><span className="sm:hidden">Next</span> <ChevronRight className="w-4 h-4" />
                 </Button>
             </div>
         </Card>
