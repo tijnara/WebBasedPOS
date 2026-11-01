@@ -4,24 +4,53 @@ import { Button, Dialog, DialogContent } from '../ui';
 import { ProductImage } from './ProductImage';
 import currency from 'currency.js';
 import { Edit2, Trash2, ShoppingBag, X } from 'lucide-react';
+import { useStore } from '../../store/useStore';
 
 const CartDrawer = ({
                         isOpen,
                         onClose,
-                        currentSale,
-                        subtotal,
+                        currentSale = {},
+                        subtotal = 0,
                         handleIncreaseQuantity,
                         handleDecreaseQuantity,
                         handleRemoveItem,
                         openPaymentModal,
-                        createSaleMutation,
+                        createSaleMutation = { isPending: false },
                         clearSale,
+                        onClearSale,
                         onEditItem,
                         handleSetQuantity,
                         stockWarningKey,
-                        isDemo
+                        isDemo = false
                     }) => {
-    const cartItems = Object.entries(currentSale);
+    const cartItems = Object.entries(currentSale || {});
+
+    // Direct, unblocked clear action that wipes the Zustand store immediately
+    const handleClearCart = (e) => {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        // 1. Invoke prop functions passed from POSPage
+        if (typeof clearSale === 'function') clearSale();
+        if (typeof onClearSale === 'function') onClearSale();
+
+        // 2. Direct Zustand store wipe to guarantee currentSale is cleared
+        try {
+            if (typeof useStore.getState().clearSale === 'function') {
+                useStore.getState().clearSale();
+            }
+            useStore.setState({ currentSale: {} });
+        } catch (err) {
+            console.error('Error clearing cart in store:', err);
+        }
+
+        // 3. Dismiss the mobile drawer
+        if (typeof onClose === 'function') {
+            onClose();
+        }
+    };
 
     const handleProceedToPayment = () => {
         onClose();
@@ -41,7 +70,7 @@ const CartDrawer = ({
                     <div className="w-10 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
                 </div>
 
-                {/* Header with Title and Dismiss Target */}
+                {/* Header with Title and Clear Cart Target */}
                 <div className="flex items-center justify-between px-4 sm:px-5 py-2.5 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex-shrink-0">
                     <div className="flex items-center gap-2">
                         <h2 className="text-sm font-extrabold text-[#8DB600] uppercase tracking-wide">Current Order</h2>
@@ -51,25 +80,23 @@ const CartDrawer = ({
                     </div>
 
                     <div className="flex items-center gap-2">
-                        <button
-                            type="button"
-                            onClick={() => {
-                                if (cartItems.length > 0 && confirm("Clear current order?")) {
-                                    clearSale();
-                                    onClose();
-                                } else if (cartItems.length === 0) {
-                                    onClose();
-                                }
-                            }}
-                            className="text-rose-500 text-xs font-bold hover:bg-rose-50 dark:hover:bg-rose-950/30 px-2 py-1 rounded-lg transition-colors"
-                            disabled={isDemo}
-                        >
-                            Clear Cart
-                        </button>
+                        {cartItems.length > 0 && (
+                            <button
+                                type="button"
+                                onClick={handleClearCart}
+                                title="Cancel and clear all items in current cart"
+                                className="text-rose-600 dark:text-rose-400 text-xs font-bold hover:bg-rose-50 dark:hover:bg-rose-950/30 px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1 border border-rose-200/80 dark:border-rose-900/50 active:scale-95 cursor-pointer"
+                                disabled={isDemo}
+                            >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                <span>Clear Cart</span>
+                            </button>
+                        )}
+
                         <button
                             type="button"
                             onClick={onClose}
-                            className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
+                            className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors cursor-pointer"
                             title="Back to product list"
                         >
                             <X className="w-4 h-4" />
@@ -127,7 +154,7 @@ const CartDrawer = ({
                                         <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5">
                                             <button
                                                 type="button"
-                                                className="w-8 h-8 flex items-center justify-center rounded-md bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 shadow-2xs active:scale-95 text-sm font-bold disabled:opacity-40"
+                                                className="w-8 h-8 flex items-center justify-center rounded-md bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 shadow-2xs active:scale-95 text-sm font-bold disabled:opacity-40 cursor-pointer"
                                                 onClick={() => handleDecreaseQuantity(key)}
                                                 disabled={isDemo || item.quantity <= 1}
                                             >
@@ -148,7 +175,7 @@ const CartDrawer = ({
                                             />
                                             <button
                                                 type="button"
-                                                className="w-8 h-8 flex items-center justify-center rounded-md bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 shadow-2xs active:scale-95 text-sm font-bold disabled:opacity-40"
+                                                className="w-8 h-8 flex items-center justify-center rounded-md bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 shadow-2xs active:scale-95 text-sm font-bold disabled:opacity-40 cursor-pointer"
                                                 onClick={() => handleIncreaseQuantity(key)}
                                                 disabled={isDemo}
                                             >
@@ -165,7 +192,7 @@ const CartDrawer = ({
                                         <div className="flex items-center gap-1">
                                             <button
                                                 type="button"
-                                                className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-blue-600 rounded-lg transition-colors"
+                                                className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-blue-600 rounded-lg transition-colors cursor-pointer"
                                                 onClick={() => onEditItem && onEditItem(key)}
                                                 disabled={isDemo}
                                                 title="Edit"
@@ -174,7 +201,7 @@ const CartDrawer = ({
                                             </button>
                                             <button
                                                 type="button"
-                                                className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-rose-600 rounded-lg transition-colors"
+                                                className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-rose-600 rounded-lg transition-colors cursor-pointer"
                                                 onClick={() => handleRemoveItem && handleRemoveItem(key)}
                                                 disabled={isDemo}
                                                 title="Remove"
@@ -189,7 +216,7 @@ const CartDrawer = ({
                     )}
                 </div>
 
-                {/* Footer with Subtotal, Total, Cancel, & Proceed Buttons */}
+                {/* Footer with Subtotal, Total, Clear Cart, & Proceed Buttons */}
                 <div className="p-4 pb-6 sm:pb-4 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-200 dark:border-slate-800 flex-shrink-0 space-y-2.5">
                     <div className="flex justify-between items-center text-xs text-slate-500 dark:text-slate-400 font-semibold">
                         <span>Subtotal</span>
@@ -203,19 +230,22 @@ const CartDrawer = ({
                         </span>
                     </div>
 
-                    {/* Dual Action Row: Cancel (Back to Products) + Proceed to Payment */}
+                    {/* Dual Action Row: Cancel & Clear Cart + Proceed to Payment */}
                     <div className="flex items-center gap-2 pt-0.5">
                         <Button
                             type="button"
                             variant="outline"
-                            className="h-11 px-4 text-xs font-bold rounded-xl border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                            onClick={onClose}
+                            title="Cancel and clear all items in current cart"
+                            className="h-11 px-3 sm:px-4 text-xs font-bold rounded-xl border-rose-200 dark:border-rose-900/60 text-rose-600 dark:text-rose-400 bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                            onClick={handleClearCart}
+                            disabled={cartItems.length === 0 || isDemo}
                         >
-                            Cancel
+                            <Trash2 className="w-3.5 h-3.5 shrink-0" />
+                            <span>Clear Cart</span>
                         </Button>
                         <Button
                             variant="primary"
-                            className="flex-1 h-11 text-xs sm:text-sm font-black rounded-xl shadow-md bg-[#8DB600] hover:bg-[#7ca000] text-white active:scale-[0.98] transition-transform flex items-center justify-center"
+                            className="flex-1 h-11 text-xs sm:text-sm font-black rounded-xl shadow-md bg-[#8DB600] hover:bg-[#7ca000] text-white active:scale-[0.98] transition-transform flex items-center justify-center cursor-pointer"
                             onClick={handleProceedToPayment}
                             disabled={cartItems.length === 0 || createSaleMutation.isPending || isDemo}
                         >

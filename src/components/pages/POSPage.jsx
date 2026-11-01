@@ -1,5 +1,5 @@
 // src/components/pages/POSPage.jsx
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useStore } from '../../store/useStore';
 import { useProducts } from '../../hooks/useProducts';
@@ -138,6 +138,34 @@ export default function POSPage() {
         currentSale, addItemToSale, clearSale, getTotalAmount, addToast,
         currentCustomer, setCurrentCustomer, updateCartItem
     } = useStore();
+
+    // Centralized safe cart clear handler: forces Zustand store wipe and closes mobile drawer
+    const handleClearCart = useCallback(() => {
+        try {
+            if (typeof clearSale === 'function') {
+                clearSale();
+            }
+        } catch (err) {
+            console.error('Error invoking clearSale action:', err);
+        }
+
+        // Direct state override ensures all subscribers across mobile and desktop are wiped immediately
+        try {
+            useStore.setState({ currentSale: {} });
+            localStorage.removeItem('currentSale');
+            localStorage.removeItem('pos_cart');
+        } catch (err) {
+            console.error('Error wiping cart state:', err);
+        }
+
+        closeCartDrawer();
+
+        addToast({
+            title: 'Cart Cleared',
+            description: 'All items removed from current order.',
+            variant: 'info'
+        });
+    }, [clearSale, closeCartDrawer, addToast]);
 
     const createSaleMutation = useCreateSale();
     const createCustomerMutation = useCreateCustomer();
@@ -321,7 +349,7 @@ export default function POSPage() {
 
             if (event.shiftKey && event.key === 'Delete') {
                 event.preventDefault();
-                clearSale();
+                handleClearCart();
             }
 
             if (event.key === 'Escape') {
@@ -347,9 +375,9 @@ export default function POSPage() {
     }, [
         isPaymentModalOpen, isCustomerModalOpen, isCustomSaleModalOpen,
         isScannerOpen, editItemKey, isCartDrawerOpen,
-        openPaymentModal, clearSale, closePaymentModal, openCustomerModal, closeCustomerModal,
+        openPaymentModal, closePaymentModal, openCustomerModal, closeCustomerModal,
         openCustomSale, closeCustomSale, closeScanner, closeEditItem, closeCartDrawer, setSearchTerm,
-        hotkeyProducts
+        hotkeyProducts, handleClearCart
     ]);
 
     // Resilient Customer Search: Native PostgREST wildcard (*) prevents URL % hex corruption
@@ -645,7 +673,7 @@ export default function POSPage() {
             <div className="hidden md:flex w-full md:w-[340px] lg:w-[380px] xl:w-[420px] flex-shrink-0 flex-col h-full max-h-full z-10 min-h-0">
                 <POSCart
                     currentSale={currentSale}
-                    clearSale={clearSale}
+                    clearSale={handleClearCart}
                     subtotal={subtotal}
                     handleIncreaseQuantity={handleIncreaseQuantity}
                     handleDecreaseQuantity={handleDecreaseQuantity}
@@ -766,6 +794,7 @@ export default function POSPage() {
                     subtotal={subtotal}
                     onOpenCart={openCartDrawer}
                     onDirectCheckout={openPaymentModal}
+                    onClearCart={handleClearCart}
                 />
             )}
 
@@ -780,7 +809,8 @@ export default function POSPage() {
                 handleRemoveItem={handleRemoveItem}
                 openPaymentModal={openPaymentModal}
                 createSaleMutation={createSaleMutation}
-                clearSale={clearSale}
+                clearSale={handleClearCart}
+                onClearSale={handleClearCart}
                 onEditItem={openEditItem}
                 handleSetQuantity={handleSetQuantity}
                 stockWarningKey={stockWarningKey}
