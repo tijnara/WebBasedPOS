@@ -4,6 +4,7 @@ import { Card, CardContent, Button } from '../ui';
 import { PackageIcon } from '../Icons';
 import { History, CheckCircle2, AlertTriangle, Edit2, Clock, Droplets, Wrench } from 'lucide-react';
 import currency from 'currency.js';
+import { useQueryClient } from '@tanstack/react-query';
 
 export default function FilterList({
                                        processedFilters,
@@ -13,6 +14,22 @@ export default function FilterList({
                                        isAdmin,
                                        isPurchasing
                                    }) {
+    const queryClient = useQueryClient();
+
+    // Executes replacement and invalidates both maintenance and dashboard caches
+    const onReplaceClick = async (filterId) => {
+        try {
+            if (typeof handleReplace === 'function') {
+                await handleReplace(filterId);
+            }
+        } finally {
+            queryClient.invalidateQueries({ queryKey: ['dashboard-live-maintenance-lifespans'] });
+            queryClient.invalidateQueries({ queryKey: ['filter-tracking'] });
+            queryClient.invalidateQueries({ queryKey: ['maintenance-history'] });
+            queryClient.invalidateQueries({ queryKey: ['filter_configs'] });
+        }
+    };
+
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
             {processedFilters.map((filter, index) => {
@@ -43,7 +60,7 @@ export default function FilterList({
                                     </div>
                                     <div className="min-w-0">
                                         <div className="flex items-center gap-1.5 flex-wrap">
-                                            <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.2 rounded-md">
+                                            <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-md">
                                                 Stage {index + 1}
                                             </span>
                                             <h3 className="font-extrabold text-sm text-slate-900 dark:text-slate-100 truncate">
@@ -195,10 +212,9 @@ export default function FilterList({
                                         <History className="w-3.5 h-3.5" /> History
                                     </Button>
 
-                                    {/* Solid High-Contrast Replacement Button */}
                                     <button
                                         type="button"
-                                        onClick={() => handleReplace(filter.id)}
+                                        onClick={() => onReplaceClick(filter.id)}
                                         disabled={isPurchasing}
                                         className={`flex-[2] h-9.5 px-3 text-xs font-black rounded-xl shadow-xs transition-all active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer ${
                                             isOverdue
