@@ -18,7 +18,7 @@ import Footer from '../components/landing/Footer';
 import ScrollToTop from '../components/landing/ScrollToTop';
 import ViewCounter from '../components/landing/ViewCounter';
 import { Button } from '../components/ui';
-import { Phone, MessageSquare, LogIn } from 'lucide-react';
+import { MessageSquare, LogIn } from 'lucide-react';
 
 export default function SeasideWaterLanding() {
     const { data: settings } = useSettings();
@@ -55,7 +55,8 @@ export default function SeasideWaterLanding() {
     }, [router.isReady, router.events]);
 
     const contactPhone = settings?.contact_number || '+639602196388';
-    const messengerLink = settings?.messenger_link || 'https://m.me/61587059323111';
+    const cleanSmsNumber = contactPhone.replace(/[^0-9+]/g, '');
+    const messengerLink = settings?.messenger_link || settings?.facebook_link || 'https://www.facebook.com/share/1CSQtnEWYf/';
 
     return (
         <div className="landing-about-root relative min-h-screen w-full font-sans bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 antialiased selection:bg-[#8DB600] selection:text-white dark:[color-scheme:dark] transition-colors duration-300">
@@ -131,15 +132,21 @@ export default function SeasideWaterLanding() {
             <div className="fixed bottom-0 left-0 right-0 p-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 shadow-lg dark:shadow-black/60 flex gap-3 z-50 md:hidden transition-colors">
                 <Button
                     className="flex-1 bg-[#8DB600] hover:bg-[#7ca000] text-white font-bold h-11 rounded-xl shadow-xs flex items-center justify-center gap-2 text-xs active:scale-95 transition-all"
-                    onClick={() => window.location.href = `tel:${contactPhone.replace(/\s+/g, '')}`}
+                    onClick={() => {
+                        window.location.href = `sms:${cleanSmsNumber}?body=Hi%20Seaside%20WRS,%20I%20would%20like%20to%20inquire%20about%20water%20refills.`;
+                    }}
                 >
-                    <Phone className="w-4 h-4" /> Call Now
+                    <MessageSquare className="w-4 h-4" />
+                    <span>Text Message</span>
                 </Button>
                 <Button
                     className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold h-11 rounded-xl shadow-xs flex items-center justify-center gap-2 text-xs active:scale-95 transition-all"
                     onClick={() => window.open(messengerLink, '_blank')}
                 >
-                    <MessageSquare className="w-4 h-4" /> Messenger
+                    <svg className="w-4 h-4 fill-current shrink-0" viewBox="0 0 24 24">
+                        <path d="M12 2C6.477 2 2 6.145 2 11.258c0 2.91 1.455 5.516 3.736 7.186V22l3.418-1.875c.915.254 1.884.391 2.846.391 5.523 0 10-4.145 10-9.258C22 6.145 17.523 2 12 2zm1.042 12.443l-2.55-2.721-4.977 2.721 5.474-5.811 2.613 2.72 4.914-2.72-5.474 5.811z" />
+                    </svg>
+                    <span>Messenger</span>
                 </Button>
             </div>
 
