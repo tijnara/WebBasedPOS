@@ -19,9 +19,9 @@ import {
 } from 'lucide-react';
 
 const formatCurrency = (amount) => {
-    const numericAmount = typeof amount === 'string' ? currency(amount).value : currency(amount).value;
+    const numericAmount = typeof amount === 'number' ? amount : currency(amount || 0).value;
     if (isNaN(numericAmount)) {
-        return 'N/A';
+        return '₱0.00';
     }
     return currency(numericAmount, { symbol: '₱', precision: 2 }).format();
 };
@@ -42,8 +42,8 @@ const SalesTab = ({
                       customerSearch,
                       setCustomerSearch,
                       handleClearRange,
-                      chartSalesData,
-                      interval,
+                      chartSalesData = [],
+                      interval = {},
                       reportTitle,
                       totalSalesCount,
                       totalGallonsSold,
@@ -78,7 +78,7 @@ const SalesTab = ({
         setIsExportingPDF(true);
         try {
             await exportSalesToPDF({
-                sales: chartSalesData,
+                sales: chartSalesData || [],
                 totalRevenue,
                 totalGallons: totalGallonsSold,
                 activeRangeLabel,
@@ -94,10 +94,13 @@ const SalesTab = ({
 
     const handleExportCSV = () => {
         exportSalesToCSV({
-            sales: chartSalesData,
+            sales: chartSalesData || [],
             activeRangeLabel
         });
     };
+
+    const activeStartDate = interval?.start || fromDate;
+    const activeEndDate = interval?.end || toDate;
 
     return (
         <div className="space-y-4 transition-colors">
@@ -126,7 +129,7 @@ const SalesTab = ({
                                 type="button"
                                 variant="outline"
                                 onClick={handleExportPDF}
-                                disabled={isExportingPDF || isLoading || chartSalesData.length === 0}
+                                disabled={isExportingPDF || isLoading || !chartSalesData?.length}
                                 className="h-8 px-2.5 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:text-emerald-700 dark:hover:text-emerald-400 hover:border-emerald-300 dark:hover:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-xs font-bold flex items-center gap-1.5 transition-all shadow-2xs active:scale-95 cursor-pointer"
                                 title="Download PDF Summary Report"
                             >
@@ -147,7 +150,7 @@ const SalesTab = ({
                                 type="button"
                                 variant="outline"
                                 onClick={handleExportCSV}
-                                disabled={isLoading || chartSalesData.length === 0}
+                                disabled={isLoading || !chartSalesData?.length}
                                 className="h-8 px-2.5 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:text-blue-700 dark:hover:text-blue-400 hover:border-blue-300 dark:hover:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-950/40 text-xs font-bold flex items-center gap-1.5 transition-all shadow-2xs active:scale-95 cursor-pointer"
                                 title="Export Raw CSV for Excel"
                             >
@@ -324,14 +327,17 @@ const SalesTab = ({
 
                 {showRetentionInsights && (
                     <div className="p-4 sm:p-6 space-y-6 border-t border-slate-100 dark:border-slate-800 animate-in fade-in duration-200">
+                        {/* Passes current active sales directly to the audit cross-checker */}
                         <MissedCustomersTable
-                            startDate={interval.start}
-                            endDate={interval.end}
+                            startDate={activeStartDate}
+                            endDate={activeEndDate}
+                            currentSales={chartSalesData}
                         />
 
                         <ReturningCustomersSection
-                            startDate={interval.start}
-                            endDate={interval.end}
+                            startDate={activeStartDate}
+                            endDate={activeEndDate}
+                            currentSales={chartSalesData}
                         />
                     </div>
                 )}
