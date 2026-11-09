@@ -3,10 +3,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Camera, Trash2, Check, Loader2, FileImage, Plus, Calendar, UserCheck, UserPlus } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { useStore } from '../../store/useStore';
+import { useSaveCustomerEntry } from '../../hooks/useCustomerMutations';
 import { format } from 'date-fns';
 import currency from 'currency.js';
 
-// Client-side image compression: keeps pen strokes sharp while uploading fast
+// Client-side image compression
 const compressImage = (file, maxDimension = 1200, quality = 0.8) => {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -73,7 +74,7 @@ const getLevenshteinDistance = (a, b) => {
 const matchCustomerAccount = (rawName, customerList = []) => {
     if (!rawName || !customerList.length) return null;
     const cleanRaw = normalize(rawName);
-    if (cleanRaw.length < 2 || cleanRaw === 'walkin') return null;
+    if (cleanRaw.length < 2 || cleanRaw === 'walkin' || cleanRaw.includes('walkin')) return null;
 
     // 1. Exact normalized match
     const exact = customerList.find(c => normalize(c.name) === cleanRaw);
@@ -103,6 +104,8 @@ const matchCustomerAccount = (rawName, customerList = []) => {
 
 export default function ScanSalesListModal({ isOpen, onClose, products = [], onSuccess }) {
     const { user, addToast } = useStore();
+    const saveCustomerEntry = useSaveCustomerEntry();
+
     const [imagePreview, setImagePreview] = useState(null);
     const [parsedItems, setParsedItems] = useState([]);
     const [customers, setCustomers] = useState([]);
@@ -224,7 +227,9 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
                 const cust = customers.find(c => c.id === custId);
                 updated[index].customer_id = custId;
                 updated[index].matched_account_name = cust ? cust.name : null;
-                if (cust && (!updated[index].customer_name || updated[index].customer_name.toLowerCase() === 'walk-in')) {
+
+                // If they explicitly link it, ensure the displayed name updates
+                if (cust && (!updated[index].customer_name || updated[index].customer_name.toLowerCase() === 'walk-in' || updated[index].customer_name.toLowerCase() === 'new')) {
                     updated[index].customer_name = cust.name;
                 }
             }
@@ -277,7 +282,7 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
             const customerCreditIncrements = {};
             const stockDeductions = {};
 
-            // Cache for newly created customers during this batch to prevent duplicates
+            // Cache for newly created/merged customers during this batch to prevent duplicates
             const newlyCreatedCustomers = {};
 
             for (const item of parsedItems) {
@@ -289,29 +294,42 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
 
                 let finalCustomerId = item.customer_id;
 
-                // AUTO-CREATE MISSING CUSTOMERS
+                // --- CUSTOMER AUTO-CREATE / MERGE WORKFLOW ---
                 const cleanName = customerName.toLowerCase();
-                if (!finalCustomerId && cleanName !== 'walk-in' && cleanName !== '') {
-                    if (newlyCreatedCustomers[cleanName]) {
-                        finalCustomerId = newlyCreatedCustomers[cleanName]; // Use if already created in this batch
-                    } else {
-                        // Insert new customer into database
-                        const { data: newCustData, error: newCustErr } = await supabase
-                            .from('customers')
-                            .insert([{ name: customerName, created_by: user?.id || null }])
-                            .select('id')
-                            .single();
+                const isWalkIn = cleanName === 'walk-in' || cleanName === 'walkin' || cleanName === '';
 
-                        if (!newCustErr && newCustData) {
-                            finalCustomerId = newCustData.id;
-                            newlyCreatedCustomers[cleanName] = newCustData.id;
+                if (!finalCustomerId && !isWalkIn) {
+                    if (newlyCreatedCustomers[cleanName]) {
+                        // Already created or verified in this loop iteration
+                        finalCustomerId = newlyCreatedCustomers[cleanName];
+                    } else {
+                        // Attempt to see if the name matches someone we didn't pick up fuzzyly
+                        const existingMatch = matchCustomerAccount(customerName, customers);
+
+                        if (existingMatch) {
+                            // Link/merge to existing
+                            const mergeRes = await saveCustomerEntry.mutateAsync({
+                                mode: 'existing',
+                                existingCustomerId: existingMatch.id,
+                                name: customerName,
+                                linkSales: true
+                            });
+                            finalCustomerId = mergeRes.customerId;
+                            newlyCreatedCustomers[cleanName] = mergeRes.customerId;
                         } else {
-                            console.warn('Failed to auto-create customer:', newCustErr?.message);
+                            // Completely new customer: Create fresh profile
+                            const newCustRes = await saveCustomerEntry.mutateAsync({
+                                mode: 'new',
+                                name: customerName,
+                                linkSales: true
+                            });
+                            finalCustomerId = newCustRes.customerId;
+                            newlyCreatedCustomers[cleanName] = newCustRes.customerId;
                         }
                     }
                 }
 
-                // Insert into public.sales
+                // --- INSERT INTO PUBLIC.SALES ---
                 const salePayload = {
                     customername: customerName,
                     totalamount: total,
@@ -323,6 +341,7 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
 
                 if (finalCustomerId) {
                     salePayload.customer_id = finalCustomerId;
+                    salePayload.customerid = finalCustomerId;
                 }
 
                 let { data: saleData, error: saleErr } = await supabase
@@ -340,7 +359,7 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
 
                 if (saleErr) throw saleErr;
 
-                // Insert into public.sale_items
+                // --- INSERT INTO PUBLIC.SALE_ITEMS ---
                 const finalProductId = item.product_id || defaultCatalogProduct?.id;
                 const finalProductName = item.product_name || defaultCatalogProduct?.name || 'Water Refill';
 
@@ -364,7 +383,7 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
                     stockDeductions[finalProductId] = (stockDeductions[finalProductId] || 0) + qty;
                 }
 
-                // Track credit increments
+                // --- TRACK CREDIT INCREMENTS ---
                 if (isCredit && finalCustomerId) {
                     customerCreditIncrements[finalCustomerId] = (customerCreditIncrements[finalCustomerId] || 0) + total;
                 }
@@ -447,7 +466,7 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
             // 4. Record Activity Log
             try {
                 const addedCustomersCount = Object.keys(newlyCreatedCustomers).length;
-                const autoAddText = addedCustomersCount > 0 ? ` (Auto-created ${addedCustomersCount} new customer accounts)` : '';
+                const autoAddText = addedCustomersCount > 0 ? ` (Auto-created/Merged ${addedCustomersCount} customer accounts)` : '';
                 await supabase.from('activity_logs').insert([{
                     user_id: user?.id || null,
                     action: 'DELIVERY_LOG_SCAN',
@@ -642,7 +661,7 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
                             <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800/80 bg-white dark:bg-slate-900">
                                 {parsedItems.map((item, idx) => {
                                     const isCredit = item.payment_method === 'Credit';
-                                    const isUnlinkedNewCustomer = !item.customer_id && item.customer_name && item.customer_name.toLowerCase() !== 'walk-in';
+                                    const isUnlinkedNewCustomer = !item.customer_id && item.customer_name && item.customer_name.toLowerCase() !== 'walk-in' && item.customer_name !== '';
 
                                     return (
                                         <div key={idx} className="p-3 flex flex-wrap sm:flex-nowrap items-center gap-2.5 hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors">
@@ -677,14 +696,17 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
                                                     onChange={(e) => updateItem(idx, 'customer_id', e.target.value)}
                                                     className="w-full text-[10px] mt-1 text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-1.5 py-0.5 outline-none focus:border-emerald-500 dark:focus:border-emerald-500 truncate cursor-pointer"
                                                 >
-                                                    <option value="" className="bg-white dark:bg-slate-900">
-                                                        {isUnlinkedNewCustomer ? "-- Create New Account --" : "-- Unlinked / Walk-in --"}
+                                                    {/* Dropdown Options for New vs Merge */}
+                                                    <option value="" className="bg-white dark:bg-slate-900 font-bold text-slate-800 dark:text-white">
+                                                        {isUnlinkedNewCustomer ? "✨ [+ Create New Customer]" : "-- Unlinked / Walk-in --"}
                                                     </option>
-                                                    {customers.map(c => (
-                                                        <option key={c.id} value={c.id} className="bg-white dark:bg-slate-900">
-                                                            {c.name} {Number(c.credit_balance) > 0 ? `(Debt: ₱${c.credit_balance})` : ''}
-                                                        </option>
-                                                    ))}
+                                                    <optgroup label="🔗 Merge / Link to Existing:">
+                                                        {customers.map(c => (
+                                                            <option key={c.id} value={c.id} className="bg-white dark:bg-slate-900">
+                                                                {c.name} {Number(c.credit_balance) > 0 ? `(Debt: ₱${c.credit_balance})` : ''}
+                                                            </option>
+                                                        ))}
+                                                    </optgroup>
                                                 </select>
                                             </div>
 

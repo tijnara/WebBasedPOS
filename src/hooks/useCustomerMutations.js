@@ -7,6 +7,115 @@ import { logActivity } from './useActivityLogs';
 // The base key used for invalidation
 const customersKey = ['customers'];
 
+// --- Hook for CREATING or MERGING to Existing Customer ---
+export function useSaveCustomerEntry() {
+    const queryClient = useQueryClient();
+    const currentUserId = useStore(s => s.user?.id);
+    const currentUser = useStore(s => s.user);
+
+    return useMutation({
+        mutationFn: async ({
+                               mode = 'new', // 'new' | 'existing'
+                               existingCustomerId = null,
+                               name,
+                               phone,
+                               address,
+                               email,
+                               linkSales = true
+                           }) => {
+            let targetCustomerId = existingCustomerId;
+            let customerName = name?.trim() || '';
+
+            // 1. ADD NEW CUSTOMER
+            if (mode === 'new') {
+                if (!customerName) throw new Error('Customer name is required.');
+
+                const payload = {
+                    name: customerName,
+                    phone: phone?.trim() || null,
+                    address: address?.trim() || null,
+                    email: email?.trim() || null,
+                    created_by: currentUserId || null,
+                    created_at: new Date().toISOString(),
+                    credit_balance: 0,
+                    status: 'Active',
+                    is_active: true
+                };
+
+                const { data: newCust, error: insertErr } = await supabase
+                    .from('customers')
+                    .insert([payload])
+                    .select()
+                    .single();
+
+                if (insertErr) throw insertErr;
+                targetCustomerId = newCust.id;
+                customerName = newCust.name;
+
+                logActivity({
+                    user: currentUser,
+                    action: 'CREATE',
+                    entity_type: 'CUSTOMER',
+                    description: `Registered new customer: ${customerName}`
+                });
+            }
+            // 2. ADD / MERGE TO EXISTING CUSTOMER
+            else {
+                if (!targetCustomerId) throw new Error('Please select an existing customer account.');
+
+                const updates = {};
+                if (phone !== undefined && phone !== null && phone.trim()) updates.phone = phone.trim();
+                if (address !== undefined && address !== null && address.trim()) updates.address = address.trim();
+                if (email !== undefined && email !== null && email.trim()) updates.email = email.trim();
+                updates.status = 'Active';
+                updates.is_active = true;
+
+                if (Object.keys(updates).length > 0) {
+                    const { error: updateErr } = await supabase
+                        .from('customers')
+                        .update(updates)
+                        .eq('id', targetCustomerId);
+
+                    if (updateErr) throw updateErr;
+                }
+
+                logActivity({
+                    user: currentUser,
+                    action: 'UPDATE',
+                    entity_type: 'CUSTOMER',
+                    description: `Merged/updated customer profile #${targetCustomerId} (${customerName})`
+                });
+            }
+
+            // 3. Retroactively link past unlinked sales matching customer name
+            let linkedSalesCount = 0;
+            if (linkSales && customerName && targetCustomerId) {
+                const { data: updatedSales, error: salesErr } = await supabase
+                    .from('sales')
+                    .update({ customerid: targetCustomerId })
+                    .is('customerid', null)
+                    .ilike('customername', customerName)
+                    .select('id');
+
+                if (!salesErr && updatedSales) {
+                    linkedSalesCount = updatedSales.length;
+                }
+            }
+
+            return { customerId: targetCustomerId, customerName, linkedSalesCount };
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: customersKey });
+            queryClient.invalidateQueries({ queryKey: ['customers-all-lookup'] });
+            queryClient.invalidateQueries({ queryKey: ['customer-stats'] });
+            queryClient.invalidateQueries({ queryKey: ['sales'] });
+            queryClient.invalidateQueries({ queryKey: ['activity-logs'] });
+            queryClient.invalidateQueries({ queryKey: ['missed-customers-v3'] });
+            queryClient.invalidateQueries({ queryKey: ['missed-customers-direct-audit'] });
+        }
+    });
+}
+
 // --- Hook for CREATING Customers ---
 export function useCreateCustomer() {
     const queryClient = useQueryClient();
@@ -23,7 +132,9 @@ export function useCreateCustomer() {
                 address: customerPayload.address || null,
                 created_at: customerPayload.created_at || new Date().toISOString(),
                 created_by: currentUserId || null,
-                credit_balance: 0 // Initialize with 0 credit
+                credit_balance: 0,
+                status: 'Active',
+                is_active: true
             };
 
             const { data, error } = await supabase
@@ -34,7 +145,6 @@ export function useCreateCustomer() {
 
             if (error) throw error;
 
-            // --- Log Activity ---
             const currentUser = useStore.getState().user;
             logActivity({
                 user: currentUser,
@@ -46,8 +156,8 @@ export function useCreateCustomer() {
             return data;
         },
         onSuccess: () => {
-            // Invalidate all customer queries (lists, search results, etc.)
             queryClient.invalidateQueries({ queryKey: customersKey });
+            queryClient.invalidateQueries({ queryKey: ['customers-all-lookup'] });
             queryClient.invalidateQueries({ queryKey: ['activity-logs'] });
         },
     });
@@ -58,7 +168,7 @@ export function useUpdateCustomer() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async (customer) => {
-            const { id, dateAdded, ...payload } = customer; // Exclude UI-only fields
+            const { id, dateAdded, ...payload } = customer;
             const { data, error } = await supabase
                 .from('customers')
                 .update(payload)
@@ -68,7 +178,6 @@ export function useUpdateCustomer() {
 
             if (error) throw error;
 
-            // --- Log Activity ---
             const currentUser = useStore.getState().user;
             logActivity({
                 user: currentUser,
@@ -81,6 +190,7 @@ export function useUpdateCustomer() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: customersKey });
+            queryClient.invalidateQueries({ queryKey: ['customers-all-lookup'] });
             queryClient.invalidateQueries({ queryKey: ['activity-logs'] });
         },
     });
@@ -91,7 +201,6 @@ export function useDeleteCustomer() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async (customerId) => {
-            // Fetch customer name first for the log
             const { data: customerToDelete } = await supabase
                 .from('customers')
                 .select('name')
@@ -105,7 +214,6 @@ export function useDeleteCustomer() {
 
             if (error) throw error;
 
-            // --- Log Activity ---
             if (customerToDelete) {
                 const currentUser = useStore.getState().user;
                 logActivity({
@@ -120,27 +228,25 @@ export function useDeleteCustomer() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: customersKey });
+            queryClient.invalidateQueries({ queryKey: ['customers-all-lookup'] });
             queryClient.invalidateQueries({ queryKey: ['activity-logs'] });
         },
     });
 }
 
-// --- NEW: Hook for REPAYING Debt (Utang) ---
+// --- Hook for REPAYING Debt (Utang) ---
 export function useRepayDebt() {
     const queryClient = useQueryClient();
     const addToast = useStore(s => s.addToast);
 
     return useMutation({
         mutationFn: async ({ customerId, amount }) => {
-            // Fetch customer name first for the log context
             const { data: customer } = await supabase
                 .from('customers')
                 .select('name')
                 .eq('id', customerId)
                 .single();
 
-            // Call the RPC function to deduct amount (pass negative value to reduce debt)
-            // Ensure you have created the 'update_customer_credit' RPC function in Supabase
             const { error } = await supabase.rpc('update_customer_credit', {
                 p_customer_id: customerId,
                 p_amount: -Math.abs(amount)
@@ -148,7 +254,6 @@ export function useRepayDebt() {
 
             if (error) throw error;
 
-            // --- Log Activity ---
             const currentUser = useStore.getState().user;
             logActivity({
                 user: currentUser,

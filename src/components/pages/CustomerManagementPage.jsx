@@ -2,6 +2,8 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '../../lib/supabaseClient';
 import { useStore } from '../../store/useStore';
 import {
     Button, Card, CardContent, Input, Label, Dialog, DialogContent,
@@ -15,7 +17,8 @@ import {
     useCreateCustomer,
     useUpdateCustomer,
     useDeleteCustomer,
-    useRepayDebt
+    useRepayDebt,
+    useSaveCustomerEntry
 } from '../../hooks/useCustomerMutations';
 import { useCustomers, useCustomerStats } from '../../hooks/useCustomers';
 import RepaymentModal from '../customers/RepaymentModal';
@@ -125,6 +128,24 @@ export default function CustomerManagementPage() {
 
     const { data: rawStats } = useCustomerStats();
 
+    // Query for all registered customers (used in Add to Existing lookup)
+    const { data: allCustomersList = [] } = useQuery({
+        queryKey: ['customers-all-lookup'],
+        queryFn: async () => {
+            const { data, error } = await supabase
+                .from('customers')
+                .select('id, name, phone, address, email')
+                .order('name', { ascending: true })
+                .limit(2000);
+            if (error) {
+                console.error('Error loading lookup customers:', error);
+                return [];
+            }
+            return data || [];
+        },
+        staleTime: 1000 * 60 * 5
+    });
+
     const customers = customersData.customers || [];
     const totalPages = customersData.totalPages || 1;
 
@@ -147,9 +168,15 @@ export default function CustomerManagementPage() {
     const updateCustomer = useUpdateCustomer();
     const deleteCustomer = useDeleteCustomer();
     const repayDebt = useRepayDebt();
+    const saveCustomerEntry = useSaveCustomerEntry();
 
     const [editing, setEditing] = useState(null);
     const [repayCustomer, setRepayCustomer] = useState(null);
+
+    // Form & Mode states
+    const [entryMode, setEntryMode] = useState('new'); // 'new' | 'existing'
+    const [selectedExistingId, setSelectedExistingId] = useState('');
+    const [linkSales, setLinkSales] = useState(true);
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [phone, setPhone] = useState('');
@@ -193,6 +220,9 @@ export default function CustomerManagementPage() {
 
     const openModal = () => {
         resetForm();
+        setEntryMode('new');
+        setSelectedExistingId('');
+        setLinkSales(true);
         setIsModalOpen(true);
     };
 
@@ -212,38 +242,92 @@ export default function CustomerManagementPage() {
 
     const resetForm = () => {
         setEditing(null);
+        setEntryMode('new');
+        setSelectedExistingId('');
         setName('');
         setEmail('');
         setPhone('');
         setAddress('');
+        setLinkSales(true);
     };
 
     const save = async (e) => {
         e.preventDefault();
-        if (!name || !name.trim()) {
-            addToast({ title: 'Name Required', description: 'Please enter customer name.', variant: 'destructive' });
+
+        // 1. EDIT MODE
+        if (editing) {
+            if (!name || !name.trim()) {
+                addToast({ title: 'Name Required', description: 'Please enter customer name.', variant: 'destructive' });
+                return;
+            }
+            const capitalizedName = capitalizeWords(name.trim());
+            const payload = {
+                name: capitalizedName,
+                email: email.trim() || null,
+                phone: phone.trim() || null,
+                address: address.trim() || null,
+            };
+
+            try {
+                await updateCustomer.mutateAsync({ ...payload, id: editing.id, dateAdded: editing.dateAdded });
+                addToast({ title: 'Customer Updated', description: `${capitalizedName} was updated.`, variant: 'success' });
+                closeModal();
+            } catch (err) {
+                addToast({ title: 'Save Failed', description: err.message, variant: 'destructive' });
+            }
             return;
         }
 
-        const capitalizedName = capitalizeWords(name.trim());
-        const payload = {
-            name: capitalizedName,
-            email: email.trim() || null,
-            phone: phone.trim() || null,
-            address: address.trim() || null,
-        };
-
-        try {
-            if (editing) {
-                await updateCustomer.mutateAsync({ ...payload, id: editing.id, dateAdded: editing.dateAdded });
-                addToast({ title: 'Customer Updated', description: `${capitalizedName} was updated.`, variant: 'success' });
-            } else {
-                await createCustomer.mutateAsync(payload);
-                addToast({ title: 'Customer Created', description: `${capitalizedName} added successfully.`, variant: 'success' });
+        // 2. ADD NEW CUSTOMER
+        if (entryMode === 'new') {
+            if (!name || !name.trim()) {
+                addToast({ title: 'Name Required', description: 'Please enter customer name.', variant: 'destructive' });
+                return;
             }
-            closeModal();
-        } catch (err) {
-            addToast({ title: 'Save Failed', description: err.message, variant: 'destructive' });
+            const capitalizedName = capitalizeWords(name.trim());
+            try {
+                const res = await saveCustomerEntry.mutateAsync({
+                    mode: 'new',
+                    name: capitalizedName,
+                    phone: phone.trim() || null,
+                    email: email.trim() || null,
+                    address: address.trim() || null,
+                    linkSales
+                });
+                const linkMsg = res.linkedSalesCount > 0 ? ` (${res.linkedSalesCount} past orders linked)` : '';
+                addToast({ title: 'Customer Created', description: `${capitalizedName} registered${linkMsg}.`, variant: 'success' });
+                closeModal();
+            } catch (err) {
+                addToast({ title: 'Save Failed', description: err.message, variant: 'destructive' });
+            }
+            return;
+        }
+
+        // 3. MERGE / ADD TO EXISTING CUSTOMER
+        if (entryMode === 'existing') {
+            if (!selectedExistingId) {
+                addToast({ title: 'Selection Required', description: 'Please choose an existing customer account.', variant: 'destructive' });
+                return;
+            }
+            const matched = allCustomersList.find(c => String(c.id) === String(selectedExistingId));
+            const targetName = name?.trim() || matched?.name || 'Customer';
+
+            try {
+                const res = await saveCustomerEntry.mutateAsync({
+                    mode: 'existing',
+                    existingCustomerId: selectedExistingId,
+                    name: targetName,
+                    phone: phone.trim() || null,
+                    email: email.trim() || null,
+                    address: address.trim() || null,
+                    linkSales
+                });
+                const linkMsg = res.linkedSalesCount > 0 ? ` (${res.linkedSalesCount} past orders linked)` : '';
+                addToast({ title: 'Customer Merged', description: `Updated ${targetName}${linkMsg}.`, variant: 'success' });
+                closeModal();
+            } catch (err) {
+                addToast({ title: 'Merge Failed', description: err.message, variant: 'destructive' });
+            }
         }
     };
 
@@ -285,7 +369,7 @@ export default function CustomerManagementPage() {
         }
     };
 
-    const isMutating = createCustomer.isPending || updateCustomer.isPending || deleteCustomer.isPending;
+    const isMutating = createCustomer.isPending || updateCustomer.isPending || deleteCustomer.isPending || saveCustomerEntry.isPending;
 
     return (
         <div className="customer-page responsive-page max-w-7xl mx-auto space-y-5 p-3 sm:p-5 md:p-6 overflow-x-hidden">
@@ -305,7 +389,7 @@ export default function CustomerManagementPage() {
                     <Link href="/report?tab=customers#inactive-customers" className="flex-1 sm:flex-initial">
                         <Button
                             variant="outline"
-                            className="w-full sm:w-auto h-10 px-3.5 rounded-xl border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold flex items-center justify-center gap-1.5 shadow-2xs"
+                            className="w-full sm:w-auto h-10 px-3.5 rounded-xl border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
                         >
                             <FileText className="w-3.5 h-3.5 text-slate-400" />
                             <span>Inactive Report</span>
@@ -314,7 +398,7 @@ export default function CustomerManagementPage() {
                     <Button
                         onClick={openModal}
                         variant="primary"
-                        className="flex-1 sm:flex-initial h-10 px-4 rounded-xl bg-[#8DB600] hover:bg-[#7ca000] text-white font-black text-xs shadow-sm flex items-center justify-center gap-1.5 active:scale-95 transition-all"
+                        className="flex-1 sm:flex-initial h-10 px-4 rounded-xl bg-[#8DB600] hover:bg-[#7ca000] text-white font-black text-xs shadow-sm flex items-center justify-center gap-1.5 active:scale-95 transition-all cursor-pointer"
                         disabled={isDemo}
                     >
                         <UserPlus className="w-4 h-4 stroke-[2.5]" />
@@ -851,23 +935,92 @@ export default function CustomerManagementPage() {
                 </div>
             </div>
 
-            {/* ADD / EDIT CUSTOMER MODAL */}
+            {/* ADD / MERGE CUSTOMER MODAL */}
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                <DialogContent className="p-0 sm:max-w-[500px] w-full bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden rounded-3xl">
+                <DialogContent className="p-0 sm:max-w-[520px] w-full bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden rounded-3xl">
                     <DialogHeader className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-850 flex items-center justify-between">
                         <div>
                             <DialogTitle className="text-lg font-black text-slate-900 dark:text-white tracking-tight">
-                                {editing ? 'Edit Customer Details' : 'Add New Customer'}
+                                {editing ? 'Edit Customer Details' : 'Customer Registration'}
                             </DialogTitle>
                             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                                {editing ? 'Update customer delivery details below.' : 'Register customer for delivery routing and credit accounts.'}
+                                {editing ? 'Update customer delivery details.' : 'Register a new customer or attach records to an existing account.'}
                             </p>
                         </div>
                         <DialogCloseButton onClick={closeModal} className="p-1.5 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" />
                     </DialogHeader>
 
+                    {/* Mode Selector (Add New vs Add to Existing) */}
+                    {!editing && (
+                        <div className="px-6 pt-4">
+                            <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl border border-slate-200/80 dark:border-slate-700/80">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setEntryMode('new');
+                                        setSelectedExistingId('');
+                                    }}
+                                    className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                                        entryMode === 'new'
+                                            ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
+                                            : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                                    }`}
+                                >
+                                    + Create New Customer
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setEntryMode('existing')}
+                                    className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                                        entryMode === 'existing'
+                                            ? 'bg-[#8DB600] text-white shadow-xs'
+                                            : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                                    }`}
+                                >
+                                    🔗 Add to Existing Customer
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
                     <form onSubmit={save}>
                         <div className="p-6 space-y-4">
+                            {/* EXISTING CUSTOMER PICKER (Active when mode === 'existing') */}
+                            {entryMode === 'existing' && !editing && (
+                                <div className="p-3.5 bg-lime-50/70 dark:bg-lime-950/30 rounded-2xl border border-lime-200 dark:border-lime-900/50 space-y-2">
+                                    <Label className="text-xs font-bold text-lime-900 dark:text-lime-300">
+                                        Select Existing Customer Account <span className="text-rose-500">*</span>
+                                    </Label>
+                                    <select
+                                        value={selectedExistingId}
+                                        onChange={(e) => {
+                                            const id = e.target.value;
+                                            setSelectedExistingId(id);
+                                            const found = allCustomersList.find(c => String(c.id) === String(id));
+                                            if (found) {
+                                                setName(found.name || '');
+                                                if (found.phone) setPhone(found.phone);
+                                                if (found.address) setAddress(found.address);
+                                                if (found.email) setEmail(found.email);
+                                            }
+                                        }}
+                                        className="w-full h-10 px-3 text-xs font-bold bg-white dark:bg-slate-900 border border-lime-300 dark:border-lime-700 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-[#8DB600] cursor-pointer"
+                                        required
+                                    >
+                                        <option value="">-- Choose Customer from Database --</option>
+                                        {allCustomersList.map((c) => (
+                                            <option key={c.id} value={c.id}>
+                                                {c.name} {c.phone ? `(${c.phone})` : ''} {c.address ? `- ${c.address}` : ''}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <p className="text-[10px] text-lime-800 dark:text-lime-400 font-medium leading-relaxed">
+                                        Selecting an account will supplement missing contact/delivery fields without erasing previous records.
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* Full Name */}
                             <div>
                                 <Label htmlFor="customerName" className="text-xs font-bold text-slate-700 dark:text-slate-300">
                                     Full Name <span className="text-rose-500">*</span>
@@ -878,12 +1031,13 @@ export default function CustomerManagementPage() {
                                     onChange={(e) => setName(e.target.value)}
                                     required
                                     placeholder="e.g. Juan Dela Cruz"
-                                    autoFocus
-                                    disabled={isDemo}
+                                    autoFocus={entryMode === 'new'}
+                                    disabled={isDemo || (entryMode === 'existing' && !selectedExistingId)}
                                     className="h-10 mt-1 text-sm bg-slate-50 dark:bg-slate-800 rounded-xl border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:border-[#8DB600] focus:ring-[#8DB600]"
                                 />
                             </div>
 
+                            {/* Contact & Email */}
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
                                     <Label htmlFor="customerPhone" className="text-xs font-bold text-slate-700 dark:text-slate-300">Phone Number</Label>
@@ -910,6 +1064,7 @@ export default function CustomerManagementPage() {
                                 </div>
                             </div>
 
+                            {/* Delivery Address */}
                             <div>
                                 <Label htmlFor="customerAddress" className="text-xs font-bold text-slate-700 dark:text-slate-300">Delivery Address / Landmark</Label>
                                 <Input
@@ -921,6 +1076,23 @@ export default function CustomerManagementPage() {
                                     className="h-10 mt-1 text-xs bg-slate-50 dark:bg-slate-800 rounded-xl border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
                                 />
                             </div>
+
+                            {/* Link Unassigned Past Sales Checkbox */}
+                            {!editing && (
+                                <div className="pt-1">
+                                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                                        <input
+                                            type="checkbox"
+                                            checked={linkSales}
+                                            onChange={(e) => setLinkSales(e.target.checked)}
+                                            className="w-4 h-4 rounded text-[#8DB600] focus:ring-[#8DB600] border-slate-300"
+                                        />
+                                        <span className="text-xs text-slate-600 dark:text-slate-300 font-medium">
+                                            Auto-link all unassigned past sales matching this name to this profile
+                                        </span>
+                                    </label>
+                                </div>
+                            )}
                         </div>
 
                         <DialogFooter className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-850 flex items-center justify-end gap-2.5">
@@ -929,7 +1101,7 @@ export default function CustomerManagementPage() {
                                 type="button"
                                 onClick={closeModal}
                                 disabled={isMutating}
-                                className="h-10 px-5 rounded-xl text-xs font-bold border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800"
+                                className="h-10 px-5 rounded-xl text-xs font-bold border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 cursor-pointer"
                             >
                                 Cancel
                             </Button>
@@ -938,7 +1110,7 @@ export default function CustomerManagementPage() {
                                 disabled={isMutating || isDemo}
                                 className="h-10 px-6 rounded-xl bg-[#8DB600] hover:bg-[#7ca000] text-white text-xs font-bold shadow-md cursor-pointer"
                             >
-                                {isMutating ? 'Saving...' : (editing ? 'Update Customer' : 'Save Customer')}
+                                {isMutating ? 'Saving...' : editing ? 'Update Customer' : entryMode === 'new' ? 'Save Customer' : 'Merge to Customer'}
                             </Button>
                         </DialogFooter>
                     </form>
