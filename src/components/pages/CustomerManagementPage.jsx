@@ -26,7 +26,7 @@ import RepaymentModal from '../customers/RepaymentModal';
 import {
     Users, UserPlus, FileText, ShoppingBag,
     Phone, MapPin, ArrowUpDown, ChevronUp, ChevronDown,
-    DollarSign, AlertCircle, CheckCircle2, User, Clock,
+    DollarSign, AlertCircle, CheckCircle2, Clock,
     CreditCard
 } from 'lucide-react';
 
@@ -105,13 +105,25 @@ const formatTime = (dateStr) => {
     }
 };
 
+const DB_SORT_MAP = {
+    name: 'name',
+    phone: 'phone',
+    address: 'address',
+    dateAdded: 'created_at',
+    lastSeen: 'last_order_date',
+    credit_balance: 'credit_balance',
+    utangDate: 'utang_approved_at'
+};
+
 export default function CustomerManagementPage() {
     const router = useRouter();
     const [searchTerm, setSearchTerm] = useState('');
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [balanceFilter, setBalanceFilter] = useState('all');
-    const [sortConfig, setSortConfig] = useState({ key: 'lastSeen', direction: 'desc' });
+
+    // 1. DEFAULT SORT ALPHABETICAL BY NAME (ASCENDING)
+    const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' });
     const itemsPerPage = 10;
 
     const { user, addToast, setCurrentCustomer } = useStore();
@@ -122,7 +134,7 @@ export default function CustomerManagementPage() {
         itemsPerPage,
         searchTerm: debouncedSearchTerm,
         balanceFilter,
-        sortBy: sortConfig.key,
+        sortBy: DB_SORT_MAP[sortConfig.key] || 'name',
         sortDirection: sortConfig.direction
     });
 
@@ -146,8 +158,47 @@ export default function CustomerManagementPage() {
         staleTime: 1000 * 60 * 5
     });
 
-    const customers = customersData.customers || [];
+    const rawCustomers = customersData.customers || [];
     const totalPages = customersData.totalPages || 1;
+
+    // Resilient Dual-Layer Sorting (Backend + Frontend Fallback for Derived Columns)
+    const customers = useMemo(() => {
+        if (!rawCustomers.length) return [];
+        return [...rawCustomers].sort((a, b) => {
+            const dirMultiplier = sortConfig.direction === 'asc' ? 1 : -1;
+
+            if (sortConfig.key === 'name') {
+                return (a.name || '').localeCompare(b.name || '') * dirMultiplier;
+            }
+            if (sortConfig.key === 'phone') {
+                return (a.phone || '').localeCompare(b.phone || '') * dirMultiplier;
+            }
+            if (sortConfig.key === 'address') {
+                return (a.address || '').localeCompare(b.address || '') * dirMultiplier;
+            }
+            if (sortConfig.key === 'dateAdded') {
+                const timeA = a.dateAdded ? new Date(a.dateAdded).getTime() : (a.created_at ? new Date(a.created_at).getTime() : 0);
+                const timeB = b.dateAdded ? new Date(b.dateAdded).getTime() : (b.created_at ? new Date(b.created_at).getTime() : 0);
+                return (timeA - timeB) * dirMultiplier;
+            }
+            if (sortConfig.key === 'lastSeen') {
+                const timeA = a.lastSeen ? new Date(a.lastSeen).getTime() : 0;
+                const timeB = b.lastSeen ? new Date(b.lastSeen).getTime() : 0;
+                return (timeA - timeB) * dirMultiplier;
+            }
+            if (sortConfig.key === 'credit_balance') {
+                return (Number(a.credit_balance || 0) - Number(b.credit_balance || 0)) * dirMultiplier;
+            }
+            if (sortConfig.key === 'utangDate') {
+                const dateA = a.utangApprovedAt || a.utang_approved_at;
+                const dateB = b.utangApprovedAt || b.utang_approved_at;
+                const timeA = dateA ? new Date(dateA).getTime() : 0;
+                const timeB = dateB ? new Date(dateB).getTime() : 0;
+                return (timeA - timeB) * dirMultiplier;
+            }
+            return 0;
+        });
+    }, [rawCustomers, sortConfig]);
 
     // Resilient KPIs with direct calculation fallbacks
     const metrics = useMemo(() => {
@@ -174,7 +225,7 @@ export default function CustomerManagementPage() {
     const [repayCustomer, setRepayCustomer] = useState(null);
 
     // Form & Mode states
-    const [entryMode, setEntryMode] = useState('new'); // 'new' | 'existing'
+    const [entryMode, setEntryMode] = useState('new');
     const [selectedExistingId, setSelectedExistingId] = useState('');
     const [linkSales, setLinkSales] = useState(true);
     const [name, setName] = useState('');
@@ -254,7 +305,6 @@ export default function CustomerManagementPage() {
     const save = async (e) => {
         e.preventDefault();
 
-        // 1. EDIT MODE
         if (editing) {
             if (!name || !name.trim()) {
                 addToast({ title: 'Name Required', description: 'Please enter customer name.', variant: 'destructive' });
@@ -278,7 +328,6 @@ export default function CustomerManagementPage() {
             return;
         }
 
-        // 2. ADD NEW CUSTOMER
         if (entryMode === 'new') {
             if (!name || !name.trim()) {
                 addToast({ title: 'Name Required', description: 'Please enter customer name.', variant: 'destructive' });
@@ -303,7 +352,6 @@ export default function CustomerManagementPage() {
             return;
         }
 
-        // 3. MERGE / ADD TO EXISTING CUSTOMER
         if (entryMode === 'existing') {
             if (!selectedExistingId) {
                 addToast({ title: 'Selection Required', description: 'Please choose an existing customer account.', variant: 'destructive' });
@@ -527,13 +575,42 @@ export default function CustomerManagementPage() {
                 </div>
             </div>
 
-            {/* Desktop Table View */}
+            {/* Mobile Sort Dropdown Selector */}
+            <div className="flex md:hidden items-center justify-between gap-2 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-xs">
+                <span className="text-slate-500 font-bold uppercase text-[10px]">Sort by:</span>
+                <div className="flex items-center gap-1.5">
+                    <select
+                        value={sortConfig.key}
+                        onChange={(e) => requestSort(e.target.value)}
+                        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-xs font-bold text-slate-800 dark:text-slate-200"
+                    >
+                        <option value="name">Customer Name</option>
+                        <option value="phone">Contact Number</option>
+                        <option value="address">Delivery Address</option>
+                        <option value="dateAdded">Date Registered</option>
+                        <option value="lastSeen">Last Refill</option>
+                        <option value="credit_balance">Utang Balance</option>
+                        <option value="utangDate">Utang Date</option>
+                    </select>
+                    <button
+                        type="button"
+                        onClick={() => requestSort(sortConfig.key)}
+                        className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-[#8DB600] font-bold"
+                        title="Toggle Asc/Desc"
+                    >
+                        {sortConfig.direction === 'asc' ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                    </button>
+                </div>
+            </div>
+
+            {/* Desktop Table View - All Columns Support ASC/DESC Sorting */}
             <Card className="hidden md:block border border-slate-200 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900 rounded-2xl overflow-hidden">
                 <CardContent className="p-0 overflow-x-hidden">
                     <div className="w-full overflow-x-hidden">
                         <table className="w-full table-fixed text-xs divide-y divide-slate-100 dark:divide-slate-800">
                             <thead>
                             <tr className="bg-slate-50 dark:bg-slate-850 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200/80 dark:border-slate-800">
+                                {/* 1. Customer Name (Default Alphabetical) */}
                                 <th className="w-[18%] py-3 px-3 text-left">
                                     <button
                                         type="button"
@@ -545,6 +622,7 @@ export default function CustomerManagementPage() {
                                     </button>
                                 </th>
 
+                                {/* 2. Phone / Contact */}
                                 <th className="w-[12%] py-3 px-3 text-left">
                                     <button
                                         type="button"
@@ -556,6 +634,7 @@ export default function CustomerManagementPage() {
                                     </button>
                                 </th>
 
+                                {/* 3. Delivery Address */}
                                 <th className="w-[15%] py-3 px-3 text-left">
                                     <button
                                         type="button"
@@ -567,6 +646,7 @@ export default function CustomerManagementPage() {
                                     </button>
                                 </th>
 
+                                {/* 4. Date Added */}
                                 <th className="w-[9%] py-3 px-2 text-left">
                                     <button
                                         type="button"
@@ -578,6 +658,7 @@ export default function CustomerManagementPage() {
                                     </button>
                                 </th>
 
+                                {/* 5. Last Refill */}
                                 <th className="w-[9%] py-3 px-2 text-left">
                                     <button
                                         type="button"
@@ -589,6 +670,7 @@ export default function CustomerManagementPage() {
                                     </button>
                                 </th>
 
+                                {/* 6. Utang Balance */}
                                 <th className="w-[10%] py-3 px-2 text-center">
                                     <button
                                         type="button"
@@ -600,6 +682,7 @@ export default function CustomerManagementPage() {
                                     </button>
                                 </th>
 
+                                {/* 7. Utang Date */}
                                 <th className="w-[11%] py-3 px-2 text-left">
                                     <button
                                         type="button"
@@ -683,7 +766,7 @@ export default function CustomerManagementPage() {
 
                                             {/* Date Added */}
                                             <td className="py-2.5 px-2 text-[11px] text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                                                {c.dateAdded ? new Date(c.dateAdded).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                                                {c.dateAdded ? new Date(c.dateAdded).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : (c.created_at ? new Date(c.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—')}
                                             </td>
 
                                             {/* Last Refill */}
@@ -805,7 +888,6 @@ export default function CustomerManagementPage() {
 
                         return (
                             <div key={c.id} className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs space-y-3">
-                                {/* Top Header: Name, Contact & Utang Badge */}
                                 <div className="flex items-start justify-between gap-2.5">
                                     <div className="flex items-center gap-3 min-w-0">
                                         <div className="w-10 h-10 rounded-xl bg-[#8DB600]/15 text-[#8DB600] font-black text-sm flex items-center justify-center shrink-0">
@@ -840,7 +922,6 @@ export default function CustomerManagementPage() {
                                     )}
                                 </div>
 
-                                {/* Delivery Address Pill */}
                                 {c.address && c.address !== 'N/A' && (
                                     <div className="text-xs text-slate-600 dark:text-slate-300 flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/60 p-2 rounded-xl border border-slate-100 dark:border-slate-800">
                                         <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
@@ -848,7 +929,6 @@ export default function CustomerManagementPage() {
                                     </div>
                                 )}
 
-                                {/* Utang Timestamp Banner if in Debt */}
                                 {hasDebt && (
                                     <div className="flex items-center justify-between bg-rose-50/70 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900/40 p-2.5 rounded-xl text-xs">
                                         <div>
@@ -870,7 +950,6 @@ export default function CustomerManagementPage() {
                                     </div>
                                 )}
 
-                                {/* Bottom Row Actions */}
                                 <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800">
                                     {hasDebt ? (
                                         <button
@@ -950,7 +1029,6 @@ export default function CustomerManagementPage() {
                         <DialogCloseButton onClick={closeModal} className="p-1.5 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" />
                     </DialogHeader>
 
-                    {/* Mode Selector (Add New vs Add to Existing) */}
                     {!editing && (
                         <div className="px-6 pt-4">
                             <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl border border-slate-200/80 dark:border-slate-700/80">
@@ -985,7 +1063,6 @@ export default function CustomerManagementPage() {
 
                     <form onSubmit={save}>
                         <div className="p-6 space-y-4">
-                            {/* EXISTING CUSTOMER PICKER (Active when mode === 'existing') */}
                             {entryMode === 'existing' && !editing && (
                                 <div className="p-3.5 bg-lime-50/70 dark:bg-lime-950/30 rounded-2xl border border-lime-200 dark:border-lime-900/50 space-y-2">
                                     <Label className="text-xs font-bold text-lime-900 dark:text-lime-300">
@@ -1020,7 +1097,6 @@ export default function CustomerManagementPage() {
                                 </div>
                             )}
 
-                            {/* Full Name */}
                             <div>
                                 <Label htmlFor="customerName" className="text-xs font-bold text-slate-700 dark:text-slate-300">
                                     Full Name <span className="text-rose-500">*</span>
@@ -1037,7 +1113,6 @@ export default function CustomerManagementPage() {
                                 />
                             </div>
 
-                            {/* Contact & Email */}
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
                                     <Label htmlFor="customerPhone" className="text-xs font-bold text-slate-700 dark:text-slate-300">Phone Number</Label>
@@ -1064,7 +1139,6 @@ export default function CustomerManagementPage() {
                                 </div>
                             </div>
 
-                            {/* Delivery Address */}
                             <div>
                                 <Label htmlFor="customerAddress" className="text-xs font-bold text-slate-700 dark:text-slate-300">Delivery Address / Landmark</Label>
                                 <Input
@@ -1077,7 +1151,6 @@ export default function CustomerManagementPage() {
                                 />
                             </div>
 
-                            {/* Link Unassigned Past Sales Checkbox */}
                             {!editing && (
                                 <div className="pt-1">
                                     <label className="flex items-center gap-2 cursor-pointer select-none">

@@ -440,7 +440,6 @@ const ReportPage = () => {
         setCurrentPage(1);
     };
 
-    // Quick Date Presets Handler
     const handlePresetRange = (preset) => {
         const today = new Date();
         setCurrentPage(1);
@@ -540,7 +539,7 @@ const ReportPage = () => {
                     isLoading={isMonthlyGrowthLoading}
                     value={`₱${(monthlyGrowthData?.thisMonthSales || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                     previousValue={`₱${(monthlyGrowthData?.lastMonthSales || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                    previousPeriodRange={monthlyGrowthData?.lastMonthStart ? `(${format(monthlyGrowthData.lastMonthStart, 'MMM d')} - ${format(monthlyGrowthData.lastMonthEnd, 'd')})` : undefined}
+                    previousPeriodRange={monthlyGrowthData?.lastMonthStart ? `(${format(new Date(monthlyGrowthData.lastMonthStart), 'MMM d')} - ${format(new Date(monthlyGrowthData.lastMonthEnd), 'MMM d')})` : undefined}
                     percentage={Math.abs(monthlyGrowthData?.salesGrowth || 0)}
                     isPositive={(monthlyGrowthData?.salesGrowth || 0) >= 0}
                     isPositiveColor={(monthlyGrowthData?.thisMonthSales || 0) >= (monthlyGrowthData?.lastMonthSales || 0)}
@@ -551,7 +550,7 @@ const ReportPage = () => {
                     isLoading={isMonthlyGrowthLoading}
                     value={`${(monthlyGrowthData?.thisMonthGallons || 0).toLocaleString()} gal`}
                     previousValue={`${(monthlyGrowthData?.lastMonthGallons || 0).toLocaleString()} gal`}
-                    previousPeriodRange={monthlyGrowthData?.lastMonthStart ? `(${format(monthlyGrowthData.lastMonthStart, 'MMM d')} - ${format(monthlyGrowthData.lastMonthEnd, 'd')})` : undefined}
+                    previousPeriodRange={monthlyGrowthData?.lastMonthStart ? `(${format(new Date(monthlyGrowthData.lastMonthStart), 'MMM d')} - ${format(new Date(monthlyGrowthData.lastMonthEnd), 'MMM d')})` : undefined}
                     percentage={Math.abs(monthlyGrowthData?.gallonsGrowth || 0)}
                     isPositive={(monthlyGrowthData?.gallonsGrowth || 0) >= 0}
                     isPositiveColor={(monthlyGrowthData?.thisMonthGallons || 0) >= (monthlyGrowthData?.lastMonthGallons || 0)}
@@ -562,7 +561,7 @@ const ReportPage = () => {
                     isLoading={isWeeklyGrowthLoading}
                     value={`₱${(weeklyGrowthData?.thisWeekSales || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                     previousValue={`₱${(weeklyGrowthData?.lastWeekSales || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                    previousPeriodRange={weeklyGrowthData?.lastWeekStart ? `(${format(weeklyGrowthData.lastWeekStart, 'MMM d')} - ${format(weeklyGrowthData.lastWeekEnd, 'd')})` : undefined}
+                    previousPeriodRange={weeklyGrowthData?.lastWeekStart ? `(${format(new Date(weeklyGrowthData.lastWeekStart), 'MMM d')} - ${format(new Date(weeklyGrowthData.lastWeekEnd), 'MMM d')})` : undefined}
                     percentage={Math.abs(weeklyGrowthData?.salesGrowth || 0)}
                     isPositive={(weeklyGrowthData?.salesGrowth || 0) >= 0}
                     isPositiveColor={(weeklyGrowthData?.thisWeekSales || 0) >= (weeklyGrowthData?.lastWeekSales || 0)}
@@ -573,7 +572,7 @@ const ReportPage = () => {
                     isLoading={isWeeklyGrowthLoading}
                     value={`${(weeklyGrowthData?.thisWeekGallons || 0).toLocaleString()} gal`}
                     previousValue={`${(weeklyGrowthData?.lastWeekGallons || 0).toLocaleString()} gal`}
-                    previousPeriodRange={weeklyGrowthData?.lastWeekStart ? `(${format(weeklyGrowthData.lastWeekStart, 'MMM d')} - ${format(weeklyGrowthData.lastWeekEnd, 'd')})` : undefined}
+                    previousPeriodRange={weeklyGrowthData?.lastWeekStart ? `(${format(new Date(weeklyGrowthData.lastWeekStart), 'MMM d')} - ${format(new Date(weeklyGrowthData.lastWeekEnd), 'MMM d')})` : undefined}
                     percentage={Math.abs(weeklyGrowthData?.gallonsGrowth || 0)}
                     isPositive={(weeklyGrowthData?.gallonsGrowth || 0) >= 0}
                     isPositiveColor={(weeklyGrowthData?.thisWeekGallons || 0) >= (weeklyGrowthData?.lastWeekGallons || 0)}
