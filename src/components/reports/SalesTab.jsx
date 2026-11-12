@@ -15,7 +15,10 @@ import {
     RotateCcw,
     FileDown,
     FileSpreadsheet,
-    Loader2
+    Loader2,
+    Trash2,
+    CheckSquare,
+    X
 } from 'lucide-react';
 
 const formatCurrency = (amount) => {
@@ -49,7 +52,7 @@ const SalesTab = ({
                       totalGallonsSold,
                       summaryData,
                       error,
-                      processedSales,
+                      processedSales = [],
                       safeCurrentPage,
                       totalPages,
                       setCurrentPage,
@@ -58,6 +61,11 @@ const SalesTab = ({
                       onEditSale,
                       isAdmin,
                       currentDateKey,
+                      selectedSaleIds = [],
+                      onToggleSelectSale,
+                      onSelectAllDay,
+                      onClearSelection,
+                      onOpenBulkDelete
                   }) => {
     const handleEdit = openEditModal || onEditSale;
     const [showRetentionInsights, setShowRetentionInsights] = useState(false);
@@ -73,7 +81,6 @@ const SalesTab = ({
 
     const isAnyFilterActive = Boolean(fromDate || toDate || selectedProductId || customerSearch);
 
-    // Export Handlers
     const handleExportPDF = async () => {
         setIsExportingPDF(true);
         try {
@@ -101,6 +108,14 @@ const SalesTab = ({
 
     const activeStartDate = interval?.start || fromDate;
     const activeEndDate = interval?.end || toDate;
+
+    const selectedTotalAmount = (chartSalesData || [])
+        .filter((s) => selectedSaleIds.includes(s.id))
+        .reduce((sum, s) => sum + (Number(s.totalAmount || s.totalamount) || 0), 0);
+
+    const allDaySelected =
+        processedSales.length > 0 &&
+        processedSales.every((s) => selectedSaleIds.includes(s.id));
 
     return (
         <div className="space-y-4 transition-colors">
@@ -327,7 +342,6 @@ const SalesTab = ({
 
                 {showRetentionInsights && (
                     <div className="p-4 sm:p-6 space-y-6 border-t border-slate-100 dark:border-slate-800 animate-in fade-in duration-200">
-                        {/* Passes current active sales directly to the audit cross-checker */}
                         <MissedCustomersTable
                             startDate={activeStartDate}
                             endDate={activeEndDate}
@@ -342,6 +356,49 @@ const SalesTab = ({
                     </div>
                 )}
             </div>
+
+            {/* --- Admin Bulk Selection Bar (Appears when 1+ rows are checked) --- */}
+            {isAdmin && selectedSaleIds.length > 0 && (
+                <div className="sticky top-16 z-20 bg-rose-50/95 dark:bg-rose-950/90 backdrop-blur-md border border-rose-200 dark:border-rose-800 rounded-2xl px-4 py-3 shadow-md flex flex-wrap items-center justify-between gap-3 animate-in fade-in duration-150">
+                    <div className="flex items-center gap-2.5">
+                        <span className="inline-flex items-center gap-1.5 bg-rose-600 text-white text-xs font-black px-2.5 py-1 rounded-lg">
+                            <CheckSquare className="w-3.5 h-3.5" />
+                            <span>{selectedSaleIds.length} Selected</span>
+                        </span>
+                        <span className="text-xs font-bold text-rose-900 dark:text-rose-200">
+                            Total: <span className="font-mono font-black">{formatCurrency(selectedTotalAmount)}</span>
+                        </span>
+                        {processedSales.length > 0 && (
+                            <button
+                                type="button"
+                                onClick={onSelectAllDay}
+                                className="text-[11px] font-bold text-rose-700 dark:text-rose-300 underline hover:text-rose-900 cursor-pointer ml-1"
+                            >
+                                {allDaySelected ? 'Deselect Current Day' : `Select All on Day (${processedSales.length})`}
+                            </button>
+                        )}
+                    </div>
+
+                    <div className="flex items-center gap-2 ml-auto">
+                        <button
+                            type="button"
+                            onClick={onClearSelection}
+                            className="px-3 py-1.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 flex items-center gap-1 cursor-pointer"
+                        >
+                            <X className="w-3.5 h-3.5" />
+                            <span>Clear</span>
+                        </button>
+                        <Button
+                            type="button"
+                            onClick={onOpenBulkDelete}
+                            className="h-8 px-3.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-black flex items-center gap-1.5 shadow-sm cursor-pointer"
+                        >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Delete Selected ({selectedSaleIds.length})</span>
+                        </Button>
+                    </div>
+                </div>
+            )}
 
             {/* --- Transaction Ledger (1 Day Per Page) --- */}
             {isLoading && (
@@ -368,6 +425,9 @@ const SalesTab = ({
                         isAdmin={isAdmin}
                         currentDate={currentDateKey}
                         customerSearch={customerSearch}
+                        selectedSaleIds={selectedSaleIds}
+                        onToggleSelectSale={onToggleSelectSale}
+                        onSelectAllDay={onSelectAllDay}
                     />
                 </div>
             )}

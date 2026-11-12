@@ -4,10 +4,10 @@ import { format } from 'date-fns';
 import currency from 'currency.js';
 import Pagination from '../Pagination';
 import SaleCard from './SaleCard';
-import { Pencil, Trash2, Calendar } from 'lucide-react';
+import { Pencil, Trash2, Calendar, CheckSquare, Square } from 'lucide-react';
 
 const formatCurrency = (amount) => {
-    const numericAmount = typeof amount === 'string' ? currency(amount).value : currency(amount).value;
+    const numericAmount = typeof amount === 'number' ? amount : currency(amount || 0).value;
     if (isNaN(numericAmount)) return '₱0.00';
     return currency(numericAmount, { symbol: '₱', precision: 2 }).format();
 };
@@ -21,7 +21,10 @@ const SalesReportDisplay = ({
                                 onEdit,
                                 isAdmin,
                                 currentDate,
-                                customerSearch = ''
+                                customerSearch = '',
+                                selectedSaleIds = [],
+                                onToggleSelectSale,
+                                onSelectAllDay
                             }) => {
     // Parse YYYY-MM-DD into a full date string
     const formattedDate = useMemo(() => {
@@ -38,6 +41,10 @@ const SalesReportDisplay = ({
     const dailyTotal = useMemo(() => {
         return salesList.reduce((acc, sale) => acc + Number(sale.totalAmount || sale.totalamount || 0), 0);
     }, [salesList]);
+
+    const allDaySelected = useMemo(() => {
+        return salesList.length > 0 && salesList.every((s) => selectedSaleIds.includes(s.id));
+    }, [salesList, selectedSaleIds]);
 
     // Highlight search match in customer names
     const highlightMatch = (text = '', query = '') => {
@@ -78,11 +85,28 @@ const SalesReportDisplay = ({
                     </div>
                 </div>
 
-                <div className="flex items-center gap-1.5 self-start sm:self-auto bg-white dark:bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700/80 shadow-2xs">
-                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Daily Total:</span>
-                    <span className="text-sm font-black text-[#5f7d00] dark:text-lime-400 font-mono">
-                        {formatCurrency(dailyTotal)}
-                    </span>
+                <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
+                    {isAdmin && salesList.length > 0 && onSelectAllDay && (
+                        <button
+                            type="button"
+                            onClick={onSelectAllDay}
+                            className={`px-2.5 py-1.5 rounded-xl text-xs font-bold border transition-colors flex items-center gap-1.5 cursor-pointer ${
+                                allDaySelected
+                                    ? 'bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800'
+                                    : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100'
+                            }`}
+                        >
+                            {allDaySelected ? <CheckSquare className="w-3.5 h-3.5" /> : <Square className="w-3.5 h-3.5" />}
+                            <span>{allDaySelected ? 'Deselect Day' : 'Select Day'}</span>
+                        </button>
+                    )}
+
+                    <div className="flex items-center gap-1.5 bg-white dark:bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700/80 shadow-2xs">
+                        <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Daily Total:</span>
+                        <span className="text-sm font-black text-[#5f7d00] dark:text-lime-400 font-mono">
+                            {formatCurrency(dailyTotal)}
+                        </span>
+                    </div>
                 </div>
             </div>
 
@@ -91,12 +115,24 @@ const SalesReportDisplay = ({
                 <table className="w-full table-auto text-xs">
                     <thead className="bg-slate-100/70 dark:bg-slate-800/90 border-b border-slate-200 dark:border-slate-800">
                     <tr>
+                        {isAdmin && (
+                            <th className="pl-3 pr-1 py-3 text-center w-9">
+                                <input
+                                    type="checkbox"
+                                    checked={allDaySelected}
+                                    onChange={() => onSelectAllDay && onSelectAllDay()}
+                                    aria-label="Select all transactions on this day"
+                                    title="Select all transactions on this day"
+                                    className="w-4 h-4 rounded text-rose-600 focus:ring-rose-500 border-slate-300 dark:border-slate-600 cursor-pointer align-middle"
+                                />
+                            </th>
+                        )}
                         <th className="px-3 py-3 text-left font-bold text-slate-600 dark:text-slate-300 whitespace-nowrap">Time</th>
                         <th className="px-3 py-3 text-left font-bold text-slate-600 dark:text-slate-300">Customer</th>
                         <th className="px-3 py-3 text-left font-bold text-slate-600 dark:text-slate-300">Item(s) & Qty</th>
                         <th className="px-3 py-3 text-left font-bold text-slate-600 dark:text-slate-300">Price</th>
                         <th className="px-2 py-3 text-left font-bold text-slate-600 dark:text-slate-300">Discount</th>
-                        <th className="px-2 py-3 text-center font-bold text-slate-600 dark:text-slate-300 w-12">Qty</th>
+                        <th className="px-2 py-3 text-center font-bold text-slate-600 dark:text-slate-30 w-12">Qty</th>
                         <th className="px-3 py-3 text-right font-bold text-slate-600 dark:text-slate-300">Total</th>
                         <th className="px-3 py-3 text-center font-bold text-slate-600 dark:text-slate-300">Payment</th>
                         <th className="px-3 py-3 text-center font-bold text-slate-600 dark:text-slate-300">Status</th>
@@ -110,7 +146,7 @@ const SalesReportDisplay = ({
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
                     {salesList.length === 0 ? (
                         <tr>
-                            <td colSpan={isAdmin ? 11 : 10} className="text-center py-12 text-slate-400 dark:text-slate-500 font-semibold">
+                            <td colSpan={isAdmin ? 12 : 10} className="text-center py-12 text-slate-400 dark:text-slate-500 font-semibold">
                                 No transaction records found for this day.
                             </td>
                         </tr>
@@ -120,9 +156,28 @@ const SalesReportDisplay = ({
                             const timeStr = rawDate ? format(new Date(rawDate), 'h:mm a') : 'N/A';
                             const totalQty = (sale.sale_items || sale.items || []).reduce((sum, itm) => sum + Number(itm.quantity || 0), 0);
                             const status = (sale.status || 'Completed').toLowerCase();
+                            const isChecked = selectedSaleIds.includes(sale.id);
 
                             return (
-                                <tr key={sale.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors">
+                                <tr
+                                    key={sale.id}
+                                    className={`transition-colors ${
+                                        isChecked
+                                            ? 'bg-rose-50/60 dark:bg-rose-950/25 hover:bg-rose-50/90 dark:hover:bg-rose-950/40'
+                                            : 'hover:bg-slate-50/70 dark:hover:bg-slate-800/50'
+                                    }`}
+                                >
+                                    {isAdmin && (
+                                        <td className="pl-3 pr-1 py-2.5 text-center">
+                                            <input
+                                                type="checkbox"
+                                                checked={isChecked}
+                                                onChange={() => onToggleSelectSale && onToggleSelectSale(sale.id)}
+                                                aria-label={`Select transaction #${sale.id}`}
+                                                className="w-4 h-4 rounded text-rose-600 focus:ring-rose-500 border-slate-300 dark:border-slate-600 cursor-pointer align-middle"
+                                            />
+                                        </td>
+                                    )}
                                     <td className="px-3 py-2.5 whitespace-nowrap text-slate-500 dark:text-slate-400 font-medium">
                                         {timeStr}
                                     </td>
@@ -172,14 +227,12 @@ const SalesReportDisplay = ({
                                         {formatCurrency(sale.totalAmount || sale.totalamount || 0)}
                                     </td>
 
-                                    {/* High-Contrast Payment Method Badge */}
                                     <td className="px-3 py-2.5 whitespace-nowrap text-center">
                                         <span className="inline-block px-2.5 py-0.5 rounded-md font-bold text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 shadow-2xs">
                                             {sale.paymentMethod || sale.paymentmethod || 'Cash'}
                                         </span>
                                     </td>
 
-                                    {/* High-Contrast Status Pill */}
                                     <td className="px-3 py-2.5 whitespace-nowrap text-center">
                                         <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-black ${
                                             status === 'completed'
@@ -229,22 +282,42 @@ const SalesReportDisplay = ({
                 </table>
             </div>
 
-            {/* Mobile View Cards */}
+            {/* Mobile View Cards with Selection Support */}
             <div className="md:hidden p-3 bg-slate-50/70 dark:bg-slate-900/80 space-y-3">
                 {salesList.length === 0 ? (
                     <div className="text-center py-8 text-slate-400 dark:text-slate-500 text-xs">
                         No sales found for this day.
                     </div>
                 ) : (
-                    salesList.map((sale) => (
-                        <SaleCard
-                            key={sale.id}
-                            sale={sale}
-                            onDelete={onDelete}
-                            onEdit={onEdit}
-                            isAdmin={isAdmin}
-                        />
-                    ))
+                    salesList.map((sale) => {
+                        const isChecked = selectedSaleIds.includes(sale.id);
+                        return (
+                            <div
+                                key={sale.id}
+                                className={`rounded-2xl transition-all ${
+                                    isChecked ? 'ring-2 ring-rose-500 bg-rose-50/30 dark:bg-rose-950/20' : ''
+                                }`}
+                            >
+                                {isAdmin && onToggleSelectSale && (
+                                    <label className="flex items-center gap-2 px-3 pt-2 pb-1 text-[11px] font-bold text-slate-500 dark:text-slate-400 cursor-pointer select-none">
+                                        <input
+                                            type="checkbox"
+                                            checked={isChecked}
+                                            onChange={() => onToggleSelectSale(sale.id)}
+                                            className="w-4 h-4 rounded text-rose-600 focus:ring-rose-500 border-slate-300 cursor-pointer"
+                                        />
+                                        <span>Select transaction #{sale.id}</span>
+                                    </label>
+                                )}
+                                <SaleCard
+                                    sale={sale}
+                                    onDelete={onDelete}
+                                    onEdit={onEdit}
+                                    isAdmin={isAdmin}
+                                />
+                            </div>
+                        );
+                    })
                 )}
             </div>
 

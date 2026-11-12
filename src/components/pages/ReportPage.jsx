@@ -1,13 +1,13 @@
 // src/components/pages/ReportPage.jsx
 import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabaseClient';
 import { useSales, useUpdateSale } from '../../hooks/useSales';
 import { useSalesSummary } from '../../hooks/useSalesSummary';
 import { useProducts } from '../../hooks/useProducts';
-import { useDeleteSale } from '../../hooks/useDeleteSale';
 import { useDebounce } from '../../hooks/useDebounce';
+import { logActivity } from '../../hooks/useActivityLogs';
 import { useStore } from '../../store/useStore';
 import {
     format,
@@ -25,9 +25,8 @@ import {
 import { useWeeklyGrowth } from '../../hooks/useWeeklyGrowth';
 import { useMonthlyGrowth } from '../../hooks/useMonthlyGrowth';
 import SummaryCard from '../ui/SummaryCard';
-import DeleteConfirmationModal from '../DeleteConfirmationModal';
 import currency from 'currency.js';
-import { Pencil } from 'lucide-react';
+import { Pencil, Trash2, AlertTriangle } from 'lucide-react';
 
 // Extracted Modular Tabs
 import SalesTab from '../reports/SalesTab';
@@ -169,9 +168,105 @@ const EditSaleModal = ({ sale, isOpen, onClose }) => {
     );
 };
 
+// Single & Bulk Delete Confirmation Modal
+const BulkDeleteSalesModal = ({ salesToDelete = [], isOpen, onClose, onConfirm, isDeleting }) => {
+    const [reason, setReason] = useState('');
+
+    useEffect(() => {
+        if (isOpen) setReason('');
+    }, [isOpen]);
+
+    if (!isOpen || !salesToDelete.length) return null;
+
+    const count = salesToDelete.length;
+    const totalAmount = salesToDelete.reduce((sum, s) => sum + (Number(s.totalAmount || s.totalamount) || 0), 0);
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        onConfirm(reason.trim());
+    };
+
+    return (
+        <Dialog open={isOpen} onOpenChange={onClose}>
+            <DialogContent className="p-0 sm:max-w-md w-full bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden rounded-3xl">
+                <div className="px-6 py-4 bg-rose-50 dark:bg-rose-950/40 border-b border-rose-100 dark:border-rose-900/50 flex items-center justify-between">
+                    <DialogTitle className="text-base font-black text-rose-900 dark:text-rose-200 flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-xl bg-rose-100 dark:bg-rose-900/60 text-rose-600 dark:text-rose-300 flex items-center justify-center">
+                            <AlertTriangle className="w-4 h-4 stroke-[2.5]" />
+                        </div>
+                        <span>
+                            {count === 1 ? `Delete Transaction #${salesToDelete[0].id}` : `Delete ${count} Transactions`}
+                        </span>
+                    </DialogTitle>
+                    <DialogCloseButton onClick={onClose} className="p-1.5 rounded-full text-slate-400 hover:text-slate-600 cursor-pointer" />
+                </div>
+
+                <form onSubmit={handleSubmit}>
+                    <div className="p-6 space-y-4">
+                        <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-1.5 text-xs">
+                            <div className="flex justify-between">
+                                <span className="text-slate-500 font-semibold">Transactions Selected:</span>
+                                <span className="font-black text-slate-900 dark:text-white">{count}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-slate-500 font-semibold">Combined Amount:</span>
+                                <span className="font-black font-mono text-rose-600 dark:text-rose-400">
+                                    {formatCurrency(totalAmount)}
+                                </span>
+                            </div>
+                            {count <= 6 && (
+                                <div className="pt-1.5 border-t border-slate-200 dark:border-slate-700 text-[11px] text-slate-500 truncate">
+                                    Customers: {salesToDelete.map(s => s.customerName || 'Walk-in').join(', ')}
+                                </div>
+                            )}
+                        </div>
+
+                        <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                            This action will permanently remove {count === 1 ? 'this transaction' : 'these transactions'}, restore tracked product inventory, and reverse any unpaid Charge/Utang balances.
+                        </p>
+
+                        <div>
+                            <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                                Reason for Deletion (Optional)
+                            </Label>
+                            <Input
+                                value={reason}
+                                onChange={(e) => setReason(e.target.value)}
+                                placeholder="e.g. Duplicate scan entry, test order..."
+                                className="h-10 mt-1 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="px-6 py-4 bg-slate-50 dark:bg-slate-850 border-t border-slate-200/80 dark:border-slate-800 flex items-center justify-end gap-2.5">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={onClose}
+                            disabled={isDeleting}
+                            className="h-10 px-4 rounded-xl text-xs font-bold cursor-pointer"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            type="submit"
+                            disabled={isDeleting}
+                            className="h-10 px-5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-md cursor-pointer"
+                        >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>{isDeleting ? 'Deleting...' : `Delete ${count === 1 ? 'Transaction' : `${count} Transactions`}`}</span>
+                        </Button>
+                    </div>
+                </form>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
 const ReportPage = () => {
     const searchParams = useSearchParams();
-    const user = useStore(state => state.user);
+    const queryClient = useQueryClient();
+    const { user, addToast } = useStore();
 
     const isAdmin = useMemo(() => {
         if (!user) return false;
@@ -222,14 +317,13 @@ const ReportPage = () => {
 
     const FREQUENT_PAGE_SIZE = 10;
 
-    // Modals State
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [saleToDelete, setSaleToDelete] = useState(null);
+    // Multi-Select & Modals State
+    const [selectedSaleIds, setSelectedSaleIds] = useState([]);
+    const [salesToDelete, setSalesToDelete] = useState([]);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [editingSale, setEditingSale] = useState(null);
 
-    const deleteSaleMutation = useDeleteSale();
-
-    const weeklyGrowthDate = useMemo(() => toDate ? new Date(toDate) : new Date(), [toDate]);
+    const weeklyGrowthDate = useMemo(() => toDate ? new Date(`${toDate}T12:00:00+08:00`) : new Date(), [toDate]);
     const { data: weeklyGrowthData, isLoading: isWeeklyGrowthLoading } = useWeeklyGrowth(weeklyGrowthDate);
     const { data: monthlyGrowthData, isLoading: isMonthlyGrowthLoading } = useMonthlyGrowth(weeklyGrowthDate);
 
@@ -246,12 +340,15 @@ const ReportPage = () => {
         return () => window.removeEventListener('scroll', onScroll);
     }, []);
 
-    const interval = useMemo(() => {
-        let start = fromDate ? new Date(fromDate) : null;
-        if (start) start.setHours(0, 0, 0, 0);
+    // Clear selection when filters or active tab change
+    useEffect(() => {
+        setSelectedSaleIds([]);
+    }, [fromDate, toDate, selectedProductId, debouncedCustomerSearch, activeTab]);
 
-        let end = toDate ? new Date(toDate) : null;
-        if (end) end.setHours(23, 59, 59, 999);
+    // Explicit Asia/Manila (+08:00) date boundaries
+    const interval = useMemo(() => {
+        const start = fromDate ? new Date(`${fromDate}T00:00:00+08:00`) : null;
+        const end = toDate ? new Date(`${toDate}T23:59:59.999+08:00`) : null;
 
         if (start && end && start > end) return { start: end, end: start };
         return { start, end };
@@ -359,6 +456,144 @@ const ReportPage = () => {
         staleTime: 1000 * 60 * 5,
     });
 
+    // Bulk & Single Delete Mutation (Restocks inventory + reverses Charge/Utang + deletes sale_items & sales)
+    const bulkDeleteMutation = useMutation({
+        mutationFn: async ({ targetSales, reason }) => {
+            if (!targetSales || targetSales.length === 0) return 0;
+
+            const saleIds = targetSales.map((s) => s.id);
+            const totalDeletedAmount = targetSales.reduce((sum, s) => sum + (Number(s.totalAmount || s.totalamount) || 0), 0);
+
+            // 1. Fetch all sale_items for these sales to restock inventory accurately
+            const { data: itemsToRestock } = await supabase
+                .from('sale_items')
+                .select('sale_id, product_id, quantity')
+                .in('sale_id', saleIds);
+
+            if (Array.isArray(itemsToRestock) && itemsToRestock.length > 0) {
+                const restockMap = {};
+                itemsToRestock.forEach((item) => {
+                    if (item.product_id && Number(item.quantity) > 0) {
+                        restockMap[item.product_id] = (restockMap[item.product_id] || 0) + Number(item.quantity);
+                    }
+                });
+
+                for (const [prodIdStr, qtyToAdd] of Object.entries(restockMap)) {
+                    const prodId = Number(prodIdStr);
+                    const { data: prod } = await supabase
+                        .from('products')
+                        .select('*')
+                        .eq('id', prodId)
+                        .single();
+
+                    if (prod && prod.track_stock !== false) {
+                        const stockField = ['stock_quantity', 'stock', 'quantity', 'inventory', 'current_stock'].find(
+                            (field) => prod[field] !== undefined && prod[field] !== null
+                        );
+                        if (stockField) {
+                            await supabase
+                                .from('products')
+                                .update({ [stockField]: Number(prod[stockField]) + qtyToAdd })
+                                .eq('id', prodId);
+                        }
+                    }
+                }
+            }
+
+            // 2. Reverse Charge / Utang balances
+            const chargeSales = targetSales.filter(
+                (s) => s.paymentMethod === 'Charge' || s.paymentMethod === 'Credit' || s.paymentmethod === 'Charge' || s.paymentmethod === 'Credit'
+            );
+
+            if (chargeSales.length > 0) {
+                const chargeSaleIds = chargeSales.map((s) => s.id);
+                await supabase
+                    .from('customer_debts')
+                    .delete()
+                    .in('sale_id', chargeSaleIds);
+
+                const debtDeductions = {};
+                chargeSales.forEach((s) => {
+                    const cId = s.customerId || s.customerid;
+                    if (cId) {
+                        debtDeductions[cId] = (debtDeductions[cId] || 0) + (Number(s.totalAmount || s.totalamount) || 0);
+                    }
+                });
+
+                for (const [custIdStr, deductAmt] of Object.entries(debtDeductions)) {
+                    const custId = Number(custIdStr);
+                    const { data: cust } = await supabase
+                        .from('customers')
+                        .select('credit_balance')
+                        .eq('id', custId)
+                        .single();
+
+                    if (cust) {
+                        const newBal = Math.max(0, Number(cust.credit_balance || 0) - deductAmt);
+                        await supabase
+                            .from('customers')
+                            .update({ credit_balance: newBal })
+                            .eq('id', custId);
+                    }
+                }
+            }
+
+            // 3. Delete child sale_items first, then parent sales
+            const { error: itemsErr } = await supabase
+                .from('sale_items')
+                .delete()
+                .in('sale_id', saleIds);
+
+            if (itemsErr) throw itemsErr;
+
+            const { error: salesErr } = await supabase
+                .from('sales')
+                .delete()
+                .in('id', saleIds);
+
+            if (salesErr) throw salesErr;
+
+            // 4. Audit Log
+            const reasonSuffix = reason ? ` — Reason: ${reason}` : '';
+            logActivity({
+                user,
+                action: saleIds.length > 1 ? 'BULK_DELETE_SALES' : 'DELETE_SALE',
+                entity_type: 'SALE',
+                description: `Admin ${user?.name || 'Admin'} deleted ${saleIds.length} transaction(s) (Total: ₱${totalDeletedAmount.toFixed(2)})${reasonSuffix}`
+            });
+
+            return saleIds.length;
+        },
+        onSuccess: (deletedCount) => {
+            setSelectedSaleIds([]);
+            setIsDeleteModalOpen(false);
+            setSalesToDelete([]);
+
+            queryClient.invalidateQueries({ queryKey: ['sales'] });
+            queryClient.invalidateQueries({ queryKey: ['sales-summary'] });
+            queryClient.invalidateQueries({ queryKey: ['daily-sales'] });
+            queryClient.invalidateQueries({ queryKey: ['weekly-growth'] });
+            queryClient.invalidateQueries({ queryKey: ['monthly-growth'] });
+            queryClient.invalidateQueries({ queryKey: ['products'] });
+            queryClient.invalidateQueries({ queryKey: ['customers'] });
+            queryClient.invalidateQueries({ queryKey: ['customer_debts'] });
+            queryClient.invalidateQueries({ queryKey: ['customer-stats'] });
+
+            addToast({
+                title: deletedCount > 1 ? 'Transactions Deleted' : 'Transaction Deleted',
+                description: `Successfully removed ${deletedCount} transaction(s) and synchronized inventory.`,
+                variant: 'success'
+            });
+        },
+        onError: (err) => {
+            addToast({
+                title: 'Deletion Failed',
+                description: err.message || 'Could not delete selected transactions.',
+                variant: 'destructive'
+            });
+        }
+    });
+
     const isLoading = activeTab === 'sales'
         ? (isLoadingSales || isLoadingSummary)
         : isLoadingFrequent;
@@ -423,6 +658,53 @@ const ReportPage = () => {
         const endStr = interval.end ? format(interval.end, 'MMM d, yyyy') : 'Present';
         return `${startStr} — ${endStr}`;
     }, [interval]);
+
+    // Multi-Select Handlers
+    const handleToggleSelectSale = (saleId) => {
+        setSelectedSaleIds((prev) =>
+            prev.includes(saleId) ? prev.filter((id) => id !== saleId) : [...prev, saleId]
+        );
+    };
+
+    const handleSelectAllDay = () => {
+        const dayIds = processedSales.map((s) => s.id);
+        const allSelected = dayIds.length > 0 && dayIds.every((id) => selectedSaleIds.includes(id));
+        if (allSelected) {
+            setSelectedSaleIds((prev) => prev.filter((id) => !dayIds.includes(id)));
+        } else {
+            setSelectedSaleIds((prev) => Array.from(new Set([...prev, ...dayIds])));
+        }
+    };
+
+    const handleClearSelection = () => {
+        setSelectedSaleIds([]);
+    };
+
+    const openDeleteModal = (saleOrId) => {
+        const saleObj = typeof saleOrId === 'object'
+            ? saleOrId
+            : allSales.find((s) => s.id === saleOrId) || { id: saleOrId, totalAmount: 0 };
+        setSalesToDelete([saleObj]);
+        setIsDeleteModalOpen(true);
+    };
+
+    const openBulkDeleteModal = () => {
+        const selectedObjects = allSales.filter((s) => selectedSaleIds.includes(s.id));
+        if (selectedObjects.length === 0) return;
+        setSalesToDelete(selectedObjects);
+        setIsDeleteModalOpen(true);
+    };
+
+    const closeDeleteModal = () => {
+        setIsDeleteModalOpen(false);
+        setSalesToDelete([]);
+    };
+
+    const handleConfirmDelete = (reason) => {
+        if (salesToDelete.length > 0) {
+            bulkDeleteMutation.mutate({ targetSales: salesToDelete, reason });
+        }
+    };
 
     const handleTabChange = (tab) => {
         setActiveTab(tab);
@@ -494,24 +776,6 @@ const ReportPage = () => {
             setFrequentSortDesc(true);
         }
         setFrequentPage(1);
-    };
-
-    const openDeleteModal = (saleOrId) => {
-        setSaleToDelete(saleOrId);
-        setIsModalOpen(true);
-        deleteSaleMutation.reset();
-    };
-
-    const closeDeleteModal = () => {
-        setIsModalOpen(false);
-        setSaleToDelete(null);
-    };
-
-    const handleConfirmDelete = (reason) => {
-        if (saleToDelete) {
-            const saleId = typeof saleToDelete === 'object' ? saleToDelete.id : saleToDelete;
-            deleteSaleMutation.mutate({ saleId, reason });
-        }
     };
 
     const openEditModal = (sale) => {
@@ -668,17 +932,22 @@ const ReportPage = () => {
                     onEditSale={openEditModal}
                     isAdmin={isAdmin}
                     currentDateKey={currentDateKey}
+                    selectedSaleIds={selectedSaleIds}
+                    onToggleSelectSale={handleToggleSelectSale}
+                    onSelectAllDay={handleSelectAllDay}
+                    onClearSelection={handleClearSelection}
+                    onOpenBulkDelete={openBulkDeleteModal}
                 />
             )}
 
             {activeTab === 'inactive' && <LapsedCustomersTab enabled={activeTab === 'inactive'} />}
 
-            <DeleteConfirmationModal
-                isOpen={isModalOpen}
+            <BulkDeleteSalesModal
+                salesToDelete={salesToDelete}
+                isOpen={isDeleteModalOpen}
                 onClose={closeDeleteModal}
                 onConfirm={handleConfirmDelete}
-                isMutating={deleteSaleMutation.isPending}
-                isSuccess={deleteSaleMutation.isSuccess}
+                isDeleting={bulkDeleteMutation.isPending}
             />
 
             <EditSaleModal

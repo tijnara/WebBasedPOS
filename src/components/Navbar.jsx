@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { subHours } from 'date-fns';
 import currency from 'currency.js';
-import { Sun, Moon, LogOut, ChevronDown, Landmark, Receipt, TestTube, History, X, User } from 'lucide-react';
+import { Sun, Moon, LogOut, ChevronDown, Landmark, Receipt, TestTube, History, X, User, Images } from 'lucide-react';
 
 import { supabase } from '../lib/supabaseClient';
 import { useStore } from '../store/useStore';
@@ -49,6 +49,7 @@ const navCategoriesSource = [
         links: [
             { name: 'POS', path: '/pos', icon: <CartIcon className="h-5 w-5 menu-icon" /> },
             { name: 'Sale History', path: '/history', icon: <ChartIcon className="h-5 w-5 menu-icon" /> },
+            { name: 'Scanned Logs', path: '/scanned-logs', icon: <Images className="h-5 w-5 menu-icon" /> },
             { name: 'Customer', path: '/customer-management', icon: <UserIcon className="h-5 w-5 menu-icon" /> },
             { name: 'Maintenance', path: '/maintenance', icon: <SettingsIcon className="h-5 w-5 menu-icon" /> },
         ]
