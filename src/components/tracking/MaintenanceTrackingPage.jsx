@@ -74,9 +74,18 @@ export default function MaintenanceTrackingPage() {
 
     const createExpense = useCreateExpense();
 
+    const invalidateMaintenanceCaches = () => {
+        queryClient.invalidateQueries({ queryKey: ['dashboard-live-maintenance-lifespans'] });
+        queryClient.invalidateQueries({ queryKey: ['overdue-vehicles'] });
+        queryClient.invalidateQueries({ queryKey: ['maintenance-alerts'] });
+    };
+
     const fetchTrackingData = async () => {
         setIsLoading(true);
-        if (isDemo) return;
+        if (isDemo) {
+            setIsLoading(false);
+            return;
+        }
 
         try {
             // 1. Fetch DB overrides for filter limits
@@ -201,13 +210,13 @@ export default function MaintenanceTrackingPage() {
             containerLimit,
             containersLeft,
             usagePercent,
-            isOverdue: isTimeOverdue // Strictly time/day driven
+            isOverdue: isTimeOverdue
         };
     });
 
     // Calculate processed values for vehicles strictly by time/days
     const processedVehicles = dbVehicles.map(vehicle => {
-        const lastReplaced = trackingData[vehicle.id] ? new Date(trackingData[vehicle.id]) : new Date();
+        const lastReplaced = trackingData[vehicle.id] ? new Date(trackingData[vehicle.id]) : new Date(vehicle.created_at || new Date());
         const now = new Date();
 
         const totalLifespanDays = vehicle.lifespan_days || (vehicle.lifespan_months ? vehicle.lifespan_months * 30 : 180);
@@ -278,6 +287,7 @@ export default function MaintenanceTrackingPage() {
 
             addToast({ title: 'Limits Updated', description: 'Filter lifespan and container target updated.', variant: 'success' });
             setEditFilterModal(prev => ({ ...prev, isOpen: false }));
+            invalidateMaintenanceCaches();
             await fetchTrackingData();
         } catch (err) {
             console.error('Filter limits save error:', err);
@@ -309,8 +319,7 @@ export default function MaintenanceTrackingPage() {
         if (!error) {
             addToast({ title: 'Success', description: 'Maintenance record saved.', variant: 'success' });
             setRecordModal({ isOpen: false, itemId: null, itemType: null, itemName: '', customDate: '' });
-            queryClient.invalidateQueries({ queryKey: ['overdue-vehicles'] });
-            queryClient.invalidateQueries({ queryKey: ['maintenance-alerts'] });
+            invalidateMaintenanceCaches();
             fetchTrackingData();
         } else {
             addToast({ title: 'Error', description: error.message, variant: 'destructive' });
@@ -353,8 +362,7 @@ export default function MaintenanceTrackingPage() {
             }
 
             addToast({ title: 'Purchase Recorded', description: 'Expenses amortized and counters reset.', variant: 'success' });
-            queryClient.invalidateQueries({ queryKey: ['overdue-vehicles'] });
-            queryClient.invalidateQueries({ queryKey: ['maintenance-alerts'] });
+            invalidateMaintenanceCaches();
             fetchTrackingData();
         } catch (error) {
             addToast({ title: 'Error', description: error.message || 'Failed to record expenses.', variant: 'destructive' });
@@ -399,7 +407,7 @@ export default function MaintenanceTrackingPage() {
             const currentTrackedDate = trackingData[vehicleId] ? format(new Date(trackingData[vehicleId]), 'yyyy-MM-dd') : null;
 
             if (!currentTrackedDate || currentTrackedDate !== vehicleForm.lastMaintenanceDate) {
-                const dateObj = new Date(`${vehicleForm.lastMaintenanceDate}T12:00:00`);
+                const dateObj = new Date(`${vehicleForm.lastMaintenanceDate}T12:00:00+08:00`);
                 const { error: historyError } = await supabase.from('maintenance_history').insert({
                     item_id: vehicleId,
                     item_type: 'vehicle',
@@ -417,8 +425,7 @@ export default function MaintenanceTrackingPage() {
                 purpose: '',
                 lastMaintenanceDate: format(new Date(), 'yyyy-MM-dd')
             });
-            queryClient.invalidateQueries({ queryKey: ['overdue-vehicles'] });
-            queryClient.invalidateQueries({ queryKey: ['maintenance-alerts'] });
+            invalidateMaintenanceCaches();
             await fetchTrackingData();
         } catch (error) {
             addToast({ title: 'Error', description: error.message, variant: 'destructive' });
@@ -434,8 +441,7 @@ export default function MaintenanceTrackingPage() {
             addToast({ title: 'Error', description: error.message, variant: 'destructive' });
         } else {
             addToast({ title: 'Deleted', description: 'Vehicle removed.', variant: 'success' });
-            queryClient.invalidateQueries({ queryKey: ['overdue-vehicles'] });
-            queryClient.invalidateQueries({ queryKey: ['maintenance-alerts'] });
+            invalidateMaintenanceCaches();
             fetchTrackingData();
         }
     };

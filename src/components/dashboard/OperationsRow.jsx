@@ -1,250 +1,171 @@
 // src/components/dashboard/OperationsRow.jsx
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import currency from 'currency.js';
 import { format } from 'date-fns';
 import { supabase } from '../../lib/supabaseClient';
 import { useStore } from '../../store/useStore';
 import { useDebts } from '../../hooks/useDebts';
+import { FILTER_CONFIG } from '../../config/constants';
 import { Filter, Truck, ChevronRight, Users, UserPlus, MapPin, Wrench, CheckCircle2 } from 'lucide-react';
 
-const STAGE_DEFINITIONS = [
-    {
-        stageNumber: 1,
-        id: 'stage_1',
-        aliases: ['stage_1', '1', 1, 'stage1'],
-        nameKeywords: ['10 micron', 'stage 1', 'sediment 10'],
-        name: '10 Micron Sediment',
-        lifespanDays: 30,
-        defaultDays: 27
-    },
-    {
-        stageNumber: 2,
-        id: 'stage_2',
-        aliases: ['stage_2', '2', 2, 'stage2'],
-        nameKeywords: ['5 micron', 'stage 2', 'sediment 5'],
-        name: '5 Micron Sediment',
-        lifespanDays: 30,
-        defaultDays: 27
-    },
-    {
-        stageNumber: 3,
-        id: 'stage_3',
-        aliases: ['stage_3', '3', 3, 'stage3'],
-        nameKeywords: ['1 micron', 'stage 3', 'sediment 1'],
-        name: '1 Micron Sediment (2 pcs)',
-        lifespanDays: 30,
-        defaultDays: 27
-    },
-    {
-        stageNumber: 4,
-        id: 'stage_4',
-        aliases: ['stage_4', '4', 4, 'stage4'],
-        nameKeywords: ['carbon block', 'cto', 'stage 4', 'carbon'],
-        name: 'Carbon Block (CTO) (2 pcs)',
-        lifespanDays: 60,
-        defaultDays: 57
-    }
-];
+const LEGACY_FILTER_ALIASES = {
+    '10_micron': ['10_micron', 'stage_1', '1', 'stage1'],
+    '5_micron': ['5_micron', 'stage_2', '2', 'stage2'],
+    '1_micron': ['1_micron', 'stage_3', '3', 'stage3'],
+    'carbon_block': ['carbon_block', 'stage_4', '4', 'stage4']
+};
 
 export default function OperationsRow() {
     const router = useRouter();
+    const queryClient = useQueryClient();
     const user = useStore(state => state.user);
 
-    // 1. Filter Lifespan & Vehicles Query (staleTime: 0 ensures instantaneous sync with /maintenance)
+    // Realtime sync whenever maintenance_history, filter_configs, or vehicles change
+    useEffect(() => {
+        if (!user || user.isDemo) return;
+
+        const channel = supabase
+            .channel(`rt:dashboard-maintenance-${Date.now()}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'maintenance_history' }, () => {
+                queryClient.invalidateQueries({ queryKey: ['dashboard-live-maintenance-lifespans'] });
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'filter_configs' }, () => {
+                queryClient.invalidateQueries({ queryKey: ['dashboard-live-maintenance-lifespans'] });
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'vehicles' }, () => {
+                queryClient.invalidateQueries({ queryKey: ['dashboard-live-maintenance-lifespans'] });
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [user, queryClient]);
+
+    // 1. Live Filter Lifespan & Vehicles Query (matches MaintenanceTrackingPage.jsx)
     const { data: maintenanceData, isLoading: isMaintenanceLoading } = useQuery({
         queryKey: ['dashboard-live-maintenance-lifespans', user?.isDemo],
         queryFn: async () => {
             if (user?.isDemo) {
                 return {
                     filters: [
-                        { id: 'stage_1', name: '10 Micron Sediment', currentDays: 27, totalDays: 30, daysLeft: 3, percentUsed: 90 },
-                        { id: 'stage_2', name: '5 Micron Sediment', currentDays: 27, totalDays: 30, daysLeft: 3, percentUsed: 90 },
-                        { id: 'stage_3', name: '1 Micron Sediment (2 pcs)', currentDays: 27, totalDays: 30, daysLeft: 3, percentUsed: 90 },
-                        { id: 'stage_4', name: 'Carbon Block (CTO) (2 pcs)', currentDays: 57, totalDays: 60, daysLeft: 3, percentUsed: 95 }
+                        { id: '10_micron', name: '10 Micron Sediment', currentDays: 10, totalDays: 28, daysLeft: 18, percentUsed: 36, isOverdue: false },
+                        { id: '5_micron', name: '5 Micron Sediment', currentDays: 10, totalDays: 28, daysLeft: 18, percentUsed: 36, isOverdue: false },
+                        { id: '1_micron', name: '1 Micron Sediment (2 pcs)', currentDays: 10, totalDays: 28, daysLeft: 18, percentUsed: 36, isOverdue: false },
+                        { id: 'carbon_block', name: 'Carbon Block (CTO) (2 pcs)', currentDays: 10, totalDays: 60, daysLeft: 50, percentUsed: 17, isOverdue: false }
                     ],
                     vehicles: [
-                        { id: 'v1', name: 'Utility Tricycle (Russi/Chariot)', currentDays: 42, totalDays: 180, daysLeft: 138, percentPassed: 23 },
-                        { id: 'v2', name: 'Utility Van', currentDays: 42, totalDays: 180, daysLeft: 138, percentPassed: 23 }
+                        { id: 'v1', name: 'Utility Tricycle (Russi/Chariot)', currentDays: 42, totalDays: 180, daysLeft: 138, percentPassed: 23, isOverdue: false },
+                        { id: 'v2', name: 'Utility Van', currentDays: 42, totalDays: 180, daysLeft: 138, percentPassed: 23, isOverdue: false }
                     ],
-                    minDaysLeft: 3
+                    minDaysLeft: 18,
+                    overdueFiltersCount: 0,
+                    overdueVehiclesCount: 0
                 };
             }
 
-            try {
-                const [configsRes, vehiclesRes, historyRes, trackingRes] = await Promise.all([
-                    supabase.from('filter_configs').select('*'),
-                    supabase.from('vehicles').select('*').order('created_at', { ascending: true }),
-                    supabase.from('maintenance_history').select('*').order('replaced_at', { ascending: false }),
-                    supabase.from('filter_tracking').select('*')
-                ]);
+            const [configsRes, vehiclesRes, historyRes] = await Promise.all([
+                supabase.from('filter_configs').select('*'),
+                supabase.from('vehicles').select('*').order('created_at', { ascending: true }),
+                supabase.from('maintenance_history').select('*').order('replaced_at', { ascending: false })
+            ]);
 
-                // Match items by ID, stage number, or name keywords
-                const getStageDef = (item) => {
-                    if (!item) return null;
-                    const rawId = String(item.item_id ?? item.filter_id ?? item.stage_id ?? item.id ?? '').toLowerCase().trim();
-                    const stageNum = Number(item.stage_number ?? item.stage ?? item.stage_num ?? item.stage_id);
-                    const itemName = String(item.item_name ?? item.name ?? item.filter_name ?? item.description ?? '').toLowerCase().trim();
+            if (vehiclesRes.error) throw vehiclesRes.error;
+            if (historyRes.error) throw historyRes.error;
 
-                    return STAGE_DEFINITIONS.find(def => {
-                        if (def.aliases.some(a => String(a).toLowerCase() === rawId)) return true;
-                        if (stageNum === def.stageNumber) return true;
-                        if (def.nameKeywords.some(kw => itemName.includes(kw))) return true;
-                        return false;
-                    });
-                };
+            const dbConfigs = !configsRes.error && Array.isArray(configsRes.data) ? configsRes.data : [];
+            const vehiclesList = vehiclesRes.data || [];
+            const historyList = historyRes.data || [];
 
-                const stageDataMap = {};
+            // Map latest replacement timestamp per item_id (historyList is ordered replaced_at DESC)
+            const latestDates = {};
+            historyList.forEach(record => {
+                const key = String(record.item_id ?? '').trim();
+                if (key && !latestDates[key] && record.replaced_at) {
+                    latestDates[key] = record.replaced_at;
+                }
+            });
 
-                // 1. Ingest filter_tracking data
-                trackingRes?.data?.forEach(t => {
-                    const stage = getStageDef(t);
-                    if (stage) {
-                        if (!stageDataMap[stage.stageNumber]) stageDataMap[stage.stageNumber] = {};
-                        const dateStr = t.last_replaced_at || t.replaced_at || t.last_replacement_date || t.installed_at || t.updated_at || t.created_at;
-                        if (dateStr) {
-                            const timeVal = new Date(dateStr).getTime();
-                            if (!isNaN(timeVal)) {
-                                if (!stageDataMap[stage.stageNumber].lastReplacedTime || timeVal > stageDataMap[stage.stageNumber].lastReplacedTime) {
-                                    stageDataMap[stage.stageNumber].lastReplacedTime = timeVal;
-                                    stageDataMap[stage.stageNumber].lastReplaced = dateStr;
-                                }
-                            }
-                        }
-                        const directDays = t.days_used ?? t.current_days ?? t.days_elapsed ?? t.days;
-                        if (directDays !== undefined && directDays !== null && !isNaN(Number(directDays))) {
-                            stageDataMap[stage.stageNumber].daysUsed = Number(directDays);
-                        }
-                        if (t.name) stageDataMap[stage.stageNumber].name = t.name;
-                        if (t.lifespan_days) stageDataMap[stage.stageNumber].lifespanDays = Number(t.lifespan_days);
+            const now = new Date();
+            let minDays = Infinity;
+            let overdueFiltersCount = 0;
+
+            // Process Filters using FILTER_CONFIG + filter_configs overrides + maintenance_history
+            const processedFilters = FILTER_CONFIG.map(defaultFilter => {
+                const matchedConfig = dbConfigs.find(c => String(c.id) === String(defaultFilter.id));
+                const totalDays = Number(matchedConfig?.lifespan_days ?? defaultFilter.lifespanDays);
+                const baseName = matchedConfig?.name || defaultFilter.name;
+                const displayName = defaultFilter.pcs > 1 && !baseName.includes('pcs')
+                    ? `${baseName} (${defaultFilter.pcs} pcs)`
+                    : baseName;
+
+                const aliases = LEGACY_FILTER_ALIASES[defaultFilter.id] || [defaultFilter.id];
+                let lastReplacedStr = null;
+                for (const alias of aliases) {
+                    if (latestDates[alias]) {
+                        lastReplacedStr = latestDates[alias];
+                        break;
                     }
-                });
+                }
 
-                // 2. Ingest maintenance_history replacements (most recent replacement wins)
-                historyRes?.data?.forEach(h => {
-                    const stage = getStageDef(h);
-                    if (stage) {
-                        if (!stageDataMap[stage.stageNumber]) stageDataMap[stage.stageNumber] = {};
-                        const dateStr = h.replaced_at || h.replacement_date || h.date || h.created_at;
-                        if (dateStr) {
-                            const timeVal = new Date(dateStr).getTime();
-                            if (!isNaN(timeVal)) {
-                                if (!stageDataMap[stage.stageNumber].lastReplacedTime || timeVal > stageDataMap[stage.stageNumber].lastReplacedTime) {
-                                    stageDataMap[stage.stageNumber].lastReplacedTime = timeVal;
-                                    stageDataMap[stage.stageNumber].lastReplaced = dateStr;
-                                }
-                            }
-                        }
-                    }
-                });
+                const lastReplaced = lastReplacedStr ? new Date(lastReplacedStr) : now;
+                const daysPassed = Math.max(0, Math.floor((now.getTime() - lastReplaced.getTime()) / (1000 * 60 * 60 * 24)));
+                const currentDays = Math.min(daysPassed, totalDays);
+                const daysLeft = Math.max(0, totalDays - daysPassed);
+                const percentUsed = Math.min(100, Math.max(0, Math.round((daysPassed / totalDays) * 100)));
+                const isOverdue = daysPassed >= totalDays;
 
-                // 3. Ingest filter_configs overrides
-                configsRes?.data?.forEach(c => {
-                    const stage = getStageDef(c);
-                    if (stage) {
-                        if (!stageDataMap[stage.stageNumber]) stageDataMap[stage.stageNumber] = {};
-                        if (c.name) stageDataMap[stage.stageNumber].name = c.name;
-                        if (c.lifespan_days) stageDataMap[stage.stageNumber].lifespanDays = Number(c.lifespan_days);
-                    }
-                });
-
-                const now = new Date();
-                let minDays = Infinity;
-
-                const processedFilters = STAGE_DEFINITIONS.map(stage => {
-                    const custom = stageDataMap[stage.stageNumber] || {};
-                    const totalDays = custom.lifespanDays || stage.lifespanDays;
-                    const name = custom.name || stage.name;
-
-                    let daysPassed;
-                    if (custom.lastReplaced) {
-                        const lastReplacedDate = new Date(custom.lastReplaced);
-                        const calculatedDays = Math.max(0, Math.floor((now.getTime() - lastReplacedDate.getTime()) / (1000 * 60 * 60 * 24)));
-
-                        // If replaced recently (within last 24h), reset to calculated days (0 or 1)
-                        if (calculatedDays <= 1) {
-                            daysPassed = calculatedDays;
-                        } else if (custom.daysUsed !== undefined) {
-                            daysPassed = custom.daysUsed;
-                        } else {
-                            daysPassed = calculatedDays;
-                        }
-                    } else if (custom.daysUsed !== undefined) {
-                        daysPassed = custom.daysUsed;
-                    } else {
-                        daysPassed = stage.defaultDays;
-                    }
-
-                    const currentDays = Math.min(daysPassed, totalDays);
-                    const daysLeft = Math.max(0, totalDays - currentDays);
-                    const percentUsed = Math.min(100, Math.round((currentDays / totalDays) * 100));
-
-                    if (daysLeft < minDays) minDays = daysLeft;
-
-                    return {
-                        id: stage.id,
-                        name,
-                        currentDays,
-                        totalDays,
-                        daysLeft,
-                        percentUsed
-                    };
-                });
-
-                const vehiclesList = vehiclesRes?.data && vehiclesRes.data.length > 0 ? vehiclesRes.data : [
-                    { id: 'v1', name: 'Utility Tricycle (Russi/Chariot)', lifespan_days: 180 },
-                    { id: 'v2', name: 'Utility Van', lifespan_days: 180 }
-                ];
-
-                const processedVehicles = vehiclesList.map(v => {
-                    const totalDays = Number(v.lifespan_days || (v.lifespan_months ? v.lifespan_months * 30 : 180));
-                    let daysPassed;
-
-                    if (v.days_passed !== undefined && v.days_passed !== null) {
-                        daysPassed = Number(v.days_passed);
-                    } else if (v.last_serviced_at || v.created_at) {
-                        const baseDate = new Date(v.last_serviced_at || v.created_at);
-                        daysPassed = Math.max(0, Math.floor((now.getTime() - baseDate.getTime()) / (1000 * 60 * 60 * 24)));
-                    } else {
-                        daysPassed = 42;
-                    }
-
-                    const currentDays = Math.min(daysPassed, totalDays);
-                    const daysLeft = Math.max(0, totalDays - currentDays);
-                    const percentPassed = Math.min(100, Math.round((currentDays / totalDays) * 100));
-
-                    return {
-                        id: v.id,
-                        name: v.name,
-                        currentDays,
-                        totalDays,
-                        daysLeft,
-                        percentPassed
-                    };
-                });
+                if (isOverdue) overdueFiltersCount += 1;
+                if (daysLeft < minDays) minDays = daysLeft;
 
                 return {
-                    filters: processedFilters,
-                    vehicles: processedVehicles,
-                    minDaysLeft: minDays === Infinity ? 3 : minDays
+                    id: defaultFilter.id,
+                    name: displayName,
+                    currentDays,
+                    totalDays,
+                    daysLeft,
+                    percentUsed,
+                    isOverdue
                 };
-            } catch (err) {
-                console.warn('Fallback maintenance query:', err);
+            });
+
+            // Process Vehicles using vehicles table + maintenance_history by vehicle.id
+            let overdueVehiclesCount = 0;
+            const processedVehicles = vehiclesList.map(v => {
+                const totalDays = Number(v.lifespan_days || (v.lifespan_months ? v.lifespan_months * 30 : 180));
+                const lastReplacedStr = latestDates[String(v.id)];
+                const lastReplaced = lastReplacedStr
+                    ? new Date(lastReplacedStr)
+                    : new Date(v.last_serviced_at || v.created_at || now);
+
+                const daysPassed = Math.max(0, Math.floor((now.getTime() - lastReplaced.getTime()) / (1000 * 60 * 60 * 24)));
+                const currentDays = Math.min(daysPassed, totalDays);
+                const daysLeft = Math.max(0, totalDays - daysPassed);
+                const percentPassed = Math.min(100, Math.max(0, Math.round((daysPassed / totalDays) * 100)));
+                const isOverdue = daysPassed >= totalDays;
+
+                if (isOverdue) overdueVehiclesCount += 1;
+
                 return {
-                    filters: [
-                        { id: 'stage_1', name: '10 Micron Sediment', currentDays: 27, totalDays: 30, daysLeft: 3, percentUsed: 90 },
-                        { id: 'stage_2', name: '5 Micron Sediment', currentDays: 27, totalDays: 30, daysLeft: 3, percentUsed: 90 },
-                        { id: 'stage_3', name: '1 Micron Sediment (2 pcs)', currentDays: 27, totalDays: 30, daysLeft: 3, percentUsed: 90 },
-                        { id: 'stage_4', name: 'Carbon Block (CTO) (2 pcs)', currentDays: 57, totalDays: 60, daysLeft: 3, percentUsed: 95 }
-                    ],
-                    vehicles: [
-                        { id: 'v1', name: 'Utility Tricycle (Russi/Chariot)', currentDays: 42, totalDays: 180, daysLeft: 138, percentPassed: 23 },
-                        { id: 'v2', name: 'Utility Van', currentDays: 42, totalDays: 180, daysLeft: 138, percentPassed: 23 }
-                    ],
-                    minDaysLeft: 3
+                    id: v.id,
+                    name: v.name,
+                    currentDays,
+                    totalDays,
+                    daysLeft,
+                    percentPassed,
+                    isOverdue
                 };
-            }
+            });
+
+            return {
+                filters: processedFilters,
+                vehicles: processedVehicles,
+                minDaysLeft: minDays === Infinity ? 0 : minDays,
+                overdueFiltersCount,
+                overdueVehiclesCount
+            };
         },
         refetchOnMount: 'always',
         refetchOnWindowFocus: true,
@@ -366,6 +287,11 @@ export default function OperationsRow() {
         staleTime: 1000 * 60 * 5
     });
 
+    const overdueFiltersCount = maintenanceData?.overdueFiltersCount || 0;
+    const overdueVehiclesCount = maintenanceData?.overdueVehiclesCount || 0;
+    const minDaysLeft = maintenanceData?.minDaysLeft ?? 0;
+    const hasAnyIssue = overdueFiltersCount > 0 || overdueVehiclesCount > 0;
+
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
             {/* 1. FILTER & FLEET LIFESPAN */}
@@ -396,32 +322,52 @@ export default function OperationsRow() {
                     <div className="space-y-2 mt-2.5">
                         <div className="flex items-center justify-between text-[11px] font-bold text-slate-700 dark:text-slate-300">
                             <span>Filtration Stages</span>
-                            <span className={`text-[10px] font-black px-1.5 py-0.5 rounded border ${
-                                (maintenanceData?.minDaysLeft || 3) <= 7
-                                    ? 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50 border-amber-200 dark:border-amber-800/60 animate-pulse'
-                                    : 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 border-emerald-200 dark:border-emerald-800/60'
-                            }`}>
-                                {maintenanceData?.minDaysLeft || 3} Days Left
-                            </span>
+                            {isMaintenanceLoading ? (
+                                <span className="text-[10px] text-slate-400">Syncing...</span>
+                            ) : overdueFiltersCount > 0 ? (
+                                <span className="text-[10px] font-black px-1.5 py-0.5 rounded border text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/50 border-rose-200 dark:border-rose-800/60 animate-pulse">
+                                    {overdueFiltersCount} Overdue
+                                </span>
+                            ) : (
+                                <span className={`text-[10px] font-black px-1.5 py-0.5 rounded border ${
+                                    minDaysLeft <= 7
+                                        ? 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50 border-amber-200 dark:border-amber-800/60'
+                                        : 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 border-emerald-200 dark:border-emerald-800/60'
+                                }`}>
+                                    {minDaysLeft} Days Left
+                                </span>
+                            )}
                         </div>
 
                         {isMaintenanceLoading ? (
                             <div className="space-y-2 py-2">
                                 <div className="h-3 bg-slate-100 dark:bg-slate-800 rounded animate-pulse" />
                                 <div className="h-3 bg-slate-100 dark:bg-slate-800 rounded animate-pulse" />
+                                <div className="h-3 bg-slate-100 dark:bg-slate-800 rounded animate-pulse" />
+                                <div className="h-3 bg-slate-100 dark:bg-slate-800 rounded animate-pulse" />
                             </div>
                         ) : (
-                            maintenanceData?.filters.map((f) => (
+                            (maintenanceData?.filters || []).map((f) => (
                                 <div key={f.id || f.name} className="space-y-0.5">
                                     <div className="flex justify-between items-center text-[10px] sm:text-[11px]">
                                         <span className="font-semibold text-slate-700 dark:text-slate-300 truncate pr-1">{f.name}</span>
-                                        <span className="font-bold text-slate-600 dark:text-slate-400 shrink-0">
+                                        <span className={`font-bold shrink-0 ${
+                                            f.isOverdue
+                                                ? 'text-rose-600 dark:text-rose-400'
+                                                : 'text-slate-600 dark:text-slate-400'
+                                        }`}>
                                             {f.currentDays}/{f.totalDays}d ({f.percentUsed}%)
                                         </span>
                                     </div>
                                     <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden flex">
                                         <div
-                                            className={`h-full rounded-full transition-all duration-300 ${f.percentUsed >= 90 ? 'bg-amber-500' : 'bg-[#8DB600]'}`}
+                                            className={`h-full rounded-full transition-all duration-300 ${
+                                                f.isOverdue
+                                                    ? 'bg-rose-500'
+                                                    : f.percentUsed >= 85
+                                                        ? 'bg-amber-500'
+                                                        : 'bg-[#8DB600]'
+                                            }`}
                                             style={{ width: `${f.percentUsed}%` }}
                                         />
                                     </div>
@@ -436,26 +382,62 @@ export default function OperationsRow() {
                                 <Truck className="w-3.5 h-3.5 text-sky-500 shrink-0" />
                                 Vehicle Fleet Maintenance
                             </span>
-                            <span className="text-[9px] font-semibold text-emerald-600 dark:text-emerald-400">Good Condition</span>
+                            {overdueVehiclesCount > 0 ? (
+                                <span className="text-[9px] font-bold text-rose-600 dark:text-rose-400">
+                                    {overdueVehiclesCount} Service Due
+                                </span>
+                            ) : (
+                                <span className="text-[9px] font-semibold text-emerald-600 dark:text-emerald-400">
+                                    Good Condition
+                                </span>
+                            )}
                         </div>
 
-                        <div className="space-y-2 mt-1">
-                            {maintenanceData?.vehicles.map((v) => (
-                                <div key={v.id || v.name} className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
-                                    <div className="flex items-center justify-between text-[10px] mb-1">
-                                        <span className="font-bold text-slate-800 dark:text-slate-200 truncate pr-1">{v.name}</span>
-                                        <span className="font-black text-emerald-600 dark:text-emerald-400 shrink-0">{v.daysLeft} days left</span>
-                                    </div>
-                                    <div className="w-full bg-slate-200 dark:bg-slate-700 h-1 rounded-full overflow-hidden flex">
-                                        <div className="h-full bg-sky-500 rounded-full transition-all duration-300" style={{ width: `${v.percentPassed}%` }} />
-                                    </div>
-                                    <div className="flex justify-between items-center text-[9px] text-slate-400 mt-1">
-                                        <span>{v.currentDays} / {v.totalDays} Days ({v.percentPassed}% passed)</span>
-                                        <span className="truncate pl-1">6-month cycle</span>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                        {isMaintenanceLoading ? (
+                            <div className="space-y-2 py-1">
+                                <div className="h-12 bg-slate-100 dark:bg-slate-800 rounded-xl animate-pulse" />
+                            </div>
+                        ) : !(maintenanceData?.vehicles || []).length ? (
+                            <div className="text-[11px] text-slate-400 py-2 text-center bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+                                No vehicles registered.
+                            </div>
+                        ) : (
+                            <div className="space-y-2 mt-1 max-h-[155px] overflow-y-auto pr-0.5 [scrollbar-width:thin]">
+                                {maintenanceData.vehicles.map((v) => {
+                                    const cycleMonths = Math.round(v.totalDays / 30);
+                                    const cycleLabel = v.totalDays % 30 === 0 && cycleMonths > 0
+                                        ? `${cycleMonths}-month cycle`
+                                        : `${v.totalDays}-day cycle`;
+
+                                    return (
+                                        <div key={v.id || v.name} className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+                                            <div className="flex items-center justify-between text-[10px] mb-1">
+                                                <span className="font-bold text-slate-800 dark:text-slate-200 truncate pr-1">{v.name}</span>
+                                                <span className={`font-black shrink-0 ${
+                                                    v.isOverdue
+                                                        ? 'text-rose-600 dark:text-rose-400'
+                                                        : 'text-emerald-600 dark:text-emerald-400'
+                                                }`}>
+                                                    {v.isOverdue ? 'Service Due' : `${v.daysLeft} days left`}
+                                                </span>
+                                            </div>
+                                            <div className="w-full bg-slate-200 dark:bg-slate-700 h-1 rounded-full overflow-hidden flex">
+                                                <div
+                                                    className={`h-full rounded-full transition-all duration-300 ${
+                                                        v.isOverdue ? 'bg-rose-500' : 'bg-sky-500'
+                                                    }`}
+                                                    style={{ width: `${v.percentPassed}%` }}
+                                                />
+                                            </div>
+                                            <div className="flex justify-between items-center text-[9px] text-slate-400 mt-1">
+                                                <span>{v.currentDays} / {v.totalDays} Days ({v.percentPassed}% passed)</span>
+                                                <span className="truncate pl-1">{cycleLabel}</span>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -464,7 +446,13 @@ export default function OperationsRow() {
                         <Wrench className="w-3 h-3 text-slate-400" />
                         Station Readiness
                     </span>
-                    <span className="font-bold text-emerald-600 dark:text-emerald-400">All Good Condition</span>
+                    <span className={`font-bold ${
+                        hasAnyIssue
+                            ? 'text-rose-600 dark:text-rose-400'
+                            : 'text-emerald-600 dark:text-emerald-400'
+                    }`}>
+                        {hasAnyIssue ? 'Attention Required' : 'All Good Condition'}
+                    </span>
                 </div>
             </div>
 
