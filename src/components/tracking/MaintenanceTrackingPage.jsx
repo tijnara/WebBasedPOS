@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { useStore } from '../../store/useStore';
 import { useCreateExpense } from '../../hooks/useExpenses';
+import { logActivity } from '../../hooks/useActivityLogs';
 import { startOfWeek, addWeeks, addDays, format } from 'date-fns';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -115,6 +116,7 @@ export default function MaintenanceTrackingPage() {
         queryClient.invalidateQueries({ queryKey: ['dashboard-live-maintenance-lifespans'] });
         queryClient.invalidateQueries({ queryKey: ['overdue-vehicles'] });
         queryClient.invalidateQueries({ queryKey: ['maintenance-alerts'] });
+        queryClient.invalidateQueries({ queryKey: ['activity-logs'] });
     };
 
     const fetchTrackingData = async () => {
@@ -339,7 +341,6 @@ export default function MaintenanceTrackingPage() {
             return;
         }
 
-        // Check if already exists (case-insensitive)
         const existing = waterTestTypes.find(t => t.name.toLowerCase() === cleanName.toLowerCase());
         if (existing) {
             setWaterTestModal(prev => ({
@@ -383,15 +384,13 @@ export default function MaintenanceTrackingPage() {
                     throw error;
                 }
             } else {
-                await supabase.from('activity_logs').insert([{
-                    user_id: user?.id || null,
-                    user_name: user?.name || user?.username || 'Administrator',
-                    user_role: user?.isadmin ? 'Admin' : (user?.role || 'Admin'),
+                await logActivity({
+                    user,
                     action: 'CREATE',
-                    entity_type: 'SYSTEM',
-                    description: `Added new water test type: "${cleanName}" (${defaultInterval}-day cycle).`,
-                    created_at: new Date().toISOString()
-                }]);
+                    entity_type: 'MAINTENANCE',
+                    description: `Added new water test type: "${cleanName}" (${defaultInterval}-day cycle)`
+                });
+                queryClient.invalidateQueries({ queryKey: ['activity-logs'] });
 
                 addToast({
                     title: 'Test Type Saved',
@@ -433,6 +432,14 @@ export default function MaintenanceTrackingPage() {
                     .eq('id', typeObj.id);
                 if (error) throw error;
             }
+
+            await logActivity({
+                user,
+                action: 'DELETE',
+                entity_type: 'MAINTENANCE',
+                description: `Removed water test type: "${typeObj.name}"`
+            });
+            queryClient.invalidateQueries({ queryKey: ['activity-logs'] });
 
             const updatedList = waterTestTypes.filter(t => t.name !== typeObj.name);
             const fallbackList = updatedList.length > 0 ? updatedList : DEFAULT_WATER_TEST_TYPES;
@@ -501,15 +508,13 @@ export default function MaintenanceTrackingPage() {
                     localStorage.setItem('seaside_water_test_schedule', JSON.stringify(data));
                 }
 
-                await supabase.from('activity_logs').insert([{
-                    user_id: user?.id || null,
-                    user_name: user?.name || user?.username || 'Administrator',
-                    user_role: user?.isadmin ? 'Admin' : (user?.role || 'Admin'),
+                await logActivity({
+                    user,
                     action: 'UPDATE',
-                    entity_type: 'SYSTEM',
-                    description: `Updated Water Test Schedule: ${payload.test_type} set for ${payload.next_test_date} at ${payload.test_time}.`,
-                    created_at: new Date().toISOString()
-                }]);
+                    entity_type: 'MAINTENANCE',
+                    description: `Updated Water Test Schedule: "${payload.test_type}" set for ${payload.next_test_date} at ${payload.test_time}`
+                });
+                invalidateMaintenanceCaches();
 
                 addToast({
                     title: 'Water Test Scheduled',
@@ -571,6 +576,14 @@ export default function MaintenanceTrackingPage() {
                 localStorage.setItem('seaside_water_test_schedule', JSON.stringify(finalSched));
             }
 
+            await logActivity({
+                user,
+                action: 'UPDATE',
+                entity_type: 'MAINTENANCE',
+                description: `Completed water quality test (${updatedSchedule.test_type}) — next test scheduled for ${nextDateStr}`
+            });
+            invalidateMaintenanceCaches();
+
             addToast({
                 title: 'Water Test Logged',
                 description: `Test recorded! Next water test scheduled for ${format(nextDateObj, 'MMM d, yyyy')}.`,
@@ -621,15 +634,12 @@ export default function MaintenanceTrackingPage() {
 
             if (error) throw error;
 
-            await supabase.from('activity_logs').insert([{
-                user_id: user?.id || null,
-                user_name: user?.name || user?.username || 'Administrator',
-                user_role: user?.isadmin ? 'Admin' : (user?.role || 'Admin'),
+            await logActivity({
+                user,
                 action: 'UPDATE',
-                entity_type: 'SYSTEM',
-                description: `Admin updated limits for "${editFilterModal.filterName}": ${lifespanDays} days, ${containerLimit.toLocaleString()} containers.`,
-                created_at: new Date().toISOString()
-            }]);
+                entity_type: 'MAINTENANCE',
+                description: `Admin updated limits for "${editFilterModal.filterName}": ${lifespanDays} days, ${containerLimit.toLocaleString()} containers`
+            });
 
             addToast({ title: 'Limits Updated', description: 'Filter lifespan and container target updated.', variant: 'success' });
             setEditFilterModal(prev => ({ ...prev, isOpen: false }));
@@ -663,6 +673,13 @@ export default function MaintenanceTrackingPage() {
         });
 
         if (!error) {
+            await logActivity({
+                user,
+                action: 'UPDATE',
+                entity_type: 'MAINTENANCE',
+                description: `Recorded ${recordModal.itemType === 'vehicle' ? 'vehicle maintenance' : 'filter replacement'} for "${recordModal.itemName}"`
+            });
+
             addToast({ title: 'Success', description: 'Maintenance record saved.', variant: 'success' });
             setRecordModal({ isOpen: false, itemId: null, itemType: null, itemName: '', customDate: '' });
             invalidateMaintenanceCaches();
@@ -707,6 +724,13 @@ export default function MaintenanceTrackingPage() {
                 if (res.error) throw res.error;
             }
 
+            await logActivity({
+                user,
+                action: 'CREATE',
+                entity_type: 'MAINTENANCE',
+                description: `Purchased & replaced ${overdueFilters.length} overdue filter(s) (Total: ₱${Number(totalOverdueCost).toFixed(2)})`
+            });
+
             addToast({ title: 'Purchase Recorded', description: 'Expenses amortized and counters reset.', variant: 'success' });
             invalidateMaintenanceCaches();
             fetchTrackingData();
@@ -736,6 +760,12 @@ export default function MaintenanceTrackingPage() {
                 }).eq('id', vehicleId);
 
                 if (error) throw error;
+                await logActivity({
+                    user,
+                    action: 'UPDATE',
+                    entity_type: 'MAINTENANCE',
+                    description: `Updated vehicle "${vehicleForm.name}" (${lifespanDays}-day maintenance interval)`
+                });
                 addToast({ title: 'Updated', description: 'Vehicle updated successfully.', variant: 'success' });
             } else {
                 const { data, error } = await supabase.from('vehicles').insert({
@@ -747,6 +777,12 @@ export default function MaintenanceTrackingPage() {
 
                 if (error) throw error;
                 vehicleId = data.id;
+                await logActivity({
+                    user,
+                    action: 'CREATE',
+                    entity_type: 'MAINTENANCE',
+                    description: `Added new vehicle "${vehicleForm.name}" (${lifespanDays}-day maintenance interval)`
+                });
                 addToast({ title: 'Added', description: 'New vehicle added.', variant: 'success' });
             }
 
@@ -782,10 +818,17 @@ export default function MaintenanceTrackingPage() {
         if (isDemo) return addToast({ title: 'Demo Mode', description: 'Deleting vehicles is disabled in demo mode.', variant: 'warning' });
         if (!window.confirm("Delete this vehicle? Its history will remain but detached.")) return;
 
+        const targetVehicle = dbVehicles.find(v => v.id === id);
         const { error } = await supabase.from('vehicles').delete().eq('id', id);
         if (error) {
             addToast({ title: 'Error', description: error.message, variant: 'destructive' });
         } else {
+            await logActivity({
+                user,
+                action: 'DELETE',
+                entity_type: 'MAINTENANCE',
+                description: `Deleted vehicle "${targetVehicle?.name || `ID #${id}`}"`
+            });
             addToast({ title: 'Deleted', description: 'Vehicle removed.', variant: 'success' });
             invalidateMaintenanceCaches();
             fetchTrackingData();
@@ -810,7 +853,6 @@ export default function MaintenanceTrackingPage() {
         setManageVehiclesModal(true);
     };
 
-    // Ensure dropdown includes current value even if custom/legacy
     const dropdownTestTypes = React.useMemo(() => {
         const list = [...waterTestTypes];
         if (
@@ -986,7 +1028,6 @@ export default function MaintenanceTrackingPage() {
                         </DialogTitle>
                     </DialogHeader>
                     <form onSubmit={handleSaveWaterTestSchedule} className="p-4 space-y-4">
-                        {/* Selectable Test Type + Inline Add New Type */}
                         <div className="space-y-2">
                             <div className="flex items-center justify-between">
                                 <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-0">
@@ -1027,7 +1068,6 @@ export default function MaintenanceTrackingPage() {
                                 )}
                             </div>
 
-                            {/* Inline Add New Water Test Type Box */}
                             {isAddingTestType && (
                                 <div className="p-3 rounded-xl bg-cyan-50/70 dark:bg-cyan-950/30 border border-cyan-200 dark:border-cyan-800/70 space-y-2.5 animate-in fade-in duration-150">
                                     <span className="text-[10px] font-black uppercase tracking-wider text-cyan-800 dark:text-cyan-300 block">

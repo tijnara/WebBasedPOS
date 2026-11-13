@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useProducts } from '../../hooks/useProducts';
+import { logActivity } from '../../hooks/useActivityLogs';
 import { supabase } from '../../lib/supabaseClient';
 import {
     Button, Input, Card, CardContent, Select, Label,
@@ -13,7 +14,7 @@ import Pagination from '../Pagination';
 import { useQueryClient } from '@tanstack/react-query';
 import {
     Plus, Minus, Search, AlertTriangle, CheckCircle2,
-    Boxes, ArrowRight, Layers, XCircle, Calendar
+    Boxes, ArrowRight, Layers, XCircle
 } from 'lucide-react';
 
 // --- Sub-Component: Break Bulk Grid ---
@@ -40,12 +41,21 @@ function BreakBulk({ products, onSuccess, isDemo }) {
                 p_staff_id: user?.id
             });
             if (error) throw error;
+
+            await logActivity({
+                user,
+                action: 'UPDATE',
+                entity_type: 'INVENTORY',
+                description: `Unboxed 1 case of ${parent.name} into +${child.conversion_rate} units of ${child.name}`
+            });
+
             addToast({
                 title: 'Case Unboxed Successfully',
                 description: `Converted 1 ${parent.name} into ${child.conversion_rate} ${child.name}s.`,
                 variant: 'success'
             });
-            await queryClient.invalidateQueries(['products']);
+            await queryClient.invalidateQueries({ queryKey: ['products'] });
+            await queryClient.invalidateQueries({ queryKey: ['activity-logs'] });
             onSuccess();
         } catch (error) {
             addToast({ title: 'Error', description: error.message, variant: 'destructive' });
@@ -70,10 +80,10 @@ function BreakBulk({ products, onSuccess, isDemo }) {
         <div className="space-y-4 animate-in fade-in duration-200">
             <div className="bg-gradient-to-r from-lime-50 via-white to-lime-50/30 dark:from-lime-950/40 dark:via-slate-900 dark:to-lime-950/20 p-4 rounded-2xl border border-lime-200 dark:border-lime-900/60 flex items-start gap-3.5 shadow-2xs transition-colors">
                 <div className="bg-white dark:bg-slate-800 p-2.5 rounded-xl shadow-xs text-[#8DB600] dark:text-lime-400 border border-lime-100 dark:border-slate-700">
-                    <Boxes className="w-5 h-5"/>
+                    <Boxes className="w-5 h-5" />
                 </div>
                 <div>
-                    <h3 className="font-extrabold text-slate-900 dark:text-slate-100 text-sm">Case Conversion & Bulk Breaking</h3>
+                    <h3 className="font-extrabold text-slate-900 dark:text-slate-100 text-sm">Case Conversion &amp; Bulk Breaking</h3>
                     <p className="text-slate-600 dark:text-slate-300 text-xs mt-0.5">
                         Open master packaging (Parent) to restock individual saleable units (Child). Stock will deduct automatically.
                     </p>
@@ -241,9 +251,17 @@ export default function InventoryPage() {
         });
 
         if (!moveError && !prodError) {
+            await logActivity({
+                user,
+                action: 'UPDATE',
+                entity_type: 'INVENTORY',
+                description: `Restocked +${addQty} units of ${product.name}${expiry ? ` (Expiry: ${expiry})` : ''}`
+            });
+
             addToast({ title: 'Stock Updated', description: `Added ${addQty} units to ${product.name}.`, variant: 'success' });
             setRestockModal({ isOpen: false, product: null, qty: '', expiry: '' });
-            await queryClient.invalidateQueries(['products']);
+            await queryClient.invalidateQueries({ queryKey: ['products'] });
+            await queryClient.invalidateQueries({ queryKey: ['activity-logs'] });
             refetch();
         } else {
             addToast({ title: 'Error', description: 'Failed to record restock.', variant: 'destructive' });
@@ -280,9 +298,17 @@ export default function InventoryPage() {
         });
 
         if (!moveError && !prodError) {
+            await logActivity({
+                user,
+                action: 'UPDATE',
+                entity_type: 'INVENTORY',
+                description: `Adjusted stock for ${product.name}: -${adjQty} units (Reason: ${reason})`
+            });
+
             addToast({ title: 'Stock Adjusted', description: `Deducted ${adjQty} units from ${product.name}.`, variant: 'success' });
             setAdjustModal({ isOpen: false, product: null, qty: '', reason: 'damaged' });
-            await queryClient.invalidateQueries(['products']);
+            await queryClient.invalidateQueries({ queryKey: ['products'] });
+            await queryClient.invalidateQueries({ queryKey: ['activity-logs'] });
             refetch();
         } else {
             addToast({ title: 'Error', description: 'Failed to record adjustment.', variant: 'destructive' });

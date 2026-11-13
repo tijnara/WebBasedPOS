@@ -1,20 +1,37 @@
-// C:\Users\tijna\WebstormProjects\WebBasedPOS\src\hooks\useActivityLogs.js
+// src/hooks/useActivityLogs.js
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient';
 
-export const logActivity = async ({ user, action, entity_type, description }) => {
+export const logActivity = async ({ user, action, entity_type, description, created_at }) => {
     if (!user || user.isDemo) return;
 
+    const resolvedName = user.name || user.username || user.email || 'Staff User';
+    const isAdminUser = Boolean(
+        user.isAdmin ||
+        user.isadmin ||
+        user.is_admin ||
+        String(user.role?.name || user.role || '').toLowerCase().includes('admin')
+    );
+    const resolvedRole = user.role?.name || user.role || (isAdminUser ? 'Admin' : 'Staff');
+    const numericUserId =
+        typeof user.id === 'number'
+            ? user.id
+            : /^\d+$/.test(String(user.id || ''))
+                ? Number(user.id)
+                : null;
+
     try {
-        const { error } = await supabase.from('activity_logs').insert([{
-            user_id: user.id,
-            user_name: user.name || user.email,
-            user_role: user.role,
+        const payload = {
+            user_id: numericUserId,
+            user_name: resolvedName,
+            user_role: resolvedRole,
             action,
             entity_type,
-            description
-        }]);
+            description,
+            ...(created_at ? { created_at } : {})
+        };
 
+        const { error } = await supabase.from('activity_logs').insert([payload]);
         if (error) throw error;
     } catch (error) {
         console.error('Failed to log activity:', error.message);
@@ -34,11 +51,19 @@ export const useActivityLogs = ({ page = 1, pageSize = 20, searchTerm = '', filt
                 .from('activity_logs')
                 .select('*', { count: 'exact' })
                 .order('created_at', { ascending: false })
-                .range(startIndex, endIndex); // <-- This does the SQL LIMIT 20
+                .range(startIndex, endIndex);
 
             // Apply Database-level Filters
             if (filterAction !== 'ALL') {
-                query = query.eq('action', filterAction);
+                if (filterAction === 'SCAN') {
+                    query = query.in('action', ['SCAN', 'DELIVERY_LOG_SCAN']);
+                } else if (filterAction === 'DELETE') {
+                    query = query.in('action', ['DELETE', 'DELETE_SALE', 'DELETE_SCANNED_LOG']);
+                } else if (filterAction === 'UPDATE') {
+                    query = query.in('action', ['UPDATE', 'UPDATE_SALE', 'SETTLE_SALE']);
+                } else {
+                    query = query.eq('action', filterAction);
+                }
             }
 
             if (filterType !== 'ALL') {

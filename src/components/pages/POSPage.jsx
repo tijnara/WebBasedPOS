@@ -6,6 +6,7 @@ import { useProducts } from '../../hooks/useProducts';
 import { useCreateSale } from '../../hooks/useCreateSale';
 import { useCreateCustomer } from '../../hooks/useCustomerMutations';
 import { useProductByBarcode } from '../../hooks/useProductByBarcode';
+import { logActivity } from '../../hooks/useActivityLogs';
 import { Button } from '../ui';
 import { usePOSModals } from '../../hooks/usePOSModals';
 import { usePOSCheckout, getLocalDateString, getLocalTimeString } from '../../hooks/usePOSCheckout';
@@ -139,7 +140,7 @@ export default function POSPage() {
         currentCustomer, setCurrentCustomer, updateCartItem
     } = useStore();
 
-    // Centralized safe cart clear handler: forces Zustand store wipe and closes mobile drawer
+    // Centralized safe cart clear handler
     const handleClearCart = useCallback(() => {
         try {
             if (typeof clearSale === 'function') {
@@ -149,7 +150,6 @@ export default function POSPage() {
             console.error('Error invoking clearSale action:', err);
         }
 
-        // Direct state override ensures all subscribers across mobile and desktop are wiped immediately
         try {
             useStore.setState({ currentSale: {} });
             localStorage.removeItem('currentSale');
@@ -222,6 +222,13 @@ export default function POSPage() {
         if (scannedProduct) {
             handleAdd(scannedProduct);
             addToast({ title: 'Added', description: `${scannedProduct.name} added to cart.`, variant: 'success' });
+            logActivity({
+                user,
+                action: 'SCAN',
+                entity_type: 'SALE',
+                description: `Scanned barcode for ${scannedProduct.name} (₱${Number(scannedProduct.price).toFixed(2)}) in POS`
+            });
+            queryClient.invalidateQueries({ queryKey: ['activity-logs'] });
             setSearchTerm('');
             productSearchInputRef.current?.focus();
         }
@@ -380,7 +387,7 @@ export default function POSPage() {
         hotkeyProducts, handleClearCart
     ]);
 
-    // Resilient Customer Search: Native PostgREST wildcard (*) prevents URL % hex corruption
+    // Resilient Customer Search
     useEffect(() => {
         if (!(isCustomerModalOpen || isPaymentModalOpen) || !debouncedCustomerSearchTerm) {
             setCustomerSearchResults([]);
@@ -525,6 +532,17 @@ export default function POSPage() {
         openScanner();
     };
 
+    const handleOpenScanList = () => {
+        setIsScanSalesModalOpen(true);
+        logActivity({
+            user,
+            action: 'SCAN',
+            entity_type: 'SCAN_LIST',
+            description: 'Opened Scan Sales List modal on POS'
+        });
+        queryClient.invalidateQueries({ queryKey: ['activity-logs'] });
+    };
+
     const isAnyModalOpen = isCartDrawerOpen || isPaymentModalOpen || isCustomerModalOpen || isCustomSaleModalOpen || Boolean(editItemKey) || isScannerOpen || isScanSalesModalOpen;
 
     return (
@@ -559,7 +577,7 @@ export default function POSPage() {
                     <div className="flex items-center gap-1.5 shrink-0">
                         <Button
                             variant="outline"
-                            onClick={() => setIsScanSalesModalOpen(true)}
+                            onClick={handleOpenScanList}
                             className="h-9 sm:h-10 px-2.5 sm:px-3 rounded-xl border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-[#5f7d00] font-bold whitespace-nowrap transition-all active:scale-95 text-[11px] sm:text-xs flex items-center gap-1 shrink-0 cursor-pointer"
                             title="Scan Sales List"
                         >
@@ -737,7 +755,16 @@ export default function POSPage() {
                 isOpen={isCustomSaleModalOpen}
                 onClose={closeCustomSale}
                 products={products}
-                onAddItem={(product, quantity, price) => addItemToSale(product, quantity, price)}
+                onAddItem={(product, quantity, price) => {
+                    addItemToSale(product, quantity, price);
+                    logActivity({
+                        user,
+                        action: 'CREATE',
+                        entity_type: 'SALE',
+                        description: `Added custom POS item: ${product.name} × ${quantity} @ ₱${Number(price).toFixed(2)}`
+                    });
+                    queryClient.invalidateQueries({ queryKey: ['activity-logs'] });
+                }}
                 isDemo={isDemo}
             />
 
@@ -783,6 +810,7 @@ export default function POSPage() {
                     queryClient.invalidateQueries({ queryKey: ['sales-summary'] });
                     queryClient.invalidateQueries({ queryKey: ['weekly-growth'] });
                     queryClient.invalidateQueries({ queryKey: ['monthly-growth'] });
+                    queryClient.invalidateQueries({ queryKey: ['activity-logs'] });
                 }}
             />
 

@@ -10,6 +10,7 @@ import { supabase } from '../../lib/supabaseClient';
 import { useStore } from '../../store/useStore';
 import { useSaveCustomerEntry } from '../../hooks/useCustomerMutations';
 import { useScannedLogs } from '../../hooks/useScannedLogs';
+import { logActivity } from '../../hooks/useActivityLogs';
 import { format } from 'date-fns';
 import currency from 'currency.js';
 
@@ -211,6 +212,17 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
             });
 
             setParsedItems(enrichedData);
+
+            await logActivity({
+                user,
+                action: 'SCAN',
+                entity_type: 'SCAN_LIST',
+                description: enrichedData.length > 0
+                    ? `Scanned delivery list image on POS (${enrichedData.length} rows detected for ${deliveryDate})`
+                    : `Scanned delivery list image on POS (no readable sales rows detected)`
+            });
+            queryClient.invalidateQueries({ queryKey: ['activity-logs'] });
+
             if (enrichedData.length === 0) {
                 const msg = 'Could not detect clear sales rows in this photo.';
                 setErrorMessage(msg);
@@ -488,19 +500,19 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
             // Save the scanned sheet image + extracted snapshot
             await persistScannedImage(targetDate, manilaIso);
 
-            // Log Activity
-            try {
-                const addedCustomersCount = Object.keys(newlyCreatedCustomers).length;
-                const autoAddText = addedCustomersCount > 0 ? ` (Auto-created/Merged ${addedCustomersCount} customer accounts)` : '';
-                await supabase.from('activity_logs').insert([{
-                    user_id: user?.id || null,
-                    action: 'DELIVERY_LOG_SCAN',
-                    description: `Recorded ${parsedItems.length} sales (${currency(grandTotal, { symbol: '₱' }).format()}) for delivery date ${targetDate}. Scanned image archived.${autoAddText}`,
-                    created_at: manilaIso
-                }]);
-            } catch {
-                // Non-blocking
-            }
+            // Log Activity with full user & module metadata
+            const addedCustomersCount = Object.keys(newlyCreatedCustomers).length;
+            const creditCount = parsedItems.filter(i => i.payment_method === 'Credit').length;
+            const cashCount = parsedItems.length - creditCount;
+            const autoAddText = addedCustomersCount > 0 ? ` • Auto-created/merged ${addedCustomersCount} customer(s)` : '';
+
+            await logActivity({
+                user,
+                action: 'CREATE',
+                entity_type: 'SCAN_LIST',
+                description: `Recorded ${parsedItems.length} sales via Scan List (${currency(grandTotal, { symbol: '₱' }).format()} — ${cashCount} Cash, ${creditCount} Utang) for delivery date ${targetDate}${autoAddText}`
+            });
+            queryClient.invalidateQueries({ queryKey: ['activity-logs'] });
 
             const formattedDeliveryDate = format(new Date(`${targetDate}T00:00:00+08:00`), 'MMM d, yyyy');
             addToast({
@@ -531,7 +543,7 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
                         </div>
                         <div>
                             <h2 className="text-base font-bold leading-tight tracking-tight">Scan Sales Sheet / Log</h2>
-                            <p className="text-[11px] text-emerald-100 font-medium">AI extracts orders & saves sheet photos automatically</p>
+                            <p className="text-[11px] text-emerald-100 font-medium">AI extracts orders &amp; saves sheet photos automatically</p>
                         </div>
                     </div>
 
@@ -691,14 +703,14 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
                                 <div className="py-12 flex flex-col items-center justify-center text-center space-y-3">
                                     <Loader2 className="w-8 h-8 text-emerald-600 dark:text-emerald-500 animate-spin" />
                                     <p className="text-sm font-bold text-slate-700 dark:text-slate-200">AI is parsing the delivery log...</p>
-                                    <p className="text-xs text-slate-400 dark:text-slate-500">Transcribing names, matching products & checking registered customers</p>
+                                    <p className="text-xs text-slate-400 dark:text-slate-500">Transcribing names, matching products &amp; checking registered customers</p>
                                 </div>
                             )}
 
                             {!isAnalyzing && parsedItems.length > 0 && (
                                 <div className="space-y-3 animate-in fade-in duration-200">
                                     <div className="flex flex-wrap items-center justify-between text-xs text-slate-500 dark:text-slate-400 px-1 gap-2">
-                                        <span className="font-bold uppercase tracking-wider">Review & Edit Items</span>
+                                        <span className="font-bold uppercase tracking-wider">Review &amp; Edit Items</span>
                                         <div className="flex items-center gap-3">
                                             {totalCreditAmount > 0 && (
                                                 <span className="text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 px-2 py-0.5 rounded-md font-semibold">
@@ -856,7 +868,7 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
                             >
                                 {isSaving ? (
                                     <>
-                                        <Loader2 className="w-4 h-4 animate-spin" /> Saving Sales & Image...
+                                        <Loader2 className="w-4 h-4 animate-spin" /> Saving Sales &amp; Image...
                                     </>
                                 ) : (
                                     <>
