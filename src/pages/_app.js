@@ -12,6 +12,7 @@ import TabBar from '../components/TabBar';
 import FloatingNotes from '../components/FloatingNotes';
 import FloatingMessages from '../components/FloatingMessages';
 import GlobalVehicleAlert from '../components/tracking/GlobalVehicleAlert';
+import ScheduledFloaterToast from '../components/ScheduledFloaterToast';
 import { Button } from '../components/ui';
 import { QueryClient, QueryClientProvider, HydrationBoundary, MutationCache } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
@@ -36,6 +37,7 @@ const titleMap = {
     '/article-management': 'Article Management | Seaside WRS',
     '/settings': 'Settings | Seaside WRS',
     '/history': 'History | Seaside WRS',
+    '/scanned-logs': 'Scanned Logs | Seaside WRS',
     '/expenses': 'Expenses | Seaside WRS',
     '/incentives': 'Incentives | Seaside WRS',
     '/terms': 'Terms of Service | Seaside WRS',
@@ -284,6 +286,7 @@ export default function App({ Component, pageProps }) {
                         </div>
                     </div>
                     <GlobalVehicleAlert />
+                    <ScheduledFloaterToast />
                 </AuthGate>
                 <div id="modal-root"></div>
                 <ReactQueryDevtools initialIsOpen={false} position="bottom" />

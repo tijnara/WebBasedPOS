@@ -1,4 +1,4 @@
-// C:\Users\tijna\WebstormProjects\WebBasedPOS\src\hooks\useSettings.js
+// src/hooks/useSettings.js
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient';
 import { useStore } from '../store/useStore';
@@ -16,7 +16,8 @@ export function useSettings() {
 
             if (error && error.code !== 'PGRST116') throw error;
             return data || null;
-        }
+        },
+        staleTime: 1000 * 60
     });
 }
 
@@ -26,20 +27,25 @@ export function useUpdateSettings() {
 
     return useMutation({
         mutationFn: async (payload) => {
+            const record = { id: 1, ...payload };
             const { data, error } = await supabase
                 .from('business_settings')
-                .update(payload)
-                .eq('id', 1)
+                .upsert(record, { onConflict: 'id' })
                 .select()
                 .single();
 
-            if (error) throw error;
+            if (error) {
+                if (error.code === 'PGRST204' || error.message?.includes('promo_floater')) {
+                    throw new Error('Please run the business_settings SQL migration in Supabase first so the new floater columns exist.');
+                }
+                throw error;
+            }
 
             logActivity({
                 user: currentUser,
                 action: 'UPDATE',
                 entity_type: 'SETTINGS',
-                description: `Updated store business settings`
+                description: `Updated store & page notification settings`
             });
 
             return data;

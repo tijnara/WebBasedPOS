@@ -1,10 +1,11 @@
 // src/components/dashboard/PageSettings.jsx
-import React, { useState, useEffect, useRef } from 'react';
-import { Card, CardHeader, CardContent, Button, Input, Label, Textarea } from '../ui';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { Card, CardHeader, CardContent, Button, Input, Label, Textarea, Select } from '../ui';
 import { useSettings, useUpdateSettings } from '../../hooks/useSettings';
 import { supabase } from '../../lib/supabaseClient';
 import { useStore } from '../../store/useStore';
-import { Image as ImageIcon, Sliders, Layers } from 'lucide-react';
+import { resetScheduledFloaterStorage } from '../ScheduledFloaterToast';
+import { Image as ImageIcon, Sliders, Layers, BellRing, Eye, RotateCcw, ShieldAlert } from 'lucide-react';
 
 const DEFAULT_SERVICES = [
     {
@@ -37,11 +38,46 @@ const DEFAULT_SERVICES = [
     }
 ];
 
+const MONTH_OPTIONS = [
+    { value: 0, label: 'Every Month (Recurring)' },
+    { value: 1, label: 'January' },
+    { value: 2, label: 'February' },
+    { value: 3, label: 'March' },
+    { value: 4, label: 'April' },
+    { value: 5, label: 'May' },
+    { value: 6, label: 'June' },
+    { value: 7, label: 'July' },
+    { value: 8, label: 'August' },
+    { value: 9, label: 'September' },
+    { value: 10, label: 'October' },
+    { value: 11, label: 'November' },
+    { value: 12, label: 'December' }
+];
+
+const FREQUENCY_OPTIONS = [
+    { value: 'once_a_day', label: 'Once a Day (During Active Dates)' },
+    { value: 'every_day_all_month', label: 'Every Day (Once Daily — All Month)' },
+    { value: 'every_session', label: 'Every Login / Browser Session' },
+    { value: 'every_page', label: 'Every Page Load / Navigation' },
+    { value: 'testing', label: 'Testing Mode (Pop Out Immediately Every Time)' }
+];
+
 export default function PageSettings() {
     const { data: settings, isLoading } = useSettings();
     const updateSettings = useUpdateSettings();
     const { addToast, user } = useStore();
     const isDemo = user?.isDemo;
+
+    const isAdmin = useMemo(() => {
+        if (!user) return false;
+        if (user.isAdmin || user.isadmin || user.is_admin || user.isSuperAdmin) return true;
+        const role = String(user.role?.name || user.role || user.position || user.user_type || user.type || '').toLowerCase().trim();
+        if (['admin', 'administrator', 'owner', 'superadmin', 'manager', 'head'].some(k => role.includes(k))) {
+            return true;
+        }
+        if (user.role_id === 1 || user.roleId === 1) return true;
+        return false;
+    }, [user]);
 
     const [formData, setFormData] = useState({
         business_name: '',
@@ -56,7 +92,16 @@ export default function PageSettings() {
         business_hours: '',
         physical_address: '',
         services_title: '',
-        services_subtitle: ''
+        services_subtitle: '',
+        promo_floater_enabled: true,
+        promo_floater_title: 'Monthly Schedule & Reminder',
+        promo_floater_content: 'Reminder: Our monthly promo & billing schedule is active from the 10th to the 15th of the month!',
+        promo_floater_month: 0,
+        promo_floater_start_day: 10,
+        promo_floater_end_day: 15,
+        promo_floater_audience: 'pos',
+        promo_floater_frequency: 'once_a_day',
+        promo_floater_reset_at: new Date().toISOString()
     });
 
     const [servicesData, setServicesData] = useState(DEFAULT_SERVICES);
@@ -80,7 +125,16 @@ export default function PageSettings() {
                 business_hours: settings.business_hours || '',
                 physical_address: settings.physical_address || '',
                 services_title: settings.services_title || '',
-                services_subtitle: settings.services_subtitle || ''
+                services_subtitle: settings.services_subtitle || '',
+                promo_floater_enabled: settings.promo_floater_enabled !== false,
+                promo_floater_title: settings.promo_floater_title ?? 'Monthly Schedule & Reminder',
+                promo_floater_content: settings.promo_floater_content ?? 'Reminder: Our monthly promo & billing schedule is active from the 10th to the 15th of the month!',
+                promo_floater_month: Number(settings.promo_floater_month ?? 0),
+                promo_floater_start_day: Number(settings.promo_floater_start_day ?? 10),
+                promo_floater_end_day: Number(settings.promo_floater_end_day ?? 15),
+                promo_floater_audience: settings.promo_floater_audience === 'admin' ? 'admin' : 'pos',
+                promo_floater_frequency: settings.promo_floater_frequency || 'once_a_day',
+                promo_floater_reset_at: settings.promo_floater_reset_at || new Date().toISOString()
             });
 
             if (settings.services_data && Array.isArray(settings.services_data) && settings.services_data.length > 0) {
@@ -96,6 +150,63 @@ export default function PageSettings() {
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    // Selecting any frequency option automatically resets the floater state
+    const handleFrequencyChange = (e) => {
+        const newFreq = e.target.value;
+        const resetTimestamp = new Date().toISOString();
+
+        resetScheduledFloaterStorage();
+        setFormData(prev => ({
+            ...prev,
+            promo_floater_frequency: newFreq,
+            promo_floater_reset_at: resetTimestamp
+        }));
+
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(
+                new CustomEvent('reset-scheduled-floater', {
+                    detail: {
+                        showNow: newFreq === 'testing',
+                        draft: {
+                            promo_floater_title: formData.promo_floater_title,
+                            promo_floater_content: formData.promo_floater_content,
+                            promo_floater_month: Number(formData.promo_floater_month ?? 0),
+                            promo_floater_start_day: Number(formData.promo_floater_start_day ?? 10),
+                            promo_floater_end_day: Number(formData.promo_floater_end_day ?? 15),
+                            promo_floater_frequency: newFreq
+                        }
+                    }
+                })
+            );
+        }
+
+        const label = FREQUENCY_OPTIONS.find(o => o.value === newFreq)?.label || newFreq;
+        addToast({
+            title: 'Floater Reset & Updated',
+            description: `Pop-out schedule set to "${label}". Click Save Settings to apply for all staff.`,
+            variant: 'success'
+        });
+    };
+
+    const handleManualReset = () => {
+        const resetTimestamp = new Date().toISOString();
+        resetScheduledFloaterStorage();
+        setFormData(prev => ({
+            ...prev,
+            promo_floater_reset_at: resetTimestamp
+        }));
+
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('reset-scheduled-floater', { detail: { showNow: false } }));
+        }
+
+        addToast({
+            title: 'Notification Timer Reset',
+            description: 'Daily/session tracking cleared. Save Settings to reset for all staff.',
+            variant: 'success'
+        });
     };
 
     const handleServiceChange = (index, field, value) => {
@@ -114,8 +225,26 @@ export default function PageSettings() {
         }
     };
 
+    const handlePreviewFloater = () => {
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(
+                new CustomEvent('preview-scheduled-floater', {
+                    detail: {
+                        promo_floater_title: formData.promo_floater_title,
+                        promo_floater_content: formData.promo_floater_content,
+                        promo_floater_month: Number(formData.promo_floater_month ?? 0),
+                        promo_floater_start_day: Number(formData.promo_floater_start_day ?? 10),
+                        promo_floater_end_day: Number(formData.promo_floater_end_day ?? 15),
+                        promo_floater_frequency: formData.promo_floater_frequency
+                    }
+                })
+            );
+        }
+    };
+
     const handleSave = async (e) => {
         e.preventDefault();
+        if (!isAdmin) return;
         setIsSaving(true);
         try {
             let logo_url = settings?.logo_url || null;
@@ -132,15 +261,30 @@ export default function PageSettings() {
                 logo_url = data.publicUrl;
             }
 
+            const startDay = Math.min(31, Math.max(1, parseInt(formData.promo_floater_start_day, 10) || 10));
+            const endDay = Math.min(31, Math.max(1, parseInt(formData.promo_floater_end_day, 10) || 15));
+            const targetMonth = Math.min(12, Math.max(0, parseInt(formData.promo_floater_month, 10) || 0));
+            const audience = formData.promo_floater_audience === 'admin' ? 'admin' : 'pos';
+            const resetTimestamp = new Date().toISOString();
+
+            resetScheduledFloaterStorage();
+
             await updateSettings.mutateAsync({
                 id: settings?.id || 1,
                 ...formData,
+                promo_floater_enabled: Boolean(formData.promo_floater_enabled),
+                promo_floater_month: targetMonth,
+                promo_floater_start_day: startDay,
+                promo_floater_end_day: endDay,
+                promo_floater_audience: audience,
+                promo_floater_frequency: formData.promo_floater_frequency || 'once_a_day',
+                promo_floater_reset_at: resetTimestamp,
                 services_data: servicesData,
                 logo_url,
-                updated_at: new Date().toISOString()
+                updated_at: resetTimestamp
             });
 
-            addToast({ title: 'Success', description: 'Landing page settings updated successfully.', variant: 'success' });
+            addToast({ title: 'Success', description: 'Page & floater settings saved and reset for all users.', variant: 'success' });
             setImageFile(null);
         } catch (error) {
             addToast({ title: 'Error', description: error.message, variant: 'destructive' });
@@ -149,6 +293,16 @@ export default function PageSettings() {
         }
     };
 
+    if (!isAdmin) {
+        return (
+            <div className="p-8 text-center bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-2 mt-6">
+                <ShieldAlert className="w-8 h-8 text-rose-500 mx-auto" />
+                <h3 className="text-base font-black text-slate-900 dark:text-white">Administrator Access Only</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">You do not have permission to view or edit Page Settings.</p>
+            </div>
+        );
+    }
+
     if (isLoading) {
         return (
             <div className="p-8 text-center text-slate-400 dark:text-slate-500 text-sm">
@@ -156,6 +310,10 @@ export default function PageSettings() {
             </div>
         );
     }
+
+    const isDateWindowBypassed =
+        formData.promo_floater_frequency === 'testing' ||
+        formData.promo_floater_frequency === 'every_day_all_month';
 
     return (
         <Card className="shadow-sm mt-6 responsive-page bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden transition-colors">
@@ -167,10 +325,10 @@ export default function PageSettings() {
                     </div>
                     <div>
                         <h3 className="font-extrabold text-base text-slate-900 dark:text-slate-100 tracking-tight">
-                            Landing Page Content & Settings (Admin)
+                            Landing Page Content &amp; Settings (Admin)
                         </h3>
                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                            Customize customer-facing branding, operational details, and featured services.
+                            Customize customer-facing branding, operational details, scheduled staff floater reminders, and featured services.
                         </p>
                     </div>
                 </div>
@@ -179,8 +337,185 @@ export default function PageSettings() {
             <CardContent className="p-5 sm:p-7">
                 <form onSubmit={handleSave} className="space-y-8">
 
+                    {/* SCHEDULED MONTHLY FLOATER / TOAST SETTINGS */}
+                    <div className="p-5 rounded-2xl bg-lime-50/50 dark:bg-lime-950/20 border border-lime-200/80 dark:border-lime-900/50 space-y-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-lime-200/70 dark:border-lime-900/40">
+                            <div className="flex items-center gap-2.5">
+                                <div className="w-8 h-8 rounded-xl bg-[#8DB600]/20 text-[#5f7d00] dark:text-lime-400 flex items-center justify-center shrink-0">
+                                    <BellRing className="w-4 h-4 stroke-[2.2]" />
+                                </div>
+                                <div>
+                                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white">
+                                        Scheduled Staff Floater / Center Alert
+                                    </h4>
+                                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                                        Appears aggressively in the center of the screen on POS &amp; Staff pages (never shown on public website).
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+                                <button
+                                    type="button"
+                                    onClick={handleManualReset}
+                                    className="px-3 py-1.5 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                                    title="Reset seen status so it pops out again"
+                                >
+                                    <RotateCcw className="w-3.5 h-3.5 text-amber-500" />
+                                    <span>Reset</span>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={handlePreviewFloater}
+                                    className="px-3 py-1.5 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                                >
+                                    <Eye className="w-3.5 h-3.5 text-[#8DB600]" />
+                                    <span>Preview</span>
+                                </button>
+
+                                <label className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 cursor-pointer select-none shadow-2xs">
+                                    <input
+                                        type="checkbox"
+                                        checked={Boolean(formData.promo_floater_enabled)}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, promo_floater_enabled: e.target.checked }))}
+                                        disabled={isDemo}
+                                        className="w-4 h-4 rounded text-[#8DB600] focus:ring-[#8DB600] border-slate-300 cursor-pointer"
+                                    />
+                                    <span className={`text-xs font-black ${formData.promo_floater_enabled ? 'text-[#5f7d00] dark:text-lime-400' : 'text-slate-400'}`}>
+                                        {formData.promo_floater_enabled ? 'Enabled' : 'Disabled'}
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+
+                        {/* Pop-Out Frequency & Audience Row */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                                <Label className="font-bold text-xs text-slate-700 dark:text-slate-300">
+                                    When Will It Pop Out (Frequency — Auto-Resets on Select)
+                                </Label>
+                                <Select
+                                    name="promo_floater_frequency"
+                                    value={formData.promo_floater_frequency}
+                                    onChange={handleFrequencyChange}
+                                    disabled={isDemo}
+                                    className="h-10 mt-1 text-xs rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 font-bold cursor-pointer"
+                                >
+                                    {FREQUENCY_OPTIONS.map(opt => (
+                                        <option key={opt.value} value={opt.value} className="bg-white dark:bg-slate-900">
+                                            {opt.label}
+                                        </option>
+                                    ))}
+                                </Select>
+                            </div>
+
+                            <div>
+                                <Label className="font-bold text-xs text-slate-700 dark:text-slate-300">
+                                    Show To (POS &amp; Staff Only)
+                                </Label>
+                                <Select
+                                    name="promo_floater_audience"
+                                    value={formData.promo_floater_audience}
+                                    onChange={handleInputChange}
+                                    disabled={isDemo}
+                                    className="h-10 mt-1 text-xs rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 font-bold cursor-pointer"
+                                >
+                                    <option value="pos" className="bg-white dark:bg-slate-900">All POS &amp; Staff Users</option>
+                                    <option value="admin" className="bg-white dark:bg-slate-900">Admin Users Only</option>
+                                </Select>
+                            </div>
+                        </div>
+
+                        {/* Month & Day Range Row */}
+                        <div className={`grid grid-cols-1 sm:grid-cols-3 gap-3 transition-opacity ${isDateWindowBypassed ? 'opacity-55' : 'opacity-100'}`}>
+                            <div>
+                                <Label className="font-bold text-xs text-slate-700 dark:text-slate-300">
+                                    Active Month
+                                </Label>
+                                <Select
+                                    name="promo_floater_month"
+                                    value={formData.promo_floater_month}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, promo_floater_month: Number(e.target.value) }))}
+                                    disabled={isDemo || isDateWindowBypassed}
+                                    className="h-10 mt-1 text-xs rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 font-bold cursor-pointer"
+                                >
+                                    {MONTH_OPTIONS.map(m => (
+                                        <option key={m.value} value={m.value} className="bg-white dark:bg-slate-900">
+                                            {m.label}
+                                        </option>
+                                    ))}
+                                </Select>
+                            </div>
+
+                            <div>
+                                <Label className="font-bold text-xs text-slate-700 dark:text-slate-300">
+                                    Start Day of Month
+                                </Label>
+                                <Input
+                                    type="number"
+                                    min="1"
+                                    max="31"
+                                    name="promo_floater_start_day"
+                                    value={formData.promo_floater_start_day}
+                                    onChange={handleInputChange}
+                                    disabled={isDemo || isDateWindowBypassed}
+                                    className="h-10 mt-1 text-xs font-mono font-bold bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl"
+                                />
+                            </div>
+
+                            <div>
+                                <Label className="font-bold text-xs text-slate-700 dark:text-slate-300">
+                                    End Day of Month
+                                </Label>
+                                <Input
+                                    type="number"
+                                    min="1"
+                                    max="31"
+                                    name="promo_floater_end_day"
+                                    value={formData.promo_floater_end_day}
+                                    onChange={handleInputChange}
+                                    disabled={isDemo || isDateWindowBypassed}
+                                    className="h-10 mt-1 text-xs font-mono font-bold bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Title & Message Row */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                                <Label className="font-bold text-xs text-slate-700 dark:text-slate-300">
+                                    Floater Title / Headline
+                                </Label>
+                                <Input
+                                    name="promo_floater_title"
+                                    value={formData.promo_floater_title}
+                                    onChange={handleInputChange}
+                                    placeholder="e.g. Monthly Promo & Billing Reminder"
+                                    disabled={isDemo}
+                                    className="h-10 mt-1 text-xs sm:text-sm bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl"
+                                />
+                            </div>
+
+                            <div>
+                                <Label className="font-bold text-xs text-slate-700 dark:text-slate-300">
+                                    Floater Message Content
+                                </Label>
+                                <Textarea
+                                    name="promo_floater_content"
+                                    value={formData.promo_floater_content}
+                                    onChange={handleInputChange}
+                                    rows={2}
+                                    placeholder="Enter the announcement, promo, or reminder text to display..."
+                                    disabled={isDemo}
+                                    className="w-full mt-1 text-xs sm:text-sm p-2.5 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
                     {/* Brand & Logo */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start pt-2">
                         <div className="space-y-2">
                             <Label className="font-bold text-xs text-slate-700 dark:text-slate-300">
                                 Business Logo
@@ -298,7 +633,7 @@ export default function PageSettings() {
                         <div className="flex items-center gap-2">
                             <Layers className="w-4 h-4 text-[#8DB600] dark:text-lime-400" />
                             <h4 className="text-xs font-black uppercase tracking-wider text-[#8DB600] dark:text-lime-400">
-                                Refill & Supply Services Cards (Landing Section)
+                                Refill &amp; Supply Services Cards (Landing Section)
                             </h4>
                         </div>
 
