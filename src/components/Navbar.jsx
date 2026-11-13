@@ -1,5 +1,5 @@
 // src/components/Navbar.jsx
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -10,6 +10,8 @@ import { Sun, Moon, LogOut, ChevronDown, Landmark, Receipt, TestTube, History, X
 import { supabase } from '../lib/supabaseClient';
 import { useStore } from '../store/useStore';
 import { useNotes } from '../hooks/useNotes';
+import { useMaintenanceAlerts } from '../hooks/useVehicles';
+import { useSettings } from '../hooks/useSettings';
 import { Button } from './ui';
 import {
     CartIcon,
@@ -179,7 +181,7 @@ export default function Navbar() {
         };
     }, []);
 
-    // Queries: Pending Approvals & Contact Messages
+    // Queries: Pending Approvals, Contact Messages, Low Stock Inventory, Maintenance & Water Tests, and Store Notices
     const { data: pendingUsers = [] } = useQuery({
         queryKey: ['pending-approvals-count', clientUser?.id, isAdmin],
         queryFn: async () => {
@@ -212,6 +214,26 @@ export default function Navbar() {
         refetchInterval: 30000
     });
 
+    const { data: lowStockProducts = [] } = useQuery({
+        queryKey: ['navbar-low-stock-products', clientUser?.id, isDemo],
+        queryFn: async () => {
+            if (!clientUser || isDemo) return [];
+            const { data, error } = await supabase
+                .from('products')
+                .select('id, name, stock_quantity, min_stock_level')
+                .gt('min_stock_level', 0);
+
+            if (error || !Array.isArray(data)) return [];
+            return data
+                .filter(p => Number(p.stock_quantity ?? 0) <= Number(p.min_stock_level ?? 0))
+                .sort((a, b) => Number(a.stock_quantity ?? 0) - Number(b.stock_quantity ?? 0));
+        },
+        enabled: !!clientUser && !isDemo,
+        refetchInterval: 60000
+    });
+
+    const { data: maintenanceAlerts } = useMaintenanceAlerts();
+    const { data: businessSettings } = useSettings();
     const { data: notes = [] } = useNotes();
 
     const pendingCount = pendingUsers.length;
@@ -236,9 +258,71 @@ export default function Navbar() {
     }, [notes, lastSeenNotesTime, clientUser]);
 
     const unreadNotesCount = unreadNotes.length;
-    const totalNotifications = (isAdmin ? pendingCount + unreadMessageCount : 0) + unreadNotesCount;
 
-    // Realtime Subscriptions
+    // Combine overdue + due soon filters and vehicles for staff & admin attention
+    const filterAlerts = useMemo(() => {
+        const overdue = maintenanceAlerts?.overdueFilters || [];
+        const dueSoon = maintenanceAlerts?.dueSoonFilters || [];
+        return [...overdue, ...dueSoon];
+    }, [maintenanceAlerts]);
+
+    const vehicleAlerts = useMemo(() => {
+        const overdue = maintenanceAlerts?.overdueVehicles || [];
+        const dueSoon = maintenanceAlerts?.dueSoonVehicles || [];
+        return [...overdue, ...dueSoon];
+    }, [maintenanceAlerts]);
+
+    const waterTestAlert = maintenanceAlerts?.waterTestAlert || null;
+
+    // Active Scheduled Staff Notice (shown in notifications when active in Asia/Manila)
+    const activeScheduledNotice = useMemo(() => {
+        if (!businessSettings || businessSettings.promo_floater_enabled === false) return null;
+        const audience = businessSettings.promo_floater_audience || 'pos';
+        if (audience === 'admin' && !isAdmin) return null;
+
+        const title = (businessSettings.promo_floater_title || '').trim();
+        const content = (businessSettings.promo_floater_content || '').trim();
+        if (!title && !content) return null;
+
+        const frequency = businessSettings.promo_floater_frequency || 'once_a_day';
+        if (frequency === 'testing' || frequency === 'every_day_all_month') {
+            return { title: title || 'Staff Announcement', content };
+        }
+
+        const dateStr = new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'Asia/Manila',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        }).format(new Date());
+        const [, month, day] = dateStr.split('-').map(Number);
+
+        const targetMonth = Number(businessSettings.promo_floater_month ?? 0);
+        const startDay = Math.min(31, Math.max(1, Number(businessSettings.promo_floater_start_day ?? 10)));
+        const endDay = Math.min(31, Math.max(1, Number(businessSettings.promo_floater_end_day ?? 15)));
+
+        const monthMatches = targetMonth === 0 || targetMonth === month;
+        const dayMatches = startDay <= endDay
+            ? day >= startDay && day <= endDay
+            : day >= startDay || day <= endDay;
+
+        if (!monthMatches || !dayMatches) return null;
+        return { title: title || 'Staff Announcement', content };
+    }, [businessSettings, isAdmin]);
+
+    const maintenanceTotalCount =
+        (waterTestAlert ? 1 : 0) +
+        filterAlerts.length +
+        vehicleAlerts.length;
+
+    const totalNotifications =
+        (isAdmin ? pendingCount + unreadMessageCount : 0) +
+        unreadNotesCount +
+        maintenanceTotalCount +
+        lowStockProducts.length +
+        (activeScheduledNotice ? 1 : 0);
+
+    // Realtime Subscriptions across all operational tables
     useEffect(() => {
         if (!clientUser || isDemo) return;
 
@@ -257,6 +341,24 @@ export default function Navbar() {
         navChannel
             .on('postgres_changes', { event: '*', schema: 'public', table: 'notes' }, () => {
                 queryClient.invalidateQueries({ queryKey: ['notes'] });
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'water_test_schedules' }, () => {
+                queryClient.invalidateQueries({ queryKey: ['maintenance-alerts'] });
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'maintenance_history' }, () => {
+                queryClient.invalidateQueries({ queryKey: ['maintenance-alerts'] });
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'filter_configs' }, () => {
+                queryClient.invalidateQueries({ queryKey: ['maintenance-alerts'] });
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'vehicles' }, () => {
+                queryClient.invalidateQueries({ queryKey: ['maintenance-alerts'] });
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'business_settings' }, () => {
+                queryClient.invalidateQueries({ queryKey: ['business-settings'] });
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => {
+                queryClient.invalidateQueries({ queryKey: ['navbar-low-stock-products'] });
             })
             .subscribe();
 
@@ -389,7 +491,10 @@ export default function Navbar() {
         const visibleLinks = links.filter(l => !l.adminOnly || isAdmin);
         if (visibleLinks.length === 0) return null;
         const isOpen = !category || openCategories.has(category);
-        const hasAlerts = category === 'Administration & Content' && (pendingCount > 0 || unreadMessageCount > 0);
+        const hasAlerts =
+            (category === 'Administration & Content' && (pendingCount > 0 || unreadMessageCount > 0)) ||
+            (category === 'Sales & Operations' && maintenanceTotalCount > 0) ||
+            (category === 'Catalog & Inventory' && lowStockProducts.length > 0);
 
         return (
             <div key={category ?? '__root__'} className="mb-2">
@@ -419,6 +524,8 @@ export default function Navbar() {
                             const isApprovals = link.path === '/admin/user-approvals';
                             const isMessages = link.path.toLowerCase() === '/messages';
                             const isDashboard = link.path === '/dashboard';
+                            const isMaintenance = link.path === '/maintenance';
+                            const isInventory = link.path === '/inventory';
 
                             return (
                                 <Button
@@ -446,6 +553,18 @@ export default function Navbar() {
                                                 {link.name}
                                             </span>
                                         </div>
+
+                                        {isMaintenance && maintenanceTotalCount > 0 && (
+                                            <span className="bg-cyan-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center shadow-xs">
+                                                {maintenanceTotalCount}
+                                            </span>
+                                        )}
+
+                                        {isInventory && lowStockProducts.length > 0 && (
+                                            <span className="bg-amber-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center shadow-xs">
+                                                {lowStockProducts.length}
+                                            </span>
+                                        )}
 
                                         {isDashboard && unreadNotesCount > 0 && (
                                             <span className="bg-amber-400 text-amber-950 text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center shadow-xs">
@@ -512,6 +631,11 @@ export default function Navbar() {
 
                     <NotificationBell
                         isAdmin={isAdmin}
+                        waterTestAlert={waterTestAlert}
+                        filterAlerts={filterAlerts}
+                        vehicleAlerts={vehicleAlerts}
+                        lowStockProducts={lowStockProducts}
+                        activeScheduledNotice={activeScheduledNotice}
                         pendingUsers={pendingUsers}
                         pendingCount={pendingCount}
                         unreadMessages={unreadMessages}
@@ -631,6 +755,11 @@ export default function Navbar() {
                 <div className="flex items-center gap-3 border-l border-slate-200 dark:border-slate-800 pl-5 h-8">
                     <NotificationBell
                         isAdmin={isAdmin}
+                        waterTestAlert={waterTestAlert}
+                        filterAlerts={filterAlerts}
+                        vehicleAlerts={vehicleAlerts}
+                        lowStockProducts={lowStockProducts}
+                        activeScheduledNotice={activeScheduledNotice}
                         pendingUsers={pendingUsers}
                         pendingCount={pendingCount}
                         unreadMessages={unreadMessages}
