@@ -546,7 +546,6 @@ export default function CustomerManagementPage() {
                         <option value="address">Delivery Address</option>
                         <option value="dateAdded">Date Registered</option>
                         <option value="lastOrderDate">Last Order Date</option>
-                        <option value="lastSeen">Last Refill</option>
                         <option value="credit_balance">Utang Balance</option>
                         <option value="utangDate">Utang Date</option>
                     </select>
@@ -569,7 +568,7 @@ export default function CustomerManagementPage() {
                             <thead>
                             <tr className="bg-slate-50 dark:bg-slate-850 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200/80 dark:border-slate-800">
                                 {/* 1. Customer Name (Default Alphabetical) */}
-                                <th className="w-[16%] py-3 px-3 text-left">
+                                <th className="w-[18%] py-3 px-3 text-left">
                                     <button
                                         type="button"
                                         onClick={() => requestSort('name')}
@@ -581,7 +580,7 @@ export default function CustomerManagementPage() {
                                 </th>
 
                                 {/* 2. Phone / Contact */}
-                                <th className="w-[10%] py-3 px-2.5 text-left">
+                                <th className="w-[11%] py-3 px-2.5 text-left">
                                     <button
                                         type="button"
                                         onClick={() => requestSort('phone')}
@@ -593,7 +592,7 @@ export default function CustomerManagementPage() {
                                 </th>
 
                                 {/* 3. Delivery Address */}
-                                <th className="w-[13%] py-3 px-2.5 text-left">
+                                <th className="w-[15%] py-3 px-2.5 text-left">
                                     <button
                                         type="button"
                                         onClick={() => requestSort('address')}
@@ -605,7 +604,7 @@ export default function CustomerManagementPage() {
                                 </th>
 
                                 {/* 4. Date Added */}
-                                <th className="w-[9%] py-3 px-2 text-left">
+                                <th className="w-[10%] py-3 px-2 text-left">
                                     <button
                                         type="button"
                                         onClick={() => requestSort('dateAdded')}
@@ -617,7 +616,7 @@ export default function CustomerManagementPage() {
                                 </th>
 
                                 {/* 5. Last Order Date */}
-                                <th className="w-[11%] py-3 px-2 text-left">
+                                <th className="w-[12%] py-3 px-2 text-left">
                                     <button
                                         type="button"
                                         onClick={() => requestSort('lastOrderDate')}
@@ -628,20 +627,8 @@ export default function CustomerManagementPage() {
                                     </button>
                                 </th>
 
-                                {/* 6. Last Refill */}
-                                <th className="w-[8%] py-3 px-2 text-left">
-                                    <button
-                                        type="button"
-                                        onClick={() => requestSort('lastSeen')}
-                                        className="w-full flex items-center justify-between text-left font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors group cursor-pointer select-none outline-none"
-                                    >
-                                        <span className="truncate">Last Refill</span>
-                                        <SortIcon columnKey="lastSeen" sortConfig={sortConfig} />
-                                    </button>
-                                </th>
-
-                                {/* 7. Utang Balance */}
-                                <th className="w-[9%] py-3 px-2 text-center">
+                                {/* 6. Utang Balance */}
+                                <th className="w-[10%] py-3 px-2 text-center">
                                     <button
                                         type="button"
                                         onClick={() => requestSort('credit_balance')}
@@ -652,7 +639,7 @@ export default function CustomerManagementPage() {
                                     </button>
                                 </th>
 
-                                {/* 8. Utang Date */}
+                                {/* 7. Utang Date */}
                                 <th className="w-[10%] py-3 px-2 text-left">
                                     <button
                                         type="button"
@@ -664,7 +651,7 @@ export default function CustomerManagementPage() {
                                     </button>
                                 </th>
 
-                                {/* 9. Actions */}
+                                {/* 8. Actions */}
                                 <th className="w-[14%] py-3 px-3 text-right font-bold text-slate-600 dark:text-slate-300">
                                     Actions
                                 </th>
@@ -673,13 +660,13 @@ export default function CustomerManagementPage() {
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900">
                             {isLoading ? (
                                 <tr>
-                                    <td colSpan={9} className="text-center py-12 text-slate-400">
+                                    <td colSpan={8} className="text-center py-12 text-slate-400">
                                         Loading customer records...
                                     </td>
                                 </tr>
                             ) : customers.length === 0 ? (
                                 <tr>
-                                    <td colSpan={9} className="text-center py-12 text-slate-400">
+                                    <td colSpan={8} className="text-center py-12 text-slate-400">
                                         No customer accounts match your search.
                                     </td>
                                 </tr>
@@ -755,15 +742,6 @@ export default function CustomerManagementPage() {
                                                 ) : (
                                                     <span className="text-slate-300 dark:text-slate-600 font-normal">—</span>
                                                 )}
-                                            </td>
-
-                                            {/* Last Refill */}
-                                            <td className="py-2.5 px-2 text-xs whitespace-nowrap">
-                                                <span className={`inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-semibold ${
-                                                    lastOrderDate ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300' : 'text-slate-400 dark:text-slate-600'
-                                                }`}>
-                                                    {formatRelativeTime(lastOrderDate)}
-                                                </span>
                                             </td>
 
                                             {/* Utang Balance */}
