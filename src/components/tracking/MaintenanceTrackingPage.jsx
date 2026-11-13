@@ -3,19 +3,37 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { useStore } from '../../store/useStore';
 import { useCreateExpense } from '../../hooks/useExpenses';
-import { startOfWeek, addWeeks, format } from 'date-fns';
+import { startOfWeek, addWeeks, addDays, format } from 'date-fns';
 import { useQueryClient } from '@tanstack/react-query';
 import {
     Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
-    Button, Input, Label, Table, TableHeader, TableRow, TableHead,
+    Button, Input, Label, Textarea, Select, Table, TableHeader, TableRow, TableHead,
     TableBody, TableCell
 } from '../ui';
-import { Edit2, Trash2, Sliders, Droplets, Truck, AlertTriangle } from 'lucide-react';
+import { Edit2, Trash2, Sliders, Droplets, Truck, AlertTriangle, FlaskConical, Plus, Check } from 'lucide-react';
 
 import PendingPurchases from '../tracking/PendingPurchases';
 import FilterList from '../tracking/FilterList';
 import VehicleList from '../tracking/VehicleList';
+import WaterTestScheduleCard from '../tracking/WaterTestScheduleCard';
 import { FILTER_CONFIG } from '../../config/constants';
+
+const DEFAULT_WATER_TEST_TYPES = [
+    { id: 'default-1', name: 'Monthly Bacteriological & Physico-Chemical Test', default_interval_days: 30 },
+    { id: 'default-2', name: 'Monthly Bacteriological Water Test (HPC & Coliform)', default_interval_days: 30 },
+    { id: 'default-3', name: 'Semi-Annual Physico-Chemical Water Analysis', default_interval_days: 180 },
+    { id: 'default-4', name: 'Weekly TDS, pH & Residual Chlorine Check', default_interval_days: 7 }
+];
+
+const DEFAULT_WATER_TEST_SCHEDULE = {
+    id: 1,
+    next_test_date: format(addDays(new Date(), 15), 'yyyy-MM-dd'),
+    test_time: '09:00',
+    interval_days: 30,
+    test_type: 'Monthly Bacteriological & Physico-Chemical Test',
+    notes: 'Water quality parameters are normal. Prepare sterile sample bottles prior to scheduled lab testing.',
+    last_tested_at: null
+};
 
 export default function MaintenanceTrackingPage() {
     const { user, addToast } = useStore();
@@ -26,7 +44,8 @@ export default function MaintenanceTrackingPage() {
         user && (
             user.isadmin === true ||
             user.isAdmin === true ||
-            user.role?.toLowerCase() === 'admin'
+            user.isSuperAdmin === true ||
+            String(user.role?.name || user.role || '').toLowerCase().includes('admin')
         )
     );
 
@@ -40,6 +59,24 @@ export default function MaintenanceTrackingPage() {
     const [fullHistory, setFullHistory] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isPurchasing, setIsPurchasing] = useState(false);
+
+    // Water Test Schedule & Saved Test Types State
+    const [waterTestSchedule, setWaterTestSchedule] = useState(DEFAULT_WATER_TEST_SCHEDULE);
+    const [waterTestTypes, setWaterTestTypes] = useState(DEFAULT_WATER_TEST_TYPES);
+    const [isSavingWaterTest, setIsSavingWaterTest] = useState(false);
+    const [isAddingTestType, setIsAddingTestType] = useState(false);
+    const [newTestTypeName, setNewTestTypeName] = useState('');
+    const [newTestTypeInterval, setNewTestTypeInterval] = useState(30);
+    const [isSavingTestType, setIsSavingTestType] = useState(false);
+
+    const [waterTestModal, setWaterTestModal] = useState({
+        isOpen: false,
+        nextTestDate: DEFAULT_WATER_TEST_SCHEDULE.next_test_date,
+        testTime: '09:00',
+        intervalDays: 30,
+        testType: DEFAULT_WATER_TEST_SCHEDULE.test_type,
+        notes: DEFAULT_WATER_TEST_SCHEDULE.notes
+    });
 
     // Modals
     const [recordModal, setRecordModal] = useState({
@@ -114,14 +151,43 @@ export default function MaintenanceTrackingPage() {
             }
             setFilterConfigs(activeFilters);
 
-            // 2. Fetch Vehicles & Maintenance History
-            const [vehiclesRes, historyRes] = await Promise.all([
+            // 2. Fetch Vehicles, Maintenance History, Water Test Schedule, and Water Test Types
+            const [vehiclesRes, historyRes, waterTestRes, testTypesRes] = await Promise.all([
                 supabase.from('vehicles').select('*').order('created_at', { ascending: true }),
-                supabase.from('maintenance_history').select('*').order('replaced_at', { ascending: false })
+                supabase.from('maintenance_history').select('*').order('replaced_at', { ascending: false }),
+                supabase.from('water_test_schedules').select('*').eq('id', 1).maybeSingle(),
+                supabase.from('water_test_types').select('*').order('created_at', { ascending: true })
             ]);
 
             if (vehiclesRes.error) throw vehiclesRes.error;
             if (historyRes.error) throw historyRes.error;
+
+            if (!waterTestRes.error && waterTestRes.data) {
+                setWaterTestSchedule(waterTestRes.data);
+            } else if (typeof window !== 'undefined') {
+                const cached = localStorage.getItem('seaside_water_test_schedule');
+                if (cached) {
+                    try {
+                        setWaterTestSchedule(JSON.parse(cached));
+                    } catch {
+                        // Ignore parse errors
+                    }
+                }
+            }
+
+            if (!testTypesRes.error && Array.isArray(testTypesRes.data) && testTypesRes.data.length > 0) {
+                setWaterTestTypes(testTypesRes.data);
+            } else if (typeof window !== 'undefined') {
+                const cachedTypes = localStorage.getItem('seaside_water_test_types');
+                if (cachedTypes) {
+                    try {
+                        const parsed = JSON.parse(cachedTypes);
+                        if (Array.isArray(parsed) && parsed.length > 0) setWaterTestTypes(parsed);
+                    } catch {
+                        // Ignore parse errors
+                    }
+                }
+            }
 
             const vehiclesList = vehiclesRes.data || [];
             setDbVehicles(vehiclesList);
@@ -239,6 +305,286 @@ export default function MaintenanceTrackingPage() {
     const overdueFilters = processedFilters.filter(f => f.isOverdue);
     const totalOverdueCost = overdueFilters.reduce((sum, f) => sum + (Number(f.cost || 0) * Number(f.pcs || 1)), 0);
     const overdueVehicles = processedVehicles.filter(v => v.isOverdue);
+
+    // --- Water Test Types & Schedule Handlers ---
+    const handleOpenWaterTestModal = () => {
+        if (!isAdmin) return;
+        setIsAddingTestType(false);
+        setNewTestTypeName('');
+        setNewTestTypeInterval(30);
+        setWaterTestModal({
+            isOpen: true,
+            nextTestDate: waterTestSchedule?.next_test_date || format(addDays(new Date(), 15), 'yyyy-MM-dd'),
+            testTime: waterTestSchedule?.test_time || '09:00',
+            intervalDays: Number(waterTestSchedule?.interval_days || 30),
+            testType: waterTestSchedule?.test_type || waterTestTypes[0]?.name || 'Monthly Bacteriological & Physico-Chemical Test',
+            notes: waterTestSchedule?.notes || ''
+        });
+    };
+
+    const handleSelectTestType = (selectedName) => {
+        const matched = waterTestTypes.find(t => t.name === selectedName);
+        setWaterTestModal(prev => ({
+            ...prev,
+            testType: selectedName,
+            intervalDays: matched?.default_interval_days ? Number(matched.default_interval_days) : prev.intervalDays
+        }));
+    };
+
+    const handleAddNewTestType = async () => {
+        if (!isAdmin || isDemo) return;
+        const cleanName = newTestTypeName.trim();
+        if (!cleanName) {
+            addToast({ title: 'Name Required', description: 'Please enter a water test type name.', variant: 'destructive' });
+            return;
+        }
+
+        // Check if already exists (case-insensitive)
+        const existing = waterTestTypes.find(t => t.name.toLowerCase() === cleanName.toLowerCase());
+        if (existing) {
+            setWaterTestModal(prev => ({
+                ...prev,
+                testType: existing.name,
+                intervalDays: Number(existing.default_interval_days || prev.intervalDays)
+            }));
+            setIsAddingTestType(false);
+            setNewTestTypeName('');
+            addToast({ title: 'Selected Existing Type', description: `"${existing.name}" is already in the list.`, variant: 'success' });
+            return;
+        }
+
+        setIsSavingTestType(true);
+        try {
+            const defaultInterval = Math.max(1, parseInt(newTestTypeInterval, 10) || 30);
+            const { data, error } = await supabase
+                .from('water_test_types')
+                .insert([{
+                    name: cleanName,
+                    default_interval_days: defaultInterval,
+                    created_by: user?.id || null
+                }])
+                .select()
+                .single();
+
+            let createdItem = data;
+            if (error) {
+                if (error.code === '42P01' || error.code === 'PGRST205') {
+                    createdItem = {
+                        id: `local-${Date.now()}`,
+                        name: cleanName,
+                        default_interval_days: defaultInterval
+                    };
+                    addToast({
+                        title: 'Added Locally (Run SQL Migration)',
+                        description: 'Run the water_test_types SQL in Supabase to persist across all devices.',
+                        variant: 'warning'
+                    });
+                } else {
+                    throw error;
+                }
+            } else {
+                await supabase.from('activity_logs').insert([{
+                    user_id: user?.id || null,
+                    user_name: user?.name || user?.username || 'Administrator',
+                    user_role: user?.isadmin ? 'Admin' : (user?.role || 'Admin'),
+                    action: 'CREATE',
+                    entity_type: 'SYSTEM',
+                    description: `Added new water test type: "${cleanName}" (${defaultInterval}-day cycle).`,
+                    created_at: new Date().toISOString()
+                }]);
+
+                addToast({
+                    title: 'Test Type Saved',
+                    description: `"${cleanName}" saved to database and selected.`,
+                    variant: 'success'
+                });
+            }
+
+            const updatedList = [...waterTestTypes, createdItem];
+            setWaterTestTypes(updatedList);
+            if (typeof window !== 'undefined') {
+                localStorage.setItem('seaside_water_test_types', JSON.stringify(updatedList));
+            }
+
+            setWaterTestModal(prev => ({
+                ...prev,
+                testType: createdItem.name,
+                intervalDays: defaultInterval
+            }));
+            setNewTestTypeName('');
+            setIsAddingTestType(false);
+        } catch (err) {
+            console.error('Error saving water test type:', err);
+            addToast({ title: 'Error', description: err.message, variant: 'destructive' });
+        } finally {
+            setIsSavingTestType(false);
+        }
+    };
+
+    const handleDeleteTestType = async (typeObj) => {
+        if (!isAdmin || isDemo || !typeObj) return;
+        if (!window.confirm(`Remove "${typeObj.name}" from saved water test types?`)) return;
+
+        try {
+            if (typeof typeObj.id === 'number') {
+                const { error } = await supabase
+                    .from('water_test_types')
+                    .delete()
+                    .eq('id', typeObj.id);
+                if (error) throw error;
+            }
+
+            const updatedList = waterTestTypes.filter(t => t.name !== typeObj.name);
+            const fallbackList = updatedList.length > 0 ? updatedList : DEFAULT_WATER_TEST_TYPES;
+            setWaterTestTypes(fallbackList);
+
+            if (typeof window !== 'undefined') {
+                localStorage.setItem('seaside_water_test_types', JSON.stringify(fallbackList));
+            }
+
+            if (waterTestModal.testType === typeObj.name) {
+                setWaterTestModal(prev => ({
+                    ...prev,
+                    testType: fallbackList[0].name,
+                    intervalDays: Number(fallbackList[0].default_interval_days || 30)
+                }));
+            }
+
+            addToast({ title: 'Removed', description: `"${typeObj.name}" removed.`, variant: 'success' });
+        } catch (err) {
+            console.error('Error deleting water test type:', err);
+            addToast({ title: 'Error', description: err.message, variant: 'destructive' });
+        }
+    };
+
+    const handleSaveWaterTestSchedule = async (e) => {
+        e.preventDefault();
+        if (!isAdmin || isDemo) return;
+        setIsSavingWaterTest(true);
+
+        try {
+            const payload = {
+                id: 1,
+                next_test_date: waterTestModal.nextTestDate,
+                test_time: waterTestModal.testTime || '09:00',
+                interval_days: Math.max(1, parseInt(waterTestModal.intervalDays, 10) || 30),
+                test_type: waterTestModal.testType.trim() || 'Monthly Water Quality Test',
+                notes: waterTestModal.notes.trim(),
+                last_tested_at: waterTestSchedule?.last_tested_at || null,
+                updated_by: user?.id || null,
+                updated_at: new Date().toISOString()
+            };
+
+            const { data, error } = await supabase
+                .from('water_test_schedules')
+                .upsert(payload, { onConflict: 'id' })
+                .select()
+                .single();
+
+            if (error) {
+                if (typeof window !== 'undefined') {
+                    localStorage.setItem('seaside_water_test_schedule', JSON.stringify(payload));
+                }
+                setWaterTestSchedule(payload);
+                if (error.code === '42P01' || error.code === 'PGRST205') {
+                    addToast({
+                        title: 'Saved Locally (Run SQL Migration)',
+                        description: 'Schedule saved in browser. Run the water_test_schedules SQL in Supabase to sync across all devices.',
+                        variant: 'warning'
+                    });
+                } else {
+                    throw error;
+                }
+            } else {
+                setWaterTestSchedule(data);
+                if (typeof window !== 'undefined') {
+                    localStorage.setItem('seaside_water_test_schedule', JSON.stringify(data));
+                }
+
+                await supabase.from('activity_logs').insert([{
+                    user_id: user?.id || null,
+                    user_name: user?.name || user?.username || 'Administrator',
+                    user_role: user?.isadmin ? 'Admin' : (user?.role || 'Admin'),
+                    action: 'UPDATE',
+                    entity_type: 'SYSTEM',
+                    description: `Updated Water Test Schedule: ${payload.test_type} set for ${payload.next_test_date} at ${payload.test_time}.`,
+                    created_at: new Date().toISOString()
+                }]);
+
+                addToast({
+                    title: 'Water Test Scheduled',
+                    description: `Countdown updated for ${format(new Date(`${payload.next_test_date}T00:00:00+08:00`), 'MMM d, yyyy')}.`,
+                    variant: 'success'
+                });
+            }
+
+            setWaterTestModal(prev => ({ ...prev, isOpen: false }));
+        } catch (err) {
+            console.error('Water test schedule save error:', err);
+            addToast({ title: 'Error', description: err.message, variant: 'destructive' });
+        } finally {
+            setIsSavingWaterTest(false);
+        }
+    };
+
+    const handleRecordWaterTestComplete = async () => {
+        if (isDemo) return;
+        setIsSavingWaterTest(true);
+
+        try {
+            const nowIso = new Date().toISOString();
+            const intervalDays = Math.max(1, Number(waterTestSchedule?.interval_days || 30));
+
+            const manilaTodayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila' }).format(new Date());
+            const nextDateObj = addDays(new Date(`${manilaTodayStr}T12:00:00+08:00`), intervalDays);
+            const nextDateStr = format(nextDateObj, 'yyyy-MM-dd');
+
+            const { error: histErr } = await supabase.from('maintenance_history').insert({
+                item_id: 'water_test',
+                item_type: 'water_test',
+                replaced_at: nowIso,
+                replaced_by: user?.id || null
+            });
+            if (histErr) throw histErr;
+
+            const updatedSchedule = {
+                id: 1,
+                next_test_date: nextDateStr,
+                test_time: waterTestSchedule?.test_time || '09:00',
+                interval_days: intervalDays,
+                test_type: waterTestSchedule?.test_type || 'Monthly Bacteriological & Physico-Chemical Test',
+                notes: waterTestSchedule?.notes || 'Water quality parameters are normal. No immediate lab testing action required until scheduled date.',
+                last_tested_at: nowIso,
+                updated_by: user?.id || null,
+                updated_at: nowIso
+            };
+
+            const { data, error: schedErr } = await supabase
+                .from('water_test_schedules')
+                .upsert(updatedSchedule, { onConflict: 'id' })
+                .select()
+                .single();
+
+            const finalSched = !schedErr && data ? data : updatedSchedule;
+            setWaterTestSchedule(finalSched);
+            if (typeof window !== 'undefined') {
+                localStorage.setItem('seaside_water_test_schedule', JSON.stringify(finalSched));
+            }
+
+            addToast({
+                title: 'Water Test Logged',
+                description: `Test recorded! Next water test scheduled for ${format(nextDateObj, 'MMM d, yyyy')}.`,
+                variant: 'success'
+            });
+
+            await fetchTrackingData();
+        } catch (err) {
+            console.error('Error recording water test:', err);
+            addToast({ title: 'Error', description: err.message, variant: 'destructive' });
+        } finally {
+            setIsSavingWaterTest(false);
+        }
+    };
 
     // Filter limits edit
     const handleOpenEditFilter = (filter) => {
@@ -464,27 +810,56 @@ export default function MaintenanceTrackingPage() {
         setManageVehiclesModal(true);
     };
 
+    // Ensure dropdown includes current value even if custom/legacy
+    const dropdownTestTypes = React.useMemo(() => {
+        const list = [...waterTestTypes];
+        if (
+            waterTestModal.testType &&
+            !list.some(t => t.name.toLowerCase() === waterTestModal.testType.toLowerCase())
+        ) {
+            list.unshift({
+                id: 'current-active',
+                name: waterTestModal.testType,
+                default_interval_days: waterTestModal.intervalDays || 30
+            });
+        }
+        return list;
+    }, [waterTestTypes, waterTestModal.testType, waterTestModal.intervalDays]);
+
+    const selectedTypeObj = waterTestTypes.find(t => t.name === waterTestModal.testType);
+
     return (
         <div className="p-3 sm:p-5 md:p-6 max-w-7xl mx-auto space-y-4">
-            {/* Top Bar: Title & Admin Settings Trigger */}
+            {/* Top Bar: Title & Admin Settings Triggers */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
                 <div>
                     <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
-                        Filter & Maintenance Tracking
+                        Filter &amp; Maintenance Tracking
                     </h1>
                     <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">
-                        Monitor water filtration lifespans and delivery vehicle servicing schedules.
+                        Monitor water filtration lifespans, laboratory water test schedules, and delivery vehicle servicing.
                     </p>
                 </div>
                 {isAdmin && (
-                    <Button
-                        variant="primary"
-                        onClick={() => setManageVehiclesModal(true)}
-                        className="h-9 px-3.5 text-xs font-bold bg-[#8DB600] hover:bg-[#7ca000] text-white rounded-xl shadow-xs flex items-center gap-1.5 transition-all active:scale-95 shrink-0"
-                    >
-                        <Sliders className="w-3.5 h-3.5" />
-                        <span>Manage Vehicles</span>
-                    </Button>
+                    <div className="flex flex-wrap items-center gap-2 shrink-0">
+                        <Button
+                            variant="outline"
+                            onClick={handleOpenWaterTestModal}
+                            className="h-9 px-3.5 text-xs font-bold border-cyan-200 dark:border-cyan-800 bg-cyan-50/70 dark:bg-cyan-950/40 text-cyan-800 dark:text-cyan-300 hover:bg-cyan-100 dark:hover:bg-cyan-900/50 rounded-xl shadow-2xs flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer"
+                        >
+                            <FlaskConical className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
+                            <span>Water Test Schedule</span>
+                        </Button>
+
+                        <Button
+                            variant="primary"
+                            onClick={() => setManageVehiclesModal(true)}
+                            className="h-9 px-3.5 text-xs font-bold bg-[#8DB600] hover:bg-[#7ca000] text-white rounded-xl shadow-xs flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer"
+                        >
+                            <Sliders className="w-3.5 h-3.5" />
+                            <span>Manage Vehicles</span>
+                        </Button>
+                    </div>
                 )}
             </div>
 
@@ -521,7 +896,7 @@ export default function MaintenanceTrackingPage() {
                     }`}
                 >
                     <Truck className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                    <span>Fleet & Logistics</span>
+                    <span>Fleet &amp; Logistics</span>
                     <span className="font-mono text-[10px] bg-slate-100 dark:bg-slate-800 px-1.5 py-0.2 rounded-full font-bold">
                         {processedVehicles.length}
                     </span>
@@ -542,14 +917,29 @@ export default function MaintenanceTrackingPage() {
                     {/* Tab 1: Water Filtration */}
                     {activeTab === 'filters' && (
                         <div className="flex flex-col lg:flex-row gap-5 items-start">
-                            {/* Pending Purchases Banner / Card */}
-                            <div className="w-full lg:w-80 shrink-0 order-first lg:order-last">
+                            {/* Right Sidebar: Filter Status Note + Live Water Test Schedule Countdown */}
+                            <div className="w-full lg:w-80 shrink-0 order-first lg:order-last space-y-4">
                                 <PendingPurchases
                                     overdueFilters={overdueFilters}
                                     totalOverdueCost={totalOverdueCost}
                                     handlePurchaseAndRecord={handlePurchaseAndRecord}
                                     isPurchasing={isPurchasing}
                                     isDemo={isDemo}
+                                />
+
+                                <WaterTestScheduleCard
+                                    schedule={waterTestSchedule}
+                                    isAdmin={isAdmin}
+                                    isSaving={isSavingWaterTest}
+                                    onOpenScheduleModal={handleOpenWaterTestModal}
+                                    onRecordTestComplete={handleRecordWaterTestComplete}
+                                    onViewHistory={() =>
+                                        setHistoryModal({
+                                            isOpen: true,
+                                            itemId: 'water_test',
+                                            itemName: waterTestSchedule?.test_type || 'Water Quality Test'
+                                        })
+                                    }
                                 />
                             </div>
 
@@ -582,6 +972,178 @@ export default function MaintenanceTrackingPage() {
                     )}
                 </div>
             )}
+
+            {/* Admin Set Water Test Schedule Modal */}
+            <Dialog
+                open={waterTestModal.isOpen}
+                onOpenChange={(open) => !open && setWaterTestModal(prev => ({ ...prev, isOpen: false }))}
+            >
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <FlaskConical className="w-5 h-5 text-cyan-600" />
+                            Set Water Test Schedule
+                        </DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={handleSaveWaterTestSchedule} className="p-4 space-y-4">
+                        {/* Selectable Test Type + Inline Add New Type */}
+                        <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-0">
+                                    Test Title / Laboratory Type
+                                </Label>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsAddingTestType(prev => !prev)}
+                                    className="text-[11px] font-bold text-cyan-700 dark:text-cyan-400 hover:underline flex items-center gap-1 cursor-pointer"
+                                >
+                                    <Plus className="w-3 h-3" />
+                                    <span>{isAddingTestType ? 'Cancel' : 'Add New Type'}</span>
+                                </button>
+                            </div>
+
+                            <div className="flex items-center gap-1.5">
+                                <Select
+                                    value={waterTestModal.testType}
+                                    onChange={(e) => handleSelectTestType(e.target.value)}
+                                    className="h-10 text-xs font-bold bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 rounded-xl flex-1 cursor-pointer"
+                                >
+                                    {dropdownTestTypes.map((t) => (
+                                        <option key={t.id || t.name} value={t.name}>
+                                            {t.name} ({t.default_interval_days}d)
+                                        </option>
+                                    ))}
+                                </Select>
+
+                                {selectedTypeObj && typeof selectedTypeObj.id === 'number' && waterTestTypes.length > 1 && (
+                                    <button
+                                        type="button"
+                                        onClick={() => handleDeleteTestType(selectedTypeObj)}
+                                        className="h-10 w-10 shrink-0 rounded-xl border border-slate-200 dark:border-slate-700 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 flex items-center justify-center transition-colors cursor-pointer"
+                                        title="Delete this saved test type"
+                                    >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                )}
+                            </div>
+
+                            {/* Inline Add New Water Test Type Box */}
+                            {isAddingTestType && (
+                                <div className="p-3 rounded-xl bg-cyan-50/70 dark:bg-cyan-950/30 border border-cyan-200 dark:border-cyan-800/70 space-y-2.5 animate-in fade-in duration-150">
+                                    <span className="text-[10px] font-black uppercase tracking-wider text-cyan-800 dark:text-cyan-300 block">
+                                        Save New Water Test Type to Database
+                                    </span>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        <div className="col-span-2">
+                                            <Input
+                                                type="text"
+                                                value={newTestTypeName}
+                                                onChange={(e) => setNewTestTypeName(e.target.value)}
+                                                placeholder="e.g. Monthly HPC Lab Test"
+                                                className="h-9 text-xs bg-white dark:bg-slate-900"
+                                            />
+                                        </div>
+                                        <div>
+                                            <Input
+                                                type="number"
+                                                min="1"
+                                                value={newTestTypeInterval}
+                                                onChange={(e) => setNewTestTypeInterval(e.target.value)}
+                                                placeholder="Days"
+                                                title="Default cycle interval (days)"
+                                                className="h-9 text-xs font-mono bg-white dark:bg-slate-900"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="flex justify-end">
+                                        <button
+                                            type="button"
+                                            onClick={handleAddNewTestType}
+                                            disabled={isSavingTestType || isDemo}
+                                            className="px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white text-[11px] font-bold flex items-center gap-1 shadow-2xs cursor-pointer disabled:opacity-50"
+                                        >
+                                            <Check className="w-3 h-3" />
+                                            <span>{isSavingTestType ? 'Saving...' : 'Save & Select Type'}</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                                    Next Scheduled Date
+                                </Label>
+                                <Input
+                                    type="date"
+                                    value={waterTestModal.nextTestDate}
+                                    onChange={e => setWaterTestModal(prev => ({ ...prev, nextTestDate: e.target.value }))}
+                                    required
+                                />
+                            </div>
+
+                            <div>
+                                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                                    Scheduled Time (Manila)
+                                </Label>
+                                <Input
+                                    type="time"
+                                    value={waterTestModal.testTime}
+                                    onChange={e => setWaterTestModal(prev => ({ ...prev, testTime: e.target.value }))}
+                                    required
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                                Recurring Cycle Interval (Days)
+                            </Label>
+                            <Input
+                                type="number"
+                                min="1"
+                                value={waterTestModal.intervalDays}
+                                onChange={e => setWaterTestModal(prev => ({ ...prev, intervalDays: e.target.value }))}
+                                required
+                            />
+                            <p className="text-[11px] text-slate-400 mt-1">
+                                Automatically advances the next test date by this many days when &ldquo;Log Test Done&rdquo; is clicked.
+                            </p>
+                        </div>
+
+                        <div>
+                            <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                                Status Note / Instructions
+                            </Label>
+                            <Textarea
+                                rows={3}
+                                value={waterTestModal.notes}
+                                onChange={e => setWaterTestModal(prev => ({ ...prev, notes: e.target.value }))}
+                                placeholder="e.g. Water quality parameters are normal. Prepare sterile sample bottles prior to scheduled lab testing."
+                            />
+                        </div>
+
+                        <DialogFooter className="pt-2">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setWaterTestModal(prev => ({ ...prev, isOpen: false }))}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="submit"
+                                variant="primary"
+                                disabled={isSavingWaterTest}
+                                className="bg-cyan-600 hover:bg-cyan-700 text-white"
+                            >
+                                {isSavingWaterTest ? 'Saving...' : 'Save Schedule'}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
 
             {/* Admin Filter Limits Edit Modal */}
             <Dialog
