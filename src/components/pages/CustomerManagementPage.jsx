@@ -25,7 +25,7 @@ import RepaymentModal from '../customers/RepaymentModal';
 
 import {
     Users, UserPlus, FileText, ShoppingBag,
-    Phone, MapPin, ArrowUpDown, ChevronUp, ChevronDown,
+    MapPin, ArrowUpDown, ChevronUp, ChevronDown,
     DollarSign, AlertCircle, CheckCircle2, Clock,
     CreditCard
 } from 'lucide-react';
@@ -63,15 +63,21 @@ const formatRelativeTime = (dateStr) => {
     if (!dateStr) return '—';
     try {
         const date = new Date(dateStr);
+        if (Number.isNaN(date.getTime())) return '—';
         const now = new Date();
         const diffMs = now.getTime() - date.getTime();
         const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-        if (diffDays === 0) return 'Today';
+        if (diffDays <= 0) return 'Today';
         if (diffDays === 1) return 'Yesterday';
         if (diffDays < 7) return `${diffDays}d ago`;
         if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        return date.toLocaleDateString('en-US', {
+            timeZone: 'Asia/Manila',
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+        });
     } catch {
         return '—';
     }
@@ -81,7 +87,9 @@ const formatDateTime = (dateStr) => {
     if (!dateStr) return '—';
     try {
         const d = new Date(dateStr);
+        if (Number.isNaN(d.getTime())) return '—';
         return d.toLocaleDateString('en-US', {
+            timeZone: 'Asia/Manila',
             month: 'short',
             day: 'numeric',
             year: 'numeric'
@@ -95,7 +103,9 @@ const formatTime = (dateStr) => {
     if (!dateStr) return '';
     try {
         const d = new Date(dateStr);
+        if (Number.isNaN(d.getTime())) return '';
         return d.toLocaleTimeString('en-US', {
+            timeZone: 'Asia/Manila',
             hour: '2-digit',
             minute: '2-digit',
             hour12: true
@@ -105,16 +115,6 @@ const formatTime = (dateStr) => {
     }
 };
 
-const DB_SORT_MAP = {
-    name: 'name',
-    phone: 'phone',
-    address: 'address',
-    dateAdded: 'created_at',
-    lastSeen: 'last_order_date',
-    credit_balance: 'credit_balance',
-    utangDate: 'utang_approved_at'
-};
-
 export default function CustomerManagementPage() {
     const router = useRouter();
     const [searchTerm, setSearchTerm] = useState('');
@@ -122,7 +122,7 @@ export default function CustomerManagementPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const [balanceFilter, setBalanceFilter] = useState('all');
 
-    // 1. DEFAULT SORT ALPHABETICAL BY NAME (ASCENDING)
+    // Default sort alphabetical by name (ascending)
     const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' });
     const itemsPerPage = 10;
 
@@ -134,7 +134,7 @@ export default function CustomerManagementPage() {
         itemsPerPage,
         searchTerm: debouncedSearchTerm,
         balanceFilter,
-        sortBy: DB_SORT_MAP[sortConfig.key] || 'name',
+        sortBy: sortConfig.key,
         sortDirection: sortConfig.direction
     });
 
@@ -158,47 +158,8 @@ export default function CustomerManagementPage() {
         staleTime: 1000 * 60 * 5
     });
 
-    const rawCustomers = customersData.customers || [];
+    const customers = customersData.customers || [];
     const totalPages = customersData.totalPages || 1;
-
-    // Resilient Dual-Layer Sorting (Backend + Frontend Fallback for Derived Columns)
-    const customers = useMemo(() => {
-        if (!rawCustomers.length) return [];
-        return [...rawCustomers].sort((a, b) => {
-            const dirMultiplier = sortConfig.direction === 'asc' ? 1 : -1;
-
-            if (sortConfig.key === 'name') {
-                return (a.name || '').localeCompare(b.name || '') * dirMultiplier;
-            }
-            if (sortConfig.key === 'phone') {
-                return (a.phone || '').localeCompare(b.phone || '') * dirMultiplier;
-            }
-            if (sortConfig.key === 'address') {
-                return (a.address || '').localeCompare(b.address || '') * dirMultiplier;
-            }
-            if (sortConfig.key === 'dateAdded') {
-                const timeA = a.dateAdded ? new Date(a.dateAdded).getTime() : (a.created_at ? new Date(a.created_at).getTime() : 0);
-                const timeB = b.dateAdded ? new Date(b.dateAdded).getTime() : (b.created_at ? new Date(b.created_at).getTime() : 0);
-                return (timeA - timeB) * dirMultiplier;
-            }
-            if (sortConfig.key === 'lastSeen') {
-                const timeA = a.lastSeen ? new Date(a.lastSeen).getTime() : 0;
-                const timeB = b.lastSeen ? new Date(b.lastSeen).getTime() : 0;
-                return (timeA - timeB) * dirMultiplier;
-            }
-            if (sortConfig.key === 'credit_balance') {
-                return (Number(a.credit_balance || 0) - Number(b.credit_balance || 0)) * dirMultiplier;
-            }
-            if (sortConfig.key === 'utangDate') {
-                const dateA = a.utangApprovedAt || a.utang_approved_at;
-                const dateB = b.utangApprovedAt || b.utang_approved_at;
-                const timeA = dateA ? new Date(dateA).getTime() : 0;
-                const timeB = dateB ? new Date(dateB).getTime() : 0;
-                return (timeA - timeB) * dirMultiplier;
-            }
-            return 0;
-        });
-    }, [rawCustomers, sortConfig]);
 
     // Resilient KPIs with direct calculation fallbacks
     const metrics = useMemo(() => {
@@ -429,7 +390,7 @@ export default function CustomerManagementPage() {
                         Customer Management
                     </h1>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                        Track customer records, delivery landmarks, transaction history, and credit balances.
+                        Track customer records, delivery landmarks, last order dates, and credit balances.
                     </p>
                 </div>
 
@@ -457,7 +418,6 @@ export default function CustomerManagementPage() {
 
             {/* KPI Summary Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
-                {/* 1. Total Customers */}
                 <div className="bg-white dark:bg-slate-900 p-3.5 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs flex items-center justify-between">
                     <div>
                         <span className="text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider block">
@@ -472,7 +432,6 @@ export default function CustomerManagementPage() {
                     </div>
                 </div>
 
-                {/* 2. Total Outstanding Utang */}
                 <div className="bg-white dark:bg-slate-900 p-3.5 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs flex items-center justify-between">
                     <div>
                         <span className="text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider block">
@@ -489,7 +448,6 @@ export default function CustomerManagementPage() {
                     </div>
                 </div>
 
-                {/* 3. Accounts with Utang */}
                 <div className="bg-white dark:bg-slate-900 p-3.5 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs flex items-center justify-between">
                     <div>
                         <span className="text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider block">
@@ -504,7 +462,6 @@ export default function CustomerManagementPage() {
                     </div>
                 </div>
 
-                {/* 4. Clean / Zero Balance */}
                 <div className="bg-white dark:bg-slate-900 p-3.5 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs flex items-center justify-between">
                     <div>
                         <span className="text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider block">
@@ -588,6 +545,7 @@ export default function CustomerManagementPage() {
                         <option value="phone">Contact Number</option>
                         <option value="address">Delivery Address</option>
                         <option value="dateAdded">Date Registered</option>
+                        <option value="lastOrderDate">Last Order Date</option>
                         <option value="lastSeen">Last Refill</option>
                         <option value="credit_balance">Utang Balance</option>
                         <option value="utangDate">Utang Date</option>
@@ -603,7 +561,7 @@ export default function CustomerManagementPage() {
                 </div>
             </div>
 
-            {/* Desktop Table View - All Columns Support ASC/DESC Sorting */}
+            {/* Desktop Table View - Global Cross-Page ASC/DESC Sorting */}
             <Card className="hidden md:block border border-slate-200 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900 rounded-2xl overflow-hidden">
                 <CardContent className="p-0 overflow-x-hidden">
                     <div className="w-full overflow-x-hidden">
@@ -611,7 +569,7 @@ export default function CustomerManagementPage() {
                             <thead>
                             <tr className="bg-slate-50 dark:bg-slate-850 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200/80 dark:border-slate-800">
                                 {/* 1. Customer Name (Default Alphabetical) */}
-                                <th className="w-[18%] py-3 px-3 text-left">
+                                <th className="w-[16%] py-3 px-3 text-left">
                                     <button
                                         type="button"
                                         onClick={() => requestSort('name')}
@@ -623,7 +581,7 @@ export default function CustomerManagementPage() {
                                 </th>
 
                                 {/* 2. Phone / Contact */}
-                                <th className="w-[12%] py-3 px-3 text-left">
+                                <th className="w-[10%] py-3 px-2.5 text-left">
                                     <button
                                         type="button"
                                         onClick={() => requestSort('phone')}
@@ -635,7 +593,7 @@ export default function CustomerManagementPage() {
                                 </th>
 
                                 {/* 3. Delivery Address */}
-                                <th className="w-[15%] py-3 px-3 text-left">
+                                <th className="w-[13%] py-3 px-2.5 text-left">
                                     <button
                                         type="button"
                                         onClick={() => requestSort('address')}
@@ -658,8 +616,20 @@ export default function CustomerManagementPage() {
                                     </button>
                                 </th>
 
-                                {/* 5. Last Refill */}
-                                <th className="w-[9%] py-3 px-2 text-left">
+                                {/* 5. Last Order Date */}
+                                <th className="w-[11%] py-3 px-2 text-left">
+                                    <button
+                                        type="button"
+                                        onClick={() => requestSort('lastOrderDate')}
+                                        className="w-full flex items-center justify-between text-left font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors group cursor-pointer select-none outline-none"
+                                    >
+                                        <span className="truncate">Last Order Date</span>
+                                        <SortIcon columnKey="lastOrderDate" sortConfig={sortConfig} />
+                                    </button>
+                                </th>
+
+                                {/* 6. Last Refill */}
+                                <th className="w-[8%] py-3 px-2 text-left">
                                     <button
                                         type="button"
                                         onClick={() => requestSort('lastSeen')}
@@ -670,8 +640,8 @@ export default function CustomerManagementPage() {
                                     </button>
                                 </th>
 
-                                {/* 6. Utang Balance */}
-                                <th className="w-[10%] py-3 px-2 text-center">
+                                {/* 7. Utang Balance */}
+                                <th className="w-[9%] py-3 px-2 text-center">
                                     <button
                                         type="button"
                                         onClick={() => requestSort('credit_balance')}
@@ -682,8 +652,8 @@ export default function CustomerManagementPage() {
                                     </button>
                                 </th>
 
-                                {/* 7. Utang Date */}
-                                <th className="w-[11%] py-3 px-2 text-left">
+                                {/* 8. Utang Date */}
+                                <th className="w-[10%] py-3 px-2 text-left">
                                     <button
                                         type="button"
                                         onClick={() => requestSort('utangDate')}
@@ -694,7 +664,8 @@ export default function CustomerManagementPage() {
                                     </button>
                                 </th>
 
-                                <th className="w-[16%] py-3 px-3 text-right font-bold text-slate-600 dark:text-slate-300">
+                                {/* 9. Actions */}
+                                <th className="w-[14%] py-3 px-3 text-right font-bold text-slate-600 dark:text-slate-300">
                                     Actions
                                 </th>
                             </tr>
@@ -702,13 +673,13 @@ export default function CustomerManagementPage() {
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900">
                             {isLoading ? (
                                 <tr>
-                                    <td colSpan={8} className="text-center py-12 text-slate-400">
+                                    <td colSpan={9} className="text-center py-12 text-slate-400">
                                         Loading customer records...
                                     </td>
                                 </tr>
                             ) : customers.length === 0 ? (
                                 <tr>
-                                    <td colSpan={8} className="text-center py-12 text-slate-400">
+                                    <td colSpan={9} className="text-center py-12 text-slate-400">
                                         No customer accounts match your search.
                                     </td>
                                 </tr>
@@ -718,6 +689,7 @@ export default function CustomerManagementPage() {
                                     const hasDebt = debt > 0;
                                     const utangDate = c.utangApprovedAt || c.utang_approved_at;
                                     const utangStaff = c.utangApprovedBy || c.utang_approved_by;
+                                    const lastOrderDate = c.lastOrderDate || c.lastSeen;
 
                                     return (
                                         <tr key={c.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors">
@@ -745,7 +717,7 @@ export default function CustomerManagementPage() {
                                             </td>
 
                                             {/* Phone / Contact */}
-                                            <td className="py-2.5 px-3 text-slate-600 dark:text-slate-300 font-medium truncate" title={c.phone}>
+                                            <td className="py-2.5 px-2.5 text-slate-600 dark:text-slate-300 font-medium truncate" title={c.phone}>
                                                 {c.phone && c.phone !== 'N/A' ? (
                                                     <a href={`tel:${c.phone}`} className="font-mono text-xs text-slate-700 dark:text-slate-200 hover:text-[#8DB600] truncate block">
                                                         {c.phone}
@@ -756,7 +728,7 @@ export default function CustomerManagementPage() {
                                             </td>
 
                                             {/* Delivery Address */}
-                                            <td className="py-2.5 px-3 text-slate-600 dark:text-slate-300 text-xs truncate" title={c.address}>
+                                            <td className="py-2.5 px-2.5 text-slate-600 dark:text-slate-300 text-xs truncate" title={c.address}>
                                                 {c.address && c.address !== 'N/A' ? (
                                                     <span className="truncate block">{c.address}</span>
                                                 ) : (
@@ -766,15 +738,31 @@ export default function CustomerManagementPage() {
 
                                             {/* Date Added */}
                                             <td className="py-2.5 px-2 text-[11px] text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                                                {c.dateAdded ? new Date(c.dateAdded).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : (c.created_at ? new Date(c.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—')}
+                                                {c.dateAdded ? formatDateTime(c.dateAdded) : formatDateTime(c.created_at)}
+                                            </td>
+
+                                            {/* Last Order Date */}
+                                            <td className="py-2.5 px-2 text-[11px] whitespace-nowrap">
+                                                {lastOrderDate ? (
+                                                    <div className="flex flex-col leading-tight">
+                                                        <span className="font-bold text-slate-800 dark:text-slate-100">
+                                                            {formatDateTime(lastOrderDate)}
+                                                        </span>
+                                                        <span className="text-[10px] text-slate-400 font-mono">
+                                                            {formatTime(lastOrderDate)}
+                                                        </span>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-slate-300 dark:text-slate-600 font-normal">—</span>
+                                                )}
                                             </td>
 
                                             {/* Last Refill */}
                                             <td className="py-2.5 px-2 text-xs whitespace-nowrap">
                                                 <span className={`inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-semibold ${
-                                                    c.lastSeen ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300' : 'text-slate-400 dark:text-slate-600'
+                                                    lastOrderDate ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300' : 'text-slate-400 dark:text-slate-600'
                                                 }`}>
-                                                    {formatRelativeTime(c.lastSeen)}
+                                                    {formatRelativeTime(lastOrderDate)}
                                                 </span>
                                             </td>
 
@@ -807,7 +795,7 @@ export default function CustomerManagementPage() {
 
                                             {/* Actions */}
                                             <td className="py-2.5 px-3 text-right">
-                                                <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
+                                                <div className="flex items-center justify-end gap-1 whitespace-nowrap">
                                                     {hasDebt && (
                                                         <button
                                                             type="button"
@@ -820,7 +808,7 @@ export default function CustomerManagementPage() {
                                                                 remaining_balance: debt,
                                                                 debt_id: null
                                                             })}
-                                                            className="px-2.5 py-1 text-[11px] font-bold bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-900/60 hover:bg-rose-100 rounded-lg transition-colors cursor-pointer"
+                                                            className="px-2 py-1 text-[10px] font-bold bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-900/60 hover:bg-rose-100 rounded-lg transition-colors cursor-pointer"
                                                             title="Record Debt Repayment"
                                                             disabled={isDemo}
                                                         >
@@ -885,6 +873,7 @@ export default function CustomerManagementPage() {
                         const hasDebt = debt > 0;
                         const utangDate = c.utangApprovedAt || c.utang_approved_at;
                         const utangStaff = c.utangApprovedBy || c.utang_approved_by;
+                        const lastOrderDate = c.lastOrderDate || c.lastSeen;
 
                         return (
                             <div key={c.id} className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs space-y-3">
@@ -906,7 +895,7 @@ export default function CustomerManagementPage() {
                                                     <span>No contact</span>
                                                 )}
                                                 <span>•</span>
-                                                <span>Last: {formatRelativeTime(c.lastSeen)}</span>
+                                                <span>{formatRelativeTime(lastOrderDate)}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -920,6 +909,17 @@ export default function CustomerManagementPage() {
                                             ₱0.00
                                         </span>
                                     )}
+                                </div>
+
+                                {/* Last Order Date Pill */}
+                                <div className="text-xs text-slate-600 dark:text-slate-300 flex items-center justify-between bg-slate-50 dark:bg-slate-800/60 px-3 py-2 rounded-xl border border-slate-100 dark:border-slate-800">
+                                    <span className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 font-semibold">
+                                        <Clock className="w-3.5 h-3.5 text-[#8DB600]" />
+                                        <span>Last Order Date:</span>
+                                    </span>
+                                    <span className="font-bold text-slate-800 dark:text-slate-100">
+                                        {lastOrderDate ? `${formatDateTime(lastOrderDate)} (${formatTime(lastOrderDate)})` : 'No orders yet'}
+                                    </span>
                                 </div>
 
                                 {c.address && c.address !== 'N/A' && (
