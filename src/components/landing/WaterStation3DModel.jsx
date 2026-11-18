@@ -531,7 +531,6 @@ export function buildRoundCarboy3D({
             waterBodyMesh.scale.y = Math.max(0.01, clampedFill);
             meniscusMesh.position.y = currentWaterTopY;
 
-            // Match meniscus disc radius smoothly to the tapered shoulder above 92.7%
             const shoulderT = clampedFill > 0.927 ? (clampedFill - 0.927) / 0.073 : 0;
             meniscusMesh.scale.setScalar(1 - shoulderT * 0.068);
 
@@ -589,9 +588,9 @@ export function buildRoundCarboy3D({
 }
 
 /**
- * Shared 3D Builder: 20L Slim Water Container with Recessed Corner Push-Paddle
- * Faucet (White Spout + Red Vertical Thumb Paddle), Top Handle, Wide Cap w/ White Seal,
- * Rear Breather Cap, Property Sticker & Optional Sight-Level Window.
+ * Shared 3D Builder: Apple Green 20L Slim Water Container with Recessed Corner
+ * Push-Paddle Faucet (White Spout + Red Upright Thumb Paddle), Top Handle,
+ * Blue Screw Cap w/ White Seal, Rear Breather Cap & Property Sticker.
  */
 export function buildSlimContainer3D({
                                          darkMode = false,
@@ -614,13 +613,14 @@ export function buildSlimContainer3D({
 
     const cleanTitle = stationName.replace(/water refilling station/i, '').trim() || 'SEASIDE';
 
-    const slimBlueMat = trackMat(
+    // Seaside Apple Green (#8DB600) Blow-Molded HDPE Body Material
+    const slimAppleGreenMat = trackMat(
         new THREE.MeshPhysicalMaterial({
-            color: 0x005be0,
-            emissive: 0x00266e,
-            emissiveIntensity: darkMode ? 0.28 : 0.12,
-            roughness: 0.25,
-            metalness: 0.04,
+            color: 0x8db600,
+            emissive: 0x365314,
+            emissiveIntensity: darkMode ? 0.28 : 0.14,
+            roughness: 0.26,
+            metalness: 0.03,
             clearcoat: 0.62,
             clearcoatRoughness: 0.2
         })
@@ -643,7 +643,7 @@ export function buildSlimContainer3D({
     );
     lowerBaseGeo.rotateX(-Math.PI / 2);
     lowerBaseGeo.translate(0, -1.36, 0);
-    group.add(new THREE.Mesh(lowerBaseGeo, slimBlueMat));
+    group.add(new THREE.Mesh(lowerBaseGeo, slimAppleGreenMat));
 
     // 2. Upper Main Torso Tier
     const upperTorsoShape = createRoundedBoxShape(slimW, slimD, 0.22);
@@ -659,7 +659,7 @@ export function buildSlimContainer3D({
     );
     upperTorsoGeo.rotateX(-Math.PI / 2);
     upperTorsoGeo.translate(0, -0.82, 0);
-    group.add(new THREE.Mesh(upperTorsoGeo, slimBlueMat));
+    group.add(new THREE.Mesh(upperTorsoGeo, slimAppleGreenMat));
 
     // 3. Tapered Top Shoulder Crown
     const shoulderShape = createRoundedBoxShape(slimW - 0.14, slimD - 0.18, 0.2);
@@ -675,7 +675,7 @@ export function buildSlimContainer3D({
     );
     shoulderGeo.rotateX(-Math.PI / 2);
     shoulderGeo.translate(0, 0.92, 0);
-    group.add(new THREE.Mesh(shoulderGeo, slimBlueMat));
+    group.add(new THREE.Mesh(shoulderGeo, slimAppleGreenMat));
 
     // 4. Top Integrated Center Carry Handle Bridge
     const topHandleCurve = new THREE.CatmullRomCurve3([
@@ -685,12 +685,12 @@ export function buildSlimContainer3D({
         new THREE.Vector3(0, 1.08, -0.4)
     ]);
     const topHandleGeo = trackGeo(new THREE.TubeGeometry(topHandleCurve, 24, 0.075, 14, false));
-    group.add(new THREE.Mesh(topHandleGeo, slimBlueMat));
+    group.add(new THREE.Mesh(topHandleGeo, slimAppleGreenMat));
 
     // 5. Open Neck Mouth + Animatable Wide Ribbed Blue Cap w/ White Tamper-Evident Seal Band
     const wideCapMat = trackMat(
         new THREE.MeshStandardMaterial({
-            color: 0x0044b3,
+            color: 0x0265d2,
             roughness: 0.28,
             metalness: 0.08
         })
@@ -698,7 +698,7 @@ export function buildSlimContainer3D({
 
     const neckMouth = new THREE.Mesh(
         trackGeo(new THREE.CylinderGeometry(0.25, 0.26, 0.12, 32)),
-        slimBlueMat
+        slimAppleGreenMat
     );
     neckMouth.position.set(0, 1.14, 0.44);
     group.add(neckMouth);
@@ -734,7 +734,7 @@ export function buildSlimContainer3D({
 
     const breatherNeck = new THREE.Mesh(
         trackGeo(new THREE.CylinderGeometry(0.11, 0.12, 0.14, 24)),
-        slimBlueMat
+        slimAppleGreenMat
     );
     breatherGroup.add(breatherNeck);
 
@@ -835,7 +835,9 @@ export function buildSlimContainer3D({
         tdsLabel
     });
     disposables.push(slimStickerTex);
-    const slimStickerGeo = trackGeo(new THREE.PlaneGeometry(showSightGauge ? 0.7 : 0.74, showSightGauge ? 0.88 : 0.92));
+    const slimStickerGeo = trackGeo(
+        new THREE.PlaneGeometry(showSightGauge ? 0.7 : 0.74, showSightGauge ? 0.88 : 0.92)
+    );
     const slimStickerMat = trackMat(
         new THREE.MeshPhysicalMaterial({
             map: slimStickerTex,
@@ -889,9 +891,9 @@ export function buildSlimContainer3D({
     shadowGeo.rotateX(-Math.PI / 2);
     const shadowMat = trackMat(
         new THREE.MeshBasicMaterial({
-            color: darkMode ? 0x0284c7 : 0x0369a1,
+            color: darkMode ? 0x659000 : 0x4d7c0f,
             transparent: true,
-            opacity: darkMode ? 0.22 : 0.14
+            opacity: darkMode ? 0.24 : 0.15
         })
     );
     const shadow = new THREE.Mesh(shadowGeo, shadowMat);
@@ -1132,15 +1134,15 @@ export default function WaterStation3DModel({
     }, [darkMode, interactive, stationName, tdsLabel]);
 
     return (
-        <div className="relative w-full h-full min-h-[290px] sm:min-h-[340px]">
+        <div className="relative w-full h-full min-h-[275px] sm:min-h-[305px]">
             <div
                 ref={containerRef}
-                className="w-full h-full min-h-[290px] sm:min-h-[340px] cursor-grab active:cursor-grabbing select-none touch-none"
+                className="w-full h-full min-h-[275px] sm:min-h-[305px] cursor-grab active:cursor-grabbing select-none touch-none"
                 title="Drag to rotate 20L containers"
             />
 
             {/* Container Type Switcher Pill */}
-            <div className="absolute bottom-1 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1 p-1 rounded-full bg-white/85 dark:bg-slate-950/75 backdrop-blur-md border border-slate-200/80 dark:border-white/15 shadow-sm">
+            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1 p-1 rounded-full bg-white/90 dark:bg-slate-950/80 backdrop-blur-md border border-slate-200/80 dark:border-white/15 shadow-sm">
                 {[
                     { id: 'both', label: 'Both Jugs' },
                     { id: 'round', label: 'Round 20L' },

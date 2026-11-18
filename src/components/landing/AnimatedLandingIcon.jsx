@@ -69,9 +69,9 @@ const USE_ANIMATIONS_MAP = {
 
 /**
  * Matching micro-animated SVG icons for water-station domain glyphs
- * (water droplet, delivery multicab, ice crystal, sun/moon, phone, messenger, clock)
+ * (water droplet, delivery multicab, ice crystal, sun/moon, phone, messenger, clock, etc.)
  */
-function CustomAliveSvg({ name, size = 22, color = 'currentColor', isHovered = false }) {
+function CustomAliveSvg({ name, size = 22, color = 'currentColor', isAlive = false }) {
     const common = {
         width: size,
         height: size,
@@ -80,19 +80,18 @@ function CustomAliveSvg({ name, size = 22, color = 'currentColor', isHovered = f
         stroke: color,
         strokeWidth: 2,
         strokeLinecap: 'round',
-        strokeLinejoin: 'round',
-        className: 'shrink-0 transition-transform duration-300'
+        strokeLinejoin: 'round'
     };
 
     switch (name) {
         case 'droplet':
             return (
-                <svg {...common} style={{ transform: isHovered ? 'scale(1.14) translateY(-1px)' : undefined }}>
+                <svg
+                    {...common}
+                    className={`shrink-0 ${isAlive ? 'seaside-svg-bob' : ''}`}
+                >
                     <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
-                    <path
-                        d="M9.5 14.5a3.5 3.5 0 0 0 3.5 3.5"
-                        className="animate-pulse"
-                    />
+                    <path d="M9.5 14.5a3.5 3.5 0 0 0 3.5 3.5" className="animate-pulse" />
                 </svg>
             );
 
@@ -100,7 +99,7 @@ function CustomAliveSvg({ name, size = 22, color = 'currentColor', isHovered = f
             return (
                 <svg
                     {...common}
-                    style={{ transform: isHovered ? 'translateX(2px)' : undefined }}
+                    className={`shrink-0 ${isAlive ? 'seaside-svg-drive' : ''}`}
                 >
                     <path d="M1 3h15v13H1z" />
                     <path d="M16 8h4l3 3v5h-7V8z" />
@@ -113,8 +112,7 @@ function CustomAliveSvg({ name, size = 22, color = 'currentColor', isHovered = f
             return (
                 <svg
                     {...common}
-                    className="shrink-0 animate-[spin_14s_linear_infinite]"
-                    style={{ transform: isHovered ? 'scale(1.15)' : undefined }}
+                    className="shrink-0 animate-[spin_12s_linear_infinite]"
                 >
                     <line x1="12" y1="2" x2="12" y2="22" />
                     <line x1="2" y1="12" x2="22" y2="12" />
@@ -127,7 +125,7 @@ function CustomAliveSvg({ name, size = 22, color = 'currentColor', isHovered = f
             return (
                 <svg
                     {...common}
-                    style={{ transform: isHovered ? 'translateY(-2px) scale(1.08)' : undefined }}
+                    className={`shrink-0 ${isAlive ? 'seaside-svg-bob' : ''}`}
                 >
                     <path d="M16.5 9.4l-9-5.19" />
                     <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
@@ -140,7 +138,7 @@ function CustomAliveSvg({ name, size = 22, color = 'currentColor', isHovered = f
             return (
                 <svg
                     {...common}
-                    className="shrink-0 animate-[spin_18s_linear_infinite]"
+                    className="shrink-0 animate-[spin_16s_linear_infinite]"
                 >
                     <circle cx="12" cy="12" r="4" />
                     <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
@@ -151,7 +149,7 @@ function CustomAliveSvg({ name, size = 22, color = 'currentColor', isHovered = f
             return (
                 <svg
                     {...common}
-                    style={{ transform: isHovered ? 'rotate(-14deg) scale(1.1)' : undefined }}
+                    className={`shrink-0 ${isAlive ? 'seaside-svg-sway' : ''}`}
                 >
                     <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
                 </svg>
@@ -161,7 +159,7 @@ function CustomAliveSvg({ name, size = 22, color = 'currentColor', isHovered = f
             return (
                 <svg
                     {...common}
-                    style={{ transform: isHovered ? 'rotate(-12deg) scale(1.1)' : undefined }}
+                    className={`shrink-0 ${isAlive ? 'seaside-svg-ring' : ''}`}
                 >
                     <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
                 </svg>
@@ -171,7 +169,7 @@ function CustomAliveSvg({ name, size = 22, color = 'currentColor', isHovered = f
             return (
                 <svg
                     {...common}
-                    style={{ transform: isHovered ? 'scale(1.12)' : undefined }}
+                    className={`shrink-0 ${isAlive ? 'seaside-svg-pulse' : ''}`}
                 >
                     <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
                     <polyline points="8 13 11 10 13 12 16 9" className="animate-pulse" />
@@ -180,15 +178,11 @@ function CustomAliveSvg({ name, size = 22, color = 'currentColor', isHovered = f
 
         case 'clock':
             return (
-                <svg {...common}>
+                <svg {...common} className="shrink-0">
                     <circle cx="12" cy="12" r="10" />
                     <polyline
                         points="12 6 12 12 16 14"
-                        style={{
-                            transformOrigin: '12px 12px',
-                            transform: isHovered ? 'rotate(45deg)' : undefined,
-                            transition: 'transform 0.4s ease'
-                        }}
+                        className={isAlive ? 'seaside-svg-tick' : ''}
                     />
                 </svg>
             );
@@ -197,7 +191,7 @@ function CustomAliveSvg({ name, size = 22, color = 'currentColor', isHovered = f
             return (
                 <svg
                     {...common}
-                    style={{ transform: isHovered ? 'scale(1.1)' : undefined }}
+                    className={`shrink-0 ${isAlive ? 'seaside-svg-pulse' : ''}`}
                 >
                     <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
                     <circle cx="12" cy="13" r="4" className="animate-pulse" />
@@ -208,7 +202,7 @@ function CustomAliveSvg({ name, size = 22, color = 'currentColor', isHovered = f
             return (
                 <svg
                     {...common}
-                    style={{ transform: isHovered ? 'scale(1.1)' : undefined }}
+                    className={`shrink-0 ${isAlive ? 'seaside-svg-pulse' : ''}`}
                 >
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                     <polyline points="9 12 11 14 15 10" />
@@ -219,7 +213,7 @@ function CustomAliveSvg({ name, size = 22, color = 'currentColor', isHovered = f
             return (
                 <svg
                     {...common}
-                    style={{ transform: isHovered ? 'rotate(8deg) scale(1.1)' : undefined }}
+                    className={`shrink-0 ${isAlive ? 'seaside-svg-sway' : ''}`}
                 >
                     <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
                     <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
@@ -232,7 +226,7 @@ function CustomAliveSvg({ name, size = 22, color = 'currentColor', isHovered = f
             return (
                 <svg
                     {...common}
-                    style={{ transform: isHovered ? 'rotate(-8deg) scale(1.12)' : undefined }}
+                    className={`shrink-0 ${isAlive ? 'seaside-svg-sway' : ''}`}
                 >
                     <rect x="2" y="6" width="20" height="12" rx="4" />
                     <line x1="6" y1="12" x2="10" y2="12" />
@@ -257,6 +251,23 @@ export default function AnimatedLandingIcon({
     const hostRef = useRef(null);
     const [playCounter, setPlayCounter] = useState(autoplay ? 1 : 0);
     const [isHovered, setIsHovered] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
+    const [isInView, setIsInView] = useState(true);
+
+    // Detect mobile or touch-only devices so icons automatically animate on entry
+    useEffect(() => {
+        if (typeof window === 'undefined' || !window.matchMedia) return;
+        const mq = window.matchMedia('(max-width: 767px), (hover: none)');
+        const update = () => setIsMobile(mq.matches);
+        update();
+
+        if (mq.addEventListener) {
+            mq.addEventListener('change', update);
+            return () => mq.removeEventListener('change', update);
+        }
+        mq.addListener(update);
+        return () => mq.removeListener(update);
+    }, []);
 
     // Replay animation whenever parent card triggers hover (triggerKey increments)
     useEffect(() => {
@@ -265,55 +276,111 @@ export default function AnimatedLandingIcon({
         }
     }, [triggerKey]);
 
-    // Trigger draw-in animation once when scrolled into viewport
+    // Track viewport visibility so icons animate as they enter view on mobile & scroll
     useEffect(() => {
         const el = hostRef.current;
         if (!el || typeof IntersectionObserver === 'undefined') return;
 
         const observer = new IntersectionObserver(
             ([entry]) => {
+                setIsInView(entry.isIntersecting);
                 if (entry.isIntersecting) {
                     setPlayCounter((c) => c + 1);
-                    observer.disconnect();
                 }
             },
-            { threshold: 0.15 }
+            { threshold: 0.1 }
         );
         observer.observe(el);
         return () => observer.disconnect();
     }, []);
 
     const animModule = USE_ANIMATIONS_MAP[name];
+    const effectiveLoop = Boolean(loop || (isMobile && isInView));
+    const effectiveSpeed = isMobile && !loop ? Math.min(speed, 0.85) : speed;
+    const isCustomAlive = Boolean(loop || isHovered || triggerKey > 0 || (isMobile && isInView));
 
     return (
-        <span
-            ref={hostRef}
-            onMouseEnter={() => {
-                setIsHovered(true);
-                setPlayCounter((c) => c + 1);
-            }}
-            onMouseLeave={() => setIsHovered(false)}
-            className={`inline-flex items-center justify-center leading-none shrink-0 ${className}`}
-            style={{ width: size, height: size }}
-        >
-            {animModule ? (
-                <UseAnimations
-                    key={loop ? 'loop' : playCounter}
-                    animation={animModule}
-                    size={size}
-                    strokeColor={strokeColor}
-                    loop={loop}
-                    autoplay={loop || playCounter > 0}
-                    speed={speed}
-                />
-            ) : (
-                <CustomAliveSvg
-                    name={name}
-                    size={size}
-                    color={strokeColor}
-                    isHovered={isHovered || triggerKey > 0}
-                />
-            )}
-        </span>
+        <>
+            <span
+                ref={hostRef}
+                onMouseEnter={() => {
+                    setIsHovered(true);
+                    setPlayCounter((c) => c + 1);
+                }}
+                onMouseLeave={() => setIsHovered(false)}
+                onTouchStart={() => setPlayCounter((c) => c + 1)}
+                className={`inline-flex items-center justify-center leading-none shrink-0 ${className}`}
+                style={{ width: size, height: size }}
+            >
+                {animModule ? (
+                    <UseAnimations
+                        key={effectiveLoop ? 'loop' : playCounter}
+                        animation={animModule}
+                        size={size}
+                        strokeColor={strokeColor}
+                        loop={effectiveLoop}
+                        autoplay={effectiveLoop || playCounter > 0}
+                        speed={effectiveSpeed}
+                    />
+                ) : (
+                    <CustomAliveSvg
+                        name={name}
+                        size={size}
+                        color={strokeColor}
+                        isAlive={isCustomAlive}
+                    />
+                )}
+            </span>
+
+            <style jsx global>{`
+                @keyframes seasideIconBob {
+                    0%, 100% { transform: translateY(0px) scale(1); }
+                    50% { transform: translateY(-2.5px) scale(1.06); }
+                }
+                @keyframes seasideIconDrive {
+                    0%, 100% { transform: translateX(0px); }
+                    50% { transform: translateX(2.5px); }
+                }
+                @keyframes seasideIconSway {
+                    0%, 100% { transform: rotate(0deg) scale(1); }
+                    30% { transform: rotate(-10deg) scale(1.06); }
+                    70% { transform: rotate(8deg) scale(1.06); }
+                }
+                @keyframes seasideIconRing {
+                    0%, 100% { transform: rotate(0deg); }
+                    20% { transform: rotate(-14deg); }
+                    40% { transform: rotate(12deg); }
+                    60% { transform: rotate(-8deg); }
+                    80% { transform: rotate(6deg); }
+                }
+                @keyframes seasideIconPulse {
+                    0%, 100% { transform: scale(1); }
+                    50% { transform: scale(1.1); }
+                }
+                @keyframes seasideIconTick {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+                .seaside-svg-bob {
+                    animation: seasideIconBob 2.2s ease-in-out infinite;
+                }
+                .seaside-svg-drive {
+                    animation: seasideIconDrive 2.0s ease-in-out infinite;
+                }
+                .seaside-svg-sway {
+                    animation: seasideIconSway 2.6s ease-in-out infinite;
+                }
+                .seaside-svg-ring {
+                    animation: seasideIconRing 2.2s ease-in-out infinite;
+                }
+                .seaside-svg-pulse {
+                    animation: seasideIconPulse 2.1s ease-in-out infinite;
+                }
+                .seaside-svg-tick {
+                    transform-origin: 12px 12px;
+                    animation: seasideIconTick 6s linear infinite;
+                }
+            `}</style>
+        </>
     );
 }
