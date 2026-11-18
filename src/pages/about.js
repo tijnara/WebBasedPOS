@@ -9,6 +9,7 @@ import { useStore } from '../store/useStore';
 import BackgroundImage from '../components/landing/BackgroundImage';
 import LandingBackground from '../components/landing/LandingBackground';
 import LandingGlobalStyles from '../components/landing/LandingGlobalStyles';
+import AnimatedLandingIcon from '../components/landing/AnimatedLandingIcon';
 import Meta from '../components/landing/Meta';
 import Hero from '../components/landing/Hero';
 import WhyChooseUs from '../components/landing/WhyChooseUs';
@@ -21,7 +22,6 @@ import Footer from '../components/landing/Footer';
 import ScrollToTop from '../components/landing/ScrollToTop';
 import ViewCounter from '../components/landing/ViewCounter';
 import { Button } from '../components/ui';
-import { MessageSquare, LogIn, Sun, Moon } from 'lucide-react';
 
 function RevealSection({ children, delay = 0 }) {
     const ref = useRef(null);
@@ -143,34 +143,19 @@ export default function SeasideWaterLanding() {
                     </Link>
 
                     <nav className="hidden md:flex items-center gap-8 text-sm font-semibold text-slate-700 dark:text-slate-300">
-                        <a
-                            href="#services"
-                            className="hover:text-[#659000] dark:hover:text-[#a3d100] transition-colors"
-                        >
+                        <a href="#services" className="hover:text-[#659000] dark:hover:text-[#a3d100] transition-colors">
                             Services
                         </a>
-                        <a
-                            href="#why-choose"
-                            className="hover:text-[#659000] dark:hover:text-[#a3d100] transition-colors"
-                        >
+                        <a href="#why-choose" className="hover:text-[#659000] dark:hover:text-[#a3d100] transition-colors">
                             Why Seaside
                         </a>
-                        <a
-                            href="#process"
-                            className="hover:text-[#659000] dark:hover:text-[#a3d100] transition-colors"
-                        >
+                        <a href="#process" className="hover:text-[#659000] dark:hover:text-[#a3d100] transition-colors">
                             Our Process
                         </a>
-                        <a
-                            href="#location"
-                            className="hover:text-[#659000] dark:hover:text-[#a3d100] transition-colors"
-                        >
+                        <a href="#location" className="hover:text-[#659000] dark:hover:text-[#a3d100] transition-colors">
                             Location
                         </a>
-                        <a
-                            href="#contact"
-                            className="hover:text-[#659000] dark:hover:text-[#a3d100] transition-colors"
-                        >
+                        <a href="#contact" className="hover:text-[#659000] dark:hover:text-[#a3d100] transition-colors">
                             Contact
                         </a>
                     </nav>
@@ -180,14 +165,14 @@ export default function SeasideWaterLanding() {
                             <button
                                 type="button"
                                 onClick={toggleDarkMode}
-                                className="p-2 rounded-xl bg-white/80 hover:bg-white dark:bg-white/10 dark:hover:bg-white/15 border border-slate-200/80 dark:border-white/15 text-slate-700 dark:text-slate-200 shadow-2xs backdrop-blur-md transition-all active:scale-95 cursor-pointer"
+                                className="p-2 rounded-xl bg-white/80 hover:bg-white dark:bg-white/10 dark:hover:bg-white/15 border border-slate-200/80 dark:border-white/15 text-slate-700 dark:text-slate-200 shadow-2xs backdrop-blur-md transition-all active:scale-95 cursor-pointer flex items-center justify-center"
                                 title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
                                 aria-label="Toggle color theme"
                             >
                                 {darkMode ? (
-                                    <Sun className="w-4 h-4 text-amber-400" />
+                                    <AnimatedLandingIcon name="sun" size={18} strokeColor="#fbbf24" />
                                 ) : (
-                                    <Moon className="w-4 h-4 text-slate-700" />
+                                    <AnimatedLandingIcon name="moon" size={18} strokeColor="#334155" />
                                 )}
                             </button>
                         )}
@@ -201,7 +186,7 @@ export default function SeasideWaterLanding() {
                             }}
                             className="relative overflow-hidden inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-lime-600/25 border border-lime-300/30 transition-all duration-200 hover:scale-[1.02] active:scale-95 group"
                         >
-                            <LogIn className="w-4 h-4" />
+                            <AnimatedLandingIcon name="arrowRight" size={18} strokeColor="#ffffff" />
                             <span>Staff Portal</span>
                         </Link>
                     </div>
@@ -253,23 +238,21 @@ export default function SeasideWaterLanding() {
                         window.location.href = `sms:${cleanSmsNumber}?body=Hi%20Seaside%20WRS,%20I%20would%20like%20to%20inquire%20about%20water%20refills.`;
                     }}
                 >
-                    <MessageSquare className="w-4 h-4" />
+                    <AnimatedLandingIcon name="mail" size={18} strokeColor="#ffffff" />
                     <span>Text Message</span>
                 </Button>
                 <Button
                     className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold h-11 rounded-xl shadow-xs flex items-center justify-center gap-2 text-xs active:scale-95 transition-all"
                     onClick={() => window.open(messengerLink, '_blank')}
                 >
-                    <svg className="w-4 h-4 fill-current shrink-0" viewBox="0 0 24 24">
-                        <path d="M12 2C6.477 2 2 6.145 2 11.258c0 2.91 1.455 5.516 3.736 7.186V22l3.418-1.875c.915.254 1.884.391 2.846.391 5.523 0 10-4.145 10-9.258C22 6.145 17.523 2 12 2zm1.042 12.443l-2.55-2.721-4.977 2.721 5.474-5.811 2.613 2.72 4.914-2.72-5.474 5.811z" />
-                    </svg>
+                    <AnimatedLandingIcon name="messenger" size={18} strokeColor="#ffffff" />
                     <span>Messenger</span>
                 </Button>
             </div>
 
             <LandingGlobalStyles />
 
-            {/* Universal Contrast Cascade (Works in both Light & Dark modes) */}
+            {/* Universal Contrast Cascade */}
             <style jsx global>{`
                 .landing-about-root input[type='text'],
                 .landing-about-root input[type='email'],
@@ -353,11 +336,11 @@ export default function SeasideWaterLanding() {
                     color: #f8fafc !important;
                 }
 
-                .landing-about-root .text-\[\#8DB600\],
+                .landing-about-root .text-\\[\\#8DB600\\],
                 .landing-about-root [class*='text-[#8DB600]'] {
                     color: #8db600 !important;
                 }
-                .dark .landing-about-root .text-\[\#8DB600\],
+                .dark .landing-about-root .text-\\[\\#8DB600\\],
                 .dark .landing-about-root [class*='text-[#8DB600]'],
                 .dark .landing-about-root .text-lime-400 {
                     color: #a3e635 !important;

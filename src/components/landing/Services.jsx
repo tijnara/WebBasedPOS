@@ -1,7 +1,8 @@
 // src/components/landing/Services.jsx
-import React, { memo } from 'react';
+import React, { memo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Droplet, Truck, Package, Snowflake, ArrowRight } from 'lucide-react';
+import { useStore } from '../../store/useStore';
+import AnimatedLandingIcon from './AnimatedLandingIcon';
 
 const DEFAULT_SERVICES = [
     {
@@ -38,10 +39,12 @@ const DEFAULT_SERVICES = [
     }
 ];
 
-const ICONS = [Droplet, Truck, Package, Snowflake];
+const ICON_NAMES = ['droplet', 'truck', 'package', 'snowflake'];
 
 const ServiceCard = memo(({ item, index }) => {
-    const Icon = ICONS[index % ICONS.length];
+    const darkMode = useStore((s) => s.darkMode);
+    const [hoverTick, setHoverTick] = useState(0);
+    const iconName = ICON_NAMES[index % ICON_NAMES.length];
 
     return (
         <motion.div
@@ -50,6 +53,7 @@ const ServiceCard = memo(({ item, index }) => {
             viewport={{ once: true, margin: '-40px' }}
             transition={{ duration: 0.45, delay: index * 0.08 }}
             whileHover={{ y: -6, scale: 1.015 }}
+            onMouseEnter={() => setHoverTick((t) => t + 1)}
             className="group bg-white/85 dark:bg-slate-900/75 backdrop-blur-xl rounded-3xl border border-slate-200/90 dark:border-white/10 p-6 flex flex-col justify-between shadow-xs hover:shadow-xl hover:border-[#8DB600]/70 dark:hover:border-[#a3d100]/50 transition-colors duration-300 relative overflow-hidden"
         >
             {/* Top Gradient Accent Bar */}
@@ -58,7 +62,12 @@ const ServiceCard = memo(({ item, index }) => {
             <div>
                 <div className="flex items-center justify-between mb-4">
                     <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-lime-50 to-cyan-50 dark:from-lime-950/70 dark:to-cyan-950/50 text-[#659000] dark:text-[#a3d100] flex items-center justify-center border border-lime-200/80 dark:border-white/15 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
-                        <Icon className="w-6 h-6 stroke-[2]" />
+                        <AnimatedLandingIcon
+                            name={iconName}
+                            size={26}
+                            strokeColor={darkMode ? '#a3d100' : '#659000'}
+                            triggerKey={hoverTick}
+                        />
                     </div>
                     <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-lime-100/90 dark:bg-lime-950/70 text-[#5f7d00] dark:text-[#a3d100] border border-lime-300/60 dark:border-lime-700/40">
                         {item.badge}
@@ -84,10 +93,15 @@ const ServiceCard = memo(({ item, index }) => {
                 </div>
                 <a
                     href="#contact"
-                    className="p-2.5 rounded-xl bg-lime-50 dark:bg-white/10 text-[#659000] dark:text-[#a3d100] hover:bg-[#8DB600] hover:text-white dark:hover:bg-[#8DB600] dark:hover:text-white transition-all active:scale-95"
+                    className="p-2.5 rounded-xl bg-lime-50 dark:bg-white/10 text-[#659000] dark:text-[#a3d100] hover:bg-[#8DB600] hover:text-white dark:hover:bg-[#8DB600] dark:hover:text-white transition-all active:scale-95 flex items-center justify-center"
                     title="Inquire"
                 >
-                    <ArrowRight className="w-4 h-4" />
+                    <AnimatedLandingIcon
+                        name="arrowRight"
+                        size={18}
+                        strokeColor="currentColor"
+                        triggerKey={hoverTick}
+                    />
                 </a>
             </div>
         </motion.div>

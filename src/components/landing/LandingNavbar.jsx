@@ -1,7 +1,7 @@
 // src/components/landing/LandingNavbar.jsx
 import React from 'react';
 import Link from 'next/link';
-import { Sun, Moon } from 'lucide-react';
+import AnimatedLandingIcon from './AnimatedLandingIcon';
 
 export default function LandingNavbar({
                                           activeCard,
@@ -49,19 +49,14 @@ export default function LandingNavbar({
 
                     <div className="hidden sm:flex absolute top-[110%] left-1/2 transform -translate-x-1/2 flex-col items-center pointer-events-none w-[195px] z-[100]">
                         <div className="flex flex-col items-center animate-float-slow transition-transform duration-300 group-hover:-translate-y-1">
-                            <svg
-                                className="w-5 h-5 mb-1 text-[#659000] dark:text-[#a3d100] drop-shadow-[0_0_8px_rgba(141,182,0,0.55)] dark:drop-shadow-[0_0_8px_rgba(163,209,0,0.8)] animate-pulse"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth="3"
-                                    d="M12 4v16m0-16l-6 6m6-6l6 6"
+                            <div className="mb-1 drop-shadow-[0_0_8px_rgba(141,182,0,0.55)] dark:drop-shadow-[0_0_8px_rgba(163,209,0,0.8)]">
+                                <AnimatedLandingIcon
+                                    name="arrowUp"
+                                    size={20}
+                                    strokeColor={darkMode ? '#a3d100' : '#659000'}
+                                    loop
                                 />
-                            </svg>
+                            </div>
 
                             <div className="relative bg-white/85 dark:bg-slate-900/65 backdrop-blur-md border border-lime-500/30 dark:border-white/10 rounded-xl p-2.5 shadow-[0_10px_28px_rgba(15,23,42,0.12)] dark:shadow-[0_10px_30px_rgba(0,0,0,0.5)] text-center overflow-hidden transition-colors duration-300 group-hover:border-[#8DB600]/60 dark:group-hover:border-[#8DB600]/30 group-hover:shadow-[0_0_20px_rgba(141,182,0,0.2)]">
                                 <div className="absolute inset-0 bg-gradient-to-b from-[#8DB600]/15 to-transparent opacity-70" />
@@ -79,23 +74,28 @@ export default function LandingNavbar({
                 <button
                     type="button"
                     onClick={onToggleContact}
-                    className="text-slate-700 hover:text-[#5f7d00] dark:text-white/85 dark:hover:text-[#8DB600] transition-colors duration-200 cursor-pointer outline-none font-bold"
+                    className="inline-flex items-center gap-1.5 text-slate-700 hover:text-[#5f7d00] dark:text-white/85 dark:hover:text-[#8DB600] transition-colors duration-200 cursor-pointer outline-none font-bold"
                 >
-                    {activeCard === 'contact' ? 'Login' : 'Contact'}
+                    <AnimatedLandingIcon
+                        name={activeCard === 'contact' ? 'lock' : 'mail'}
+                        size={17}
+                        strokeColor="currentColor"
+                    />
+                    <span>{activeCard === 'contact' ? 'Login' : 'Contact'}</span>
                 </button>
 
                 {typeof toggleDarkMode === 'function' && (
                     <button
                         type="button"
                         onClick={toggleDarkMode}
-                        className="p-2 rounded-xl bg-white/75 hover:bg-white dark:bg-white/10 dark:hover:bg-white/15 border border-slate-200/80 dark:border-white/15 text-slate-700 dark:text-slate-200 shadow-2xs backdrop-blur-md transition-all active:scale-95 cursor-pointer"
+                        className="p-2 rounded-xl bg-white/75 hover:bg-white dark:bg-white/10 dark:hover:bg-white/15 border border-slate-200/80 dark:border-white/15 text-slate-700 dark:text-slate-200 shadow-2xs backdrop-blur-md transition-all active:scale-95 cursor-pointer flex items-center justify-center"
                         title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
                         aria-label="Toggle color theme"
                     >
                         {darkMode ? (
-                            <Sun className="w-4 h-4 text-amber-400" />
+                            <AnimatedLandingIcon name="sun" size={18} strokeColor="#fbbf24" />
                         ) : (
-                            <Moon className="w-4 h-4 text-slate-700" />
+                            <AnimatedLandingIcon name="moon" size={18} strokeColor="#334155" />
                         )}
                     </button>
                 )}

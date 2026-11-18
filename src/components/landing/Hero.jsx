@@ -1,22 +1,11 @@
 // src/components/landing/Hero.jsx
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from 'framer-motion';
-import {
-    CheckCircle2,
-    ShieldCheck,
-    MapPin,
-    ArrowRight,
-    Sparkles,
-    HeartHandshake,
-    Droplets,
-    Box,
-    Gamepad2,
-    Play
-} from 'lucide-react';
 import { useCustomers } from '../../hooks/useCustomers';
 import { useStore } from '../../store/useStore';
 import WaterStation3DModel from './WaterStation3DModel';
 import RefillSimulatorGame from './RefillSimulatorGame';
+import AnimatedLandingIcon from './AnimatedLandingIcon';
 
 export default function Hero({ settings }) {
     const { data: customersData, isLoading } = useCustomers();
@@ -24,6 +13,8 @@ export default function Hero({ settings }) {
 
     // Stage Mode: '3d-model' | 'game'
     const [stageView, setStageView] = useState('3d-model');
+    const [hoveredHighlight, setHoveredHighlight] = useState(-1);
+    const [highlightTick, setHighlightTick] = useState(0);
 
     // Animated Count-Up for Served Customers
     const targetCount = customersData?.totalCount || 133;
@@ -54,7 +45,6 @@ export default function Hero({ settings }) {
         compactDisplay: 'short'
     }).format(displayCount || targetCount);
 
-    // Dynamic Settings-Driven Values (configurable from /settings)
     const rawBusinessName = (settings?.business_name || 'Seaside').trim();
     const stationBadgeLabel = /station$/i.test(rawBusinessName)
         ? rawBusinessName
@@ -68,7 +58,7 @@ export default function Hero({ settings }) {
     const jugPriceLabel = (settings?.jug_price_range || '₱20-₱30 / Jug').trim();
     const heroTagline = (settings?.hero_tagline || 'Always Fresh, Cold & Pure').trim();
 
-    // Framer Motion 3D Spring Tilt for Showcase Stage (paused during active game play for steady aim)
+    // Framer Motion 3D Spring Tilt for Showcase Stage
     const mouseX = useMotionValue(0);
     const mouseY = useMotionValue(0);
     const springX = useSpring(mouseX, { stiffness: 180, damping: 22 });
@@ -109,10 +99,15 @@ export default function Hero({ settings }) {
                         transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
                         className="lg:col-span-7 flex flex-col space-y-6 text-left"
                     >
-                        {/* Location Pill */}
+                        {/* Location Pill with Live Looping Explore Compass */}
                         <div className="inline-flex items-center gap-2 w-max px-3.5 py-1.5 rounded-full bg-white/85 dark:bg-slate-900/80 backdrop-blur-md border border-lime-300/80 dark:border-white/15 shadow-xs">
                             <span className="flex h-2 w-2 rounded-full bg-[#8DB600] animate-ping" />
-                            <MapPin className="w-3.5 h-3.5 text-[#659000] dark:text-[#a3d100]" />
+                            <AnimatedLandingIcon
+                                name="explore"
+                                size={18}
+                                strokeColor={darkMode ? '#a3d100' : '#659000'}
+                                loop
+                            />
                             <span className="text-xs font-bold uppercase tracking-wider text-lime-900 dark:text-lime-300">
                                 {settings?.physical_address
                                     ? `${settings.physical_address}'s Pure Hydration`
@@ -141,7 +136,7 @@ export default function Hero({ settings }) {
                                 'We combine commercial-grade 21-stage reverse osmosis filtration with warm local care, delivering 100% pure, remineralized drinking water straight to your home and business.'}
                         </p>
 
-                        {/* Staggered Highlight Cards */}
+                        {/* Staggered Highlight Cards with Animated Checkmarks */}
                         <div className="space-y-2.5 max-w-xl pt-1">
                             {keyHighlights.map((text, i) => (
                                 <motion.div
@@ -150,10 +145,20 @@ export default function Hero({ settings }) {
                                     animate={{ opacity: 1, x: 0 }}
                                     transition={{ delay: 0.15 + i * 0.1, duration: 0.45 }}
                                     whileHover={{ x: 5 }}
+                                    onMouseEnter={() => {
+                                        setHoveredHighlight(i);
+                                        setHighlightTick((t) => t + 1);
+                                    }}
+                                    onMouseLeave={() => setHoveredHighlight(-1)}
                                     className="flex items-center gap-3.5 p-3 sm:px-4 rounded-2xl bg-white/85 dark:bg-slate-900/75 backdrop-blur-md border border-slate-200/80 dark:border-white/10 shadow-2xs hover:border-[#8DB600]/70 dark:hover:border-lime-400/50 transition-colors"
                                 >
-                                    <div className="w-6 h-6 rounded-lg bg-lime-100 dark:bg-lime-950/70 text-[#659000] dark:text-[#a3d100] flex items-center justify-center shrink-0 border border-lime-200/70 dark:border-lime-800/50">
-                                        <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
+                                    <div className="w-7 h-7 rounded-lg bg-lime-100 dark:bg-lime-950/70 text-[#659000] dark:text-[#a3d100] flex items-center justify-center shrink-0 border border-lime-200/70 dark:border-lime-800/50">
+                                        <AnimatedLandingIcon
+                                            name="checkmark"
+                                            size={18}
+                                            strokeColor={darkMode ? '#a3d100' : '#659000'}
+                                            triggerKey={hoveredHighlight === i ? highlightTick : 0}
+                                        />
                                     </div>
                                     <span className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-100 leading-snug">
                                         {text}
@@ -175,7 +180,7 @@ export default function Hero({ settings }) {
                             >
                                 <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent group-hover:animate-shimmer" />
                                 <span>Visit Station</span>
-                                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                                <AnimatedLandingIcon name="arrowRight" size={18} strokeColor="#ffffff" />
                             </a>
                             <a
                                 href="#services"
@@ -185,22 +190,37 @@ export default function Hero({ settings }) {
                             </a>
                         </div>
 
-                        {/* Trust Badges */}
+                        {/* Trust Badges with Live Animated Icons */}
                         <div className="pt-4 flex flex-wrap items-center gap-3 border-t border-slate-200/80 dark:border-white/10">
                             <div className="flex items-center gap-2 bg-white/85 dark:bg-slate-900/75 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-200/70 dark:border-white/10 shadow-2xs">
-                                <HeartHandshake className="w-4 h-4 text-[#659000] dark:text-[#a3d100]" />
+                                <AnimatedLandingIcon
+                                    name="heart"
+                                    size={18}
+                                    strokeColor={darkMode ? '#a3d100' : '#659000'}
+                                    loop
+                                />
                                 <span className="text-xs font-bold text-slate-700 dark:text-slate-200 tabular-nums">
                                     {formattedCount}+ Served
                                 </span>
                             </div>
                             <div className="flex items-center gap-2 bg-white/85 dark:bg-slate-900/75 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-200/70 dark:border-white/10 shadow-2xs">
-                                <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                                <AnimatedLandingIcon
+                                    name="checkmark"
+                                    size={18}
+                                    strokeColor={darkMode ? '#34d399' : '#059669'}
+                                    loop
+                                />
                                 <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
                                     Sanitary DOH Standards
                                 </span>
                             </div>
                             <div className="flex items-center gap-2 bg-white/85 dark:bg-slate-900/75 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-200/70 dark:border-white/10 shadow-2xs">
-                                <Sparkles className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+                                <AnimatedLandingIcon
+                                    name="infinity"
+                                    size={18}
+                                    strokeColor={darkMode ? '#22d3ee' : '#0891b2'}
+                                    loop
+                                />
                                 <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
                                     Zero Plastic Waste Model
                                 </span>
@@ -237,11 +257,16 @@ export default function Hero({ settings }) {
                             {/* Top Stage Controls & Live Water Telemetry */}
                             <div className="relative z-20 flex flex-wrap items-center justify-between gap-2">
                                 <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-cyan-500/10 dark:bg-cyan-400/15 border border-cyan-500/25 text-cyan-800 dark:text-cyan-300 text-[10px] font-mono font-bold">
-                                    <Droplets className="w-3 h-3 animate-pulse shrink-0" />
+                                    <AnimatedLandingIcon
+                                        name="activity"
+                                        size={14}
+                                        strokeColor={darkMode ? '#67e8f9' : '#0e7490'}
+                                        loop
+                                    />
                                     <span className="truncate">{formattedTdsBadge}</span>
                                 </div>
 
-                                {/* 3D Jug vs Refill Sim Switcher (Mascot tab removed) */}
+                                {/* 3D Jug vs Refill Sim Switcher */}
                                 <div className="flex bg-slate-200/80 dark:bg-slate-950/80 p-1 rounded-xl border border-slate-300/60 dark:border-white/10 shrink-0">
                                     <button
                                         type="button"
@@ -252,7 +277,7 @@ export default function Hero({ settings }) {
                                                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                                         }`}
                                     >
-                                        <Box className="w-3 h-3" />
+                                        <AnimatedLandingIcon name="box" size={13} strokeColor="currentColor" />
                                         <span>3D Jug</span>
                                     </button>
                                     <button
@@ -264,7 +289,7 @@ export default function Hero({ settings }) {
                                                 : 'text-slate-700 dark:text-lime-300 hover:text-slate-900 dark:hover:text-white'
                                         }`}
                                     >
-                                        <Gamepad2 className="w-3 h-3" />
+                                        <AnimatedLandingIcon name="gamepad" size={13} strokeColor="currentColor" />
                                         <span>Refill Sim</span>
                                         {stageView !== 'game' && (
                                             <span className="flex h-1.5 w-1.5 rounded-full bg-[#8DB600] animate-ping ml-0.5" />
@@ -290,7 +315,7 @@ export default function Hero({ settings }) {
                                         <div className="relative z-10 flex items-center justify-between gap-2.5">
                                             <div className="flex items-center gap-2.5 min-w-0">
                                                 <div className="w-8 h-8 rounded-xl bg-[#8DB600] text-white flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform">
-                                                    <Gamepad2 className="w-4 h-4 animate-bounce" />
+                                                    <AnimatedLandingIcon name="gamepad" size={18} strokeColor="#ffffff" />
                                                 </div>
                                                 <div className="min-w-0 leading-tight">
                                                     <div className="flex items-center gap-1.5">
@@ -308,8 +333,8 @@ export default function Hero({ settings }) {
                                             </div>
 
                                             <span className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[#8DB600] group-hover:bg-[#7ca000] text-white text-[10px] font-black shadow-xs shrink-0 transition-colors">
-                                                <Play className="w-2.5 h-2.5 fill-current" />
                                                 <span>Play</span>
+                                                <AnimatedLandingIcon name="arrowRight" size={14} strokeColor="#ffffff" />
                                             </span>
                                         </div>
                                     </motion.button>

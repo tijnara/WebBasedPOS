@@ -1,5 +1,7 @@
+// src/components/landing/ScrollToTop.jsx
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import AnimatedLandingIcon from './AnimatedLandingIcon';
 
 const ScrollToTop = () => {
     const [showScrollTop, setShowScrollTop] = useState(false);
@@ -31,12 +33,10 @@ const ScrollToTop = () => {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 20 }}
                     onClick={scrollToTop}
-                    className="fixed bottom-6 right-6 z-[999] p-4 bg-green-600 text-white rounded-full shadow-2xl hover:bg-green-700 active:scale-90 transition-all cursor-pointer flex items-center justify-center border-2 border-white/20"
+                    className="fixed bottom-20 md:bottom-6 right-6 z-[999] p-3.5 bg-[#8DB600] text-white rounded-full shadow-2xl hover:bg-[#7ca000] active:scale-90 transition-all cursor-pointer flex items-center justify-center border-2 border-white/25"
                     aria-label="Back to top"
                 >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="m18 15-6-6-6 6"/>
-                    </svg>
+                    <AnimatedLandingIcon name="arrowUp" size={24} strokeColor="#ffffff" loop />
                 </motion.button>
             )}
         </AnimatePresence>

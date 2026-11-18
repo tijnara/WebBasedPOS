@@ -1,8 +1,8 @@
 // src/components/landing/LandingBackground.jsx
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
-import { Droplets, Activity } from 'lucide-react';
 import { useStore } from '../../store/useStore';
+import AnimatedLandingIcon from './AnimatedLandingIcon';
 
 const RISING_BUBBLES = [
     { left: '8%', size: 8, duration: '11s', delay: '0s' },
@@ -55,7 +55,6 @@ export default function LandingBackground({ tilt = { x: 0, y: 0 } }) {
         limeLight.position.set(6, -4, 8);
         scene.add(limeLight);
 
-        // 3D Teardrop Geometry
         const dropGeo = new THREE.SphereGeometry(0.32, 20, 20);
         const pos = dropGeo.attributes.position;
         for (let i = 0; i < pos.count; i++) {
@@ -81,9 +80,9 @@ export default function LandingBackground({ tilt = { x: 0, y: 0 } }) {
 
         const drops = Array.from({ length: 14 }, (_, idx) => {
             const mesh = new THREE.Mesh(dropGeo, dropMat);
-            const x = ((idx * 37) % 100) / 100 * 18 - 9;
-            const y = ((idx * 53) % 100) / 100 * 11 - 5.5;
-            const z = ((idx * 29) % 100) / 100 * 5 - 3.5;
+            const x = (((idx * 37) % 100) / 100) * 18 - 9;
+            const y = (((idx * 53) % 100) / 100) * 11 - 5.5;
+            const z = (((idx * 29) % 100) / 100) * 5 - 3.5;
             const scale = 0.4 + (idx % 4) * 0.28;
             mesh.position.set(x, y, z);
             mesh.scale.setScalar(scale);
@@ -142,7 +141,7 @@ export default function LandingBackground({ tilt = { x: 0, y: 0 } }) {
             {/* Live Three.js WebGL 3D Floating Droplets Layer */}
             <div ref={webglMountRef} className="absolute inset-0 opacity-85" />
 
-            {/* Realistic 3D Refractive Water Droplets (CSS Depth Layer) */}
+            {/* Realistic 3D Refractive Water Droplets */}
             <div
                 className="water-droplet-3d absolute top-[15%] right-[9%] w-24 h-28 sm:w-28 sm:h-32 animate-float-slow"
                 style={{ transform: `translate3d(${tilt.y * -1.5}px, ${tilt.x * 1.5}px, 0)` }}
@@ -166,7 +165,12 @@ export default function LandingBackground({ tilt = { x: 0, y: 0 } }) {
                 style={{ transform: `translate3d(${tilt.y * -1.1}px, ${tilt.x * 1.1}px, 0)` }}
             >
                 <div className="w-6 h-6 rounded-lg bg-cyan-500/15 dark:bg-cyan-400/15 flex items-center justify-center text-cyan-600 dark:text-cyan-300">
-                    <Droplets className="w-3.5 h-3.5" />
+                    <AnimatedLandingIcon
+                        name="droplet"
+                        size={16}
+                        strokeColor={darkMode ? '#67e8f9' : '#0891b2'}
+                        loop
+                    />
                 </div>
                 <div className="leading-tight">
                     <span className="block text-[9px] font-black uppercase tracking-wider text-cyan-700 dark:text-cyan-300">
@@ -183,7 +187,12 @@ export default function LandingBackground({ tilt = { x: 0, y: 0 } }) {
                 style={{ transform: `translate3d(${tilt.y * 1.2}px, ${tilt.x * -1.2}px, 0)` }}
             >
                 <div className="w-6 h-6 rounded-lg bg-[#8DB600]/15 flex items-center justify-center text-[#5f7d00] dark:text-[#a3d100]">
-                    <Activity className="w-3.5 h-3.5" />
+                    <AnimatedLandingIcon
+                        name="activity"
+                        size={16}
+                        strokeColor={darkMode ? '#a3d100' : '#5f7d00'}
+                        loop
+                    />
                 </div>
                 <div className="leading-tight">
                     <span className="block text-[9px] font-black uppercase tracking-wider text-[#5f7d00] dark:text-[#a3d100]">

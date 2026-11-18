@@ -1,8 +1,9 @@
 // src/components/landing/LandingAuthCard.jsx
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import LoginFormView from './LoginFormView';
 import SignUpFormView from './SignUpFormView';
 import ContactFormView from './ContactFormView';
+import AnimatedLandingIcon from './AnimatedLandingIcon';
 
 export default function LandingAuthCard({
                                             activeCard,
@@ -25,6 +26,7 @@ export default function LandingAuthCard({
                                             contactPrefill
                                         }) {
     const cardRef = useRef(null);
+    const [tabTick, setTabTick] = useState(0);
 
     const handleMouseMove = (e) => {
         if (!cardRef.current) return;
@@ -82,25 +84,43 @@ export default function LandingAuthCard({
                             <div className="flex bg-slate-200/70 dark:bg-slate-950/70 p-1.5 rounded-2xl mb-6 border border-slate-300/60 dark:border-white/10 select-none shadow-inner">
                                 <button
                                     type="button"
-                                    onClick={() => onSwitchCard('login')}
-                                    className={`flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer ${
+                                    onClick={() => {
+                                        setTabTick((t) => t + 1);
+                                        onSwitchCard('login');
+                                    }}
+                                    className={`flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-bold inline-flex items-center justify-center gap-2 transition-all duration-200 cursor-pointer ${
                                         activeCard === 'login'
                                             ? 'bg-white dark:bg-gradient-to-r dark:from-[#8DB600]/30 dark:to-teal-500/25 border border-lime-500/40 dark:border-[#8DB600]/50 text-slate-900 dark:text-white shadow-sm'
                                             : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-white/40 dark:hover:bg-white/5 border border-transparent'
                                     }`}
                                 >
-                                    Sign In
+                                    <AnimatedLandingIcon
+                                        name="lock"
+                                        size={16}
+                                        strokeColor="currentColor"
+                                        triggerKey={activeCard === 'login' ? tabTick : 0}
+                                    />
+                                    <span>Sign In</span>
                                 </button>
                                 <button
                                     type="button"
-                                    onClick={() => onSwitchCard('signup')}
-                                    className={`flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer ${
+                                    onClick={() => {
+                                        setTabTick((t) => t + 1);
+                                        onSwitchCard('signup');
+                                    }}
+                                    className={`flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-bold inline-flex items-center justify-center gap-2 transition-all duration-200 cursor-pointer ${
                                         activeCard === 'signup'
                                             ? 'bg-white dark:bg-gradient-to-r dark:from-[#8DB600]/30 dark:to-teal-500/25 border border-lime-500/40 dark:border-[#8DB600]/50 text-slate-900 dark:text-white shadow-sm'
                                             : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-white/40 dark:hover:bg-white/5 border border-transparent'
                                     }`}
                                 >
-                                    Staff Sign Up
+                                    <AnimatedLandingIcon
+                                        name="userPlus"
+                                        size={16}
+                                        strokeColor="currentColor"
+                                        triggerKey={activeCard === 'signup' ? tabTick : 0}
+                                    />
+                                    <span>Staff Sign Up</span>
                                 </button>
                             </div>
                         )}

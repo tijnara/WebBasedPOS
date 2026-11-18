@@ -1,7 +1,7 @@
 // src/components/landing/ContactFormView.jsx
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Send, Clock, MapPin, ArrowLeft } from 'lucide-react';
+import AnimatedLandingIcon from './AnimatedLandingIcon';
 
 export default function ContactFormView({
                                             businessHours,
@@ -10,6 +10,10 @@ export default function ContactFormView({
                                             prefillData,
                                             onBackToLogin
                                         }) {
+    const [sendTick, setSendTick] = useState(0);
+    const [fbTick, setFbTick] = useState(0);
+    const [backTick, setBackTick] = useState(0);
+
     const {
         register,
         handleSubmit,
@@ -71,18 +75,18 @@ export default function ContactFormView({
 
             <div className="grid grid-cols-1 gap-3 mb-5">
                 <div className="bg-slate-50/90 dark:bg-slate-950/50 p-3.5 rounded-2xl border border-slate-200/80 dark:border-white/10 backdrop-blur-md shadow-2xs">
-                    <div className="flex items-center text-[11px] font-bold text-[#5f7d00] dark:text-emerald-400 mb-1 uppercase tracking-wider">
-                        <Clock className="w-3.5 h-3.5 mr-1.5" />
-                        Business Hours:
+                    <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#5f7d00] dark:text-emerald-400 mb-1 uppercase tracking-wider">
+                        <AnimatedLandingIcon name="clock" size={15} strokeColor="currentColor" loop />
+                        <span>Business Hours:</span>
                     </div>
                     <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-line font-medium">
                         {businessHours}
                     </p>
                 </div>
                 <div className="bg-slate-50/90 dark:bg-slate-950/50 p-3.5 rounded-2xl border border-slate-200/80 dark:border-white/10 backdrop-blur-md shadow-2xs">
-                    <div className="flex items-center text-[11px] font-bold text-cyan-700 dark:text-cyan-400 mb-1 uppercase tracking-wider">
-                        <MapPin className="w-3.5 h-3.5 mr-1.5" />
-                        Address:
+                    <div className="flex items-center gap-1.5 text-[11px] font-bold text-cyan-700 dark:text-cyan-400 mb-1 uppercase tracking-wider">
+                        <AnimatedLandingIcon name="explore" size={16} strokeColor="currentColor" loop />
+                        <span>Address:</span>
                     </div>
                     <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
                         {physicalAddress}
@@ -152,13 +156,19 @@ export default function ContactFormView({
                     <button
                         type="submit"
                         disabled={isSubmitting}
+                        onMouseEnter={() => setSendTick((t) => t + 1)}
                         style={{
                             background: 'linear-gradient(135deg, #8DB600 0%, #0d9488 100%)',
                             color: '#ffffff'
                         }}
                         className="w-full sm:w-auto px-5 py-2.5 rounded-xl font-black text-xs sm:text-sm shadow-md transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer"
                     >
-                        <Send className="w-3.5 h-3.5" />
+                        <AnimatedLandingIcon
+                            name="mail"
+                            size={16}
+                            strokeColor="#ffffff"
+                            triggerKey={sendTick}
+                        />
                         <span>{isSubmitting ? 'Sending...' : 'Send Message'}</span>
                     </button>
 
@@ -166,12 +176,16 @@ export default function ContactFormView({
                         href={facebookLink}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center text-blue-600 dark:text-sky-400 hover:underline font-bold transition-colors text-xs"
+                        onMouseEnter={() => setFbTick((t) => t + 1)}
+                        className="inline-flex items-center gap-1.5 text-blue-600 dark:text-sky-400 hover:underline font-bold transition-colors text-xs"
                     >
-                        <svg className="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                        </svg>
-                        Message us on Facebook
+                        <AnimatedLandingIcon
+                            name="facebook"
+                            size={18}
+                            strokeColor="currentColor"
+                            triggerKey={fbTick}
+                        />
+                        <span>Message us on Facebook</span>
                     </a>
                 </div>
             </form>
@@ -180,9 +194,15 @@ export default function ContactFormView({
                 <button
                     type="button"
                     onClick={onBackToLogin}
+                    onMouseEnter={() => setBackTick((t) => t + 1)}
                     className="text-xs font-bold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors inline-flex items-center gap-1.5 cursor-pointer"
                 >
-                    <ArrowLeft className="w-3.5 h-3.5" />
+                    <AnimatedLandingIcon
+                        name="arrowLeft"
+                        size={16}
+                        strokeColor="currentColor"
+                        triggerKey={backTick}
+                    />
                     <span>Back to Login</span>
                 </button>
             </div>

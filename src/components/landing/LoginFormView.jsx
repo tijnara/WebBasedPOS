@@ -1,18 +1,9 @@
 // src/components/landing/LoginFormView.jsx
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import {
-    Mail,
-    Lock,
-    User,
-    Eye,
-    EyeOff,
-    ArrowRight,
-    Clock,
-    ShieldAlert,
-    MessageSquare,
-    X
-} from 'lucide-react';
+import { X } from 'lucide-react';
+import { useStore } from '../../store/useStore';
+import AnimatedLandingIcon from './AnimatedLandingIcon';
 
 export default function LoginFormView({
                                           onLogin,
@@ -25,7 +16,13 @@ export default function LoginFormView({
                                           onForgotPassword,
                                           onSwitchToSignUp
                                       }) {
+    const darkMode = useStore((s) => s.darkMode);
     const [showPassword, setShowPassword] = useState(false);
+    const [emailTick, setEmailTick] = useState(0);
+    const [lockTick, setLockTick] = useState(0);
+    const [eyeTick, setEyeTick] = useState(0);
+    const [submitTick, setSubmitTick] = useState(0);
+    const [demoTick, setDemoTick] = useState(0);
 
     const {
         register,
@@ -34,6 +31,9 @@ export default function LoginFormView({
     } = useForm({
         defaultValues: { email: '', password: '' }
     });
+
+    const emailField = register('email', { required: true });
+    const passwordField = register('password', { required: true });
 
     return (
         <div className="animate-in fade-in zoom-in-95 duration-200">
@@ -52,7 +52,12 @@ export default function LoginFormView({
                     <div className="flex items-start justify-between gap-2.5">
                         <div className="flex items-start gap-3">
                             <div className="w-9 h-9 rounded-xl bg-amber-100 dark:bg-amber-400/15 border border-amber-300 dark:border-amber-400/30 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0 mt-0.5 shadow-inner">
-                                <Clock className="w-4 h-4 animate-pulse" />
+                                <AnimatedLandingIcon
+                                    name="clock"
+                                    size={18}
+                                    strokeColor="currentColor"
+                                    loop
+                                />
                             </div>
                             <div className="space-y-1">
                                 <span className="inline-block text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-400/20 text-amber-800 dark:text-amber-200 border border-amber-300/80 dark:border-amber-400/30">
@@ -87,9 +92,9 @@ export default function LoginFormView({
                         <button
                             type="button"
                             onClick={onNotifyAdmin}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#8DB600]/15 hover:bg-[#8DB600]/25 dark:bg-[#8DB600]/20 dark:hover:bg-[#8DB600]/30 border border-[#8DB600]/40 text-[#5f7d00] dark:text-[#b8eb00] text-[10.5px] font-bold transition-colors shrink-0 cursor-pointer"
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#8DB600]/15 hover:bg-[#8DB600]/25 dark:bg-[#8DB600]/20 dark:hover:bg-[#8DB600]/30 border border-[#8DB600]/40 text-[#5f7d00] dark:text-[#b8eb00] text-[10.5px] font-bold transition-colors shrink-0 cursor-pointer"
                         >
-                            <MessageSquare className="w-3 h-3" />
+                            <AnimatedLandingIcon name="mail" size={14} strokeColor="currentColor" />
                             <span>Notify Admin</span>
                         </button>
                     </div>
@@ -99,7 +104,13 @@ export default function LoginFormView({
             {/* Invalid Credentials / Error Alert */}
             {authError && (
                 <div className="mb-4 rounded-2xl bg-rose-50 dark:bg-rose-500/15 p-3.5 text-xs font-semibold text-rose-700 dark:text-rose-200 border border-rose-200 dark:border-rose-500/30 flex items-start gap-2.5 backdrop-blur-md animate-in fade-in duration-150">
-                    <ShieldAlert className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+                    <AnimatedLandingIcon
+                        name="alertCircle"
+                        size={18}
+                        strokeColor={darkMode ? '#fb7185' : '#e11d48'}
+                        loop
+                        className="mt-0.5"
+                    />
                     <span className="leading-relaxed">{authError}</span>
                 </div>
             )}
@@ -111,11 +122,17 @@ export default function LoginFormView({
                     </label>
                     <div className="relative group">
                         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#659000] dark:group-focus-within:text-[#8DB600] transition-colors">
-                            <Mail className="h-4 w-4" />
+                            <AnimatedLandingIcon
+                                name="mail"
+                                size={17}
+                                strokeColor="currentColor"
+                                triggerKey={emailTick}
+                            />
                         </div>
                         <input
                             type="text"
-                            {...register('email', { required: true })}
+                            {...emailField}
+                            onFocus={() => setEmailTick((t) => t + 1)}
                             className="seaside-glass-input w-full h-12 pl-11 pr-4 bg-white/85 dark:bg-slate-950/70 border border-slate-200/90 dark:border-white/15 rounded-2xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-950/90 focus:border-[#8DB600] focus:ring-4 focus:ring-[#8DB600]/20 transition-all font-medium text-sm outline-none shadow-2xs"
                             placeholder="name@seaside.com"
                         />
@@ -137,21 +154,35 @@ export default function LoginFormView({
                     </div>
                     <div className="relative group">
                         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#659000] dark:group-focus-within:text-[#8DB600] transition-colors">
-                            <Lock className="h-4 w-4" />
+                            <AnimatedLandingIcon
+                                name="lock"
+                                size={17}
+                                strokeColor="currentColor"
+                                triggerKey={lockTick}
+                            />
                         </div>
                         <input
                             type={showPassword ? 'text' : 'password'}
-                            {...register('password', { required: true })}
+                            {...passwordField}
+                            onFocus={() => setLockTick((t) => t + 1)}
                             className="seaside-glass-input w-full h-12 pl-11 pr-11 bg-white/85 dark:bg-slate-950/70 border border-slate-200/90 dark:border-white/15 rounded-2xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-950/90 focus:border-[#8DB600] focus:ring-4 focus:ring-[#8DB600]/20 transition-all font-medium text-sm outline-none shadow-2xs"
                             placeholder="••••••••"
                         />
                         <button
                             type="button"
-                            onClick={() => setShowPassword((prev) => !prev)}
+                            onClick={() => {
+                                setShowPassword((prev) => !prev);
+                                setEyeTick((t) => t + 1);
+                            }}
                             className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors cursor-pointer"
                             aria-label={showPassword ? 'Hide password' : 'Show password'}
                         >
-                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            <AnimatedLandingIcon
+                                name="visibility"
+                                size={18}
+                                strokeColor="currentColor"
+                                triggerKey={eyeTick}
+                            />
                         </button>
                     </div>
                 </div>
@@ -160,6 +191,7 @@ export default function LoginFormView({
                     <button
                         type="submit"
                         disabled={isSubmitting || isDemoLoading}
+                        onMouseEnter={() => setSubmitTick((t) => t + 1)}
                         style={{
                             background: 'linear-gradient(135deg, #8DB600 0%, #65a30d 50%, #0d9488 100%)',
                             color: '#ffffff'
@@ -175,7 +207,12 @@ export default function LoginFormView({
                         ) : (
                             <>
                                 <span>Sign In</span>
-                                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                                <AnimatedLandingIcon
+                                    name="arrowRight"
+                                    size={18}
+                                    strokeColor="#ffffff"
+                                    triggerKey={submitTick}
+                                />
                             </>
                         )}
                     </button>
@@ -205,6 +242,7 @@ export default function LoginFormView({
             <button
                 type="button"
                 onClick={onDemoLogin}
+                onMouseEnter={() => setDemoTick((t) => t + 1)}
                 disabled={isSubmitting || isDemoLoading}
                 className="mt-5 w-full h-11 border border-slate-200/90 dark:border-white/15 bg-white/80 hover:bg-white dark:bg-white/10 dark:hover:bg-white/15 text-slate-800 dark:text-white rounded-2xl font-bold transition-all hover:scale-[1.01] active:scale-[0.985] flex items-center justify-center gap-2 disabled:opacity-60 text-xs sm:text-sm backdrop-blur-md shadow-2xs cursor-pointer"
             >
@@ -215,7 +253,12 @@ export default function LoginFormView({
                     </>
                 ) : (
                     <>
-                        <User className="h-4 w-4 text-[#659000] dark:text-[#a3d100]" />
+                        <AnimatedLandingIcon
+                            name="userPlus"
+                            size={17}
+                            strokeColor={darkMode ? '#a3d100' : '#659000'}
+                            triggerKey={demoTick}
+                        />
                         <span>Try Demo Version</span>
                     </>
                 )}
