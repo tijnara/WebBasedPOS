@@ -45,6 +45,7 @@ const titleMap = {
     '/contact': 'Contact Us | Seaside WRS',
     '/maintenance': 'Maintenance Tracking | Seaside WRS',
     '/activity-logs': 'Activity Logs | Seaside WRS',
+    '/refill-game': 'Refill Simulator Data | Seaside WRS',
 };
 
 function AuthGate({ children }) {

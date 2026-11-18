@@ -35,8 +35,8 @@ export function useUpdateSettings() {
                 .single();
 
             if (error) {
-                if (error.code === 'PGRST204' || error.message?.includes('promo_floater')) {
-                    throw new Error('Please run the business_settings SQL migration in Supabase first so the new floater columns exist.');
+                if (error.code === 'PGRST204') {
+                    throw new Error('Please run the business_settings SQL migration in Supabase first so the new columns exist.');
                 }
                 throw error;
             }
@@ -45,7 +45,7 @@ export function useUpdateSettings() {
                 user: currentUser,
                 action: 'UPDATE',
                 entity_type: 'SETTINGS',
-                description: `Updated store & page notification settings`
+                description: `Updated store & page settings`
             });
 
             return data;

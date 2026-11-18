@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { subHours } from 'date-fns';
 import currency from 'currency.js';
-import { Sun, Moon, LogOut, ChevronDown, Landmark, Receipt, TestTube, History, X, User, Images } from 'lucide-react';
+import { Sun, Moon, LogOut, ChevronDown, Landmark, Receipt, TestTube, History, X, User, Images, Gamepad2 } from 'lucide-react';
 
 import { supabase } from '../lib/supabaseClient';
 import { useStore } from '../store/useStore';
@@ -72,6 +72,7 @@ const navCategoriesSource = [
             { name: 'Debt Management', path: '/debt-management', icon: <Landmark className="h-6 w-6" />, adminOnly: true },
             { name: 'Report', path: '/report', icon: <ChartIcon className="h-5 w-5 menu-icon" />, adminOnly: true },
             { name: 'Mock Sales', path: '/mock-sales-report', icon: <TestTube className="h-6 w-6" />, adminOnly: true },
+            { name: 'Refill Simulator', path: '/refill-game', icon: <Gamepad2 className="h-5 w-5 menu-icon" /> },
         ]
     },
     {

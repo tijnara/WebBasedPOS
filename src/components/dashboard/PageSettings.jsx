@@ -5,7 +5,7 @@ import { useSettings, useUpdateSettings } from '../../hooks/useSettings';
 import { supabase } from '../../lib/supabaseClient';
 import { useStore } from '../../store/useStore';
 import { resetScheduledFloaterStorage } from '../ScheduledFloaterToast';
-import { Image as ImageIcon, Sliders, Layers, BellRing, Eye, RotateCcw, ShieldAlert } from 'lucide-react';
+import { Image as ImageIcon, Sliders, Layers, BellRing, Eye, RotateCcw, ShieldAlert, Droplets } from 'lucide-react';
 
 const DEFAULT_SERVICES = [
     {
@@ -83,6 +83,9 @@ export default function PageSettings() {
         business_name: '',
         hero_title: '',
         hero_subtitle: '',
+        tds_reading: '002 PPM',
+        jug_price_range: '₱20-₱30 / Jug',
+        hero_tagline: 'Always Fresh, Cold & Pure',
         contact_number: '',
         email: '',
         facebook_link: '',
@@ -116,6 +119,9 @@ export default function PageSettings() {
                 business_name: settings.business_name || '',
                 hero_title: settings.hero_title || '',
                 hero_subtitle: settings.hero_subtitle || '',
+                tds_reading: settings.tds_reading || '002 PPM',
+                jug_price_range: settings.jug_price_range || '₱20-₱30 / Jug',
+                hero_tagline: settings.hero_tagline || 'Always Fresh, Cold & Pure',
                 contact_number: settings.contact_number || '',
                 email: settings.email || '',
                 facebook_link: settings.facebook_link || '',
@@ -152,7 +158,6 @@ export default function PageSettings() {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    // Selecting any frequency option automatically resets the floater state
     const handleFrequencyChange = (e) => {
         const newFreq = e.target.value;
         const resetTimestamp = new Date().toISOString();
@@ -272,6 +277,9 @@ export default function PageSettings() {
             await updateSettings.mutateAsync({
                 id: settings?.id || 1,
                 ...formData,
+                tds_reading: formData.tds_reading?.trim() || '002 PPM',
+                jug_price_range: formData.jug_price_range?.trim() || '₱20-₱30 / Jug',
+                hero_tagline: formData.hero_tagline?.trim() || 'Always Fresh, Cold & Pure',
                 promo_floater_enabled: Boolean(formData.promo_floater_enabled),
                 promo_floater_month: targetMonth,
                 promo_floater_start_day: startDay,
@@ -314,6 +322,10 @@ export default function PageSettings() {
     const isDateWindowBypassed =
         formData.promo_floater_frequency === 'testing' ||
         formData.promo_floater_frequency === 'every_day_all_month';
+
+    const previewTdsText = /^tds:/i.test((formData.tds_reading || '').trim())
+        ? formData.tds_reading.trim()
+        : `TDS: ${(formData.tds_reading || '002 PPM').trim()} • 21-STAGE`;
 
     return (
         <Card className="shadow-sm mt-6 responsive-page bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden transition-colors">
@@ -594,10 +606,10 @@ export default function PageSettings() {
                         </div>
                     </div>
 
-                    {/* Hero Section */}
+                    {/* Hero Section & 3D Jug Showcase Badges */}
                     <div className="space-y-4 pt-6 border-t border-slate-100 dark:border-slate-800">
                         <h4 className="text-xs font-black uppercase tracking-wider text-[#8DB600] dark:text-lime-400">
-                            Hero Section Content
+                            Hero Section &amp; 3D Jug Showcase Badges
                         </h4>
                         <div>
                             <Label className="font-bold text-xs text-slate-700 dark:text-slate-300">
@@ -625,6 +637,79 @@ export default function PageSettings() {
                                 disabled={isDemo}
                                 className="w-full mt-1 text-xs sm:text-sm p-3 bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl focus:bg-white dark:focus:bg-slate-900 focus:border-[#8DB600]"
                             />
+                        </div>
+
+                        {/* 3D Jug Telemetry & Price Pill Editor */}
+                        <div className="p-4 rounded-2xl bg-cyan-50/40 dark:bg-cyan-950/20 border border-cyan-200/70 dark:border-cyan-900/50 space-y-3">
+                            <div className="flex items-center justify-between flex-wrap gap-2">
+                                <div className="flex items-center gap-2">
+                                    <Droplets className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+                                    <span className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                                        3D Jug Showcase Pills &amp; Sticker Telemetry
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-2 text-[10px] font-mono">
+                                    <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/15 text-cyan-800 dark:text-cyan-300 border border-cyan-500/25 font-bold">
+                                        {previewTdsText}
+                                    </span>
+                                    <span className="px-2.5 py-0.5 rounded-lg bg-lime-100 dark:bg-lime-950/70 text-[#5f7d00] dark:text-lime-300 font-black">
+                                        {formData.jug_price_range || '₱20-₱30 / Jug'}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div>
+                                    <Label className="font-bold text-xs text-slate-700 dark:text-slate-300">
+                                        Water Quality TDS Reading
+                                    </Label>
+                                    <Input
+                                        name="tds_reading"
+                                        value={formData.tds_reading}
+                                        onChange={handleInputChange}
+                                        placeholder="002 PPM"
+                                        disabled={isDemo}
+                                        className="h-10 mt-1 text-xs sm:text-sm font-mono font-bold bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl focus:border-[#8DB600]"
+                                    />
+                                    <p className="text-[10px] text-slate-400 mt-1">
+                                        Shown on the top pill &amp; 3D jug label.
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <Label className="font-bold text-xs text-slate-700 dark:text-slate-300">
+                                        3D Jug Price Range Badge
+                                    </Label>
+                                    <Input
+                                        name="jug_price_range"
+                                        value={formData.jug_price_range}
+                                        onChange={handleInputChange}
+                                        placeholder="₱20-₱30 / Jug"
+                                        disabled={isDemo}
+                                        className="h-10 mt-1 text-xs sm:text-sm font-bold bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl focus:border-[#8DB600]"
+                                    />
+                                    <p className="text-[10px] text-slate-400 mt-1">
+                                        Displayed on the green pill below the 3D jug.
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <Label className="font-bold text-xs text-slate-700 dark:text-slate-300">
+                                        3D Showcase Tagline
+                                    </Label>
+                                    <Input
+                                        name="hero_tagline"
+                                        value={formData.hero_tagline}
+                                        onChange={handleInputChange}
+                                        placeholder="Always Fresh, Cold & Pure"
+                                        disabled={isDemo}
+                                        className="h-10 mt-1 text-xs sm:text-sm bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl focus:border-[#8DB600]"
+                                    />
+                                    <p className="text-[10px] text-slate-400 mt-1">
+                                        Sub-caption under station name in 3D card.
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     </div>
 

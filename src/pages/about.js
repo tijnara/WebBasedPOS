@@ -1,11 +1,14 @@
 // src/pages/about.js
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 import { useSettings } from '../hooks/useSettings';
+import { useStore } from '../store/useStore';
 
 import BackgroundImage from '../components/landing/BackgroundImage';
+import LandingBackground from '../components/landing/LandingBackground';
+import LandingGlobalStyles from '../components/landing/LandingGlobalStyles';
 import Meta from '../components/landing/Meta';
 import Hero from '../components/landing/Hero';
 import WhyChooseUs from '../components/landing/WhyChooseUs';
@@ -18,10 +21,47 @@ import Footer from '../components/landing/Footer';
 import ScrollToTop from '../components/landing/ScrollToTop';
 import ViewCounter from '../components/landing/ViewCounter';
 import { Button } from '../components/ui';
-import { MessageSquare, LogIn } from 'lucide-react';
+import { MessageSquare, LogIn, Sun, Moon } from 'lucide-react';
+
+function RevealSection({ children, delay = 0 }) {
+    const ref = useRef(null);
+    const [visible, setVisible] = useState(false);
+
+    useEffect(() => {
+        const el = ref.current;
+        if (!el) return;
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting) {
+                    setVisible(true);
+                    observer.disconnect();
+                }
+            },
+            { threshold: 0.08 }
+        );
+        observer.observe(el);
+        return () => observer.disconnect();
+    }, []);
+
+    return (
+        <div
+            ref={ref}
+            style={{ transitionDelay: `${delay}ms` }}
+            className={`transition-all duration-700 ease-out transform-gpu ${
+                visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
+            }`}
+        >
+            {children}
+        </div>
+    );
+}
 
 export default function SeasideWaterLanding() {
     const { data: settings } = useSettings();
+    const { darkMode, toggleDarkMode } = useStore((s) => ({
+        darkMode: s.darkMode,
+        toggleDarkMode: s.toggleDarkMode
+    }));
     const router = useRouter();
     const [scrolled, setScrolled] = useState(false);
 
@@ -56,54 +96,110 @@ export default function SeasideWaterLanding() {
 
     const contactPhone = settings?.contact_number || '+639602196388';
     const cleanSmsNumber = contactPhone.replace(/[^0-9+]/g, '');
-    const messengerLink = settings?.messenger_link || settings?.facebook_link || 'https://www.facebook.com/share/1CSQtnEWYf/';
+    const messengerLink =
+        settings?.messenger_link ||
+        settings?.facebook_link ||
+        'https://www.facebook.com/share/1CSQtnEWYf/';
 
     return (
-        <div className="landing-about-root relative min-h-screen w-full font-sans bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 antialiased selection:bg-[#8DB600] selection:text-white dark:[color-scheme:dark] transition-colors duration-300">
+        <div className="landing-about-root relative min-h-screen w-full font-sans bg-gradient-to-br from-[#f3fae6] via-[#ecfdf5] to-[#e0f2fe] dark:from-[#060b13] dark:via-[#08101c] dark:to-[#060b13] text-slate-800 dark:text-slate-100 antialiased selection:bg-[#8DB600] selection:text-white dark:[color-scheme:dark] transition-colors duration-300 overflow-x-hidden">
             <BackgroundImage />
+            <LandingBackground />
             <Meta />
             <ViewCounter />
 
             {/* Navigation Header */}
-            <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-                scrolled
-                    ? 'bg-white/95 dark:bg-slate-900/95 backdrop-blur-md shadow-sm dark:shadow-black/50 border-b border-slate-200/80 dark:border-slate-800 py-3'
-                    : 'bg-transparent py-4 sm:py-5'
-            }`}>
+            <header
+                className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+                    scrolled
+                        ? 'bg-white/85 dark:bg-slate-900/85 backdrop-blur-xl shadow-sm dark:shadow-black/50 border-b border-slate-200/80 dark:border-white/10 py-3'
+                        : 'bg-transparent py-4 sm:py-5'
+                }`}
+            >
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
-                    <Link href="/" className="flex items-center gap-3 group">
-                        <div className="relative w-10 h-10 overflow-hidden rounded-xl bg-white dark:bg-slate-800 shadow-2xs border border-slate-200 dark:border-slate-700 flex items-center justify-center p-1 group-hover:scale-105 transition-transform shrink-0">
+                    <Link href="/" className="flex items-center gap-3 group seaside-brand-enter">
+                        <div className="relative w-10 h-10 overflow-hidden rounded-xl bg-white/90 dark:bg-white/10 backdrop-blur-md shadow-2xs border border-slate-200/80 dark:border-white/15 flex items-center justify-center p-1 seaside-tile-glow group-hover:scale-105 transition-transform shrink-0">
+                            <span
+                                aria-hidden="true"
+                                className="pointer-events-none absolute inset-0 seaside-brand-sheen"
+                            />
                             <Image
-                                src={settings?.logo_url || "/seaside.png"}
+                                src={settings?.logo_url || '/seaside.png'}
                                 alt="Seaside Logo"
                                 width={36}
                                 height={36}
-                                className="object-contain w-full h-full"
+                                className="relative z-10 object-contain w-full h-full seaside-palm-breeze"
                                 priority
                             />
                         </div>
-                        <div>
+                        <div className="seaside-wordmark-enter">
                             <span className="text-lg font-black tracking-tight text-slate-900 dark:text-slate-100 block leading-tight">
                                 {settings?.business_name || 'Seaside'}
                             </span>
-                            <span className="text-[10px] font-black tracking-widest uppercase text-[#8DB600] dark:text-lime-400 block">
+                            <span className="text-[10px] font-black tracking-widest uppercase text-[#659000] dark:text-[#a3d100] block">
                                 Water Refilling Station
                             </span>
                         </div>
                     </Link>
 
                     <nav className="hidden md:flex items-center gap-8 text-sm font-semibold text-slate-700 dark:text-slate-300">
-                        <a href="#services" className="hover:text-[#8DB600] dark:hover:text-lime-400 transition-colors">Services</a>
-                        <a href="#why-choose" className="hover:text-[#8DB600] dark:hover:text-lime-400 transition-colors">Why Seaside</a>
-                        <a href="#process" className="hover:text-[#8DB600] dark:hover:text-lime-400 transition-colors">Our Process</a>
-                        <a href="#location" className="hover:text-[#8DB600] dark:hover:text-lime-400 transition-colors">Location</a>
-                        <a href="#contact" className="hover:text-[#8DB600] dark:hover:text-lime-400 transition-colors">Contact</a>
+                        <a
+                            href="#services"
+                            className="hover:text-[#659000] dark:hover:text-[#a3d100] transition-colors"
+                        >
+                            Services
+                        </a>
+                        <a
+                            href="#why-choose"
+                            className="hover:text-[#659000] dark:hover:text-[#a3d100] transition-colors"
+                        >
+                            Why Seaside
+                        </a>
+                        <a
+                            href="#process"
+                            className="hover:text-[#659000] dark:hover:text-[#a3d100] transition-colors"
+                        >
+                            Our Process
+                        </a>
+                        <a
+                            href="#location"
+                            className="hover:text-[#659000] dark:hover:text-[#a3d100] transition-colors"
+                        >
+                            Location
+                        </a>
+                        <a
+                            href="#contact"
+                            className="hover:text-[#659000] dark:hover:text-[#a3d100] transition-colors"
+                        >
+                            Contact
+                        </a>
                     </nav>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2.5">
+                        {typeof toggleDarkMode === 'function' && (
+                            <button
+                                type="button"
+                                onClick={toggleDarkMode}
+                                className="p-2 rounded-xl bg-white/80 hover:bg-white dark:bg-white/10 dark:hover:bg-white/15 border border-slate-200/80 dark:border-white/15 text-slate-700 dark:text-slate-200 shadow-2xs backdrop-blur-md transition-all active:scale-95 cursor-pointer"
+                                title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                                aria-label="Toggle color theme"
+                            >
+                                {darkMode ? (
+                                    <Sun className="w-4 h-4 text-amber-400" />
+                                ) : (
+                                    <Moon className="w-4 h-4 text-slate-700" />
+                                )}
+                            </button>
+                        )}
+
                         <Link
                             href="/"
-                            className="inline-flex items-center gap-2 bg-[#8DB600] hover:bg-[#7ca000] text-white px-4 py-2 rounded-xl text-xs sm:text-sm font-bold shadow-sm transition-all duration-200 active:scale-95"
+                            style={{
+                                background:
+                                    'linear-gradient(135deg, #8DB600 0%, #65a30d 55%, #0d9488 100%)',
+                                color: '#ffffff'
+                            }}
+                            className="relative overflow-hidden inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-lime-600/25 border border-lime-300/30 transition-all duration-200 hover:scale-[1.02] active:scale-95 group"
                         >
                             <LogIn className="w-4 h-4" />
                             <span>Staff Portal</span>
@@ -113,15 +209,36 @@ export default function SeasideWaterLanding() {
             </header>
 
             {/* Main Content */}
-            <main id="main-content" className="relative z-10 pt-20 md:pt-24 pb-20 md:pb-0 flex flex-col flex-grow">
+            <main
+                id="main-content"
+                className="relative z-10 pt-20 md:pt-24 pb-20 md:pb-0 flex flex-col flex-grow"
+            >
                 <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 space-y-16 sm:space-y-24">
                     <Hero settings={settings} />
-                    <WhyChooseUs />
-                    <Services settings={settings} />
-                    <ProcessSection />
-                    <Gallery />
-                    <Location settings={settings} />
-                    <Contact settings={settings} />
+
+                    <RevealSection>
+                        <WhyChooseUs />
+                    </RevealSection>
+
+                    <RevealSection>
+                        <Services settings={settings} />
+                    </RevealSection>
+
+                    <RevealSection>
+                        <ProcessSection />
+                    </RevealSection>
+
+                    <RevealSection>
+                        <Gallery />
+                    </RevealSection>
+
+                    <RevealSection>
+                        <Location settings={settings} />
+                    </RevealSection>
+
+                    <RevealSection>
+                        <Contact settings={settings} />
+                    </RevealSection>
                 </div>
                 <Footer settings={settings} />
             </main>
@@ -150,15 +267,12 @@ export default function SeasideWaterLanding() {
                 </Button>
             </div>
 
+            <LandingGlobalStyles />
+
             {/* Universal Contrast Cascade (Works in both Light & Dark modes) */}
             <style jsx global>{`
-                /* =========================================================
-                   1. LIGHT MODE RULES (Default - when .dark is NOT present)
-                   ========================================================= */
-
-                /* Contact form inputs and textareas */
-                .landing-about-root input[type="text"],
-                .landing-about-root input[type="email"],
+                .landing-about-root input[type='text'],
+                .landing-about-root input[type='email'],
                 .landing-about-root textarea {
                     background-color: #f8fafc !important;
                     border: 1px solid #cbd5e1 !important;
@@ -172,61 +286,51 @@ export default function SeasideWaterLanding() {
                 .landing-about-root input:focus,
                 .landing-about-root textarea:focus {
                     background-color: #ffffff !important;
-                    border-color: #8DB600 !important;
+                    border-color: #8db600 !important;
                     outline: 2px solid rgba(141, 182, 0, 0.2) !important;
                 }
 
-                /* Contact Section Labels (Fixes white-on-white text in Light Mode) */
                 .landing-about-root form label,
-                .landing-about-root [id="contact"] label,
-                .landing-about-root [id="contact"] .text-slate-400,
-                .landing-about-root [id="contact"] .text-slate-500 {
+                .landing-about-root [id='contact'] label,
+                .landing-about-root [id='contact'] .text-slate-400,
+                .landing-about-root [id='contact'] .text-slate-500 {
                     color: #475569 !important;
                     font-weight: 700 !important;
                 }
-                .landing-about-root [id="contact"] h3,
-                .landing-about-root [id="contact"] h4,
-                .landing-about-root [id="contact"] .text-white:not(button):not([class*="bg-"]) {
+                .landing-about-root [id='contact'] h3,
+                .landing-about-root [id='contact'] h4,
+                .landing-about-root [id='contact'] .text-white:not(button):not([class*='bg-']) {
                     color: #0f172a !important;
                     font-weight: 700 !important;
                 }
 
-                /* Contact Cards in Light Mode */
-                .landing-about-root [id="contact"] > div > div,
-                .landing-about-root [id="contact"] .border-slate-800 {
+                .landing-about-root [id='contact'] > div > div,
+                .landing-about-root [id='contact'] .border-slate-800 {
                     border-color: #e2e8f0 !important;
                 }
 
-                /* =========================================================
-                   2. DARK MODE RULES (Active when .dark class is on <html>)
-                   ========================================================= */
-
-                /* Headings */
-                .dark .landing-about-root h1:not([class*="text-lime"]):not([class*="text-[#8DB600]"]),
-                .dark .landing-about-root h2:not([class*="text-lime"]):not([class*="text-[#8DB600]"]),
-                .dark .landing-about-root h3:not([class*="text-lime"]):not([class*="text-[#8DB600]"]),
+                .dark .landing-about-root h1:not([class*='text-lime']):not([class*='text-[#8DB600]']),
+                .dark .landing-about-root h2:not([class*='text-lime']):not([class*='text-[#8DB600]']),
+                .dark .landing-about-root h3:not([class*='text-lime']):not([class*='text-[#8DB600]']),
                 .dark .landing-about-root .text-slate-900,
                 .dark .landing-about-root .text-slate-800 {
                     color: #f8fafc !important;
                 }
 
-                /* Body copy */
                 .dark .landing-about-root p,
                 .dark .landing-about-root .text-slate-700,
                 .dark .landing-about-root .text-slate-600 {
                     color: #cbd5e1 !important;
                 }
 
-                /* Cards and surfaces in Dark Mode */
                 .dark .landing-about-root .bg-white,
                 .dark .landing-about-root .bg-slate-50 {
-                    background-color: rgba(15, 23, 42, 0.9) !important;
+                    background-color: rgba(15, 23, 42, 0.85) !important;
                     border-color: #334155 !important;
                 }
 
-                /* Form inputs in Dark Mode */
-                .dark .landing-about-root input[type="text"],
-                .dark .landing-about-root input[type="email"],
+                .dark .landing-about-root input[type='text'],
+                .dark .landing-about-root input[type='email'],
                 .dark .landing-about-root textarea {
                     background-color: #0f172a !important;
                     border-color: #334155 !important;
@@ -237,28 +341,24 @@ export default function SeasideWaterLanding() {
                     color: #64748b !important;
                 }
 
-                /* Contact section labels in Dark Mode */
                 .dark .landing-about-root form label,
-                .dark .landing-about-root [id="contact"] label,
-                .dark .landing-about-root [id="contact"] .text-slate-400,
-                .dark .landing-about-root [id="contact"] .text-slate-500 {
+                .dark .landing-about-root [id='contact'] label,
+                .dark .landing-about-root [id='contact'] .text-slate-400,
+                .dark .landing-about-root [id='contact'] .text-slate-500 {
                     color: #94a3b8 !important;
                 }
-                .dark .landing-about-root [id="contact"] h3,
-                .dark .landing-about-root [id="contact"] h4,
-                .dark .landing-about-root [id="contact"] .text-white {
+                .dark .landing-about-root [id='contact'] h3,
+                .dark .landing-about-root [id='contact'] h4,
+                .dark .landing-about-root [id='contact'] .text-white {
                     color: #f8fafc !important;
                 }
 
-                /* =========================================================
-                   3. BRAND ACCENTS (Preserved in both modes)
-                   ========================================================= */
-                .landing-about-root .text-\\[\\#8DB600\\],
-                .landing-about-root [class*="text-[#8DB600]"] {
-                    color: #8DB600 !important;
+                .landing-about-root .text-\[\#8DB600\],
+                .landing-about-root [class*='text-[#8DB600]'] {
+                    color: #8db600 !important;
                 }
-                .dark .landing-about-root .text-\\[\\#8DB600\\],
-                .dark .landing-about-root [class*="text-[#8DB600]"],
+                .dark .landing-about-root .text-\[\#8DB600\],
+                .dark .landing-about-root [class*='text-[#8DB600]'],
                 .dark .landing-about-root .text-lime-400 {
                     color: #a3e635 !important;
                 }
