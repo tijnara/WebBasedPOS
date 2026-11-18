@@ -1,16 +1,23 @@
 // src/lib/api.js
 import { supabase } from './supabaseClient';
+import { logActivity } from '../hooks/useActivityLogs';
 
 /**
  * Authenticates user credentials server-side via the authenticate_user RPC.
  * Accepts either an object ({ email, password }) or positional arguments (identifier, password).
+ * Returns structured status objects so UI handlers can render blended notices without runtime error overlays.
  */
 export async function login(credentials, fallbackPassword) {
     let identifier = '';
     let password = '';
 
     if (typeof credentials === 'object' && credentials !== null) {
-        identifier = credentials.email || credentials.name || credentials.username || credentials.identifier || '';
+        identifier =
+            credentials.email ||
+            credentials.name ||
+            credentials.username ||
+            credentials.identifier ||
+            '';
         password = credentials.password || '';
     } else if (typeof credentials === 'string') {
         identifier = credentials;
@@ -18,7 +25,10 @@ export async function login(credentials, fallbackPassword) {
     }
 
     if (!identifier || !password) {
-        throw new Error('Email and password are required.');
+        return {
+            status: 'INVALID_CREDENTIALS',
+            message: 'Email and password are required.'
+        };
     }
 
     const normalizedIdentifier = identifier.trim().toLowerCase();
@@ -30,26 +40,47 @@ export async function login(credentials, fallbackPassword) {
         });
 
         if (error) {
-            throw error;
+            return {
+                status: 'ERROR',
+                message: handleError(error)
+            };
         }
 
         // Support both nested { success: true, user: { ... } } and flat { id: 1, ... }
         const user = data?.user || (data?.id ? data : null);
 
+        // 1. Check Pending Administrator Approval FIRST (RPC returns success: false with PENDING_APPROVAL status)
+        const isPendingApproval =
+            data?.status === 'PENDING_APPROVAL' ||
+            (typeof data?.message === 'string' &&
+                data.message.toLowerCase().includes('pending administrator approval')) ||
+            (user && user.is_approved === false && !user.isadmin && user.role !== 'Admin');
+
+        if (isPendingApproval) {
+            return {
+                status: 'PENDING_APPROVAL',
+                message:
+                    data?.message ||
+                    'Your account is pending administrator approval before you can access the system.',
+                user: user || null
+            };
+        }
+
+        // 2. Check Invalid Credentials
         if (!user || !user.id || data?.success === false) {
-            throw new Error(data?.message || 'Invalid email or password.');
+            return {
+                status: 'INVALID_CREDENTIALS',
+                message:
+                    data?.message ||
+                    'The email or password you entered is incorrect. Please try again.'
+            };
         }
 
-        if (data?.status === 'PENDING_APPROVAL' || (user.is_approved === false && !user.isadmin && user.role !== 'Admin')) {
-            const pendingErr = new Error(data?.message || 'Your account is pending administrator approval before you can access the system.');
-            pendingErr.status = 'PENDING_APPROVAL';
-            throw pendingErr;
-        }
-
-        // Determine user role with fallback for isadmin
+        // 3. Determine user role with fallback for isadmin
         let role = user.role || 'Staff';
         if (
-            role !== 'Admin' && role !== 'admin' &&
+            role !== 'Admin' &&
+            role !== 'admin' &&
             ((typeof user.isadmin === 'string' && user.isadmin.trim().toLowerCase() === 'true') ||
                 user.isadmin === true)
         ) {
@@ -60,16 +91,27 @@ export async function login(credentials, fallbackPassword) {
             localStorage.removeItem('pos_custom_user');
         }
 
-        return {
+        const finalUser = {
             ...user,
+            status: 'SUCCESS',
             role,
             isAdmin: role === 'Admin',
             isadmin: role === 'Admin'
         };
+
+        await logActivity({
+            user: finalUser,
+            action: 'LOGIN',
+            entity_type: 'AUTH',
+            description: `${finalUser.name || finalUser.email} signed in (${role})`
+        });
+
+        return finalUser;
     } catch (err) {
-        console.error('Login API Error:', err);
-        const errorMessage = handleError(err);
-        throw new Error(errorMessage);
+        return {
+            status: 'ERROR',
+            message: handleError(err)
+        };
     }
 }
 
@@ -107,9 +149,20 @@ export async function register({
             throw new Error(data?.message || 'Could not register user.');
         }
 
+        await logActivity({
+            user: {
+                id: data.user_id || data.id || null,
+                name: name.trim(),
+                email: email ? email.trim() : null,
+                role: isAdmin ? 'Admin' : 'Staff'
+            },
+            action: 'CREATE',
+            entity_type: 'USER',
+            description: `New staff registration submitted: ${name.trim()} (${email || phone || 'No contact'}) — awaiting approval`
+        });
+
         return data;
     } catch (err) {
-        console.error('Register API Error:', err);
         throw new Error(handleError(err));
     }
 }
@@ -120,8 +173,6 @@ export function logout() {
 
 export function handleError(error) {
     if (!error) return 'An unknown error occurred.';
-
-    console.error('Handling Error:', error);
 
     if (error.code) {
         switch (error.code) {
@@ -152,5 +203,5 @@ export default {
     login,
     logout,
     register,
-    handleError,
+    handleError
 };

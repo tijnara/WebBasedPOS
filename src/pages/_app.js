@@ -4,7 +4,7 @@ import '../../styles/navbar.css';
 import 'react-day-picker/dist/style.css';
 import '../components/pages/POSPage.css';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useStore } from '../store/useStore';
 import { useRouter } from 'next/router';
 import Navbar from '../components/Navbar';
@@ -146,8 +146,10 @@ export default function App({ Component, pageProps }) {
     const { toasts, dismissToast, darkMode, user } = useStore();
     const router = useRouter();
 
-    // Transition state for root '/' and '/about'
+    // Real page-load synced transition state for '/' and '/about'
     const [isTransitionActive, setIsTransitionActive] = useState(false);
+    const [isRouteLoading, setIsRouteLoading] = useState(false);
+    const initialCheckDoneRef = useRef(false);
 
     useEffect(() => {
         const checkShouldTransition = (path) => {
@@ -155,23 +157,36 @@ export default function App({ Component, pageProps }) {
             return cleanPath === '/' || cleanPath === '/about';
         };
 
-        // Trigger on initial entry if visiting '/' or '/about'
-        if (checkShouldTransition(router.pathname)) {
-            setIsTransitionActive(true);
+        // Run initial entry check once on mount
+        if (!initialCheckDoneRef.current) {
+            initialCheckDoneRef.current = true;
+            if (checkShouldTransition(router.pathname)) {
+                setIsTransitionActive(true);
+            }
         }
 
-        // Trigger whenever user navigates into '/' or '/about'
+        // Sync route loading status with CinematicTransition
         const handleRouteChangeStart = (url) => {
             const targetPath = url.split('?')[0].split('#')[0].toLowerCase();
             const currentPath = router.asPath.split('?')[0].split('#')[0].toLowerCase();
             if ((targetPath === '/' || targetPath === '/about') && targetPath !== currentPath) {
+                setIsRouteLoading(true);
                 setIsTransitionActive(true);
             }
         };
 
+        const handleRouteChangeDone = () => {
+            setIsRouteLoading(false);
+        };
+
         router.events.on('routeChangeStart', handleRouteChangeStart);
+        router.events.on('routeChangeComplete', handleRouteChangeDone);
+        router.events.on('routeChangeError', handleRouteChangeDone);
+
         return () => {
             router.events.off('routeChangeStart', handleRouteChangeStart);
+            router.events.off('routeChangeComplete', handleRouteChangeDone);
+            router.events.off('routeChangeError', handleRouteChangeDone);
         };
     }, [router]);
 
@@ -237,9 +252,12 @@ export default function App({ Component, pageProps }) {
                     <meta name="google-site-verification" content="kd1wSsNQZCjJmyp4LaQKI9Mr7s6Z9_I5Z3ETpaW1EVc" />
                 </Head>
 
-                {/* Refilling Transition Overlay */}
+                {/* Refilling Transition Overlay Synced with Real Page Load */}
                 {isTransitionActive && (
-                    <CinematicTransition onComplete={() => setIsTransitionActive(false)} />
+                    <CinematicTransition
+                        isRouteLoading={isRouteLoading}
+                        onComplete={() => setIsTransitionActive(false)}
+                    />
                 )}
 
                 <AuthGate>
