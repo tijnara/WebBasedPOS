@@ -67,8 +67,11 @@ const USE_ANIMATIONS_MAP = {
     volume
 };
 
+// Icons that look best with uninterrupted slow continuous motion vs. draw-and-rest cycles
+const CONTINUOUS_LOOP_ICONS = new Set(['activity', 'infinity']);
+
 /**
- * Matching micro-animated SVG icons for water-station domain glyphs
+ * Smooth, slow-paced micro-animated SVG icons for water-station domain glyphs
  * (water droplet, delivery multicab, ice crystal, sun/moon, phone, messenger, clock, etc.)
  */
 function CustomAliveSvg({ name, size = 22, color = 'currentColor', isAlive = false }) {
@@ -91,7 +94,7 @@ function CustomAliveSvg({ name, size = 22, color = 'currentColor', isAlive = fal
                     className={`shrink-0 ${isAlive ? 'seaside-svg-bob' : ''}`}
                 >
                     <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
-                    <path d="M9.5 14.5a3.5 3.5 0 0 0 3.5 3.5" className="animate-pulse" />
+                    <path d="M9.5 14.5a3.5 3.5 0 0 0 3.5 3.5" className="seaside-svg-glint" />
                 </svg>
             );
 
@@ -112,7 +115,7 @@ function CustomAliveSvg({ name, size = 22, color = 'currentColor', isAlive = fal
             return (
                 <svg
                     {...common}
-                    className="shrink-0 animate-[spin_12s_linear_infinite]"
+                    className="shrink-0 animate-[spin_24s_linear_infinite]"
                 >
                     <line x1="12" y1="2" x2="12" y2="22" />
                     <line x1="2" y1="12" x2="22" y2="12" />
@@ -138,7 +141,7 @@ function CustomAliveSvg({ name, size = 22, color = 'currentColor', isAlive = fal
             return (
                 <svg
                     {...common}
-                    className="shrink-0 animate-[spin_16s_linear_infinite]"
+                    className="shrink-0 animate-[spin_28s_linear_infinite]"
                 >
                     <circle cx="12" cy="12" r="4" />
                     <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
@@ -172,7 +175,7 @@ function CustomAliveSvg({ name, size = 22, color = 'currentColor', isAlive = fal
                     className={`shrink-0 ${isAlive ? 'seaside-svg-pulse' : ''}`}
                 >
                     <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-                    <polyline points="8 13 11 10 13 12 16 9" className="animate-pulse" />
+                    <polyline points="8 13 11 10 13 12 16 9" className="seaside-svg-glint" />
                 </svg>
             );
 
@@ -194,7 +197,7 @@ function CustomAliveSvg({ name, size = 22, color = 'currentColor', isAlive = fal
                     className={`shrink-0 ${isAlive ? 'seaside-svg-pulse' : ''}`}
                 >
                     <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-                    <circle cx="12" cy="13" r="4" className="animate-pulse" />
+                    <circle cx="12" cy="13" r="4" className="seaside-svg-glint" />
                 </svg>
             );
 
@@ -244,7 +247,7 @@ export default function AnimatedLandingIcon({
                                                 strokeColor = 'currentColor',
                                                 loop = false,
                                                 autoplay = true,
-                                                speed = 1.15,
+                                                speed = 0.45,
                                                 triggerKey = 0,
                                                 className = ''
                                             }) {
@@ -269,14 +272,14 @@ export default function AnimatedLandingIcon({
         return () => mq.removeListener(update);
     }, []);
 
-    // Replay animation whenever parent card triggers hover (triggerKey increments)
+    // Replay animation when parent card triggers hover (triggerKey increments)
     useEffect(() => {
         if (triggerKey > 0) {
             setPlayCounter((c) => c + 1);
         }
     }, [triggerKey]);
 
-    // Track viewport visibility so icons animate as they enter view on mobile & scroll
+    // Track viewport visibility so icons animate smoothly as they enter view
     useEffect(() => {
         const el = hostRef.current;
         if (!el || typeof IntersectionObserver === 'undefined') return;
@@ -294,9 +297,21 @@ export default function AnimatedLandingIcon({
         return () => observer.disconnect();
     }, []);
 
+    const shouldPeriodicAnimate = Boolean((loop || isMobile) && isInView);
+    const isContinuousNativeLoop = CONTINUOUS_LOOP_ICONS.has(name) && shouldPeriodicAnimate;
+
+    // Gentle, paced replay interval for ambient/mobile icons (plays slowly, rests cleanly, then replays)
+    useEffect(() => {
+        if (!shouldPeriodicAnimate || isContinuousNativeLoop) return;
+        const intervalMs = isMobile ? 4600 : 4200;
+        const timer = setInterval(() => {
+            setPlayCounter((c) => c + 1);
+        }, intervalMs);
+        return () => clearInterval(timer);
+    }, [shouldPeriodicAnimate, isContinuousNativeLoop, isMobile]);
+
     const animModule = USE_ANIMATIONS_MAP[name];
-    const effectiveLoop = Boolean(loop || (isMobile && isInView));
-    const effectiveSpeed = isMobile && !loop ? Math.min(speed, 0.85) : speed;
+    const effectiveSpeed = Math.min(speed, isMobile ? 0.42 : 0.48);
     const isCustomAlive = Boolean(loop || isHovered || triggerKey > 0 || (isMobile && isInView));
 
     return (
@@ -309,17 +324,17 @@ export default function AnimatedLandingIcon({
                 }}
                 onMouseLeave={() => setIsHovered(false)}
                 onTouchStart={() => setPlayCounter((c) => c + 1)}
-                className={`inline-flex items-center justify-center leading-none shrink-0 ${className}`}
+                className={`inline-flex items-center justify-center leading-none shrink-0 transition-transform duration-500 ease-out ${className}`}
                 style={{ width: size, height: size }}
             >
                 {animModule ? (
                     <UseAnimations
-                        key={effectiveLoop ? 'loop' : playCounter}
+                        key={isContinuousNativeLoop ? 'continuous-loop' : playCounter}
                         animation={animModule}
                         size={size}
                         strokeColor={strokeColor}
-                        loop={effectiveLoop}
-                        autoplay={effectiveLoop || playCounter > 0}
+                        loop={isContinuousNativeLoop}
+                        autoplay={isContinuousNativeLoop || playCounter > 0}
                         speed={effectiveSpeed}
                     />
                 ) : (
@@ -335,50 +350,56 @@ export default function AnimatedLandingIcon({
             <style jsx global>{`
                 @keyframes seasideIconBob {
                     0%, 100% { transform: translateY(0px) scale(1); }
-                    50% { transform: translateY(-2.5px) scale(1.06); }
+                    50% { transform: translateY(-1.8px) scale(1.035); }
                 }
                 @keyframes seasideIconDrive {
                     0%, 100% { transform: translateX(0px); }
-                    50% { transform: translateX(2.5px); }
+                    50% { transform: translateX(2px); }
                 }
                 @keyframes seasideIconSway {
                     0%, 100% { transform: rotate(0deg) scale(1); }
-                    30% { transform: rotate(-10deg) scale(1.06); }
-                    70% { transform: rotate(8deg) scale(1.06); }
+                    35% { transform: rotate(-6deg) scale(1.035); }
+                    70% { transform: rotate(5deg) scale(1.035); }
                 }
                 @keyframes seasideIconRing {
                     0%, 100% { transform: rotate(0deg); }
-                    20% { transform: rotate(-14deg); }
-                    40% { transform: rotate(12deg); }
-                    60% { transform: rotate(-8deg); }
-                    80% { transform: rotate(6deg); }
+                    25% { transform: rotate(-8deg); }
+                    50% { transform: rotate(7deg); }
+                    75% { transform: rotate(-4deg); }
                 }
                 @keyframes seasideIconPulse {
                     0%, 100% { transform: scale(1); }
-                    50% { transform: scale(1.1); }
+                    50% { transform: scale(1.055); }
+                }
+                @keyframes seasideIconGlint {
+                    0%, 100% { opacity: 0.55; }
+                    50% { opacity: 1; }
                 }
                 @keyframes seasideIconTick {
                     0% { transform: rotate(0deg); }
                     100% { transform: rotate(360deg); }
                 }
                 .seaside-svg-bob {
-                    animation: seasideIconBob 2.2s ease-in-out infinite;
+                    animation: seasideIconBob 4.2s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
                 }
                 .seaside-svg-drive {
-                    animation: seasideIconDrive 2.0s ease-in-out infinite;
+                    animation: seasideIconDrive 4.0s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
                 }
                 .seaside-svg-sway {
-                    animation: seasideIconSway 2.6s ease-in-out infinite;
+                    animation: seasideIconSway 4.8s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
                 }
                 .seaside-svg-ring {
-                    animation: seasideIconRing 2.2s ease-in-out infinite;
+                    animation: seasideIconRing 4.5s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
                 }
                 .seaside-svg-pulse {
-                    animation: seasideIconPulse 2.1s ease-in-out infinite;
+                    animation: seasideIconPulse 4.2s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+                }
+                .seaside-svg-glint {
+                    animation: seasideIconGlint 3.6s ease-in-out infinite;
                 }
                 .seaside-svg-tick {
                     transform-origin: 12px 12px;
-                    animation: seasideIconTick 6s linear infinite;
+                    animation: seasideIconTick 14s linear infinite;
                 }
             `}</style>
         </>

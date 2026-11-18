@@ -2,6 +2,28 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 
+function normalizeStationBrand(stationName = 'SEASIDE') {
+    const raw = String(stationName || 'SEASIDE').trim();
+    if (/seaside/i.test(raw)) {
+        return 'SEASIDE';
+    }
+    const stripped = raw
+        .replace(/purified\s+water\s+refilling\s+station/i, '')
+        .replace(/water\s+refilling\s+station/i, '')
+        .trim();
+    return (stripped || 'SEASIDE').toUpperCase();
+}
+
+function drawFittedText(ctx, text, x, y, maxWidth, baseSize, weight = '900', family = 'sans-serif') {
+    let fontSize = baseSize;
+    ctx.font = `${weight} ${fontSize}px ${family}`;
+    while (fontSize > 12 && ctx.measureText(text).width > maxWidth) {
+        fontSize -= 2;
+        ctx.font = `${weight} ${fontSize}px ${family}`;
+    }
+    ctx.fillText(text, x, y, maxWidth);
+}
+
 /**
  * Procedural micro-pebbled frosted texture for the 3 raised
  * bumper rings & base heel of the 20L Round Polycarbonate Carboy.
@@ -35,45 +57,47 @@ function createFrostedPolycarbonateTexture() {
 }
 
 /**
- * Transparent-backed Seaside triple-wave emblem decal
+ * Transparent-backed "SEASIDE Water Refilling Station" coastal-wave decal
  * printed on the lower-middle clear panel of the Round Carboy.
  */
 function createRoundJugPrintTexture(stationTitle = 'SEASIDE') {
     const canvas = document.createElement('canvas');
-    canvas.width = 512;
-    canvas.height = 380;
+    canvas.width = 640;
+    canvas.height = 420;
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     const cx = canvas.width / 2;
+    const brand = normalizeStationBrand(stationTitle);
 
     const drawWaveBand = (yCenter, color) => {
         ctx.save();
         ctx.fillStyle = color;
         ctx.beginPath();
-        ctx.moveTo(cx - 115, yCenter - 10);
-        ctx.bezierCurveTo(cx - 75, yCenter - 32, cx - 35, yCenter + 12, cx, yCenter - 10);
-        ctx.bezierCurveTo(cx + 35, yCenter - 32, cx + 75, yCenter + 12, cx + 115, yCenter - 10);
-        ctx.lineTo(cx + 115, yCenter + 16);
-        ctx.bezierCurveTo(cx + 75, yCenter + 38, cx + 35, yCenter - 6, cx, yCenter + 16);
-        ctx.bezierCurveTo(cx - 35, yCenter + 38, cx - 75, yCenter - 6, cx - 115, yCenter + 16);
+        ctx.moveTo(cx - 125, yCenter - 10);
+        ctx.bezierCurveTo(cx - 80, yCenter - 34, cx - 38, yCenter + 12, cx, yCenter - 10);
+        ctx.bezierCurveTo(cx + 38, yCenter - 34, cx + 80, yCenter + 12, cx + 125, yCenter - 10);
+        ctx.lineTo(cx + 125, yCenter + 16);
+        ctx.bezierCurveTo(cx + 80, yCenter + 38, cx + 38, yCenter - 6, cx, yCenter + 16);
+        ctx.bezierCurveTo(cx - 38, yCenter + 38, cx - 80, yCenter - 6, cx - 125, yCenter + 16);
         ctx.closePath();
         ctx.fill();
         ctx.restore();
     };
 
-    drawWaveBand(92, '#38bdf8');
-    drawWaveBand(134, '#0284c7');
-    drawWaveBand(176, '#8DB600');
+    drawWaveBand(76, '#38bdf8');
+    drawWaveBand(118, '#0284c7');
+    drawWaveBand(160, '#8DB600');
 
     ctx.textAlign = 'center';
     ctx.fillStyle = '#0f172a';
-    ctx.font = '900 58px sans-serif';
-    ctx.fillText(stationTitle.toUpperCase(), cx, 256);
+    drawFittedText(ctx, brand, cx, 250, canvas.width - 72, 74, '900');
 
     ctx.fillStyle = '#0369a1';
-    ctx.font = '800 20px sans-serif';
-    ctx.fillText('PURIFIED WATER • 20L', cx, 290);
+    drawFittedText(ctx, 'WATER REFILLING STATION', cx, 294, canvas.width - 64, 28, '900');
+
+    ctx.fillStyle = '#4d7c0f';
+    drawFittedText(ctx, 'PURIFIED DRINKING WATER • 20L', cx, 328, canvas.width - 80, 18, '800');
 
     const tex = new THREE.CanvasTexture(canvas);
     tex.colorSpace = THREE.SRGBColorSpace;
@@ -93,6 +117,7 @@ function createSlimJugPropertyStickerTexture({
     canvas.width = 512;
     canvas.height = 640;
     const ctx = canvas.getContext('2d');
+    const brand = normalizeStationBrand(stationTitle);
 
     const drawRoundedRect = (x, y, w, h, r) => {
         ctx.beginPath();
@@ -126,9 +151,8 @@ function createSlimJugPropertyStickerTexture({
         ctx.fillStyle = '#dc2626';
         ctx.fillRect(0, 0, w, 86);
         ctx.fillStyle = '#fef08a';
-        ctx.font = '900 38px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('PROPERTY OF', w / 2, 62);
+        drawFittedText(ctx, 'PROPERTY OF', w / 2, 62, w - 48, 38, '900');
 
         // Seaside Emblem Circle
         const logoY = 172;
@@ -158,38 +182,32 @@ function createSlimJugPropertyStickerTexture({
         }
         ctx.restore();
 
-        // Bold Station Title
+        // Bold "SEASIDE" Title (Auto-fitted with zero clipping)
         ctx.fillStyle = '#0369a1';
-        ctx.font = '900 72px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(stationTitle.toUpperCase(), w / 2, 304);
+        drawFittedText(ctx, brand, w / 2, 304, w - 56, 76, '900');
 
         // Apple Green "WATER REFILLING STATION" Ribbon
         ctx.fillStyle = '#659000';
-        ctx.fillRect(28, 326, w - 56, 48);
+        ctx.fillRect(26, 326, w - 52, 48);
         ctx.fillStyle = '#ffffff';
-        ctx.font = '900 24px sans-serif';
-        ctx.fillText('WATER REFILLING STATION', w / 2, 358);
+        drawFittedText(ctx, 'WATER REFILLING STATION', w / 2, 358, w - 76, 25, '900');
 
         // Quality & Location Details
         ctx.fillStyle = '#0f172a';
-        ctx.font = '800 22px sans-serif';
-        ctx.fillText('Purified Drinking Water', w / 2, 412);
+        drawFittedText(ctx, 'Purified Drinking Water', w / 2, 412, w - 64, 22, '800');
 
         ctx.fillStyle = '#475569';
-        ctx.font = '700 19px sans-serif';
-        ctx.fillText('Laois, Labrador, Pangasinan', w / 2, 444);
+        drawFittedText(ctx, 'Laois, Labrador, Pangasinan', w / 2, 444, w - 64, 19, '700');
 
         ctx.fillStyle = '#0284c7';
-        ctx.font = '800 18px monospace';
-        ctx.fillText(tdsLabel, w / 2, 478);
+        drawFittedText(ctx, tdsLabel, w / 2, 478, w - 64, 18, '800', 'monospace');
 
         // Bottom Yellow/Red Warning Strip
         ctx.fillStyle = '#facc15';
         ctx.fillRect(0, h - 84, w, 84);
         ctx.fillStyle = '#b91c1c';
-        ctx.font = '900 23px sans-serif';
-        ctx.fillText('DO NOT REMOVE THIS STICKER', w / 2, h - 34);
+        drawFittedText(ctx, 'DO NOT REMOVE THIS STICKER', w / 2, h - 34, w - 48, 23, '900');
 
         ctx.restore();
     };
@@ -275,7 +293,6 @@ export function buildRoundCarboy3D({
         return m;
     };
 
-    const cleanTitle = stationName.replace(/water refilling station/i, '').trim() || 'SEASIDE';
     const frostedBumpTex = createFrostedPolycarbonateTexture();
     disposables.push(frostedBumpTex);
 
@@ -390,15 +407,15 @@ export function buildRoundCarboy3D({
     meniscusMesh.position.y = waterBottomY + waterMaxSpan * initialFill;
     group.add(meniscusMesh);
 
-    // 5. Seaside Triple-Wave Decal on Lower-Middle Clear Panel
-    const roundPrintTex = createRoundJugPrintTexture(cleanTitle);
+    // 5. "SEASIDE Water Refilling Station" Decal on Lower-Middle Clear Panel
+    const roundPrintTex = createRoundJugPrintTexture(stationName);
     disposables.push(roundPrintTex);
-    const roundPrintArc = Math.PI * 0.48;
+    const roundPrintArc = Math.PI * 0.56;
     const roundPrintGeo = trackGeo(
         new THREE.CylinderGeometry(
             0.955,
             0.955,
-            0.56,
+            0.62,
             48,
             1,
             true,
@@ -610,8 +627,6 @@ export function buildSlimContainer3D({
         disposables.push(m);
         return m;
     };
-
-    const cleanTitle = stationName.replace(/water refilling station/i, '').trim() || 'SEASIDE';
 
     // Seaside Apple Green (#8DB600) Blow-Molded HDPE Body Material
     const slimAppleGreenMat = trackMat(
@@ -829,9 +844,9 @@ export function buildSlimContainer3D({
     faucetGroup.add(paddlePivot);
     group.add(faucetGroup);
 
-    // 8. "PROPERTY OF SEASIDE" Waterproof Sticker on Narrow Front Chest
+    // 8. "PROPERTY OF SEASIDE WATER REFILLING STATION" Waterproof Sticker on Narrow Front Chest
     const slimStickerTex = createSlimJugPropertyStickerTexture({
-        stationTitle: cleanTitle,
+        stationTitle: stationName,
         tdsLabel
     });
     disposables.push(slimStickerTex);
