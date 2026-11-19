@@ -39,7 +39,7 @@ export default function ProductManagementPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
 
-    const { data: productsData = { products: [], totalPages: 1 }, isLoading, refetch: refetchProducts } = useProducts({
+    const { data: productsData = { products: [], totalPages: 1 }, isLoading } = useProducts({
         page: currentPage,
         itemsPerPage,
         searchTerm: debouncedSearchTerm,
@@ -104,6 +104,13 @@ export default function ProductManagementPage() {
     useEffect(() => {
         setCurrentPage(1);
     }, [debouncedSearchTerm, categoryFilter]);
+
+    const preventEnterReload = (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    };
 
     // Live Margin Calculations
     const liveProfitMetrics = useMemo(() => {
@@ -197,6 +204,8 @@ export default function ProductManagementPage() {
 
     const save = async (e) => {
         if (e?.preventDefault) e.preventDefault();
+        if (e?.stopPropagation) e.stopPropagation();
+
         const parsedPrice = currency(price).value;
 
         if (!name.trim() || !price) {
@@ -245,7 +254,6 @@ export default function ProductManagementPage() {
                     .eq('id', targetId);
             }
 
-            refetchProducts();
             closeModal();
         } catch (err) {
             addToast({ title: 'Save Failed', description: err.message, variant: 'destructive' });
@@ -263,7 +271,6 @@ export default function ProductManagementPage() {
                 description: `${p.name} is now ${newVisibility ? 'hidden from POS terminal' : 'available in POS'}.`,
                 variant: 'success'
             });
-            refetchProducts();
         } catch (err) {
             addToast({ title: 'Error', description: err.message, variant: 'destructive' });
         }
@@ -437,6 +444,7 @@ export default function ProductManagementPage() {
                             placeholder="Search products by name or barcode... (/)"
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
+                            onKeyDown={preventEnterReload}
                             className="bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 text-xs sm:text-sm h-10 rounded-xl focus:border-[#8DB600] focus:ring-[#8DB600]"
                         />
                     </div>
@@ -665,7 +673,7 @@ export default function ProductManagementPage() {
             {/* ADD / EDIT PRODUCT MODAL (Selection-only from saved 3D Icons & Product Visuals) */}
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
                 <DialogContent className="p-0 sm:max-w-[760px] w-full bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden rounded-3xl dark:[color-scheme:dark]">
-                    <div>
+                    <div onKeyDown={preventEnterReload}>
                         {/* Header */}
                         <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/95 flex items-center justify-between">
                             <div>
@@ -673,7 +681,7 @@ export default function ProductManagementPage() {
                                     {editing ? 'Edit Product Details' : 'Add New Inventory Item'}
                                 </DialogTitle>
                                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                                    {editing ? `SKU Item ID: #${editing.id}` : 'Select a saved 3D station visual and configure POS pricing.'}
+                                    {editing ? `SKU Item ID: #${editing.id}` : 'Select a saved 3D station visual from the library and configure POS pricing.'}
                                 </p>
                             </div>
                             <DialogCloseButton type="button" onClick={closeModal} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-full" />

@@ -111,6 +111,13 @@ export default function Product3DIconsPage() {
         setImageUrlInput('');
     };
 
+    const preventEnterReload = (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    };
+
     const handleFilePicked = async (e) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -129,6 +136,7 @@ export default function Product3DIconsPage() {
 
     const handleCreateSubmit = async (e) => {
         if (e?.preventDefault) e.preventDefault();
+        if (e?.stopPropagation) e.stopPropagation();
         if (!isAdmin || isDemo) return;
 
         if (!label.trim()) {
@@ -320,6 +328,7 @@ export default function Product3DIconsPage() {
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
+                        onKeyDown={preventEnterReload}
                         placeholder="Search 3D icons by name or key..."
                         className="w-full h-10 pl-10 pr-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-[#8DB600]"
                     />
@@ -421,10 +430,10 @@ export default function Product3DIconsPage() {
                 </div>
             )}
 
-            {/* ADD NEW 3D ICON / IMAGE MODAL (No <form> tag so native reload cannot occur) */}
+            {/* ADD NEW 3D ICON / IMAGE MODAL (No <form> element — zero native reload) */}
             <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
                 <DialogContent className="p-0 sm:max-w-[560px] w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-2xl">
-                    <div>
+                    <div onKeyDown={preventEnterReload}>
                         <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900 flex items-center justify-between">
                             <div>
                                 <DialogTitle className="text-base sm:text-lg font-black text-slate-900 dark:text-white">

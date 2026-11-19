@@ -9,10 +9,6 @@ import {
 import { useStore } from '../store/useStore';
 import { logActivity } from './useActivityLogs';
 
-/**
- * Flood-fills outer near-white background pixels connected to the image edges
- * so AI-generated 3D studio renders on #FFFFFF blend transparently onto dark & light cards.
- */
 function stripOuterWhiteBackground(ctx, size) {
     const imgData = ctx.getImageData(0, 0, size, size);
     const data = imgData.data;
@@ -61,10 +57,6 @@ function stripOuterWhiteBackground(ctx, size) {
     ctx.putImageData(imgData, 0, 0);
 }
 
-/**
- * Normalizes any uploaded or AI-generated 3D icon/image into a uniform 256x256
- * transparent PNG with centered 12% optical padding.
- */
 export function normalize3DIconFile(file, targetSize = 256, { stripSolidWhiteBg = false } = {}) {
     return new Promise((resolve, reject) => {
         if (!file || typeof window === 'undefined') {
@@ -150,8 +142,10 @@ export function useProduct3DAssets() {
             registerCustom3DAssetsCache(resolved);
             return resolved;
         },
-        staleTime: 1000 * 60 * 5,
-        placeholderData: (prev) => prev
+        staleTime: Infinity,
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: false,
+        refetchOnMount: false
     });
 
     useEffect(() => {
@@ -165,7 +159,6 @@ export function useProduct3DAssets() {
 
 export function useCreateProduct3DAsset() {
     const queryClient = useQueryClient();
-    const currentUser = useStore((s) => s.user);
 
     return useMutation({
         mutationFn: async ({
@@ -229,6 +222,7 @@ export function useCreateProduct3DAsset() {
 
             if (error) throw error;
 
+            const currentUser = useStore.getState().user;
             logActivity({
                 user: currentUser,
                 action: 'CREATE',
@@ -238,16 +232,18 @@ export function useCreateProduct3DAsset() {
 
             return data;
         },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['product-3d-assets'] });
-            queryClient.invalidateQueries({ queryKey: ['activity-logs'] });
+        onSuccess: (createdAsset) => {
+            queryClient.setQueryData(['product-3d-assets'], (old = BUILTIN_WRS_3D_ASSETS) => {
+                const next = [...old, createdAsset];
+                registerCustom3DAssetsCache(next);
+                return next;
+            });
         }
     });
 }
 
 export function useGenerateAI3DIcon() {
     const queryClient = useQueryClient();
-    const currentUser = useStore((s) => s.user);
 
     return useMutation({
         mutationFn: async ({
@@ -318,6 +314,7 @@ export function useGenerateAI3DIcon() {
 
             if (insertError) throw insertError;
 
+            const currentUser = useStore.getState().user;
             logActivity({
                 user: currentUser,
                 action: 'CREATE',
@@ -327,16 +324,18 @@ export function useGenerateAI3DIcon() {
 
             return savedAsset;
         },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['product-3d-assets'] });
-            queryClient.invalidateQueries({ queryKey: ['activity-logs'] });
+        onSuccess: (savedAsset) => {
+            queryClient.setQueryData(['product-3d-assets'], (old = BUILTIN_WRS_3D_ASSETS) => {
+                const next = [...old, savedAsset];
+                registerCustom3DAssetsCache(next);
+                return next;
+            });
         }
     });
 }
 
 export function useDeleteProduct3DAsset() {
     const queryClient = useQueryClient();
-    const currentUser = useStore((s) => s.user);
 
     return useMutation({
         mutationFn: async (asset) => {
@@ -359,6 +358,7 @@ export function useDeleteProduct3DAsset() {
                     .eq('icon_3d_key', asset.asset_key);
             }
 
+            const currentUser = useStore.getState().user;
             logActivity({
                 user: currentUser,
                 action: 'DELETE',
@@ -368,17 +368,18 @@ export function useDeleteProduct3DAsset() {
 
             return asset;
         },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['product-3d-assets'] });
-            queryClient.invalidateQueries({ queryKey: ['products'] });
-            queryClient.invalidateQueries({ queryKey: ['activity-logs'] });
+        onSuccess: (deletedAsset) => {
+            queryClient.setQueryData(['product-3d-assets'], (old = []) => {
+                const next = old.filter((item) => item.asset_key !== deletedAsset.asset_key);
+                registerCustom3DAssetsCache(next);
+                return next;
+            });
         }
     });
 }
 
 export function useRestoreBuiltin3DAssets() {
     const queryClient = useQueryClient();
-    const currentUser = useStore((s) => s.user);
 
     return useMutation({
         mutationFn: async () => {
@@ -394,22 +395,30 @@ export function useRestoreBuiltin3DAssets() {
                 is_active: true
             }));
 
-            const { error } = await supabase
+            const { data, error } = await supabase
                 .from('product_3d_assets')
-                .upsert(rows, { onConflict: 'asset_key' });
+                .upsert(rows, { onConflict: 'asset_key' })
+                .select();
 
             if (error) throw error;
 
+            const currentUser = useStore.getState().user;
             logActivity({
                 user: currentUser,
                 action: 'CREATE',
                 entity_type: 'PRODUCT_3D_ICON',
                 description: 'Restored default Philippine WRS 3D icon library'
             });
+
+            return data || rows;
         },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['product-3d-assets'] });
-            queryClient.invalidateQueries({ queryKey: ['activity-logs'] });
+        onSuccess: (restoredRows) => {
+            queryClient.setQueryData(['product-3d-assets'], (old = []) => {
+                const customOnly = old.filter((item) => !item.is_builtin && item.image_url);
+                const next = [...restoredRows, ...customOnly];
+                registerCustom3DAssetsCache(next);
+                return next;
+            });
         }
     });
 }

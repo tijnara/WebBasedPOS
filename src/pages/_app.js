@@ -64,44 +64,18 @@ function AuthGate({ children }) {
     }, [user, sessionLoaded, router]);
 
     useEffect(() => {
-        const isNewTabSession = typeof window !== 'undefined' && !sessionStorage.getItem('pos_tab_initialized');
-        if (isNewTabSession) {
-            sessionStorage.setItem('pos_tab_initialized', 'true');
-        }
-
         if (!user) return;
 
         const IDLE_TIMEOUT = 15 * 60 * 1000;
-
-        const checkNavigationState = () => {
-            const now = Date.now();
-            const lastActive = localStorage.getItem('pos_last_active_time');
-            let needsRedirect = false;
-
-            if (isNewTabSession) {
-                needsRedirect = true;
-            } else if (lastActive && now - parseInt(lastActive, 10) > IDLE_TIMEOUT) {
-                needsRedirect = true;
-            }
-
-            if (needsRedirect) {
-                localStorage.setItem('pos_last_active_time', now.toString());
-                if (router.pathname !== '/') {
-                    router.push('/');
-                }
-            }
-        };
 
         const resetTimer = () => {
             localStorage.setItem('pos_last_active_time', Date.now().toString());
         };
 
-        checkNavigationState();
         resetTimer();
 
         const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
         events.forEach(e => document.addEventListener(e, resetTimer, true));
-        window.addEventListener('focus', checkNavigationState);
 
         const intervalId = setInterval(() => {
             const lastActive = localStorage.getItem('pos_last_active_time');
@@ -111,14 +85,13 @@ function AuthGate({ children }) {
                     router.push('/');
                 }
             }
-        }, 30000);
+        }, 60000);
 
         return () => {
             events.forEach(e => document.removeEventListener(e, resetTimer, true));
-            window.removeEventListener('focus', checkNavigationState);
             clearInterval(intervalId);
         };
-    }, [user, router.pathname]);
+    }, [user, router]);
 
     if (!sessionLoaded) {
         return (
@@ -191,9 +164,11 @@ export default function App({ Component, pageProps }) {
         defaultOptions: {
             queries: {
                 gcTime: 1000 * 60 * 60 * 24 * 7,
-                staleTime: 1000 * 60 * 5,
+                staleTime: 1000 * 60 * 10,
                 refetchOnWindowFocus: false,
                 refetchOnReconnect: false,
+                refetchOnMount: false,
+                retry: false,
             },
         },
         mutationCache: new MutationCache({
@@ -291,7 +266,7 @@ export default function App({ Component, pageProps }) {
                                         <div className="toast__title font-semibold text-gray-800 dark:text-gray-100">{t.title}</div>
                                         {t.description && <div className="toast__desc text-sm text-gray-600 dark:text-gray-300 mt-1">{t.description}</div>}
                                     </div>
-                                    <Button variant="ghost" size="sm" className="p-1 -mr-2 -mt-2 h-auto text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full" onClick={() => dismissToast(t.id)} aria-label="Dismiss toast">
+                                    <Button type="button" variant="ghost" size="sm" className="p-1 -mr-2 -mt-2 h-auto text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full" onClick={() => dismissToast(t.id)} aria-label="Dismiss toast">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                                             <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" />
                                         </svg>
