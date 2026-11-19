@@ -140,7 +140,6 @@ export default function POSPage() {
         currentCustomer, setCurrentCustomer, updateCartItem
     } = useStore();
 
-    // Centralized safe cart clear handler
     const handleClearCart = useCallback(() => {
         try {
             if (typeof clearSale === 'function') {
@@ -212,6 +211,14 @@ export default function POSPage() {
         setSearchTerm,
     });
 
+    // Keep amountReceived synced with subtotal unless user picked a higher quick-tender bill
+    useEffect(() => {
+        const cur = parseFloat(amountReceived);
+        if (subtotal <= 0 || isNaN(cur) || cur < subtotal) {
+            setAmountReceived(subtotal > 0 ? subtotal.toFixed(2) : '');
+        }
+    }, [subtotal]);
+
     const handleScanResult = (code) => {
         closeScanner();
         setSearchTerm(code);
@@ -234,15 +241,20 @@ export default function POSPage() {
         }
     }, [scannedProduct]);
 
-    const openPaymentModal = () => {
+    const openPaymentModal = useCallback(() => {
         const currentTotal = getTotalAmount();
         if (Object.keys(currentSale).length === 0) {
             addToast({ title: 'Empty Cart', description: 'Add items before proceeding.', variant: 'warning' });
             return;
         }
 
-        setAmountReceived(currentTotal.toFixed(2));
-        setPaymentMethod('Cash');
+        const currentTendered = parseFloat(amountReceived);
+        if (!amountReceived || isNaN(currentTendered) || currentTendered < currentTotal) {
+            setAmountReceived(currentTotal.toFixed(2));
+        }
+        if (!paymentMethod) {
+            setPaymentMethod('Cash');
+        }
         setSaleDate(getLocalDateString());
         setSaleTime(getLocalTimeString());
 
@@ -257,7 +269,11 @@ export default function POSPage() {
         } else {
             openPaymentModalHandler();
         }
-    };
+    }, [
+        getTotalAmount, currentSale, addToast, amountReceived, setAmountReceived,
+        paymentMethod, setPaymentMethod, setSaleDate, setSaleTime,
+        isCartDrawerOpen, closeCartDrawer, openPaymentModalHandler
+    ]);
 
     // Hotkey Products loaded dynamically from DB
     const [hotkeyProducts, setHotkeyProducts] = useState({});
@@ -312,7 +328,7 @@ export default function POSPage() {
         const handleKeyDown = (event) => {
             const isTyping = ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName) || document.activeElement.isContentEditable;
 
-            if (event.key === 'F1') {
+            if (event.key === 'F1' || (!isTyping && event.key === '/')) {
                 event.preventDefault();
                 productSearchInputRef.current?.focus();
             }
@@ -340,9 +356,9 @@ export default function POSPage() {
                 }
             }
 
-            if (event.key === 'F3') {
+            if (event.key === 'F3' || (!isTyping && (event.key === 'p' || event.key === 'P'))) {
                 event.preventDefault();
-                if (!isCustomSaleModalOpen && !isPaymentModalOpen) {
+                if (!isCustomSaleModalOpen && !isPaymentModalOpen && !isDemo) {
                     openCustomSale();
                 }
             }
@@ -381,7 +397,7 @@ export default function POSPage() {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [
         isPaymentModalOpen, isCustomerModalOpen, isCustomSaleModalOpen,
-        isScannerOpen, editItemKey, isCartDrawerOpen,
+        isScannerOpen, editItemKey, isCartDrawerOpen, isDemo,
         openPaymentModal, closePaymentModal, openCustomerModal, closeCustomerModal,
         openCustomSale, closeCustomSale, closeScanner, closeEditItem, closeCartDrawer, setSearchTerm,
         hotkeyProducts, handleClearCart
@@ -546,74 +562,74 @@ export default function POSPage() {
     const isAnyModalOpen = isCartDrawerOpen || isPaymentModalOpen || isCustomerModalOpen || isCustomSaleModalOpen || Boolean(editItemKey) || isScannerOpen || isScanSalesModalOpen;
 
     return (
-        <div className="pos-page flex flex-col md:flex-row gap-2 h-full max-h-full w-full overflow-hidden p-1.5 md:p-2.5 bg-slate-100 dark:bg-slate-950 box-border">
+        <div className="pos-page flex flex-col md:flex-row gap-2.5 h-full max-h-full w-full overflow-hidden p-1.5 md:p-2.5 bg-slate-100 dark:bg-[#0b111e] box-border">
 
             {/* --- LEFT PANEL: CATALOG & ACTIONS --- */}
-            <div className="flex-1 flex flex-col min-w-0 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs border border-slate-200 dark:border-slate-800 overflow-hidden relative z-10 h-full max-h-full min-h-0">
+            <div className="flex-1 flex flex-col min-w-0 bg-white dark:bg-[#111827] rounded-2xl shadow-2xs border border-slate-200 dark:border-slate-800 overflow-hidden relative z-10 h-full max-h-full min-h-0">
 
-                {/* Header Row: Search + Action Buttons */}
-                <div className="p-2 sm:p-2.5 md:p-3 border-b border-slate-100 dark:border-slate-800 flex items-center gap-1.5 sm:gap-2 bg-white dark:bg-slate-900 shrink-0">
+                {/* Header Row: Search + Scan List + Custom (F3) */}
+                <div className="p-2.5 sm:p-3 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2 bg-white dark:bg-[#111827] shrink-0">
                     <div className="relative flex-1 flex items-center group min-w-0">
-                        <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 absolute left-3 text-slate-400 group-focus-within:text-[#8DB600] transition-colors pointer-events-none z-10" />
+                        <Search className="w-4 h-4 absolute left-3 text-slate-400 group-focus-within:text-emerald-400 transition-colors pointer-events-none z-10" />
                         <input
                             ref={productSearchInputRef}
                             type="text"
-                            placeholder="Search product / barcode..."
+                            placeholder="Search product / barcode... (/)"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            style={{ paddingLeft: '2.2rem' }}
-                            className="w-full pr-8 h-9 sm:h-10 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-900 focus:border-[#8DB600] focus:ring-2 focus:ring-[#8DB600]/20 transition-all font-medium text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 outline-none"
+                            style={{ paddingLeft: '2.25rem' }}
+                            className="w-full pr-9 h-9 sm:h-10 rounded-xl bg-slate-50 dark:bg-[#1a2333] border border-slate-200 dark:border-slate-700/80 focus:bg-white dark:focus:bg-slate-900 focus:border-[#8DB600] dark:focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all font-medium text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 outline-none"
                         />
                         <button
                             type="button"
                             onClick={handleCameraButtonClick}
-                            className="absolute right-1.5 p-1 text-slate-400 hover:text-[#8DB600] hover:bg-lime-50 dark:hover:bg-lime-950/40 rounded-lg transition-colors outline-none z-10 cursor-pointer"
+                            className="absolute right-2 p-1 text-slate-400 hover:text-emerald-400 hover:bg-slate-200/60 dark:hover:bg-slate-800 rounded-lg transition-colors outline-none z-10 cursor-pointer"
                             title="Open Camera Scanner"
                         >
-                            <ScanLine className="w-3.5 h-3.5" />
+                            <ScanLine className="w-4 h-4" />
                         </button>
                     </div>
 
-                    <div className="flex items-center gap-1.5 shrink-0">
+                    <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                         <Button
                             variant="outline"
                             onClick={handleOpenScanList}
-                            className="h-9 sm:h-10 px-2.5 sm:px-3 rounded-xl border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-[#5f7d00] font-bold whitespace-nowrap transition-all active:scale-95 text-[11px] sm:text-xs flex items-center gap-1 shrink-0 cursor-pointer"
+                            className="h-9 sm:h-10 px-2.5 sm:px-3.5 rounded-xl bg-white dark:bg-[#1a2333] border-slate-200 dark:border-slate-700/80 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 font-bold whitespace-nowrap transition-all active:scale-95 text-[11px] sm:text-xs flex items-center gap-1.5 shrink-0 cursor-pointer"
                             title="Scan Sales List"
                         >
-                            <ScanLine className="w-3.5 h-3.5 shrink-0" />
+                            <ScanLine className="w-3.5 h-3.5 shrink-0 text-slate-400" />
                             <span>Scan List</span>
                         </Button>
                         <Button
-                            variant="primary"
+                            variant="outline"
                             onClick={openCustomSale}
-                            className="h-9 sm:h-10 px-2.5 sm:px-3.5 rounded-xl shadow-xs font-bold whitespace-nowrap transition-all active:scale-95 bg-[#8DB600] hover:bg-[#7ca000] text-white text-[11px] sm:text-xs flex items-center gap-1 shrink-0 cursor-pointer"
+                            className="h-9 sm:h-10 px-2.5 sm:px-3.5 rounded-xl bg-white dark:bg-[#1a2333] border-slate-200 dark:border-slate-700/80 text-slate-800 dark:text-slate-100 hover:bg-lime-50 dark:hover:bg-slate-800 hover:border-[#8DB600] font-bold whitespace-nowrap transition-all active:scale-95 text-[11px] sm:text-xs flex items-center gap-1.5 shrink-0 cursor-pointer"
                             disabled={isDemo}
                         >
-                            <PlusCircle className="w-3.5 h-3.5 shrink-0" />
+                            <PlusCircle className="w-3.5 h-3.5 shrink-0 text-[#659000] dark:text-emerald-400" />
                             <span>Custom</span>
-                            <span className="hidden md:inline ml-0.5">(F3)</span>
+                            <span className="hidden md:inline text-slate-400">(F3)</span>
                         </Button>
                     </div>
                 </div>
 
                 {/* Filters & Quick Keys Area */}
-                <div className="px-2 sm:px-2.5 md:px-3 py-1.5 border-b border-slate-100 dark:border-slate-800 flex flex-col gap-1 shrink-0 bg-slate-50/50 dark:bg-slate-900">
+                <div className="px-2.5 sm:px-3 py-2 border-b border-slate-100 dark:border-slate-800/90 flex flex-col gap-1.5 shrink-0 bg-slate-50/50 dark:bg-[#111827]">
 
                     {/* Category Scroll Container */}
-                    <div className="category-scroll-container flex items-center gap-1.5 overflow-x-auto pb-1 w-full">
-                        <div className="flex items-center gap-1 pr-1.5 border-r border-slate-200 dark:border-slate-700 mr-0.5 shrink-0 text-slate-400">
+                    <div className="category-scroll-container flex items-center gap-1.5 overflow-x-auto pb-0.5 w-full">
+                        <div className="flex items-center gap-1 pr-2 text-slate-400 shrink-0">
                             <Filter className="w-3 h-3" />
-                            <span className="text-[9px] font-bold uppercase tracking-wider hidden sm:inline-block">Filter</span>
+                            <span className="text-[10px] font-bold uppercase tracking-wider">FILTER</span>
                         </div>
                         {availableCategories.map((cat) => (
                             <button
                                 key={cat}
                                 onClick={() => { setCategoryFilter(cat); setCurrentPage(1); }}
-                                className={`flex-shrink-0 whitespace-nowrap px-2.5 sm:px-3 py-1 rounded-full text-[10px] sm:text-[11px] font-bold transition-all select-none cursor-pointer ${
+                                className={`flex-shrink-0 whitespace-nowrap px-3 py-1 rounded-full text-[11px] font-bold transition-all select-none cursor-pointer ${
                                     categoryFilter === cat
-                                        ? 'bg-[#8DB600] text-white shadow-2xs'
-                                        : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
+                                        ? 'bg-emerald-500 text-white shadow-2xs'
+                                        : 'bg-white dark:bg-[#1a2333] border border-slate-200 dark:border-slate-700/80 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
                                 }`}
                             >
                                 {cat}
@@ -623,9 +639,9 @@ export default function POSPage() {
 
                     {/* Quick Add Hotkeys Bar */}
                     <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
-                        <div className="flex items-center gap-1 pr-1.5 border-r border-slate-200 dark:border-slate-700 mr-0.5 shrink-0">
-                            <img src="/seasidelogo_.png" alt="Seaside" className="w-3 h-3 object-contain" />
-                            <span className="text-[9px] font-bold uppercase tracking-widest hidden sm:inline-block text-slate-600 dark:text-slate-400">Quick</span>
+                        <div className="flex items-center gap-1 pr-2 text-slate-400 shrink-0">
+                            <img src="/seasidelogo_.png" alt="Seaside" className="w-3.5 h-3.5 object-contain" />
+                            <span className="text-[10px] font-bold uppercase tracking-wider">QUICK</span>
                         </div>
 
                         {[
@@ -644,37 +660,39 @@ export default function POSPage() {
                                         handleAdd(prod);
                                         addToast({ title: 'Quick Add', description: `${prod.name} added.`, variant: 'success' });
                                     }}
-                                    className="flex items-center gap-1 px-2 py-0.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-lime-400 hover:bg-lime-50 dark:hover:bg-slate-700 rounded-lg shadow-2xs text-[10px] sm:text-[11px] font-bold text-slate-700 dark:text-slate-200 transition-all flex-shrink-0 active:scale-95 group cursor-pointer"
+                                    className="flex items-center gap-1.5 px-2.5 py-1 bg-white dark:bg-[#1a2333] border border-slate-200 dark:border-slate-700/80 hover:border-emerald-500/60 rounded-lg text-[11px] font-bold text-slate-700 dark:text-slate-200 transition-all flex-shrink-0 active:scale-95 group cursor-pointer"
                                 >
-                                    <kbd className="flex min-w-[14px] h-3.5 items-center justify-center bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded text-[8px] text-slate-600 dark:text-slate-300 font-bold group-hover:bg-white dark:group-hover:bg-slate-600 group-hover:text-[#5f7d00] dark:group-hover:text-lime-400">
+                                    <kbd className="flex min-w-[15px] h-4 items-center justify-center bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded text-[9px] text-slate-600 dark:text-slate-300 font-bold">
                                         {key}
                                     </kbd>
-                                    <span className="truncate max-w-[110px]">{prod.name}</span>
-                                    <span className="text-[#8DB600] dark:text-lime-400 font-black">₱{Number(prod.price).toFixed(2)}</span>
+                                    <span className="truncate max-w-[130px]">{prod.name}</span>
+                                    <span className="text-[#659000] dark:text-emerald-400 font-black">
+                                        ₱{Number(prod.price).toFixed(2)}
+                                    </span>
                                 </button>
                             );
                         })}
 
-                        <div className="hidden md:flex items-center gap-2.5 ml-auto text-[11px] text-slate-400 font-medium shrink-0">
+                        <div className="hidden xl:flex items-center gap-2.5 ml-auto text-[10.5px] text-slate-400 font-medium shrink-0">
                             <span className="flex items-center gap-1">
-                                <Keyboard className="w-3 h-3 text-slate-400" />
-                                <kbd className="font-mono font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 px-1 rounded text-[9px]">F1</kbd> Search
+                                <Keyboard className="w-3 h-3 text-slate-500" />
+                                <kbd className="font-mono font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-1 rounded text-[9px]">F1</kbd> Search
                             </span>
                             <span className="flex items-center gap-1">
-                                <kbd className="font-mono font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 px-1 rounded text-[9px]">F2</kbd> Cust
+                                <kbd className="font-mono font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-1 rounded text-[9px]">F2</kbd> Cust
                             </span>
                             <span className="flex items-center gap-1">
-                                <kbd className="font-mono font-bold text-[#5f7d00] dark:text-lime-400 bg-lime-100 dark:bg-lime-950/60 px-1 rounded text-[9px]">F3</kbd> Custom
+                                <kbd className="font-mono font-bold text-[#5f7d00] dark:text-emerald-400 bg-lime-100 dark:bg-emerald-950/60 px-1 rounded text-[9px]">F3</kbd> Custom
                             </span>
                             <span className="flex items-center gap-1">
-                                <kbd className="font-mono font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 px-1 rounded text-[9px]">F4</kbd> Pay
+                                <kbd className="font-mono font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-1 rounded text-[9px]">F4</kbd> Pay
                             </span>
                         </div>
                     </div>
                 </div>
 
-                {/* --- Scrollable Product Grid Region --- */}
-                <div className="pos-product-scroll-area flex-1 p-2 sm:p-2.5 pb-24 md:pb-2.5 bg-slate-50/50 dark:bg-slate-900/50 relative min-h-0">
+                {/* --- Scrollable 3D Product Grid Region --- */}
+                <div className="pos-product-scroll-area flex-1 p-2.5 sm:p-3.5 pb-24 md:pb-3.5 bg-slate-50/50 dark:bg-[#0e1525] relative min-h-0 overflow-y-auto">
                     <POSProductGrid
                         isLoading={isLoadingProducts}
                         products={products}
@@ -683,12 +701,13 @@ export default function POSPage() {
                         currentPage={currentPage}
                         totalPages={totalPages}
                         setCurrentPage={setCurrentPage}
+                        currentSale={currentSale}
                     />
                 </div>
             </div>
 
-            {/* --- RIGHT PANEL: CART (Desktop View) --- */}
-            <div className="hidden md:flex w-full md:w-[340px] lg:w-[380px] xl:w-[420px] flex-shrink-0 flex-col h-full max-h-full z-10 min-h-0">
+            {/* --- RIGHT PANEL: CURRENT ORDER (Desktop Split View) --- */}
+            <div className="hidden md:flex w-full md:w-[340px] lg:w-[385px] xl:w-[410px] flex-shrink-0 flex-col h-full max-h-full z-10 min-h-0">
                 <POSCart
                     currentSale={currentSale}
                     clearSale={handleClearCart}
@@ -705,6 +724,10 @@ export default function POSPage() {
                     handleSetQuantity={handleSetQuantity}
                     stockWarningKey={stockWarningKey}
                     isDemo={isDemo}
+                    paymentMethod={paymentMethod}
+                    setPaymentMethod={setPaymentMethod}
+                    amountReceived={amountReceived}
+                    setAmountReceived={setAmountReceived}
                 />
             </div>
 

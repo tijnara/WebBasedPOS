@@ -1,14 +1,34 @@
 // src/components/pos/POSCart.jsx
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader } from '../ui';
 import currency from 'currency.js';
-import { ProductImage } from './ProductImage';
-import { Trash2, Edit2, ShoppingBag, User, ChevronRight } from 'lucide-react';
+import {
+    Trash2,
+    ShoppingBag,
+    User,
+    ChevronRight,
+    Banknote,
+    Wallet
+} from 'lucide-react';
+
+const PAYMENT_METHODS = [
+    { id: 'Cash', label: 'Cash', badge: null },
+    { id: 'GCash', label: 'GCash', badge: 'G' },
+    { id: 'Maya', label: 'Maya', badge: 'M' }
+];
+
+const QUICK_TENDERS = [
+    { label: 'Exact', value: 'exact' },
+    { label: '₱50', value: 50 },
+    { label: '₱100', value: 100 },
+    { label: '₱500', value: 500 },
+    { label: '₱1,000', value: 1000 }
+];
 
 const POSCart = ({
-                     currentSale,
+                     currentSale = {},
                      clearSale,
-                     subtotal,
+                     subtotal = 0,
                      handleIncreaseQuantity,
                      handleDecreaseQuantity,
                      handleRemoveItem,
@@ -20,192 +40,240 @@ const POSCart = ({
                      stockWarningKey,
                      selectedCustomer,
                      openCustomerModal,
-                     isDemo
+                     isDemo = false,
+                     paymentMethod: controlledPaymentMethod,
+                     setPaymentMethod: controlledSetPaymentMethod,
+                     amountReceived: controlledAmountReceived,
+                     setAmountReceived: controlledSetAmountReceived
                  }) => {
-    const items = Object.entries(currentSale);
-    const isEmpty = items.length === 0;
-    const totalItemCount = items.reduce((sum, [, item]) => sum + (item.quantity || 0), 0);
+    // Support both controlled props from POSPage and standalone fallback state
+    const [localPaymentMethod, setLocalPaymentMethod] = useState('Cash');
+    const [localAmountReceived, setLocalAmountReceived] = useState('');
 
-    const quickCashPresets = [
-        { label: 'Exact', value: subtotal },
-        { label: '₱50', value: 50 },
-        { label: '₱100', value: 100 },
-        { label: '₱200', value: 200 },
-        { label: '₱500', value: 500 },
-        { label: '₱1,000', value: 1000 },
-    ].filter(preset => preset.label === 'Exact' || preset.value >= subtotal);
+    const paymentMethod = controlledPaymentMethod ?? localPaymentMethod;
+    const setPaymentMethod = controlledSetPaymentMethod ?? setLocalPaymentMethod;
+    const amountReceived = controlledAmountReceived ?? localAmountReceived;
+    const setAmountReceived = controlledSetAmountReceived ?? setLocalAmountReceived;
+
+    const items = Object.entries(currentSale || {});
+    const isEmpty = items.length === 0;
+
+    // Order display reference (#ORD-XXXX)
+    const orderNumber = useMemo(() => {
+        const seed = items.reduce((acc, [, it]) => acc + (it.quantity || 1) * 17, 428);
+        return `#ORD-${String(seed).padStart(4, '0')}`;
+    }, [items]);
+
+    // Calculate any line-item discounts if applied via EditCartItemModal
+    const discountAmount = useMemo(() => {
+        return items.reduce((sum, [, item]) => {
+            if (!item.discountType || item.discountType === 'none' || !item.discountValue) {
+                return sum;
+            }
+            const qty = Number(item.quantity) || 1;
+            const origPrice = Number(item.originalPrice ?? item.price) || 0;
+            if (item.discountType === 'percent') {
+                return sum + origPrice * qty * (Number(item.discountValue) / 100);
+            }
+            return sum + Number(item.discountValue) * qty;
+        }, 0);
+    }, [items]);
+
+    const numericTendered = parseFloat(amountReceived);
+    const changeDue =
+        paymentMethod === 'Cash' && !isNaN(numericTendered) && numericTendered > subtotal
+            ? numericTendered - subtotal
+            : 0;
+
+    const handleQuickTender = (val) => {
+        if (isEmpty) return;
+        setPaymentMethod('Cash');
+        const target = val === 'exact' ? subtotal : Number(val);
+        setAmountReceived(target.toFixed(2));
+    };
+
+    const lastTxTotal = Number(lastCustomer?.lastAmount ?? lastCustomer?.total ?? 0);
 
     return (
-        <Card className="flex flex-col shadow-2xs rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 overflow-hidden h-full max-h-full transition-colors">
-
-            {/* Header with Active Customer Pill */}
-            <CardHeader className="bg-slate-50/90 dark:bg-slate-900/90 border-b border-slate-100 dark:border-slate-800/80 py-2 px-3.5 flex-shrink-0 space-y-1.5">
-                <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                        <div className="w-6.5 h-6.5 rounded-lg bg-lime-100 dark:bg-lime-950/60 text-[#5f7d00] dark:text-lime-400 flex items-center justify-center shrink-0">
-                            <ShoppingBag className="w-3.5 h-3.5" />
-                        </div>
-                        <h3 className="font-extrabold text-xs sm:text-sm text-slate-800 dark:text-slate-100 tracking-tight">
+        <Card className="flex flex-col shadow-2xs rounded-2xl bg-white dark:bg-[#111827] border border-slate-200/90 dark:border-slate-800 overflow-hidden h-full max-h-full transition-colors select-none">
+            {/* TOP HEADER: Current Order + Customer Selector Pill */}
+            <CardHeader className="bg-white dark:bg-[#111827] border-b border-slate-100 dark:border-slate-800/90 p-3.5 sm:p-4 flex-shrink-0 space-y-2.5">
+                <div className="flex justify-between items-start gap-2">
+                    <div>
+                        <h3 className="font-black text-base sm:text-lg text-slate-900 dark:text-white tracking-tight leading-tight">
                             Current Order
                         </h3>
-                        {!isEmpty && (
-                            <span className="text-[10px] font-black px-1.5 py-0.2 rounded-full bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300/50 dark:border-slate-700 font-mono">
-                                {totalItemCount}
+                        <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 mt-0.5">
+                            <User className="w-3.5 h-3.5 shrink-0" />
+                            <span className="truncate max-w-[175px]">
+                                {selectedCustomer ? selectedCustomer.name : 'Walk-in Customer'}
                             </span>
-                        )}
+                        </div>
                     </div>
 
-                    {!isEmpty && (
+                    <div className="flex items-center gap-1.5">
+                        {!isEmpty && (
+                            <button
+                                type="button"
+                                className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
+                                onClick={clearSale}
+                                disabled={isDemo}
+                                title="Clear Order (Shift + Delete)"
+                            >
+                                <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                        )}
                         <button
                             type="button"
-                            className="text-[10px] font-bold text-rose-500 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/40 px-2 py-0.5 rounded transition-colors disabled:opacity-50 cursor-pointer"
-                            onClick={clearSale}
-                            disabled={isDemo}
-                            title="Shift + Delete"
+                            onClick={openCustomerModal}
+                            className="inline-flex items-center gap-0.5 text-[11px] font-bold text-slate-500 dark:text-slate-400 hover:text-[#5f7d00] dark:hover:text-emerald-400 transition-colors cursor-pointer"
                         >
-                            Clear Cart
+                            <span>(F2) change</span>
+                            <ChevronRight className="w-3.5 h-3.5" />
                         </button>
-                    )}
+                    </div>
                 </div>
 
-                {/* Customer Selector Button */}
-                <button
-                    type="button"
-                    onClick={openCustomerModal}
-                    className="w-full flex items-center justify-between px-2.5 py-1 bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/80 hover:border-[#8DB600] dark:hover:border-lime-500 hover:bg-lime-50/40 dark:hover:bg-slate-800 rounded-lg text-xs font-bold transition-all shadow-2xs group cursor-pointer"
-                >
-                    <div className="flex items-center gap-1.5 truncate">
-                        <User className="w-3.5 h-3.5 text-[#8DB600] dark:text-lime-400 shrink-0" />
-                        <span className="text-slate-700 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white truncate text-[11px]">
-                            {selectedCustomer ? selectedCustomer.name : 'Walk-in Customer'}
+                {/* Customer Pill Bar (#ORD-XXXX) */}
+                <div className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-slate-100/90 dark:bg-[#1a2333] border border-slate-200/80 dark:border-slate-700/70 rounded-xl">
+                    <div className="flex items-center gap-2 min-w-0">
+                        <User className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400 shrink-0" />
+                        <span className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">
+                            {selectedCustomer ? selectedCustomer.name : 'Walk in Customer'}
                         </span>
+                        <button
+                            type="button"
+                            onClick={openCustomerModal}
+                            className="text-[11px] font-bold text-sky-600 dark:text-sky-400 hover:underline shrink-0 cursor-pointer"
+                        >
+                            Edit
+                        </button>
                     </div>
-                    <span className="text-[9px] text-slate-400 dark:text-slate-500 group-hover:text-[#5f7d00] dark:group-hover:text-lime-400 font-mono flex items-center gap-0.5 shrink-0">
-                        <span>(F2) Change</span>
-                        <ChevronRight className="w-2.5 h-2.5" />
+                    <span className="text-[10px] font-mono font-bold text-slate-400 dark:text-slate-400 shrink-0">
+                        {orderNumber}
                     </span>
-                </button>
+                </div>
             </CardHeader>
 
-            {/* Scrollable Cart Items */}
-            <CardContent className="p-0 flex-1 relative flex flex-col min-h-0 bg-white dark:bg-slate-900 overflow-hidden">
+            {/* MIDDLE: Scrollable Order Items */}
+            <CardContent className="p-0 flex-1 relative flex flex-col min-h-0 bg-white dark:bg-[#111827] overflow-hidden">
                 {isEmpty ? (
-                    <div className="flex flex-col items-center justify-center text-center p-4 text-slate-400 dark:text-slate-500 h-full gap-2 select-none">
-                        <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60 flex items-center justify-center text-slate-400 dark:text-slate-500 shadow-2xs">
+                    <div className="flex flex-col items-center justify-center text-center p-4 text-slate-400 dark:text-slate-500 h-full gap-2">
+                        <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60 flex items-center justify-center text-slate-400">
                             <ShoppingBag className="w-5 h-5" />
                         </div>
-                        <p className="text-xs font-bold text-slate-600 dark:text-slate-300">Cart is empty</p>
-                        <p className="text-[10px] text-slate-400 dark:text-slate-500 max-w-[170px] leading-relaxed">
-                            Scan a barcode or tap products to ring up items
+                        <p className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                            Cart is empty
+                        </p>
+                        <p className="text-[10.5px] text-slate-400 dark:text-slate-500 max-w-[180px] leading-relaxed">
+                            Scan a barcode or tap 3D products to ring up items
                         </p>
                     </div>
                 ) : (
-                    <div className="overflow-y-auto w-full flex-1 scroll-smooth">
-                        <div className="flex flex-col p-1.5 divide-y divide-slate-100 dark:divide-slate-800/80">
+                    <div className="overflow-y-auto w-full flex-1 scroll-smooth px-3.5 sm:px-4">
+                        <div className="flex flex-col divide-y divide-slate-100 dark:divide-slate-800/80">
                             {items.map(([key, item]) => {
-                                const isCustom = item.is_custom || String(item.id || item.productId).startsWith('custom_');
+                                const isCustom =
+                                    item.is_custom ||
+                                    String(item.id || item.productId).startsWith('custom_');
 
                                 return (
                                     <div
                                         key={key}
-                                        className={`flex items-start gap-2 py-2 group hover:bg-slate-50 dark:hover:bg-slate-800/60 rounded-xl px-2 transition-colors cursor-pointer ${
+                                        className={`py-3 flex items-center justify-between gap-2 group hover:bg-slate-50/70 dark:hover:bg-slate-800/40 rounded-xl px-1.5 transition-colors cursor-pointer ${
                                             stockWarningKey === key
                                                 ? 'ring-2 ring-rose-500 bg-rose-50/60 dark:bg-rose-950/30'
                                                 : ''
                                         }`}
                                         onClick={() => onEditItem && onEditItem(key)}
                                     >
-                                        <div className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 mt-0.5">
-                                            <ProductImage
-                                                product={item}
-                                                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                                            />
-                                        </div>
-
-                                        <div className="flex-1 min-w-0">
-                                            <div className="font-bold text-xs text-slate-800 dark:text-slate-100 leading-tight pr-1 flex items-center gap-1 flex-wrap">
+                                        {/* Left: Item Name & Unit Info */}
+                                        <div className="flex-1 min-w-0 pr-1">
+                                            <div className="font-bold text-xs sm:text-[13px] text-slate-800 dark:text-slate-100 leading-snug flex items-center gap-1.5">
                                                 <span className="truncate">{item.name}</span>
                                                 {isCustom && (
-                                                    <span className="text-[8px] font-bold px-1 py-0.2 rounded bg-lime-100 dark:bg-lime-950/60 text-[#5f7d00] dark:text-lime-300 border border-lime-200 dark:border-lime-900/50">
+                                                    <span className="text-[8.5px] font-bold px-1.5 py-0.2 rounded bg-lime-100 dark:bg-lime-950/60 text-[#5f7d00] dark:text-lime-300 shrink-0">
                                                         Custom
                                                     </span>
                                                 )}
                                             </div>
-                                            <div className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold mt-0.5 flex items-center gap-1">
-                                                <span>{currency(item.price, { symbol: '₱' }).format()}</span>
-                                                {item.discountType && item.discountType !== 'none' && (
-                                                    <span className="text-[#5f7d00] dark:text-lime-400 bg-lime-100 dark:bg-lime-950/60 px-1 rounded text-[8px] font-bold">
-                                                        -{item.discountType === 'percent' ? `${item.discountValue}%` : `₱${item.discountValue}`}
+                                            {(item.quantity > 1 ||
+                                                (item.discountType && item.discountType !== 'none')) && (
+                                                <div className="text-[10px] text-slate-400 font-semibold mt-0.5 flex items-center gap-1.5">
+                                                    <span>
+                                                        {currency(item.price, { symbol: '₱' }).format()} ea
                                                     </span>
-                                                )}
-                                            </div>
-
-                                            {/* Stepper */}
-                                            <div
-                                                className="flex items-center gap-0.5 mt-1 bg-slate-100 dark:bg-slate-800 w-max rounded-lg p-0.5 border border-slate-200/60 dark:border-slate-700/60"
-                                                onClick={e => e.stopPropagation()}
-                                            >
-                                                <button
-                                                    type="button"
-                                                    className="w-5.5 h-5.5 flex items-center justify-center rounded-md bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-200 shadow-2xs hover:text-[#8DB600] dark:hover:text-lime-400 disabled:opacity-40 font-bold text-xs transition-colors cursor-pointer"
-                                                    onClick={() => handleDecreaseQuantity(key)}
-                                                    disabled={item.quantity <= 1 || isDemo}
-                                                >
-                                                    -
-                                                </button>
-                                                <input
-                                                    type="number"
-                                                    min="1"
-                                                    className="w-7 text-center text-xs font-black text-slate-800 dark:text-slate-100 bg-transparent outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                                    value={item.quantity}
-                                                    onChange={(e) => {
-                                                        const val = parseInt(e.target.value, 10);
-                                                        if (!isNaN(val) && val > 0) handleSetQuantity(key, val);
-                                                    }}
-                                                    onClick={(e) => { e.stopPropagation(); e.target.select(); }}
-                                                    onFocus={(e) => e.target.select()}
-                                                    disabled={isDemo}
-                                                />
-                                                <button
-                                                    type="button"
-                                                    className="w-5.5 h-5.5 flex items-center justify-center rounded-md bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-200 shadow-2xs hover:text-[#8DB600] dark:hover:text-lime-400 disabled:opacity-40 font-bold text-xs transition-colors cursor-pointer"
-                                                    onClick={() => handleIncreaseQuantity(key)}
-                                                    disabled={isDemo}
-                                                >
-                                                    +
-                                                </button>
-                                            </div>
+                                                    {item.discountType && item.discountType !== 'none' && (
+                                                        <span className="text-[#5f7d00] dark:text-emerald-400 font-bold">
+                                                            (-
+                                                            {item.discountType === 'percent'
+                                                                ? `${item.discountValue}%`
+                                                                : `₱${item.discountValue}`}
+                                                            )
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            )}
                                             {stockWarningKey === key && (
-                                                <span className="text-[9px] text-rose-600 dark:text-rose-400 font-bold block mt-0.5">
+                                                <span className="text-[9px] text-rose-500 font-bold block mt-0.5">
                                                     Stock Limit Reached
                                                 </span>
                                             )}
                                         </div>
 
-                                        <div className="flex flex-col items-end justify-between h-full gap-1.5">
-                                            <div className="text-xs font-black font-mono text-slate-900 dark:text-slate-100">
-                                                {currency(Number(item.price) * Number(item.quantity), { symbol: '₱' }).format()}
-                                            </div>
-                                            <div className="flex items-center gap-0.5 mt-auto">
-                                                <button
-                                                    type="button"
-                                                    className="p-1 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 rounded transition-colors cursor-pointer"
-                                                    onClick={(e) => { e.stopPropagation(); onEditItem && onEditItem(key); }}
-                                                    title="Edit"
-                                                    disabled={isDemo}
-                                                >
-                                                    <Edit2 className="w-3 h-3" />
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    className="p-1 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded transition-colors cursor-pointer"
-                                                    onClick={(e) => { e.stopPropagation(); handleRemoveItem(key); }}
-                                                    title="Remove"
-                                                    disabled={isDemo}
-                                                >
-                                                    <Trash2 className="w-3 h-3" />
-                                                </button>
-                                            </div>
+                                        {/* Center: Compact Quantity Stepper (- 1 +) */}
+                                        <div
+                                            className="flex items-center gap-1 bg-slate-100 dark:bg-[#1a2333] border border-slate-200 dark:border-slate-700/80 rounded-lg px-1.5 py-1 shrink-0"
+                                            onClick={(e) => e.stopPropagation()}
+                                        >
+                                            <button
+                                                type="button"
+                                                className="w-5 h-5 flex items-center justify-center rounded text-slate-500 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700 hover:text-rose-500 font-bold text-xs transition-colors cursor-pointer"
+                                                onClick={() =>
+                                                    item.quantity <= 1
+                                                        ? handleRemoveItem(key)
+                                                        : handleDecreaseQuantity(key)
+                                                }
+                                                disabled={isDemo}
+                                                aria-label="Decrease quantity"
+                                            >
+                                                -
+                                            </button>
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                className="w-6 text-center text-xs font-black text-slate-900 dark:text-white bg-transparent outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                value={item.quantity}
+                                                onChange={(e) => {
+                                                    const val = parseInt(e.target.value, 10);
+                                                    if (!isNaN(val) && val > 0 && handleSetQuantity) {
+                                                        handleSetQuantity(key, val);
+                                                    }
+                                                }}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    e.target.select();
+                                                }}
+                                                onFocus={(e) => e.target.select()}
+                                                disabled={isDemo}
+                                            />
+                                            <button
+                                                type="button"
+                                                className="w-5 h-5 flex items-center justify-center rounded text-slate-500 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700 hover:text-[#659000] dark:hover:text-emerald-400 font-bold text-xs transition-colors cursor-pointer"
+                                                onClick={() => handleIncreaseQuantity(key)}
+                                                disabled={isDemo}
+                                                aria-label="Increase quantity"
+                                            >
+                                                +
+                                            </button>
+                                        </div>
+
+                                        {/* Right: Line Total */}
+                                        <div className="w-16 text-right text-xs sm:text-[13px] font-black font-mono text-slate-900 dark:text-white shrink-0">
+                                            {currency(
+                                                Number(item.price) * Number(item.quantity),
+                                                { symbol: '₱' }
+                                            ).format()}
                                         </div>
                                     </div>
                                 );
@@ -215,52 +283,131 @@ const POSCart = ({
                 )}
             </CardContent>
 
-            {/* Compact Bottom Footer */}
-            <div className="bg-slate-50/95 dark:bg-slate-900/95 border-t border-slate-200 dark:border-slate-800 p-2.5 sm:p-3 flex-shrink-0 z-20 space-y-1.5 transition-colors">
-                {!isEmpty && (
-                    <div className="flex items-center gap-1 overflow-x-auto no-scrollbar pb-0.5">
-                        <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider shrink-0">Tender:</span>
-                        {quickCashPresets.map((preset, idx) => (
+            {/* BOTTOM FOOTER: Totals, Payment Methods, Quick Tender & Charge */}
+            <div className="bg-slate-50/80 dark:bg-[#0d1422] border-t border-slate-200/90 dark:border-slate-800 p-3.5 sm:p-4 flex-shrink-0 z-20 space-y-3 transition-colors">
+                {/* Subtotal / Discount & Tax / Total */}
+                <div className="space-y-1.5 text-xs">
+                    <div className="flex justify-between items-center text-slate-500 dark:text-slate-400 font-semibold">
+                        <span>Subtotal</span>
+                        <span className="font-mono font-bold text-slate-700 dark:text-slate-200">
+                            {currency(subtotal + discountAmount, { symbol: '₱' }).format()}
+                        </span>
+                    </div>
+                    <div className="flex justify-between items-center text-slate-500 dark:text-slate-400 font-semibold">
+                        <span>Discount / Tax</span>
+                        <span className="font-mono font-bold text-slate-700 dark:text-slate-200">
+                            {currency(discountAmount, { symbol: '₱' }).format()}
+                        </span>
+                    </div>
+                    <div className="flex justify-between items-center pt-2 border-t border-slate-200 dark:border-slate-800">
+                        <span className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
+                            Total
+                        </span>
+                        <span className="text-base sm:text-lg font-black font-mono tracking-tight text-[#659000] dark:text-emerald-400">
+                            {currency(subtotal, { symbol: '₱' }).format()}
+                        </span>
+                    </div>
+                </div>
+
+                {/* Payment Method Pills: Cash / GCash / Maya */}
+                <div className="grid grid-cols-3 gap-1.5">
+                    {PAYMENT_METHODS.map((pm) => {
+                        const isSelected = paymentMethod === pm.id;
+                        return (
                             <button
-                                key={idx}
+                                key={pm.id}
                                 type="button"
-                                onClick={openPaymentModal}
-                                className="px-2 py-0.5 bg-white dark:bg-slate-800 hover:bg-lime-50 dark:hover:bg-lime-950/40 hover:border-lime-300 dark:hover:border-lime-700 border border-slate-200 dark:border-slate-700 rounded-lg text-[10px] font-bold text-slate-700 dark:text-slate-200 hover:text-[#5f7d00] dark:hover:text-lime-300 transition-colors shrink-0 shadow-2xs cursor-pointer"
+                                onClick={() => setPaymentMethod(pm.id)}
+                                className={`h-9 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 border transition-all cursor-pointer ${
+                                    isSelected
+                                        ? 'bg-emerald-500 border-emerald-400 text-white shadow-xs'
+                                        : 'bg-white dark:bg-[#1a2333] border-slate-200 dark:border-slate-700/80 text-slate-700 dark:text-slate-200 hover:border-slate-300 dark:hover:border-slate-600'
+                                }`}
+                            >
+                                {pm.badge ? (
+                                    <span
+                                        className={`w-4 h-4 rounded-full text-[9px] font-black flex items-center justify-center ${
+                                            isSelected
+                                                ? 'bg-white/25 text-white'
+                                                : pm.id === 'GCash'
+                                                    ? 'bg-sky-500/20 text-sky-400'
+                                                    : 'bg-emerald-500/20 text-emerald-400'
+                                        }`}
+                                    >
+                                        {pm.badge}
+                                    </span>
+                                ) : (
+                                    <Banknote className="w-3.5 h-3.5" />
+                                )}
+                                <span>{pm.label}</span>
+                            </button>
+                        );
+                    })}
+                </div>
+
+                {/* Quick Tender Presets: Exact / ₱50 / ₱100 / ₱500 / ₱1,000 */}
+                <div className="flex items-center justify-between gap-1">
+                    {QUICK_TENDERS.map((preset) => {
+                        const targetVal = preset.value === 'exact' ? subtotal : Number(preset.value);
+                        const isActive =
+                            !isEmpty &&
+                            paymentMethod === 'Cash' &&
+                            !isNaN(numericTendered) &&
+                            Math.abs(numericTendered - targetVal) < 0.01;
+
+                        return (
+                            <button
+                                key={preset.label}
+                                type="button"
+                                disabled={isEmpty}
+                                onClick={() => handleQuickTender(preset.value)}
+                                className={`flex-1 py-1.5 rounded-lg text-[10.5px] font-extrabold border transition-all cursor-pointer disabled:opacity-40 ${
+                                    isActive
+                                        ? 'bg-[#8DB600]/20 border-[#8DB600] text-[#5f7d00] dark:text-emerald-300'
+                                        : 'bg-white dark:bg-[#1a2333] border-slate-200 dark:border-slate-700/80 text-slate-600 dark:text-slate-300 hover:border-slate-400 dark:hover:border-slate-600'
+                                }`}
                             >
                                 {preset.label}
                             </button>
-                        ))}
+                        );
+                    })}
+                </div>
+
+                {/* Live Change Indicator when Cash Tendered exceeds Total */}
+                {changeDue > 0 && (
+                    <div className="flex items-center justify-between px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-[11px] font-bold text-emerald-700 dark:text-emerald-300">
+                        <span>Tendered: {currency(numericTendered, { symbol: '₱' }).format()}</span>
+                        <span>Change: {currency(changeDue, { symbol: '₱' }).format()}</span>
                     </div>
                 )}
 
-                <div className="flex justify-between items-center text-xs font-semibold text-slate-500 dark:text-slate-400">
-                    <span>Subtotal</span>
-                    <span className="font-mono text-slate-700 dark:text-slate-300">{currency(subtotal, { symbol: '₱' }).format()}</span>
-                </div>
-
-                <div className="flex justify-between items-baseline pt-1 border-t border-slate-200/80 dark:border-slate-800 border-dashed">
-                    <span className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">Total</span>
-                    <span className="text-2xl font-black font-mono tracking-tight text-[#8DB600] dark:text-lime-400">
-                        {currency(subtotal, { symbol: '₱' }).format()}
-                    </span>
-                </div>
-
+                {/* Charge CTA Button */}
                 <button
                     type="button"
-                    className={`w-full h-10.5 text-sm rounded-xl font-black flex items-center justify-center transition-all shadow-sm active:scale-[0.99] cursor-pointer ${
-                        isEmpty || isDemo || createSaleMutation.isPending
-                            ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed border border-transparent dark:border-slate-700/60'
-                            : 'bg-[#8DB600] hover:bg-[#7ca000] text-white shadow-md'
+                    className={`w-full h-11 text-xs sm:text-sm rounded-xl font-black flex items-center justify-center gap-2 transition-all active:scale-[0.985] cursor-pointer ${
+                        isEmpty || isDemo || createSaleMutation?.isPending
+                            ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed'
+                            : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
                     }`}
                     onClick={openPaymentModal}
-                    disabled={isEmpty || createSaleMutation.isPending || isDemo}
+                    disabled={isEmpty || createSaleMutation?.isPending || isDemo}
                 >
-                    {createSaleMutation.isPending ? 'Processing...' : 'Charge (F4)'}
+                    <Wallet className="w-4 h-4" />
+                    <span>
+                        {createSaleMutation?.isPending
+                            ? 'Processing...'
+                            : `Charge ${currency(subtotal, { symbol: '₱' }).format()} (F4)`}
+                    </span>
                 </button>
 
+                {/* Last Transaction Footer */}
                 <div className="text-center pt-0.5">
-                    <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500">
-                        Last Transaction: <strong className="text-slate-600 dark:text-slate-300 font-semibold">{lastCustomer ? lastCustomer.name : 'Walk-in'}</strong>
+                    <span className="text-[10.5px] font-semibold text-slate-400 dark:text-slate-500">
+                        Last Transaction:{' '}
+                        <strong className="text-slate-600 dark:text-slate-300 font-semibold">
+                            {lastCustomer ? lastCustomer.name : 'Walk-in'}
+                            {lastTxTotal > 0 ? ` • ${currency(lastTxTotal, { symbol: '₱' }).format()}` : ''}
+                        </strong>
                     </span>
                 </div>
             </div>
