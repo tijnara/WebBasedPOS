@@ -92,13 +92,13 @@ const navCategoriesSource = [
 export default function Navbar() {
     const router = useRouter();
     const queryClient = useQueryClient();
-    const { user, logout, isDemo, darkMode, toggleDarkMode } = useStore(s => ({
-        user: s.user,
-        logout: s.logout,
-        isDemo: s.user?.isDemo,
-        darkMode: s.darkMode,
-        toggleDarkMode: s.toggleDarkMode
-    }));
+
+    // Atomic Zustand selectors (prevents getSnapshot infinite loop reloads on toast/state changes)
+    const user = useStore(s => s.user);
+    const logout = useStore(s => s.logout);
+    const isDemo = useStore(s => s.user?.isDemo);
+    const darkMode = useStore(s => s.darkMode);
+    const toggleDarkMode = useStore(s => s.toggleDarkMode);
 
     const [clientUser, setClientUser] = useState(null);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -119,7 +119,6 @@ export default function Navbar() {
         return next;
     });
 
-    // Comprehensive Admin / Owner resolution
     const isAdmin = useMemo(() => {
         if (!clientUser) return false;
         if (clientUser.isAdmin || clientUser.isadmin || clientUser.is_admin || clientUser.isSuperAdmin) return true;
@@ -144,7 +143,6 @@ export default function Navbar() {
         return false;
     }, [clientUser]);
 
-    // Notifications State & Storage
     const [lastSeenMessageTime, setLastSeenMessageTime] = useState(null);
     const [lastSeenNotesTime, setLastSeenNotesTime] = useState(0);
 
@@ -173,7 +171,6 @@ export default function Navbar() {
         setLastSeenMessageTime(now);
     };
 
-    // Listen to custom drawer trigger from TabBar.jsx
     useEffect(() => {
         const handleOpenDrawerEvent = () => setIsMenuOpen(true);
         window.addEventListener('open-mobile-drawer', handleOpenDrawerEvent);
@@ -183,7 +180,6 @@ export default function Navbar() {
         };
     }, []);
 
-    // Queries: Pending Approvals, Contact Messages, Low Stock Inventory, Maintenance & Water Tests, and Store Notices
     const { data: pendingUsers = [] } = useQuery({
         queryKey: ['pending-approvals-count', clientUser?.id, isAdmin],
         queryFn: async () => {
@@ -197,7 +193,7 @@ export default function Navbar() {
             return error ? [] : data || [];
         },
         enabled: !!isAdmin && !isDemo,
-        refetchInterval: 30000
+        refetchOnWindowFocus: false,
     });
 
     const { data: recentMessages = [] } = useQuery({
@@ -213,7 +209,7 @@ export default function Navbar() {
             return error ? [] : data || [];
         },
         enabled: !!isAdmin && !isDemo,
-        refetchInterval: 30000
+        refetchOnWindowFocus: false,
     });
 
     const { data: lowStockProducts = [] } = useQuery({
@@ -231,7 +227,7 @@ export default function Navbar() {
                 .sort((a, b) => Number(a.stock_quantity ?? 0) - Number(b.stock_quantity ?? 0));
         },
         enabled: !!clientUser && !isDemo,
-        refetchInterval: 60000
+        refetchOnWindowFocus: false,
     });
 
     const { data: maintenanceAlerts } = useMaintenanceAlerts();
@@ -261,7 +257,6 @@ export default function Navbar() {
 
     const unreadNotesCount = unreadNotes.length;
 
-    // Combine overdue + due soon filters and vehicles for staff & admin attention
     const filterAlerts = useMemo(() => {
         const overdue = maintenanceAlerts?.overdueFilters || [];
         const dueSoon = maintenanceAlerts?.dueSoonFilters || [];
@@ -276,7 +271,6 @@ export default function Navbar() {
 
     const waterTestAlert = maintenanceAlerts?.waterTestAlert || null;
 
-    // Active Scheduled Staff Notice (shown in notifications when active in Asia/Manila)
     const activeScheduledNotice = useMemo(() => {
         if (!businessSettings || businessSettings.promo_floater_enabled === false) return null;
         const audience = businessSettings.promo_floater_audience || 'pos';
@@ -324,11 +318,11 @@ export default function Navbar() {
         lowStockProducts.length +
         (activeScheduledNotice ? 1 : 0);
 
-    // Realtime Subscriptions across all operational tables
+    // Realtime Subscriptions with stable channel key
     useEffect(() => {
-        if (!clientUser || isDemo) return;
+        if (!clientUser?.id || isDemo) return;
 
-        const navChannel = supabase.channel(`rt:navbar-${clientUser.id}-${Date.now()}`);
+        const navChannel = supabase.channel(`rt:navbar-${clientUser.id}`);
 
         if (isAdmin) {
             navChannel
@@ -367,7 +361,7 @@ export default function Navbar() {
         return () => {
             supabase.removeChannel(navChannel);
         };
-    }, [isAdmin, clientUser, isDemo, queryClient]);
+    }, [isAdmin, clientUser?.id, isDemo, queryClient]);
 
     const navCategories = useMemo(() => {
         if (isDemo) {
@@ -386,10 +380,10 @@ export default function Navbar() {
         if (user) checkActiveShift();
 
         const handleRouteChange = () => setIsMenuOpen(false);
-        router.events.on('routeChangeComplete', handleRouteChange);
+        router.events?.on('routeChangeComplete', handleRouteChange);
 
         return () => {
-            router.events.off('routeChangeComplete', handleRouteChange);
+            router.events?.off('routeChangeComplete', handleRouteChange);
         };
     }, [user, router.events]);
 
@@ -532,6 +526,7 @@ export default function Navbar() {
                             return (
                                 <Button
                                     key={link.name}
+                                    type="button"
                                     variant="ghost"
                                     className={`nav-item w-full justify-start px-3.5 py-2.5 transition-all rounded-xl ${
                                         isActive
@@ -601,6 +596,7 @@ export default function Navbar() {
             <div className="navbar md:hidden flex items-center justify-between px-3.5 py-2.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 z-30 sticky top-0 shadow-2xs">
                 <div className="flex items-center gap-2.5 min-w-0">
                     <Button
+                        type="button"
                         variant="ghost"
                         size="sm"
                         onClick={() => setIsMenuOpen(true)}
@@ -742,7 +738,7 @@ export default function Navbar() {
                 <nav className="flex-1 overflow-y-auto py-4 menu-scrollbar flex flex-col gap-1">{renderLinks(true)}</nav>
             </aside>
 
-            {/* DESKTOP TOP HEADER (Fixed High Contrast User Badge & Actions) */}
+            {/* DESKTOP TOP HEADER */}
             <header className="hidden md:flex h-16 fixed top-0 left-64 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 z-30 items-center justify-end px-6 gap-5 shadow-xs transition-colors">
                 {clientUser && (
                     <div className="flex items-center">
@@ -788,6 +784,7 @@ export default function Navbar() {
                     </div>
 
                     <Button
+                        type="button"
                         variant="ghost"
                         size="sm"
                         onClick={toggleDarkMode}
@@ -798,6 +795,7 @@ export default function Navbar() {
                     </Button>
 
                     <Button
+                        type="button"
                         variant="ghost"
                         size="sm"
                         onClick={prepareZReading}

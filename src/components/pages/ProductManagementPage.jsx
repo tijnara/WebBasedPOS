@@ -19,7 +19,7 @@ import {
 import { useProduct3DAssets } from '../../hooks/useProduct3DAssets';
 
 import currency from 'currency.js';
-import { EditIcon, DeleteIcon } from '../Icons';
+import { EditIcon, DeleteIcon, PackageIcon } from '../Icons';
 import {
     Eye, EyeOff, Download, Plus,
     Layers, AlertTriangle, CheckCircle2, TrendingUp, Boxes, Sparkles
@@ -39,7 +39,7 @@ export default function ProductManagementPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
 
-    const { data: productsData = { products: [], totalPages: 1 }, isLoading } = useProducts({
+    const { data: productsData = { products: [], totalPages: 1 }, isLoading, refetch: refetchProducts } = useProducts({
         page: currentPage,
         itemsPerPage,
         searchTerm: debouncedSearchTerm,
@@ -69,7 +69,6 @@ export default function ProductManagementPage() {
     const updateProduct = useUpdateProduct();
     const deleteProduct = useDeleteProduct();
 
-    // Form State (Selection-only for 3D Icons & Product Visuals)
     const [editing, setEditing] = useState(null);
     const [name, setName] = useState('');
     const [price, setPrice] = useState('');
@@ -88,7 +87,6 @@ export default function ProductManagementPage() {
 
     const searchInputRef = useRef(null);
 
-    // Custom Categories
     const [customCategories, setCustomCategories] = useState(() => {
         if (typeof window === 'undefined') return [];
         try { return JSON.parse(localStorage.getItem('pos_custom_categories') || '[]'); } catch { return []; }
@@ -112,7 +110,6 @@ export default function ProductManagementPage() {
         }
     };
 
-    // Live Margin Calculations
     const liveProfitMetrics = useMemo(() => {
         const sell = parseFloat(price) || 0;
         const buy = parseFloat(cost) || 0;
@@ -121,7 +118,6 @@ export default function ProductManagementPage() {
         return { profit, margin };
     }, [price, cost]);
 
-    // KPI Metrics
     const kpiMetrics = useMemo(() => {
         const total = products.length;
         const visible = products.filter(p => !p.is_hidden).length;
@@ -202,7 +198,8 @@ export default function ProductManagementPage() {
         }
     };
 
-    const save = async (e) => {
+    // Called on Button Click, NOT Form Submit
+    const handleSaveClick = async (e) => {
         if (e?.preventDefault) e.preventDefault();
         if (e?.stopPropagation) e.stopPropagation();
 
@@ -350,8 +347,6 @@ export default function ProductManagementPage() {
 
     return (
         <div className="product-page responsive-page max-w-7xl mx-auto space-y-6 p-4 md:p-6 transition-colors">
-
-            {/* Header & Primary Actions */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">Product Management</h1>
@@ -392,7 +387,6 @@ export default function ProductManagementPage() {
                 </div>
             </div>
 
-            {/* KPI Summary Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs flex items-center justify-between">
                     <div>
@@ -435,7 +429,6 @@ export default function ProductManagementPage() {
                 </div>
             </div>
 
-            {/* Filter Bar */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-2xs">
                 <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto flex-1 max-w-xl">
                     <div className="w-full sm:w-72">
@@ -460,7 +453,6 @@ export default function ProductManagementPage() {
                 </div>
             </div>
 
-            {/* Desktop Table View */}
             <Card className="hidden md:block border border-slate-200 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900 overflow-hidden rounded-2xl">
                 <CardContent className="p-0">
                     <ScrollArea>
@@ -477,7 +469,7 @@ export default function ProductManagementPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody className="divide-y divide-slate-100 dark:divide-slate-800/80 text-xs sm:text-sm">
-                                {isLoading && products.length === 0 ? (
+                                {isLoading ? (
                                     <TableRow><TableCell colSpan={7} className="text-center py-12 text-slate-400">Loading catalog...</TableCell></TableRow>
                                 ) : products.length === 0 ? (
                                     <TableRow><TableCell colSpan={7} className="text-center py-12 text-slate-400">No products matching criteria.</TableCell></TableRow>
@@ -609,7 +601,7 @@ export default function ProductManagementPage() {
 
             {/* Mobile Card View */}
             <div className="block md:hidden space-y-3">
-                {isLoading && products.length === 0 ? (
+                {isLoading ? (
                     <div className="text-center text-slate-400 p-8">Loading products...</div>
                 ) : products.length === 0 ? (
                     <div className="text-center text-slate-400 p-8 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
@@ -670,7 +662,7 @@ export default function ProductManagementPage() {
                 </div>
             </div>
 
-            {/* ADD / EDIT PRODUCT MODAL (Selection-only from saved 3D Icons & Product Visuals) */}
+            {/* ADD / EDIT PRODUCT MODAL (Wrapped in DIV, never a FORM) */}
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
                 <DialogContent className="p-0 sm:max-w-[760px] w-full bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden rounded-3xl dark:[color-scheme:dark]">
                     <div onKeyDown={preventEnterReload}>
@@ -689,7 +681,6 @@ export default function ProductManagementPage() {
 
                         {/* Modal Body */}
                         <div className="p-5 sm:p-6 max-h-[76vh] overflow-y-auto space-y-6 bg-white dark:bg-slate-900">
-
                             {/* Section 1: Selected 3D Visual Preview & Basic Info */}
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
                                 <div className="md:col-span-1 space-y-2">
@@ -941,7 +932,7 @@ export default function ProductManagementPage() {
                             </Button>
                             <Button
                                 type="button"
-                                onClick={save}
+                                onClick={handleSaveClick}
                                 disabled={isMutating || isDemo}
                                 className="h-10 px-6 rounded-xl bg-[#8DB600] hover:bg-[#7ca000] text-white text-xs font-bold shadow-md active:scale-95 transition-all cursor-pointer"
                             >

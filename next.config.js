@@ -1,10 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
+  reactStrictMode: false,
+  allowedDevOrigins: ['192.168.86.207', 'localhost'],
   transpilePackages: ['recharts'],
-  experimental: {
-    // turbopack: {}, // Removed as it's an invalid experimental key
-  },
   images: {
     remotePatterns: [
         {

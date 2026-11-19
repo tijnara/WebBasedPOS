@@ -13,12 +13,9 @@ import GlobalVehicleAlert from '../components/tracking/GlobalVehicleAlert';
 import ScheduledFloaterToast from '../components/ScheduledFloaterToast';
 import { Button } from '../components/ui';
 import { QueryClient, QueryClientProvider, HydrationBoundary, MutationCache } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import Head from 'next/head';
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/next";
-
-// Transition Component
 import CinematicTransition from '../components/transitions/CinematicTransition';
 
 const titleMap = {
@@ -64,38 +61,15 @@ function AuthGate({ children }) {
     }, [user, sessionLoaded, router]);
 
     useEffect(() => {
-        if (!user) return;
-
-        const IDLE_TIMEOUT = 15 * 60 * 1000;
-
-        const resetTimer = () => {
-            localStorage.setItem('pos_last_active_time', Date.now().toString());
-        };
-
-        resetTimer();
-
-        const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
-        events.forEach(e => document.addEventListener(e, resetTimer, true));
-
-        const intervalId = setInterval(() => {
-            const lastActive = localStorage.getItem('pos_last_active_time');
-            if (lastActive && Date.now() - parseInt(lastActive, 10) > IDLE_TIMEOUT) {
-                localStorage.setItem('pos_last_active_time', Date.now().toString());
-                if (router.pathname !== '/') {
-                    router.push('/');
-                }
-            }
-        }, 60000);
-
-        return () => {
-            events.forEach(e => document.removeEventListener(e, resetTimer, true));
-            clearInterval(intervalId);
-        };
-    }, [user, router]);
+        const isNewTabSession = typeof window !== 'undefined' && !sessionStorage.getItem('pos_tab_initialized');
+        if (isNewTabSession) {
+            sessionStorage.setItem('pos_tab_initialized', 'true');
+        }
+    }, []);
 
     if (!sessionLoaded) {
         return (
-            <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-300">
+            <div className="flex items-center justify-center min-h-screen bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300">
                 Loading application...
             </div>
         );
@@ -106,7 +80,7 @@ function AuthGate({ children }) {
     }
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-300">
+        <div className="flex items-center justify-center min-h-screen bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300">
             Checking authentication...
         </div>
     );
@@ -183,7 +157,6 @@ export default function App({ Component, pageProps }) {
                             variant: 'warning'
                         });
                     }, 0);
-
                     return Promise.reject(new Error('Action blocked: Demo Mode is strictly read-only.'));
                 }
             }
@@ -222,7 +195,6 @@ export default function App({ Component, pageProps }) {
                     <meta name="theme-color" content="#8DB600" />
                     <link rel="manifest" href="/manifest.json" />
                     <link rel="apple-touch-icon" href="/seasidelogo_.png" />
-                    <meta name="google-site-verification" content="kd1wSsNQZCjJmyp4LaQKI9Mr7s6Z9_I5Z3ETpaW1EVc" />
                 </Head>
 
                 {isTransitionActive && (
@@ -279,7 +251,6 @@ export default function App({ Component, pageProps }) {
                     <ScheduledFloaterToast />
                 </AuthGate>
                 <div id="modal-root"></div>
-                <ReactQueryDevtools initialIsOpen={false} position="bottom" />
                 <SpeedInsights />
                 <Analytics />
             </HydrationBoundary>
