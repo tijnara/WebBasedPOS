@@ -16,12 +16,13 @@ import {
     useUpdateProduct,
     useDeleteProduct
 } from '../../hooks/useProductMutations';
+import { useProduct3DAssets } from '../../hooks/useProduct3DAssets';
 
 import currency from 'currency.js';
 import { EditIcon, DeleteIcon, PackageIcon } from '../Icons';
 import {
-    Eye, EyeOff, Download, Plus, Upload,
-    Layers, AlertTriangle, CheckCircle2, TrendingUp, Sparkles, Boxes
+    Eye, EyeOff, Download, Plus,
+    Layers, AlertTriangle, CheckCircle2, TrendingUp, Boxes
 } from 'lucide-react';
 
 import Product3DVisual, {
@@ -115,11 +116,20 @@ export default function ProductManagementPage() {
         isHidden: true
     });
 
+    const { data: all3DAssets = BUILTIN_WRS_3D_ASSETS } = useProduct3DAssets();
+
     const products = productsData.products;
     const totalPages = productsData.totalPages;
 
     const { addToast, user } = useStore(s => ({ addToast: s.addToast, user: s.user }));
-    const isAdmin = user?.role === 'Admin' || user?.role === 'admin' || user?.isadmin === true;
+    const isAdmin = useMemo(() => {
+        if (!user) return false;
+        if (user.isAdmin || user.isadmin || user.is_admin || user.isSuperAdmin) return true;
+        const role = String(user.role?.name || user.role || user.position || user.user_type || '')
+            .toLowerCase()
+            .trim();
+        return ['admin', 'administrator', 'owner', 'superadmin', 'manager'].some(k => role.includes(k));
+    }, [user]);
     const isDemo = user?.isDemo;
 
     const createProduct = useCreateProduct();
@@ -184,8 +194,12 @@ export default function ProductManagementPage() {
     }, [products]);
 
     const active3DAssetMeta = useMemo(() => {
-        return BUILTIN_WRS_3D_ASSETS.find(a => a.asset_key === selected3DKey) || BUILTIN_WRS_3D_ASSETS[0];
-    }, [selected3DKey]);
+        return (
+            all3DAssets.find(a => a.asset_key === selected3DKey) ||
+            BUILTIN_WRS_3D_ASSETS.find(a => a.asset_key === selected3DKey) ||
+            BUILTIN_WRS_3D_ASSETS[0]
+        );
+    }, [all3DAssets, selected3DKey]);
 
     const startEdit = (p) => {
         setEditing(p);
@@ -254,7 +268,6 @@ export default function ProductManagementPage() {
         setVisualMode('3d');
         setSelected3DKey(asset.asset_key);
 
-        // When adding a new product, optionally fill blank name/price/category from the chosen 3D preset
         if (!editing) {
             if (!name.trim()) {
                 setName(asset.label);
@@ -346,7 +359,6 @@ export default function ProductManagementPage() {
                 addToast({ title: 'Product Added', description: `${name} created and saved to POS.`, variant: 'success' });
             }
 
-            // Ensure icon_3d_key & image_url are persisted in Supabase even if mutation helper filters keys
             const targetId = savedRecord?.id || editing?.id;
             if (targetId) {
                 await supabase
@@ -817,7 +829,11 @@ export default function ProductManagementPage() {
 
                                     {visualMode === '3d' ? (
                                         <div className="group relative w-full aspect-square rounded-2xl bg-gradient-to-b from-cyan-500/10 via-slate-50 to-lime-500/10 dark:from-cyan-950/30 dark:via-slate-800/90 dark:to-lime-950/30 border-2 border-[#8DB600]/60 dark:border-lime-500/40 flex flex-col items-center justify-center p-3 text-center shadow-2xs">
-                                            <Product3DVisual assetKey={selected3DKey} className="w-24 h-24 sm:w-28 sm:h-28" />
+                                            <Product3DVisual
+                                                assetKey={selected3DKey}
+                                                customImageUrl={active3DAssetMeta?.image_url}
+                                                className="w-24 h-24 sm:w-28 sm:h-28"
+                                            />
                                             <span className="mt-2 text-[10.5px] font-extrabold text-slate-800 dark:text-slate-100 line-clamp-1">
                                                 {active3DAssetMeta.label}
                                             </span>
@@ -909,6 +925,7 @@ export default function ProductManagementPage() {
                                     selectedKey={selected3DKey}
                                     onSelect={handleSelect3DAsset}
                                     compact
+                                    isAdmin={isAdmin}
                                 />
                             )}
 

@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { subHours } from 'date-fns';
 import currency from 'currency.js';
-import { Sun, Moon, LogOut, ChevronDown, Landmark, Receipt, TestTube, History, X, User, Images, Gamepad2 } from 'lucide-react';
+import { Sun, Moon, LogOut, ChevronDown, Landmark, Receipt, TestTube, History, X, User, Images, Gamepad2, Sparkles } from 'lucide-react';
 
 import { supabase } from '../lib/supabaseClient';
 import { useStore } from '../store/useStore';
@@ -60,6 +60,7 @@ const navCategoriesSource = [
         category: 'Catalog & Inventory',
         links: [
             { name: 'Products', path: '/product-management', icon: <PackageIcon className="h-5 w-5 menu-icon" /> },
+            { name: '3D Icons', path: '/3d-icons', icon: <Sparkles className="h-5 w-5 menu-icon" />, adminOnly: true },
             { name: 'Inventory', path: '/inventory', icon: <PackageIcon className="h-5 w-5 menu-icon" /> },
             { name: 'Gallery', path: '/gallery-management', icon: <GalleryIcon className="h-5 w-5 menu-icon" />, adminOnly: true, hideInDemo: true },
         ]

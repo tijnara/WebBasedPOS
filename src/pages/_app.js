@@ -32,6 +32,7 @@ const titleMap = {
     '/report': 'Reports | Seaside WRS',
     '/user-management': 'User Management | Seaside WRS',
     '/product-management': 'Product Management | Seaside WRS',
+    '/3d-icons': '3D Icons & Visuals | Seaside WRS',
     '/customer-management': 'Customer Management | Seaside WRS',
     '/gallery-management': 'Gallery Management | Seaside WRS',
     '/article-management': 'Article Management | Seaside WRS',
