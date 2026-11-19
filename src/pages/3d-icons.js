@@ -1,4 +1,4 @@
-// src/pages/3d-icons.jsx
+// src/pages/3d-icons.js
 import React from 'react';
 import Head from 'next/head';
 import Product3DIconsPage from '../components/dashboard/Product3DIconsPage';

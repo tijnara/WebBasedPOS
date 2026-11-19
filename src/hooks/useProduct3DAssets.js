@@ -334,6 +334,41 @@ export function useGenerateAI3DIcon() {
     });
 }
 
+export function useAssignProduct3DIcon() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ productId, assetKey }) => {
+            const encodedUrl = assetKey ? `3d:${assetKey}` : null;
+
+            const { data, error } = await supabase
+                .from('products')
+                .update({
+                    icon_3d_key: assetKey || null,
+                    image_url: encodedUrl
+                })
+                .eq('id', productId)
+                .select()
+                .single();
+
+            if (error) {
+                const fallback = await supabase
+                    .from('products')
+                    .update({ image_url: encodedUrl })
+                    .eq('id', productId)
+                    .select()
+                    .single();
+                if (fallback.error) throw fallback.error;
+                return fallback.data;
+            }
+            return data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['products'] });
+        }
+    });
+}
+
 export function useDeleteProduct3DAsset() {
     const queryClient = useQueryClient();
 
@@ -374,6 +409,7 @@ export function useDeleteProduct3DAsset() {
                 registerCustom3DAssetsCache(next);
                 return next;
             });
+            queryClient.invalidateQueries({ queryKey: ['products'] });
         }
     });
 }
