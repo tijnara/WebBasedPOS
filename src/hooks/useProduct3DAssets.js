@@ -10,11 +10,62 @@ import { useStore } from '../store/useStore';
 import { logActivity } from './useActivityLogs';
 
 /**
- * Normalizes any uploaded 3D icon/image file into a uniform 256x256
- * transparent PNG with centered 12% optical padding so every 3D icon/image
- * is identical in size when used in Product Management and POS.
+ * Flood-fills outer near-white background pixels connected to the image edges
+ * so AI-generated 3D studio renders on #FFFFFF blend transparently onto dark & light cards.
  */
-export function normalize3DIconFile(file, targetSize = 256) {
+function stripOuterWhiteBackground(ctx, size) {
+    const imgData = ctx.getImageData(0, 0, size, size);
+    const data = imgData.data;
+    const visited = new Uint8Array(size * size);
+    const queue = new Int32Array(size * size);
+    let head = 0;
+    let tail = 0;
+
+    const isNearWhite = (idx) => {
+        const p = idx * 4;
+        const a = data[p + 3];
+        if (a < 15) return true;
+        return data[p] >= 242 && data[p + 1] >= 242 && data[p + 2] >= 242;
+    };
+
+    const enqueue = (x, y) => {
+        if (x < 0 || y < 0 || x >= size || y >= size) return;
+        const idx = y * size + x;
+        if (visited[idx]) return;
+        visited[idx] = 1;
+        if (isNearWhite(idx)) {
+            queue[tail++] = idx;
+        }
+    };
+
+    for (let i = 0; i < size; i++) {
+        enqueue(i, 0);
+        enqueue(i, size - 1);
+        enqueue(0, i);
+        enqueue(size - 1, i);
+    }
+
+    while (head < tail) {
+        const idx = queue[head++];
+        const p = idx * 4;
+        data[p + 3] = 0;
+
+        const x = idx % size;
+        const y = (idx - x) / size;
+        enqueue(x + 1, y);
+        enqueue(x - 1, y);
+        enqueue(x, y + 1);
+        enqueue(x, y - 1);
+    }
+
+    ctx.putImageData(imgData, 0, 0);
+}
+
+/**
+ * Normalizes any uploaded or AI-generated 3D icon/image into a uniform 256x256
+ * transparent PNG with centered 12% optical padding.
+ */
+export function normalize3DIconFile(file, targetSize = 256, { stripSolidWhiteBg = false } = {}) {
     return new Promise((resolve, reject) => {
         if (!file || typeof window === 'undefined') {
             reject(new Error('Invalid image file.'));
@@ -32,18 +83,23 @@ export function normalize3DIconFile(file, targetSize = 256) {
                 const ctx = canvas.getContext('2d');
                 ctx.clearRect(0, 0, targetSize, targetSize);
 
-                // Uniform 12% optical margin around the centered 3D visual
                 const padding = Math.round(targetSize * 0.12);
                 const maxBox = targetSize - padding * 2;
-                const scale = Math.min(maxBox / img.width, maxBox / img.height);
-                const drawW = Math.round(img.width * scale);
-                const drawH = Math.round(img.height * scale);
+                const srcW = img.naturalWidth || img.width || targetSize;
+                const srcH = img.naturalHeight || img.height || targetSize;
+                const scale = Math.min(maxBox / srcW, maxBox / srcH);
+                const drawW = Math.round(srcW * scale);
+                const drawH = Math.round(srcH * scale);
                 const dx = Math.round((targetSize - drawW) / 2);
                 const dy = Math.round((targetSize - drawH) / 2);
 
                 ctx.imageSmoothingEnabled = true;
                 ctx.imageSmoothingQuality = 'high';
                 ctx.drawImage(img, dx, dy, drawW, drawH);
+
+                if (stripSolidWhiteBg) {
+                    stripOuterWhiteBackground(ctx, targetSize);
+                }
 
                 canvas.toBlob(
                     (blob) => {
@@ -86,15 +142,18 @@ export function useProduct3DAssets() {
                 .order('sort_order', { ascending: true })
                 .order('id', { ascending: true });
 
-            if (error) {
-                return BUILTIN_WRS_3D_ASSETS;
-            }
-            return Array.isArray(data) ? data : BUILTIN_WRS_3D_ASSETS;
+            const resolved =
+                !error && Array.isArray(data) && data.length > 0
+                    ? data
+                    : BUILTIN_WRS_3D_ASSETS;
+
+            registerCustom3DAssetsCache(resolved);
+            return resolved;
         },
-        staleTime: 1000 * 60 * 2
+        staleTime: 1000 * 60 * 5,
+        placeholderData: (prev) => prev
     });
 
-    // Keep Product3DVisual's lookup registry synced with custom DB image URLs
     useEffect(() => {
         if (Array.isArray(query.data)) {
             registerCustom3DAssetsCache(query.data);
@@ -186,6 +245,95 @@ export function useCreateProduct3DAsset() {
     });
 }
 
+export function useGenerateAI3DIcon() {
+    const queryClient = useQueryClient();
+    const currentUser = useStore((s) => s.user);
+
+    return useMutation({
+        mutationFn: async ({
+                               label,
+                               category = 'Refills/Services',
+                               description = '',
+                               suggestedPrice = 0
+                           }) => {
+            const cleanLabel = String(label || '').trim();
+            if (!cleanLabel) throw new Error('Enter an Icon Label first.');
+
+            const res = await fetch('/api/generate-3d-icon', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ label: cleanLabel, category, description })
+            });
+
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || 'Failed to generate AI 3D icon.');
+
+            const isSvgDataUrl = String(json.imageDataUrl || '').startsWith('data:image/svg+xml');
+            const blobRes = await fetch(json.imageDataUrl);
+            const rawBlob = await blobRes.blob();
+            const rawFile = new File(
+                [rawBlob],
+                isSvgDataUrl ? 'ai-3d-raw.svg' : 'ai-3d-raw.png',
+                { type: isSvgDataUrl ? 'image/svg+xml' : 'image/png' }
+            );
+
+            const normalizedPng = await normalize3DIconFile(rawFile, 256, {
+                stripSolidWhiteBg: !isSvgDataUrl
+            });
+
+            const fileName = `3d-icons/ai-${Date.now()}-${Math.random().toString(36).slice(2, 7)}.png`;
+            const { error: uploadError } = await supabase.storage
+                .from('products')
+                .upload(fileName, normalizedPng, {
+                    contentType: 'image/png',
+                    upsert: false
+                });
+
+            if (uploadError) throw uploadError;
+
+            const { data: pubData } = supabase.storage.from('products').getPublicUrl(fileName);
+
+            const slug = cleanLabel
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/^-|-$/g, '')
+                .slice(0, 28);
+            const assetKey = `ai-${slug || 'item'}-${Date.now().toString(36)}`;
+
+            const { data: savedAsset, error: insertError } = await supabase
+                .from('product_3d_assets')
+                .insert({
+                    asset_key: assetKey,
+                    label: cleanLabel,
+                    category: category || 'Refills/Services',
+                    description: String(description || '').trim() || `AI-generated 3D visual for ${category}`,
+                    image_url: pubData.publicUrl,
+                    is_builtin: false,
+                    suggested_price: Number(suggestedPrice) || 0,
+                    sort_order: 90,
+                    is_active: true
+                })
+                .select()
+                .single();
+
+            if (insertError) throw insertError;
+
+            logActivity({
+                user: currentUser,
+                action: 'CREATE',
+                entity_type: 'PRODUCT_3D_ICON',
+                description: `AI-generated 3D icon "${cleanLabel}" (${category})`
+            });
+
+            return savedAsset;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['product-3d-assets'] });
+            queryClient.invalidateQueries({ queryKey: ['activity-logs'] });
+        }
+    });
+}
+
 export function useDeleteProduct3DAsset() {
     const queryClient = useQueryClient();
     const currentUser = useStore((s) => s.user);
@@ -194,7 +342,6 @@ export function useDeleteProduct3DAsset() {
         mutationFn: async (asset) => {
             if (!asset) throw new Error('No 3D icon selected.');
 
-            // Delete from product_3d_assets by id or asset_key
             let query = supabase.from('product_3d_assets').delete();
             if (asset.id) {
                 query = query.eq('id', asset.id);
@@ -205,7 +352,6 @@ export function useDeleteProduct3DAsset() {
             const { error } = await query;
             if (error) throw error;
 
-            // Clear references on any products using this deleted custom 3D key
             if (asset.asset_key) {
                 await supabase
                     .from('products')

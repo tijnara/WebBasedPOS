@@ -19,10 +19,10 @@ import {
 import { useProduct3DAssets } from '../../hooks/useProduct3DAssets';
 
 import currency from 'currency.js';
-import { EditIcon, DeleteIcon, PackageIcon } from '../Icons';
+import { EditIcon, DeleteIcon } from '../Icons';
 import {
     Eye, EyeOff, Download, Plus,
-    Layers, AlertTriangle, CheckCircle2, TrendingUp, Boxes
+    Layers, AlertTriangle, CheckCircle2, TrendingUp, Boxes, Sparkles
 } from 'lucide-react';
 
 import Product3DVisual, {
@@ -30,75 +30,6 @@ import Product3DVisual, {
     BUILTIN_WRS_3D_ASSETS
 } from '../pos/Product3DVisual';
 import Product3DIconPicker from '../pos/Product3DIconPicker';
-
-// --- Optional Custom Photo Uploader UI ---
-const ImageUploader = ({ previewUrl, onFileSelect, disabled }) => {
-    const fileInputRef = useRef(null);
-
-    const handleDivClick = () => {
-        if (disabled) return;
-        fileInputRef.current?.click();
-    };
-
-    const handleFileChange = (e) => {
-        const file = e.target.files[0];
-        if (file) onFileSelect(file);
-    };
-
-    return (
-        <div
-            onClick={handleDivClick}
-            className={`cursor-pointer group relative w-full aspect-square bg-slate-50 dark:bg-slate-800/90 border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-[#8DB600] dark:hover:border-lime-500 rounded-2xl flex flex-col items-center justify-center transition-all overflow-hidden ${disabled ? 'cursor-not-allowed opacity-60' : ''}`}
-        >
-            {previewUrl && !String(previewUrl).startsWith('3d:') ? (
-                <>
-                    <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <span className="text-white font-bold text-xs bg-black/60 px-2.5 py-1 rounded-lg">Change Image</span>
-                    </div>
-                </>
-            ) : (
-                <div className="flex flex-col items-center text-slate-400 dark:text-slate-500 group-hover:text-[#8DB600] dark:group-hover:text-lime-400 transition-colors p-3 text-center">
-                    <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-700 shadow-2xs flex items-center justify-center mb-2">
-                        <PackageIcon className="w-5 h-5 text-slate-400 dark:text-slate-300" />
-                    </div>
-                    <span className="text-xs font-bold text-slate-700 dark:text-slate-200">Upload Image</span>
-                    <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Click to browse 1:1 image</span>
-                </div>
-            )}
-            <input
-                type="file"
-                ref={fileInputRef}
-                className="hidden"
-                accept="image/*"
-                onChange={handleFileChange}
-                disabled={disabled}
-            />
-        </div>
-    );
-};
-
-// Renders either the saved 3D Station Visual or an uploaded HTTP photo
-const CatalogProductThumbnail = ({ product, sizeClass = 'w-10 h-10' }) => {
-    const imgUrl = String(product?.image_url || '').trim();
-    const hasUploadedPhoto =
-        imgUrl &&
-        !imgUrl.startsWith('3d:') &&
-        !product?.icon_3d_key &&
-        (imgUrl.startsWith('http') || imgUrl.startsWith('data:') || imgUrl.startsWith('/'));
-
-    if (hasUploadedPhoto) {
-        return (
-            <img
-                src={imgUrl}
-                alt={product?.name || 'Product'}
-                className="w-full h-full object-cover"
-            />
-        );
-    }
-
-    return <Product3DVisual product={product} className={sizeClass} />;
-};
 
 export default function ProductManagementPage() {
     const router = useRouter();
@@ -121,7 +52,9 @@ export default function ProductManagementPage() {
     const products = productsData.products;
     const totalPages = productsData.totalPages;
 
-    const { addToast, user } = useStore(s => ({ addToast: s.addToast, user: s.user }));
+    const addToast = useStore(s => s.addToast);
+    const user = useStore(s => s.user);
+
     const isAdmin = useMemo(() => {
         if (!user) return false;
         if (user.isAdmin || user.isadmin || user.is_admin || user.isSuperAdmin) return true;
@@ -136,16 +69,13 @@ export default function ProductManagementPage() {
     const updateProduct = useUpdateProduct();
     const deleteProduct = useDeleteProduct();
 
-    // Form State
+    // Form State (Selection-only for 3D Icons & Product Visuals)
     const [editing, setEditing] = useState(null);
     const [name, setName] = useState('');
     const [price, setPrice] = useState('');
     const [cost, setCost] = useState('0');
-    const [visualMode, setVisualMode] = useState('3d'); // '3d' | 'upload'
     const [selected3DKey, setSelected3DKey] = useState('refill-25');
-    const [imageFile, setImageFile] = useState(null);
-    const [imagePreview, setImagePreview] = useState(null);
-    const [uploading, setUploading] = useState(false);
+    const [saving, setSaving] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [barcode, setBarcode] = useState('');
     const [category, setCategory] = useState('Refills/Services');
@@ -206,20 +136,7 @@ export default function ProductManagementPage() {
         setName(p?.name || '');
         setPrice(p?.price != null ? String(p.price) : '');
         setCost(String(p?.cost ?? 0));
-
-        const resolved3D = resolveProduct3DType(p);
-        const imgUrl = String(p?.image_url || '').trim();
-        const isUploadedPhoto =
-            imgUrl &&
-            !imgUrl.startsWith('3d:') &&
-            !p?.icon_3d_key &&
-            (imgUrl.startsWith('http') || imgUrl.startsWith('data:'));
-
-        setVisualMode(isUploadedPhoto ? 'upload' : '3d');
-        setSelected3DKey(resolved3D);
-        setImageFile(null);
-        setImagePreview(isUploadedPhoto ? imgUrl : null);
-
+        setSelected3DKey(resolveProduct3DType(p));
         setBarcode(p?.barcode || '');
         setCategory(p?.category || 'General');
         setStock(Number(p?.stock ?? 0));
@@ -246,10 +163,7 @@ export default function ProductManagementPage() {
         setName('');
         setPrice('');
         setCost('0');
-        setVisualMode('3d');
         setSelected3DKey('refill-25');
-        setImageFile(null);
-        setImagePreview(null);
         setBarcode('');
         setCategory('Refills/Services');
         setStock(0);
@@ -257,7 +171,7 @@ export default function ProductManagementPage() {
         setTrackStock(false);
         setParentId(null);
         setConversionRate('');
-        setUploading(false);
+        setSaving(false);
         setIsAddingCategory(false);
         setNewCategoryName('');
         setIsHidden(false);
@@ -265,7 +179,6 @@ export default function ProductManagementPage() {
 
     const handleSelect3DAsset = (asset) => {
         if (!asset?.asset_key) return;
-        setVisualMode('3d');
         setSelected3DKey(asset.asset_key);
 
         if (!editing) {
@@ -282,28 +195,8 @@ export default function ProductManagementPage() {
         }
     };
 
-    const handleFileSelect = (file) => {
-        setImageFile(file);
-        setImagePreview(URL.createObjectURL(file));
-    };
-
-    const uploadImage = async (file) => {
-        try {
-            const fileExt = file.name.split('.').pop();
-            const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-            const filePath = `products/${fileName}`;
-            const { error: uploadError } = await supabase.storage.from('products').upload(filePath, file);
-            if (uploadError) throw uploadError;
-            const { data } = supabase.storage.from('products').getPublicUrl(filePath);
-            return data.publicUrl;
-        } catch (error) {
-            addToast({ title: 'Upload Error', description: error.message, variant: 'destructive' });
-            return null;
-        }
-    };
-
     const save = async (e) => {
-        e.preventDefault();
+        if (e?.preventDefault) e.preventDefault();
         const parsedPrice = currency(price).value;
 
         if (!name.trim() || !price) {
@@ -311,27 +204,9 @@ export default function ProductManagementPage() {
             return;
         }
 
-        setUploading(true);
-        let finalImageUrl = null;
-        let finalIcon3DKey = null;
-
-        if (visualMode === '3d') {
-            finalIcon3DKey = selected3DKey || 'refill-25';
-            finalImageUrl = `3d:${finalIcon3DKey}`;
-        } else {
-            finalImageUrl = editing?.image_url && !String(editing.image_url).startsWith('3d:')
-                ? editing.image_url
-                : null;
-            if (imageFile) {
-                const uploadedUrl = await uploadImage(imageFile);
-                if (uploadedUrl) {
-                    finalImageUrl = uploadedUrl;
-                } else {
-                    setUploading(false);
-                    return;
-                }
-            }
-        }
+        setSaving(true);
+        const finalIcon3DKey = selected3DKey || 'refill-25';
+        const finalImageUrl = `3d:${finalIcon3DKey}`;
 
         const payload = {
             name: name.trim(),
@@ -353,7 +228,7 @@ export default function ProductManagementPage() {
             let savedRecord = null;
             if (editing) {
                 savedRecord = await updateProduct.mutateAsync({ ...payload, id: editing.id });
-                addToast({ title: 'Product Updated', description: `${name} has been updated with 3D visual.`, variant: 'success' });
+                addToast({ title: 'Product Updated', description: `${name} has been updated.`, variant: 'success' });
             } else {
                 savedRecord = await createProduct.mutateAsync(payload);
                 addToast({ title: 'Product Added', description: `${name} created and saved to POS.`, variant: 'success' });
@@ -375,7 +250,7 @@ export default function ProductManagementPage() {
         } catch (err) {
             addToast({ title: 'Save Failed', description: err.message, variant: 'destructive' });
         } finally {
-            setUploading(false);
+            setSaving(false);
         }
     };
 
@@ -464,7 +339,7 @@ export default function ProductManagementPage() {
         }
     };
 
-    const isMutating = createProduct.isPending || updateProduct.isPending || deleteProduct.isPending || uploading;
+    const isMutating = createProduct.isPending || updateProduct.isPending || deleteProduct.isPending || saving;
 
     return (
         <div className="product-page responsive-page max-w-7xl mx-auto space-y-6 p-4 md:p-6 transition-colors">
@@ -476,8 +351,20 @@ export default function ProductManagementPage() {
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Control refilling services, 3D station visuals, bottle inventory, and POS availability.</p>
                 </div>
 
-                <div className="flex items-center gap-2 w-full sm:w-auto">
+                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                    {isAdmin && (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => router.push('/3d-icons')}
+                            className="h-10 px-3.5 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:border-[#8DB600] text-xs font-bold flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                        >
+                            <Sparkles className="w-3.5 h-3.5 text-[#8DB600]" />
+                            <span>3D Icons Library</span>
+                        </Button>
+                    )}
                     <Button
+                        type="button"
                         variant="outline"
                         onClick={handleExportCSV}
                         className="h-10 px-3.5 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 text-xs font-bold flex items-center gap-1.5 shadow-2xs cursor-pointer"
@@ -486,6 +373,7 @@ export default function ProductManagementPage() {
                         <span>Export CSV</span>
                     </Button>
                     <Button
+                        type="button"
                         variant="primary"
                         onClick={openModal}
                         className="h-10 px-4 rounded-xl bg-[#8DB600] hover:bg-[#7ca000] text-white font-bold text-xs shadow-sm flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer"
@@ -581,7 +469,7 @@ export default function ProductManagementPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody className="divide-y divide-slate-100 dark:divide-slate-800/80 text-xs sm:text-sm">
-                                {isLoading ? (
+                                {isLoading && products.length === 0 ? (
                                     <TableRow><TableCell colSpan={7} className="text-center py-12 text-slate-400">Loading catalog...</TableCell></TableRow>
                                 ) : products.length === 0 ? (
                                     <TableRow><TableCell colSpan={7} className="text-center py-12 text-slate-400">No products matching criteria.</TableCell></TableRow>
@@ -597,7 +485,7 @@ export default function ProductManagementPage() {
                                                 <TableCell className="px-5 py-3.5">
                                                     <div className="flex items-center gap-3">
                                                         <div className="w-11 h-11 rounded-xl bg-slate-100/90 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700 overflow-hidden flex items-center justify-center shrink-0 shadow-2xs p-1">
-                                                            <CatalogProductThumbnail product={p} sizeClass="w-9 h-9" />
+                                                            <Product3DVisual product={p} className="w-9 h-9" />
                                                         </div>
                                                         <div className="flex flex-col min-w-0">
                                                             <span className="font-bold text-slate-900 dark:text-slate-100 truncate">{p.name}</span>
@@ -713,7 +601,7 @@ export default function ProductManagementPage() {
 
             {/* Mobile Card View */}
             <div className="block md:hidden space-y-3">
-                {isLoading ? (
+                {isLoading && products.length === 0 ? (
                     <div className="text-center text-slate-400 p-8">Loading products...</div>
                 ) : products.length === 0 ? (
                     <div className="text-center text-slate-400 p-8 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
@@ -724,7 +612,7 @@ export default function ProductManagementPage() {
                         <div key={p.id} className={`group bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs flex items-center justify-between gap-3 ${p.is_hidden ? 'opacity-60 bg-slate-50 dark:bg-slate-800/40' : ''}`}>
                             <div className="flex items-center gap-3 min-w-0">
                                 <div className="w-12 h-12 rounded-xl bg-slate-100/90 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 overflow-hidden flex items-center justify-center shrink-0 p-1">
-                                    <CatalogProductThumbnail product={p} sizeClass="w-10 h-10" />
+                                    <Product3DVisual product={p} className="w-10 h-10" />
                                 </div>
                                 <div className="min-w-0">
                                     <div className="font-bold text-sm text-slate-900 dark:text-slate-100 truncate">{p.name}</div>
@@ -774,10 +662,10 @@ export default function ProductManagementPage() {
                 </div>
             </div>
 
-            {/* ADD / EDIT PRODUCT MODAL (With Philippine WRS 3D Visual Library) */}
+            {/* ADD / EDIT PRODUCT MODAL (Selection-only from saved 3D Icons & Product Visuals) */}
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
                 <DialogContent className="p-0 sm:max-w-[760px] w-full bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden rounded-3xl dark:[color-scheme:dark]">
-                    <form onSubmit={save}>
+                    <div>
                         {/* Header */}
                         <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/95 flex items-center justify-between">
                             <div>
@@ -785,65 +673,35 @@ export default function ProductManagementPage() {
                                     {editing ? 'Edit Product Details' : 'Add New Inventory Item'}
                                 </DialogTitle>
                                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                                    {editing ? `SKU Item ID: #${editing.id}` : 'Choose a 3D station visual and configure POS pricing.'}
+                                    {editing ? `SKU Item ID: #${editing.id}` : 'Select a saved 3D station visual and configure POS pricing.'}
                                 </p>
                             </div>
-                            <DialogCloseButton onClick={closeModal} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-full" />
+                            <DialogCloseButton type="button" onClick={closeModal} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-full" />
                         </div>
 
                         {/* Modal Body */}
                         <div className="p-5 sm:p-6 max-h-[76vh] overflow-y-auto space-y-6 bg-white dark:bg-slate-900">
 
-                            {/* Section 1: 3D Visual Preview & Basic Info */}
+                            {/* Section 1: Selected 3D Visual Preview & Basic Info */}
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
-                                <div className="md:col-span-1 space-y-2.5">
-                                    <div className="flex items-center justify-between">
-                                        <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                                            POS Visual
-                                        </Label>
-                                        <div className="flex bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 text-[10px] font-bold">
-                                            <button
-                                                type="button"
-                                                onClick={() => setVisualMode('3d')}
-                                                className={`px-2 py-0.5 rounded-md transition-colors cursor-pointer ${
-                                                    visualMode === '3d'
-                                                        ? 'bg-[#8DB600] text-white'
-                                                        : 'text-slate-600 dark:text-slate-300'
-                                                }`}
-                                            >
-                                                3D Icon
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => setVisualMode('upload')}
-                                                className={`px-2 py-0.5 rounded-md transition-colors cursor-pointer ${
-                                                    visualMode === 'upload'
-                                                        ? 'bg-[#8DB600] text-white'
-                                                        : 'text-slate-600 dark:text-slate-300'
-                                                }`}
-                                            >
-                                                Photo
-                                            </button>
-                                        </div>
-                                    </div>
+                                <div className="md:col-span-1 space-y-2">
+                                    <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
+                                        Selected 3D Visual
+                                    </Label>
 
-                                    {visualMode === '3d' ? (
-                                        <div className="group relative w-full aspect-square rounded-2xl bg-gradient-to-b from-cyan-500/10 via-slate-50 to-lime-500/10 dark:from-cyan-950/30 dark:via-slate-800/90 dark:to-lime-950/30 border-2 border-[#8DB600]/60 dark:border-lime-500/40 flex flex-col items-center justify-center p-3 text-center shadow-2xs">
-                                            <Product3DVisual
-                                                assetKey={selected3DKey}
-                                                customImageUrl={active3DAssetMeta?.image_url}
-                                                className="w-24 h-24 sm:w-28 sm:h-28"
-                                            />
-                                            <span className="mt-2 text-[10.5px] font-extrabold text-slate-800 dark:text-slate-100 line-clamp-1">
-                                                {active3DAssetMeta.label}
-                                            </span>
-                                            <span className="text-[9px] font-mono font-bold text-[#5f7d00] dark:text-lime-400">
-                                                Synced with POS
-                                            </span>
-                                        </div>
-                                    ) : (
-                                        <ImageUploader previewUrl={imagePreview} onFileSelect={handleFileSelect} disabled={isDemo} />
-                                    )}
+                                    <div className="group relative w-full aspect-square rounded-2xl bg-gradient-to-b from-cyan-500/10 via-slate-50 to-lime-500/10 dark:from-cyan-950/30 dark:via-slate-800/90 dark:to-lime-950/30 border-2 border-[#8DB600]/60 dark:border-lime-500/40 flex flex-col items-center justify-center p-3 text-center shadow-2xs">
+                                        <Product3DVisual
+                                            assetKey={selected3DKey}
+                                            customImageUrl={active3DAssetMeta?.image_url}
+                                            className="w-24 h-24 sm:w-28 sm:h-28"
+                                        />
+                                        <span className="mt-2 text-[10.5px] font-extrabold text-slate-800 dark:text-slate-100 line-clamp-1">
+                                            {active3DAssetMeta.label}
+                                        </span>
+                                        <span className="text-[9px] font-mono font-bold text-[#5f7d00] dark:text-lime-400">
+                                            Uniform 256×256
+                                        </span>
+                                    </div>
                                 </div>
 
                                 <div className="md:col-span-2 space-y-4">
@@ -852,7 +710,6 @@ export default function ProductManagementPage() {
                                         <Input
                                             value={name}
                                             onChange={e => setName(e.target.value)}
-                                            required
                                             placeholder="e.g. Container (Round) or Refill (25L)"
                                             className="h-10 mt-1 text-sm rounded-xl bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:border-[#8DB600] dark:focus:border-lime-500"
                                             disabled={isDemo}
@@ -919,15 +776,13 @@ export default function ProductManagementPage() {
                                 </div>
                             </div>
 
-                            {/* Section 1B: Philippine WRS 3D Icon & Visual Selector */}
-                            {visualMode === '3d' && (
-                                <Product3DIconPicker
-                                    selectedKey={selected3DKey}
-                                    onSelect={handleSelect3DAsset}
-                                    compact
-                                    isAdmin={isAdmin}
-                                />
-                            )}
+                            {/* Section 1B: Pick from Saved 3D Icons & Product Visuals */}
+                            <Product3DIconPicker
+                                selectedKey={selected3DKey}
+                                onSelect={handleSelect3DAsset}
+                                compact
+                                isAdmin={isAdmin}
+                            />
 
                             <hr className="border-slate-100 dark:border-slate-800" />
 
@@ -962,7 +817,6 @@ export default function ProductManagementPage() {
                                             value={price}
                                             onChange={e => setPrice(e.target.value)}
                                             placeholder="0.00"
-                                            required
                                             className="h-10 mt-1 font-mono font-black text-[#8DB600] dark:text-lime-400 text-base rounded-xl bg-white dark:bg-slate-900 border-lime-300 dark:border-lime-800/70"
                                             disabled={isDemo}
                                         />
@@ -1078,14 +932,15 @@ export default function ProductManagementPage() {
                                 Cancel
                             </Button>
                             <Button
-                                type="submit"
+                                type="button"
+                                onClick={save}
                                 disabled={isMutating || isDemo}
                                 className="h-10 px-6 rounded-xl bg-[#8DB600] hover:bg-[#7ca000] text-white text-xs font-bold shadow-md active:scale-95 transition-all cursor-pointer"
                             >
                                 {isMutating ? 'Saving...' : (editing ? 'Update Product' : 'Create Product')}
                             </Button>
                         </div>
-                    </form>
+                    </div>
                 </DialogContent>
             </Dialog>
 

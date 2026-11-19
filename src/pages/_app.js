@@ -9,8 +9,6 @@ import { useStore } from '../store/useStore';
 import { useRouter } from 'next/router';
 import Navbar from '../components/Navbar';
 import TabBar from '../components/TabBar';
-import FloatingNotes from '../components/FloatingNotes';
-import FloatingMessages from '../components/FloatingMessages';
 import GlobalVehicleAlert from '../components/tracking/GlobalVehicleAlert';
 import ScheduledFloaterToast from '../components/ScheduledFloaterToast';
 import { Button } from '../components/ui';
@@ -50,10 +48,8 @@ const titleMap = {
 };
 
 function AuthGate({ children }) {
-    const { user, sessionLoaded } = useStore(s => ({
-        user: s.user,
-        sessionLoaded: s.sessionLoaded
-    }));
+    const user = useStore(s => s.user);
+    const sessionLoaded = useStore(s => s.sessionLoaded);
     const router = useRouter();
 
     useEffect(() => {
@@ -62,7 +58,6 @@ function AuthGate({ children }) {
             const isPublicPage = ['/', '/about', '/terms', '/privacy', '/contact'].includes(router.pathname) || router.pathname.startsWith('/resources');
 
             if (!isLoggedIn && !isPublicPage) {
-                if (process.env.NODE_ENV === 'development') console.log("AuthGate: Not logged in, redirecting to landing page");
                 router.push('/');
             }
         }
@@ -145,10 +140,12 @@ function AuthGate({ children }) {
 }
 
 export default function App({ Component, pageProps }) {
-    const { toasts, dismissToast, darkMode, user } = useStore();
+    const toasts = useStore(s => s.toasts);
+    const dismissToast = useStore(s => s.dismissToast);
+    const darkMode = useStore(s => s.darkMode);
+    const user = useStore(s => s.user);
     const router = useRouter();
 
-    // Real page-load synced transition state for '/' and '/about'
     const [isTransitionActive, setIsTransitionActive] = useState(false);
     const [isRouteLoading, setIsRouteLoading] = useState(false);
     const initialCheckDoneRef = useRef(false);
@@ -159,7 +156,6 @@ export default function App({ Component, pageProps }) {
             return cleanPath === '/' || cleanPath === '/about';
         };
 
-        // Run initial entry check once on mount
         if (!initialCheckDoneRef.current) {
             initialCheckDoneRef.current = true;
             if (checkShouldTransition(router.pathname)) {
@@ -167,7 +163,6 @@ export default function App({ Component, pageProps }) {
             }
         }
 
-        // Sync route loading status with CinematicTransition
         const handleRouteChangeStart = (url) => {
             const targetPath = url.split('?')[0].split('#')[0].toLowerCase();
             const currentPath = router.asPath.split('?')[0].split('#')[0].toLowerCase();
@@ -197,14 +192,15 @@ export default function App({ Component, pageProps }) {
             queries: {
                 gcTime: 1000 * 60 * 60 * 24 * 7,
                 staleTime: 1000 * 60 * 5,
-                refetchOnWindowFocus: true,
+                refetchOnWindowFocus: false,
+                refetchOnReconnect: false,
             },
         },
         mutationCache: new MutationCache({
             onMutate: async () => {
-                const { user, addToast } = useStore.getState();
+                const { user: currentUser, addToast } = useStore.getState();
 
-                if (user?.isDemo) {
+                if (currentUser?.isDemo) {
                     setTimeout(() => {
                         addToast({
                             title: 'Demo Mode Active',
@@ -254,7 +250,6 @@ export default function App({ Component, pageProps }) {
                     <meta name="google-site-verification" content="kd1wSsNQZCjJmyp4LaQKI9Mr7s6Z9_I5Z3ETpaW1EVc" />
                 </Head>
 
-                {/* Refilling Transition Overlay Synced with Real Page Load */}
                 {isTransitionActive && (
                     <CinematicTransition
                         isRouteLoading={isRouteLoading}

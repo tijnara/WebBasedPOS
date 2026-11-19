@@ -12,7 +12,9 @@ import {
     ShieldAlert,
     CheckCircle2,
     Layers,
-    ArrowLeft
+    ArrowLeft,
+    Wand2,
+    Loader2
 } from 'lucide-react';
 import {
     Button,
@@ -28,6 +30,7 @@ import { useStore } from '../../store/useStore';
 import {
     useProduct3DAssets,
     useCreateProduct3DAsset,
+    useGenerateAI3DIcon,
     useDeleteProduct3DAsset,
     useRestoreBuiltin3DAssets,
     normalize3DIconFile
@@ -43,10 +46,8 @@ const CATEGORIES = [
 ];
 
 export default function Product3DIconsPage() {
-    const { user, addToast } = useStore((s) => ({
-        user: s.user,
-        addToast: s.addToast
-    }));
+    const user = useStore((s) => s.user);
+    const addToast = useStore((s) => s.addToast);
 
     const isAdmin = useMemo(() => {
         if (!user) return false;
@@ -65,6 +66,7 @@ export default function Product3DIconsPage() {
 
     const { data: assets = [], isLoading } = useProduct3DAssets();
     const createAsset = useCreateProduct3DAsset();
+    const generateAI3DIcon = useGenerateAI3DIcon();
     const deleteAsset = useDeleteProduct3DAsset();
     const restoreDefaults = useRestoreBuiltin3DAssets();
 
@@ -74,7 +76,7 @@ export default function Product3DIconsPage() {
 
     // Add 3D Icon Modal states
     const [isAddOpen, setIsAddOpen] = useState(false);
-    const [sourceType, setSourceType] = useState('upload'); // 'upload' | 'url'
+    const [sourceType, setSourceType] = useState('ai'); // 'ai' | 'upload' | 'url'
     const [label, setLabel] = useState('');
     const [category, setCategory] = useState('Refills/Services');
     const [description, setDescription] = useState('');
@@ -99,7 +101,7 @@ export default function Product3DIconsPage() {
     }, [assets, categoryFilter, searchQuery]);
 
     const resetAddForm = () => {
-        setSourceType('upload');
+        setSourceType('ai');
         setLabel('');
         setCategory('Refills/Services');
         setDescription('');
@@ -126,30 +128,55 @@ export default function Product3DIconsPage() {
     };
 
     const handleCreateSubmit = async (e) => {
-        e.preventDefault();
+        if (e?.preventDefault) e.preventDefault();
         if (!isAdmin || isDemo) return;
 
-        try {
-            await createAsset.mutateAsync({
-                label,
-                category,
-                description,
-                suggestedPrice,
-                imageFile: sourceType === 'upload' ? imageFile : null,
-                imageUrlInput: sourceType === 'url' ? imageUrlInput : ''
-            });
-
+        if (!label.trim()) {
             addToast?.({
-                title: '3D Icon Saved',
-                description: `"${label}" added to the 3D library at uniform 256×256 size.`,
-                variant: 'success'
+                title: 'Label Required',
+                description: 'Please enter an Icon Label first.',
+                variant: 'warning'
             });
+            return;
+        }
+
+        try {
+            if (sourceType === 'ai') {
+                await generateAI3DIcon.mutateAsync({
+                    label,
+                    category,
+                    description,
+                    suggestedPrice
+                });
+
+                addToast?.({
+                    title: 'AI 3D Icon Created',
+                    description: `"${label}" was generated at 256×256 and saved to your 3D library.`,
+                    variant: 'success'
+                });
+            } else {
+                await createAsset.mutateAsync({
+                    label,
+                    category,
+                    description,
+                    suggestedPrice,
+                    imageFile: sourceType === 'upload' ? imageFile : null,
+                    imageUrlInput: sourceType === 'url' ? imageUrlInput : ''
+                });
+
+                addToast?.({
+                    title: '3D Icon Saved',
+                    description: `"${label}" added to the 3D library at uniform 256×256 size.`,
+                    variant: 'success'
+                });
+            }
+
             setIsAddOpen(false);
             resetAddForm();
         } catch (err) {
             addToast?.({
-                title: 'Save Failed',
-                description: err.message || 'Could not save 3D icon.',
+                title: sourceType === 'ai' ? 'AI Generation Failed' : 'Save Failed',
+                description: err.message || 'Could not create 3D icon.',
                 variant: 'destructive'
             });
         }
@@ -196,7 +223,6 @@ export default function Product3DIconsPage() {
         }
     };
 
-    // Admin-only Frontend Guard
     if (!isAdmin) {
         return (
             <div className="max-w-lg mx-auto my-12 p-6 bg-white dark:bg-slate-900 rounded-3xl border border-rose-200 dark:border-rose-900/50 text-center space-y-3 shadow-sm">
@@ -221,7 +247,13 @@ export default function Product3DIconsPage() {
     }
 
     const activePreviewUrl =
-        sourceType === 'upload' ? normalizedPreview : imageUrlInput.trim() || null;
+        sourceType === 'upload'
+            ? normalizedPreview
+            : sourceType === 'url'
+                ? imageUrlInput.trim() || null
+                : null;
+
+    const isSubmitting = createAsset.isPending || generateAI3DIcon.isPending;
 
     return (
         <div className="space-y-6 py-4 md:py-6">
@@ -241,7 +273,7 @@ export default function Product3DIconsPage() {
                             </span>
                         </div>
                         <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-                            Add or remove 3D water refilling visuals. Every icon is automatically standardized to the exact same size for Product Entry and POS.
+                            Create (AI or Upload) and manage all 3D product icons here. Every icon is standardized to 256×256 for Product Management and POS.
                         </p>
                     </div>
                 </div>
@@ -312,7 +344,7 @@ export default function Product3DIconsPage() {
             </div>
 
             {/* Uniform 1:1 3D Icon Library Grid */}
-            {isLoading ? (
+            {isLoading && assets.length === 0 ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3.5">
                     {Array.from({ length: 10 }).map((_, idx) => (
                         <div
@@ -328,69 +360,71 @@ export default function Product3DIconsPage() {
                         No 3D icons found
                     </p>
                     <p className="text-xs text-slate-400">
-                        Click &ldquo;Add 3D Icon&rdquo; to upload a new uniform 3D visual or &ldquo;Restore Defaults&rdquo;.
+                        Click &ldquo;Add 3D Icon&rdquo; to generate one with AI or upload a custom visual.
                     </p>
                 </div>
             ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3.5">
-                    {filteredAssets.map((item) => (
-                        <div
-                            key={item.id || item.asset_key}
-                            className="group relative bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 p-3.5 flex flex-col justify-between items-center text-center shadow-2xs hover:border-[#8DB600] dark:hover:border-lime-500/60 transition-all"
-                        >
-                            {/* Top Row: Built-in vs Custom Badge & Delete Button */}
-                            <div className="w-full flex items-center justify-between gap-1">
-                                <span
-                                    className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                                        item.image_url
-                                            ? 'bg-cyan-50 dark:bg-cyan-950/60 text-cyan-700 dark:text-cyan-300 border border-cyan-200/70 dark:border-cyan-800/50'
-                                            : 'bg-lime-50 dark:bg-lime-950/60 text-[#5f7d00] dark:text-lime-400 border border-lime-200/70 dark:border-lime-800/50'
-                                    }`}
-                                >
-                                    {item.image_url ? 'Custom 3D' : 'Preset 3D'}
-                                </span>
+                    {filteredAssets.map((item) => {
+                        const isAI = String(item.asset_key || '').startsWith('ai-');
+                        return (
+                            <div
+                                key={item.id || item.asset_key}
+                                className="group relative bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 p-3.5 flex flex-col justify-between items-center text-center shadow-2xs hover:border-[#8DB600] dark:hover:border-lime-500/60 transition-all"
+                            >
+                                <div className="w-full flex items-center justify-between gap-1">
+                                    <span
+                                        className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                                            isAI
+                                                ? 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200/70 dark:border-purple-800/50'
+                                                : item.image_url
+                                                    ? 'bg-cyan-50 dark:bg-cyan-950/60 text-cyan-700 dark:text-cyan-300 border border-cyan-200/70 dark:border-cyan-800/50'
+                                                    : 'bg-lime-50 dark:bg-lime-950/60 text-[#5f7d00] dark:text-lime-400 border border-lime-200/70 dark:border-lime-800/50'
+                                        }`}
+                                    >
+                                        {isAI ? 'AI 3D' : item.image_url ? 'Custom 3D' : 'Preset 3D'}
+                                    </span>
 
-                                <button
-                                    type="button"
-                                    onClick={() => handleDeleteAsset(item)}
-                                    disabled={deleteAsset.isPending || isDemo}
-                                    className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer disabled:opacity-40"
-                                    title="Delete 3D Icon"
-                                >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                            </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleDeleteAsset(item)}
+                                        disabled={deleteAsset.isPending || isDemo}
+                                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer disabled:opacity-40"
+                                        title="Delete 3D Icon"
+                                    >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
 
-                            {/* Strictly Uniform 80x80 (w-20 h-20) 1:1 Visual Slot */}
-                            <div className="w-20 h-20 my-3 rounded-2xl bg-slate-50/90 dark:bg-slate-800/70 border border-slate-100 dark:border-slate-800 flex items-center justify-center shrink-0">
-                                <Product3DVisual
-                                    assetKey={item.asset_key}
-                                    customImageUrl={item.image_url}
-                                    className="w-16 h-16"
-                                />
-                            </div>
+                                <div className="w-20 h-20 my-3 rounded-2xl bg-slate-50/90 dark:bg-slate-800/70 border border-slate-100 dark:border-slate-800 flex items-center justify-center shrink-0">
+                                    <Product3DVisual
+                                        assetKey={item.asset_key}
+                                        customImageUrl={item.image_url}
+                                        className="w-16 h-16"
+                                    />
+                                </div>
 
-                            {/* Label, Category & Uniform Size Tag */}
-                            <div className="w-full space-y-1">
-                                <h3 className="text-xs font-extrabold text-slate-900 dark:text-white line-clamp-2 leading-snug">
-                                    {item.label}
-                                </h3>
-                                <span className="block text-[10px] font-bold text-slate-400">
-                                    {item.category}
-                                </span>
-                                <span className="inline-block text-[9px] font-mono text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
-                                    1:1 • {item.asset_key}
-                                </span>
+                                <div className="w-full space-y-1">
+                                    <h3 className="text-xs font-extrabold text-slate-900 dark:text-white line-clamp-2 leading-snug">
+                                        {item.label}
+                                    </h3>
+                                    <span className="block text-[10px] font-bold text-slate-400">
+                                        {item.category}
+                                    </span>
+                                    <span className="inline-block text-[9px] font-mono text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                                        1:1 • {item.asset_key}
+                                    </span>
+                                </div>
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
 
-            {/* ADD NEW 3D ICON / IMAGE MODAL */}
+            {/* ADD NEW 3D ICON / IMAGE MODAL (No <form> tag so native reload cannot occur) */}
             <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-                <DialogContent className="p-0 sm:max-w-[540px] w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-2xl">
-                    <form onSubmit={handleCreateSubmit}>
+                <DialogContent className="p-0 sm:max-w-[560px] w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-2xl">
+                    <div>
                         <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900 flex items-center justify-between">
                             <div>
                                 <DialogTitle className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
@@ -401,30 +435,43 @@ export default function Product3DIconsPage() {
                                 </p>
                             </div>
                             <DialogCloseButton
+                                type="button"
                                 onClick={() => setIsAddOpen(false)}
                                 className="text-slate-400 hover:text-slate-600 p-1.5 rounded-full"
                             />
                         </div>
 
                         <div className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
-                            {/* Source Switcher: Upload File vs Paste URL */}
-                            <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold">
+                            {/* Source Switcher */}
+                            <div className="grid grid-cols-3 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 text-[11px] sm:text-xs font-bold gap-1">
+                                <button
+                                    type="button"
+                                    onClick={() => setSourceType('ai')}
+                                    className={`py-2 rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
+                                        sourceType === 'ai'
+                                            ? 'bg-gradient-to-r from-[#8DB600] to-emerald-600 text-white shadow-2xs'
+                                            : 'text-slate-600 dark:text-slate-300'
+                                    }`}
+                                >
+                                    <Wand2 className="w-3.5 h-3.5" />
+                                    <span>Generate with AI</span>
+                                </button>
                                 <button
                                     type="button"
                                     onClick={() => setSourceType('upload')}
-                                    className={`flex-1 py-2 rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
+                                    className={`py-2 rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
                                         sourceType === 'upload'
                                             ? 'bg-[#8DB600] text-white shadow-2xs'
                                             : 'text-slate-600 dark:text-slate-300'
                                     }`}
                                 >
                                     <Upload className="w-3.5 h-3.5" />
-                                    <span>Upload 3D Image</span>
+                                    <span>Upload Image</span>
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setSourceType('url')}
-                                    className={`flex-1 py-2 rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
+                                    className={`py-2 rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
                                         sourceType === 'url'
                                             ? 'bg-[#8DB600] text-white shadow-2xs'
                                             : 'text-slate-600 dark:text-slate-300'
@@ -435,15 +482,29 @@ export default function Product3DIconsPage() {
                                 </button>
                             </div>
 
-                            {/* Uniform 1:1 Live Preview + Upload/URL Input */}
+                            {/* Uniform 1:1 Live Preview + Source Controls */}
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
                                 <div className="sm:col-span-1 flex flex-col items-center">
-                                    <div className="w-28 h-28 rounded-2xl bg-slate-50 dark:bg-slate-800 border-2 border-dashed border-[#8DB600]/60 flex items-center justify-center p-2">
-                                        {activePreviewUrl ? (
+                                    <div className="w-28 h-28 rounded-2xl bg-slate-50 dark:bg-slate-800 border-2 border-dashed border-[#8DB600]/60 flex flex-col items-center justify-center p-2 text-center">
+                                        {generateAI3DIcon.isPending ? (
+                                            <div className="flex flex-col items-center gap-1.5 text-[#659000] dark:text-lime-400">
+                                                <Loader2 className="w-7 h-7 animate-spin" />
+                                                <span className="text-[10px] font-bold leading-tight">
+                                                    Rendering 3D...
+                                                </span>
+                                            </div>
+                                        ) : activePreviewUrl ? (
                                             <Product3DVisual
                                                 customImageUrl={activePreviewUrl}
                                                 className="w-20 h-20"
                                             />
+                                        ) : sourceType === 'ai' ? (
+                                            <div className="flex flex-col items-center gap-1 text-slate-400">
+                                                <Wand2 className="w-6 h-6 text-[#8DB600]" />
+                                                <span className="text-[10px] font-bold leading-tight">
+                                                    AI 256×256 Studio
+                                                </span>
+                                            </div>
                                         ) : (
                                             <span className="text-[10px] font-bold text-slate-400 text-center">
                                                 256×256 Preview
@@ -456,7 +517,13 @@ export default function Product3DIconsPage() {
                                 </div>
 
                                 <div className="sm:col-span-2 space-y-3">
-                                    {sourceType === 'upload' ? (
+                                    {sourceType === 'ai' && (
+                                        <div className="p-3 rounded-xl bg-lime-50/70 dark:bg-lime-950/30 border border-lime-200/80 dark:border-lime-900/50 text-[11px] text-slate-700 dark:text-slate-300 leading-relaxed">
+                                            Enter the <strong>Icon Label</strong> and pick a <strong>Category</strong> below. AI will generate a matching 3D water-station visual and save it at <strong>256×256</strong>.
+                                        </div>
+                                    )}
+
+                                    {sourceType === 'upload' && (
                                         <div>
                                             <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
                                                 Choose 3D PNG / WebP / SVG File
@@ -479,7 +546,9 @@ export default function Product3DIconsPage() {
                                                 </span>
                                             </button>
                                         </div>
-                                    ) : (
+                                    )}
+
+                                    {sourceType === 'url' && (
                                         <div>
                                             <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
                                                 3D Image URL
@@ -501,7 +570,6 @@ export default function Product3DIconsPage() {
                                         <Input
                                             value={label}
                                             onChange={(e) => setLabel(e.target.value)}
-                                            required
                                             placeholder="e.g. 20L Alkaline Container"
                                             className="h-10 mt-1 text-xs sm:text-sm rounded-xl bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700"
                                         />
@@ -544,12 +612,12 @@ export default function Product3DIconsPage() {
 
                             <div>
                                 <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                                    Description (Optional)
+                                    Description / Prompt Details (Optional)
                                 </Label>
                                 <Input
                                     value={description}
                                     onChange={(e) => setDescription(e.target.value)}
-                                    placeholder="Short note for staff when selecting this visual"
+                                    placeholder="e.g. Clear blue 20L round jug with apple green cap"
                                     className="h-10 mt-1 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700"
                                 />
                             </div>
@@ -560,19 +628,37 @@ export default function Product3DIconsPage() {
                                 type="button"
                                 variant="outline"
                                 onClick={() => setIsAddOpen(false)}
+                                disabled={isSubmitting}
                                 className="h-10 px-4 rounded-xl text-xs font-bold cursor-pointer"
                             >
                                 Cancel
                             </Button>
                             <Button
-                                type="submit"
-                                disabled={createAsset.isPending || isDemo}
-                                className="h-10 px-5 rounded-xl bg-[#8DB600] hover:bg-[#7ca000] text-white text-xs font-extrabold cursor-pointer"
+                                type="button"
+                                onClick={handleCreateSubmit}
+                                disabled={isSubmitting || isDemo}
+                                className="h-10 px-5 rounded-xl bg-[#8DB600] hover:bg-[#7ca000] text-white text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer"
                             >
-                                {createAsset.isPending ? 'Normalizing & Saving...' : 'Save 3D Icon'}
+                                {isSubmitting ? (
+                                    <>
+                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                        <span>
+                                            {sourceType === 'ai'
+                                                ? 'Generating 3D Icon...'
+                                                : 'Normalizing & Saving...'}
+                                        </span>
+                                    </>
+                                ) : sourceType === 'ai' ? (
+                                    <>
+                                        <Wand2 className="w-3.5 h-3.5" />
+                                        <span>Generate &amp; Save 3D Icon</span>
+                                    </>
+                                ) : (
+                                    <span>Save 3D Icon</span>
+                                )}
                             </Button>
                         </div>
-                    </form>
+                    </div>
                 </DialogContent>
             </Dialog>
         </div>
