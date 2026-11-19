@@ -97,43 +97,6 @@ export default function App({ Component, pageProps }) {
     const [isRouteLoading, setIsRouteLoading] = useState(false);
     const initialCheckDoneRef = useRef(false);
 
-    useEffect(() => {
-        const checkShouldTransition = (path) => {
-            const cleanPath = (path || router.pathname).split('?')[0].split('#')[0].toLowerCase();
-            return cleanPath === '/' || cleanPath === '/about';
-        };
-
-        if (!initialCheckDoneRef.current) {
-            initialCheckDoneRef.current = true;
-            if (checkShouldTransition(router.pathname)) {
-                setIsTransitionActive(true);
-            }
-        }
-
-        const handleRouteChangeStart = (url) => {
-            const targetPath = url.split('?')[0].split('#')[0].toLowerCase();
-            const currentPath = router.asPath.split('?')[0].split('#')[0].toLowerCase();
-            if ((targetPath === '/' || targetPath === '/about') && targetPath !== currentPath) {
-                setIsRouteLoading(true);
-                setIsTransitionActive(true);
-            }
-        };
-
-        const handleRouteChangeDone = () => {
-            setIsRouteLoading(false);
-        };
-
-        router.events.on('routeChangeStart', handleRouteChangeStart);
-        router.events.on('routeChangeComplete', handleRouteChangeDone);
-        router.events.on('routeChangeError', handleRouteChangeDone);
-
-        return () => {
-            router.events.off('routeChangeStart', handleRouteChangeStart);
-            router.events.off('routeChangeComplete', handleRouteChangeDone);
-            router.events.off('routeChangeError', handleRouteChangeDone);
-        };
-    }, [router]);
-
     const [queryClient] = useState(() => new QueryClient({
         defaultOptions: {
             queries: {
@@ -162,6 +125,46 @@ export default function App({ Component, pageProps }) {
             }
         })
     }));
+
+    useEffect(() => {
+        const checkShouldTransition = (path) => {
+            const cleanPath = (path || router.pathname).split('?')[0].split('#')[0].toLowerCase();
+            return cleanPath === '/' || cleanPath === '/about';
+        };
+
+        if (!initialCheckDoneRef.current) {
+            initialCheckDoneRef.current = true;
+            if (checkShouldTransition(router.pathname)) {
+                setIsTransitionActive(true);
+            }
+        }
+
+        const handleRouteChangeStart = (url) => {
+            const targetPath = url.split('?')[0].split('#')[0].toLowerCase();
+            const currentPath = router.asPath.split('?')[0].split('#')[0].toLowerCase();
+            if ((targetPath === '/' || targetPath === '/about') && targetPath !== currentPath) {
+                setIsRouteLoading(true);
+                setIsTransitionActive(true);
+            }
+        };
+
+        const handleRouteChangeDone = (url) => {
+            setIsRouteLoading(false);
+            if (url) {
+                queryClient.invalidateQueries();
+            }
+        };
+
+        router.events.on('routeChangeStart', handleRouteChangeStart);
+        router.events.on('routeChangeComplete', handleRouteChangeDone);
+        router.events.on('routeChangeError', handleRouteChangeDone);
+
+        return () => {
+            router.events.off('routeChangeStart', handleRouteChangeStart);
+            router.events.off('routeChangeComplete', handleRouteChangeDone);
+            router.events.off('routeChangeError', handleRouteChangeDone);
+        };
+    }, [router, queryClient]);
 
     useEffect(() => {
         if (darkMode) {

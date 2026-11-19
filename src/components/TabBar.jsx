@@ -1,6 +1,5 @@
 // src/components/TabBar.jsx
 import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useStore } from '../store/useStore';
 import {
@@ -19,7 +18,6 @@ export default function TabBar() {
         setMounted(true);
     }, []);
 
-    // Comprehensive Admin / Owner resolution
     const isAdmin = Boolean(
         user && (
             user.isadmin === true ||
@@ -30,7 +28,6 @@ export default function TabBar() {
     );
     const isDemo = Boolean(user?.isDemo);
 
-    // Primary 4 Tabs based on role
     const primaryTabs = [
         {
             name: 'POS',
@@ -54,10 +51,13 @@ export default function TabBar() {
         }
     ];
 
-    // Check if user is on a secondary page accessed via the drawer
     const isMoreActive = mounted && !primaryTabs.some(tab => router.pathname === tab.path);
 
-    // Triggers the off-canvas drawer
+    const handleTabNavigate = (targetPath) => {
+        if (router.pathname === targetPath) return;
+        window.location.assign(targetPath);
+    };
+
     const handleOpenMore = () => {
         const hamburgerBtn = document.querySelector('[aria-label="Open Navigation Drawer"]');
         if (hamburgerBtn) {
@@ -75,16 +75,16 @@ export default function TabBar() {
             aria-label="Mobile Bottom Navigation"
         >
             <div className="flex items-center justify-around h-full max-w-md mx-auto">
-                {/* 4 Core Operational Tabs */}
                 {primaryTabs.map(item => {
                     const isActive = router.pathname === item.path;
                     const IconComponent = item.icon;
 
                     return (
-                        <Link
+                        <button
                             key={item.name}
-                            href={item.path}
-                            className={`flex flex-col items-center justify-center flex-1 py-1.5 px-1 rounded-xl transition-all duration-150 group select-none ${
+                            type="button"
+                            onClick={() => handleTabNavigate(item.path)}
+                            className={`flex flex-col items-center justify-center flex-1 py-1.5 px-1 rounded-xl transition-all duration-150 group select-none cursor-pointer ${
                                 isActive
                                     ? 'text-[#5f7d00] dark:text-lime-400 font-extrabold'
                                     : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 font-semibold'
@@ -96,15 +96,14 @@ export default function TabBar() {
                             <span className="text-[10px] leading-tight tracking-tight text-center mt-0.5">
                                 {item.name}
                             </span>
-                        </Link>
+                        </button>
                     );
                 })}
 
-                {/* 5th Tab: Drawer Trigger */}
                 <button
                     type="button"
                     onClick={handleOpenMore}
-                    className={`flex flex-col items-center justify-center flex-1 py-1.5 px-1 rounded-xl transition-all duration-150 group select-none ${
+                    className={`flex flex-col items-center justify-center flex-1 py-1.5 px-1 rounded-xl transition-all duration-150 group select-none cursor-pointer ${
                         isMoreActive
                             ? 'text-[#5f7d00] dark:text-lime-400 font-extrabold'
                             : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 font-semibold'

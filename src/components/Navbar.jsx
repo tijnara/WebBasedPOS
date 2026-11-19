@@ -1,4 +1,3 @@
-// src/components/Navbar.jsx
 import React, { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
@@ -25,7 +24,6 @@ import {
     MailIcon
 } from './Icons';
 
-// Modular Navbar Components
 import LiveClock from './navbar/LiveClock';
 import ActiveShiftIndicator from './navbar/ActiveShiftIndicator';
 import NotificationBell from './navbar/NotificationBell';
@@ -38,7 +36,6 @@ const HamburgerIcon = (props) => (
     </svg>
 );
 
-// Navigation Categories Configuration
 const navCategoriesSource = [
     {
         category: null,
@@ -93,7 +90,6 @@ export default function Navbar() {
     const router = useRouter();
     const queryClient = useQueryClient();
 
-    // Atomic Zustand selectors (prevents getSnapshot infinite loop reloads on toast/state changes)
     const user = useStore(s => s.user);
     const logout = useStore(s => s.logout);
     const isDemo = useStore(s => s.user?.isDemo);
@@ -103,7 +99,6 @@ export default function Navbar() {
     const [clientUser, setClientUser] = useState(null);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-    // Shift modals state
     const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
     const [actualCash, setActualCash] = useState('');
     const [shiftStats, setShiftStats] = useState({ start: 0, sales: 0, expected: 0 });
@@ -111,7 +106,6 @@ export default function Navbar() {
     const [isStartShiftModalOpen, setIsStartShiftModalOpen] = useState(false);
     const [startingCash, setStartingCash] = useState('');
 
-    // Navigation Accordion State
     const [openCategories, setOpenCategories] = useState(() => new Set(['Sales & Operations']));
     const toggleCategory = (cat) => setOpenCategories(prev => {
         const next = new Set(prev);
@@ -318,7 +312,6 @@ export default function Navbar() {
         lowStockProducts.length +
         (activeScheduledNotice ? 1 : 0);
 
-    // Realtime Subscriptions with stable channel key
     useEffect(() => {
         if (!clientUser?.id || isDemo) return;
 
@@ -534,11 +527,13 @@ export default function Navbar() {
                                             : 'text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold'
                                     }`}
                                     style={isActive ? { background: 'linear-gradient(90deg, rgba(106,191,69,0.95) 0%, rgba(78,158,45,0.9) 100%)' } : {}}
-                                    onClick={async () => {
+                                    onClick={() => {
                                         if (category) setOpenCategories(new Set([category]));
                                         if (isMessages) markMessagesAsSeen();
-                                        await router.push(link.path);
                                         setIsMenuOpen(false);
+                                        if (router.pathname !== link.path) {
+                                            window.location.assign(link.path);
+                                        }
                                     }}
                                 >
                                     <div className="flex items-center justify-between w-full min-w-0">
@@ -723,7 +718,7 @@ export default function Navbar() {
 
             {/* DESKTOP SIDEBAR */}
             <aside className="hidden md:flex flex-col w-64 fixed inset-y-0 left-0 bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-slate-800 z-40 shadow-xs">
-                <div className="h-16 flex items-center px-6 border-b border-slate-200/80 dark:border-slate-800 shrink-0 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors" onClick={() => router.push('/')}>
+                <div className="h-16 flex items-center px-6 border-b border-slate-200/80 dark:border-slate-800 shrink-0 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors" onClick={() => window.location.assign('/')}>
                     <Image
                         src="/seaside.png"
                         alt="Seaside Logo"

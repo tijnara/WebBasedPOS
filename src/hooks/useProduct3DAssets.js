@@ -123,6 +123,18 @@ export function normalize3DIconFile(file, targetSize = 256, { stripSolidWhiteBg 
     });
 }
 
+function dataUrlToFile(dataUrl, filename = 'ai-3d-raw.png') {
+    const [header, base64Data] = String(dataUrl).split(',');
+    const mimeMatch = header.match(/data:([^;]+);base64/);
+    const mimeType = mimeMatch ? mimeMatch[1] : 'image/png';
+    const binary = atob(base64Data);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+    }
+    return new File([bytes], filename, { type: mimeType });
+}
+
 export function useProduct3DAssets() {
     const query = useQuery({
         queryKey: ['product-3d-assets'],
@@ -265,12 +277,9 @@ export function useGenerateAI3DIcon() {
             if (!res.ok) throw new Error(json.error || 'Failed to generate AI 3D icon.');
 
             const isSvgDataUrl = String(json.imageDataUrl || '').startsWith('data:image/svg+xml');
-            const blobRes = await fetch(json.imageDataUrl);
-            const rawBlob = await blobRes.blob();
-            const rawFile = new File(
-                [rawBlob],
-                isSvgDataUrl ? 'ai-3d-raw.svg' : 'ai-3d-raw.png',
-                { type: isSvgDataUrl ? 'image/svg+xml' : 'image/png' }
+            const rawFile = dataUrlToFile(
+                json.imageDataUrl,
+                isSvgDataUrl ? 'ai-3d-raw.svg' : 'ai-3d-raw.png'
             );
 
             const normalizedPng = await normalize3DIconFile(rawFile, 256, {

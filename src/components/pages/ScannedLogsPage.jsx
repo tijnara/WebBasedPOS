@@ -1,3 +1,4 @@
+// src/components/pages/ScannedLogsPage.jsx
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
@@ -7,7 +8,7 @@ import { useStore } from '../../store/useStore';
 import { Button, Input } from '../ui';
 import {
     Images, Search, Calendar, Eye, Trash2, ArrowLeft,
-    FileText, User, X, RotateCcw
+    FileText, User, X, RotateCcw, ZoomIn, ZoomOut, Maximize2
 } from 'lucide-react';
 
 export default function ScannedLogsPage() {
@@ -23,6 +24,8 @@ export default function ScannedLogsPage() {
     const [endDate, setEndDate] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedLog, setSelectedLog] = useState(null);
+    const [lightboxOpen, setLightboxOpen] = useState(false);
+    const [zoomLevel, setZoomLevel] = useState(1);
 
     const { data: logs = [], isLoading } = useScannedLogs({
         startDate: startDate || undefined,
@@ -43,8 +46,25 @@ export default function ScannedLogsPage() {
             return;
         }
         await deleteLogMutation.mutateAsync(log);
-        if (selectedLog?.id === log.id) setSelectedLog(null);
+        if (selectedLog?.id === log.id) {
+            setSelectedLog(null);
+            setLightboxOpen(false);
+        }
     };
+
+    const handleZoomIn = (e) => {
+        e.stopPropagation();
+        setZoomLevel(prev => Math.min(prev + 0.5, 4));
+    };
+
+    const handleZoomOut = (e) => {
+        e.stopPropagation();
+        setZoomLevel(prev => Math.max(prev - 0.5, 1));
+    };
+
+    const extractedItems = Array.isArray(selectedLog?.items_snapshot)
+        ? selectedLog.items_snapshot
+        : [];
 
     return (
         <div className="max-w-7xl mx-auto p-3 sm:p-6 space-y-6 responsive-page">
@@ -60,7 +80,7 @@ export default function ScannedLogsPage() {
                         </Link>
                     </div>
                     <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight mt-1">
-                        Scanned Delivery Sheets & Logs
+                        Scanned Delivery Sheets &amp; Logs
                     </h1>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                         Archive of all handwritten delivery sheets scanned in POS along with their extracted transaction records.
@@ -158,17 +178,20 @@ export default function ScannedLogsPage() {
                     {logs.map((log) => (
                         <div
                             key={log.id}
-                            onClick={() => setSelectedLog(log)}
+                            onClick={() => {
+                                setSelectedLog(log);
+                                setZoomLevel(1);
+                            }}
                             className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs overflow-hidden hover:shadow-md transition-all cursor-pointer flex flex-col group"
                         >
-                            <div className="relative h-52 bg-slate-100 dark:bg-slate-950 overflow-hidden">
+                            <div className="relative h-56 bg-slate-950 overflow-hidden flex items-center justify-center">
                                 <img
                                     src={log.image_url}
                                     alt={`Scanned sheet ${log.delivery_date}`}
-                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                    className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
                                 />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                                <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-slate-900/85 text-white text-[11px] font-bold px-2.5 py-1 rounded-full">
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent pointer-events-none" />
+                                <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-slate-900/85 text-white text-[11px] font-bold px-2.5 py-1 rounded-full border border-white/10">
                                     <Calendar className="w-3 h-3 text-[#8DB600]" />
                                     <span>
                                         {log.delivery_date
@@ -180,18 +203,18 @@ export default function ScannedLogsPage() {
                                     <button
                                         type="button"
                                         onClick={(e) => handleDelete(e, log)}
-                                        className="absolute top-3 right-3 p-1.5 rounded-full bg-rose-600/90 hover:bg-rose-600 text-white shadow-sm opacity-90 hover:opacity-100 transition-opacity cursor-pointer"
+                                        className="absolute top-3 right-3 p-1.5 rounded-full bg-rose-600/90 hover:bg-rose-600 text-white shadow-sm opacity-90 hover:opacity-100 transition-opacity cursor-pointer border border-white/20"
                                         title="Delete scan image"
                                     >
                                         <Trash2 className="w-3.5 h-3.5" />
                                     </button>
                                 )}
                                 <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-white">
-                                    <span className="text-xs font-black font-mono">
+                                    <span className="text-sm font-black font-mono">
                                         {currency(log.total_amount, { symbol: '₱' }).format()}
                                     </span>
-                                    <span className="text-[11px] font-bold bg-white/20 backdrop-blur-xs px-2 py-0.5 rounded-md">
-                                        {log.items_count} orders
+                                    <span className="text-[11px] font-bold bg-white/20 backdrop-blur-xs px-2 py-0.5 rounded-md border border-white/20">
+                                        {log.items_count || log.items_snapshot?.length || 0} orders
                                     </span>
                                 </div>
                             </div>
@@ -210,81 +233,167 @@ export default function ScannedLogsPage() {
                 </div>
             )}
 
-            {/* Full Inspection Modal */}
-            {selectedLog && (
+            {/* Split-View Inspection Modal: Full Uncropped Image + Visible Extracted Orders List */}
+            {selectedLog && !lightboxOpen && (
                 <div
-                    className="fixed inset-0 bg-black/80 z-[130] flex items-center justify-center p-3 sm:p-6"
+                    className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[130] flex items-center justify-center p-2 sm:p-5"
                     onClick={() => setSelectedLog(null)}
                 >
                     <div
-                        className="bg-white dark:bg-slate-900 rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col border border-slate-200 dark:border-slate-800 shadow-2xl"
+                        className="bg-white dark:bg-slate-900 rounded-3xl max-w-6xl w-full max-h-[92vh] overflow-hidden flex flex-col border border-slate-200 dark:border-slate-800 shadow-2xl"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <div className="px-6 py-4 bg-slate-50 dark:bg-slate-850 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                            <div>
-                                <h3 className="text-base font-black text-slate-900 dark:text-white">
+                        <div className="px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0">
+                            <div className="min-w-0 pr-2">
+                                <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight truncate">
                                     Scanned Sheet — {selectedLog.delivery_date ? format(new Date(`${selectedLog.delivery_date}T00:00:00+08:00`), 'MMMM d, yyyy') : ''}
                                 </h3>
-                                <p className="text-xs text-slate-500">
-                                    Recorded {selectedLog.items_count} transactions totaling {currency(selectedLog.total_amount, { symbol: '₱' }).format()} • Uploaded by {selectedLog.scanned_by_name || 'Staff'}
+                                <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5 truncate">
+                                    Recorded {selectedLog.items_count || extractedItems.length} transactions totaling {currency(selectedLog.total_amount, { symbol: '₱' }).format()} • Uploaded by {selectedLog.scanned_by_name || 'Staff'}
                                 </p>
                             </div>
                             <button
                                 type="button"
                                 onClick={() => setSelectedLog(null)}
-                                className="p-2 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-800 cursor-pointer"
+                                className="p-2 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-700 cursor-pointer transition-colors shrink-0"
                             >
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
 
-                        <div className="p-6 overflow-y-auto grid grid-cols-1 lg:grid-cols-2 gap-5">
-                            <div className="bg-slate-950 rounded-2xl overflow-hidden flex items-center justify-center border border-slate-800">
-                                <img
-                                    src={selectedLog.image_url}
-                                    alt="Scanned sheet full view"
-                                    className="w-full max-h-[65vh] object-contain"
-                                />
+                        <div className="p-4 sm:p-5 overflow-y-auto grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 bg-slate-50 dark:bg-slate-900">
+                            {/* Left: Full Uncropped Image */}
+                            <div className="flex flex-col gap-1.5">
+                                <div
+                                    className="relative w-full bg-slate-950 rounded-2xl overflow-hidden border border-slate-800 group cursor-zoom-in shadow-inner flex items-center justify-center p-2"
+                                    onClick={() => setLightboxOpen(true)}
+                                >
+                                    <img
+                                        src={selectedLog.image_url}
+                                        alt="Scanned sheet full view"
+                                        className="w-full h-auto max-h-[34vh] sm:max-h-[40vh] lg:max-h-[65vh] object-contain"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setLightboxOpen(true);
+                                        }}
+                                        className="absolute bottom-2.5 right-2.5 bg-slate-900/85 hover:bg-slate-800 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-1.5 text-white font-bold text-[11px] border border-white/20 shadow-md cursor-pointer"
+                                    >
+                                        <Maximize2 className="w-3.5 h-3.5 text-[#8DB600]" />
+                                        <span>Full Screen</span>
+                                    </button>
+                                </div>
                             </div>
 
-                            <div className="space-y-3">
-                                <h4 className="text-xs font-black uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                            {/* Right / Bottom: Extracted Orders Table */}
+                            <div className="space-y-2.5 flex flex-col min-w-0">
+                                <h4 className="text-xs font-black uppercase tracking-wider text-slate-600 dark:text-slate-300 flex items-center gap-1.5 bg-white dark:bg-slate-800 py-2 px-3 rounded-xl border border-slate-200 dark:border-slate-700">
                                     <FileText className="w-3.5 h-3.5 text-[#8DB600]" />
-                                    Extracted Orders ({selectedLog.items_count})
+                                    <span>Extracted Orders ({selectedLog.items_count || extractedItems.length})</span>
                                 </h4>
-                                <div className="border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden">
-                                    <table className="w-full text-xs">
-                                        <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 font-bold">
-                                        <tr>
-                                            <th className="px-3 py-2 text-left">Customer</th>
-                                            <th className="px-3 py-2 text-left">Item</th>
-                                            <th className="px-3 py-2 text-center">Qty</th>
-                                            <th className="px-3 py-2 text-right">Amount</th>
-                                        </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                                        {(selectedLog.items_snapshot || []).map((item, idx) => (
-                                            <tr key={idx}>
-                                                <td className="px-3 py-2 font-bold text-slate-800 dark:text-slate-100">
-                                                    {item.customer_name}
-                                                    {item.payment_method === 'Credit' && (
-                                                        <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-bold">
-                                                                Utang
-                                                            </span>
-                                                    )}
-                                                </td>
-                                                <td className="px-3 py-2 text-slate-600 dark:text-slate-300">{item.product_name}</td>
-                                                <td className="px-3 py-2 text-center font-bold">{item.quantity}</td>
-                                                <td className="px-3 py-2 text-right font-mono font-bold text-slate-800 dark:text-slate-100">
-                                                    {currency(item.total_amount, { symbol: '₱' }).format()}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                        </tbody>
-                                    </table>
+
+                                <div className="border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden bg-white dark:bg-slate-800 shadow-sm">
+                                    {extractedItems.length === 0 ? (
+                                        <div className="p-6 text-center text-xs text-slate-400">
+                                            No line-item details recorded for this sheet.
+                                        </div>
+                                    ) : (
+                                        <div className="overflow-x-auto max-h-[45vh] lg:max-h-[58vh] overflow-y-auto">
+                                            <table className="w-full text-xs">
+                                                <thead className="sticky top-0 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 font-bold">
+                                                <tr>
+                                                    <th className="px-3.5 py-2.5 text-left">Customer</th>
+                                                    <th className="px-3.5 py-2.5 text-left">Item</th>
+                                                    <th className="px-3.5 py-2.5 text-center">Qty</th>
+                                                    <th className="px-3.5 py-2.5 text-right">Amount</th>
+                                                </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
+                                                {extractedItems.map((item, idx) => (
+                                                    <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+                                                        <td className="px-3.5 py-2.5 font-bold text-slate-800 dark:text-slate-100">
+                                                            {item.customer_name}
+                                                            {item.payment_method === 'Credit' && (
+                                                                <span className="ml-1.5 text-[9px] px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-300 font-bold border border-amber-200 dark:border-amber-800">
+                                                                        Utang
+                                                                    </span>
+                                                            )}
+                                                        </td>
+                                                        <td className="px-3.5 py-2.5 text-slate-600 dark:text-slate-300 font-medium">
+                                                            {item.product_name}
+                                                        </td>
+                                                        <td className="px-3.5 py-2.5 text-center font-bold text-slate-800 dark:text-slate-100">
+                                                            {item.quantity}
+                                                        </td>
+                                                        <td className="px-3.5 py-2.5 text-right font-mono font-bold text-[#5f7d00] dark:text-lime-400">
+                                                            {currency(item.total_amount, { symbol: '₱' }).format()}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* True Fullscreen Lightbox Modal */}
+            {selectedLog && lightboxOpen && (
+                <div
+                    className="fixed inset-0 bg-slate-950/95 backdrop-blur-xl z-[150] flex flex-col items-center justify-center"
+                    onClick={() => setLightboxOpen(false)}
+                >
+                    <div className="absolute top-4 right-4 z-10 flex items-center gap-3">
+                        <div className="bg-slate-900/80 backdrop-blur-md rounded-full p-1 border border-slate-700 flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                            <button type="button" onClick={handleZoomOut} className="p-2 text-white hover:bg-slate-800 rounded-full cursor-pointer" title="Zoom Out">
+                                <ZoomOut className="w-5 h-5" />
+                            </button>
+                            <span className="text-white text-xs font-mono font-bold w-10 text-center select-none">
+                                {Math.round(zoomLevel * 100)}%
+                            </span>
+                            <button type="button" onClick={handleZoomIn} className="p-2 text-white hover:bg-slate-800 rounded-full cursor-pointer" title="Zoom In">
+                                <ZoomIn className="w-5 h-5" />
+                            </button>
+                            <button type="button" onClick={() => setZoomLevel(1)} className="p-2 text-lime-400 hover:bg-slate-800 rounded-full text-[10px] font-bold uppercase tracking-wider cursor-pointer" title="Reset Zoom">
+                                Reset
+                            </button>
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={() => setLightboxOpen(false)}
+                            className="bg-rose-600/90 hover:bg-rose-600 text-white p-2.5 rounded-full shadow-lg border border-rose-500 transition-colors cursor-pointer"
+                        >
+                            <X className="w-6 h-6" />
+                        </button>
+                    </div>
+
+                    <div
+                        className="w-full h-full p-4 md:p-12 overflow-auto flex items-center justify-center"
+                        style={{ cursor: zoomLevel > 1 ? 'grab' : 'auto' }}
+                    >
+                        <img
+                            src={selectedLog.image_url}
+                            alt="Fullscreen Scanned Log"
+                            className="max-w-none max-h-none transition-transform duration-200 ease-out origin-center"
+                            style={{
+                                transform: `scale(${zoomLevel})`,
+                                maxHeight: zoomLevel === 1 ? '100%' : 'none',
+                                maxWidth: zoomLevel === 1 ? '100%' : 'none',
+                                objectFit: 'contain'
+                            }}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                if (zoomLevel === 1) setZoomLevel(2);
+                                else setZoomLevel(1);
+                            }}
+                        />
                     </div>
                 </div>
             )}
