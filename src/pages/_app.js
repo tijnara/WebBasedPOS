@@ -35,6 +35,8 @@ const titleMap = {
     '/history': 'History | Seaside WRS',
     '/scanned-logs': 'Scanned Logs | Seaside WRS',
     '/expenses': 'Expenses | Seaside WRS',
+    '/salary-monitoring': 'Salary Monitoring | Seaside WRS',
+    '/debt-management': 'Debt Management | Seaside WRS',
     '/incentives': 'Incentives | Seaside WRS',
     '/terms': 'Terms of Service | Seaside WRS',
     '/privacy': 'Privacy Policy | Seaside WRS',
@@ -100,11 +102,11 @@ export default function App({ Component, pageProps }) {
     const [queryClient] = useState(() => new QueryClient({
         defaultOptions: {
             queries: {
-                gcTime: 1000 * 60 * 60 * 24 * 7,
-                staleTime: 1000 * 60 * 10,
+                gcTime: 1000 * 60 * 60 * 24,
+                staleTime: 0,
                 refetchOnWindowFocus: false,
-                refetchOnReconnect: false,
-                refetchOnMount: false,
+                refetchOnReconnect: true,
+                refetchOnMount: 'always',
                 retry: false,
             },
         },
@@ -148,10 +150,17 @@ export default function App({ Component, pageProps }) {
             }
         };
 
-        const handleRouteChangeDone = (url) => {
+        const handleRouteChangeDone = async (url) => {
             setIsRouteLoading(false);
             if (url) {
-                queryClient.invalidateQueries();
+                const cleanPath = url.split('?')[0].split('#')[0];
+                await queryClient.invalidateQueries({ refetchType: 'all' });
+                queryClient.refetchQueries({ type: 'active' });
+                if (typeof window !== 'undefined') {
+                    window.dispatchEvent(
+                        new CustomEvent('pos:route-refreshed', { detail: { path: cleanPath } })
+                    );
+                }
             }
         };
 

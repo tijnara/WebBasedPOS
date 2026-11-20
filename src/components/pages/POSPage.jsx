@@ -15,7 +15,6 @@ import { DEBOUNCE_DELAY_MS, DEFAULT_ITEMS_PER_PAGE, CUSTOMER_SEARCH_LIMIT } from
 import {
     Search,
     ScanLine,
-    PlusCircle,
     Filter,
     Keyboard
 } from 'lucide-react';
@@ -567,7 +566,7 @@ export default function POSPage() {
             {/* --- LEFT PANEL: CATALOG & ACTIONS --- */}
             <div className="flex-1 flex flex-col min-w-0 bg-white dark:bg-[#111827] rounded-2xl shadow-2xs border border-slate-200 dark:border-slate-800 overflow-hidden relative z-10 h-full max-h-full min-h-0">
 
-                {/* Header Row: Search + Scan List + Custom (F3) */}
+                {/* Header Row: Search + Scan List */}
                 <div className="p-2.5 sm:p-3 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2 bg-white dark:bg-[#111827] shrink-0">
                     <div className="relative flex-1 flex items-center group min-w-0">
                         <Search className="w-4 h-4 absolute left-3 text-slate-400 group-focus-within:text-emerald-400 transition-colors pointer-events-none z-10" />
@@ -599,16 +598,6 @@ export default function POSPage() {
                         >
                             <ScanLine className="w-3.5 h-3.5 shrink-0 text-slate-400" />
                             <span>Scan List</span>
-                        </Button>
-                        <Button
-                            variant="outline"
-                            onClick={openCustomSale}
-                            className="h-9 sm:h-10 px-2.5 sm:px-3.5 rounded-xl bg-white dark:bg-[#1a2333] border-slate-200 dark:border-slate-700/80 text-slate-800 dark:text-slate-100 hover:bg-lime-50 dark:hover:bg-slate-800 hover:border-[#8DB600] font-bold whitespace-nowrap transition-all active:scale-95 text-[11px] sm:text-xs flex items-center gap-1.5 shrink-0 cursor-pointer"
-                            disabled={isDemo}
-                        >
-                            <PlusCircle className="w-3.5 h-3.5 shrink-0 text-[#659000] dark:text-emerald-400" />
-                            <span>Custom</span>
-                            <span className="hidden md:inline text-slate-400">(F3)</span>
                         </Button>
                     </div>
                 </div>

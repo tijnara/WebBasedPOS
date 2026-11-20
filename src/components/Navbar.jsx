@@ -1,3 +1,4 @@
+// src/components/Navbar.jsx
 import React, { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
@@ -174,6 +175,7 @@ export default function Navbar() {
         };
     }, []);
 
+    // Broadcast drawer state to TabBar so the rolling 3D sphere tracks "More"
     useEffect(() => {
         if (typeof window !== 'undefined') {
             window.dispatchEvent(
@@ -484,6 +486,26 @@ export default function Navbar() {
         await handleLogout();
     };
 
+    // Navigate cleanly via Next.js router AND force fresh Supabase data on target pages
+    const handleNavigateAndRefresh = async (path, category, isMessages) => {
+        if (category) setOpenCategories(new Set([category]));
+        if (isMessages) markMessagesAsSeen();
+        setIsMenuOpen(false);
+
+        await queryClient.invalidateQueries({ refetchType: 'all' });
+        queryClient.refetchQueries({ type: 'active' });
+
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(
+                new CustomEvent('pos:route-refreshed', { detail: { path } })
+            );
+        }
+
+        if (router.pathname !== path) {
+            router.push(path);
+        }
+    };
+
     const renderLinks = (isSidebar) => navCategories.map(({ category, links }) => {
         const visibleLinks = links.filter(l => !l.adminOnly || isAdmin);
         if (visibleLinks.length === 0) return null;
@@ -498,7 +520,7 @@ export default function Navbar() {
                 {category && (
                     <button
                         type="button"
-                        className={`${isSidebar ? 'w-[calc(100%-1.5rem)] mx-3' : 'w-full'} flex items-center justify-between px-3.5 py-2.5 font-bold text-[11px] uppercase tracking-wider text-white rounded-xl shadow-xs transition-all duration-150 active:scale-[0.98]`}
+                        className={`${isSidebar ? 'w-[calc(100%-1.5rem)] mx-3' : 'w-full'} flex items-center justify-between px-3.5 py-2.5 font-bold text-[11px] uppercase tracking-wider text-white rounded-xl shadow-xs transition-all duration-150 active:scale-[0.98] cursor-pointer`}
                         style={{ background: 'linear-gradient(90deg, #6abf45 0%, #4e9e2d 100%)' }}
                         onClick={() => toggleCategory(category)}
                     >
@@ -529,23 +551,13 @@ export default function Navbar() {
                                     key={link.name}
                                     type="button"
                                     variant="ghost"
-                                    className={`nav-item w-full justify-start px-3.5 py-2.5 transition-all rounded-xl ${
+                                    className={`nav-item w-full justify-start px-3.5 py-2.5 transition-all rounded-xl cursor-pointer ${
                                         isActive
                                             ? 'text-white font-black shadow-md'
                                             : 'text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold'
                                     }`}
                                     style={isActive ? { background: 'linear-gradient(90deg, rgba(106,191,69,0.95) 0%, rgba(78,158,45,0.9) 100%)' } : {}}
-                                    onClick={() => {
-                                        if (category) setOpenCategories(new Set([category]));
-                                        if (isMessages) markMessagesAsSeen();
-                                        try {
-                                            sessionStorage.setItem('seaside_mobile_tab_prev_idx', '4');
-                                        } catch {}
-                                        setIsMenuOpen(false);
-                                        if (router.pathname !== link.path) {
-                                            router.push(link.path);
-                                        }
-                                    }}
+                                    onClick={() => handleNavigateAndRefresh(link.path, category, isMessages)}
                                 >
                                     <div className="flex items-center justify-between w-full min-w-0">
                                         <div className="flex items-center gap-3 min-w-0">
@@ -612,7 +624,7 @@ export default function Navbar() {
                         <HamburgerIcon className="h-6 w-6" />
                     </Button>
 
-                    <div className="brand flex items-center min-w-0 flex-shrink-0 cursor-pointer" onClick={() => router.push('/pos')}>
+                    <div className="brand flex items-center min-w-0 flex-shrink-0 cursor-pointer" onClick={() => handleNavigateAndRefresh('/pos', 'Sales & Operations', false)}>
                         <Image
                             src="/seaside.png"
                             alt="Seaside Logo"
@@ -729,7 +741,7 @@ export default function Navbar() {
 
             {/* DESKTOP SIDEBAR */}
             <aside className="hidden md:flex flex-col w-64 fixed inset-y-0 left-0 bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-slate-800 z-40 shadow-xs">
-                <div className="h-16 flex items-center px-6 border-b border-slate-200/80 dark:border-slate-800 shrink-0 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors" onClick={() => window.location.assign('/')}>
+                <div className="h-16 flex items-center px-6 border-b border-slate-200/80 dark:border-slate-800 shrink-0 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors" onClick={() => router.push('/')}>
                     <Image
                         src="/seaside.png"
                         alt="Seaside Logo"

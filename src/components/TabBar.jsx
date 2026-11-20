@@ -1,6 +1,7 @@
 // src/components/TabBar.jsx
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/router';
+import { useQueryClient } from '@tanstack/react-query';
 import { useStore } from '../store/useStore';
 import {
     CartIcon,
@@ -13,6 +14,7 @@ const PREV_TAB_STORAGE_KEY = 'seaside_mobile_tab_prev_idx';
 
 export default function TabBar() {
     const router = useRouter();
+    const queryClient = useQueryClient();
     const user = useStore((state) => state.user);
     const darkMode = useStore((state) => state.darkMode);
     const [mounted, setMounted] = useState(false);
@@ -174,7 +176,7 @@ export default function TabBar() {
     useEffect(() => {
         if (!mounted) return;
         let rafId;
-        const LERP = 0.115; // Deliberate, noticeable roll speed
+        const LERP = 0.115;
 
         const tick = () => {
             const state = animStateRef.current;
@@ -195,7 +197,6 @@ export default function TabBar() {
                 state.curAngleDeg = state.targetAngleDeg;
             }
 
-            // Subtle momentum squash/stretch while rolling
             const stretch = 1 + Math.min(0.14, Math.abs(diff) * 0.005);
 
             if (sphereWrapRef.current) {
@@ -226,14 +227,26 @@ export default function TabBar() {
         }
     };
 
-    const handleTabNavigate = (tab) => {
+    const handleTabNavigate = async (tab) => {
         if (tab.id === 'more') {
             handleOpenMore();
             return;
         }
 
         setDrawerOpen(false);
-        if (!tab.path || router.pathname === tab.path) return;
+        if (!tab.path) return;
+
+        // Force fresh data on target page (Report, Expenses, Dashboard, POS, History)
+        await queryClient.invalidateQueries({ refetchType: 'all' });
+        queryClient.refetchQueries({ type: 'active' });
+
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(
+                new CustomEvent('pos:route-refreshed', { detail: { path: tab.path } })
+            );
+        }
+
+        if (router.pathname === tab.path) return;
 
         try {
             sessionStorage.setItem(PREV_TAB_STORAGE_KEY, String(activeIndex));
