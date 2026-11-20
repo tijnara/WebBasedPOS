@@ -11,14 +11,14 @@ import {
 } from '../../hooks/useArticles';
 import {
     Button, Card, CardContent, Input, Label, Dialog, DialogContent,
-    DialogHeader, DialogTitle, DialogFooter, DialogCloseButton, Textarea, Select
+    DialogTitle, DialogCloseButton, Textarea, Select
 } from '../ui';
 import Pagination from '../Pagination';
 
 import {
     Plus, Pencil, Trash2, ExternalLink, Copy, Check,
     FileText, CheckCircle2, Clock, Globe, ShieldAlert, RefreshCw,
-    Image as ImageIcon, BookOpen, Layers
+    Image as ImageIcon, BookOpen, Layers, Search, X
 } from 'lucide-react';
 
 const ICON_OPTIONS = ['Droplets', 'Shield', 'Sun', 'Snowflake', 'Truck', 'Microscope', 'HeartPulse', 'AlertTriangle', 'BookOpen'];
@@ -108,6 +108,7 @@ export default function ArticleManagementPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 8;
     const [copiedSlug, setCopiedSlug] = useState(null);
+    const searchInputRef = useRef(null);
 
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -155,6 +156,27 @@ export default function ArticleManagementPage() {
         setCurrentPage(1);
     }, [statusFilter, searchTerm]);
 
+    // Keyboard Shortcuts
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            const activeTag = document.activeElement?.tagName;
+            if (activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT') return;
+            if ((e.ctrlKey && e.key === 'f') || e.key === '/') {
+                if (searchInputRef.current) searchInputRef.current.focus();
+                e.preventDefault();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []);
+
+    const preventEnterReload = (e) => {
+        if (e.key === 'Enter' && e.target?.tagName !== 'TEXTAREA') {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    };
+
     if (!mounted) {
         return (
             <div className="flex items-center justify-center min-h-[60vh] text-slate-400 text-sm font-medium">
@@ -171,9 +193,10 @@ export default function ArticleManagementPage() {
                 <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Access Denied</h1>
                 <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm">Administrator privileges are required to view and manage resource articles.</p>
                 <Button
+                    type="button"
                     variant="outline"
                     onClick={() => router.push('/pos')}
-                    className="mt-5 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200"
+                    className="mt-5 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 cursor-pointer"
                 >
                     Return to POS
                 </Button>
@@ -246,11 +269,23 @@ export default function ArticleManagementPage() {
     };
 
     const handleSubmit = async (e) => {
-        e.preventDefault();
+        if (e?.preventDefault) e.preventDefault();
+        if (e?.stopPropagation) e.stopPropagation();
+
         if (isDemo) {
             addToast({ title: 'Demo Mode', description: 'Actions are disabled in demo mode.', variant: 'warning' });
             return;
         }
+
+        if (!title.trim() || !slug.trim() || !description.trim()) {
+            addToast({
+                title: 'Missing Required Fields',
+                description: 'Title, URL slug, and short summary are required.',
+                variant: 'destructive'
+            });
+            return;
+        }
+
         try {
             let finalImageUrl = editing?.image_url || null;
             if (imageFile) {
@@ -306,12 +341,30 @@ export default function ArticleManagementPage() {
     const isSaving = createArticle.isPending || updateArticle.isPending || uploadImage.isPending;
 
     return (
-        <div className="article-page responsive-page max-w-7xl mx-auto space-y-6 p-4 md:p-6 overflow-x-hidden transition-colors">
+        <div className="article-page w-full max-w-7xl mx-auto px-1.5 py-2 sm:p-5 md:p-6 space-y-2.5 sm:space-y-6 pb-24 md:pb-8 overflow-x-hidden transition-colors dark:[color-scheme:dark]">
+            {/* Match POS, Expenses, Dashboard, Report, History, Scanned Logs, Customer, Maintenance, Product, 3D Icons, Inventory, Gallery, Salary, Debt, Refill Game, Users & Approvals edge-to-edge fit on mobile (< 640px) */}
+            <style jsx global>{`
+                @media (max-width: 639px) {
+                    .app:has(.article-page) .container {
+                        max-width: 100% !important;
+                        width: 100% !important;
+                        padding-left: 0 !important;
+                        padding-right: 0 !important;
+                        margin-left: 0 !important;
+                        margin-right: 0 !important;
+                    }
+                    .app:has(.article-page) .main {
+                        padding-left: 0 !important;
+                        padding-right: 0 !important;
+                    }
+                }
+            `}</style>
+
             {/* Header & Primary Action */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2.5 sm:gap-4 px-0.5 sm:px-0">
                 <div>
                     <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
-                        <FileText className="w-6 h-6 text-[#8DB600] dark:text-lime-400 shrink-0" />
+                        <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-[#8DB600] dark:text-lime-400 shrink-0" />
                         <span>Resource Articles</span>
                     </h1>
                     <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
@@ -321,10 +374,11 @@ export default function ArticleManagementPage() {
 
                 <div className="flex items-center gap-2 w-full sm:w-auto">
                     <Button
+                        type="button"
                         onClick={() => { resetForm(); setIsModalOpen(true); }}
                         variant="primary"
                         disabled={isDemo}
-                        className="h-10 px-4 rounded-xl bg-[#8DB600] hover:bg-[#7ca000] text-white font-bold text-xs shadow-sm flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer"
+                        className="w-full sm:w-auto h-9 sm:h-10 px-4 rounded-xl bg-[#8DB600] hover:bg-[#7ca000] text-white font-bold text-xs shadow-sm flex items-center justify-center gap-1.5 active:scale-95 transition-all cursor-pointer"
                     >
                         <Plus className="w-4 h-4 stroke-[2.5]" />
                         <span>New Article</span>
@@ -333,66 +387,85 @@ export default function ArticleManagementPage() {
             </div>
 
             {/* KPI Summary Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs flex items-center justify-between transition-colors">
-                    <div>
-                        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Total Articles</span>
-                        <span className="text-xl font-black text-slate-900 dark:text-slate-100">{metrics.total}</span>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+                <div className="bg-white dark:bg-slate-900 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs flex items-center justify-between gap-2 min-w-0 transition-colors">
+                    <div className="min-w-0">
+                        <span className="text-[9.5px] sm:text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block truncate">Total Articles</span>
+                        <span className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-100 block mt-0.5 truncate">{metrics.total}</span>
                     </div>
-                    <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center">
-                        <Layers className="w-5 h-5" />
-                    </div>
-                </div>
-
-                <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs flex items-center justify-between transition-colors">
-                    <div>
-                        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Published Live</span>
-                        <span className="text-xl font-black text-[#5f7d00] dark:text-lime-400">{metrics.published}</span>
-                    </div>
-                    <div className="w-10 h-10 rounded-xl bg-lime-50 dark:bg-lime-950/60 text-[#5f7d00] dark:text-lime-400 flex items-center justify-center">
-                        <CheckCircle2 className="w-5 h-5" />
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center shrink-0">
+                        <Layers className="w-4 h-4 sm:w-5 sm:h-5" />
                     </div>
                 </div>
 
-                <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs flex items-center justify-between transition-colors">
-                    <div>
-                        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Drafts</span>
-                        <span className="text-xl font-black text-slate-700 dark:text-slate-300">{metrics.drafts}</span>
+                <div className="bg-white dark:bg-slate-900 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs flex items-center justify-between gap-2 min-w-0 transition-colors">
+                    <div className="min-w-0">
+                        <span className="text-[9.5px] sm:text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block truncate">Published Live</span>
+                        <span className="text-lg sm:text-xl font-black text-[#5f7d00] dark:text-lime-400 block mt-0.5 truncate">{metrics.published}</span>
                     </div>
-                    <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center">
-                        <Clock className="w-5 h-5" />
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-lime-50 dark:bg-lime-950/60 text-[#5f7d00] dark:text-lime-400 flex items-center justify-center shrink-0">
+                        <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" />
                     </div>
                 </div>
 
-                <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs flex items-center justify-between transition-colors">
-                    <div>
-                        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Live Coverage</span>
-                        <span className="text-xl font-black text-blue-600 dark:text-blue-400">
+                <div className="bg-white dark:bg-slate-900 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs flex items-center justify-between gap-2 min-w-0 transition-colors">
+                    <div className="min-w-0">
+                        <span className="text-[9.5px] sm:text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block truncate">Drafts</span>
+                        <span className="text-lg sm:text-xl font-black text-slate-700 dark:text-slate-300 block mt-0.5 truncate">{metrics.drafts}</span>
+                    </div>
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0">
+                        <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
+                    </div>
+                </div>
+
+                <div className="bg-white dark:bg-slate-900 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs flex items-center justify-between gap-2 min-w-0 transition-colors">
+                    <div className="min-w-0">
+                        <span className="text-[9.5px] sm:text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block truncate">Live Coverage</span>
+                        <span className="text-lg sm:text-xl font-black text-blue-600 dark:text-blue-400 block mt-0.5 truncate">
                             {metrics.total > 0 ? `${Math.round((metrics.published / metrics.total) * 100)}%` : '0%'}
                         </span>
                     </div>
-                    <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-                        <Globe className="w-5 h-5" />
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                        <Globe className="w-4 h-4 sm:w-5 sm:h-5" />
                     </div>
                 </div>
             </div>
 
             {/* Filter Bar */}
-            <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-3 transition-colors">
+            <div className="p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-3 transition-colors">
                 <div className="relative w-full sm:max-w-md">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-slate-500 z-10">
+                        <Search className="w-4 h-4" />
+                    </div>
                     <Input
-                        placeholder="Search articles by title, description, or slug..."
+                        ref={searchInputRef}
+                        placeholder="Search articles by title, summary, or slug... (/)"
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
-                        className="w-full bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-xs sm:text-sm h-10 rounded-xl focus:bg-white dark:focus:bg-slate-900 focus:border-[#8DB600] dark:focus:border-lime-500"
+                        onKeyDown={preventEnterReload}
+                        style={{
+                            paddingLeft: '2.25rem',
+                            paddingRight: searchTerm ? '2.25rem' : '0.75rem'
+                        }}
+                        className="w-full bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-xs sm:text-sm h-9 sm:h-10 rounded-xl focus:bg-white dark:focus:bg-slate-900 focus:border-[#8DB600] dark:focus:border-lime-500"
                     />
+                    {searchTerm && (
+                        <button
+                            type="button"
+                            onClick={() => setSearchTerm('')}
+                            aria-label="Clear search"
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-0.5 rounded-full cursor-pointer z-10"
+                        >
+                            <X className="w-3.5 h-3.5" />
+                        </button>
+                    )}
                 </div>
 
                 <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden py-0.5">
                     <button
                         type="button"
                         onClick={() => setStatusFilter('all')}
-                        className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap select-none ${
+                        className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap select-none shrink-0 ${
                             statusFilter === 'all'
                                 ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-2xs'
                                 : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-transparent dark:border-slate-700/60 hover:bg-slate-200 dark:hover:bg-slate-700'
@@ -403,7 +476,7 @@ export default function ArticleManagementPage() {
                     <button
                         type="button"
                         onClick={() => setStatusFilter('published')}
-                        className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1 cursor-pointer whitespace-nowrap select-none ${
+                        className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1 cursor-pointer whitespace-nowrap select-none shrink-0 ${
                             statusFilter === 'published'
                                 ? 'bg-[#8DB600] dark:bg-lime-500 text-white shadow-2xs'
                                 : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-transparent dark:border-slate-700/60 hover:bg-slate-200 dark:hover:bg-slate-700'
@@ -421,7 +494,7 @@ export default function ArticleManagementPage() {
                     <button
                         type="button"
                         onClick={() => setStatusFilter('draft')}
-                        className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1 cursor-pointer whitespace-nowrap select-none ${
+                        className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1 cursor-pointer whitespace-nowrap select-none shrink-0 ${
                             statusFilter === 'draft'
                                 ? 'bg-slate-700 dark:bg-slate-600 text-white shadow-2xs'
                                 : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-transparent dark:border-slate-700/60 hover:bg-slate-200 dark:hover:bg-slate-700'
@@ -575,18 +648,20 @@ export default function ArticleManagementPage() {
             </Card>
 
             {/* Mobile Card List View */}
-            <div className="space-y-3 md:hidden">
+            <div className="space-y-2 md:hidden">
                 {isLoading ? (
-                    <div className="text-center py-12 text-slate-400 dark:text-slate-500 text-xs">Loading articles...</div>
+                    <div className="text-center py-8 text-slate-400 dark:text-slate-500 text-xs bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                        Loading articles...
+                    </div>
                 ) : paginatedArticles.length === 0 ? (
-                    <div className="text-center py-12 text-slate-400 dark:text-slate-500 text-xs bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
+                    <div className="text-center py-8 text-slate-400 dark:text-slate-500 text-xs bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
                         No articles found.
                     </div>
                 ) : (
                     paginatedArticles.map((item) => (
-                        <div key={item.id} className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs space-y-3 transition-colors">
-                            <div className="flex items-start justify-between gap-3">
-                                <div className="flex items-center gap-2.5 min-w-0">
+                        <div key={item.id} className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200/90 dark:border-slate-800 shadow-2xs space-y-2.5 transition-colors">
+                            <div className="flex items-start justify-between gap-2.5">
+                                <div className="flex items-center gap-2.5 flex-1 min-w-0">
                                     <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden shrink-0 flex items-center justify-center">
                                         {item.image_url ? (
                                             <img
@@ -599,7 +674,7 @@ export default function ArticleManagementPage() {
                                             <BookOpen className="w-4 h-4 text-slate-400 dark:text-slate-500" />
                                         )}
                                     </div>
-                                    <div className="min-w-0">
+                                    <div className="flex-1 min-w-0">
                                         <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100 leading-snug truncate" title={item.title}>
                                             {item.title}
                                         </h3>
@@ -613,7 +688,7 @@ export default function ArticleManagementPage() {
                                     type="button"
                                     onClick={() => handleTogglePublish(item)}
                                     disabled={isDemo}
-                                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold border shrink-0 ${
+                                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold border shrink-0 cursor-pointer ${
                                         item.is_published
                                             ? 'bg-lime-50 dark:bg-lime-950/50 text-[#5f7d00] dark:text-lime-400 border-lime-200 dark:border-lime-900/60'
                                             : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
@@ -624,7 +699,7 @@ export default function ArticleManagementPage() {
                             </div>
 
                             {item.description && (
-                                <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-2 bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                                <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-2 bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-lg border border-slate-100 dark:border-slate-800">
                                     {item.description}
                                 </p>
                             )}
@@ -644,7 +719,7 @@ export default function ArticleManagementPage() {
                                         href={`/articles/${item.slug}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800"
+                                        className="p-1.5 text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg"
                                         title="Preview"
                                     >
                                         <ExternalLink className="w-3.5 h-3.5" />
@@ -653,7 +728,7 @@ export default function ArticleManagementPage() {
                                         type="button"
                                         onClick={() => handleEdit(item)}
                                         disabled={isDemo}
-                                        className="p-1.5 text-blue-600 dark:text-blue-400 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/50 cursor-pointer"
+                                        className="p-1.5 text-blue-600 dark:text-blue-400 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/50 cursor-pointer"
                                         title="Edit"
                                     >
                                         <Pencil className="w-3.5 h-3.5" />
@@ -662,7 +737,7 @@ export default function ArticleManagementPage() {
                                         type="button"
                                         onClick={() => handleDelete(item)}
                                         disabled={isDemo}
-                                        className="p-1.5 text-rose-600 dark:text-rose-400 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/50 cursor-pointer"
+                                        className="p-1.5 text-rose-600 dark:text-rose-400 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/50 cursor-pointer"
                                         title="Delete"
                                     >
                                         <Trash2 className="w-3.5 h-3.5" />
@@ -674,7 +749,7 @@ export default function ArticleManagementPage() {
                 )}
 
                 {filteredArticles.length > 0 && (
-                    <div className="pt-2">
+                    <div className="pt-1.5">
                         <Pagination
                             currentPage={currentPage}
                             totalPages={totalPages}
@@ -684,28 +759,28 @@ export default function ArticleManagementPage() {
                 )}
             </div>
 
-            {/* EXPANDED ARTICLE EDITOR MODAL */}
+            {/* EXPANDED ARTICLE EDITOR MODAL (Reload-safe div container) */}
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                <DialogContent className="p-0 w-[95vw] sm:max-w-4xl h-[88vh] bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden rounded-3xl flex flex-col dark:[color-scheme:dark] transition-colors">
-                    <form onSubmit={handleSubmit} className="flex flex-col h-full min-h-0 overflow-hidden">
+                <DialogContent className="p-0 w-[95vw] sm:max-w-4xl h-[88vh] bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden rounded-2xl sm:rounded-3xl flex flex-col dark:[color-scheme:dark] transition-colors">
+                    <div onKeyDown={preventEnterReload} className="flex flex-col h-full min-h-0 overflow-hidden">
                         {/* Pinned Sticky Header */}
-                        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-800/80 flex-shrink-0 flex items-center justify-between">
+                        <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-800/80 flex-shrink-0 flex items-center justify-between">
                             <div>
                                 <DialogTitle className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
-                                    <FileText className="w-5 h-5 text-[#8DB600] dark:text-lime-400" />
+                                    <FileText className="w-5 h-5 text-[#8DB600] dark:text-lime-400 shrink-0" />
                                     <span>{editing ? 'Edit Resource Article' : 'Write New Article'}</span>
                                 </DialogTitle>
                                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                                     {editing ? `Editing "${editing.title}"` : 'Compose a customer health tip or station announcement.'}
                                 </p>
                             </div>
-                            <DialogCloseButton onClick={() => setIsModalOpen(false)} className="p-1.5 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer" />
+                            <DialogCloseButton type="button" onClick={() => setIsModalOpen(false)} className="p-1.5 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer" />
                         </div>
 
                         {/* Full-Height Scrollable Body */}
-                        <div className="px-6 py-5 space-y-5 overflow-y-auto flex-1 min-h-0">
+                        <div className="px-4 sm:px-6 py-4 sm:py-5 space-y-4 sm:space-y-5 overflow-y-auto flex-1 min-h-0">
                             {/* Row 1: Details & Artwork */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
                                 <div className="space-y-3.5">
                                     <div>
                                         <Label htmlFor="title" className="text-xs font-bold text-slate-700 dark:text-slate-300">
@@ -715,7 +790,6 @@ export default function ArticleManagementPage() {
                                             id="title"
                                             value={title}
                                             onChange={handleTitleChange}
-                                            required
                                             placeholder="e.g. Why Regular Water Testing Protects Your Family"
                                             className="h-10 mt-1 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:border-[#8DB600]"
                                             disabled={isDemo}
@@ -729,7 +803,6 @@ export default function ArticleManagementPage() {
                                             id="slug"
                                             value={slug}
                                             onChange={(e) => setSlug(e.target.value)}
-                                            required
                                             placeholder="water-testing-protection-guide"
                                             className="h-10 mt-1 text-xs font-mono rounded-xl bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-900 focus:border-[#8DB600]"
                                             disabled={isDemo}
@@ -766,7 +839,6 @@ export default function ArticleManagementPage() {
                                     id="description"
                                     value={description}
                                     onChange={(e) => setDescription(e.target.value)}
-                                    required
                                     placeholder="A concise summary of the article displayed on search engines and social cards..."
                                     className="h-10 mt-1 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:border-[#8DB600]"
                                     disabled={isDemo}
@@ -775,7 +847,7 @@ export default function ArticleManagementPage() {
 
                             {/* Row 3: Main Article Content */}
                             <div className="space-y-1">
-                                <div className="flex items-center justify-between">
+                                <div className="flex flex-wrap items-center justify-between gap-1">
                                     <Label htmlFor="content" className="text-xs font-bold text-slate-700 dark:text-slate-300">
                                         Article Body Content <span className="text-rose-500">*</span>
                                     </Label>
@@ -786,17 +858,16 @@ export default function ArticleManagementPage() {
                                     value={content}
                                     onChange={(e) => setContent(e.target.value)}
                                     rows={12}
-                                    required
                                     placeholder="Write your article body here..."
-                                    className="w-full mt-1 min-h-[220px] text-xs sm:text-sm p-4 bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-2xl font-mono focus:bg-white dark:focus:bg-slate-900 focus:border-[#8DB600] leading-relaxed"
+                                    className="w-full mt-1 min-h-[220px] text-xs sm:text-sm p-3.5 sm:p-4 bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl sm:rounded-2xl font-mono focus:bg-white dark:focus:bg-slate-900 focus:border-[#8DB600] leading-relaxed"
                                     disabled={isDemo}
                                 />
                             </div>
 
                             {/* Row 4: Publishing Toggle */}
-                            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700/80 flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <Globe className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                            <div className="p-3 sm:p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-700/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5">
+                                <div className="flex items-start sm:items-center gap-2">
+                                    <Globe className="w-4 h-4 text-slate-500 dark:text-slate-400 shrink-0 mt-0.5 sm:mt-0" />
                                     <div>
                                         <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">Visibility Setting</span>
                                         <span className="text-[11px] text-slate-500 dark:text-slate-400">
@@ -804,7 +875,7 @@ export default function ArticleManagementPage() {
                                         </span>
                                     </div>
                                 </div>
-                                <label className="flex items-center gap-2 cursor-pointer bg-white dark:bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs">
+                                <label className="flex items-center gap-2 cursor-pointer bg-white dark:bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs shrink-0 self-end sm:self-auto">
                                     <input
                                         type="checkbox"
                                         checked={isPublished}
@@ -818,7 +889,7 @@ export default function ArticleManagementPage() {
                         </div>
 
                         {/* Pinned Sticky Footer */}
-                        <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-800/80 flex items-center justify-end gap-2.5 flex-shrink-0">
+                        <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-800/80 flex items-center justify-end gap-2.5 flex-shrink-0">
                             <Button
                                 type="button"
                                 variant="outline"
@@ -828,14 +899,15 @@ export default function ArticleManagementPage() {
                                 Cancel
                             </Button>
                             <Button
-                                type="submit"
+                                type="button"
+                                onClick={handleSubmit}
                                 disabled={isSaving || isDemo}
                                 className="h-10 px-6 rounded-xl bg-[#8DB600] hover:bg-[#7ca000] text-white text-xs font-bold shadow-md cursor-pointer active:scale-95 transition-all"
                             >
                                 {isSaving ? 'Saving...' : editing ? 'Update Article' : 'Save Article'}
                             </Button>
                         </div>
-                    </form>
+                    </div>
                 </DialogContent>
             </Dialog>
         </div>

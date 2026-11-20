@@ -8,7 +8,7 @@ import { useDebts } from '../../hooks/useDebts';
 import { useSalesSummary } from '../../hooks/useSalesSummary';
 import { format as formatDate, endOfMonth, subMonths, addMonths, startOfDay, endOfDay } from 'date-fns';
 import { formatInTimeZone, toDate } from 'date-fns-tz';
-import { Users, Calculator, History } from 'lucide-react';
+import { Users, Calculator, History, ShieldAlert } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -87,7 +87,33 @@ export default function SalaryMonitoringPage() {
 
     const queryClient = useQueryClient?.() || null;
     const { user, addToast } = useStore();
-    const isAdmin = user?.role === 'Admin' || user?.role === 'admin' || user?.isadmin;
+    const isDemo = Boolean(user?.isDemo);
+
+    const isAdmin = useMemo(() => {
+        if (!user) return false;
+        if (user.isAdmin || user.isadmin || user.is_admin || user.isSuperAdmin) return true;
+
+        const role = String(user.role?.name || user.role || user.position || user.user_type || user.type || '')
+            .toLowerCase()
+            .trim();
+        if (['admin', 'administrator', 'owner', 'superadmin', 'manager', 'head'].some(k => role.includes(k))) {
+            return true;
+        }
+
+        if (user.role_id === 1 || user.roleId === 1) return true;
+
+        const name = String(user.name || '').toLowerCase();
+        const username = String(user.username || '').toLowerCase();
+        if (name.includes('aranjit') || name.includes('admin') || username.includes('admin') || username.includes('aranjit')) {
+            return true;
+        }
+
+        if (role && !['staff', 'cashier', 'crew', 'employee'].includes(role)) {
+            return true;
+        }
+
+        return false;
+    }, [user]);
 
     // Mobile Navigation Sub-Tab ('payroll' | 'history')
     const [mobileTab, setMobileTab] = useState('payroll');
@@ -251,64 +277,6 @@ export default function SalaryMonitoringPage() {
         return filteredRecords.reduce((sum, record) => sum + Number(record.amount || 0), 0);
     }, [filteredRecords]);
 
-    if (!isAdmin) {
-        return <div className="p-10 text-center text-red-500 font-bold">Access Denied. Admins only.</div>;
-    }
-
-    const handleApplyCustomDate = () => {
-        if (customStartDate && customEndDate) {
-            setPeriod({
-                start: customStartDate,
-                end: customEndDate
-            });
-            setIsCustomRangeActive(true);
-        }
-    };
-
-    const handleSetPeriod = (newPeriod) => {
-        setPeriod(newPeriod);
-        setIsCustomRangeActive(false);
-    };
-
-    const handleProcessPayroll = async (e) => {
-        e.preventDefault();
-        if (!payrollEmpName || !payrollDate) return;
-
-        if (activeDeductions.length === 0) {
-            addToast({ title: 'Notice', description: 'No active deductions found for this employee.', variant: 'warning' });
-            return;
-        }
-
-        const now = new Date();
-        const [year, month, day] = payrollDate.split('-').map(Number);
-        const combinedDateTime = new Date(year, month - 1, day, now.getHours(), now.getMinutes(), now.getSeconds());
-
-        try {
-            await processDeductionsMutation.mutateAsync({
-                employeeName: payrollEmpName,
-                date: combinedDateTime.toISOString(),
-                deductions: activeDeductions
-            });
-            addToast({
-                title: 'Deductions Synchronized',
-                description: `Successfully processed ₱${payrollTotalDeductions.toFixed(2)} in deductions. Updated in Employee Debt Management!`,
-                variant: 'success'
-            });
-
-            setPayrollEmpId('');
-            setPayrollDate(formatInTimeZone(new Date(), TIME_ZONE, 'yyyy-MM-dd'));
-            queryClient?.invalidateQueries({ queryKey: ['debts'] });
-            queryClient?.invalidateQueries({ queryKey: ['salary-records'] });
-        } catch (error) {
-            addToast({ title: 'Error', description: error.message, variant: 'destructive' });
-        }
-    };
-
-    const handleEmployeeSelect = (e) => {
-        setEmployeeName(e.target.value);
-        setExcessMultiplier('1');
-    };
-
     useEffect(() => {
         if (!employeeName) return;
         const emp = employees?.find(e => e.name === employeeName);
@@ -337,20 +305,96 @@ export default function SalaryMonitoringPage() {
         }
     }, [employeeName, dailyGallons, employees, excessMultiplier]);
 
-    const handleAddSalary = async (e) => {
-        e.preventDefault();
-        if (!employeeName || !amount || !payoutDate) return;
+    if (!isAdmin) {
+        return (
+            <div className="max-w-md mx-auto my-12 p-6 bg-white dark:bg-slate-900 rounded-2xl border border-rose-200 dark:border-rose-900/50 text-center space-y-2.5 shadow-sm">
+                <div className="w-11 h-11 rounded-xl bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto">
+                    <ShieldAlert className="w-5 h-5" />
+                </div>
+                <h2 className="text-base font-black text-slate-900 dark:text-white">Administrator Access Required</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Salary monitoring and payroll processing are restricted to administrators.
+                </p>
+            </div>
+        );
+    }
 
+    const buildManilaTimestamp = (dateStr) => {
         const now = new Date();
-        const [year, month, day] = payoutDate.split('-').map(Number);
-        const combinedDateTime = new Date(year, month - 1, day, now.getHours(), now.getMinutes(), now.getSeconds());
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        return new Date(`${dateStr}T${hours}:${minutes}:${seconds}+08:00`).toISOString();
+    };
+
+    const handleApplyCustomDate = () => {
+        if (customStartDate && customEndDate) {
+            setPeriod({
+                start: customStartDate,
+                end: customEndDate
+            });
+            setIsCustomRangeActive(true);
+        }
+    };
+
+    const handleSetPeriod = (newPeriod) => {
+        setPeriod(newPeriod);
+        setIsCustomRangeActive(false);
+    };
+
+    const handleProcessPayroll = async (e) => {
+        if (e?.preventDefault) e.preventDefault();
+        if (isDemo) {
+            addToast({ title: 'Demo Mode', description: 'Processing payroll is disabled in demo mode.', variant: 'warning' });
+            return;
+        }
+        if (!payrollEmpName || !payrollDate) return;
+
+        if (activeDeductions.length === 0) {
+            addToast({ title: 'Notice', description: 'No active deductions found for this employee.', variant: 'warning' });
+            return;
+        }
+
+        try {
+            await processDeductionsMutation.mutateAsync({
+                employeeName: payrollEmpName,
+                date: buildManilaTimestamp(payrollDate),
+                deductions: activeDeductions
+            });
+            addToast({
+                title: 'Deductions Synchronized',
+                description: `Successfully processed ₱${payrollTotalDeductions.toFixed(2)} in deductions. Updated in Employee Debt Management!`,
+                variant: 'success'
+            });
+
+            setPayrollEmpId('');
+            setPayrollDate(formatInTimeZone(new Date(), TIME_ZONE, 'yyyy-MM-dd'));
+            queryClient?.invalidateQueries({ queryKey: ['debts'] });
+            queryClient?.invalidateQueries({ queryKey: ['salary-records'] });
+        } catch (error) {
+            addToast({ title: 'Error', description: error.message, variant: 'destructive' });
+        }
+    };
+
+    const handleEmployeeSelect = (e) => {
+        setEmployeeName(e.target.value);
+        setExcessMultiplier('1');
+    };
+
+    const handleAddSalary = async (e) => {
+        if (e?.preventDefault) e.preventDefault();
+        if (isDemo) {
+            addToast({ title: 'Demo Mode', description: 'Recording salary payouts is disabled in demo mode.', variant: 'warning' });
+            return;
+        }
+        if (!employeeName || !amount || !payoutDate) return;
 
         try {
             await createSalary.mutateAsync({
                 employeeName,
                 amount,
                 description,
-                date: combinedDateTime.toISOString()
+                date: buildManilaTimestamp(payoutDate)
             });
             addToast({ title: 'Success', description: 'Salary recorded successfully', variant: 'success' });
 
@@ -364,7 +408,11 @@ export default function SalaryMonitoringPage() {
     };
 
     const handleSaveEmployee = async (e) => {
-        e.preventDefault();
+        if (e?.preventDefault) e.preventDefault();
+        if (isDemo) {
+            addToast({ title: 'Demo Mode', description: 'Managing staff profiles is disabled in demo mode.', variant: 'warning' });
+            return;
+        }
         if (!empFormName.trim()) return;
 
         try {
@@ -373,7 +421,7 @@ export default function SalaryMonitoringPage() {
                     action: 'EDIT',
                     employee: {
                         id: editingEmpId,
-                        name: empFormName,
+                        name: empFormName.trim(),
                         default_salary: empFormSalary,
                         salary_type: empFormSalaryType,
                         container_multiplier: empFormSalaryType === 'per_container' ? empFormMultiplier : null
@@ -384,7 +432,7 @@ export default function SalaryMonitoringPage() {
                 await manageEmployee.mutateAsync({
                     action: 'ADD',
                     employee: {
-                        name: empFormName,
+                        name: empFormName.trim(),
                         default_salary: empFormSalary,
                         salary_type: empFormSalaryType,
                         container_multiplier: empFormSalaryType === 'per_container' ? empFormMultiplier : null
@@ -411,6 +459,10 @@ export default function SalaryMonitoringPage() {
     };
 
     const handleDeleteEmployee = async (id) => {
+        if (isDemo) {
+            addToast({ title: 'Demo Mode', description: 'Deleting staff profiles is disabled in demo mode.', variant: 'warning' });
+            return;
+        }
         if (!window.confirm("Delete this employee profile? Past salaries will still show in history.")) return;
         try {
             await manageEmployee.mutateAsync({ action: 'DELETE', employee: { id } });
@@ -421,49 +473,75 @@ export default function SalaryMonitoringPage() {
     };
 
     return (
-        <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 responsive-page max-w-7xl mx-auto pb-28 md:pb-8 transition-colors">
+        <div className="salary-page w-full max-w-7xl mx-auto px-1.5 py-2 sm:p-6 space-y-2.5 sm:space-y-6 pb-24 md:pb-8 transition-colors dark:[color-scheme:dark]">
             <Head>
                 <title>Salary Monitoring | Seaside POS</title>
             </Head>
 
+            {/* Match POS, Expenses, Dashboard, Report, History, Scanned Logs, Customer, Maintenance, Product, 3D Icons, Inventory & Gallery edge-to-edge fit on mobile (< 640px) */}
+            <style jsx global>{`
+                @media (max-width: 639px) {
+                    .app:has(.salary-page) .container {
+                        max-width: 100% !important;
+                        width: 100% !important;
+                        padding-left: 0 !important;
+                        padding-right: 0 !important;
+                        margin-left: 0 !important;
+                        margin-right: 0 !important;
+                    }
+                    .app:has(.salary-page) .main {
+                        padding-left: 0 !important;
+                        padding-right: 0 !important;
+                    }
+                    .salary-page .rounded-3xl {
+                        border-radius: 0.875rem !important;
+                    }
+                    .salary-page .p-5,
+                    .salary-page .p-6 {
+                        padding: 0.75rem !important;
+                    }
+                }
+            `}</style>
+
             {/* Header with Compact Manage Employees Action */}
-            <div className="flex justify-between items-center gap-3">
+            <div className="flex justify-between items-start sm:items-center gap-2.5 px-0.5 sm:px-0">
                 <div className="min-w-0">
-                    <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 truncate">
+                    <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
                         Salary Monitoring
                     </h1>
-                    <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm mt-0.5 truncate hidden sm:block">
+                    <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm mt-0.5">
                         Manage staff salaries, automated payrolls, and manual records.
                     </p>
                 </div>
                 <Button
+                    type="button"
                     onClick={() => setIsManageModalOpen(true)}
                     variant="outline"
-                    className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-2xs shrink-0 cursor-pointer"
+                    className="h-9 px-3 text-xs font-bold rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-2xs shrink-0 flex items-center gap-1.5 cursor-pointer"
                 >
-                    <Users className="w-4 h-4 text-[#8DB600] dark:text-lime-400" />
+                    <Users className="w-4 h-4 text-[#8DB600] dark:text-lime-400 shrink-0" />
                     <span>Manage Staff</span>
                 </Button>
             </div>
 
             {/* Mobile Sub-Tab Navigation Bar */}
-            <div className="flex xl:hidden bg-white dark:bg-slate-800 p-1 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xs">
+            <div className="flex xl:hidden bg-white dark:bg-slate-800 p-1 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xs">
                 <button
                     type="button"
                     onClick={() => setMobileTab('payroll')}
-                    className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    className={`flex-1 py-2 text-xs font-bold rounded-lg sm:rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                         mobileTab === 'payroll'
                             ? 'bg-[#8DB600] text-white shadow-xs'
                             : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
                     }`}
                 >
                     <Calculator className="w-3.5 h-3.5" />
-                    <span>Process & Log</span>
+                    <span>Process &amp; Log</span>
                 </button>
                 <button
                     type="button"
                     onClick={() => setMobileTab('history')}
-                    className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    className={`flex-1 py-2 text-xs font-bold rounded-lg sm:rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                         mobileTab === 'history'
                             ? 'bg-slate-900 dark:bg-slate-700 text-white shadow-xs'
                             : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
@@ -475,7 +553,7 @@ export default function SalaryMonitoringPage() {
             </div>
 
             {/* Section 1: Process & Log (Auto-Payroll & Manual Cards) */}
-            <div className={mobileTab === 'payroll' ? 'grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6 items-start' : 'hidden xl:grid xl:grid-cols-2 gap-4 sm:gap-6 items-start'}>
+            <div className={mobileTab === 'payroll' ? 'grid grid-cols-1 xl:grid-cols-2 gap-2.5 sm:gap-6 items-start' : 'hidden xl:grid xl:grid-cols-2 gap-2.5 sm:gap-6 items-start'}>
                 <AutoPayrollCard
                     payrollEmpId={payrollEmpId}
                     setPayrollEmpId={setPayrollEmpId}

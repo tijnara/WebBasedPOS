@@ -19,9 +19,9 @@ import {
 import { useProduct3DAssets } from '../../hooks/useProduct3DAssets';
 
 import currency from 'currency.js';
-import { EditIcon, DeleteIcon, PackageIcon } from '../Icons';
+import { EditIcon, DeleteIcon } from '../Icons';
 import {
-    Eye, EyeOff, Download, Plus,
+    Eye, EyeOff, Download, Plus, Search, X,
     Layers, AlertTriangle, CheckCircle2, TrendingUp, Boxes, Sparkles
 } from 'lucide-react';
 
@@ -39,7 +39,7 @@ export default function ProductManagementPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
 
-    const { data: productsData = { products: [], totalPages: 1 }, isLoading, refetch: refetchProducts } = useProducts({
+    const { data: productsData = { products: [], totalPages: 1 }, isLoading } = useProducts({
         page: currentPage,
         itemsPerPage,
         searchTerm: debouncedSearchTerm,
@@ -49,8 +49,8 @@ export default function ProductManagementPage() {
 
     const { data: all3DAssets = BUILTIN_WRS_3D_ASSETS } = useProduct3DAssets();
 
-    const products = productsData.products;
-    const totalPages = productsData.totalPages;
+    const products = productsData.products || [];
+    const totalPages = productsData.totalPages || 1;
 
     const addToast = useStore(s => s.addToast);
     const user = useStore(s => s.user);
@@ -103,6 +103,19 @@ export default function ProductManagementPage() {
         setCurrentPage(1);
     }, [debouncedSearchTerm, categoryFilter]);
 
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            const activeTag = document.activeElement?.tagName;
+            if (activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT') return;
+            if ((e.ctrlKey && e.key === 'f') || e.key === '/') {
+                if (searchInputRef.current) searchInputRef.current.focus();
+                e.preventDefault();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []);
+
     const preventEnterReload = (e) => {
         if (e.key === 'Enter') {
             e.preventDefault();
@@ -119,12 +132,15 @@ export default function ProductManagementPage() {
     }, [price, cost]);
 
     const kpiMetrics = useMemo(() => {
-        const total = products.length;
+        const total = productsData.totalCount ?? products.length;
         const visible = products.filter(p => !p.is_hidden).length;
         const hidden = products.filter(p => p.is_hidden).length;
-        const lowStock = products.filter(p => Number(p.stock) <= Number(p.minStock || 5) && Number(p.stock) > 0).length;
+        const lowStock = products.filter(p => {
+            const isService = p.category === 'Refills/Services' || p.track_stock === false;
+            return !isService && Number(p.stock || 0) <= Number(p.minStock || 5);
+        }).length;
         return { total, visible, hidden, lowStock };
-    }, [products]);
+    }, [products, productsData.totalCount]);
 
     const active3DAssetMeta = useMemo(() => {
         return (
@@ -346,106 +362,138 @@ export default function ProductManagementPage() {
     const isMutating = createProduct.isPending || updateProduct.isPending || deleteProduct.isPending || saving;
 
     return (
-        <div className="product-page responsive-page max-w-7xl mx-auto space-y-6 p-4 md:p-6 transition-colors">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="product-page w-full max-w-7xl mx-auto px-1.5 py-2 sm:p-6 space-y-2.5 sm:space-y-6 transition-colors">
+            {/* Match POS, Expenses, Dashboard, Report, History, Scanned Logs, Customer & Maintenance edge-to-edge .container fit on mobile (< 640px) */}
+            <style jsx global>{`
+                @media (max-width: 639px) {
+                    .app:has(.product-page) .container {
+                        max-width: 100% !important;
+                        width: 100% !important;
+                        padding-left: 0 !important;
+                        padding-right: 0 !important;
+                        margin-left: 0 !important;
+                        margin-right: 0 !important;
+                    }
+                    .app:has(.product-page) .main {
+                        padding-left: 0 !important;
+                        padding-right: 0 !important;
+                    }
+                }
+            `}</style>
+
+            {/* Header & Primary Actions */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2.5 sm:gap-4 px-0.5 sm:px-0">
                 <div>
-                    <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">Product Management</h1>
+                    <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">Product Management</h1>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Control refilling services, 3D station visuals, bottle inventory, and POS availability.</p>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 w-full sm:w-auto">
                     {isAdmin && (
                         <Button
                             type="button"
                             variant="outline"
                             onClick={() => router.push('/3d-icons')}
-                            className="h-10 px-3.5 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:border-[#8DB600] text-xs font-bold flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                            className="w-full sm:w-auto h-9 sm:h-10 px-3 sm:px-3.5 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:border-[#8DB600] text-xs font-bold flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
                         >
-                            <Sparkles className="w-3.5 h-3.5 text-[#8DB600]" />
-                            <span>3D Icons Library</span>
+                            <Sparkles className="w-3.5 h-3.5 text-[#8DB600] shrink-0" />
+                            <span className="truncate">3D Icons Library</span>
                         </Button>
                     )}
                     <Button
                         type="button"
                         variant="outline"
                         onClick={handleExportCSV}
-                        className="h-10 px-3.5 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 text-xs font-bold flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                        className={`${isAdmin ? 'col-span-1' : 'col-span-2'} w-full sm:w-auto h-9 sm:h-10 px-3 sm:px-3.5 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 text-xs font-bold flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer`}
                     >
-                        <Download className="w-3.5 h-3.5" />
-                        <span>Export CSV</span>
+                        <Download className="w-3.5 h-3.5 shrink-0" />
+                        <span className="truncate">Export CSV</span>
                     </Button>
                     <Button
                         type="button"
                         variant="primary"
                         onClick={openModal}
-                        className="h-10 px-4 rounded-xl bg-[#8DB600] hover:bg-[#7ca000] text-white font-bold text-xs shadow-sm flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer"
+                        className="col-span-2 sm:col-span-1 w-full sm:w-auto h-9 sm:h-10 px-4 rounded-xl bg-[#8DB600] hover:bg-[#7ca000] text-white font-bold text-xs shadow-sm flex items-center justify-center gap-1.5 active:scale-95 transition-all cursor-pointer"
                         disabled={isDemo}
                     >
-                        <Plus className="w-4 h-4 stroke-[2.5]" />
+                        <Plus className="w-4 h-4 stroke-[2.5] shrink-0" />
                         <span>Add Product</span>
                     </Button>
                 </div>
             </div>
 
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs flex items-center justify-between">
-                    <div>
-                        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Total Catalog Items</span>
-                        <span className="text-xl font-black text-slate-900 dark:text-slate-100">{kpiMetrics.total}</span>
+            {/* KPI Summary Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+                <div className="bg-white dark:bg-slate-900 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs flex items-center justify-between gap-2 min-w-0">
+                    <div className="min-w-0">
+                        <span className="text-[9.5px] sm:text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block truncate">Catalog Items</span>
+                        <span className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-100 block mt-0.5 truncate">{kpiMetrics.total}</span>
                     </div>
-                    <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center">
-                        <Layers className="w-5 h-5" />
-                    </div>
-                </div>
-
-                <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs flex items-center justify-between">
-                    <div>
-                        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Active in POS</span>
-                        <span className="text-xl font-black text-[#8DB600] dark:text-lime-400">{kpiMetrics.visible}</span>
-                    </div>
-                    <div className="w-10 h-10 rounded-xl bg-lime-50 dark:bg-lime-950/50 text-[#8DB600] dark:text-lime-400 flex items-center justify-center">
-                        <CheckCircle2 className="w-5 h-5" />
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center shrink-0">
+                        <Layers className="w-4 h-4 sm:w-5 sm:h-5" />
                     </div>
                 </div>
 
-                <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs flex items-center justify-between">
-                    <div>
-                        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Hidden / Inactive</span>
-                        <span className="text-xl font-black text-slate-600 dark:text-slate-400">{kpiMetrics.hidden}</span>
+                <div className="bg-white dark:bg-slate-900 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs flex items-center justify-between gap-2 min-w-0">
+                    <div className="min-w-0">
+                        <span className="text-[9.5px] sm:text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block truncate">Active in POS</span>
+                        <span className="text-lg sm:text-xl font-black text-[#8DB600] dark:text-lime-400 block mt-0.5 truncate">{kpiMetrics.visible}</span>
                     </div>
-                    <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center">
-                        <EyeOff className="w-5 h-5" />
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-lime-50 dark:bg-lime-950/50 text-[#8DB600] dark:text-lime-400 flex items-center justify-center shrink-0">
+                        <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" />
                     </div>
                 </div>
 
-                <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs flex items-center justify-between">
-                    <div>
-                        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Low Stock Warning</span>
-                        <span className="text-xl font-black text-amber-600 dark:text-amber-400">{kpiMetrics.lowStock}</span>
+                <div className="bg-white dark:bg-slate-900 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs flex items-center justify-between gap-2 min-w-0">
+                    <div className="min-w-0">
+                        <span className="text-[9.5px] sm:text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block truncate">Hidden Items</span>
+                        <span className="text-lg sm:text-xl font-black text-slate-600 dark:text-slate-400 block mt-0.5 truncate">{kpiMetrics.hidden}</span>
                     </div>
-                    <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-                        <AlertTriangle className="w-5 h-5" />
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center shrink-0">
+                        <EyeOff className="w-4 h-4 sm:w-5 sm:h-5" />
+                    </div>
+                </div>
+
+                <div className="bg-white dark:bg-slate-900 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs flex items-center justify-between gap-2 min-w-0">
+                    <div className="min-w-0">
+                        <span className="text-[9.5px] sm:text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block truncate">Low / Out Stock</span>
+                        <span className="text-lg sm:text-xl font-black text-amber-600 dark:text-amber-400 block mt-0.5 truncate">{kpiMetrics.lowStock}</span>
+                    </div>
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                        <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5" />
                     </div>
                 </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-2xs">
-                <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto flex-1 max-w-xl">
-                    <div className="w-full sm:w-72">
+            {/* Filter Bar */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-3 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-2xs">
+                <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 w-full sm:w-auto flex-1 max-w-xl">
+                    <div className="relative w-full sm:w-72">
+                        <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                         <Input
                             ref={searchInputRef}
                             placeholder="Search products by name or barcode... (/)"
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
                             onKeyDown={preventEnterReload}
-                            className="bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 text-xs sm:text-sm h-10 rounded-xl focus:border-[#8DB600] focus:ring-[#8DB600]"
+                            className="pl-9 pr-8 bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 text-xs sm:text-sm h-9 sm:h-10 rounded-xl focus:border-[#8DB600] focus:ring-[#8DB600]"
                         />
+                        {searchTerm && (
+                            <button
+                                type="button"
+                                onClick={() => setSearchTerm('')}
+                                aria-label="Clear search"
+                                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-0.5 rounded-full cursor-pointer"
+                            >
+                                <X className="w-3.5 h-3.5" />
+                            </button>
+                        )}
                     </div>
                     <div className="w-full sm:w-48">
                         <Select
                             value={categoryFilter}
                             onChange={e => setCategoryFilter(e.target.value)}
-                            className="bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 text-xs sm:text-sm h-10 rounded-xl"
+                            className="bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 text-xs sm:text-sm h-9 sm:h-10 rounded-xl dark:[color-scheme:dark] cursor-pointer"
                         >
                             {categories.map(c => <option key={c} value={c} className="bg-white dark:bg-slate-900">{c}</option>)}
                         </Select>
@@ -453,6 +501,7 @@ export default function ProductManagementPage() {
                 </div>
             </div>
 
+            {/* Desktop Table View */}
             <Card className="hidden md:block border border-slate-200 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900 overflow-hidden rounded-2xl">
                 <CardContent className="p-0">
                     <ScrollArea>
@@ -600,95 +649,119 @@ export default function ProductManagementPage() {
             </Card>
 
             {/* Mobile Card View */}
-            <div className="block md:hidden space-y-3">
+            <div className="block md:hidden space-y-2">
                 {isLoading ? (
-                    <div className="text-center text-slate-400 p-8">Loading products...</div>
+                    <div className="text-center text-slate-400 p-6 text-xs bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                        Loading products...
+                    </div>
                 ) : products.length === 0 ? (
-                    <div className="text-center text-slate-400 p-8 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
+                    <div className="text-center text-slate-400 p-6 text-xs bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
                         No products found.
                     </div>
                 ) : (
-                    products.map(p => (
-                        <div key={p.id} className={`group bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs flex items-center justify-between gap-3 ${p.is_hidden ? 'opacity-60 bg-slate-50 dark:bg-slate-800/40' : ''}`}>
-                            <div className="flex items-center gap-3 min-w-0">
-                                <div className="w-12 h-12 rounded-xl bg-slate-100/90 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 overflow-hidden flex items-center justify-center shrink-0 p-1">
-                                    <Product3DVisual product={p} className="w-10 h-10" />
+                    products.map(p => {
+                        const isService = p.category === 'Refills/Services' || p.track_stock === false;
+                        const isLow = !isService && Number(p.stock) <= Number(p.minStock || 5) && Number(p.stock) > 0;
+                        const isOut = !isService && Number(p.stock) === 0;
+
+                        return (
+                            <div key={p.id} className={`group bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs flex items-center justify-between gap-2.5 ${p.is_hidden ? 'opacity-60 bg-slate-50 dark:bg-slate-800/40' : ''}`}>
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                    <div className="w-11 h-11 rounded-xl bg-slate-100/90 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 overflow-hidden flex items-center justify-center shrink-0 p-1">
+                                        <Product3DVisual product={p} className="w-9 h-9" />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <div className="font-bold text-sm text-slate-900 dark:text-slate-100 truncate">{p.name}</div>
+                                        <div className="flex items-center gap-1.5 text-[11px] text-slate-400 dark:text-slate-500 mt-0.5 truncate">
+                                            <span className="truncate">{p.category || 'General'}</span>
+                                            <span>•</span>
+                                            {isService ? (
+                                                <span className="text-slate-500 dark:text-slate-400 font-semibold shrink-0">Service</span>
+                                            ) : (
+                                                <span className={`font-bold shrink-0 ${
+                                                    isOut
+                                                        ? 'text-rose-600 dark:text-rose-400'
+                                                        : isLow
+                                                            ? 'text-amber-600 dark:text-amber-400'
+                                                            : 'text-[#5f7d00] dark:text-lime-400'
+                                                }`}>
+                                                    {Number(p.stock || 0).toLocaleString()} units
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="font-black text-sm text-[#8DB600] dark:text-lime-400 mt-0.5 font-mono">
+                                            {currency(p.price || 0, { symbol: '₱' }).format()}
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="min-w-0">
-                                    <div className="font-bold text-sm text-slate-900 dark:text-slate-100 truncate">{p.name}</div>
-                                    <div className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">{p.category || 'General'}</div>
-                                    <div className="font-black text-sm text-[#8DB600] dark:text-lime-400 mt-1 font-mono">
-                                        {currency(p.price || 0, { symbol: '₱' }).format()}
+
+                                <div className="flex flex-col items-end gap-1.5 shrink-0">
+                                    {p.is_hidden ? (
+                                        <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-700">
+                                            Hidden
+                                        </span>
+                                    ) : (
+                                        <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+                                            Visible
+                                        </span>
+                                    )}
+                                    <div className="flex items-center gap-1">
+                                        <button
+                                            type="button"
+                                            onClick={() => router.push(`/inventory?restockProductId=${p.id}`)}
+                                            className="p-1.5 text-[#8DB600] dark:text-lime-400 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-lime-50 dark:hover:bg-lime-950/30 cursor-pointer"
+                                            title="Restock"
+                                            disabled={isDemo}
+                                        >
+                                            <Boxes className="w-3.5 h-3.5" />
+                                        </button>
+                                        <button type="button" onClick={() => toggleHide(p)} className="p-1.5 text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg cursor-pointer" disabled={isDemo} title={p.is_hidden ? 'Show on POS' : 'Hide from POS'}>
+                                            {p.is_hidden ? <EyeOff className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" /> : <Eye className="w-3.5 h-3.5" />}
+                                        </button>
+                                        <button type="button" onClick={() => startEdit(p)} className="p-1.5 text-blue-600 dark:text-blue-400 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg cursor-pointer" disabled={isDemo} title="Edit Product">
+                                            <EditIcon className="w-3.5 h-3.5" />
+                                        </button>
+                                        <button type="button" onClick={() => remove(p)} className="p-1.5 text-rose-600 dark:text-rose-400 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg cursor-pointer" disabled={isDemo} title="Delete Product">
+                                            <DeleteIcon className="w-3.5 h-3.5" />
+                                        </button>
                                     </div>
                                 </div>
                             </div>
-
-                            <div className="flex flex-col items-end gap-2 shrink-0">
-                                {p.is_hidden ? (
-                                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-700">
-                                        Hidden
-                                    </span>
-                                ) : (
-                                    <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
-                                        Visible
-                                    </span>
-                                )}
-                                <div className="flex items-center gap-1.5">
-                                    <button
-                                        type="button"
-                                        onClick={() => router.push(`/inventory?restockProductId=${p.id}`)}
-                                        className="p-1.5 text-[#8DB600] dark:text-lime-400 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-lime-50 dark:hover:bg-lime-950/30 cursor-pointer"
-                                        title="Restock"
-                                        disabled={isDemo}
-                                    >
-                                        <Boxes className="w-4 h-4" />
-                                    </button>
-                                    <button type="button" onClick={() => toggleHide(p)} className="p-1.5 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 rounded-lg cursor-pointer" disabled={isDemo}>
-                                        {p.is_hidden ? <EyeOff className="w-4 h-4 text-amber-600 dark:text-amber-400" /> : <Eye className="w-4 h-4" />}
-                                    </button>
-                                    <button type="button" onClick={() => startEdit(p)} className="p-1.5 text-blue-600 dark:text-blue-400 border border-slate-200 dark:border-slate-700 rounded-lg cursor-pointer" disabled={isDemo}>
-                                        <EditIcon className="w-4 h-4" />
-                                    </button>
-                                    <button type="button" onClick={() => remove(p)} className="p-1.5 text-rose-600 dark:text-rose-400 border border-slate-200 dark:border-slate-700 rounded-lg cursor-pointer" disabled={isDemo}>
-                                        <DeleteIcon className="w-4 h-4" />
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    ))
+                        );
+                    })
                 )}
-                <div className="pt-2">
+                <div className="pt-1.5">
                     <Pagination currentPage={currentPage} totalPages={totalPages || 1} onPageChange={setCurrentPage} />
                 </div>
             </div>
 
             {/* ADD / EDIT PRODUCT MODAL (Wrapped in DIV, never a FORM) */}
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                <DialogContent className="p-0 sm:max-w-[760px] w-full bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden rounded-3xl dark:[color-scheme:dark]">
+                <DialogContent className="p-0 sm:max-w-[760px] w-[96vw] sm:w-full bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden rounded-2xl sm:rounded-3xl dark:[color-scheme:dark]">
                     <div onKeyDown={preventEnterReload}>
                         {/* Header */}
-                        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/95 flex items-center justify-between">
+                        <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/95 flex items-center justify-between">
                             <div>
-                                <DialogTitle className="text-lg font-black text-slate-900 dark:text-slate-100 tracking-tight">
+                                <DialogTitle className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 tracking-tight">
                                     {editing ? 'Edit Product Details' : 'Add New Inventory Item'}
                                 </DialogTitle>
                                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                                     {editing ? `SKU Item ID: #${editing.id}` : 'Select a saved 3D station visual from the library and configure POS pricing.'}
                                 </p>
                             </div>
-                            <DialogCloseButton type="button" onClick={closeModal} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-full" />
+                            <DialogCloseButton type="button" onClick={closeModal} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-full cursor-pointer" />
                         </div>
 
                         {/* Modal Body */}
-                        <div className="p-5 sm:p-6 max-h-[76vh] overflow-y-auto space-y-6 bg-white dark:bg-slate-900">
+                        <div className="p-4 sm:p-6 max-h-[76vh] overflow-y-auto space-y-5 sm:space-y-6 bg-white dark:bg-slate-900">
                             {/* Section 1: Selected 3D Visual Preview & Basic Info */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 items-start">
                                 <div className="md:col-span-1 space-y-2">
                                     <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
                                         Selected 3D Visual
                                     </Label>
 
-                                    <div className="group relative w-full aspect-square rounded-2xl bg-gradient-to-b from-cyan-500/10 via-slate-50 to-lime-500/10 dark:from-cyan-950/30 dark:via-slate-800/90 dark:to-lime-950/30 border-2 border-[#8DB600]/60 dark:border-lime-500/40 flex flex-col items-center justify-center p-3 text-center shadow-2xs">
+                                    <div className="group relative w-full max-w-[180px] md:max-w-none mx-auto aspect-square rounded-2xl bg-gradient-to-b from-cyan-500/10 via-slate-50 to-lime-500/10 dark:from-cyan-950/30 dark:via-slate-800/90 dark:to-lime-950/30 border-2 border-[#8DB600]/60 dark:border-lime-500/40 flex flex-col items-center justify-center p-3 text-center shadow-2xs">
                                         <Product3DVisual
                                             assetKey={selected3DKey}
                                             customImageUrl={active3DAssetMeta?.image_url}
@@ -715,7 +788,7 @@ export default function ProductManagementPage() {
                                         />
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-3">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         <div>
                                             <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Category</Label>
                                             <div className="flex gap-1.5 mt-1">
@@ -794,8 +867,8 @@ export default function ProductManagementPage() {
                                     </span>
                                 </div>
 
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200/80 dark:border-slate-700/80">
+                                <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                                    <div className="p-3 sm:p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl sm:rounded-2xl border border-slate-200/80 dark:border-slate-700/80">
                                         <Label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Supplier Cost (₱)</Label>
                                         <Input
                                             type="number"
@@ -808,7 +881,7 @@ export default function ProductManagementPage() {
                                         />
                                     </div>
 
-                                    <div className="p-3.5 bg-lime-50/50 dark:bg-lime-950/30 rounded-2xl border border-lime-200 dark:border-lime-900/60">
+                                    <div className="p-3 sm:p-3.5 bg-lime-50/50 dark:bg-lime-950/30 rounded-xl sm:rounded-2xl border border-lime-200 dark:border-lime-900/60">
                                         <Label className="text-[10px] font-bold uppercase tracking-wider text-[#5f7d00] dark:text-lime-400">Selling Price (₱) <span className="text-rose-500">*</span></Label>
                                         <Input
                                             type="number"
@@ -854,7 +927,7 @@ export default function ProductManagementPage() {
                                 </div>
 
                                 {trackStock ? (
-                                    <div className="grid grid-cols-2 gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80">
+                                    <div className="grid grid-cols-2 gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80">
                                         <div>
                                             <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Starting Stock On-Hand</Label>
                                             <Input
@@ -884,7 +957,7 @@ export default function ProductManagementPage() {
                             </div>
 
                             {/* Section 4: Wholesale Break Bulk Relationships */}
-                            <div className="p-4 rounded-2xl bg-amber-50/40 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 space-y-3">
+                            <div className="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-amber-50/40 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 space-y-3">
                                 <h4 className="text-xs font-black uppercase tracking-wider text-amber-900 dark:text-amber-300">
                                     Bulk Pack Relationship (Optional)
                                 </h4>
@@ -920,7 +993,7 @@ export default function ProductManagementPage() {
                         </div>
 
                         {/* Footer */}
-                        <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/95 flex items-center justify-end gap-2.5">
+                        <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/95 flex items-center justify-end gap-2.5">
                             <Button
                                 variant="outline"
                                 type="button"

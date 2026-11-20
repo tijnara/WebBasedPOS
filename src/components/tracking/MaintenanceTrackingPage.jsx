@@ -1,5 +1,5 @@
 // src/components/tracking/MaintenanceTrackingPage.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { useStore } from '../../store/useStore';
 import { useCreateExpense } from '../../hooks/useExpenses';
@@ -111,6 +111,13 @@ export default function MaintenanceTrackingPage() {
     });
 
     const createExpense = useCreateExpense();
+
+    const preventEnterReload = (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    };
 
     const invalidateMaintenanceCaches = () => {
         queryClient.invalidateQueries({ queryKey: ['dashboard-live-maintenance-lifespans'] });
@@ -233,10 +240,10 @@ export default function MaintenanceTrackingPage() {
 
     useEffect(() => {
         fetchTrackingData();
-    }, []);
+    }, [isDemo]);
 
     const checkNotifications = (dates, filters) => {
-        let overdueItems = [];
+        const overdueItems = [];
 
         filters.forEach(filter => {
             const lastReplaced = dates[filter.id] ? new Date(dates[filter.id]) : new Date();
@@ -465,7 +472,7 @@ export default function MaintenanceTrackingPage() {
     };
 
     const handleSaveWaterTestSchedule = async (e) => {
-        e.preventDefault();
+        if (e?.preventDefault) e.preventDefault();
         if (!isAdmin || isDemo) return;
         setIsSavingWaterTest(true);
 
@@ -613,7 +620,7 @@ export default function MaintenanceTrackingPage() {
     };
 
     const handleSaveFilterLimits = async (e) => {
-        e.preventDefault();
+        if (e?.preventDefault) e.preventDefault();
         if (!isAdmin || isDemo) return;
 
         try {
@@ -662,8 +669,8 @@ export default function MaintenanceTrackingPage() {
     };
 
     const handleConfirmRecord = async (e) => {
-        e.preventDefault();
-        if (isDemo) return;
+        if (e?.preventDefault) e.preventDefault();
+        if (isDemo || !recordModal.customDate) return;
 
         const { error } = await supabase.from('maintenance_history').insert({
             item_id: recordModal.itemId,
@@ -743,8 +750,8 @@ export default function MaintenanceTrackingPage() {
 
     // Vehicle CRUD Logic
     const handleSaveVehicle = async (e) => {
-        e.preventDefault();
-        if (isDemo) return;
+        if (e?.preventDefault) e.preventDefault();
+        if (isDemo || !vehicleForm.name.trim()) return;
 
         try {
             let vehicleId = vehicleForm.id;
@@ -753,10 +760,10 @@ export default function MaintenanceTrackingPage() {
 
             if (vehicleId) {
                 const { error } = await supabase.from('vehicles').update({
-                    name: vehicleForm.name,
+                    name: vehicleForm.name.trim(),
                     lifespan_days: lifespanDays,
                     lifespan_months: lifespanMonths,
-                    purpose: vehicleForm.purpose
+                    purpose: vehicleForm.purpose.trim()
                 }).eq('id', vehicleId);
 
                 if (error) throw error;
@@ -764,15 +771,15 @@ export default function MaintenanceTrackingPage() {
                     user,
                     action: 'UPDATE',
                     entity_type: 'MAINTENANCE',
-                    description: `Updated vehicle "${vehicleForm.name}" (${lifespanDays}-day maintenance interval)`
+                    description: `Updated vehicle "${vehicleForm.name.trim()}" (${lifespanDays}-day maintenance interval)`
                 });
                 addToast({ title: 'Updated', description: 'Vehicle updated successfully.', variant: 'success' });
             } else {
                 const { data, error } = await supabase.from('vehicles').insert({
-                    name: vehicleForm.name,
+                    name: vehicleForm.name.trim(),
                     lifespan_days: lifespanDays,
                     lifespan_months: lifespanMonths,
-                    purpose: vehicleForm.purpose
+                    purpose: vehicleForm.purpose.trim()
                 }).select().single();
 
                 if (error) throw error;
@@ -781,7 +788,7 @@ export default function MaintenanceTrackingPage() {
                     user,
                     action: 'CREATE',
                     entity_type: 'MAINTENANCE',
-                    description: `Added new vehicle "${vehicleForm.name}" (${lifespanDays}-day maintenance interval)`
+                    description: `Added new vehicle "${vehicleForm.name.trim()}" (${lifespanDays}-day maintenance interval)`
                 });
                 addToast({ title: 'Added', description: 'New vehicle added.', variant: 'success' });
             }
@@ -853,7 +860,7 @@ export default function MaintenanceTrackingPage() {
         setManageVehiclesModal(true);
     };
 
-    const dropdownTestTypes = React.useMemo(() => {
+    const dropdownTestTypes = useMemo(() => {
         const list = [...waterTestTypes];
         if (
             waterTestModal.testType &&
@@ -871,9 +878,27 @@ export default function MaintenanceTrackingPage() {
     const selectedTypeObj = waterTestTypes.find(t => t.name === waterTestModal.testType);
 
     return (
-        <div className="p-3 sm:p-5 md:p-6 max-w-7xl mx-auto space-y-4">
+        <div className="maintenance-page w-full max-w-7xl mx-auto px-1.5 py-2 sm:p-5 md:p-6 space-y-2.5 sm:space-y-4 transition-colors">
+            {/* Match POS, Expenses, Dashboard, Report, History, Scanned Logs & Customer Management edge-to-edge .container fit on mobile (< 640px) */}
+            <style jsx global>{`
+                @media (max-width: 639px) {
+                    .app:has(.maintenance-page) .container {
+                        max-width: 100% !important;
+                        width: 100% !important;
+                        padding-left: 0 !important;
+                        padding-right: 0 !important;
+                        margin-left: 0 !important;
+                        margin-right: 0 !important;
+                    }
+                    .app:has(.maintenance-page) .main {
+                        padding-left: 0 !important;
+                        padding-right: 0 !important;
+                    }
+                }
+            `}</style>
+
             {/* Top Bar: Title & Admin Settings Triggers */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2.5 sm:gap-3 border-b border-slate-200 dark:border-slate-800 pb-2.5 sm:pb-3 px-0.5 sm:px-0">
                 <div>
                     <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
                         Filter &amp; Maintenance Tracking
@@ -883,41 +908,43 @@ export default function MaintenanceTrackingPage() {
                     </p>
                 </div>
                 {isAdmin && (
-                    <div className="flex flex-wrap items-center gap-2 shrink-0">
+                    <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 w-full sm:w-auto shrink-0">
                         <Button
+                            type="button"
                             variant="outline"
                             onClick={handleOpenWaterTestModal}
-                            className="h-9 px-3.5 text-xs font-bold border-cyan-200 dark:border-cyan-800 bg-cyan-50/70 dark:bg-cyan-950/40 text-cyan-800 dark:text-cyan-300 hover:bg-cyan-100 dark:hover:bg-cyan-900/50 rounded-xl shadow-2xs flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer"
+                            className="w-full sm:w-auto h-9 px-3 sm:px-3.5 text-xs font-bold border-cyan-200 dark:border-cyan-800 bg-cyan-50/70 dark:bg-cyan-950/40 text-cyan-800 dark:text-cyan-300 hover:bg-cyan-100 dark:hover:bg-cyan-900/50 rounded-xl shadow-2xs flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer"
                         >
-                            <FlaskConical className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
-                            <span>Water Test Schedule</span>
+                            <FlaskConical className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400 shrink-0" />
+                            <span className="truncate">Water Test Schedule</span>
                         </Button>
 
                         <Button
+                            type="button"
                             variant="primary"
                             onClick={() => setManageVehiclesModal(true)}
-                            className="h-9 px-3.5 text-xs font-bold bg-[#8DB600] hover:bg-[#7ca000] text-white rounded-xl shadow-xs flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer"
+                            className="w-full sm:w-auto h-9 px-3 sm:px-3.5 text-xs font-bold bg-[#8DB600] hover:bg-[#7ca000] text-white rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer"
                         >
-                            <Sliders className="w-3.5 h-3.5" />
-                            <span>Manage Vehicles</span>
+                            <Sliders className="w-3.5 h-3.5 shrink-0" />
+                            <span className="truncate">Manage Vehicles</span>
                         </Button>
                     </div>
                 )}
             </div>
 
             {/* Segmented Control Tabs */}
-            <div className="flex items-center gap-2 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-2xl w-full sm:w-max border border-slate-200/80 dark:border-slate-700/60 select-none">
+            <div className="flex items-center gap-1.5 sm:gap-2 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl sm:rounded-2xl w-full sm:w-max border border-slate-200/80 dark:border-slate-700/60 select-none">
                 <button
                     type="button"
                     onClick={() => setActiveTab('filters')}
-                    className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-extrabold transition-all duration-150 cursor-pointer ${
+                    className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-2 rounded-lg sm:rounded-xl text-xs font-extrabold transition-all duration-150 cursor-pointer ${
                         activeTab === 'filters'
                             ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
                             : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
                     }`}
                 >
-                    <Droplets className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
-                    <span>Water Filters</span>
+                    <Droplets className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400 shrink-0" />
+                    <span className="truncate">Water Filters</span>
                     <span className="font-mono text-[10px] bg-slate-100 dark:bg-slate-800 px-1.5 py-0.2 rounded-full font-bold">
                         {processedFilters.length}
                     </span>
@@ -931,14 +958,14 @@ export default function MaintenanceTrackingPage() {
                 <button
                     type="button"
                     onClick={() => setActiveTab('fleet')}
-                    className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-extrabold transition-all duration-150 cursor-pointer ${
+                    className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-2 rounded-lg sm:rounded-xl text-xs font-extrabold transition-all duration-150 cursor-pointer ${
                         activeTab === 'fleet'
                             ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
                             : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
                     }`}
                 >
-                    <Truck className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                    <span>Fleet &amp; Logistics</span>
+                    <Truck className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+                    <span className="truncate">Fleet &amp; Logistics</span>
                     <span className="font-mono text-[10px] bg-slate-100 dark:bg-slate-800 px-1.5 py-0.2 rounded-full font-bold">
                         {processedVehicles.length}
                     </span>
@@ -951,16 +978,16 @@ export default function MaintenanceTrackingPage() {
             </div>
 
             {isLoading ? (
-                <div className="text-center py-16 text-slate-400 text-xs font-semibold">
+                <div className="text-center py-12 sm:py-16 text-slate-400 text-xs font-semibold bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-800">
                     Loading maintenance records...
                 </div>
             ) : (
-                <div className="space-y-4">
+                <div className="space-y-2.5 sm:space-y-4">
                     {/* Tab 1: Water Filtration */}
                     {activeTab === 'filters' && (
-                        <div className="flex flex-col lg:flex-row gap-5 items-start">
+                        <div className="flex flex-col lg:flex-row gap-2.5 sm:gap-5 items-start">
                             {/* Right Sidebar: Filter Status Note + Live Water Test Schedule Countdown */}
-                            <div className="w-full lg:w-80 shrink-0 order-first lg:order-last space-y-4">
+                            <div className="w-full lg:w-80 shrink-0 order-first lg:order-last space-y-2.5 sm:space-y-4">
                                 <PendingPurchases
                                     overdueFilters={overdueFilters}
                                     totalOverdueCost={totalOverdueCost}
@@ -1020,14 +1047,14 @@ export default function MaintenanceTrackingPage() {
                 open={waterTestModal.isOpen}
                 onOpenChange={(open) => !open && setWaterTestModal(prev => ({ ...prev, isOpen: false }))}
             >
-                <DialogContent className="max-w-md">
+                <DialogContent className="w-[95vw] sm:w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl sm:rounded-3xl dark:[color-scheme:dark]">
                     <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <FlaskConical className="w-5 h-5 text-cyan-600" />
-                            Set Water Test Schedule
+                        <DialogTitle className="flex items-center gap-2 text-slate-900 dark:text-slate-100">
+                            <FlaskConical className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+                            <span>Set Water Test Schedule</span>
                         </DialogTitle>
                     </DialogHeader>
-                    <form onSubmit={handleSaveWaterTestSchedule} className="p-4 space-y-4">
+                    <div onKeyDown={preventEnterReload} className="p-4 space-y-4">
                         <div className="space-y-2">
                             <div className="flex items-center justify-between">
                                 <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-0">
@@ -1047,10 +1074,10 @@ export default function MaintenanceTrackingPage() {
                                 <Select
                                     value={waterTestModal.testType}
                                     onChange={(e) => handleSelectTestType(e.target.value)}
-                                    className="h-10 text-xs font-bold bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 rounded-xl flex-1 cursor-pointer"
+                                    className="h-10 text-xs font-bold bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl flex-1 cursor-pointer"
                                 >
                                     {dropdownTestTypes.map((t) => (
-                                        <option key={t.id || t.name} value={t.name}>
+                                        <option key={t.id || t.name} value={t.name} className="bg-white dark:bg-slate-900">
                                             {t.name} ({t.default_interval_days}d)
                                         </option>
                                     ))}
@@ -1080,7 +1107,7 @@ export default function MaintenanceTrackingPage() {
                                                 value={newTestTypeName}
                                                 onChange={(e) => setNewTestTypeName(e.target.value)}
                                                 placeholder="e.g. Monthly HPC Lab Test"
-                                                className="h-9 text-xs bg-white dark:bg-slate-900"
+                                                className="h-9 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100"
                                             />
                                         </div>
                                         <div>
@@ -1091,7 +1118,7 @@ export default function MaintenanceTrackingPage() {
                                                 onChange={(e) => setNewTestTypeInterval(e.target.value)}
                                                 placeholder="Days"
                                                 title="Default cycle interval (days)"
-                                                className="h-9 text-xs font-mono bg-white dark:bg-slate-900"
+                                                className="h-9 text-xs font-mono bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100"
                                             />
                                         </div>
                                     </div>
@@ -1119,7 +1146,7 @@ export default function MaintenanceTrackingPage() {
                                     type="date"
                                     value={waterTestModal.nextTestDate}
                                     onChange={e => setWaterTestModal(prev => ({ ...prev, nextTestDate: e.target.value }))}
-                                    required
+                                    className="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100"
                                 />
                             </div>
 
@@ -1131,7 +1158,7 @@ export default function MaintenanceTrackingPage() {
                                     type="time"
                                     value={waterTestModal.testTime}
                                     onChange={e => setWaterTestModal(prev => ({ ...prev, testTime: e.target.value }))}
-                                    required
+                                    className="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100"
                                 />
                             </div>
                         </div>
@@ -1145,9 +1172,9 @@ export default function MaintenanceTrackingPage() {
                                 min="1"
                                 value={waterTestModal.intervalDays}
                                 onChange={e => setWaterTestModal(prev => ({ ...prev, intervalDays: e.target.value }))}
-                                required
+                                className="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 font-mono"
                             />
-                            <p className="text-[11px] text-slate-400 mt-1">
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
                                 Automatically advances the next test date by this many days when &ldquo;Log Test Done&rdquo; is clicked.
                             </p>
                         </div>
@@ -1161,6 +1188,7 @@ export default function MaintenanceTrackingPage() {
                                 value={waterTestModal.notes}
                                 onChange={e => setWaterTestModal(prev => ({ ...prev, notes: e.target.value }))}
                                 placeholder="e.g. Water quality parameters are normal. Prepare sterile sample bottles prior to scheduled lab testing."
+                                className="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100"
                             />
                         </div>
 
@@ -1169,19 +1197,21 @@ export default function MaintenanceTrackingPage() {
                                 type="button"
                                 variant="outline"
                                 onClick={() => setWaterTestModal(prev => ({ ...prev, isOpen: false }))}
+                                className="border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer"
                             >
                                 Cancel
                             </Button>
                             <Button
-                                type="submit"
+                                type="button"
                                 variant="primary"
+                                onClick={handleSaveWaterTestSchedule}
                                 disabled={isSavingWaterTest}
-                                className="bg-cyan-600 hover:bg-cyan-700 text-white"
+                                className="bg-cyan-600 hover:bg-cyan-700 text-white cursor-pointer"
                             >
                                 {isSavingWaterTest ? 'Saving...' : 'Save Schedule'}
                             </Button>
                         </DialogFooter>
-                    </form>
+                    </div>
                 </DialogContent>
             </Dialog>
 
@@ -1190,47 +1220,47 @@ export default function MaintenanceTrackingPage() {
                 open={editFilterModal.isOpen}
                 onOpenChange={(open) => !open && setEditFilterModal(prev => ({ ...prev, isOpen: false }))}
             >
-                <DialogContent className="max-w-md">
+                <DialogContent className="w-[95vw] sm:w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl sm:rounded-3xl">
                     <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <Sliders className="w-5 h-5 text-emerald-600" />
-                            Edit Filter Targets: {editFilterModal.filterName}
+                        <DialogTitle className="flex items-center gap-2 text-slate-900 dark:text-slate-100">
+                            <Sliders className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                            <span>Edit Filter Targets: {editFilterModal.filterName}</span>
                         </DialogTitle>
                     </DialogHeader>
-                    <form onSubmit={handleSaveFilterLimits} className="p-4 space-y-4">
+                    <div onKeyDown={preventEnterReload} className="p-4 space-y-4">
                         <div>
-                            <Label className="text-xs font-bold text-gray-700">Total Lifespan (Days)</Label>
+                            <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Total Lifespan (Days)</Label>
                             <Input
                                 type="number"
                                 min="1"
                                 value={editFilterModal.lifespanDays}
                                 onChange={e => setEditFilterModal(prev => ({ ...prev, lifespanDays: e.target.value }))}
-                                required
+                                className="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 font-mono"
                             />
-                            <p className="text-[11px] text-gray-400 mt-1">Primary trigger for filter replacement.</p>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Primary trigger for filter replacement.</p>
                         </div>
 
                         <div>
-                            <Label className="text-xs font-bold text-gray-700">Volume Capacity Target (Containers)</Label>
+                            <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Volume Capacity Target (Containers)</Label>
                             <Input
                                 type="number"
                                 min="1"
                                 value={editFilterModal.containerLimit}
                                 onChange={e => setEditFilterModal(prev => ({ ...prev, containerLimit: e.target.value }))}
-                                required
+                                className="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 font-mono"
                             />
-                            <p className="text-[11px] text-gray-400 mt-1">Calibrates the Gallon Volume Filtered monitoring bar.</p>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Calibrates the Gallon Volume Filtered monitoring bar.</p>
                         </div>
 
                         <div>
-                            <Label className="text-xs font-bold text-gray-700">Cost per Piece (₱)</Label>
+                            <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Cost per Piece (₱)</Label>
                             <Input
                                 type="number"
                                 step="0.01"
                                 min="0"
                                 value={editFilterModal.cost}
                                 onChange={e => setEditFilterModal(prev => ({ ...prev, cost: e.target.value }))}
-                                required
+                                className="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 font-mono"
                             />
                         </div>
 
@@ -1239,70 +1269,101 @@ export default function MaintenanceTrackingPage() {
                                 type="button"
                                 variant="outline"
                                 onClick={() => setEditFilterModal(prev => ({ ...prev, isOpen: false }))}
+                                className="border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer"
                             >
                                 Cancel
                             </Button>
-                            <Button type="submit" variant="primary">
+                            <Button
+                                type="button"
+                                variant="primary"
+                                onClick={handleSaveFilterLimits}
+                                className="bg-[#8DB600] hover:bg-[#7ca000] text-white cursor-pointer"
+                            >
                                 Save Limits
                             </Button>
                         </DialogFooter>
-                    </form>
+                    </div>
                 </DialogContent>
             </Dialog>
 
             {/* Record Custom Date Modal */}
             <Dialog open={recordModal.isOpen} onOpenChange={(open) => !open && setRecordModal(prev => ({ ...prev, isOpen: false }))}>
-                <DialogContent className="max-w-md">
+                <DialogContent className="w-[95vw] sm:w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl sm:rounded-3xl dark:[color-scheme:dark]">
                     <DialogHeader>
-                        <DialogTitle>Record Maintenance: {recordModal.itemName}</DialogTitle>
+                        <DialogTitle className="text-slate-900 dark:text-slate-100">Record Maintenance: {recordModal.itemName}</DialogTitle>
                     </DialogHeader>
-                    <form onSubmit={handleConfirmRecord} className="p-4 space-y-4">
+                    <div onKeyDown={preventEnterReload} className="p-4 space-y-4">
                         <div>
-                            <Label>Date of Replacement/Maintenance</Label>
+                            <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Date of Replacement / Maintenance</Label>
                             <Input
                                 type="datetime-local"
                                 value={recordModal.customDate}
                                 onChange={e => setRecordModal(prev => ({ ...prev, customDate: e.target.value }))}
-                                required
+                                className="mt-1 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100"
                             />
                         </div>
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setRecordModal(prev => ({ ...prev, isOpen: false }))}>Cancel</Button>
-                            <Button type="submit" variant="primary">Save Record</Button>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setRecordModal(prev => ({ ...prev, isOpen: false }))}
+                                className="border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer"
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="primary"
+                                onClick={handleConfirmRecord}
+                                className="bg-[#8DB600] hover:bg-[#7ca000] text-white cursor-pointer"
+                            >
+                                Save Record
+                            </Button>
                         </DialogFooter>
-                    </form>
+                    </div>
                 </DialogContent>
             </Dialog>
 
             {/* View History Modal */}
             <Dialog open={historyModal.isOpen} onOpenChange={(open) => !open && setHistoryModal(prev => ({ ...prev, isOpen: false }))}>
-                <DialogContent className="max-w-lg">
+                <DialogContent className="w-[95vw] sm:w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl sm:rounded-3xl">
                     <DialogHeader>
-                        <DialogTitle>History: {historyModal.itemName}</DialogTitle>
+                        <DialogTitle className="text-slate-900 dark:text-slate-100">History: {historyModal.itemName}</DialogTitle>
                     </DialogHeader>
                     <div className="p-4 max-h-96 overflow-y-auto">
                         <Table>
                             <TableHeader>
-                                <TableRow>
-                                    <TableHead>Date</TableHead>
-                                    <TableHead>Recorded By</TableHead>
+                                <TableRow className="border-slate-200 dark:border-slate-800">
+                                    <TableHead className="text-slate-600 dark:text-slate-400">Date</TableHead>
+                                    <TableHead className="text-slate-600 dark:text-slate-400">Recorded By</TableHead>
                                 </TableRow>
                             </TableHeader>
-                            <TableBody>
+                            <TableBody className="divide-y divide-slate-100 dark:divide-slate-800">
                                 {fullHistory.filter(h => h.item_id === historyModal.itemId).map(record => (
                                     <TableRow key={record.id}>
-                                        <TableCell>{format(new Date(record.replaced_at), 'MMM d, yyyy h:mm a')}</TableCell>
-                                        <TableCell className="text-gray-500 text-sm">System User</TableCell>
+                                        <TableCell className="text-slate-800 dark:text-slate-200 font-medium">
+                                            {format(new Date(record.replaced_at), 'MMM d, yyyy h:mm a')}
+                                        </TableCell>
+                                        <TableCell className="text-slate-500 dark:text-slate-400 text-sm">System User</TableCell>
                                     </TableRow>
                                 ))}
                                 {fullHistory.filter(h => h.item_id === historyModal.itemId).length === 0 && (
-                                    <TableRow><TableCell colSpan={2} className="text-center">No history found.</TableCell></TableRow>
+                                    <TableRow>
+                                        <TableCell colSpan={2} className="text-center text-slate-400 py-6">
+                                            No history found.
+                                        </TableCell>
+                                    </TableRow>
                                 )}
                             </TableBody>
                         </Table>
                     </div>
-                    <DialogFooter className="p-4 border-t border-gray-100">
-                        <Button variant="outline" onClick={() => setHistoryModal(prev => ({ ...prev, isOpen: false }))}>
+                    <DialogFooter className="p-4 border-t border-slate-100 dark:border-slate-800">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setHistoryModal(prev => ({ ...prev, isOpen: false }))}
+                            className="border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer"
+                        >
                             Close
                         </Button>
                     </DialogFooter>
@@ -1311,22 +1372,24 @@ export default function MaintenanceTrackingPage() {
 
             {/* Manage Vehicles Modal */}
             <Dialog open={manageVehiclesModal} onOpenChange={setManageVehiclesModal}>
-                <DialogContent className="max-w-2xl w-full">
-                    <DialogHeader><DialogTitle>Manage Vehicles</DialogTitle></DialogHeader>
-                    <div className="p-4 space-y-6">
-                        <form onSubmit={handleSaveVehicle} className="space-y-4 bg-gray-50 dark:bg-slate-800/60 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <DialogContent className="w-[95vw] sm:w-full max-w-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl sm:rounded-3xl dark:[color-scheme:dark]">
+                    <DialogHeader>
+                        <DialogTitle className="text-slate-900 dark:text-slate-100">Manage Vehicles</DialogTitle>
+                    </DialogHeader>
+                    <div className="p-4 space-y-5 max-h-[80vh] overflow-y-auto">
+                        <div onKeyDown={preventEnterReload} className="space-y-4 bg-slate-50 dark:bg-slate-800/60 p-3.5 sm:p-4 rounded-xl border border-slate-200 dark:border-slate-700">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                                 <div>
-                                    <Label>Vehicle Name</Label>
+                                    <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Vehicle Name</Label>
                                     <Input
                                         value={vehicleForm.name}
                                         onChange={e => setVehicleForm(prev => ({ ...prev, name: e.target.value }))}
                                         placeholder="e.g. Delivery Multicab #1"
-                                        required
+                                        className="mt-1 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100"
                                     />
                                 </div>
                                 <div>
-                                    <Label>Maintenance Interval (Days)</Label>
+                                    <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Maintenance Interval (Days)</Label>
                                     <Input
                                         type="number"
                                         min="1"
@@ -1339,25 +1402,25 @@ export default function MaintenanceTrackingPage() {
                                                 lifespanMonths: Math.max(1, Math.round(days / 30))
                                             }));
                                         }}
-                                        required
+                                        className="mt-1 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 font-mono"
                                     />
                                 </div>
                                 <div>
-                                    <Label>Last Maintained Date</Label>
+                                    <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Last Maintained Date</Label>
                                     <Input
                                         type="date"
                                         value={vehicleForm.lastMaintenanceDate}
                                         onChange={e => setVehicleForm(prev => ({ ...prev, lastMaintenanceDate: e.target.value }))}
-                                        required
+                                        className="mt-1 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100"
                                     />
                                 </div>
                                 <div>
-                                    <Label>Maintenance Purpose / Note</Label>
+                                    <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Maintenance Purpose / Note</Label>
                                     <Input
                                         value={vehicleForm.purpose}
                                         onChange={e => setVehicleForm(prev => ({ ...prev, purpose: e.target.value }))}
                                         placeholder="e.g. Change engine oil, tune-up, filter check"
-                                        required
+                                        className="mt-1 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100"
                                     />
                                 </div>
                             </div>
@@ -1374,31 +1437,54 @@ export default function MaintenanceTrackingPage() {
                                             purpose: '',
                                             lastMaintenanceDate: format(new Date(), 'yyyy-MM-dd')
                                         })}
+                                        className="text-slate-600 dark:text-slate-300 cursor-pointer"
                                     >
                                         Cancel Edit
                                     </Button>
                                 )}
-                                <Button type="submit">{vehicleForm.id ? 'Update Vehicle' : 'Add Vehicle'}</Button>
+                                <Button
+                                    type="button"
+                                    onClick={handleSaveVehicle}
+                                    className="bg-[#8DB600] hover:bg-[#7ca000] text-white font-bold cursor-pointer"
+                                >
+                                    {vehicleForm.id ? 'Update Vehicle' : 'Add Vehicle'}
+                                </Button>
                             </div>
-                        </form>
+                        </div>
 
                         <div className="max-h-80 overflow-y-auto border border-slate-200 dark:border-slate-700 rounded-xl">
                             <Table>
                                 <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Name</TableHead>
-                                        <TableHead>Interval (Days)</TableHead>
-                                        <TableHead className="text-right">Actions</TableHead>
+                                    <TableRow className="border-slate-200 dark:border-slate-800">
+                                        <TableHead className="text-slate-600 dark:text-slate-400">Name</TableHead>
+                                        <TableHead className="text-slate-600 dark:text-slate-400">Interval (Days)</TableHead>
+                                        <TableHead className="text-right text-slate-600 dark:text-slate-400">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
-                                <TableBody>
+                                <TableBody className="divide-y divide-slate-100 dark:divide-slate-800">
                                     {dbVehicles.map(v => (
                                         <TableRow key={v.id}>
-                                            <TableCell className="font-medium">{v.name}</TableCell>
-                                            <TableCell>{v.lifespan_days || (v.lifespan_months ? v.lifespan_months * 30 : 180)} Days</TableCell>
+                                            <TableCell className="font-medium text-slate-900 dark:text-slate-100">{v.name}</TableCell>
+                                            <TableCell className="text-slate-600 dark:text-slate-300 font-mono">
+                                                {v.lifespan_days || (v.lifespan_months ? v.lifespan_months * 30 : 180)} Days
+                                            </TableCell>
                                             <TableCell className="text-right space-x-2">
-                                                <button onClick={() => handleEditVehicleClick(v)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md"><Edit2 className="w-4 h-4" /></button>
-                                                <button onClick={() => handleDeleteVehicle(v.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-md"><Trash2 className="w-4 h-4" /></button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleEditVehicleClick(v)}
+                                                    className="p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-md cursor-pointer"
+                                                    title="Edit Vehicle"
+                                                >
+                                                    <Edit2 className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleDeleteVehicle(v.id)}
+                                                    className="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-slate-800 rounded-md cursor-pointer"
+                                                    title="Delete Vehicle"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
                                             </TableCell>
                                         </TableRow>
                                     ))}
@@ -1406,8 +1492,13 @@ export default function MaintenanceTrackingPage() {
                             </Table>
                         </div>
                     </div>
-                    <DialogFooter className="p-4 border-t border-gray-100">
-                        <Button variant="outline" onClick={() => setManageVehiclesModal(false)}>
+                    <DialogFooter className="p-4 border-t border-slate-100 dark:border-slate-800">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setManageVehiclesModal(false)}
+                            className="border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer"
+                        >
                             Close
                         </Button>
                     </DialogFooter>

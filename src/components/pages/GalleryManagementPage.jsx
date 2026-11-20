@@ -1,5 +1,5 @@
 // src/components/pages/GalleryManagementPage.jsx
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabaseClient';
 import { useStore } from '../../store/useStore';
@@ -9,7 +9,7 @@ import {
 } from '../ui';
 import {
     Image as ImageIcon, Upload, Trash2, Pencil, Plus,
-    Search, Eye, Calendar, Sparkles, X
+    Search, Eye, Calendar, X
 } from 'lucide-react';
 
 const CATEGORIES = [
@@ -20,6 +20,22 @@ const CATEGORIES = [
     'Certificates & Permits',
     'Events & Promos'
 ];
+
+const formatManilaDate = (dateStr) => {
+    if (!dateStr) return 'Recent';
+    try {
+        const d = new Date(dateStr);
+        if (Number.isNaN(d.getTime())) return 'Recent';
+        return d.toLocaleDateString('en-US', {
+            timeZone: 'Asia/Manila',
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+        });
+    } catch {
+        return 'Recent';
+    }
+};
 
 export default function GalleryManagementPage() {
     const queryClient = useQueryClient();
@@ -63,6 +79,27 @@ export default function GalleryManagementPage() {
     const [imageUrl, setImageUrl] = useState('');
     const [isUploadingFile, setIsUploadingFile] = useState(false);
     const fileInputRef = useRef(null);
+    const searchInputRef = useRef(null);
+
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            const activeTag = document.activeElement?.tagName;
+            if (activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT') return;
+            if ((e.ctrlKey && e.key === 'f') || e.key === '/') {
+                if (searchInputRef.current) searchInputRef.current.focus();
+                e.preventDefault();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []);
+
+    const preventEnterReload = (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    };
 
     // Resilient Gallery Query
     const { data: galleryItems = [], isLoading } = useQuery({
@@ -176,6 +213,10 @@ export default function GalleryManagementPage() {
                     setImageUrl(reader.result);
                     setIsUploadingFile(false);
                 };
+                reader.onerror = () => {
+                    setIsUploadingFile(false);
+                    addToast({ title: 'File Read Error', description: 'Could not read selected image.', variant: 'destructive' });
+                };
                 reader.readAsDataURL(file);
                 return;
             }
@@ -185,11 +226,11 @@ export default function GalleryManagementPage() {
                 .getPublicUrl(filePath);
 
             setImageUrl(data.publicUrl);
+            setIsUploadingFile(false);
         } catch (err) {
             console.error('Upload error:', err);
-            addToast({ title: 'Upload Notice', description: 'Using local image preview mode.', variant: 'warning' });
-        } finally {
             setIsUploadingFile(false);
+            addToast({ title: 'Upload Notice', description: 'Could not upload file. Try pasting an image URL.', variant: 'warning' });
         }
     };
 
@@ -216,8 +257,10 @@ export default function GalleryManagementPage() {
         setEditingItem(null);
     };
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
+    const handleSaveSubmit = (e) => {
+        if (e?.preventDefault) e.preventDefault();
+        if (e?.stopPropagation) e.stopPropagation();
+
         if (!title.trim()) {
             addToast({ title: 'Title Required', description: 'Please enter an image title.', variant: 'destructive' });
             return;
@@ -246,19 +289,38 @@ export default function GalleryManagementPage() {
     }, [galleryItems, selectedCategory, searchTerm]);
 
     return (
-        <div className="gallery-page max-w-7xl mx-auto space-y-6 p-4 md:p-6 overflow-x-hidden transition-colors">
+        <div className="gallery-page w-full max-w-7xl mx-auto px-1.5 py-2 sm:p-5 md:p-6 space-y-2.5 sm:space-y-6 overflow-x-hidden transition-colors">
+            {/* Match POS, Expenses, Dashboard, Report, History, Scanned Logs, Customer, Maintenance, Product, 3D Icons & Inventory edge-to-edge .container fit on mobile (< 640px) */}
+            <style jsx global>{`
+                @media (max-width: 639px) {
+                    .app:has(.gallery-page) .container {
+                        max-width: 100% !important;
+                        width: 100% !important;
+                        padding-left: 0 !important;
+                        padding-right: 0 !important;
+                        margin-left: 0 !important;
+                        margin-right: 0 !important;
+                    }
+                    .app:has(.gallery-page) .main {
+                        padding-left: 0 !important;
+                        padding-right: 0 !important;
+                    }
+                }
+            `}</style>
+
             {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2.5 sm:gap-4 px-0.5 sm:px-0">
                 <div>
-                    <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">Gallery Management</h1>
+                    <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">Gallery Management</h1>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Manage station photos, equipment records, facility images, and certificates.</p>
                 </div>
 
                 <div className="flex items-center gap-2 w-full sm:w-auto">
                     <Button
+                        type="button"
                         onClick={openCreateModal}
                         variant="primary"
-                        className="h-10 px-4 rounded-xl bg-[#8DB600] hover:bg-[#7ca000] text-white font-bold text-xs shadow-sm flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer"
+                        className="w-full sm:w-auto h-9 sm:h-10 px-4 rounded-xl bg-[#8DB600] hover:bg-[#7ca000] text-white font-bold text-xs shadow-sm flex items-center justify-center gap-1.5 active:scale-95 transition-all cursor-pointer"
                         disabled={isDemo}
                     >
                         <Plus className="w-4 h-4 stroke-[2.5]" />
@@ -268,26 +330,29 @@ export default function GalleryManagementPage() {
             </div>
 
             {/* Filter Bar */}
-            <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-2xs transition-colors">
+            <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-2 sm:gap-3 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-2xs transition-colors">
                 {/* Search Textfield with Overlap Prevention */}
                 <div className="relative flex-1 max-w-md group">
-                    <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-400 group-focus-within:text-[#8DB600] dark:group-focus-within:text-lime-400 transition-colors pointer-events-none z-10" />
+                    <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-400 group-focus-within:text-[#8DB600] dark:group-focus-within:text-lime-400 transition-colors pointer-events-none z-10" />
                     <Input
-                        placeholder="Search photos by title or description..."
+                        ref={searchInputRef}
+                        placeholder="Search photos by title or description... (/)"
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
+                        onKeyDown={preventEnterReload}
                         style={{
-                            paddingLeft: '2.5rem',
-                            paddingRight: searchTerm ? '2.5rem' : '0.75rem'
+                            paddingLeft: '2.25rem',
+                            paddingRight: searchTerm ? '2.25rem' : '0.75rem'
                         }}
-                        className="w-full bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-xs sm:text-sm h-10 rounded-xl focus:bg-white dark:focus:bg-slate-900 focus:border-[#8DB600] dark:focus:border-lime-500 transition-all outline-none"
+                        className="w-full bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-xs sm:text-sm h-9 sm:h-10 rounded-xl focus:bg-white dark:focus:bg-slate-900 focus:border-[#8DB600] dark:focus:border-lime-500 transition-all outline-none"
                     />
                     {searchTerm && (
                         <button
                             type="button"
                             onClick={() => setSearchTerm('')}
-                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-full cursor-pointer transition-colors z-10"
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 rounded-full cursor-pointer transition-colors z-10"
                             title="Clear search"
+                            aria-label="Clear search"
                         >
                             <X className="w-3.5 h-3.5" />
                         </button>
@@ -295,7 +360,7 @@ export default function GalleryManagementPage() {
                 </div>
 
                 {/* Filter Pills with Suppressed Scrollbars */}
-                <div className="flex items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden py-1">
+                <div className="flex items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden py-0.5 sm:py-1">
                     {CATEGORIES.map(cat => {
                         const isSelected = selectedCategory === cat;
                         return (
@@ -303,7 +368,7 @@ export default function GalleryManagementPage() {
                                 key={cat}
                                 type="button"
                                 onClick={() => setSelectedCategory(cat)}
-                                className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap cursor-pointer select-none ${
+                                className={`px-3 sm:px-3.5 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap cursor-pointer select-none shrink-0 ${
                                     isSelected
                                         ? 'bg-[#8DB600] dark:bg-lime-500 text-white shadow-xs'
                                         : 'bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 border border-transparent dark:border-slate-700/60 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'
@@ -318,28 +383,33 @@ export default function GalleryManagementPage() {
 
             {/* Photo Cards Grid */}
             {isLoading ? (
-                <div className="text-center py-20 text-slate-400 dark:text-slate-500 text-xs font-semibold">
+                <div className="text-center py-16 sm:py-20 text-slate-400 dark:text-slate-500 text-xs font-semibold bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-800">
                     Loading station photos...
                 </div>
             ) : filteredItems.length === 0 ? (
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-12 text-center space-y-3 shadow-2xs transition-colors">
-                    <div className="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 flex items-center justify-center mx-auto">
-                        <ImageIcon className="w-6 h-6" />
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl sm:rounded-3xl p-8 sm:p-12 text-center space-y-3 shadow-2xs transition-colors">
+                    <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 flex items-center justify-center mx-auto">
+                        <ImageIcon className="w-5 h-5 sm:w-6 sm:h-6" />
                     </div>
                     <div className="text-slate-800 dark:text-slate-100 font-bold text-sm">No photos found</div>
                     <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
                         Add images of your station equipment, water test certifications, or delivery vehicles.
                     </p>
-                    <Button onClick={openCreateModal} className="h-9 px-4 rounded-xl bg-[#8DB600] hover:bg-[#7ca000] text-white text-xs font-bold shadow-xs cursor-pointer">
+                    <Button
+                        type="button"
+                        onClick={openCreateModal}
+                        disabled={isDemo}
+                        className="h-9 px-4 rounded-xl bg-[#8DB600] hover:bg-[#7ca000] text-white text-xs font-bold shadow-xs cursor-pointer"
+                    >
                         Add First Image
                     </Button>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-4">
                     {filteredItems.map(item => (
                         <div
                             key={item.id}
-                            className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl overflow-hidden shadow-2xs hover:shadow-md dark:hover:border-slate-700 transition-all group flex flex-col"
+                            className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-xl sm:rounded-2xl overflow-hidden shadow-2xs hover:shadow-md dark:hover:border-slate-700 transition-all group flex flex-col"
                         >
                             <div className="relative aspect-video bg-slate-100 dark:bg-slate-800 overflow-hidden cursor-pointer" onClick={() => setPreviewImage(item)}>
                                 <img
@@ -356,7 +426,7 @@ export default function GalleryManagementPage() {
                                 </span>
                             </div>
 
-                            <div className="p-3.5 flex-1 flex flex-col justify-between space-y-2">
+                            <div className="p-3 sm:p-3.5 flex-1 flex flex-col justify-between space-y-2">
                                 <div>
                                     <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100 line-clamp-1">{item.title}</h3>
                                     {item.description && (
@@ -367,7 +437,7 @@ export default function GalleryManagementPage() {
                                 <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-400 dark:text-slate-500">
                                     <span className="flex items-center gap-1 font-medium">
                                         <Calendar className="w-3.5 h-3.5" />
-                                        {item.created_at ? new Date(item.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recent'}
+                                        {formatManilaDate(item.created_at)}
                                     </span>
 
                                     <div className="flex items-center gap-1.5">
@@ -414,33 +484,32 @@ export default function GalleryManagementPage() {
                 </div>
             )}
 
-            {/* Upload / Edit Modal */}
+            {/* Upload / Edit Modal (Reload-safe div container) */}
             <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
-                <DialogContent className="p-0 sm:max-w-md w-full bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden rounded-3xl dark:[color-scheme:dark]">
-                    <div className="px-6 py-4 bg-slate-50 dark:bg-slate-900/95 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <DialogContent className="p-0 sm:max-w-md w-[95vw] sm:w-full bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden rounded-2xl sm:rounded-3xl dark:[color-scheme:dark]">
+                    <div className="px-4 sm:px-6 py-3.5 sm:py-4 bg-slate-50 dark:bg-slate-900/95 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                         <DialogTitle className="text-base font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                            <div className="w-7 h-7 rounded-lg bg-lime-100 dark:bg-lime-950/60 text-[#5f7d00] dark:text-lime-400 flex items-center justify-center">
+                            <div className="w-7 h-7 rounded-lg bg-lime-100 dark:bg-lime-950/60 text-[#5f7d00] dark:text-lime-400 flex items-center justify-center shrink-0">
                                 <ImageIcon className="w-4 h-4 stroke-[2.5]" />
                             </div>
                             <span>{editingItem ? 'Edit Photo Details' : 'Add Photo to Gallery'}</span>
                         </DialogTitle>
-                        <DialogCloseButton onClick={closeModal} className="p-1.5 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" />
+                        <DialogCloseButton type="button" onClick={closeModal} className="p-1.5 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer" />
                     </div>
 
-                    <form onSubmit={handleSubmit}>
-                        <div className="p-6 space-y-4">
+                    <div onKeyDown={preventEnterReload}>
+                        <div className="p-4 sm:p-6 space-y-4 max-h-[75vh] overflow-y-auto">
                             <div>
                                 <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Photo Title <span className="text-rose-500">*</span></Label>
                                 <Input
                                     value={title}
                                     onChange={(e) => setTitle(e.target.value)}
-                                    required
                                     placeholder="e.g. Reverse Osmosis Filtration System"
                                     className="h-10 mt-1 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900"
                                 />
                             </div>
 
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div>
                                     <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Category</Label>
                                     <select
@@ -466,7 +535,7 @@ export default function GalleryManagementPage() {
                                         type="button"
                                         variant="outline"
                                         onClick={() => fileInputRef.current?.click()}
-                                        className="h-10 mt-1 w-full text-xs rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center justify-center gap-1.5 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700"
+                                        className="h-10 mt-1 w-full text-xs rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center justify-center gap-1.5 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer"
                                     >
                                         <Upload className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
                                         <span>{isUploadingFile ? 'Uploading...' : 'Choose File'}</span>
@@ -479,7 +548,6 @@ export default function GalleryManagementPage() {
                                 <Input
                                     value={imageUrl}
                                     onChange={(e) => setImageUrl(e.target.value)}
-                                    required
                                     placeholder="https://... or upload path"
                                     className="h-10 mt-1 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 font-mono focus:bg-white dark:focus:bg-slate-900"
                                 />
@@ -502,40 +570,45 @@ export default function GalleryManagementPage() {
                             </div>
                         </div>
 
-                        <div className="px-6 py-4 bg-slate-50 dark:bg-slate-900/95 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2.5">
-                            <Button variant="outline" type="button" onClick={closeModal} className="h-10 px-5 rounded-xl text-xs font-bold border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700">
+                        <div className="px-4 sm:px-6 py-3.5 sm:py-4 bg-slate-50 dark:bg-slate-900/95 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2.5">
+                            <Button variant="outline" type="button" onClick={closeModal} className="h-10 px-5 rounded-xl text-xs font-bold border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer">
                                 Cancel
                             </Button>
                             <Button
-                                type="submit"
+                                type="button"
+                                onClick={handleSaveSubmit}
                                 disabled={saveMutation.isPending || isUploadingFile || isDemo}
                                 className="h-10 px-6 rounded-xl bg-[#8DB600] hover:bg-[#7ca000] text-white text-xs font-bold shadow-md cursor-pointer"
                             >
                                 {saveMutation.isPending ? 'Saving...' : (editingItem ? 'Update Photo' : 'Save Photo')}
                             </Button>
                         </div>
-                    </form>
+                    </div>
                 </DialogContent>
             </Dialog>
 
             {/* Full Image Preview Modal */}
             {previewImage && (
                 <Dialog open={!!previewImage} onOpenChange={() => setPreviewImage(null)}>
-                    <DialogContent className="p-0 sm:max-w-2xl w-full bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden rounded-3xl dark:[color-scheme:dark]">
+                    <DialogContent className="p-0 sm:max-w-2xl w-[95vw] sm:w-full bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden rounded-2xl sm:rounded-3xl dark:[color-scheme:dark]">
                         <div className="relative bg-slate-950 flex items-center justify-center max-h-[70vh] overflow-hidden">
                             <img src={previewImage.image_url} alt={previewImage.title} className="max-h-[70vh] w-auto object-contain" />
-                            <DialogCloseButton onClick={() => setPreviewImage(null)} className="absolute top-3 right-3 text-white bg-black/60 hover:bg-black/80 p-2 rounded-full cursor-pointer" />
+                            <DialogCloseButton type="button" onClick={() => setPreviewImage(null)} className="absolute top-3 right-3 text-white bg-black/60 hover:bg-black/80 p-2 rounded-full cursor-pointer" />
                         </div>
-                        <div className="p-5 space-y-1 bg-white dark:bg-slate-900">
-                            <div className="flex items-center justify-between">
-                                <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base">{previewImage.title}</h3>
-                                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-lime-50 dark:bg-lime-950/60 text-[#5f7d00] dark:text-lime-400 border border-lime-200 dark:border-lime-900/60">
+                        <div className="p-4 sm:p-5 space-y-1.5 bg-white dark:bg-slate-900">
+                            <div className="flex items-start sm:items-center justify-between gap-2">
+                                <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm sm:text-base">{previewImage.title}</h3>
+                                <span className="text-[11px] sm:text-xs font-bold px-2.5 py-0.5 rounded-full bg-lime-50 dark:bg-lime-950/60 text-[#5f7d00] dark:text-lime-400 border border-lime-200 dark:border-lime-900/60 shrink-0">
                                     {previewImage.category}
                                 </span>
                             </div>
                             {previewImage.description && (
                                 <p className="text-xs text-slate-500 dark:text-slate-400">{previewImage.description}</p>
                             )}
+                            <p className="text-[11px] text-slate-400 dark:text-slate-500 flex items-center gap-1 pt-1">
+                                <Calendar className="w-3 h-3" />
+                                <span>Uploaded {formatManilaDate(previewImage.created_at)}</span>
+                            </p>
                         </div>
                     </DialogContent>
                 </Dialog>

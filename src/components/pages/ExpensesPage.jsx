@@ -377,17 +377,35 @@ export default function ExpensesPage() {
     };
 
     return (
-        <div className="responsive-page min-h-screen bg-background p-3 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 pb-28 md:pb-8">
+        <div className="expenses-page w-full min-h-screen bg-background p-1.5 sm:p-6 lg:p-8 pb-20 md:pb-6">
             <Head><title>Expenses & Financial Performance | Seaside POS</title></Head>
 
-            <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
+            {/* Match POS page edge-to-edge .container fit on mobile (< 640px) */}
+            <style jsx global>{`
+                @media (max-width: 639px) {
+                    .app:has(.expenses-page) .container {
+                        max-width: 100% !important;
+                        width: 100% !important;
+                        padding-left: 0 !important;
+                        padding-right: 0 !important;
+                        margin-left: 0 !important;
+                        margin-right: 0 !important;
+                    }
+                    .app:has(.expenses-page) .main {
+                        padding-left: 0 !important;
+                        padding-right: 0 !important;
+                    }
+                }
+            `}</style>
+
+            <div className="w-full max-w-7xl mx-auto space-y-2 sm:space-y-6">
 
                 {/* Mobile Sub-Tab Navigation Bar */}
-                <div className="flex lg:hidden bg-surface p-1 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs">
+                <div className="flex lg:hidden bg-surface p-1 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs">
                     <button
                         type="button"
                         onClick={() => setMobileTab('operations')}
-                        className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+                        className={`flex-1 py-2 text-xs font-bold rounded-lg sm:rounded-xl transition-all flex items-center justify-center gap-1.5 ${
                             mobileTab === 'operations'
                                 ? 'bg-[#8DB600] text-white shadow-xs'
                                 : 'text-text-muted hover:text-text'
@@ -399,7 +417,7 @@ export default function ExpensesPage() {
                     <button
                         type="button"
                         onClick={() => setMobileTab('analytics')}
-                        className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+                        className={`flex-1 py-2 text-xs font-bold rounded-lg sm:rounded-xl transition-all flex items-center justify-center gap-1.5 ${
                             mobileTab === 'analytics'
                                 ? 'bg-slate-900 dark:bg-slate-700 text-white shadow-xs'
                                 : 'text-text-muted hover:text-text'
@@ -433,19 +451,20 @@ export default function ExpensesPage() {
 
                 {/* 2. EXPENSE LOGGING & TRANSACTION MANAGEMENT */}
                 <div className={mobileTab === 'operations' ? 'block' : 'hidden lg:block'}>
-                    <div className="w-full bg-surface shadow-xl flex flex-col lg:flex-row rounded-3xl border-transparent overflow-hidden">
-                        <div className="w-full lg:w-7/12 flex flex-col bg-surface">
-                            <div className="bg-surface text-text p-5 sm:p-8 rounded-br-[3rem] shadow-sm z-10 border-b border-slate-100 dark:border-slate-800">
-                                <div className="flex justify-between items-start mb-3 sm:mb-4">
-                                    <div>
-                                        <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2 text-text">
-                                            <Receipt className="text-emerald-600 w-5 h-5 sm:w-6 sm:h-6" /> Expense Operations
+                    <div className="w-full bg-transparent sm:bg-surface sm:shadow-xl flex flex-col lg:flex-row sm:rounded-2xl sm:border sm:border-slate-200/80 dark:sm:border-slate-800 overflow-hidden space-y-2 sm:space-y-0">
+                        <div className="w-full lg:w-7/12 flex flex-col sm:bg-surface">
+                            <div className="bg-surface text-text p-2.5 sm:p-6 lg:p-8 rounded-xl sm:rounded-none sm:rounded-br-[3rem] shadow-xs sm:shadow-sm z-10 border border-slate-200/80 dark:border-slate-800 sm:border-0 sm:border-b">
+                                <div className="flex justify-between items-start gap-2 mb-2 sm:mb-4">
+                                    <div className="min-w-0">
+                                        <h1 className="text-lg sm:text-2xl font-bold flex items-center gap-2 text-text">
+                                            <Receipt className="text-emerald-600 w-5 h-5 sm:w-6 sm:h-6 shrink-0" />
+                                            <span>Expense Operations</span>
                                         </h1>
                                         <p className="text-xs text-text-muted mt-0.5">
                                             Record payouts, daily operations, and recurring utilities
                                         </p>
                                     </div>
-                                    <div className="text-right">
+                                    <div className="text-right shrink-0">
                                         <p className="text-text-muted text-[9px] sm:text-[10px] font-bold uppercase tracking-wider">
                                             {dateFrom === initialDateFrom ? 'Week Gross' : 'Period Gross'}
                                         </p>
@@ -462,9 +481,9 @@ export default function ExpensesPage() {
                                 </div>
 
                                 <p className="text-text-muted text-[10px] sm:text-xs font-semibold uppercase tracking-wider">Selected Period Expenses</p>
-                                <h2 className="text-2xl sm:text-4xl font-extrabold mb-3 sm:mb-4 text-red-600">{formatPeso(localTotalSum || 0)}</h2>
+                                <h2 className="text-2xl sm:text-4xl font-extrabold mb-2 sm:mb-4 text-red-600">{formatPeso(localTotalSum || 0)}</h2>
 
-                                <div className="flex flex-wrap gap-4 sm:gap-8 border-t border-slate-100 dark:border-slate-800 pt-3 items-end">
+                                <div className="flex flex-wrap gap-3 sm:gap-8 border-t border-slate-100 dark:border-slate-800 pt-2 sm:pt-3 items-end">
                                     <div>
                                         <div className="flex items-center gap-1.5 mb-1">
                                             <p className="text-[10px] sm:text-xs uppercase font-semibold text-text-muted">Monthly Filter</p>
@@ -484,7 +503,7 @@ export default function ExpensesPage() {
                                 </div>
                             </div>
 
-                            <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+                            <div className="px-0 pt-2 sm:p-6 space-y-2 sm:space-y-6">
                                 <ExpenseForm
                                     amount={amount}
                                     setAmount={setAmount}
@@ -524,7 +543,7 @@ export default function ExpensesPage() {
                             </div>
                         </div>
 
-                        <div className="w-full lg:w-5/12 bg-surface flex flex-col p-4 sm:p-6 lg:border-l border-slate-100 dark:border-slate-800 h-full">
+                        <div className="w-full lg:w-5/12 bg-surface flex flex-col p-2.5 sm:p-6 rounded-xl sm:rounded-none border border-slate-200/80 dark:border-slate-800 sm:border-0 lg:border-l h-full">
                             <ExpenseList
                                 groupedExpenses={groupedExpenses}
                                 isLoading={isLoading}

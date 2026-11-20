@@ -4,6 +4,7 @@ import Head from 'next/head';
 import { useDebts, useCreateDebt, useCreateDebtPayment } from '../../hooks/useDebts';
 import { useCreateExpense } from '../../hooks/useExpenses';
 import { useEmployees } from '../../hooks/useEmployees';
+import { logActivity } from '../../hooks/useActivityLogs';
 import { useStore } from '../../store/useStore';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabaseClient';
@@ -20,9 +21,9 @@ import DebtPaymentModal from '../debts/DebtPaymentModal';
 import EditDebtModal from '../debts/EditDebtModal';
 
 export default function DebtManagementPage() {
-    const { user } = useStore(s => ({ user: s.user }));
-    const isDemo = user?.isDemo;
+    const user = useStore(s => s.user);
     const addToast = useStore(s => s.addToast);
+    const isDemo = Boolean(user?.isDemo);
     const queryClient = useQueryClient?.() || null;
 
     // View & Filter States
@@ -101,9 +102,17 @@ export default function DebtManagementPage() {
 
     // Handlers
     const handleCreateDebt = async (payload) => {
-        if (isDemo) return addToast({ title: 'Demo', description: 'Disabled in demo.', variant: 'warning' });
+        if (isDemo) return addToast({ title: 'Demo Mode', description: 'Adding records is disabled in demo mode.', variant: 'warning' });
         try {
             await createDebtMutation.mutateAsync(payload);
+
+            await logActivity({
+                user,
+                action: 'CREATE',
+                entity_type: 'DEBT',
+                description: `Logged ${payload.type === 'company' ? 'company liability' : 'employee advance'}: "${payload.description}" (₱${Number(payload.total_debt_amount || 0).toFixed(2)})`
+            });
+
             addToast({
                 title: 'Success',
                 description: `${payload.type === 'company' ? 'Company liability' : 'Employee advance'} logged successfully.`,
@@ -111,6 +120,7 @@ export default function DebtManagementPage() {
             });
             refetch?.();
             queryClient?.invalidateQueries({ queryKey: ['debts'] });
+            queryClient?.invalidateQueries({ queryKey: ['activity-logs'] });
             if (payload.type === 'employee') queryClient?.invalidateQueries({ queryKey: ['salary-records'] });
         } catch (error) {
             addToast({ title: 'Error', description: error.message, variant: 'destructive' });
@@ -118,7 +128,7 @@ export default function DebtManagementPage() {
     };
 
     const handleConfirmPayment = async ({ debt, amount, date }) => {
-        if (isDemo) return addToast({ title: 'Demo', description: 'Disabled in demo.', variant: 'warning' });
+        if (isDemo) return addToast({ title: 'Demo Mode', description: 'Recording payments is disabled in demo mode.', variant: 'warning' });
         setIsSubmittingPayment(true);
         try {
             await createPaymentMutation.mutateAsync({
@@ -136,9 +146,16 @@ export default function DebtManagementPage() {
                 });
             }
 
+            await logActivity({
+                user,
+                action: 'UPDATE',
+                entity_type: 'DEBT',
+                description: `Recorded ₱${Number(amount).toFixed(2)} payment for "${debt.description || `Account #${debt.id}`}"`
+            });
+
             addToast({
                 title: 'Payment Recorded',
-                description: `Successfully logged ₱${amount.toFixed(2)} for ${debt.description}.`,
+                description: `Successfully logged ₱${Number(amount).toFixed(2)} for ${debt.description}.`,
                 variant: 'success'
             });
 
@@ -147,6 +164,8 @@ export default function DebtManagementPage() {
             queryClient?.invalidateQueries({ queryKey: ['debts'] });
             queryClient?.invalidateQueries({ queryKey: ['salary-records'] });
             queryClient?.invalidateQueries({ queryKey: ['expenses'] });
+            queryClient?.invalidateQueries({ queryKey: ['expense-summary'] });
+            queryClient?.invalidateQueries({ queryKey: ['activity-logs'] });
         } catch (error) {
             addToast({ title: 'Payment Error', description: error.message, variant: 'destructive' });
         } finally {
@@ -155,7 +174,7 @@ export default function DebtManagementPage() {
     };
 
     const handleUpdateDebt = async (updatedDebt) => {
-        if (isDemo) return addToast({ title: 'Demo', description: 'Disabled in demo.', variant: 'warning' });
+        if (isDemo) return addToast({ title: 'Demo Mode', description: 'Editing records is disabled in demo mode.', variant: 'warning' });
         setIsUpdatingDebt(true);
         try {
             const { error } = await supabase
@@ -171,11 +190,19 @@ export default function DebtManagementPage() {
 
             if (error) throw error;
 
+            await logActivity({
+                user,
+                action: 'UPDATE',
+                entity_type: 'DEBT',
+                description: `Updated debt account #${updatedDebt.id}: "${updatedDebt.description}" (₱${Number(updatedDebt.total_debt_amount || 0).toFixed(2)})`
+            });
+
             addToast({ title: 'Updated', description: `Account #${updatedDebt.id} updated.`, variant: 'success' });
             setEditingDebt(null);
             refetch?.();
             queryClient?.invalidateQueries({ queryKey: ['debts'] });
             queryClient?.invalidateQueries({ queryKey: ['salary-records'] });
+            queryClient?.invalidateQueries({ queryKey: ['activity-logs'] });
         } catch (err) {
             addToast({ title: 'Update Error', description: err.message, variant: 'destructive' });
         } finally {
@@ -184,7 +211,7 @@ export default function DebtManagementPage() {
     };
 
     const handleDeleteDebt = async (debt) => {
-        if (isDemo) return addToast({ title: 'Demo', description: 'Disabled in demo.', variant: 'warning' });
+        if (isDemo) return addToast({ title: 'Demo Mode', description: 'Deleting records is disabled in demo mode.', variant: 'warning' });
         if (!window.confirm(`Are you sure you want to delete "${debt.description}" (#${debt.id})? All recorded payments will also be deleted.`)) return;
 
         try {
@@ -192,33 +219,76 @@ export default function DebtManagementPage() {
             const { error } = await supabase.from('debts').delete().eq('id', debt.id);
             if (error) throw error;
 
+            await logActivity({
+                user,
+                action: 'DELETE',
+                entity_type: 'DEBT',
+                description: `Deleted debt account #${debt.id}: "${debt.description}"`
+            });
+
             addToast({ title: 'Deleted', description: `Account #${debt.id} removed.`, variant: 'success' });
             refetch?.();
             queryClient?.invalidateQueries({ queryKey: ['debts'] });
             queryClient?.invalidateQueries({ queryKey: ['salary-records'] });
+            queryClient?.invalidateQueries({ queryKey: ['activity-logs'] });
         } catch (err) {
             addToast({ title: 'Delete Error', description: err.message, variant: 'destructive' });
         }
     };
 
     return (
-        <div className="debt-page responsive-page max-w-7xl mx-auto space-y-6 p-4 md:p-6 pb-28 md:pb-8 overflow-x-hidden transition-colors">
+        <div className="debt-page w-full max-w-7xl mx-auto px-1.5 py-2 sm:p-5 md:p-6 space-y-2.5 sm:space-y-6 pb-24 md:pb-8 overflow-x-hidden transition-colors dark:[color-scheme:dark]">
             <Head>
-                <title>Debt Management | Seaside POS</title>
+                <title>Debt Management | Seaside WRS</title>
             </Head>
 
+            {/* Match POS, Expenses, Dashboard, Report, History, Scanned Logs, Customer, Maintenance, Product, 3D Icons, Inventory, Gallery & Salary edge-to-edge fit on mobile (< 640px) */}
+            <style jsx global>{`
+                @media (max-width: 639px) {
+                    .app:has(.debt-page) .container {
+                        max-width: 100% !important;
+                        width: 100% !important;
+                        padding-left: 0 !important;
+                        padding-right: 0 !important;
+                        margin-left: 0 !important;
+                        margin-right: 0 !important;
+                    }
+                    .app:has(.debt-page) .main {
+                        padding-left: 0 !important;
+                        padding-right: 0 !important;
+                    }
+                    .debt-page .grid.grid-cols-3 {
+                        gap: 0.375rem !important;
+                    }
+                    .debt-page .grid.grid-cols-3 > div {
+                        padding: 0.625rem !important;
+                        border-radius: 0.75rem !important;
+                    }
+                    .debt-page .rounded-3xl {
+                        border-radius: 0.875rem !important;
+                    }
+                }
+                .debt-page .no-scrollbar::-webkit-scrollbar {
+                    display: none;
+                }
+                .debt-page .no-scrollbar {
+                    -ms-overflow-style: none;
+                    scrollbar-width: none;
+                }
+            `}</style>
+
             {/* Header & Segmented Domain Switcher */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2.5 sm:gap-4 px-0.5 sm:px-0">
                 <div>
                     <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
                         {activeTab === 'company' ? (
                             <>
-                                <Landmark className="text-[#8DB600] dark:text-lime-400 w-6 h-6 shrink-0" />
+                                <Landmark className="text-[#8DB600] dark:text-lime-400 w-5 h-5 sm:w-6 sm:h-6 shrink-0" />
                                 <span>Company Debt Management</span>
                             </>
                         ) : (
                             <>
-                                <Users className="text-indigo-600 dark:text-indigo-400 w-6 h-6 shrink-0" />
+                                <Users className="text-indigo-600 dark:text-indigo-400 w-5 h-5 sm:w-6 sm:h-6 shrink-0" />
                                 <span>Employee Debt Management</span>
                             </>
                         )}
@@ -231,29 +301,29 @@ export default function DebtManagementPage() {
                 </div>
 
                 {/* Segmented Top Switcher */}
-                <div className="flex bg-slate-100 dark:bg-slate-800/90 p-1 rounded-2xl w-full sm:w-auto border border-slate-200/80 dark:border-slate-700/80 shadow-2xs">
+                <div className="flex bg-slate-100 dark:bg-slate-800/90 p-1 rounded-xl sm:rounded-2xl w-full sm:w-auto border border-slate-200/80 dark:border-slate-700/80 shadow-2xs">
                     <button
                         type="button"
                         onClick={() => { setActiveTab('company'); setStatusFilter('active'); }}
-                        className={`flex-1 sm:flex-initial px-4 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer select-none ${
+                        className={`flex-1 sm:flex-initial px-3.5 sm:px-4 py-2 text-xs font-bold rounded-lg sm:rounded-xl transition-all flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer select-none ${
                             activeTab === 'company'
                                 ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs'
                                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
                         }`}
                     >
-                        <Landmark className="w-3.5 h-3.5 text-[#8DB600] dark:text-lime-400" />
+                        <Landmark className="w-3.5 h-3.5 text-[#8DB600] dark:text-lime-400 shrink-0" />
                         <span>Company ({companyMetrics.activeCount})</span>
                     </button>
                     <button
                         type="button"
                         onClick={() => { setActiveTab('employee'); setStatusFilter('active'); }}
-                        className={`flex-1 sm:flex-initial px-4 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer select-none ${
+                        className={`flex-1 sm:flex-initial px-3.5 sm:px-4 py-2 text-xs font-bold rounded-lg sm:rounded-xl transition-all flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer select-none ${
                             activeTab === 'employee'
                                 ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs'
                                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
                         }`}
                     >
-                        <Users className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                        <Users className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
                         <span>Employees ({employeeMetrics.activeCount})</span>
                     </button>
                 </div>
@@ -263,9 +333,9 @@ export default function DebtManagementPage() {
             <DebtMetricsCards metrics={currentMetrics} activeTab={activeTab} />
 
             {/* Main Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-2.5 sm:gap-6 items-start">
                 {/* Left Column: Form */}
-                <div className="lg:col-span-4 space-y-4">
+                <div className="lg:col-span-4 space-y-2.5 sm:space-y-4">
                     {activeTab === 'company' ? (
                         <CompanyDebtForm
                             onSubmit={handleCreateDebt}
@@ -283,18 +353,18 @@ export default function DebtManagementPage() {
                 </div>
 
                 {/* Right Column: Registry Table & Filters */}
-                <div className="lg:col-span-8 space-y-4">
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-2xs transition-colors">
+                <div className="lg:col-span-8 space-y-2.5 sm:space-y-4">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-3 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-2xs transition-colors">
                         <div className="text-xs font-bold text-slate-700 dark:text-slate-300">
                             {activeTab === 'company' ? 'Company Liability Registry' : 'Employee Liability Registry'}
                         </div>
 
-                        {/* Filter Pills with Suppressed Glare in Dark Mode */}
-                        <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden py-0.5">
+                        {/* Filter Pills */}
+                        <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto no-scrollbar py-0.5">
                             <button
                                 type="button"
                                 onClick={() => setStatusFilter('active')}
-                                className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer select-none ${
+                                className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer select-none shrink-0 ${
                                     statusFilter === 'active'
                                         ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-2xs'
                                         : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-transparent dark:border-slate-700/60 hover:bg-slate-200 dark:hover:bg-slate-700'
@@ -312,7 +382,7 @@ export default function DebtManagementPage() {
                             <button
                                 type="button"
                                 onClick={() => setStatusFilter('cleared')}
-                                className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer select-none ${
+                                className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer select-none shrink-0 ${
                                     statusFilter === 'cleared'
                                         ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-2xs'
                                         : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-transparent dark:border-slate-700/60 hover:bg-slate-200 dark:hover:bg-slate-700'
@@ -330,7 +400,7 @@ export default function DebtManagementPage() {
                             <button
                                 type="button"
                                 onClick={() => setStatusFilter('all')}
-                                className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap cursor-pointer select-none ${
+                                className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap cursor-pointer select-none shrink-0 ${
                                     statusFilter === 'all'
                                         ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-2xs'
                                         : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-transparent dark:border-slate-700/60 hover:bg-slate-200 dark:hover:bg-slate-700'
@@ -341,7 +411,7 @@ export default function DebtManagementPage() {
                         </div>
                     </div>
 
-                    <Card className="border border-slate-200/90 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900 rounded-2xl overflow-hidden transition-colors">
+                    <Card className="border border-slate-200/90 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl overflow-hidden transition-colors">
                         <CardContent className="p-0">
                             <DebtRegistryTable
                                 data={displayedDebts}

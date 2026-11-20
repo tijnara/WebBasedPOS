@@ -23,16 +23,16 @@ import {
 } from '../../hooks/useUserMutations';
 
 import {
-    UserPlus, Pencil, Trash2, Shield, Mail,
+    UserPlus, Pencil, Trash2, Mail,
     Lock, Briefcase, Search, User as UserIcon,
-    Users, ShieldCheck, UserCheck, AlertCircle, ArrowUpRight
+    Users, ShieldCheck, UserCheck, AlertCircle, ArrowUpRight, X
 } from 'lucide-react';
 
 // Standardized Role Badge
 const RoleBadge = ({ categoryName, isAdmin }) => {
     return (
         <span
-            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold shrink-0 ${
                 isAdmin
                     ? 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60'
                     : 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60'
@@ -45,13 +45,30 @@ const RoleBadge = ({ categoryName, isAdmin }) => {
 
 export default function UserManagementPage() {
     const addToast = useStore(s => s.addToast);
-    const { user: currentUser, isDemo } = useStore(s => ({
-        user: s.user,
-        isDemo: s.user?.isDemo
-    }));
+    const currentUser = useStore(s => s.user);
+    const isDemo = Boolean(currentUser?.isDemo);
 
     // Security Check: Allow User ID:1 OR any flagged Admin to manage users
-    const canManageUsers = currentUser?.id === 1 || currentUser?.isAdmin || currentUser?.isadmin;
+    const canManageUsers = useMemo(() => {
+        if (!currentUser) return false;
+        if (
+            currentUser.id === 1 ||
+            currentUser.isAdmin ||
+            currentUser.isadmin ||
+            currentUser.is_admin ||
+            currentUser.isSuperAdmin ||
+            currentUser.role_id === 1 ||
+            currentUser.roleId === 1
+        ) {
+            return true;
+        }
+        const role = String(
+            currentUser.role?.name || currentUser.role || currentUser.position || currentUser.user_type || ''
+        )
+            .toLowerCase()
+            .trim();
+        return ['admin', 'administrator', 'owner', 'superadmin', 'manager'].some(k => role.includes(k));
+    }, [currentUser]);
 
     const createUser = useCreateUser();
     const updateUser = useUpdateUser();
@@ -62,10 +79,19 @@ export default function UserManagementPage() {
     const [newRoleName, setNewRoleName] = useState('');
     const [newRoleIsAdmin, setNewRoleIsAdmin] = useState(false);
 
+    const preventEnterReload = (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    };
+
     const handleAddRole = async (e) => {
-        e.preventDefault();
+        if (e?.preventDefault) e.preventDefault();
+        if (e?.stopPropagation) e.stopPropagation();
+
         if (!newRoleName || newRoleName.trim() === '') {
-            addToast({ title: 'Error', description: "Role name is required.", variant: 'destructive' });
+            addToast({ title: 'Error', description: 'Role name is required.', variant: 'destructive' });
             return;
         }
 
@@ -114,8 +140,8 @@ export default function UserManagementPage() {
         searchTerm
     });
 
-    const users = usersData.users;
-    const totalPages = usersData.totalPages;
+    const users = usersData.users || [];
+    const totalPages = usersData.totalPages || 1;
     const searchInputRef = useRef(null);
 
     // Live Metrics Query for KPI Cards
@@ -127,7 +153,7 @@ export default function UserManagementPage() {
             }
             const { data, error } = await supabase
                 .from('users')
-                .select('id, isadmin, is_approved, category_id');
+                .select('id, isadmin, is_admin, is_approved, category_id');
 
             if (error || !data) return { total: 0, admins: 0, staff: 0, pending: 0 };
 
@@ -136,9 +162,10 @@ export default function UserManagementPage() {
             let pending = 0;
 
             data.forEach(u => {
-                if (u.is_approved === false && u.isadmin !== true) {
+                const isAdm = u.isadmin === true || u.is_admin === true;
+                if (u.is_approved === false && !isAdm) {
                     pending += 1;
-                } else if (u.isadmin === true) {
+                } else if (isAdm) {
                     admins += 1;
                 } else {
                     staff += 1;
@@ -157,16 +184,16 @@ export default function UserManagementPage() {
 
     // Count how many admins exist to prevent locking out the station
     const adminCount = useMemo(() => {
-        return users.filter(u => u.isAdmin || u.isadmin || u.categoryName?.toLowerCase() === 'admin').length;
+        return users.filter(u => u.isAdmin || u.isadmin || u.is_admin || u.categoryName?.toLowerCase() === 'admin').length;
     }, [users]);
 
     // Filtered Users by Role Chip
     const filteredUsers = useMemo(() => {
         if (roleFilter === 'admin') {
-            return users.filter(u => u.isAdmin || u.isadmin || u.categoryName?.toLowerCase() === 'admin');
+            return users.filter(u => u.isAdmin || u.isadmin || u.is_admin || u.categoryName?.toLowerCase() === 'admin');
         }
         if (roleFilter === 'staff') {
-            return users.filter(u => !(u.isAdmin || u.isadmin || u.categoryName?.toLowerCase() === 'admin'));
+            return users.filter(u => !(u.isAdmin || u.isadmin || u.is_admin || u.categoryName?.toLowerCase() === 'admin'));
         }
         return users;
     }, [users, roleFilter]);
@@ -177,6 +204,11 @@ export default function UserManagementPage() {
             setCategoryId(categories[0].id);
         }
     }, [categories, editing, categoryId]);
+
+    // Reset pagination when search or role filter changes
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm, roleFilter]);
 
     // Keyboard Shortcuts
     useEffect(() => {
@@ -189,7 +221,7 @@ export default function UserManagementPage() {
                 closeAddRoleModal();
                 return;
             }
-            const activeTag = document.activeElement.tagName;
+            const activeTag = document.activeElement?.tagName;
             if (activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT') return;
             if ((e.ctrlKey && e.key === 'f') || e.key === '/') {
                 if (searchInputRef.current) searchInputRef.current.focus();
@@ -232,7 +264,18 @@ export default function UserManagementPage() {
     };
 
     const save = async (e) => {
-        e.preventDefault();
+        if (e?.preventDefault) e.preventDefault();
+        if (e?.stopPropagation) e.stopPropagation();
+
+        if (!name.trim() || !email.trim()) {
+            addToast({ title: 'Missing Fields', description: 'Full Name and Email Address are required.', variant: 'destructive' });
+            return;
+        }
+
+        if (!editing && !password) {
+            addToast({ title: 'Password Required', description: 'Please enter an initial password.', variant: 'destructive' });
+            return;
+        }
 
         if (password && password !== confirmPassword) {
             addToast({ title: 'Password Mismatch', description: 'Passwords do not match.', variant: 'destructive' });
@@ -273,7 +316,7 @@ export default function UserManagementPage() {
             return;
         }
 
-        const isUserAdmin = u.isAdmin || u.isadmin || u.categoryName?.toLowerCase() === 'admin';
+        const isUserAdmin = u.isAdmin || u.isadmin || u.is_admin || u.categoryName?.toLowerCase() === 'admin';
         if (isUserAdmin && adminCount <= 1) {
             addToast({
                 title: 'Action Blocked',
@@ -297,9 +340,27 @@ export default function UserManagementPage() {
     const isMutating = createUser.isPending || updateUser.isPending || deleteUser.isPending;
 
     return (
-        <div className="user-page responsive-page max-w-7xl mx-auto space-y-6 p-4 md:p-6 overflow-x-hidden transition-colors">
+        <div className="user-page w-full max-w-7xl mx-auto px-1.5 py-2 sm:p-5 md:p-6 space-y-2.5 sm:space-y-6 pb-24 md:pb-8 overflow-x-hidden transition-colors dark:[color-scheme:dark]">
+            {/* Match POS, Expenses, Dashboard, Report, History, Scanned Logs, Customer, Maintenance, Product, 3D Icons, Inventory, Gallery, Salary, Debt & Refill Game edge-to-edge fit on mobile (< 640px) */}
+            <style jsx global>{`
+                @media (max-width: 639px) {
+                    .app:has(.user-page) .container {
+                        max-width: 100% !important;
+                        width: 100% !important;
+                        padding-left: 0 !important;
+                        padding-right: 0 !important;
+                        margin-left: 0 !important;
+                        margin-right: 0 !important;
+                    }
+                    .app:has(.user-page) .main {
+                        padding-left: 0 !important;
+                        padding-right: 0 !important;
+                    }
+                }
+            `}</style>
+
             {/* Header & Primary Actions */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2.5 sm:gap-4 px-0.5 sm:px-0">
                 <div>
                     <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">User Management</h1>
                     <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">Add, edit, or manage staff and administrator credentials.</p>
@@ -307,11 +368,12 @@ export default function UserManagementPage() {
 
                 <div className="flex items-center gap-2 w-full sm:w-auto">
                     <Button
+                        type="button"
                         onClick={openModal}
                         variant="primary"
                         disabled={isDemo || !canManageUsers}
-                        className="h-10 px-4 rounded-xl bg-[#8DB600] hover:bg-[#7ca000] text-white font-bold text-xs shadow-sm flex items-center gap-1.5 active:scale-95 transition-all disabled:opacity-50 cursor-pointer"
-                        title={!canManageUsers ? "Only Admins can add users" : ""}
+                        className="w-full sm:w-auto h-9 sm:h-10 px-4 rounded-xl bg-[#8DB600] hover:bg-[#7ca000] text-white font-bold text-xs shadow-sm flex items-center justify-center gap-1.5 active:scale-95 transition-all disabled:opacity-50 cursor-pointer"
+                        title={!canManageUsers ? 'Only Admins can add users' : ''}
                     >
                         <UserPlus className="w-4 h-4 stroke-[2.5]" />
                         <span>Add User</span>
@@ -320,65 +382,68 @@ export default function UserManagementPage() {
             </div>
 
             {/* Top KPI Metric Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs flex items-center justify-between transition-colors">
-                    <div>
-                        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Total Accounts</span>
-                        <span className="text-xl font-black text-slate-900 dark:text-slate-100">{userStats.total || users.length}</span>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+                <div className="bg-white dark:bg-slate-900 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs flex items-center justify-between gap-2 min-w-0 transition-colors">
+                    <div className="min-w-0">
+                        <span className="text-[9.5px] sm:text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block truncate">Total Accounts</span>
+                        <span className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-100 block mt-0.5 truncate">{userStats.total || users.length}</span>
                     </div>
-                    <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center">
-                        <Users className="w-5 h-5" />
-                    </div>
-                </div>
-
-                <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs flex items-center justify-between transition-colors">
-                    <div>
-                        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Administrators</span>
-                        <span className="text-xl font-black text-purple-700 dark:text-purple-400">{userStats.admins || adminCount}</span>
-                    </div>
-                    <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-400 flex items-center justify-center">
-                        <ShieldCheck className="w-5 h-5" />
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center shrink-0">
+                        <Users className="w-4 h-4 sm:w-5 sm:h-5" />
                     </div>
                 </div>
 
-                <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs flex items-center justify-between transition-colors">
-                    <div>
-                        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Staff & Cashiers</span>
-                        <span className="text-xl font-black text-blue-600 dark:text-blue-400">{userStats.staff}</span>
+                <div className="bg-white dark:bg-slate-900 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs flex items-center justify-between gap-2 min-w-0 transition-colors">
+                    <div className="min-w-0">
+                        <span className="text-[9.5px] sm:text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block truncate">Administrators</span>
+                        <span className="text-lg sm:text-xl font-black text-purple-700 dark:text-purple-400 block mt-0.5 truncate">{userStats.admins || adminCount}</span>
                     </div>
-                    <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-                        <UserCheck className="w-5 h-5" />
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-400 flex items-center justify-center shrink-0">
+                        <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5" />
                     </div>
                 </div>
 
-                <Link href="/admin/user-approvals" className="block group">
-                    <div className={`p-4 rounded-2xl border transition-all flex items-center justify-between ${
+                <div className="bg-white dark:bg-slate-900 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs flex items-center justify-between gap-2 min-w-0 transition-colors">
+                    <div className="min-w-0">
+                        <span className="text-[9.5px] sm:text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block truncate">Staff &amp; Cashiers</span>
+                        <span className="text-lg sm:text-xl font-black text-blue-600 dark:text-blue-400 block mt-0.5 truncate">{userStats.staff}</span>
+                    </div>
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                        <UserCheck className="w-4 h-4 sm:w-5 sm:h-5" />
+                    </div>
+                </div>
+
+                <Link href="/admin/user-approvals" className="block group min-w-0">
+                    <div className={`p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border transition-all flex items-center justify-between gap-2 min-w-0 ${
                         userStats.pending > 0
                             ? 'bg-amber-50/70 dark:bg-amber-950/40 border-amber-200 dark:border-amber-900/60 shadow-2xs hover:border-amber-300 dark:hover:border-amber-800'
                             : 'bg-white dark:bg-slate-900 border-slate-200/90 dark:border-slate-800 shadow-2xs hover:border-slate-300 dark:hover:border-slate-700'
                     }`}>
-                        <div>
+                        <div className="min-w-0">
                             <div className="flex items-center gap-1">
-                                <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Pending Approvals</span>
-                                <ArrowUpRight className="w-3 h-3 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                                <span className="text-[9.5px] sm:text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block truncate">
+                                    <span className="sm:hidden">Pending</span>
+                                    <span className="hidden sm:inline">Pending Approvals</span>
+                                </span>
+                                <ArrowUpRight className="w-3 h-3 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 shrink-0" />
                             </div>
-                            <span className={`text-xl font-black ${userStats.pending > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-slate-900 dark:text-slate-100'}`}>
+                            <span className={`text-lg sm:text-xl font-black block mt-0.5 truncate ${userStats.pending > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-slate-900 dark:text-slate-100'}`}>
                                 {userStats.pending}
                             </span>
                         </div>
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                        <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 ${
                             userStats.pending > 0 ? 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300' : 'bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500'
                         }`}>
-                            <AlertCircle className="w-5 h-5" />
+                            <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5" />
                         </div>
                     </div>
                 </Link>
             </div>
 
             {/* Filter / Search Bar with Role Chips */}
-            <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-3 transition-colors">
+            <div className="p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-3 transition-colors">
                 <div className="relative w-full sm:max-w-md">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 dark:text-slate-500 z-10">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-slate-500 z-10">
                         <Search className="w-4 h-4" />
                     </div>
                     <Input
@@ -386,9 +451,23 @@ export default function UserManagementPage() {
                         placeholder="Search users by name, email... (/)"
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
-                        style={{ paddingLeft: '2.5rem' }}
-                        className="w-full bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-xs sm:text-sm h-10 rounded-xl focus:bg-white dark:focus:bg-slate-900 focus:border-[#8DB600] focus:ring-[#8DB600]"
+                        onKeyDown={preventEnterReload}
+                        style={{
+                            paddingLeft: '2.25rem',
+                            paddingRight: searchTerm ? '2.25rem' : '0.75rem'
+                        }}
+                        className="w-full bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-xs sm:text-sm h-9 sm:h-10 rounded-xl focus:bg-white dark:focus:bg-slate-900 focus:border-[#8DB600] focus:ring-[#8DB600]"
                     />
+                    {searchTerm && (
+                        <button
+                            type="button"
+                            onClick={() => setSearchTerm('')}
+                            aria-label="Clear search"
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-0.5 rounded-full cursor-pointer z-10"
+                        >
+                            <X className="w-3.5 h-3.5" />
+                        </button>
+                    )}
                 </div>
 
                 {/* Role Filter Chips */}
@@ -397,7 +476,7 @@ export default function UserManagementPage() {
                     <button
                         type="button"
                         onClick={() => setRoleFilter('all')}
-                        className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                        className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                             roleFilter === 'all'
                                 ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-2xs'
                                 : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-transparent dark:border-slate-700/60 hover:bg-slate-200 dark:hover:bg-slate-700'
@@ -408,7 +487,7 @@ export default function UserManagementPage() {
                     <button
                         type="button"
                         onClick={() => setRoleFilter('admin')}
-                        className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1 cursor-pointer whitespace-nowrap ${
+                        className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1 cursor-pointer whitespace-nowrap shrink-0 ${
                             roleFilter === 'admin'
                                 ? 'bg-purple-700 dark:bg-purple-600 text-white shadow-2xs'
                                 : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-transparent dark:border-slate-700/60 hover:bg-slate-200 dark:hover:bg-slate-700'
@@ -426,7 +505,7 @@ export default function UserManagementPage() {
                     <button
                         type="button"
                         onClick={() => setRoleFilter('staff')}
-                        className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1 cursor-pointer whitespace-nowrap ${
+                        className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1 cursor-pointer whitespace-nowrap shrink-0 ${
                             roleFilter === 'staff'
                                 ? 'bg-blue-600 dark:bg-blue-500 text-white shadow-2xs'
                                 : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-transparent dark:border-slate-700/60 hover:bg-slate-200 dark:hover:bg-slate-700'
@@ -474,7 +553,7 @@ export default function UserManagementPage() {
                                 ) : (
                                     filteredUsers.map(u => {
                                         const isSelf = String(u.id) === String(currentUser?.id);
-                                        const isUserAdmin = u.isAdmin || u.isadmin || u.categoryName?.toLowerCase() === 'admin';
+                                        const isUserAdmin = u.isAdmin || u.isadmin || u.is_admin || u.categoryName?.toLowerCase() === 'admin';
                                         const isProtectedLastAdmin = isUserAdmin && adminCount <= 1;
 
                                         return (
@@ -508,7 +587,7 @@ export default function UserManagementPage() {
 
                                                 {/* Role Badge */}
                                                 <TableCell className="py-3 px-4">
-                                                    <RoleBadge categoryName={u.categoryName} isAdmin={u.isAdmin || u.isadmin} />
+                                                    <RoleBadge categoryName={u.categoryName} isAdmin={isUserAdmin} />
                                                 </TableCell>
 
                                                 {/* Date Added */}
@@ -542,10 +621,10 @@ export default function UserManagementPage() {
                                                             }`}
                                                             title={
                                                                 isSelf
-                                                                    ? "Cannot delete your own active account"
+                                                                    ? 'Cannot delete your own active account'
                                                                     : isProtectedLastAdmin
-                                                                        ? "Cannot delete the sole remaining administrator"
-                                                                        : "Delete user account"
+                                                                        ? 'Cannot delete the sole remaining administrator'
+                                                                        : 'Delete user account'
                                                             }
                                                         >
                                                             <Trash2 className="w-3.5 h-3.5" />
@@ -571,22 +650,24 @@ export default function UserManagementPage() {
             </Card>
 
             {/* Mobile Card List View */}
-            <div className="space-y-3 md:hidden">
+            <div className="space-y-2 md:hidden">
                 {isLoading ? (
-                    <div className="text-center py-12 text-slate-400 dark:text-slate-500 text-xs">Loading users...</div>
+                    <div className="text-center py-8 text-slate-400 dark:text-slate-500 text-xs bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                        Loading users...
+                    </div>
                 ) : filteredUsers.length === 0 ? (
-                    <div className="text-center py-12 text-slate-400 dark:text-slate-500 text-xs bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
+                    <div className="text-center py-8 text-slate-400 dark:text-slate-500 text-xs bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
                         No users found matching your filter.
                     </div>
                 ) : (
                     filteredUsers.map(u => {
                         const isSelf = String(u.id) === String(currentUser?.id);
-                        const isUserAdmin = u.isAdmin || u.isadmin || u.categoryName?.toLowerCase() === 'admin';
+                        const isUserAdmin = u.isAdmin || u.isadmin || u.is_admin || u.categoryName?.toLowerCase() === 'admin';
                         const isProtectedLastAdmin = isUserAdmin && adminCount <= 1;
 
                         return (
-                            <div key={u.id} className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs space-y-3 transition-colors">
-                                <div className="flex items-center justify-between">
+                            <div key={u.id} className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs space-y-2 transition-colors">
+                                <div className="flex items-center justify-between gap-2">
                                     <div className="flex items-center gap-2.5 min-w-0">
                                         <div
                                             className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-2xs"
@@ -596,12 +677,17 @@ export default function UserManagementPage() {
                                         </div>
                                         <div className="min-w-0">
                                             <p className="font-bold text-sm text-slate-900 dark:text-slate-100 truncate">
-                                                {u.name} {isSelf && <span className="text-[10px] text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-1.5 py-0.5 rounded font-normal ml-1">You</span>}
+                                                {u.name}{' '}
+                                                {isSelf && (
+                                                    <span className="text-[10px] text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-1.5 py-0.5 rounded font-normal ml-1">
+                                                        You
+                                                    </span>
+                                                )}
                                             </p>
                                             <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{u.email}</p>
                                         </div>
                                     </div>
-                                    <RoleBadge categoryName={u.categoryName} isAdmin={u.isAdmin || u.isadmin} />
+                                    <RoleBadge categoryName={u.categoryName} isAdmin={isUserAdmin} />
                                 </div>
 
                                 <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-400 dark:text-slate-500">
@@ -615,7 +701,7 @@ export default function UserManagementPage() {
                                             type="button"
                                             onClick={() => startEdit(u)}
                                             disabled={isDemo || !canManageUsers}
-                                            className="p-1.5 text-blue-600 dark:text-blue-400 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/50 transition-colors cursor-pointer"
+                                            className="p-1.5 text-blue-600 dark:text-blue-400 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/50 transition-colors cursor-pointer"
                                             title="Edit user"
                                         >
                                             <Pencil className="w-3.5 h-3.5" />
@@ -627,9 +713,9 @@ export default function UserManagementPage() {
                                             className={`p-1.5 border rounded-lg transition-colors cursor-pointer ${
                                                 isSelf || isProtectedLastAdmin
                                                     ? 'text-slate-300 dark:text-slate-600 border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 cursor-not-allowed'
-                                                    : 'text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 border-slate-200 dark:border-slate-700'
+                                                    : 'text-rose-600 dark:text-rose-400 bg-slate-50 dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/50 border-slate-200 dark:border-slate-700'
                                             }`}
-                                            title={isSelf ? "Cannot delete yourself" : isProtectedLastAdmin ? "Sole admin" : "Delete"}
+                                            title={isSelf ? 'Cannot delete yourself' : isProtectedLastAdmin ? 'Sole admin' : 'Delete'}
                                         >
                                             <Trash2 className="w-3.5 h-3.5" />
                                         </button>
@@ -640,7 +726,7 @@ export default function UserManagementPage() {
                     })
                 )}
                 {filteredUsers.length > 0 && (
-                    <div className="pt-2">
+                    <div className="pt-1.5">
                         <Pagination
                             currentPage={currentPage}
                             totalPages={totalPages || 1}
@@ -650,23 +736,23 @@ export default function UserManagementPage() {
                 )}
             </div>
 
-            {/* MODAL: Add / Edit User */}
+            {/* MODAL: Add / Edit User (Reload-safe div container) */}
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                <DialogContent className="p-0 sm:max-w-xl w-full bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden rounded-3xl dark:[color-scheme:dark]">
-                    <DialogHeader className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/70 flex items-center justify-between">
+                <DialogContent className="p-0 sm:max-w-xl w-[95vw] sm:w-full bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden rounded-2xl sm:rounded-3xl dark:[color-scheme:dark]">
+                    <DialogHeader className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/70 flex items-center justify-between">
                         <div>
-                            <DialogTitle className="text-lg font-black text-slate-900 dark:text-slate-100 tracking-tight">
+                            <DialogTitle className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 tracking-tight">
                                 {editing ? 'Edit User Credentials' : 'Add New User'}
                             </DialogTitle>
                             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                                 {editing ? 'Update staff roles and authentication details.' : 'Register new cashier or administrator account.'}
                             </p>
                         </div>
-                        <DialogCloseButton onClick={closeModal} className="p-1.5 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer" />
+                        <DialogCloseButton type="button" onClick={closeModal} className="p-1.5 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer" />
                     </DialogHeader>
 
-                    <form onSubmit={save} className="flex flex-col max-h-[80vh]">
-                        <div className="overflow-y-auto px-6 py-5 space-y-5">
+                    <div onKeyDown={preventEnterReload} className="flex flex-col max-h-[80vh]">
+                        <div className="overflow-y-auto px-4 sm:px-6 py-4 sm:py-5 space-y-4 sm:space-y-5">
                             {/* Full Name Input */}
                             <div>
                                 <Label htmlFor="name" className="text-xs font-bold text-slate-700 dark:text-slate-300">
@@ -680,7 +766,6 @@ export default function UserManagementPage() {
                                         id="name"
                                         value={name}
                                         onChange={(e) => setName(e.target.value)}
-                                        required
                                         autoFocus
                                         placeholder="e.g. Juan Dela Cruz"
                                         style={{ paddingLeft: '2.5rem' }}
@@ -705,7 +790,6 @@ export default function UserManagementPage() {
                                             type="email"
                                             value={email}
                                             onChange={(e) => setEmail(e.target.value)}
-                                            required
                                             placeholder="staff@seaside.com"
                                             style={{ paddingLeft: '2.5rem' }}
                                             className="w-full text-xs py-2 bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl h-10 focus:bg-white dark:focus:bg-slate-900"
@@ -741,7 +825,7 @@ export default function UserManagementPage() {
                                             <Button
                                                 type="button"
                                                 variant="outline"
-                                                className="h-10 px-3 rounded-xl text-xs font-bold border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer"
+                                                className="h-10 px-3 rounded-xl text-xs font-bold border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer shrink-0"
                                                 onClick={openAddRoleModal}
                                                 disabled={isDemo || createCategory.isPending}
                                                 title="Add new role"
@@ -805,7 +889,6 @@ export default function UserManagementPage() {
                                                 type="password"
                                                 value={password}
                                                 onChange={(e) => setPassword(e.target.value)}
-                                                required={!editing}
                                                 placeholder="••••••••"
                                                 style={{ paddingLeft: '2.5rem' }}
                                                 className="w-full text-xs py-2 bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl h-10 focus:bg-white dark:focus:bg-slate-900"
@@ -828,7 +911,6 @@ export default function UserManagementPage() {
                                                 type="password"
                                                 value={confirmPassword}
                                                 onChange={(e) => setConfirmPassword(e.target.value)}
-                                                required={!editing}
                                                 placeholder="••••••••"
                                                 style={{ paddingLeft: '2.5rem' }}
                                                 className="w-full text-xs py-2 bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl h-10 focus:bg-white dark:focus:bg-slate-900"
@@ -840,7 +922,7 @@ export default function UserManagementPage() {
                             </div>
                         </div>
 
-                        <DialogFooter className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/60 flex items-center justify-end gap-2.5 mt-auto">
+                        <DialogFooter className="px-4 sm:px-6 py-3.5 sm:py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/60 flex items-center justify-end gap-2.5 mt-auto">
                             <Button
                                 variant="outline"
                                 type="button"
@@ -851,28 +933,29 @@ export default function UserManagementPage() {
                                 Cancel
                             </Button>
                             <Button
-                                type="submit"
+                                type="button"
+                                onClick={save}
                                 disabled={isMutating || isDemo}
                                 className="h-10 px-6 rounded-xl bg-[#8DB600] hover:bg-[#7ca000] text-white text-xs font-bold shadow-md cursor-pointer active:scale-95 transition-all"
                             >
                                 {isMutating ? 'Saving...' : (editing ? 'Update User' : 'Create User')}
                             </Button>
                         </DialogFooter>
-                    </form>
+                    </div>
                 </DialogContent>
             </Dialog>
 
-            {/* MODAL: Add New Role */}
+            {/* MODAL: Add New Role (Reload-safe div container) */}
             <Dialog open={isAddRoleModalOpen} onOpenChange={setIsAddRoleModalOpen}>
-                <DialogContent className="p-0 sm:max-w-md w-full bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden rounded-3xl dark:[color-scheme:dark]">
-                    <DialogHeader className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/70 flex items-center justify-between">
+                <DialogContent className="p-0 sm:max-w-md w-[95vw] sm:w-full bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden rounded-2xl sm:rounded-3xl dark:[color-scheme:dark]">
+                    <DialogHeader className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/70 flex items-center justify-between">
                         <DialogTitle className="text-base font-black text-slate-900 dark:text-slate-100 tracking-tight">
                             Add New Role Category
                         </DialogTitle>
-                        <DialogCloseButton onClick={closeAddRoleModal} className="p-1.5 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer" />
+                        <DialogCloseButton type="button" onClick={closeAddRoleModal} className="p-1.5 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer" />
                     </DialogHeader>
-                    <form onSubmit={handleAddRole}>
-                        <div className="p-6 space-y-4">
+                    <div onKeyDown={preventEnterReload}>
+                        <div className="p-4 sm:p-6 space-y-4">
                             <div>
                                 <Label htmlFor="newRoleName" className="text-xs font-bold text-slate-700 dark:text-slate-300">Role Name</Label>
                                 <Input
@@ -880,7 +963,6 @@ export default function UserManagementPage() {
                                     value={newRoleName}
                                     onChange={(e) => setNewRoleName(e.target.value)}
                                     placeholder="e.g., Manager, Cashier, Delivery Staff"
-                                    required
                                     autoFocus
                                     className="h-10 mt-1 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-900"
                                 />
@@ -896,19 +978,20 @@ export default function UserManagementPage() {
                                 </Label>
                             </div>
                         </div>
-                        <DialogFooter className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/60 flex items-center justify-end gap-2.5">
+                        <DialogFooter className="px-4 sm:px-6 py-3.5 sm:py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/60 flex items-center justify-end gap-2.5">
                             <Button variant="outline" type="button" onClick={closeAddRoleModal} className="h-10 px-5 rounded-xl text-xs font-bold border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer">
                                 Cancel
                             </Button>
                             <Button
-                                type="submit"
+                                type="button"
+                                onClick={handleAddRole}
                                 disabled={createCategory.isPending}
                                 className="h-10 px-6 rounded-xl bg-[#8DB600] hover:bg-[#7ca000] text-white text-xs font-bold shadow-md cursor-pointer active:scale-95 transition-all"
                             >
                                 {createCategory.isPending ? 'Creating...' : 'Create Role'}
                             </Button>
                         </DialogFooter>
-                    </form>
+                    </div>
                 </DialogContent>
             </Dialog>
         </div>

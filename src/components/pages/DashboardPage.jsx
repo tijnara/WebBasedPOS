@@ -76,7 +76,7 @@ export default function DashboardPage() {
 
     // =========================================================================
     // DYNAMIC LIFETIME CONTAINERS QUERY BY PRODUCT IDs [2, 3, 30]
-    // Fetches all 3,244 matching rows across PostgREST 1000-row page batches
+    // Fetches all matching rows across PostgREST 1000-row page batches
     // =========================================================================
     const { data: refillStats, isLoading: isRefillStatsLoading } = useQuery({
         queryKey: ['dashboard-lifetime-refills-by-product-id', user?.isDemo],
@@ -139,13 +139,38 @@ export default function DashboardPage() {
     const { data: monthlyGrowthData, isLoading: isMonthlyGrowthLoading } = useMonthlyGrowth();
 
     return (
-        <div className="flex-1 min-h-screen bg-transparent font-sans responsive-page pb-12 transition-colors duration-300">
+        <div className="dashboard-page flex-1 w-full min-h-screen bg-transparent font-sans pb-12 transition-colors duration-300">
             <Head>
                 <title>Dashboard | Seaside POS</title>
             </Head>
 
-            <main className="max-w-7xl mx-auto px-3.5 sm:px-6 mt-4 sm:mt-6">
-                <div className="flex flex-col gap-5 sm:gap-6">
+            {/* Match POS & Expenses edge-to-edge .container fit on mobile (< 640px) */}
+            <style jsx global>{`
+                @media (max-width: 639px) {
+                    .app:has(.dashboard-page) .container {
+                        max-width: 100% !important;
+                        width: 100% !important;
+                        padding-left: 0 !important;
+                        padding-right: 0 !important;
+                        margin-left: 0 !important;
+                        margin-right: 0 !important;
+                    }
+                    .app:has(.dashboard-page) .main {
+                        padding-left: 0 !important;
+                        padding-right: 0 !important;
+                    }
+                    .dashboard-page .grid {
+                        gap: 0.5rem !important;
+                    }
+                    .dashboard-page .grid > div {
+                        padding: 0.75rem !important;
+                        border-radius: 0.875rem !important;
+                    }
+                }
+            `}</style>
+
+            <main className="w-full max-w-7xl mx-auto px-1.5 sm:px-6 mt-1.5 sm:mt-6">
+                <div className="flex flex-col gap-2.5 sm:gap-6">
                     {/* ROW 1: 4-CARD EXECUTIVE KPI MATRIX */}
                     <KpiMatrix
                         todaySales={todaySales}
@@ -169,11 +194,11 @@ export default function DashboardPage() {
                     <OperationsRow />
 
                     {/* ROW 3: CHARTS (SALES PERFORMANCE & PERIOD COMPARISON) */}
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 mt-1">
-                        <div className="lg:col-span-7 min-h-[360px] sm:min-h-[380px]">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-2.5 sm:gap-6 mt-0.5 sm:mt-1">
+                        <div className="lg:col-span-7 min-h-[340px] sm:min-h-[380px]">
                             <SalesPerformanceCard summaryData={summaryData} />
                         </div>
-                        <div className="lg:col-span-5 min-h-[360px] sm:min-h-[380px]">
+                        <div className="lg:col-span-5 min-h-[340px] sm:min-h-[380px]">
                             <PeriodComparisonCard
                                 monthlyGrowthData={monthlyGrowthData}
                                 weeklyGrowthData={weeklyGrowthData}
@@ -182,7 +207,7 @@ export default function DashboardPage() {
                     </div>
 
                     {/* ROW 4: PRODUCT BREAKDOWN & TOP CUSTOMERS */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-2.5 sm:gap-6">
                         <ProductSalesDonutCard />
                         <TopCustomersCard />
                     </div>

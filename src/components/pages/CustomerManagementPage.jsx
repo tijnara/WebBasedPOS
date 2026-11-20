@@ -27,7 +27,7 @@ import {
     Users, UserPlus, FileText, ShoppingBag,
     MapPin, ArrowUpDown, ChevronUp, ChevronDown,
     DollarSign, AlertCircle, CheckCircle2, Clock,
-    CreditCard
+    CreditCard, Search, X
 } from 'lucide-react';
 
 const EditIcon = () => (
@@ -211,7 +211,7 @@ export default function CustomerManagementPage() {
     useEffect(() => {
         const handleKeyDown = (e) => {
             const activeTag = document.activeElement.tagName;
-            if (activeTag === 'INPUT' || activeTag === 'TEXTAREA') return;
+            if (activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT') return;
             if ((e.ctrlKey && e.key === 'f') || e.key === '/') {
                 if (searchInputRef.current) searchInputRef.current.focus();
                 e.preventDefault();
@@ -220,6 +220,13 @@ export default function CustomerManagementPage() {
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, []);
+
+    const preventEnterReload = (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    };
 
     const requestSort = (key) => {
         setSortConfig((prev) => {
@@ -264,7 +271,8 @@ export default function CustomerManagementPage() {
     };
 
     const save = async (e) => {
-        e.preventDefault();
+        if (e?.preventDefault) e.preventDefault();
+        if (e?.stopPropagation) e.stopPropagation();
 
         if (editing) {
             if (!name || !name.trim()) {
@@ -381,10 +389,27 @@ export default function CustomerManagementPage() {
     const isMutating = createCustomer.isPending || updateCustomer.isPending || deleteCustomer.isPending || saveCustomerEntry.isPending;
 
     return (
-        <div className="customer-page responsive-page max-w-7xl mx-auto space-y-5 p-3 sm:p-5 md:p-6 overflow-x-hidden">
+        <div className="customer-page w-full max-w-7xl mx-auto px-1.5 py-2 sm:p-5 md:p-6 space-y-2.5 sm:space-y-5 overflow-x-hidden transition-colors">
+            {/* Match POS, Expenses, Dashboard, Report, History & Scanned Logs edge-to-edge .container fit on mobile (< 640px) */}
+            <style jsx global>{`
+                @media (max-width: 639px) {
+                    .app:has(.customer-page) .container {
+                        max-width: 100% !important;
+                        width: 100% !important;
+                        padding-left: 0 !important;
+                        padding-right: 0 !important;
+                        margin-left: 0 !important;
+                        margin-right: 0 !important;
+                    }
+                    .app:has(.customer-page) .main {
+                        padding-left: 0 !important;
+                        padding-right: 0 !important;
+                    }
+                }
+            `}</style>
 
             {/* Header & Primary Actions */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2.5 sm:gap-4 px-0.5 sm:px-0">
                 <div>
                     <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
                         Customer Management
@@ -395,19 +420,21 @@ export default function CustomerManagementPage() {
                 </div>
 
                 <div className="flex items-center gap-2 w-full sm:w-auto">
-                    <Link href="/report?tab=customers#inactive-customers" className="flex-1 sm:flex-initial">
+                    <Link href="/report?tab=inactive" className="flex-1 sm:flex-initial">
                         <Button
+                            type="button"
                             variant="outline"
-                            className="w-full sm:w-auto h-10 px-3.5 rounded-xl border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
+                            className="w-full sm:w-auto h-9 sm:h-10 px-3 sm:px-3.5 rounded-xl border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
                         >
                             <FileText className="w-3.5 h-3.5 text-slate-400" />
                             <span>Inactive Report</span>
                         </Button>
                     </Link>
                     <Button
+                        type="button"
                         onClick={openModal}
                         variant="primary"
-                        className="flex-1 sm:flex-initial h-10 px-4 rounded-xl bg-[#8DB600] hover:bg-[#7ca000] text-white font-black text-xs shadow-sm flex items-center justify-center gap-1.5 active:scale-95 transition-all cursor-pointer"
+                        className="flex-1 sm:flex-initial h-9 sm:h-10 px-3.5 sm:px-4 rounded-xl bg-[#8DB600] hover:bg-[#7ca000] text-white font-black text-xs shadow-sm flex items-center justify-center gap-1.5 active:scale-95 transition-all cursor-pointer"
                         disabled={isDemo}
                     >
                         <UserPlus className="w-4 h-4 stroke-[2.5]" />
@@ -417,76 +444,88 @@ export default function CustomerManagementPage() {
             </div>
 
             {/* KPI Summary Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
-                <div className="bg-white dark:bg-slate-900 p-3.5 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs flex items-center justify-between">
-                    <div>
-                        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider block">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+                <div className="bg-white dark:bg-slate-900 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs flex items-center justify-between gap-2 min-w-0">
+                    <div className="min-w-0">
+                        <span className="text-[9.5px] sm:text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider block truncate">
                             Total Customers
                         </span>
-                        <span className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white block mt-0.5">
+                        <span className="text-lg sm:text-2xl font-black text-slate-900 dark:text-white block mt-0.5 truncate">
                             {metrics.totalCustomers}
                         </span>
                     </div>
-                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center justify-center shrink-0">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center justify-center shrink-0">
                         <Users className="w-4 h-4 sm:w-5 sm:h-5" />
                     </div>
                 </div>
 
-                <div className="bg-white dark:bg-slate-900 p-3.5 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs flex items-center justify-between">
-                    <div>
-                        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider block">
+                <div className="bg-white dark:bg-slate-900 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs flex items-center justify-between gap-2 min-w-0">
+                    <div className="min-w-0">
+                        <span className="text-[9.5px] sm:text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider block truncate">
                             Outstanding Utang
                         </span>
-                        <span className={`text-xl sm:text-2xl font-black block mt-0.5 ${
+                        <span className={`text-lg sm:text-2xl font-black font-mono block mt-0.5 truncate ${
                             metrics.totalDebt > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-white'
                         }`}>
                             {currency(metrics.totalDebt, { symbol: '₱' }).format()}
                         </span>
                     </div>
-                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
                         <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5" />
                     </div>
                 </div>
 
-                <div className="bg-white dark:bg-slate-900 p-3.5 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs flex items-center justify-between">
-                    <div>
-                        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider block">
-                            Accounts with Utang
+                <div className="bg-white dark:bg-slate-900 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs flex items-center justify-between gap-2 min-w-0">
+                    <div className="min-w-0">
+                        <span className="text-[9.5px] sm:text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider block truncate">
+                            Accounts w/ Utang
                         </span>
-                        <span className="text-xl sm:text-2xl font-black text-amber-600 dark:text-amber-400 block mt-0.5">
+                        <span className="text-lg sm:text-2xl font-black text-amber-600 dark:text-amber-400 block mt-0.5 truncate">
                             {metrics.customersWithDebt}
                         </span>
                     </div>
-                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
                         <DollarSign className="w-4 h-4 sm:w-5 sm:h-5" />
                     </div>
                 </div>
 
-                <div className="bg-white dark:bg-slate-900 p-3.5 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs flex items-center justify-between">
-                    <div>
-                        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider block">
-                            Clean / Zero Balance
+                <div className="bg-white dark:bg-slate-900 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs flex items-center justify-between gap-2 min-w-0">
+                    <div className="min-w-0">
+                        <span className="text-[9.5px] sm:text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider block truncate">
+                            Clean Accounts
                         </span>
-                        <span className="text-xl sm:text-2xl font-black text-[#8DB600] dark:text-lime-400 block mt-0.5">
+                        <span className="text-lg sm:text-2xl font-black text-[#8DB600] dark:text-lime-400 block mt-0.5 truncate">
                             {metrics.cleanAccounts}
                         </span>
                     </div>
-                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-lime-50 dark:bg-lime-950/50 text-[#8DB600] dark:text-lime-400 flex items-center justify-center shrink-0">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-lime-50 dark:bg-lime-950/50 text-[#8DB600] dark:text-lime-400 flex items-center justify-center shrink-0">
                         <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" />
                     </div>
                 </div>
             </div>
 
             {/* Search & Filter Bar */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 sm:p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-3 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
                 <div className="relative w-full sm:max-w-md">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                     <Input
                         ref={searchInputRef}
                         placeholder="Search customer by name, contact, or address... (/)"
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
-                        className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 text-xs sm:text-sm h-10 rounded-xl focus:border-[#8DB600] focus:ring-[#8DB600]"
+                        onKeyDown={preventEnterReload}
+                        className="w-full pl-9 pr-8 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 text-xs sm:text-sm h-9 sm:h-10 rounded-xl focus:border-[#8DB600] focus:ring-[#8DB600]"
                     />
+                    {searchTerm && (
+                        <button
+                            type="button"
+                            onClick={() => setSearchTerm('')}
+                            aria-label="Clear search"
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-0.5 rounded-full cursor-pointer"
+                        >
+                            <X className="w-3.5 h-3.5" />
+                        </button>
+                    )}
                 </div>
 
                 <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto no-scrollbar pb-0.5 sm:pb-0">
@@ -533,26 +572,26 @@ export default function CustomerManagementPage() {
             </div>
 
             {/* Mobile Sort Dropdown Selector */}
-            <div className="flex md:hidden items-center justify-between gap-2 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-xs">
-                <span className="text-slate-500 font-bold uppercase text-[10px]">Sort by:</span>
+            <div className="flex md:hidden items-center justify-between gap-2 px-2.5 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs shadow-2xs">
+                <span className="text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-[10px]">Sort by:</span>
                 <div className="flex items-center gap-1.5">
                     <select
                         value={sortConfig.key}
                         onChange={(e) => requestSort(e.target.value)}
-                        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-xs font-bold text-slate-800 dark:text-slate-200"
+                        className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-[#8DB600] dark:[color-scheme:dark] cursor-pointer"
                     >
-                        <option value="name">Customer Name</option>
-                        <option value="phone">Contact Number</option>
-                        <option value="address">Delivery Address</option>
-                        <option value="dateAdded">Date Registered</option>
-                        <option value="lastOrderDate">Last Order Date</option>
-                        <option value="credit_balance">Utang Balance</option>
-                        <option value="utangDate">Utang Date</option>
+                        <option value="name" className="bg-white dark:bg-slate-900">Customer Name</option>
+                        <option value="phone" className="bg-white dark:bg-slate-900">Contact Number</option>
+                        <option value="address" className="bg-white dark:bg-slate-900">Delivery Address</option>
+                        <option value="dateAdded" className="bg-white dark:bg-slate-900">Date Registered</option>
+                        <option value="lastOrderDate" className="bg-white dark:bg-slate-900">Last Order Date</option>
+                        <option value="credit_balance" className="bg-white dark:bg-slate-900">Utang Balance</option>
+                        <option value="utangDate" className="bg-white dark:bg-slate-900">Utang Date</option>
                     </select>
                     <button
                         type="button"
                         onClick={() => requestSort(sortConfig.key)}
-                        className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-[#8DB600] font-bold"
+                        className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-[#8DB600] font-bold cursor-pointer"
                         title="Toggle Asc/Desc"
                     >
                         {sortConfig.direction === 'asc' ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
@@ -567,7 +606,6 @@ export default function CustomerManagementPage() {
                         <table className="w-full table-fixed text-xs divide-y divide-slate-100 dark:divide-slate-800">
                             <thead>
                             <tr className="bg-slate-50 dark:bg-slate-850 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200/80 dark:border-slate-800">
-                                {/* 1. Customer Name (Default Alphabetical) */}
                                 <th className="w-[18%] py-3 px-3 text-left">
                                     <button
                                         type="button"
@@ -579,7 +617,6 @@ export default function CustomerManagementPage() {
                                     </button>
                                 </th>
 
-                                {/* 2. Phone / Contact */}
                                 <th className="w-[11%] py-3 px-2.5 text-left">
                                     <button
                                         type="button"
@@ -591,7 +628,6 @@ export default function CustomerManagementPage() {
                                     </button>
                                 </th>
 
-                                {/* 3. Delivery Address */}
                                 <th className="w-[15%] py-3 px-2.5 text-left">
                                     <button
                                         type="button"
@@ -603,7 +639,6 @@ export default function CustomerManagementPage() {
                                     </button>
                                 </th>
 
-                                {/* 4. Date Added */}
                                 <th className="w-[10%] py-3 px-2 text-left">
                                     <button
                                         type="button"
@@ -615,7 +650,6 @@ export default function CustomerManagementPage() {
                                     </button>
                                 </th>
 
-                                {/* 5. Last Order Date */}
                                 <th className="w-[12%] py-3 px-2 text-left">
                                     <button
                                         type="button"
@@ -627,7 +661,6 @@ export default function CustomerManagementPage() {
                                     </button>
                                 </th>
 
-                                {/* 6. Utang Balance */}
                                 <th className="w-[10%] py-3 px-2 text-center">
                                     <button
                                         type="button"
@@ -639,7 +672,6 @@ export default function CustomerManagementPage() {
                                     </button>
                                 </th>
 
-                                {/* 7. Utang Date */}
                                 <th className="w-[10%] py-3 px-2 text-left">
                                     <button
                                         type="button"
@@ -651,7 +683,6 @@ export default function CustomerManagementPage() {
                                     </button>
                                 </th>
 
-                                {/* 8. Actions */}
                                 <th className="w-[14%] py-3 px-3 text-right font-bold text-slate-600 dark:text-slate-300">
                                     Actions
                                 </th>
@@ -680,7 +711,6 @@ export default function CustomerManagementPage() {
 
                                     return (
                                         <tr key={c.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors">
-                                            {/* Customer Name */}
                                             <td className="py-2.5 px-3 truncate">
                                                 <div className="flex items-center gap-2 min-w-0">
                                                     <div className="w-7 h-7 rounded-full bg-[#8DB600]/15 text-[#8DB600] flex items-center justify-center font-black text-xs shrink-0">
@@ -703,7 +733,6 @@ export default function CustomerManagementPage() {
                                                 </div>
                                             </td>
 
-                                            {/* Phone / Contact */}
                                             <td className="py-2.5 px-2.5 text-slate-600 dark:text-slate-300 font-medium truncate" title={c.phone}>
                                                 {c.phone && c.phone !== 'N/A' ? (
                                                     <a href={`tel:${c.phone}`} className="font-mono text-xs text-slate-700 dark:text-slate-200 hover:text-[#8DB600] truncate block">
@@ -714,7 +743,6 @@ export default function CustomerManagementPage() {
                                                 )}
                                             </td>
 
-                                            {/* Delivery Address */}
                                             <td className="py-2.5 px-2.5 text-slate-600 dark:text-slate-300 text-xs truncate" title={c.address}>
                                                 {c.address && c.address !== 'N/A' ? (
                                                     <span className="truncate block">{c.address}</span>
@@ -723,12 +751,10 @@ export default function CustomerManagementPage() {
                                                 )}
                                             </td>
 
-                                            {/* Date Added */}
                                             <td className="py-2.5 px-2 text-[11px] text-slate-500 dark:text-slate-400 whitespace-nowrap">
                                                 {c.dateAdded ? formatDateTime(c.dateAdded) : formatDateTime(c.created_at)}
                                             </td>
 
-                                            {/* Last Order Date */}
                                             <td className="py-2.5 px-2 text-[11px] whitespace-nowrap">
                                                 {lastOrderDate ? (
                                                     <div className="flex flex-col leading-tight">
@@ -744,7 +770,6 @@ export default function CustomerManagementPage() {
                                                 )}
                                             </td>
 
-                                            {/* Utang Balance */}
                                             <td className="py-2.5 px-2 text-center whitespace-nowrap">
                                                 {hasDebt ? (
                                                     <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-black bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-900/60 font-mono">
@@ -757,7 +782,6 @@ export default function CustomerManagementPage() {
                                                 )}
                                             </td>
 
-                                            {/* Utang Date & Staff */}
                                             <td className="py-2.5 px-2 text-[11px] whitespace-nowrap">
                                                 {hasDebt && utangDate ? (
                                                     <div className="flex flex-col leading-tight">
@@ -771,7 +795,6 @@ export default function CustomerManagementPage() {
                                                 )}
                                             </td>
 
-                                            {/* Actions */}
                                             <td className="py-2.5 px-3 text-right">
                                                 <div className="flex items-center justify-end gap-1 whitespace-nowrap">
                                                     {hasDebt && (
@@ -838,11 +861,13 @@ export default function CustomerManagementPage() {
             </Card>
 
             {/* Mobile Card List View */}
-            <div className="block md:hidden space-y-3">
+            <div className="block md:hidden space-y-2">
                 {isLoading ? (
-                    <div className="text-center text-slate-400 p-8">Loading customer accounts...</div>
+                    <div className="text-center text-slate-400 p-6 text-xs bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                        Loading customer accounts...
+                    </div>
                 ) : customers.length === 0 ? (
-                    <div className="text-center text-slate-400 p-8 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
+                    <div className="text-center text-slate-400 p-6 text-xs bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
                         No customers found.
                     </div>
                 ) : (
@@ -854,18 +879,18 @@ export default function CustomerManagementPage() {
                         const lastOrderDate = c.lastOrderDate || c.lastSeen;
 
                         return (
-                            <div key={c.id} className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs space-y-3">
-                                <div className="flex items-start justify-between gap-2.5">
-                                    <div className="flex items-center gap-3 min-w-0">
-                                        <div className="w-10 h-10 rounded-xl bg-[#8DB600]/15 text-[#8DB600] font-black text-sm flex items-center justify-center shrink-0">
+                            <div key={c.id} className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs space-y-2.5">
+                                <div className="flex items-start justify-between gap-2">
+                                    <div className="flex items-center gap-2.5 min-w-0">
+                                        <div className="w-9 h-9 rounded-xl bg-[#8DB600]/15 text-[#8DB600] font-black text-sm flex items-center justify-center shrink-0">
                                             {c.name?.charAt(0)?.toUpperCase() || 'C'}
                                         </div>
                                         <div className="min-w-0">
                                             <h4 className="font-bold text-sm text-slate-900 dark:text-white truncate">
                                                 {c.name}
                                             </h4>
-                                            <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
-                                                {c.phone ? (
+                                            <div className="flex items-center gap-1.5 text-[11px] text-slate-400 mt-0.5 truncate">
+                                                {c.phone && c.phone !== 'N/A' ? (
                                                     <a href={`tel:${c.phone}`} className="font-mono hover:text-[#8DB600] text-slate-500 dark:text-slate-400">
                                                         {c.phone}
                                                     </a>
@@ -879,7 +904,7 @@ export default function CustomerManagementPage() {
                                     </div>
 
                                     {hasDebt ? (
-                                        <span className="text-xs font-black px-2.5 py-1 rounded-full bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-900/60 shrink-0 font-mono">
+                                        <span className="text-xs font-black px-2 py-0.5 rounded-full bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-900/60 shrink-0 font-mono">
                                             {currency(debt, { symbol: '₱' }).format()}
                                         </span>
                                     ) : (
@@ -890,25 +915,25 @@ export default function CustomerManagementPage() {
                                 </div>
 
                                 {/* Last Order Date Pill */}
-                                <div className="text-xs text-slate-600 dark:text-slate-300 flex items-center justify-between bg-slate-50 dark:bg-slate-800/60 px-3 py-2 rounded-xl border border-slate-100 dark:border-slate-800">
-                                    <span className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 font-semibold">
+                                <div className="text-[11px] text-slate-600 dark:text-slate-300 flex items-center justify-between gap-2 bg-slate-50 dark:bg-slate-800/60 px-2.5 py-1.5 rounded-lg border border-slate-100 dark:border-slate-800">
+                                    <span className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 font-semibold shrink-0">
                                         <Clock className="w-3.5 h-3.5 text-[#8DB600]" />
-                                        <span>Last Order Date:</span>
+                                        <span>Last Order:</span>
                                     </span>
-                                    <span className="font-bold text-slate-800 dark:text-slate-100">
-                                        {lastOrderDate ? `${formatDateTime(lastOrderDate)} (${formatTime(lastOrderDate)})` : 'No orders yet'}
+                                    <span className="font-bold text-slate-800 dark:text-slate-100 truncate text-right">
+                                        {lastOrderDate ? `${formatDateTime(lastOrderDate)} • ${formatTime(lastOrderDate)}` : 'No orders yet'}
                                     </span>
                                 </div>
 
                                 {c.address && c.address !== 'N/A' && (
-                                    <div className="text-xs text-slate-600 dark:text-slate-300 flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/60 p-2 rounded-xl border border-slate-100 dark:border-slate-800">
+                                    <div className="text-[11px] text-slate-600 dark:text-slate-300 flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/60 px-2.5 py-1.5 rounded-lg border border-slate-100 dark:border-slate-800">
                                         <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                                         <span className="truncate">{c.address}</span>
                                     </div>
                                 )}
 
                                 {hasDebt && (
-                                    <div className="flex items-center justify-between bg-rose-50/70 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900/40 p-2.5 rounded-xl text-xs">
+                                    <div className="flex items-center justify-between bg-rose-50/70 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900/40 p-2 rounded-lg text-[11px]">
                                         <div>
                                             <span className="text-[9px] font-bold text-rose-500 dark:text-rose-400 uppercase tracking-wider block">
                                                 Utang Date
@@ -941,7 +966,7 @@ export default function CustomerManagementPage() {
                                                 remaining_balance: debt,
                                                 debt_id: null
                                             })}
-                                            className="px-3 py-1.5 text-xs font-black bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-xs active:scale-95 transition-transform flex items-center gap-1.5 cursor-pointer"
+                                            className="px-2.5 py-1.5 text-xs font-black bg-rose-600 hover:bg-rose-700 text-white rounded-lg shadow-xs active:scale-95 transition-transform flex items-center gap-1.5 cursor-pointer"
                                             disabled={isDemo}
                                         >
                                             <CreditCard className="w-3.5 h-3.5" />
@@ -957,7 +982,7 @@ export default function CustomerManagementPage() {
                                         <button
                                             type="button"
                                             onClick={() => handleRingInPOS(c)}
-                                            className="p-2 text-slate-600 dark:text-slate-300 hover:text-[#5f7d00] hover:bg-lime-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl transition-colors cursor-pointer"
+                                            className="p-1.5 text-slate-600 dark:text-slate-300 hover:text-[#5f7d00] bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors cursor-pointer"
                                             title="Ring up in POS"
                                         >
                                             <ShoppingBag className="w-3.5 h-3.5" />
@@ -965,7 +990,7 @@ export default function CustomerManagementPage() {
                                         <button
                                             type="button"
                                             onClick={() => startEdit(c)}
-                                            className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl transition-colors cursor-pointer"
+                                            className="p-1.5 text-blue-600 dark:text-blue-400 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors cursor-pointer"
                                             disabled={isDemo}
                                             title="Edit Customer"
                                         >
@@ -974,7 +999,7 @@ export default function CustomerManagementPage() {
                                         <button
                                             type="button"
                                             onClick={() => remove(c)}
-                                            className="p-2 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl transition-colors cursor-pointer"
+                                            className="p-1.5 text-rose-600 dark:text-rose-400 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors cursor-pointer"
                                             disabled={isDemo}
                                             title="Delete Customer"
                                         >
@@ -987,14 +1012,14 @@ export default function CustomerManagementPage() {
                     })
                 )}
 
-                <div className="pt-2">
+                <div className="pt-1.5">
                     <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
                 </div>
             </div>
 
-            {/* ADD / MERGE CUSTOMER MODAL */}
+            {/* ADD / MERGE CUSTOMER MODAL (No <form> element — zero native reload) */}
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                <DialogContent className="p-0 sm:max-w-[520px] w-full bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden rounded-3xl">
+                <DialogContent className="p-0 sm:max-w-[520px] w-full bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden rounded-3xl dark:[color-scheme:dark]">
                     <DialogHeader className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-850 flex items-center justify-between">
                         <div>
                             <DialogTitle className="text-lg font-black text-slate-900 dark:text-white tracking-tight">
@@ -1004,7 +1029,7 @@ export default function CustomerManagementPage() {
                                 {editing ? 'Update customer delivery details.' : 'Register a new customer or attach records to an existing account.'}
                             </p>
                         </div>
-                        <DialogCloseButton onClick={closeModal} className="p-1.5 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" />
+                        <DialogCloseButton type="button" onClick={closeModal} className="p-1.5 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer" />
                     </DialogHeader>
 
                     {!editing && (
@@ -1039,7 +1064,7 @@ export default function CustomerManagementPage() {
                         </div>
                     )}
 
-                    <form onSubmit={save}>
+                    <div onKeyDown={preventEnterReload}>
                         <div className="p-6 space-y-4">
                             {entryMode === 'existing' && !editing && (
                                 <div className="p-3.5 bg-lime-50/70 dark:bg-lime-950/30 rounded-2xl border border-lime-200 dark:border-lime-900/50 space-y-2">
@@ -1060,11 +1085,10 @@ export default function CustomerManagementPage() {
                                             }
                                         }}
                                         className="w-full h-10 px-3 text-xs font-bold bg-white dark:bg-slate-900 border border-lime-300 dark:border-lime-700 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-[#8DB600] cursor-pointer"
-                                        required
                                     >
-                                        <option value="">-- Choose Customer from Database --</option>
+                                        <option value="" className="bg-white dark:bg-slate-900">-- Choose Customer from Database --</option>
                                         {allCustomersList.map((c) => (
-                                            <option key={c.id} value={c.id}>
+                                            <option key={c.id} value={c.id} className="bg-white dark:bg-slate-900">
                                                 {c.name} {c.phone ? `(${c.phone})` : ''} {c.address ? `- ${c.address}` : ''}
                                             </option>
                                         ))}
@@ -1083,7 +1107,6 @@ export default function CustomerManagementPage() {
                                     id="customerName"
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
-                                    required
                                     placeholder="e.g. Juan Dela Cruz"
                                     autoFocus={entryMode === 'new'}
                                     disabled={isDemo || (entryMode === 'existing' && !selectedExistingId)}
@@ -1157,14 +1180,15 @@ export default function CustomerManagementPage() {
                                 Cancel
                             </Button>
                             <Button
-                                type="submit"
+                                type="button"
+                                onClick={save}
                                 disabled={isMutating || isDemo}
                                 className="h-10 px-6 rounded-xl bg-[#8DB600] hover:bg-[#7ca000] text-white text-xs font-bold shadow-md cursor-pointer"
                             >
                                 {isMutating ? 'Saving...' : editing ? 'Update Customer' : entryMode === 'new' ? 'Save Customer' : 'Merge to Customer'}
                             </Button>
                         </DialogFooter>
-                    </form>
+                    </div>
                 </DialogContent>
             </Dialog>
 

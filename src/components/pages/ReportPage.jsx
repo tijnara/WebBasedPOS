@@ -787,9 +787,31 @@ const ReportPage = () => {
     };
 
     return (
-        <div className="report-page max-w-7xl mx-auto p-3 sm:p-6 space-y-6 responsive-page transition-colors">
+        <div className="report-page w-full max-w-7xl mx-auto px-1.5 py-2 sm:p-6 space-y-2.5 sm:space-y-6 transition-colors">
+            {/* Match POS, Expenses & Dashboard edge-to-edge .container fit on mobile (< 640px) */}
+            <style jsx global>{`
+                @media (max-width: 639px) {
+                    .app:has(.report-page) .container {
+                        max-width: 100% !important;
+                        width: 100% !important;
+                        padding-left: 0 !important;
+                        padding-right: 0 !important;
+                        margin-left: 0 !important;
+                        margin-right: 0 !important;
+                    }
+                    .app:has(.report-page) .main {
+                        padding-left: 0 !important;
+                        padding-right: 0 !important;
+                    }
+                    .report-page .grid > div {
+                        padding: 0.75rem !important;
+                        border-radius: 0.875rem !important;
+                    }
+                }
+            `}</style>
+
             {/* Page Header */}
-            <div>
+            <div className="px-0.5 sm:px-0">
                 <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Reports</h1>
                 <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
                     Track station revenue, sales velocity, volume trends, and customer purchase patterns.
@@ -797,7 +819,7 @@ const ReportPage = () => {
             </div>
 
             {/* Growth KPI Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
                 <SummaryCard
                     title="Monthly Sales"
                     isLoading={isMonthlyGrowthLoading}
@@ -845,11 +867,11 @@ const ReportPage = () => {
             </div>
 
             {/* Modular Tab Switcher */}
-            <div className="flex bg-slate-100 dark:bg-slate-800/90 p-1 rounded-2xl w-full sm:w-auto border border-slate-200/80 dark:border-slate-700/80 shadow-2xs">
+            <div className="flex bg-slate-100 dark:bg-slate-800/90 p-1 rounded-xl sm:rounded-2xl w-full sm:w-auto border border-slate-200/80 dark:border-slate-700/80 shadow-2xs">
                 <button
                     type="button"
                     onClick={() => handleTabChange('sales')}
-                    className={`flex-1 sm:flex-initial px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                    className={`flex-1 sm:flex-initial px-4 py-2 text-xs font-bold rounded-lg sm:rounded-xl transition-all cursor-pointer ${
                         activeTab === 'sales'
                             ? 'bg-[#8DB600] text-white shadow-xs'
                             : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
@@ -860,7 +882,7 @@ const ReportPage = () => {
                 <button
                     type="button"
                     onClick={() => handleTabChange('frequent')}
-                    className={`flex-1 sm:flex-initial px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                    className={`flex-1 sm:flex-initial px-4 py-2 text-xs font-bold rounded-lg sm:rounded-xl transition-all cursor-pointer ${
                         activeTab === 'frequent'
                             ? 'bg-[#8DB600] text-white shadow-xs'
                             : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
@@ -871,7 +893,7 @@ const ReportPage = () => {
                 <button
                     type="button"
                     onClick={() => handleTabChange('inactive')}
-                    className={`flex-1 sm:flex-initial px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                    className={`flex-1 sm:flex-initial px-4 py-2 text-xs font-bold rounded-lg sm:rounded-xl transition-all cursor-pointer ${
                         activeTab === 'inactive'
                             ? 'bg-[#8DB600] text-white shadow-xs'
                             : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
