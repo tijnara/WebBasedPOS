@@ -223,14 +223,14 @@ export default function App({ Component, pageProps }) {
                         {isPublicPage ? (
                             <Component {...pageProps} />
                         ) : (
-                            <main className="main pb-20 md:pb-6">
+                            <main className="main pb-24 md:pb-6">
                                 <div className="container">
                                     <Component {...pageProps} />
                                 </div>
                             </main>
                         )}
 
-                        <div className="toasts fixed bottom-20 md:bottom-4 right-4 z-50 flex flex-col items-end gap-3" aria-live="polite">
+                        <div className="toasts fixed bottom-24 md:bottom-4 right-4 z-50 flex flex-col items-end gap-3" aria-live="polite">
                             {toasts.map(t => (
                                 <div key={t.id} className={`toast bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4 rounded-lg shadow-xl w-80 max-w-[calc(100vw-2rem)] flex items-start gap-3 ${
                                     t.variant === 'destructive' ? 'border-l-4 border-red-500' :

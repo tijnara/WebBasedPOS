@@ -174,6 +174,14 @@ export default function Navbar() {
         };
     }, []);
 
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(
+                new CustomEvent('mobile-drawer-state', { detail: { open: isMenuOpen } })
+            );
+        }
+    }, [isMenuOpen]);
+
     const { data: pendingUsers = [] } = useQuery({
         queryKey: ['pending-approvals-count', clientUser?.id, isAdmin],
         queryFn: async () => {
@@ -530,9 +538,12 @@ export default function Navbar() {
                                     onClick={() => {
                                         if (category) setOpenCategories(new Set([category]));
                                         if (isMessages) markMessagesAsSeen();
+                                        try {
+                                            sessionStorage.setItem('seaside_mobile_tab_prev_idx', '4');
+                                        } catch {}
                                         setIsMenuOpen(false);
                                         if (router.pathname !== link.path) {
-                                            window.location.assign(link.path);
+                                            router.push(link.path);
                                         }
                                     }}
                                 >
