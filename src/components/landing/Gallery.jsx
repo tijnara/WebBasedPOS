@@ -1,24 +1,60 @@
 // src/components/landing/Gallery.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGallery } from '../../hooks/useGallery';
 import { useStore } from '../../store/useStore';
 import AnimatedLandingIcon from './AnimatedLandingIcon';
 
+const FALLBACK_GALLERY_IMAGE = '/seasideHD_.png';
+
 export default function Gallery() {
-    const { data: items = [] } = useGallery();
+    const { data: items = [], isLoading } = useGallery();
     const darkMode = useStore((s) => s.darkMode);
     const [[currentIndex, direction], setCurrentIndex] = useState([0, 0]);
     const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+    const [failedUrls, setFailedUrls] = useState({});
 
-    const nextSlide = () => {
-        setCurrentIndex((prev) => [(prev[0] + 1) % items.length, 1]);
-    };
+    const totalItems = items.length;
+    const safeIndex = totalItems > 0 ? ((currentIndex % totalItems) + totalItems) % totalItems : 0;
+    const currentItem = totalItems > 0 ? items[safeIndex] : null;
 
-    const prevSlide = () => {
-        setCurrentIndex((prev) => [(prev[0] - 1 + items.length) % items.length, -1]);
-    };
+    const resolveImageSrc = useCallback(
+        (rawUrl) => {
+            if (!rawUrl || typeof rawUrl !== 'string' || failedUrls[rawUrl]) {
+                return FALLBACK_GALLERY_IMAGE;
+            }
+            return rawUrl;
+        },
+        [failedUrls]
+    );
+
+    const markImageFailed = useCallback((rawUrl) => {
+        if (!rawUrl || rawUrl === FALLBACK_GALLERY_IMAGE) return;
+        setFailedUrls((prev) => (prev[rawUrl] ? prev : { ...prev, [rawUrl]: true }));
+    }, []);
+
+    const nextSlide = useCallback(() => {
+        if (totalItems <= 1) return;
+        setCurrentIndex((prev) => [(prev[0] + 1) % totalItems, 1]);
+    }, [totalItems]);
+
+    const prevSlide = useCallback(() => {
+        if (totalItems <= 1) return;
+        setCurrentIndex((prev) => [(prev[0] - 1 + totalItems) % totalItems, -1]);
+    }, [totalItems]);
+
+    // Keyboard navigation when lightbox is open
+    useEffect(() => {
+        if (!isLightboxOpen) return;
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') setIsLightboxOpen(false);
+            if (e.key === 'ArrowRight') nextSlide();
+            if (e.key === 'ArrowLeft') prevSlide();
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isLightboxOpen, nextSlide, prevSlide]);
 
     const variants = {
         enter: (dir) => ({
@@ -34,6 +70,9 @@ export default function Gallery() {
             opacity: 0
         })
     };
+
+    const currentRawUrl = currentItem?.image_url;
+    const currentDisplaySrc = resolveImageSrc(currentRawUrl);
 
     return (
         <>
@@ -71,50 +110,61 @@ export default function Gallery() {
                         </p>
                     </div>
 
-                    {items.length > 0 ? (
-                        <div className="relative w-full rounded-3xl shadow-xl bg-slate-900 group overflow-hidden h-[360px] sm:h-[480px] lg:h-[540px] border border-slate-200/80 dark:border-white/10">
+                    {isLoading && totalItems === 0 ? (
+                        <div className="w-full rounded-3xl bg-slate-200/70 dark:bg-slate-800/70 animate-pulse h-[320px] sm:h-[480px] lg:h-[540px] border border-slate-200/80 dark:border-white/10" />
+                    ) : totalItems > 0 ? (
+                        <div className="relative w-full rounded-3xl shadow-xl bg-slate-900 group overflow-hidden h-[320px] sm:h-[480px] lg:h-[540px] border border-slate-200/80 dark:border-white/10">
                             <AnimatePresence initial={false} custom={direction}>
                                 <motion.div
-                                    key={currentIndex}
+                                    key={safeIndex}
                                     custom={direction}
                                     variants={variants}
                                     initial="enter"
                                     animate="center"
                                     exit="exit"
+                                    drag={totalItems > 1 ? 'x' : false}
+                                    dragConstraints={{ left: 0, right: 0 }}
+                                    dragElastic={0.18}
+                                    onDragEnd={(_, info) => {
+                                        if (info.offset.x < -50) nextSlide();
+                                        else if (info.offset.x > 50) prevSlide();
+                                    }}
                                     transition={{
                                         x: { type: 'spring', stiffness: 300, damping: 30 },
                                         opacity: { duration: 0.25 }
                                     }}
-                                    className="absolute inset-0 w-full h-full"
+                                    className="absolute inset-0 w-full h-full touch-pan-y"
                                 >
                                     <Image
-                                        src={items[currentIndex]?.image_url}
-                                        alt={items[currentIndex]?.title || 'Seaside Station Gallery'}
+                                        src={currentDisplaySrc}
+                                        alt={currentItem?.title || 'Seaside Station Gallery'}
                                         fill
+                                        unoptimized
                                         sizes="(max-width: 1024px) 100vw, 1152px"
                                         className="object-cover cursor-pointer hover:scale-102 transition-transform duration-700"
                                         onClick={() => setIsLightboxOpen(true)}
-                                        priority
+                                        onError={() => markImageFailed(currentRawUrl)}
+                                        priority={safeIndex === 0}
                                     />
-                                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent p-6 sm:p-8 text-white z-20 pointer-events-none">
-                                        <h3 className="text-lg sm:text-2xl font-black drop-shadow-md">
-                                            {items[currentIndex]?.title}
+                                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/85 via-black/45 to-transparent p-5 sm:p-8 text-white z-20 pointer-events-none">
+                                        <h3 className="text-base sm:text-2xl font-black drop-shadow-md pr-20 sm:pr-28">
+                                            {currentItem?.title}
                                         </h3>
-                                        {items[currentIndex]?.description && (
-                                            <p className="text-xs sm:text-sm mt-1 max-w-2xl text-slate-200/90 drop-shadow line-clamp-2">
-                                                {items[currentIndex]?.description}
+                                        {currentItem?.description && (
+                                            <p className="text-xs sm:text-sm mt-1 max-w-2xl text-slate-200/90 drop-shadow line-clamp-2 pr-16 sm:pr-24">
+                                                {currentItem.description}
                                             </p>
                                         )}
                                     </div>
                                 </motion.div>
                             </AnimatePresence>
 
-                            {items.length > 1 && (
+                            {totalItems > 1 && (
                                 <>
                                     <button
                                         type="button"
                                         onClick={prevSlide}
-                                        className="absolute left-3 top-1/2 -translate-y-1/2 z-30 flex items-center justify-center w-11 h-11 bg-black/45 hover:bg-black/75 text-white rounded-full backdrop-blur-md transition-all shadow-md active:scale-95 cursor-pointer"
+                                        className="absolute left-3 top-1/2 -translate-y-1/2 z-30 flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 bg-black/45 hover:bg-black/75 text-white rounded-full backdrop-blur-md transition-all shadow-md active:scale-95 cursor-pointer"
                                         aria-label="Previous Image"
                                     >
                                         <AnimatedLandingIcon name="chevronLeft" size={22} strokeColor="#ffffff" />
@@ -123,20 +173,22 @@ export default function Gallery() {
                                     <button
                                         type="button"
                                         onClick={nextSlide}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 z-30 flex items-center justify-center w-11 h-11 bg-black/45 hover:bg-black/75 text-white rounded-full backdrop-blur-md transition-all shadow-md active:scale-95 cursor-pointer"
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 z-30 flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 bg-black/45 hover:bg-black/75 text-white rounded-full backdrop-blur-md transition-all shadow-md active:scale-95 cursor-pointer"
                                         aria-label="Next Image"
                                     >
                                         <AnimatedLandingIcon name="chevronRight" size={22} strokeColor="#ffffff" />
                                     </button>
 
-                                    <div className="absolute bottom-4 right-4 z-30 flex items-center gap-1.5 bg-black/50 px-3 py-1.5 rounded-full backdrop-blur-md border border-white/10">
-                                        {items.map((_, idx) => (
+                                    <div className="absolute bottom-4 right-4 z-30 flex items-center gap-1.5 bg-black/55 px-3 py-1.5 rounded-full backdrop-blur-md border border-white/10">
+                                        {items.map((item, idx) => (
                                             <button
-                                                key={idx}
+                                                key={item?.id ?? idx}
                                                 type="button"
-                                                onClick={() => setCurrentIndex([idx, idx > currentIndex ? 1 : -1])}
-                                                className={`h-1.5 rounded-full transition-all duration-300 ${
-                                                    idx === currentIndex ? 'w-5 bg-emerald-400' : 'w-1.5 bg-white/40'
+                                                onClick={() => setCurrentIndex([idx, idx > safeIndex ? 1 : -1])}
+                                                aria-label={`View slide ${idx + 1} of ${totalItems}`}
+                                                aria-current={idx === safeIndex ? 'true' : undefined}
+                                                className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
+                                                    idx === safeIndex ? 'w-5 bg-emerald-400' : 'w-1.5 bg-white/40 hover:bg-white/70'
                                                 }`}
                                             />
                                         ))}
@@ -163,32 +215,77 @@ export default function Gallery() {
 
             {/* Lightbox Modal */}
             <AnimatePresence>
-                {isLightboxOpen && (
+                {isLightboxOpen && currentItem && (
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[999] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 sm:p-10"
+                        className="fixed inset-0 z-[999] flex flex-col items-center justify-center bg-black/92 backdrop-blur-md p-4 sm:p-10"
                         onClick={() => setIsLightboxOpen(false)}
                     >
                         <button
                             type="button"
-                            className="absolute top-5 right-5 text-white/80 hover:text-white p-2 z-[1000] cursor-pointer"
+                            className="absolute top-4 right-4 sm:top-6 sm:right-6 text-white/80 hover:text-white p-2 rounded-full bg-white/10 hover:bg-white/20 z-[1000] cursor-pointer transition-colors"
                             onClick={() => setIsLightboxOpen(false)}
                             aria-label="Close Lightbox"
                         >
-                            <AnimatedLandingIcon name="plusToX" size={32} strokeColor="#ffffff" />
+                            <AnimatedLandingIcon name="plusToX" size={28} strokeColor="#ffffff" />
                         </button>
 
-                        <div className="relative w-full max-w-5xl h-[75vh]">
+                        {totalItems > 1 && (
+                            <>
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        prevSlide();
+                                    }}
+                                    className="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 z-[1000] flex items-center justify-center w-11 h-11 bg-white/15 hover:bg-white/25 text-white rounded-full backdrop-blur-md transition-all cursor-pointer"
+                                    aria-label="Previous Expanded Image"
+                                >
+                                    <AnimatedLandingIcon name="chevronLeft" size={24} strokeColor="#ffffff" />
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        nextSlide();
+                                    }}
+                                    className="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-[1000] flex items-center justify-center w-11 h-11 bg-white/15 hover:bg-white/25 text-white rounded-full backdrop-blur-md transition-all cursor-pointer"
+                                    aria-label="Next Expanded Image"
+                                >
+                                    <AnimatedLandingIcon name="chevronRight" size={24} strokeColor="#ffffff" />
+                                </button>
+                            </>
+                        )}
+
+                        <div
+                            className="relative w-full max-w-5xl h-[70vh] sm:h-[75vh]"
+                            onClick={(e) => e.stopPropagation()}
+                        >
                             <Image
-                                src={items[currentIndex]?.image_url}
-                                alt="Expanded Facility Image"
+                                src={currentDisplaySrc}
+                                alt={currentItem?.title || 'Expanded Facility Image'}
                                 fill
-                                className="object-contain"
                                 unoptimized
+                                className="object-contain"
+                                onError={() => markImageFailed(currentRawUrl)}
                             />
                         </div>
+
+                        {(currentItem?.title || currentItem?.description) && (
+                            <div
+                                className="mt-3 max-w-2xl text-center px-4 text-white"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                {currentItem?.title && (
+                                    <p className="text-sm sm:text-base font-bold">{currentItem.title}</p>
+                                )}
+                                {currentItem?.description && (
+                                    <p className="text-xs text-slate-300 mt-0.5">{currentItem.description}</p>
+                                )}
+                            </div>
+                        )}
                     </motion.div>
                 )}
             </AnimatePresence>
