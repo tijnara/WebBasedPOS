@@ -46,21 +46,93 @@ const titleMap = {
     '/refill-game': 'Refill Simulator Data | Seaside WRS',
 };
 
+const RELOAD_GUARD_KEY = 'seaside_last_auto_reload_ts';
+const LAST_ACTIVE_STORAGE_KEY = 'seaside_last_active_at';
+const IDLE_THRESHOLD_MS = 30 * 60 * 1000; // 30 minutes closed/idle threshold
+
+function readLastActiveTime() {
+    if (typeof window === 'undefined') return 0;
+    try {
+        return Number(localStorage.getItem(LAST_ACTIVE_STORAGE_KEY) || '0');
+    } catch {
+        return 0;
+    }
+}
+
+function writeLastActiveTime(ts = Date.now()) {
+    if (typeof window === 'undefined') return;
+    try {
+        localStorage.setItem(LAST_ACTIVE_STORAGE_KEY, String(ts));
+    } catch {
+        // Ignore storage errors
+    }
+}
+
+function safeHardNavigate(targetUrl) {
+    if (typeof window === 'undefined') return;
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
+
+    try {
+        const lastReload = Number(sessionStorage.getItem(RELOAD_GUARD_KEY) || '0');
+        if (Date.now() - lastReload < 15000) return; // Prevent reload loops
+        sessionStorage.setItem(RELOAD_GUARD_KEY, String(Date.now()));
+    } catch {
+        // Ignore storage errors
+    }
+
+    if (targetUrl) {
+        window.location.assign(targetUrl);
+    } else {
+        window.location.reload();
+    }
+}
+
 function AuthGate({ children }) {
     const user = useStore(s => s.user);
+    const logout = useStore(s => s.logout);
     const sessionLoaded = useStore(s => s.sessionLoaded);
     const router = useRouter();
+    const [isExpiringSession, setIsExpiringSession] = useState(false);
 
     useEffect(() => {
-        if (sessionLoaded) {
-            const isLoggedIn = !!user;
-            const isPublicPage = ['/', '/about', '/terms', '/privacy', '/contact'].includes(router.pathname) || router.pathname.startsWith('/resources');
+        if (!sessionLoaded) return;
 
-            if (!isLoggedIn && !isPublicPage) {
-                router.push('/');
-            }
+        const cleanPath = (router.pathname || '').toLowerCase();
+
+        // Catch old cached PWA start_url (/login) immediately -> go to current login page (/)
+        if (cleanPath === '/login') {
+            router.replace('/');
+            return;
         }
-    }, [user, sessionLoaded, router]);
+
+        // Check if the web app was closed or inactive for a long time (> 30 mins)
+        if (user) {
+            const lastActive = readLastActiveTime();
+            if (lastActive > 0 && Date.now() - lastActive > IDLE_THRESHOLD_MS) {
+                setIsExpiringSession(true);
+                writeLastActiveTime(Date.now());
+
+                Promise.resolve(logout ? logout() : useStore.setState({ user: null })).finally(() => {
+                    setIsExpiringSession(false);
+                    if (router.pathname !== '/') {
+                        router.replace('/');
+                    }
+                });
+                return;
+            }
+
+            writeLastActiveTime(Date.now());
+        }
+
+        const isLoggedIn = !!user;
+        const isPublicPage =
+            ['/', '/about', '/terms', '/privacy', '/contact', '/404'].includes(router.pathname) ||
+            router.pathname.startsWith('/resources');
+
+        if (!isLoggedIn && !isPublicPage) {
+            router.replace('/');
+        }
+    }, [user, logout, sessionLoaded, router.pathname]);
 
     useEffect(() => {
         const isNewTabSession = typeof window !== 'undefined' && !sessionStorage.getItem('pos_tab_initialized');
@@ -69,21 +141,25 @@ function AuthGate({ children }) {
         }
     }, []);
 
-    if (!sessionLoaded) {
+    if (!sessionLoaded || isExpiringSession) {
         return (
-            <div className="flex items-center justify-center min-h-screen bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300">
-                Loading application...
+            <div className="flex items-center justify-center min-h-screen bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300 text-xs sm:text-sm font-medium">
+                {isExpiringSession ? 'Session expired after inactivity. Returning to login...' : 'Loading application...'}
             </div>
         );
     }
 
-    if (['/', '/about', '/terms', '/privacy', '/contact'].includes(router.pathname) || router.pathname.startsWith('/resources') || user) {
+    if (
+        ['/', '/about', '/terms', '/privacy', '/contact', '/404'].includes(router.pathname) ||
+        router.pathname.startsWith('/resources') ||
+        user
+    ) {
         return children;
     }
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300">
-            Checking authentication...
+        <div className="flex items-center justify-center min-h-screen bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300 text-xs sm:text-sm font-medium">
+            Returning to login...
         </div>
     );
 }
@@ -93,11 +169,13 @@ export default function App({ Component, pageProps }) {
     const dismissToast = useStore(s => s.dismissToast);
     const darkMode = useStore(s => s.darkMode);
     const user = useStore(s => s.user);
+    const logout = useStore(s => s.logout);
     const router = useRouter();
 
     const [isTransitionActive, setIsTransitionActive] = useState(false);
     const [isRouteLoading, setIsRouteLoading] = useState(false);
     const initialCheckDoneRef = useRef(false);
+    const lastWriteThrottleRef = useRef(0);
 
     const [queryClient] = useState(() => new QueryClient({
         defaultOptions: {
@@ -128,6 +206,121 @@ export default function App({ Component, pageProps }) {
         })
     }));
 
+    // Track active usage & redirect to login page (/) if app was closed/inactive for a long time
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+
+        const recordActivityThrottled = () => {
+            if (!useStore.getState().user) return;
+            const now = Date.now();
+            if (now - lastWriteThrottleRef.current > 15000) {
+                lastWriteThrottleRef.current = now;
+                writeLastActiveTime(now);
+            }
+        };
+
+        const handleChunkOrAssetError = (event) => {
+            const msg = String(event?.message || event?.reason?.message || '');
+            const targetSrc = event?.target?.src || event?.target?.href || '';
+
+            const isStaleNextAsset =
+                msg.includes('ChunkLoadError') ||
+                msg.includes('Loading chunk') ||
+                msg.includes('Failed to fetch dynamically imported module') ||
+                targetSrc.includes('/_next/static/');
+
+            if (isStaleNextAsset) {
+                safeHardNavigate('/');
+            }
+        };
+
+        const handleWakeUp = async (persisted = false) => {
+            const now = Date.now();
+            const storedLastActive = readLastActiveTime();
+            const idleDuration = storedLastActive > 0 ? now - storedLastActive : 0;
+
+            if (router.pathname === '/404' || window.location.pathname.toLowerCase() === '/login') {
+                safeHardNavigate('/');
+                return;
+            }
+
+            // If closed or inactive for a long time (> 30 mins), clear session and go to login page (/)
+            if (useStore.getState().user && idleDuration > IDLE_THRESHOLD_MS) {
+                writeLastActiveTime(now);
+                await Promise.resolve(logout ? logout() : useStore.setState({ user: null }));
+                safeHardNavigate('/');
+                return;
+            }
+
+            if (useStore.getState().user) {
+                writeLastActiveTime(now);
+            }
+
+            if (persisted || idleDuration > 5 * 60 * 1000) {
+                const currentBuildId = window.__NEXT_DATA__?.buildId;
+                const currentPath = router.pathname === '/' ? '/index' : router.pathname;
+
+                if (currentBuildId && navigator.onLine !== false) {
+                    try {
+                        const res = await fetch(`/_next/data/${currentBuildId}${currentPath}.json`, {
+                            method: 'HEAD',
+                            cache: 'no-store'
+                        });
+                        if (res.status === 404) {
+                            safeHardNavigate('/');
+                            return;
+                        }
+                    } catch {
+                        // Ignore transient network hiccups while mobile radio wakes up
+                    }
+                }
+
+                queryClient.invalidateQueries({ refetchType: 'all' });
+                queryClient.refetchQueries({ type: 'active' });
+            }
+        };
+
+        const onVisibilityChange = () => {
+            if (document.visibilityState === 'hidden') {
+                if (useStore.getState().user) {
+                    writeLastActiveTime(Date.now());
+                }
+            } else if (document.visibilityState === 'visible') {
+                handleWakeUp(false);
+            }
+        };
+
+        const onPageHide = () => {
+            if (useStore.getState().user) {
+                writeLastActiveTime(Date.now());
+            }
+        };
+
+        const onPageShow = (e) => {
+            if (e.persisted) {
+                handleWakeUp(true);
+            }
+        };
+
+        window.addEventListener('pointerdown', recordActivityThrottled, { passive: true });
+        window.addEventListener('keydown', recordActivityThrottled, { passive: true });
+        window.addEventListener('error', handleChunkOrAssetError, true);
+        window.addEventListener('unhandledrejection', handleChunkOrAssetError);
+        document.addEventListener('visibilitychange', onVisibilityChange);
+        window.addEventListener('pagehide', onPageHide);
+        window.addEventListener('pageshow', onPageShow);
+
+        return () => {
+            window.removeEventListener('pointerdown', recordActivityThrottled);
+            window.removeEventListener('keydown', recordActivityThrottled);
+            window.removeEventListener('error', handleChunkOrAssetError, true);
+            window.removeEventListener('unhandledrejection', handleChunkOrAssetError);
+            document.removeEventListener('visibilitychange', onVisibilityChange);
+            window.removeEventListener('pagehide', onPageHide);
+            window.removeEventListener('pageshow', onPageShow);
+        };
+    }, [router.pathname, queryClient, logout]);
+
     useEffect(() => {
         const checkShouldTransition = (path) => {
             const cleanPath = (path || router.pathname).split('?')[0].split('#')[0].toLowerCase();
@@ -152,6 +345,9 @@ export default function App({ Component, pageProps }) {
 
         const handleRouteChangeDone = async (url) => {
             setIsRouteLoading(false);
+            if (useStore.getState().user) {
+                writeLastActiveTime(Date.now());
+            }
             if (url) {
                 const cleanPath = url.split('?')[0].split('#')[0];
                 await queryClient.invalidateQueries({ refetchType: 'all' });
@@ -164,14 +360,21 @@ export default function App({ Component, pageProps }) {
             }
         };
 
+        const handleRouteChangeError = (err, url) => {
+            setIsRouteLoading(false);
+            if (!err?.cancelled && url) {
+                safeHardNavigate('/');
+            }
+        };
+
         router.events.on('routeChangeStart', handleRouteChangeStart);
         router.events.on('routeChangeComplete', handleRouteChangeDone);
-        router.events.on('routeChangeError', handleRouteChangeDone);
+        router.events.on('routeChangeError', handleRouteChangeError);
 
         return () => {
             router.events.off('routeChangeStart', handleRouteChangeStart);
             router.events.off('routeChangeComplete', handleRouteChangeDone);
-            router.events.off('routeChangeError', handleRouteChangeDone);
+            router.events.off('routeChangeError', handleRouteChangeError);
         };
     }, [router, queryClient]);
 
@@ -188,7 +391,9 @@ export default function App({ Component, pageProps }) {
         document.title = title;
     }, [router.pathname]);
 
-    const isPublicPage = ['/', '/about', '/terms', '/privacy', '/contact'].includes(router.pathname) || router.pathname.startsWith('/resources');
+    const isPublicPage =
+        ['/', '/about', '/terms', '/privacy', '/contact', '/404'].includes(router.pathname) ||
+        router.pathname.startsWith('/resources');
     const hideNav = isPublicPage;
 
     return (

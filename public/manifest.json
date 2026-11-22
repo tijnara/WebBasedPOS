@@ -1,10 +1,11 @@
 {
   "name": "Seaside POS",
   "short_name": "Seaside POS",
-  "start_url": "/login",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#0ea5e9",
+  "theme_color": "#8DB600",
   "icons": [
     {
       "src": "/seasidelogo_.png",
