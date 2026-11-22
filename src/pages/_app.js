@@ -12,6 +12,7 @@ import TabBar from '../components/TabBar';
 import OfflineScreen from '../components/OfflineScreen';
 import GlobalVehicleAlert from '../components/tracking/GlobalVehicleAlert';
 import ScheduledFloaterToast from '../components/ScheduledFloaterToast';
+import { isWebGLAvailable } from '../components/SafeWebGL';
 import { Button } from '../components/ui';
 import { QueryClient, QueryClientProvider, HydrationBoundary, MutationCache } from '@tanstack/react-query';
 import Head from 'next/head';
@@ -50,6 +51,90 @@ const titleMap = {
 const RELOAD_GUARD_KEY = 'seaside_last_auto_reload_ts';
 const LAST_ACTIVE_STORAGE_KEY = 'seaside_last_active_at';
 const IDLE_THRESHOLD_MS = 30 * 60 * 1000; // 30 minutes closed/idle threshold
+
+class TransitionErrorBoundary extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = { hasError: false };
+    }
+
+    static getDerivedStateFromError() {
+        return { hasError: true };
+    }
+
+    componentDidCatch(error) {
+        console.warn('3D Transition skipped:', error?.message || error);
+        this.props.onErrorComplete?.();
+    }
+
+    render() {
+        if (this.state.hasError) return null;
+        return this.props.children;
+    }
+}
+
+class AppErrorBoundary extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = { hasError: false, recoveredWebGL: false };
+    }
+
+    static getDerivedStateFromError(error) {
+        const msg = String(error?.message || error || '');
+        const isWebGLError =
+            msg.includes('WebGL') ||
+            msg.includes('THREE.') ||
+            msg.includes('BindToCurrentSequence');
+
+        if (isWebGLError && typeof window !== 'undefined' && !window.__SEASIDE_DISABLE_3D__) {
+            window.__SEASIDE_DISABLE_3D__ = true;
+            return { hasError: false, recoveredWebGL: true };
+        }
+
+        return { hasError: true, recoveredWebGL: isWebGLError };
+    }
+
+    componentDidCatch(error, info) {
+        console.error('Client exception caught by AppErrorBoundary:', error, info);
+    }
+
+    render() {
+        if (this.state.hasError) {
+            return (
+                <div className="min-h-screen w-full flex items-center justify-center p-5 bg-slate-100 dark:bg-slate-950 text-center">
+                    <div className="max-w-sm w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
+                        <div className="w-14 h-14 rounded-2xl bg-lime-50 dark:bg-lime-950/60 border border-lime-200 dark:border-lime-800/60 flex items-center justify-center mx-auto">
+                            <img src="/seaside.png" alt="Seaside WRS" className="w-9 h-9 object-contain" />
+                        </div>
+                        <div className="space-y-1.5">
+                            <h1 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">
+                                {this.state.recoveredWebGL ? '3D Graphics Disabled on Browser' : 'Display Interrupted'}
+                            </h1>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                                {this.state.recoveredWebGL
+                                    ? 'WebGL is disabled in your browser settings. Tap below to continue in standard mode.'
+                                    : 'An unexpected error occurred while rendering this view.'}
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                if (typeof window !== 'undefined') {
+                                    window.__SEASIDE_DISABLE_3D__ = true;
+                                }
+                                this.setState({ hasError: false });
+                            }}
+                            className="w-full h-10 px-4 rounded-xl bg-[#8DB600] hover:bg-[#7ca000] text-white font-bold text-xs shadow-sm cursor-pointer active:scale-95 transition-all"
+                        >
+                            Continue
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+        return this.props.children;
+    }
+}
 
 function readLastActiveTime() {
     if (typeof window === 'undefined') return 0;
@@ -100,13 +185,11 @@ function AuthGate({ children }) {
 
         const cleanPath = (router.pathname || '').toLowerCase();
 
-        // Catch old cached PWA start_url (/login) immediately -> go to current login page (/)
         if (cleanPath === '/login') {
             router.replace('/');
             return;
         }
 
-        // Check if the web app was closed or inactive for a long time (> 30 mins)
         if (user) {
             const lastActive = readLastActiveTime();
             if (lastActive > 0 && Date.now() - lastActive > IDLE_THRESHOLD_MS) {
@@ -178,6 +261,7 @@ export default function App({ Component, pageProps }) {
     const [isOffline, setIsOffline] = useState(false);
     const [isReconnected, setIsReconnected] = useState(false);
     const [isCheckingConnection, setIsCheckingConnection] = useState(false);
+    const [webglSupported, setWebglSupported] = useState(false);
 
     const initialCheckDoneRef = useRef(false);
     const lastWriteThrottleRef = useRef(0);
@@ -225,7 +309,6 @@ export default function App({ Component, pageProps }) {
     }, []);
 
     const triggerOnlineCelebration = useCallback(async () => {
-        // Refresh data immediately in the background while the celebration plays
         queryClient.invalidateQueries({ refetchType: 'all' });
         queryClient.refetchQueries({ type: 'active' });
 
@@ -235,7 +318,7 @@ export default function App({ Component, pageProps }) {
             return;
         }
 
-        if (reconnectTimerRef.current) return; // Already playing celebration
+        if (reconnectTimerRef.current) return;
 
         setIsReconnected(true);
         reconnectTimerRef.current = setTimeout(() => {
@@ -283,7 +366,6 @@ export default function App({ Component, pageProps }) {
         }
     }, [enterOfflineState, triggerOnlineCelebration]);
 
-    // Global Offline / Disconnected Network Listener (works on all routes & localhost)
     useEffect(() => {
         if (typeof window === 'undefined') return;
 
@@ -296,7 +378,6 @@ export default function App({ Component, pageProps }) {
             verifyInternetConnection();
         };
 
-        // Intercept failed external fetches (e.g. Supabase ERR_INTERNET_DISCONNECTED while on localhost)
         const originalFetch = window.fetch.bind(window);
         window.fetch = async (input, init) => {
             try {
@@ -345,7 +426,6 @@ export default function App({ Component, pageProps }) {
         };
     }, [enterOfflineState, triggerOnlineCelebration, verifyInternetConnection]);
 
-    // Auto-poll every 3.5s while offline so reconnection celebration triggers automatically
     useEffect(() => {
         if (!isOffline || isReconnected) return;
         const interval = setInterval(() => {
@@ -354,7 +434,6 @@ export default function App({ Component, pageProps }) {
         return () => clearInterval(interval);
     }, [isOffline, isReconnected, verifyInternetConnection]);
 
-    // Track active usage & redirect to login page (/) if app was closed/inactive for a long time
     useEffect(() => {
         if (typeof window === 'undefined') return;
 
@@ -478,7 +557,11 @@ export default function App({ Component, pageProps }) {
     }, [router.pathname, queryClient, logout, enterOfflineState]);
 
     useEffect(() => {
+        const hasWebGL = isWebGLAvailable();
+        setWebglSupported(hasWebGL);
+
         const checkShouldTransition = (path) => {
+            if (!hasWebGL) return false;
             const cleanPath = (path || router.pathname).split('?')[0].split('#')[0].toLowerCase();
             return cleanPath === '/' || cleanPath === '/about';
         };
@@ -497,7 +580,7 @@ export default function App({ Component, pageProps }) {
             }
             const targetPath = url.split('?')[0].split('#')[0].toLowerCase();
             const currentPath = router.asPath.split('?')[0].split('#')[0].toLowerCase();
-            if ((targetPath === '/' || targetPath === '/about') && targetPath !== currentPath) {
+            if (hasWebGL && (targetPath === '/' || targetPath === '/about') && targetPath !== currentPath) {
                 setIsRouteLoading(true);
                 setIsTransitionActive(true);
             }
@@ -586,59 +669,63 @@ export default function App({ Component, pageProps }) {
                     />
                 )}
 
-                {isTransitionActive && !isOffline && (
-                    <CinematicTransition
-                        isRouteLoading={isRouteLoading}
-                        onComplete={() => setIsTransitionActive(false)}
-                    />
+                {isTransitionActive && webglSupported && !isOffline && (
+                    <TransitionErrorBoundary onErrorComplete={() => setIsTransitionActive(false)}>
+                        <CinematicTransition
+                            isRouteLoading={isRouteLoading}
+                            onComplete={() => setIsTransitionActive(false)}
+                        />
+                    </TransitionErrorBoundary>
                 )}
 
-                <AuthGate>
-                    <div className={`app responsive-page ${!hideNav ? 'md:pl-64' : ''}`}>
-                        {user?.isDemo && !isPublicPage && (
-                            <div className="fixed top-0 left-0 right-0 z-[9999] bg-amber-50 dark:bg-amber-950/60 border-b border-amber-200 dark:border-amber-800/60 shadow-sm">
-                                <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-center gap-2 text-amber-800 dark:text-amber-200">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-amber-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                                    <span className="text-xs font-bold">Demo Mode — All data is read-only. Adding, editing, and deleting are disabled.</span>
-                                </div>
-                            </div>
-                        )}
-                        {!hideNav && <Navbar />}
-                        {!hideNav && <TabBar />}
-
-                        {isPublicPage ? (
-                            <Component {...pageProps} />
-                        ) : (
-                            <main className="main pb-24 md:pb-6">
-                                <div className="container">
-                                    <Component {...pageProps} />
-                                </div>
-                            </main>
-                        )}
-
-                        <div className="toasts fixed bottom-24 md:bottom-4 right-4 z-50 flex flex-col items-end gap-3" aria-live="polite">
-                            {toasts.map(t => (
-                                <div key={t.id} className={`toast bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4 rounded-lg shadow-xl w-80 max-w-[calc(100vw-2rem)] flex items-start gap-3 ${
-                                    t.variant === 'destructive' ? 'border-l-4 border-red-500' :
-                                        t.variant === 'success' ? 'border-l-4 border-[#8DB600]' :
-                                            t.variant === 'warning' ? 'border-l-4 border-amber-500' : 'border-l-4 border-blue-500'
-                                }`}>
-                                    <div className="flex-1">
-                                        <div className="toast__title font-semibold text-gray-800 dark:text-gray-100">{t.title}</div>
-                                        {t.description && <div className="toast__desc text-sm text-gray-600 dark:text-gray-300 mt-1">{t.description}</div>}
+                <AppErrorBoundary>
+                    <AuthGate>
+                        <div className={`app responsive-page ${!hideNav ? 'md:pl-64' : ''}`}>
+                            {user?.isDemo && !isPublicPage && (
+                                <div className="fixed top-0 left-0 right-0 z-[9999] bg-amber-50 dark:bg-amber-950/60 border-b border-amber-200 dark:border-amber-800/60 shadow-sm">
+                                    <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-center gap-2 text-amber-800 dark:text-amber-200">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-amber-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                                        <span className="text-xs font-bold">Demo Mode — All data is read-only. Adding, editing, and deleting are disabled.</span>
                                     </div>
-                                    <Button type="button" variant="ghost" size="sm" className="p-1 -mr-2 -mt-2 h-auto text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full" onClick={() => dismissToast(t.id)} aria-label="Dismiss toast">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                                            <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" />
-                                        </svg>
-                                    </Button>
                                 </div>
-                            ))}
+                            )}
+                            {!hideNav && <Navbar />}
+                            {!hideNav && <TabBar />}
+
+                            {isPublicPage ? (
+                                <Component {...pageProps} />
+                            ) : (
+                                <main className="main pb-24 md:pb-6">
+                                    <div className="container">
+                                        <Component {...pageProps} />
+                                    </div>
+                                </main>
+                            )}
+
+                            <div className="toasts fixed bottom-24 md:bottom-4 right-4 z-50 flex flex-col items-end gap-3" aria-live="polite">
+                                {toasts.map(t => (
+                                    <div key={t.id} className={`toast bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4 rounded-lg shadow-xl w-80 max-w-[calc(100vw-2rem)] flex items-start gap-3 ${
+                                        t.variant === 'destructive' ? 'border-l-4 border-red-500' :
+                                            t.variant === 'success' ? 'border-l-4 border-[#8DB600]' :
+                                                t.variant === 'warning' ? 'border-l-4 border-amber-500' : 'border-l-4 border-blue-500'
+                                    }`}>
+                                        <div className="flex-1">
+                                            <div className="toast__title font-semibold text-gray-800 dark:text-gray-100">{t.title}</div>
+                                            {t.description && <div className="toast__desc text-sm text-gray-600 dark:text-gray-300 mt-1">{t.description}</div>}
+                                        </div>
+                                        <Button type="button" variant="ghost" size="sm" className="p-1 -mr-2 -mt-2 h-auto text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full" onClick={() => dismissToast(t.id)} aria-label="Dismiss toast">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                                <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" />
+                                            </svg>
+                                        </Button>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
-                    </div>
-                    <GlobalVehicleAlert />
-                    <ScheduledFloaterToast />
-                </AuthGate>
+                        <GlobalVehicleAlert />
+                        <ScheduledFloaterToast />
+                    </AuthGate>
+                </AppErrorBoundary>
                 <div id="modal-root"></div>
                 <SpeedInsights />
                 <Analytics />

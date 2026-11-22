@@ -2,6 +2,7 @@
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { useStore } from '../../store/useStore';
+import { isWebGLAvailable } from '../SafeWebGL';
 import AnimatedLandingIcon from './AnimatedLandingIcon';
 
 const RISING_BUBBLES = [
@@ -21,112 +22,126 @@ export default function LandingBackground({ tilt = { x: 0, y: 0 } }) {
     const webglMountRef = useRef(null);
     const darkMode = useStore((s) => s.darkMode);
 
-    // Subtle WebGL 3D Floating Water Droplet & Caustic Particle Field
+    // Subtle WebGL 3D Floating Water Droplet & Caustic Particle Field (safely skipped if WebGL is disabled)
     useEffect(() => {
         const mount = webglMountRef.current;
-        if (!mount || typeof window === 'undefined') return;
+        if (!mount || typeof window === 'undefined' || !isWebGLAvailable()) return;
 
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(
-            45,
-            window.innerWidth / window.innerHeight,
-            0.1,
-            100
-        );
-        camera.position.z = 12;
+        let renderer = null;
+        let dropGeo = null;
+        let dropMat = null;
+        let frameId = null;
+        let handleResize = null;
 
-        const renderer = new THREE.WebGLRenderer({
-            antialias: true,
-            alpha: true,
-            powerPreference: 'low-power'
-        });
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        mount.appendChild(renderer.domElement);
+        try {
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(
+                45,
+                window.innerWidth / window.innerHeight,
+                0.1,
+                100
+            );
+            camera.position.z = 12;
 
-        const ambient = new THREE.AmbientLight(0xffffff, darkMode ? 1.1 : 1.5);
-        scene.add(ambient);
-
-        const keyLight = new THREE.PointLight(0x38bdf8, darkMode ? 5 : 3.5, 40);
-        keyLight.position.set(-6, 5, 8);
-        scene.add(keyLight);
-
-        const limeLight = new THREE.PointLight(0x8db600, darkMode ? 4.5 : 3.2, 40);
-        limeLight.position.set(6, -4, 8);
-        scene.add(limeLight);
-
-        const dropGeo = new THREE.SphereGeometry(0.32, 20, 20);
-        const pos = dropGeo.attributes.position;
-        for (let i = 0; i < pos.count; i++) {
-            const y = pos.getY(i);
-            if (y > 0) {
-                const taper = Math.max(0.12, 1 - (y / 0.32) * 0.65);
-                pos.setX(i, pos.getX(i) * taper);
-                pos.setZ(i, pos.getZ(i) * taper);
-                pos.setY(i, y * 1.42);
-            }
-        }
-        dropGeo.computeVertexNormals();
-
-        const dropMat = new THREE.MeshPhysicalMaterial({
-            color: darkMode ? 0x38bdf8 : 0x7dd3fc,
-            emissive: 0x8db600,
-            emissiveIntensity: darkMode ? 0.18 : 0.1,
-            transparent: true,
-            opacity: darkMode ? 0.45 : 0.55,
-            roughness: 0.06,
-            clearcoat: 1.0
-        });
-
-        const drops = Array.from({ length: 14 }, (_, idx) => {
-            const mesh = new THREE.Mesh(dropGeo, dropMat);
-            const x = (((idx * 37) % 100) / 100) * 18 - 9;
-            const y = (((idx * 53) % 100) / 100) * 11 - 5.5;
-            const z = (((idx * 29) % 100) / 100) * 5 - 3.5;
-            const scale = 0.4 + (idx % 4) * 0.28;
-            mesh.position.set(x, y, z);
-            mesh.scale.setScalar(scale);
-            scene.add(mesh);
-            return {
-                mesh,
-                baseY: y,
-                baseX: x,
-                speed: 0.45 + (idx % 5) * 0.14,
-                phase: idx * 0.9
-            };
-        });
-
-        const onResize = () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        };
-        window.addEventListener('resize', onResize);
-
-        let frameId;
-        const clock = new THREE.Clock();
-
-        const animate = () => {
-            const t = clock.getElapsedTime();
-            drops.forEach((d) => {
-                d.mesh.position.y = d.baseY + Math.sin(t * d.speed + d.phase) * 0.45;
-                d.mesh.position.x = d.baseX + Math.cos(t * d.speed * 0.7 + d.phase) * 0.25;
-                d.mesh.rotation.z = Math.sin(t * 0.9 + d.phase) * 0.15;
-                d.mesh.rotation.y = t * 0.35 + d.phase;
+            renderer = new THREE.WebGLRenderer({
+                antialias: true,
+                alpha: true,
+                powerPreference: 'low-power'
             });
-            renderer.render(scene, camera);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            mount.appendChild(renderer.domElement);
+
+            const ambient = new THREE.AmbientLight(0xffffff, darkMode ? 1.1 : 1.5);
+            scene.add(ambient);
+
+            const keyLight = new THREE.PointLight(0x38bdf8, darkMode ? 5 : 3.5, 40);
+            keyLight.position.set(-6, 5, 8);
+            scene.add(keyLight);
+
+            const limeLight = new THREE.PointLight(0x8db600, darkMode ? 4.5 : 3.2, 40);
+            limeLight.position.set(6, -4, 8);
+            scene.add(limeLight);
+
+            dropGeo = new THREE.SphereGeometry(0.32, 20, 20);
+            const pos = dropGeo.attributes.position;
+            for (let i = 0; i < pos.count; i++) {
+                const y = pos.getY(i);
+                if (y > 0) {
+                    const taper = Math.max(0.12, 1 - (y / 0.32) * 0.65);
+                    pos.setX(i, pos.getX(i) * taper);
+                    pos.setZ(i, pos.getZ(i) * taper);
+                    pos.setY(i, y * 1.42);
+                }
+            }
+            dropGeo.computeVertexNormals();
+
+            dropMat = new THREE.MeshPhysicalMaterial({
+                color: darkMode ? 0x38bdf8 : 0x7dd3fc,
+                emissive: 0x8db600,
+                emissiveIntensity: darkMode ? 0.18 : 0.1,
+                transparent: true,
+                opacity: darkMode ? 0.45 : 0.55,
+                roughness: 0.06,
+                clearcoat: 1.0
+            });
+
+            const drops = Array.from({ length: 14 }, (_, idx) => {
+                const mesh = new THREE.Mesh(dropGeo, dropMat);
+                const x = (((idx * 37) % 100) / 100) * 18 - 9;
+                const y = (((idx * 53) % 100) / 100) * 11 - 5.5;
+                const z = (((idx * 29) % 100) / 100) * 5 - 3.5;
+                const scale = 0.4 + (idx % 4) * 0.28;
+                mesh.position.set(x, y, z);
+                mesh.scale.setScalar(scale);
+                scene.add(mesh);
+                return {
+                    mesh,
+                    baseY: y,
+                    baseX: x,
+                    speed: 0.45 + (idx % 5) * 0.14,
+                    phase: idx * 0.9
+                };
+            });
+
+            handleResize = () => {
+                if (!renderer) return;
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            };
+            window.addEventListener('resize', handleResize);
+
+            const clock = new THREE.Clock();
+
+            const animate = () => {
+                if (!renderer) return;
+                const t = clock.getElapsedTime();
+                drops.forEach((d) => {
+                    d.mesh.position.y = d.baseY + Math.sin(t * d.speed + d.phase) * 0.45;
+                    d.mesh.position.x = d.baseX + Math.cos(t * d.speed * 0.7 + d.phase) * 0.25;
+                    d.mesh.rotation.z = Math.sin(t * 0.9 + d.phase) * 0.15;
+                    d.mesh.rotation.y = t * 0.35 + d.phase;
+                });
+                renderer.render(scene, camera);
+                frameId = requestAnimationFrame(animate);
+            };
             frameId = requestAnimationFrame(animate);
-        };
-        frameId = requestAnimationFrame(animate);
+        } catch (err) {
+            console.warn('LandingBackground 3D layer skipped (WebGL unavailable):', err?.message || err);
+            window.__SEASIDE_DISABLE_3D__ = true;
+        }
 
         return () => {
-            cancelAnimationFrame(frameId);
-            window.removeEventListener('resize', onResize);
-            dropGeo.dispose();
-            dropMat.dispose();
-            renderer.dispose();
-            if (renderer.domElement && mount.contains(renderer.domElement)) {
-                mount.removeChild(renderer.domElement);
+            if (frameId) cancelAnimationFrame(frameId);
+            if (handleResize) window.removeEventListener('resize', handleResize);
+            if (dropGeo) dropGeo.dispose();
+            if (dropMat) dropMat.dispose();
+            if (renderer) {
+                renderer.dispose();
+                if (renderer.domElement && mount.contains(renderer.domElement)) {
+                    mount.removeChild(renderer.domElement);
+                }
             }
         };
     }, [darkMode]);

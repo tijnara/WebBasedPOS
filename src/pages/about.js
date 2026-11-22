@@ -6,6 +6,7 @@ import { useRouter } from 'next/router';
 import { useSettings } from '../hooks/useSettings';
 import { useStore } from '../store/useStore';
 
+import SafeWebGL from '../components/SafeWebGL';
 import BackgroundImage from '../components/landing/BackgroundImage';
 import LandingBackground from '../components/landing/LandingBackground';
 import LandingGlobalStyles from '../components/landing/LandingGlobalStyles';
@@ -58,10 +59,8 @@ function RevealSection({ children, delay = 0 }) {
 
 export default function SeasideWaterLanding() {
     const { data: settings } = useSettings();
-    const { darkMode, toggleDarkMode } = useStore((s) => ({
-        darkMode: s.darkMode,
-        toggleDarkMode: s.toggleDarkMode
-    }));
+    const darkMode = useStore((s) => s.darkMode);
+    const toggleDarkMode = useStore((s) => s.toggleDarkMode);
     const router = useRouter();
     const [scrolled, setScrolled] = useState(false);
 
@@ -104,7 +103,9 @@ export default function SeasideWaterLanding() {
     return (
         <div className="landing-about-root relative min-h-screen w-full font-sans bg-gradient-to-br from-[#f3fae6] via-[#ecfdf5] to-[#e0f2fe] dark:from-[#060b13] dark:via-[#08101c] dark:to-[#060b13] text-slate-800 dark:text-slate-100 antialiased selection:bg-[#8DB600] selection:text-white dark:[color-scheme:dark] transition-colors duration-300 overflow-x-hidden">
             <BackgroundImage />
-            <LandingBackground />
+            <SafeWebGL fallback={null}>
+                <LandingBackground />
+            </SafeWebGL>
             <Meta />
             <ViewCounter />
 
