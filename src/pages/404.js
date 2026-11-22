@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import Head from 'next/head';
 import { useStore } from '../store/useStore';
+import OfflineScreen from '../components/OfflineScreen';
 import { RefreshCw, ArrowRight } from 'lucide-react';
 
 const CASE_NORMALIZED_ROUTES = {
@@ -31,22 +32,34 @@ export default function Custom404Page() {
     const logout = useStore((s) => s.logout);
     const sessionLoaded = useStore((s) => s.sessionLoaded);
     const [isRecovering, setIsRecovering] = useState(true);
+    const [isOffline, setIsOffline] = useState(false);
 
     useEffect(() => {
-        if (!sessionLoaded || typeof window === 'undefined') return;
+        if (typeof window === 'undefined') return;
+        setIsOffline(navigator.onLine === false);
+        const onOffline = () => setIsOffline(true);
+        const onOnline = () => setIsOffline(false);
+        window.addEventListener('offline', onOffline);
+        window.addEventListener('online', onOnline);
+        return () => {
+            window.removeEventListener('offline', onOffline);
+            window.removeEventListener('online', onOnline);
+        };
+    }, []);
+
+    useEffect(() => {
+        if (!sessionLoaded || typeof window === 'undefined' || isOffline) return;
 
         const recover = async () => {
             const rawPath = window.location.pathname.replace(/\/+$/, '') || '/';
             const lowerPath = rawPath.toLowerCase();
 
-            // 1. Auto-fix case-sensitive routes like /messages -> /Messages
             const matchedRoute = CASE_NORMALIZED_ROUTES[lowerPath];
             if (matchedRoute && matchedRoute !== rawPath) {
                 window.location.replace(matchedRoute + window.location.search);
                 return;
             }
 
-            // 2. Purge any stale PWA CacheStorage entries from older deployments
             try {
                 if ('caches' in window) {
                     const keys = await caches.keys();
@@ -56,7 +69,6 @@ export default function Custom404Page() {
                 // Ignore cache errors
             }
 
-            // 3. Clear expired session and return to current login page (/)
             await Promise.resolve(logout ? logout() : useStore.setState({ user: null }));
 
             const timer = setTimeout(() => {
@@ -68,7 +80,21 @@ export default function Custom404Page() {
         };
 
         recover();
-    }, [sessionLoaded, logout]);
+    }, [sessionLoaded, logout, isOffline]);
+
+    if (isOffline) {
+        return (
+            <OfflineScreen
+                onRetry={async () => {
+                    if (navigator.onLine) {
+                        window.location.replace('/');
+                        return true;
+                    }
+                    return false;
+                }}
+            />
+        );
+    }
 
     return (
         <div className="min-h-[80vh] w-full flex flex-col items-center justify-center p-5 text-center">

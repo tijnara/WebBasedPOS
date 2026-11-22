@@ -4,11 +4,12 @@ import '../../styles/navbar.css';
 import 'react-day-picker/dist/style.css';
 import '../components/pages/POSPage.css';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useStore } from '../store/useStore';
 import { useRouter } from 'next/router';
 import Navbar from '../components/Navbar';
 import TabBar from '../components/TabBar';
+import OfflineScreen from '../components/OfflineScreen';
 import GlobalVehicleAlert from '../components/tracking/GlobalVehicleAlert';
 import ScheduledFloaterToast from '../components/ScheduledFloaterToast';
 import { Button } from '../components/ui';
@@ -74,7 +75,7 @@ function safeHardNavigate(targetUrl) {
 
     try {
         const lastReload = Number(sessionStorage.getItem(RELOAD_GUARD_KEY) || '0');
-        if (Date.now() - lastReload < 15000) return; // Prevent reload loops
+        if (Date.now() - lastReload < 15000) return;
         sessionStorage.setItem(RELOAD_GUARD_KEY, String(Date.now()));
     } catch {
         // Ignore storage errors
@@ -174,8 +175,12 @@ export default function App({ Component, pageProps }) {
 
     const [isTransitionActive, setIsTransitionActive] = useState(false);
     const [isRouteLoading, setIsRouteLoading] = useState(false);
+    const [isOffline, setIsOffline] = useState(false);
+    const [isCheckingConnection, setIsCheckingConnection] = useState(false);
+
     const initialCheckDoneRef = useRef(false);
     const lastWriteThrottleRef = useRef(0);
+    const probeInFlightRef = useRef(false);
 
     const [queryClient] = useState(() => new QueryClient({
         defaultOptions: {
@@ -206,6 +211,106 @@ export default function App({ Component, pageProps }) {
         })
     }));
 
+    const verifyInternetConnection = useCallback(async () => {
+        if (typeof window === 'undefined') return true;
+        if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+            setIsOffline(true);
+            return false;
+        }
+
+        setIsCheckingConnection(true);
+        try {
+            const probeUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+                ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/`
+                : 'https://www.gstatic.com/generate_204';
+
+            await fetch(probeUrl, {
+                method: 'HEAD',
+                mode: 'no-cors',
+                cache: 'no-store'
+            });
+
+            setIsOffline(false);
+            await queryClient.invalidateQueries({ refetchType: 'all' });
+            queryClient.refetchQueries({ type: 'active' });
+            return true;
+        } catch {
+            setIsOffline(true);
+            return false;
+        } finally {
+            setIsCheckingConnection(false);
+        }
+    }, [queryClient]);
+
+    // Global Offline / Disconnected Network Listener (works on all routes & localhost)
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+
+        if (navigator.onLine === false) {
+            setIsOffline(true);
+        }
+
+        const handleOffline = () => setIsOffline(true);
+        const handleOnline = () => {
+            verifyInternetConnection();
+        };
+
+        // Intercept failed external fetches (e.g. Supabase ERR_INTERNET_DISCONNECTED while on localhost)
+        const originalFetch = window.fetch.bind(window);
+        window.fetch = async (input, init) => {
+            try {
+                return await originalFetch(input, init);
+            } catch (err) {
+                const reqUrl = typeof input === 'string' ? input : input?.url || '';
+                const isAborted = Boolean(init?.signal?.aborted || err?.name === 'AbortError');
+                const isExternalApi =
+                    reqUrl.includes('supabase.co') ||
+                    (reqUrl.startsWith('http') && !reqUrl.startsWith(window.location.origin));
+
+                if (!isAborted && isExternalApi) {
+                    if (navigator.onLine === false) {
+                        setIsOffline(true);
+                    } else if (!probeInFlightRef.current) {
+                        probeInFlightRef.current = true;
+                        const probeUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+                            ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/`
+                            : 'https://www.gstatic.com/generate_204';
+
+                        originalFetch(probeUrl, { method: 'HEAD', mode: 'no-cors', cache: 'no-store' })
+                            .then(() => {
+                                setIsOffline(false);
+                            })
+                            .catch(() => {
+                                setIsOffline(true);
+                            })
+                            .finally(() => {
+                                probeInFlightRef.current = false;
+                            });
+                    }
+                }
+                throw err;
+            }
+        };
+
+        window.addEventListener('offline', handleOffline);
+        window.addEventListener('online', handleOnline);
+
+        return () => {
+            window.fetch = originalFetch;
+            window.removeEventListener('offline', handleOffline);
+            window.removeEventListener('online', handleOnline);
+        };
+    }, [verifyInternetConnection]);
+
+    // Auto-poll every 4s while offline so recovery is automatic once Wi-Fi returns
+    useEffect(() => {
+        if (!isOffline) return;
+        const interval = setInterval(() => {
+            verifyInternetConnection();
+        }, 4000);
+        return () => clearInterval(interval);
+    }, [isOffline, verifyInternetConnection]);
+
     // Track active usage & redirect to login page (/) if app was closed/inactive for a long time
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -230,7 +335,11 @@ export default function App({ Component, pageProps }) {
                 targetSrc.includes('/_next/static/');
 
             if (isStaleNextAsset) {
-                safeHardNavigate('/');
+                if (navigator.onLine === false) {
+                    setIsOffline(true);
+                } else {
+                    safeHardNavigate('/');
+                }
             }
         };
 
@@ -239,12 +348,16 @@ export default function App({ Component, pageProps }) {
             const storedLastActive = readLastActiveTime();
             const idleDuration = storedLastActive > 0 ? now - storedLastActive : 0;
 
+            if (navigator.onLine === false) {
+                setIsOffline(true);
+                return;
+            }
+
             if (router.pathname === '/404' || window.location.pathname.toLowerCase() === '/login') {
                 safeHardNavigate('/');
                 return;
             }
 
-            // If closed or inactive for a long time (> 30 mins), clear session and go to login page (/)
             if (useStore.getState().user && idleDuration > IDLE_THRESHOLD_MS) {
                 writeLastActiveTime(now);
                 await Promise.resolve(logout ? logout() : useStore.setState({ user: null }));
@@ -260,7 +373,7 @@ export default function App({ Component, pageProps }) {
                 const currentBuildId = window.__NEXT_DATA__?.buildId;
                 const currentPath = router.pathname === '/' ? '/index' : router.pathname;
 
-                if (currentBuildId && navigator.onLine !== false) {
+                if (currentBuildId) {
                     try {
                         const res = await fetch(`/_next/data/${currentBuildId}${currentPath}.json`, {
                             method: 'HEAD',
@@ -271,7 +384,7 @@ export default function App({ Component, pageProps }) {
                             return;
                         }
                     } catch {
-                        // Ignore transient network hiccups while mobile radio wakes up
+                        // Ignore transient network hiccups
                     }
                 }
 
@@ -335,6 +448,10 @@ export default function App({ Component, pageProps }) {
         }
 
         const handleRouteChangeStart = (url) => {
+            if (navigator.onLine === false) {
+                setIsOffline(true);
+                return;
+            }
             const targetPath = url.split('?')[0].split('#')[0].toLowerCase();
             const currentPath = router.asPath.split('?')[0].split('#')[0].toLowerCase();
             if ((targetPath === '/' || targetPath === '/about') && targetPath !== currentPath) {
@@ -362,6 +479,10 @@ export default function App({ Component, pageProps }) {
 
         const handleRouteChangeError = (err, url) => {
             setIsRouteLoading(false);
+            if (navigator.onLine === false) {
+                setIsOffline(true);
+                return;
+            }
             if (!err?.cancelled && url) {
                 safeHardNavigate('/');
             }
@@ -414,7 +535,14 @@ export default function App({ Component, pageProps }) {
                     <link rel="apple-touch-icon" href="/seasidelogo_.png" />
                 </Head>
 
-                {isTransitionActive && (
+                {isOffline && (
+                    <OfflineScreen
+                        onRetry={verifyInternetConnection}
+                        isChecking={isCheckingConnection}
+                    />
+                )}
+
+                {isTransitionActive && !isOffline && (
                     <CinematicTransition
                         isRouteLoading={isRouteLoading}
                         onComplete={() => setIsTransitionActive(false)}
