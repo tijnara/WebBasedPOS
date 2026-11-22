@@ -22,7 +22,7 @@ export default function LandingBackground({ tilt = { x: 0, y: 0 } }) {
     const webglMountRef = useRef(null);
     const darkMode = useStore((s) => s.darkMode);
 
-    // Subtle WebGL 3D Floating Water Droplet & Caustic Particle Field (safely skipped if WebGL is disabled)
+    // Subtle WebGL 3D Floating Water Droplet & Caustic Particle Field
     useEffect(() => {
         const mount = webglMountRef.current;
         if (!mount || typeof window === 'undefined' || !isWebGLAvailable()) return;
@@ -30,6 +30,7 @@ export default function LandingBackground({ tilt = { x: 0, y: 0 } }) {
         let renderer = null;
         let dropGeo = null;
         let dropMat = null;
+        let timer = null;
         let frameId = null;
         let handleResize = null;
 
@@ -112,11 +113,14 @@ export default function LandingBackground({ tilt = { x: 0, y: 0 } }) {
             };
             window.addEventListener('resize', handleResize);
 
-            const clock = new THREE.Clock();
+            timer = new THREE.Timer();
+            timer.connect(document);
 
-            const animate = () => {
-                if (!renderer) return;
-                const t = clock.getElapsedTime();
+            const animate = (timestamp) => {
+                if (!renderer || !timer) return;
+                timer.update(timestamp);
+                const t = timer.getElapsed();
+
                 drops.forEach((d) => {
                     d.mesh.position.y = d.baseY + Math.sin(t * d.speed + d.phase) * 0.45;
                     d.mesh.position.x = d.baseX + Math.cos(t * d.speed * 0.7 + d.phase) * 0.25;
@@ -135,6 +139,7 @@ export default function LandingBackground({ tilt = { x: 0, y: 0 } }) {
         return () => {
             if (frameId) cancelAnimationFrame(frameId);
             if (handleResize) window.removeEventListener('resize', handleResize);
+            if (timer) timer.dispose();
             if (dropGeo) dropGeo.dispose();
             if (dropMat) dropMat.dispose();
             if (renderer) {

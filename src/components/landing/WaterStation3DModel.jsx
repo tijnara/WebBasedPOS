@@ -1,6 +1,7 @@
 // src/components/landing/WaterStation3DModel.jsx
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
+import { isWebGLAvailable } from '../SafeWebGL';
 
 function normalizeStationBrand(stationName = 'SEASIDE') {
     const raw = String(stationName || 'SEASIDE').trim();
@@ -946,6 +947,62 @@ export function buildSlimContainer3D({
     return { group, update, dispose };
 }
 
+function Containers2DFallback({ selectedContainer, darkMode, stationName }) {
+    const brand = normalizeStationBrand(stationName);
+    const showRound = selectedContainer === 'both' || selectedContainer === 'round';
+    const showSlim = selectedContainer === 'both' || selectedContainer === 'slim';
+
+    return (
+        <div className="w-full h-full min-h-[275px] sm:min-h-[305px] flex items-center justify-center gap-6 px-4 pb-8 select-none">
+            {showRound && (
+                <div className="flex flex-col items-center">
+                    <svg className="w-28 h-36 sm:w-32 sm:h-40 drop-shadow-md" viewBox="0 0 140 175" fill="none">
+                        <rect x="53" y="8" width="34" height="12" rx="4" fill="#f8fafc" stroke="#cbd5e1" />
+                        <rect x="49" y="20" width="42" height="7" rx="3" fill="#0284c7" />
+                        <path
+                            d="M54 27H86C86 38 114 44 114 60V145C114 155 107 162 97 162H43C33 162 26 155 26 145V60C26 44 54 38 54 27Z"
+                            fill={darkMode ? 'rgba(56,189,248,0.22)' : 'rgba(186,230,253,0.45)'}
+                            stroke="#0284c7"
+                            strokeWidth="2.5"
+                        />
+                        <path
+                            d="M29 66C50 61 70 71 90 66C101 63 107 65 111 66V144C111 152 105 159 96 159H44C35 159 29 152 29 144V66Z"
+                            fill="#38bdf8"
+                            fillOpacity="0.82"
+                        />
+                        <text x="70" y="122" textAnchor="middle" fill="#0f172a" fontSize="13" fontWeight="900">
+                            {brand}
+                        </text>
+                        <text x="70" y="135" textAnchor="middle" fill="#0369a1" fontSize="6.5" fontWeight="800">
+                            20L ROUND
+                        </text>
+                    </svg>
+                </div>
+            )}
+
+            {showSlim && (
+                <div className="flex flex-col items-center">
+                    <svg className="w-28 h-36 sm:w-32 sm:h-40 drop-shadow-md" viewBox="0 0 140 175" fill="none">
+                        <path d="M52 24V12H84V24" stroke="#8DB600" strokeWidth="7" strokeLinecap="round" />
+                        <rect x="86" y="14" width="22" height="10" rx="3" fill="#0265d2" />
+                        <rect x="34" y="24" width="72" height="138" rx="14" fill="#8DB600" />
+                        <rect x="46" y="46" width="48" height="62" rx="6" fill="#ffffff" />
+                        <rect x="46" y="46" width="48" height="11" rx="3" fill="#dc2626" />
+                        <text x="70" y="76" textAnchor="middle" fill="#0369a1" fontSize="10" fontWeight="900">
+                            {brand}
+                        </text>
+                        <text x="70" y="88" textAnchor="middle" fill="#4d7c0f" fontSize="6.5" fontWeight="800">
+                            20L SLIM
+                        </text>
+                        <rect x="92" y="132" width="18" height="10" rx="3" fill="#f8fafc" />
+                        <rect x="98" y="124" width="6" height="10" rx="2" fill="#dc2626" />
+                    </svg>
+                </div>
+            )}
+        </div>
+    );
+}
+
 export default function WaterStation3DModel({
                                                 darkMode = false,
                                                 interactive = true,
@@ -954,6 +1011,7 @@ export default function WaterStation3DModel({
                                             }) {
     const containerRef = useRef(null);
     const [selectedContainer, setSelectedContainer] = useState('both'); // 'both' | 'round' | 'slim'
+    const [webglUnavailable, setWebglUnavailable] = useState(false);
     const selectedContainerRef = useRef(selectedContainer);
     selectedContainerRef.current = selectedContainer;
 
@@ -961,74 +1019,20 @@ export default function WaterStation3DModel({
         const container = containerRef.current;
         if (!container || typeof window === 'undefined') return;
 
+        if (!isWebGLAvailable()) {
+            setWebglUnavailable(true);
+            return;
+        }
+
         let width = container.clientWidth || 360;
         let height = container.clientHeight || 340;
 
-        // 1. Scene & Camera
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(35, width / height, 0.1, 100);
-        camera.position.set(0, 0.35, 7.6);
+        let renderer = null;
+        let roundCarboy = null;
+        let slimContainer = null;
+        let timer = null;
+        let animationFrameId = null;
 
-        // 2. WebGL Renderer
-        const renderer = new THREE.WebGLRenderer({
-            antialias: true,
-            alpha: true,
-            powerPreference: 'high-performance'
-        });
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-        renderer.setSize(width, height);
-        renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = darkMode ? 1.24 : 1.1;
-        container.appendChild(renderer.domElement);
-
-        // 3. Studio Lighting
-        const ambientLight = new THREE.AmbientLight(
-            darkMode ? 0xe0f2fe : 0xffffff,
-            darkMode ? 1.25 : 1.65
-        );
-        scene.add(ambientLight);
-
-        const keyLight = new THREE.DirectionalLight(0xffffff, darkMode ? 2.5 : 2.2);
-        keyLight.position.set(4.5, 6.5, 5.5);
-        scene.add(keyLight);
-
-        const aquaRimLight = new THREE.PointLight(0x38bdf8, darkMode ? 5.2 : 3.4, 20);
-        aquaRimLight.position.set(-4.5, 2.5, 3.8);
-        scene.add(aquaRimLight);
-
-        const limeAccentLight = new THREE.PointLight(0x8db600, darkMode ? 4.4 : 2.8, 20);
-        limeAccentLight.position.set(4.5, -1.5, 3.5);
-        scene.add(limeAccentLight);
-
-        const backLight = new THREE.DirectionalLight(0xbae6fd, 1.5);
-        backLight.position.set(0, 3, -5);
-        scene.add(backLight);
-
-        // Root Group
-        const rootGroup = new THREE.Group();
-        rootGroup.position.y = -0.1;
-        scene.add(rootGroup);
-
-        // Build both authentic 3D containers
-        const roundCarboy = buildRoundCarboy3D({
-            darkMode,
-            stationName,
-            initialFill: 0.86,
-            withCap: true
-        });
-        rootGroup.add(roundCarboy.group);
-
-        const slimContainer = buildSlimContainer3D({
-            darkMode,
-            stationName,
-            tdsLabel,
-            initialFill: 0.86,
-            withCap: true,
-            showSightGauge: false
-        });
-        rootGroup.add(slimContainer.group);
-
-        // Pointer Interaction (Drag to Spin + Hover Parallax)
         let targetRotY = -0.16;
         let targetRotX = 0.07;
         let isDragging = false;
@@ -1070,91 +1074,173 @@ export default function WaterStation3DModel({
             targetRotX = 0.07;
         };
 
-        container.addEventListener('pointerdown', onPointerDown);
-        window.addEventListener('pointermove', onPointerMove);
-        window.addEventListener('pointerup', onPointerUp);
-        container.addEventListener('pointerleave', onPointerLeave);
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(35, width / height, 0.1, 100);
+        camera.position.set(0, 0.35, 7.6);
 
         const handleResize = () => {
-            if (!container) return;
+            if (!container || !renderer) return;
             width = container.clientWidth || 360;
             height = container.clientHeight || 340;
             camera.aspect = width / height;
             camera.updateProjectionMatrix();
             renderer.setSize(width, height);
         };
-        window.addEventListener('resize', handleResize);
 
-        // 60FPS Animation Loop
-        let animationFrameId;
-        const clock = new THREE.Clock();
+        try {
+            // WebGL Renderer
+            renderer = new THREE.WebGLRenderer({
+                antialias: true,
+                alpha: true,
+                powerPreference: 'high-performance'
+            });
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+            renderer.setSize(width, height);
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = darkMode ? 1.24 : 1.1;
+            container.appendChild(renderer.domElement);
 
-        const animate = () => {
-            const t = clock.getElapsedTime();
-            const mode = selectedContainerRef.current;
+            // Studio Lighting
+            const ambientLight = new THREE.AmbientLight(
+                darkMode ? 0xe0f2fe : 0xffffff,
+                darkMode ? 1.25 : 1.65
+            );
+            scene.add(ambientLight);
 
-            const targetRoundX = mode === 'both' ? -1.04 : 0;
-            const targetRoundScale = mode === 'slim' ? 0.001 : mode === 'both' ? 0.88 : 1.05;
-            const targetSlimX = mode === 'both' ? 1.06 : 0;
-            const targetSlimScale = mode === 'round' ? 0.001 : mode === 'both' ? 0.9 : 1.06;
-            const targetCamZ = mode === 'both' ? 7.8 : 6.4;
+            const keyLight = new THREE.DirectionalLight(0xffffff, darkMode ? 2.5 : 2.2);
+            keyLight.position.set(4.5, 6.5, 5.5);
+            scene.add(keyLight);
 
-            roundCarboy.group.visible = roundCarboy.group.scale.x > 0.02;
-            slimContainer.group.visible = slimContainer.group.scale.x > 0.02;
+            const aquaRimLight = new THREE.PointLight(0x38bdf8, darkMode ? 5.2 : 3.4, 20);
+            aquaRimLight.position.set(-4.5, 2.5, 3.8);
+            scene.add(aquaRimLight);
 
-            roundCarboy.group.position.x += (targetRoundX - roundCarboy.group.position.x) * 0.1;
-            roundCarboy.group.position.y = Math.sin(t * 1.7) * 0.045;
-            roundCarboy.group.rotation.y = mode === 'both' ? 0.16 : 0;
-            const nextRoundS =
-                roundCarboy.group.scale.x + (targetRoundScale - roundCarboy.group.scale.x) * 0.12;
-            roundCarboy.group.scale.setScalar(nextRoundS);
+            const limeAccentLight = new THREE.PointLight(0x8db600, darkMode ? 4.4 : 2.8, 20);
+            limeAccentLight.position.set(4.5, -1.5, 3.5);
+            scene.add(limeAccentLight);
 
-            slimContainer.group.position.x += (targetSlimX - slimContainer.group.position.x) * 0.1;
-            slimContainer.group.position.y = Math.sin(t * 1.7 + 1.1) * 0.045;
-            slimContainer.group.rotation.y = mode === 'both' ? -0.34 : -0.26;
-            const nextSlimS =
-                slimContainer.group.scale.x + (targetSlimScale - slimContainer.group.scale.x) * 0.12;
-            slimContainer.group.scale.setScalar(nextSlimS);
+            const backLight = new THREE.DirectionalLight(0xbae6fd, 1.5);
+            backLight.position.set(0, 3, -5);
+            scene.add(backLight);
 
-            camera.position.z += (targetCamZ - camera.position.z) * 0.1;
+            // Root Group
+            const rootGroup = new THREE.Group();
+            rootGroup.position.y = -0.1;
+            scene.add(rootGroup);
 
-            const autoSpin = isDragging ? 0 : Math.sin(t * 0.55) * 0.18;
-            rootGroup.rotation.y += (targetRotY + autoSpin - rootGroup.rotation.y) * 0.07;
-            rootGroup.rotation.x += (targetRotX - rootGroup.rotation.x) * 0.07;
+            // Build both authentic 3D containers
+            roundCarboy = buildRoundCarboy3D({
+                darkMode,
+                stationName,
+                initialFill: 0.86,
+                withCap: true
+            });
+            rootGroup.add(roundCarboy.group);
 
-            roundCarboy.update(t, { fillFraction: 0.86, isPouring: false, capState: 'sealed' });
-            slimContainer.update(t, { fillFraction: 0.86, capState: 'sealed' });
+            slimContainer = buildSlimContainer3D({
+                darkMode,
+                stationName,
+                tdsLabel,
+                initialFill: 0.86,
+                withCap: true,
+                showSightGauge: false
+            });
+            rootGroup.add(slimContainer.group);
 
-            renderer.render(scene, camera);
+            container.addEventListener('pointerdown', onPointerDown);
+            window.addEventListener('pointermove', onPointerMove);
+            window.addEventListener('pointerup', onPointerUp);
+            container.addEventListener('pointerleave', onPointerLeave);
+            window.addEventListener('resize', handleResize);
+
+            // 60FPS Animation Loop using THREE.Timer (replaces deprecated THREE.Clock)
+            timer = new THREE.Timer();
+            timer.connect?.(document);
+
+            const animate = (timestamp) => {
+                if (!renderer || !timer) return;
+                timer.update(timestamp);
+                const t = timer.getElapsed();
+                const mode = selectedContainerRef.current;
+
+                const targetRoundX = mode === 'both' ? -1.04 : 0;
+                const targetRoundScale = mode === 'slim' ? 0.001 : mode === 'both' ? 0.88 : 1.05;
+                const targetSlimX = mode === 'both' ? 1.06 : 0;
+                const targetSlimScale = mode === 'round' ? 0.001 : mode === 'both' ? 0.9 : 1.06;
+                const targetCamZ = mode === 'both' ? 7.8 : 6.4;
+
+                roundCarboy.group.visible = roundCarboy.group.scale.x > 0.02;
+                slimContainer.group.visible = slimContainer.group.scale.x > 0.02;
+
+                roundCarboy.group.position.x += (targetRoundX - roundCarboy.group.position.x) * 0.1;
+                roundCarboy.group.position.y = Math.sin(t * 1.7) * 0.045;
+                roundCarboy.group.rotation.y = mode === 'both' ? 0.16 : 0;
+                const nextRoundS =
+                    roundCarboy.group.scale.x + (targetRoundScale - roundCarboy.group.scale.x) * 0.12;
+                roundCarboy.group.scale.setScalar(nextRoundS);
+
+                slimContainer.group.position.x += (targetSlimX - slimContainer.group.position.x) * 0.1;
+                slimContainer.group.position.y = Math.sin(t * 1.7 + 1.1) * 0.045;
+                slimContainer.group.rotation.y = mode === 'both' ? -0.34 : -0.26;
+                const nextSlimS =
+                    slimContainer.group.scale.x + (targetSlimScale - slimContainer.group.scale.x) * 0.12;
+                slimContainer.group.scale.setScalar(nextSlimS);
+
+                camera.position.z += (targetCamZ - camera.position.z) * 0.1;
+
+                const autoSpin = isDragging ? 0 : Math.sin(t * 0.55) * 0.18;
+                rootGroup.rotation.y += (targetRotY + autoSpin - rootGroup.rotation.y) * 0.07;
+                rootGroup.rotation.x += (targetRotX - rootGroup.rotation.x) * 0.07;
+
+                roundCarboy.update(t, { fillFraction: 0.86, isPouring: false, capState: 'sealed' });
+                slimContainer.update(t, { fillFraction: 0.86, capState: 'sealed' });
+
+                renderer.render(scene, camera);
+                animationFrameId = requestAnimationFrame(animate);
+            };
+
             animationFrameId = requestAnimationFrame(animate);
-        };
-
-        animationFrameId = requestAnimationFrame(animate);
+        } catch (err) {
+            console.warn('WaterStation3DModel switched to 2D fallback (WebGL unavailable):', err?.message || err);
+            window.__SEASIDE_DISABLE_3D__ = true;
+            setWebglUnavailable(true);
+        }
 
         return () => {
-            cancelAnimationFrame(animationFrameId);
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
             window.removeEventListener('resize', handleResize);
             container.removeEventListener('pointerdown', onPointerDown);
             window.removeEventListener('pointermove', onPointerMove);
             window.removeEventListener('pointerup', onPointerUp);
             container.removeEventListener('pointerleave', onPointerLeave);
 
-            roundCarboy.dispose();
-            slimContainer.dispose();
-            renderer.dispose();
-            if (renderer.domElement && container.contains(renderer.domElement)) {
-                container.removeChild(renderer.domElement);
+            timer?.dispose?.();
+            roundCarboy?.dispose?.();
+            slimContainer?.dispose?.();
+            if (renderer) {
+                renderer.dispose();
+                if (renderer.domElement && container.contains(renderer.domElement)) {
+                    container.removeChild(renderer.domElement);
+                }
             }
         };
     }, [darkMode, interactive, stationName, tdsLabel]);
 
     return (
         <div className="relative w-full h-full min-h-[275px] sm:min-h-[305px]">
-            <div
-                ref={containerRef}
-                className="w-full h-full min-h-[275px] sm:min-h-[305px] cursor-grab active:cursor-grabbing select-none touch-none"
-                title="Drag to rotate 20L containers"
-            />
+            {webglUnavailable ? (
+                <Containers2DFallback
+                    selectedContainer={selectedContainer}
+                    darkMode={darkMode}
+                    stationName={stationName}
+                />
+            ) : (
+                <div
+                    ref={containerRef}
+                    className="w-full h-full min-h-[275px] sm:min-h-[305px] cursor-grab active:cursor-grabbing select-none touch-none"
+                    title="Drag to rotate 20L containers"
+                />
+            )}
 
             {/* Container Type Switcher Pill */}
             <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1 p-1 rounded-full bg-white/90 dark:bg-slate-950/80 backdrop-blur-md border border-slate-200/80 dark:border-white/15 shadow-sm">

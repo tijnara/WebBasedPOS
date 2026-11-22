@@ -17,6 +17,7 @@ import {
     CloudCheck,
     X
 } from 'lucide-react';
+import { isWebGLAvailable } from '../SafeWebGL';
 import { buildRoundCarboy3D, buildSlimContainer3D } from './WaterStation3DModel';
 import { waterSoundEngine } from '../../utils/waterSoundEngine';
 import {
@@ -24,6 +25,132 @@ import {
     useRefillGameLeaderboard,
     useRecordRefillRun
 } from '../../hooks/useRefillGame';
+
+function RefillBay2DFallback({ jugType, phase, sanitizePct, liters, darkMode, stationName }) {
+    const fillRatio = Math.min(1, Math.max(0, liters / 20));
+    const isOverflow = liters > 20.08;
+    const waterHeight = Math.round(fillRatio * 88);
+    const waterY = 148 - waterHeight;
+
+    return (
+        <div className="w-full h-full flex items-center justify-center relative select-none">
+            <svg className="w-44 h-44 sm:w-48 sm:h-48 drop-shadow-md" viewBox="0 0 180 180" fill="none">
+                {/* Overhead Dispensing Nozzle */}
+                <rect x="82" y="6" width="16" height="18" rx="3" fill="#64748b" />
+                <rect x="76" y="22" width="28" height="7" rx="3" fill="#94a3b8" />
+                <rect x="86" y="29" width="8" height="10" rx="2" fill="#cbd5e1" />
+
+                {/* Ozone Sanitize Cone */}
+                {phase === 'sanitize' && sanitizePct > 0 && sanitizePct < 100 && (
+                    <polygon
+                        points="86,39 94,39 124,148 56,148"
+                        fill="#38bdf8"
+                        fillOpacity="0.22"
+                    />
+                )}
+
+                {/* Pouring Water Stream */}
+                {phase === 'fill' && liters > 0 && !isOverflow && (
+                    <rect
+                        x="87"
+                        y="39"
+                        width="6"
+                        height={Math.max(12, waterY - 37)}
+                        fill="#38bdf8"
+                        fillOpacity="0.85"
+                    />
+                )}
+
+                {jugType === 'round' ? (
+                    <>
+                        {/* Round 20L Carboy */}
+                        <path
+                            d="M78 44H102C102 52 124 57 124 70V142C124 150 118 156 110 156H70C62 156 56 150 56 142V70C56 57 78 52 78 44Z"
+                            fill={darkMode ? 'rgba(56,189,248,0.18)' : 'rgba(186,230,253,0.45)'}
+                            stroke="#0284c7"
+                            strokeWidth="2.5"
+                        />
+                        {fillRatio > 0.01 && (
+                            <rect
+                                x="58"
+                                y={waterY}
+                                width="64"
+                                height={waterHeight + 6}
+                                rx="6"
+                                fill={isOverflow ? '#ef4444' : '#38bdf8'}
+                                fillOpacity="0.8"
+                            />
+                        )}
+                        {/* Sweet-Spot 20.0L Ring */}
+                        <line
+                            x1="52"
+                            y1="62"
+                            x2="128"
+                            y2="62"
+                            stroke={isOverflow ? '#ef4444' : '#8DB600'}
+                            strokeWidth="2"
+                            strokeDasharray="4 3"
+                        />
+                        {/* Cap */}
+                        {(phase === 'cap' || phase === 'result') && (
+                            <rect
+                                x="76"
+                                y={phase === 'result' ? '36' : '28'}
+                                width="28"
+                                height="9"
+                                rx="3"
+                                fill="#f8fafc"
+                                stroke="#94a3b8"
+                            />
+                        )}
+                    </>
+                ) : (
+                    <>
+                        {/* Slim 20L Container */}
+                        <rect x="60" y="46" width="60" height="110" rx="12" fill="#8DB600" />
+                        <rect x="66" y="64" width="8" height="84" rx="4" fill="#0f172a" fillOpacity="0.45" />
+                        {fillRatio > 0.01 && (
+                            <rect
+                                x="67"
+                                y={Math.max(66, 146 - Math.round(fillRatio * 80))}
+                                width="6"
+                                height={Math.min(80, Math.round(fillRatio * 80))}
+                                rx="3"
+                                fill={isOverflow ? '#ef4444' : '#38bdf8'}
+                            />
+                        )}
+                        <rect x="78" y="68" width="34" height="44" rx="5" fill="#ffffff" />
+                        <text x="95" y="92" textAnchor="middle" fill="#0369a1" fontSize="7.5" fontWeight="900">
+                            {stationName.slice(0, 8).toUpperCase()}
+                        </text>
+                        <line
+                            x1="54"
+                            y1="66"
+                            x2="126"
+                            y2="66"
+                            stroke={isOverflow ? '#ef4444' : '#a3e635'}
+                            strokeWidth="2"
+                            strokeDasharray="4 3"
+                        />
+                        {(phase === 'cap' || phase === 'result') && (
+                            <rect
+                                x="78"
+                                y={phase === 'result' ? '38' : '30'}
+                                width="24"
+                                height="9"
+                                rx="3"
+                                fill="#0265d2"
+                            />
+                        )}
+                    </>
+                )}
+
+                {/* Stainless Drip Tray */}
+                <rect x="34" y="157" width="112" height="10" rx="4" fill="#64748b" />
+            </svg>
+        </div>
+    );
+}
 
 export default function RefillSimulatorGame({
                                                 darkMode = false,
@@ -50,6 +177,7 @@ export default function RefillSimulatorGame({
     const [showLeaderboard, setShowLeaderboard] = useState(false);
     const [soundEnabled, setSoundEnabled] = useState(true);
     const [hasHydratedStats, setHasHydratedStats] = useState(false);
+    const [webglUnavailable, setWebglUnavailable] = useState(false);
 
     // Hydrate cumulative score & completed jugs from Supabase once loaded
     useEffect(() => {
@@ -72,7 +200,7 @@ export default function RefillSimulatorGame({
         };
     }, []);
 
-    // Live simulation state ref read at 60fps by the Three.js loop
+    // Live simulation state ref read at 60fps by the animation loop
     const simRef = useRef({
         jugType: 'round',
         phase: 'sanitize',
@@ -192,7 +320,7 @@ export default function RefillSimulatorGame({
         [identity, jugsCompleted, recordRun, score, streak]
     );
 
-    // Keep latest finalizeFillAndSeal in a ref so the Three.js useEffect never restarts mid-game
+    // Keep latest finalizeFillAndSeal in a ref so the loop never restarts mid-game
     const finalizeRef = useRef(finalizeFillAndSeal);
     finalizeRef.current = finalizeFillAndSeal;
 
@@ -226,7 +354,7 @@ export default function RefillSimulatorGame({
         }
     }, []);
 
-    // Global pointerup / pointercancel + Spacebar support (prevents accidental leave cancellation)
+    // Global pointerup / pointercancel + Spacebar support
     useEffect(() => {
         const onGlobalPointerRelease = () => {
             if (simRef.current.isHolding) {
@@ -264,297 +392,15 @@ export default function RefillSimulatorGame({
         };
     }, [handleHoldStart, handleHoldEnd]);
 
-    // Three.js 3D WebGL Refilling Bay Scene (Stable dependencies — never resets during active play)
+    // Headless 2D Simulation Loop when WebGL is disabled in the browser
     useEffect(() => {
-        const mount = isExpanded ? expandedMountRef.current : inlineMountRef.current;
-        if (!mount || typeof window === 'undefined') return;
-
-        let width = mount.clientWidth || 340;
-        let height = mount.clientHeight || 225;
-
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(36, width / height, 0.1, 100);
-        camera.position.set(0, 0.35, 7.6);
-
-        const renderer = new THREE.WebGLRenderer({
-            antialias: true,
-            alpha: true,
-            powerPreference: 'high-performance'
-        });
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-        renderer.setSize(width, height);
-        renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = darkMode ? 1.24 : 1.12;
-        mount.appendChild(renderer.domElement);
-
-        const disposables = [];
-        const trackGeo = (g) => {
-            disposables.push(g);
-            return g;
-        };
-        const trackMat = (m) => {
-            disposables.push(m);
-            return m;
-        };
-
-        // 1. Studio Lighting
-        scene.add(
-            new THREE.AmbientLight(darkMode ? 0xe0f2fe : 0xffffff, darkMode ? 1.25 : 1.65)
-        );
-
-        const keyLight = new THREE.DirectionalLight(0xffffff, darkMode ? 2.5 : 2.2);
-        keyLight.position.set(4.5, 6.5, 5.5);
-        scene.add(keyLight);
-
-        const aquaLight = new THREE.PointLight(0x38bdf8, darkMode ? 5.2 : 3.4, 20);
-        aquaLight.position.set(-4.2, 2.5, 3.8);
-        scene.add(aquaLight);
-
-        const limeLight = new THREE.PointLight(0x8db600, darkMode ? 4.4 : 2.8, 20);
-        limeLight.position.set(4.2, -1.5, 3.5);
-        scene.add(limeLight);
-
-        // Bay Stage Group
-        const bayGroup = new THREE.Group();
-        bayGroup.position.y = -0.25;
-        scene.add(bayGroup);
-
-        // 2. 3D Stainless Steel Slotted Drip Tray Base
-        const trayMat = trackMat(
-            new THREE.MeshStandardMaterial({
-                color: darkMode ? 0x64748b : 0x94a3b8,
-                metalness: 0.72,
-                roughness: 0.28
-            })
-        );
-        const trayBase = new THREE.Mesh(
-            trackGeo(new THREE.BoxGeometry(3.2, 0.16, 2.3)),
-            trayMat
-        );
-        trayBase.position.y = -1.56;
-        bayGroup.add(trayBase);
-
-        const slotMat = trackMat(new THREE.MeshBasicMaterial({ color: 0x0f172a }));
-        const slotGeo = trackGeo(new THREE.BoxGeometry(0.11, 0.02, 1.75));
-        for (let sx = -1.25; sx <= 1.25; sx += 0.28) {
-            const slot = new THREE.Mesh(slotGeo, slotMat);
-            slot.position.set(sx, -1.475, 0);
-            bayGroup.add(slot);
-        }
-
-        const puddleMesh = new THREE.Mesh(
-            trackGeo(new THREE.CylinderGeometry(1.38, 1.44, 0.03, 36)),
-            trackMat(
-                new THREE.MeshPhysicalMaterial({
-                    color: 0x38bdf8,
-                    transparent: true,
-                    opacity: 0.65,
-                    roughness: 0.08
-                })
-            )
-        );
-        puddleMesh.position.y = -1.46;
-        puddleMesh.visible = false;
-        bayGroup.add(puddleMesh);
-
-        // 3. 3D Stainless Steel Overhead Dispensing Nozzle
-        const nozzleGroup = new THREE.Group();
-        nozzleGroup.position.set(0, 2.02, 0);
-
-        const pipeMesh = new THREE.Mesh(
-            trackGeo(new THREE.CylinderGeometry(0.16, 0.16, 0.55, 28)),
-            trayMat
-        );
-        pipeMesh.position.y = 0.28;
-        nozzleGroup.add(pipeMesh);
-
-        const collarMesh = new THREE.Mesh(
-            trackGeo(new THREE.CylinderGeometry(0.24, 0.24, 0.12, 28)),
-            trayMat
-        );
-        nozzleGroup.add(collarMesh);
-
-        const statusLedMat = trackMat(
-            new THREE.MeshStandardMaterial({
-                color: 0x38bdf8,
-                emissive: 0x38bdf8,
-                emissiveIntensity: 1.4
-            })
-        );
-        const statusLedRing = new THREE.Mesh(
-            trackGeo(new THREE.TorusGeometry(0.245, 0.02, 10, 32)),
-            statusLedMat
-        );
-        statusLedRing.rotation.x = Math.PI / 2;
-        nozzleGroup.add(statusLedRing);
-
-        const tipMesh = new THREE.Mesh(
-            trackGeo(new THREE.CylinderGeometry(0.08, 0.075, 0.22, 24)),
-            trackMat(
-                new THREE.MeshStandardMaterial({
-                    color: 0xe2e8f0,
-                    metalness: 0.85,
-                    roughness: 0.18
-                })
-            )
-        );
-        tipMesh.position.y = -0.15;
-        nozzleGroup.add(tipMesh);
-
-        bayGroup.add(nozzleGroup);
-
-        // 4. Actual 3D Round Carboy & 3D Slim Container Models
-        const roundCarboy = buildRoundCarboy3D({
-            darkMode,
-            stationName,
-            initialFill: simRef.current.liters / 20,
-            withCap: false
-        });
-        bayGroup.add(roundCarboy.group);
-
-        const slimContainer = buildSlimContainer3D({
-            darkMode,
-            stationName,
-            tdsLabel,
-            initialFill: simRef.current.liters / 20,
-            withCap: false,
-            showSightGauge: true
-        });
-        bayGroup.add(slimContainer.group);
-
-        // 5. 3D Target Fill Sweet-Spot Ring (20.0 L Gauge at y = +0.80)
-        const targetRingMat = trackMat(
-            new THREE.MeshStandardMaterial({
-                color: 0x8db600,
-                emissive: 0x8db600,
-                emissiveIntensity: 0.8,
-                transparent: true,
-                opacity: 0.72
-            })
-        );
-        const targetRingMesh = new THREE.Mesh(
-            trackGeo(new THREE.TorusGeometry(1.02, 0.018, 12, 48)),
-            targetRingMat
-        );
-        targetRingMesh.rotation.x = Math.PI / 2;
-        targetRingMesh.position.y = 0.8;
-        bayGroup.add(targetRingMesh);
-
-        // 6. Stage 1: 3D Dust Motes + Volumetric Ozone Sanitizer Spray Cone
-        const moteGeo = trackGeo(new THREE.SphereGeometry(0.038, 10, 10));
-        const moteMat = trackMat(
-            new THREE.MeshStandardMaterial({
-                color: 0xfacc15,
-                emissive: 0xca8a04,
-                emissiveIntensity: 0.5,
-                transparent: true,
-                opacity: 0.8
-            })
-        );
-        const dustMotes = Array.from({ length: 16 }, (_, idx) => {
-            const m = new THREE.Mesh(moteGeo, moteMat);
-            const angle = (idx / 16) * Math.PI * 2;
-            const r = 0.35 + (idx % 4) * 0.14;
-            const y = -1.1 + ((idx * 37) % 100) / 100 * 1.85;
-            m.position.set(Math.cos(angle) * r, y, Math.sin(angle) * r);
-            bayGroup.add(m);
-            return { mesh: m, angle, r, baseY: y };
-        });
-
-        const ozoneConeGeo = trackGeo(new THREE.ConeGeometry(0.88, 2.75, 32, 1, true));
-        const ozoneConeMat = trackMat(
-            new THREE.MeshBasicMaterial({
-                color: 0x38bdf8,
-                transparent: true,
-                opacity: 0.26,
-                side: THREE.DoubleSide,
-                depthWrite: false
-            })
-        );
-        const ozoneConeMesh = new THREE.Mesh(ozoneConeGeo, ozoneConeMat);
-        ozoneConeMesh.position.y = 0.35;
-        ozoneConeMesh.visible = false;
-        bayGroup.add(ozoneConeMesh);
-
-        // 7. Stage 2: 3D Pressurized Pouring Water Stream & Splash Droplets
-        const jetGeo = trackGeo(new THREE.CylinderGeometry(0.055, 0.068, 1, 20));
-        jetGeo.translate(0, -0.5, 0);
-        const jetMat = trackMat(
-            new THREE.MeshPhysicalMaterial({
-                color: 0x7dd3fc,
-                emissive: 0x38bdf8,
-                emissiveIntensity: 0.55,
-                transparent: true,
-                opacity: 0.88,
-                roughness: 0.05
-            })
-        );
-        const waterJetMesh = new THREE.Mesh(jetGeo, jetMat);
-        waterJetMesh.position.set(0, 1.76, 0);
-        waterJetMesh.visible = false;
-        bayGroup.add(waterJetMesh);
-
-        const splashGeo = trackGeo(new THREE.SphereGeometry(0.025, 8, 8));
-        const splashMat = trackMat(
-            new THREE.MeshBasicMaterial({ color: 0xe0f2fe, transparent: true, opacity: 0.9 })
-        );
-        const splashes = Array.from({ length: 18 }, () => {
-            const mesh = new THREE.Mesh(splashGeo, splashMat);
-            mesh.visible = false;
-            bayGroup.add(mesh);
-            return { mesh, vx: 0, vy: 0, vz: 0, life: 0 };
-        });
-
-        // 8. Stage 3: Expanding 3D Apple-Green Hygiene Seal Ring
-        const sealRingGeo = trackGeo(new THREE.TorusGeometry(0.32, 0.02, 10, 36));
-        sealRingGeo.rotateX(Math.PI / 2);
-        const sealRingMat = trackMat(
-            new THREE.MeshBasicMaterial({
-                color: 0x8db600,
-                transparent: true,
-                opacity: 0
-            })
-        );
-        const sealRingMesh = new THREE.Mesh(sealRingGeo, sealRingMat);
-        sealRingMesh.position.y = 1.56;
-        bayGroup.add(sealRingMesh);
-
-        let isDragging = false;
-        let prevX = 0;
-        const onPointerDown = (e) => {
-            isDragging = true;
-            prevX = e.clientX;
-        };
-        const onPointerMove = (e) => {
-            if (!isDragging) return;
-            simRef.current.rotY += (e.clientX - prevX) * 0.014;
-            prevX = e.clientX;
-        };
-        const onPointerUp = () => {
-            isDragging = false;
-        };
-        mount.addEventListener('pointerdown', onPointerDown);
-        window.addEventListener('pointermove', onPointerMove);
-        window.addEventListener('pointerup', onPointerUp);
-
-        const handleResize = () => {
-            if (!mount) return;
-            width = mount.clientWidth || 340;
-            height = mount.clientHeight || 225;
-            camera.aspect = width / height;
-            camera.updateProjectionMatrix();
-            renderer.setSize(width, height);
-        };
-        window.addEventListener('resize', handleResize);
-
-        let animationFrameId;
+        if (!webglUnavailable) return;
+        let rafId;
         let lastTime = performance.now();
-        const clock = new THREE.Clock();
 
-        const animate = (now) => {
+        const tick2D = (now) => {
             const dt = Math.min(0.05, Math.max(0.001, (now - lastTime) / 1000));
             lastTime = now;
-            const t = clock.getElapsedTime();
             const st = simRef.current;
 
             if (st.isHolding) {
@@ -579,162 +425,514 @@ export default function RefillSimulatorGame({
                 }
             }
 
-            if (st.phase === 'result' && st.capAnim > 0 && st.capAnim < 1) {
-                st.capAnim = Math.min(1, st.capAnim + dt * 4.2);
-            }
-
             if (now - st.lastHudSync > 50) {
                 st.lastHudSync = now;
                 if (st.phase === 'sanitize') setSanitizePct(Math.round(st.sanitizePct));
                 if (st.phase === 'fill') setLiters(Number(st.liters.toFixed(2)));
             }
 
-            const isRound = st.jugType === 'round';
-            roundCarboy.group.visible = isRound;
-            slimContainer.group.visible = !isRound;
-
-            const targetNozzleZ = isRound ? 0 : 0.44;
-            nozzleGroup.position.z += (targetNozzleZ - nozzleGroup.position.z) * 0.16;
-            waterJetMesh.position.z = nozzleGroup.position.z;
-
-            if (st.liters > 20.08) {
-                statusLedMat.color.setHex(0xef4444);
-                statusLedMat.emissive.setHex(0xef4444);
-            } else if (st.phase === 'sanitize') {
-                statusLedMat.color.setHex(0x38bdf8);
-                statusLedMat.emissive.setHex(0x38bdf8);
-            } else {
-                statusLedMat.color.setHex(0x8db600);
-                statusLedMat.emissive.setHex(0x8db600);
-            }
-
-            const activeGroup = isRound ? roundCarboy.group : slimContainer.group;
-            const idleSpin = isDragging
-                ? 0
-                : st.isHolding && st.phase === 'sanitize'
-                    ? Math.sin(t * 9) * 0.18
-                    : Math.sin(t * 0.6) * 0.14;
-            activeGroup.rotation.y = st.rotY + idleSpin;
-
-            const fillFraction = Math.min(1.02, st.liters / 20.0);
-            const capState =
-                st.phase === 'cap'
-                    ? 'hover'
-                    : st.phase === 'result' && st.capAnim > 0
-                        ? 'snapping'
-                        : 'hidden';
-
-            if (isRound) {
-                roundCarboy.update(t, {
-                    fillFraction,
-                    isPouring: st.phase === 'fill' && st.isHolding,
-                    capState,
-                    capProgress: st.capAnim
-                });
-            } else {
-                slimContainer.update(t, {
-                    fillFraction,
-                    capState,
-                    capProgress: st.capAnim
-                });
-            }
-
-            const inSweetSpot = st.liters >= 19.5 && st.liters <= 20.08;
-            const isOverflow = st.liters > 20.08;
-            targetRingMesh.visible = st.phase === 'fill' || st.phase === 'cap';
-            targetRingMesh.scale.set(isRound ? 1 : 0.92, isRound ? 1 : 1.15, 1);
-            targetRingMat.color.setHex(isOverflow ? 0xef4444 : 0x8db600);
-            targetRingMat.emissive.setHex(isOverflow ? 0xef4444 : 0x8db600);
-            targetRingMat.emissiveIntensity = inSweetSpot ? 1.8 + Math.sin(t * 14) * 0.6 : 0.75;
-
-            puddleMesh.visible = isOverflow;
-
-            const showMotes = st.phase === 'sanitize';
-            const visibleCount = showMotes
-                ? Math.ceil(dustMotes.length * (1 - st.sanitizePct / 100))
-                : 0;
-            dustMotes.forEach((m, idx) => {
-                m.mesh.visible = idx < visibleCount;
-                if (m.mesh.visible) {
-                    const spin = t * 1.4 + m.angle;
-                    m.mesh.position.x = Math.cos(spin) * m.r;
-                    m.mesh.position.z = Math.sin(spin) * m.r;
-                    m.mesh.position.y = m.baseY + Math.sin(t * 2.5 + idx) * 0.05;
-                }
-            });
-
-            ozoneConeMesh.visible = st.phase === 'sanitize' && st.isHolding;
-            if (ozoneConeMesh.visible) {
-                ozoneConeMesh.position.z = nozzleGroup.position.z;
-                ozoneConeMat.opacity = 0.2 + Math.sin(t * 22) * 0.08;
-            }
-
-            const pouringNow = st.phase === 'fill' && st.isHolding;
-            waterJetMesh.visible = pouringNow;
-            const waterSurfaceWorldY = -1.38 + Math.min(1, fillFraction) * 2.2;
-            if (pouringNow) {
-                const streamLen = Math.max(0.2, 1.76 - waterSurfaceWorldY);
-                waterJetMesh.scale.set(
-                    0.9 + Math.sin(t * 32) * 0.12,
-                    streamLen,
-                    0.9 + Math.cos(t * 32) * 0.12
-                );
-            }
-
-            splashes.forEach((sp) => {
-                if (pouringNow && sp.life <= 0) {
-                    sp.life = 1;
-                    sp.mesh.position.set(
-                        (Math.random() - 0.5) * 0.12,
-                        waterSurfaceWorldY + 0.03,
-                        nozzleGroup.position.z + (Math.random() - 0.5) * 0.12
-                    );
-                    sp.vx = (Math.random() - 0.5) * 1.4;
-                    sp.vy = 1.1 + Math.random() * 1.2;
-                    sp.vz = (Math.random() - 0.5) * 1.4;
-                }
-                if (sp.life > 0) {
-                    sp.mesh.visible = true;
-                    sp.mesh.position.x += sp.vx * dt;
-                    sp.mesh.position.y += sp.vy * dt;
-                    sp.mesh.position.z += sp.vz * dt;
-                    sp.vy -= 4.8 * dt;
-                    sp.life -= dt * 2.4;
-                    sp.mesh.scale.setScalar(Math.max(0.1, sp.life));
-                } else {
-                    sp.mesh.visible = false;
-                }
-            });
-
-            if (st.phase === 'result' && st.capAnim > 0.35 && st.capAnim < 1) {
-                const ringT = (st.capAnim - 0.35) / 0.65;
-                sealRingMesh.visible = true;
-                sealRingMesh.position.set(0, isRound ? 1.56 : 1.22, nozzleGroup.position.z);
-                sealRingMesh.scale.setScalar(1 + ringT * 2.4);
-                sealRingMat.opacity = (1 - ringT) * 0.85;
-            } else {
-                sealRingMesh.visible = false;
-            }
-
-            renderer.render(scene, camera);
-            animationFrameId = requestAnimationFrame(animate);
+            rafId = requestAnimationFrame(tick2D);
         };
 
-        animationFrameId = requestAnimationFrame(animate);
+        rafId = requestAnimationFrame(tick2D);
+        return () => cancelAnimationFrame(rafId);
+    }, [webglUnavailable]);
+
+    // Three.js 3D WebGL Refilling Bay Scene (Uses THREE.Timer + Safe WebGL Guard)
+    useEffect(() => {
+        const mount = isExpanded ? expandedMountRef.current : inlineMountRef.current;
+        if (!mount || typeof window === 'undefined') return;
+
+        if (!isWebGLAvailable()) {
+            setWebglUnavailable(true);
+            return;
+        }
+
+        let width = mount.clientWidth || 340;
+        let height = mount.clientHeight || 225;
+
+        let renderer = null;
+        let roundCarboy = null;
+        let slimContainer = null;
+        let timer = null;
+        let animationFrameId = null;
+
+        const disposables = [];
+        const trackGeo = (g) => {
+            disposables.push(g);
+            return g;
+        };
+        const trackMat = (m) => {
+            disposables.push(m);
+            return m;
+        };
+
+        let isDragging = false;
+        let prevX = 0;
+        const onPointerDown = (e) => {
+            isDragging = true;
+            prevX = e.clientX;
+        };
+        const onPointerMove = (e) => {
+            if (!isDragging) return;
+            simRef.current.rotY += (e.clientX - prevX) * 0.014;
+            prevX = e.clientX;
+        };
+        const onPointerUp = () => {
+            isDragging = false;
+        };
+
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(36, width / height, 0.1, 100);
+        camera.position.set(0, 0.35, 7.6);
+
+        const handleResize = () => {
+            if (!mount || !renderer) return;
+            width = mount.clientWidth || 340;
+            height = mount.clientHeight || 225;
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+            renderer.setSize(width, height);
+        };
+
+        try {
+            renderer = new THREE.WebGLRenderer({
+                antialias: true,
+                alpha: true,
+                powerPreference: 'high-performance'
+            });
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+            renderer.setSize(width, height);
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = darkMode ? 1.24 : 1.12;
+            mount.appendChild(renderer.domElement);
+
+            // 1. Studio Lighting
+            scene.add(
+                new THREE.AmbientLight(darkMode ? 0xe0f2fe : 0xffffff, darkMode ? 1.25 : 1.65)
+            );
+
+            const keyLight = new THREE.DirectionalLight(0xffffff, darkMode ? 2.5 : 2.2);
+            keyLight.position.set(4.5, 6.5, 5.5);
+            scene.add(keyLight);
+
+            const aquaLight = new THREE.PointLight(0x38bdf8, darkMode ? 5.2 : 3.4, 20);
+            aquaLight.position.set(-4.2, 2.5, 3.8);
+            scene.add(aquaLight);
+
+            const limeLight = new THREE.PointLight(0x8db600, darkMode ? 4.4 : 2.8, 20);
+            limeLight.position.set(4.2, -1.5, 3.5);
+            scene.add(limeLight);
+
+            // Bay Stage Group
+            const bayGroup = new THREE.Group();
+            bayGroup.position.y = -0.25;
+            scene.add(bayGroup);
+
+            // 2. 3D Stainless Steel Slotted Drip Tray Base
+            const trayMat = trackMat(
+                new THREE.MeshStandardMaterial({
+                    color: darkMode ? 0x64748b : 0x94a3b8,
+                    metalness: 0.72,
+                    roughness: 0.28
+                })
+            );
+            const trayBase = new THREE.Mesh(
+                trackGeo(new THREE.BoxGeometry(3.2, 0.16, 2.3)),
+                trayMat
+            );
+            trayBase.position.y = -1.56;
+            bayGroup.add(trayBase);
+
+            const slotMat = trackMat(new THREE.MeshBasicMaterial({ color: 0x0f172a }));
+            const slotGeo = trackGeo(new THREE.BoxGeometry(0.11, 0.02, 1.75));
+            for (let sx = -1.25; sx <= 1.25; sx += 0.28) {
+                const slot = new THREE.Mesh(slotGeo, slotMat);
+                slot.position.set(sx, -1.475, 0);
+                bayGroup.add(slot);
+            }
+
+            const puddleMesh = new THREE.Mesh(
+                trackGeo(new THREE.CylinderGeometry(1.38, 1.44, 0.03, 36)),
+                trackMat(
+                    new THREE.MeshPhysicalMaterial({
+                        color: 0x38bdf8,
+                        transparent: true,
+                        opacity: 0.65,
+                        roughness: 0.08
+                    })
+                )
+            );
+            puddleMesh.position.y = -1.46;
+            puddleMesh.visible = false;
+            bayGroup.add(puddleMesh);
+
+            // 3. 3D Stainless Steel Overhead Dispensing Nozzle
+            const nozzleGroup = new THREE.Group();
+            nozzleGroup.position.set(0, 2.02, 0);
+
+            const pipeMesh = new THREE.Mesh(
+                trackGeo(new THREE.CylinderGeometry(0.16, 0.16, 0.55, 28)),
+                trayMat
+            );
+            pipeMesh.position.y = 0.28;
+            nozzleGroup.add(pipeMesh);
+
+            const collarMesh = new THREE.Mesh(
+                trackGeo(new THREE.CylinderGeometry(0.24, 0.24, 0.12, 28)),
+                trayMat
+            );
+            nozzleGroup.add(collarMesh);
+
+            const statusLedMat = trackMat(
+                new THREE.MeshStandardMaterial({
+                    color: 0x38bdf8,
+                    emissive: 0x38bdf8,
+                    emissiveIntensity: 1.4
+                })
+            );
+            const statusLedRing = new THREE.Mesh(
+                trackGeo(new THREE.TorusGeometry(0.245, 0.02, 10, 32)),
+                statusLedMat
+            );
+            statusLedRing.rotation.x = Math.PI / 2;
+            nozzleGroup.add(statusLedRing);
+
+            const tipMesh = new THREE.Mesh(
+                trackGeo(new THREE.CylinderGeometry(0.08, 0.075, 0.22, 24)),
+                trackMat(
+                    new THREE.MeshStandardMaterial({
+                        color: 0xe2e8f0,
+                        metalness: 0.85,
+                        roughness: 0.18
+                    })
+                )
+            );
+            tipMesh.position.y = -0.15;
+            nozzleGroup.add(tipMesh);
+
+            bayGroup.add(nozzleGroup);
+
+            // 4. Actual 3D Round Carboy & 3D Slim Container Models
+            roundCarboy = buildRoundCarboy3D({
+                darkMode,
+                stationName,
+                initialFill: simRef.current.liters / 20,
+                withCap: false
+            });
+            bayGroup.add(roundCarboy.group);
+
+            slimContainer = buildSlimContainer3D({
+                darkMode,
+                stationName,
+                tdsLabel,
+                initialFill: simRef.current.liters / 20,
+                withCap: false,
+                showSightGauge: true
+            });
+            bayGroup.add(slimContainer.group);
+
+            // 5. 3D Target Fill Sweet-Spot Ring (20.0 L Gauge at y = +0.80)
+            const targetRingMat = trackMat(
+                new THREE.MeshStandardMaterial({
+                    color: 0x8db600,
+                    emissive: 0x8db600,
+                    emissiveIntensity: 0.8,
+                    transparent: true,
+                    opacity: 0.72
+                })
+            );
+            const targetRingMesh = new THREE.Mesh(
+                trackGeo(new THREE.TorusGeometry(1.02, 0.018, 12, 48)),
+                targetRingMat
+            );
+            targetRingMesh.rotation.x = Math.PI / 2;
+            targetRingMesh.position.y = 0.8;
+            bayGroup.add(targetRingMesh);
+
+            // 6. Stage 1: 3D Dust Motes + Volumetric Ozone Sanitizer Spray Cone
+            const moteGeo = trackGeo(new THREE.SphereGeometry(0.038, 10, 10));
+            const moteMat = trackMat(
+                new THREE.MeshStandardMaterial({
+                    color: 0xfacc15,
+                    emissive: 0xca8a04,
+                    emissiveIntensity: 0.5,
+                    transparent: true,
+                    opacity: 0.8
+                })
+            );
+            const dustMotes = Array.from({ length: 16 }, (_, idx) => {
+                const m = new THREE.Mesh(moteGeo, moteMat);
+                const angle = (idx / 16) * Math.PI * 2;
+                const r = 0.35 + (idx % 4) * 0.14;
+                const y = -1.1 + ((idx * 37) % 100) / 100 * 1.85;
+                m.position.set(Math.cos(angle) * r, y, Math.sin(angle) * r);
+                bayGroup.add(m);
+                return { mesh: m, angle, r, baseY: y };
+            });
+
+            const ozoneConeGeo = trackGeo(new THREE.ConeGeometry(0.88, 2.75, 32, 1, true));
+            const ozoneConeMat = trackMat(
+                new THREE.MeshBasicMaterial({
+                    color: 0x38bdf8,
+                    transparent: true,
+                    opacity: 0.26,
+                    side: THREE.DoubleSide,
+                    depthWrite: false
+                })
+            );
+            const ozoneConeMesh = new THREE.Mesh(ozoneConeGeo, ozoneConeMat);
+            ozoneConeMesh.position.y = 0.35;
+            ozoneConeMesh.visible = false;
+            bayGroup.add(ozoneConeMesh);
+
+            // 7. Stage 2: 3D Pressurized Pouring Water Stream & Splash Droplets
+            const jetGeo = trackGeo(new THREE.CylinderGeometry(0.055, 0.068, 1, 20));
+            jetGeo.translate(0, -0.5, 0);
+            const jetMat = trackMat(
+                new THREE.MeshPhysicalMaterial({
+                    color: 0x7dd3fc,
+                    emissive: 0x38bdf8,
+                    emissiveIntensity: 0.55,
+                    transparent: true,
+                    opacity: 0.88,
+                    roughness: 0.05
+                })
+            );
+            const waterJetMesh = new THREE.Mesh(jetGeo, jetMat);
+            waterJetMesh.position.set(0, 1.76, 0);
+            waterJetMesh.visible = false;
+            bayGroup.add(waterJetMesh);
+
+            const splashGeo = trackGeo(new THREE.SphereGeometry(0.025, 8, 8));
+            const splashMat = trackMat(
+                new THREE.MeshBasicMaterial({ color: 0xe0f2fe, transparent: true, opacity: 0.9 })
+            );
+            const splashes = Array.from({ length: 18 }, () => {
+                const mesh = new THREE.Mesh(splashGeo, splashMat);
+                mesh.visible = false;
+                bayGroup.add(mesh);
+                return { mesh, vx: 0, vy: 0, vz: 0, life: 0 };
+            });
+
+            // 8. Stage 3: Expanding 3D Apple-Green Hygiene Seal Ring
+            const sealRingGeo = trackGeo(new THREE.TorusGeometry(0.32, 0.02, 10, 36));
+            sealRingGeo.rotateX(Math.PI / 2);
+            const sealRingMat = trackMat(
+                new THREE.MeshBasicMaterial({
+                    color: 0x8db600,
+                    transparent: true,
+                    opacity: 0
+                })
+            );
+            const sealRingMesh = new THREE.Mesh(sealRingGeo, sealRingMat);
+            sealRingMesh.position.y = 1.56;
+            bayGroup.add(sealRingMesh);
+
+            mount.addEventListener('pointerdown', onPointerDown);
+            window.addEventListener('pointermove', onPointerMove);
+            window.addEventListener('pointerup', onPointerUp);
+            window.addEventListener('resize', handleResize);
+
+            // Use THREE.Timer (replaces deprecated THREE.Clock)
+            timer = new THREE.Timer();
+            timer.connect?.(document);
+            let lastTime = performance.now();
+
+            const animate = (now) => {
+                if (!renderer || !timer) return;
+                timer.update(now);
+                const t = timer.getElapsed();
+                const dt = Math.min(0.05, Math.max(0.001, (now - lastTime) / 1000));
+                lastTime = now;
+                const st = simRef.current;
+
+                if (st.isHolding) {
+                    if (st.phase === 'sanitize') {
+                        st.sanitizePct = Math.min(100, st.sanitizePct + dt * 88);
+                        if (st.sanitizePct >= 100) {
+                            st.sanitizePct = 100;
+                            st.isHolding = false;
+                            st.phase = 'fill';
+                            waterSoundEngine.stopSanitizeSpray();
+                            waterSoundEngine.playSanitizeComplete();
+                            setSanitizePct(100);
+                            setPhase('fill');
+                        }
+                    } else if (st.phase === 'fill') {
+                        st.liters += dt * 6.2;
+                        waterSoundEngine.updateWaterFlow(st.liters);
+                        if (st.liters >= 20.3) {
+                            st.liters = 20.3;
+                            finalizeRef.current(20.3, true);
+                        }
+                    }
+                }
+
+                if (st.phase === 'result' && st.capAnim > 0 && st.capAnim < 1) {
+                    st.capAnim = Math.min(1, st.capAnim + dt * 4.2);
+                }
+
+                if (now - st.lastHudSync > 50) {
+                    st.lastHudSync = now;
+                    if (st.phase === 'sanitize') setSanitizePct(Math.round(st.sanitizePct));
+                    if (st.phase === 'fill') setLiters(Number(st.liters.toFixed(2)));
+                }
+
+                const isRound = st.jugType === 'round';
+                roundCarboy.group.visible = isRound;
+                slimContainer.group.visible = !isRound;
+
+                const targetNozzleZ = isRound ? 0 : 0.44;
+                nozzleGroup.position.z += (targetNozzleZ - nozzleGroup.position.z) * 0.16;
+                waterJetMesh.position.z = nozzleGroup.position.z;
+
+                if (st.liters > 20.08) {
+                    statusLedMat.color.setHex(0xef4444);
+                    statusLedMat.emissive.setHex(0xef4444);
+                } else if (st.phase === 'sanitize') {
+                    statusLedMat.color.setHex(0x38bdf8);
+                    statusLedMat.emissive.setHex(0x38bdf8);
+                } else {
+                    statusLedMat.color.setHex(0x8db600);
+                    statusLedMat.emissive.setHex(0x8db600);
+                }
+
+                const activeGroup = isRound ? roundCarboy.group : slimContainer.group;
+                const idleSpin = isDragging
+                    ? 0
+                    : st.isHolding && st.phase === 'sanitize'
+                        ? Math.sin(t * 9) * 0.18
+                        : Math.sin(t * 0.6) * 0.14;
+                activeGroup.rotation.y = st.rotY + idleSpin;
+
+                const fillFraction = Math.min(1.02, st.liters / 20.0);
+                const capState =
+                    st.phase === 'cap'
+                        ? 'hover'
+                        : st.phase === 'result' && st.capAnim > 0
+                            ? 'snapping'
+                            : 'hidden';
+
+                if (isRound) {
+                    roundCarboy.update(t, {
+                        fillFraction,
+                        isPouring: st.phase === 'fill' && st.isHolding,
+                        capState,
+                        capProgress: st.capAnim
+                    });
+                } else {
+                    slimContainer.update(t, {
+                        fillFraction,
+                        capState,
+                        capProgress: st.capAnim
+                    });
+                }
+
+                const inSweetSpot = st.liters >= 19.5 && st.liters <= 20.08;
+                const isOverflow = st.liters > 20.08;
+                targetRingMesh.visible = st.phase === 'fill' || st.phase === 'cap';
+                targetRingMesh.scale.set(isRound ? 1 : 0.92, isRound ? 1 : 1.15, 1);
+                targetRingMat.color.setHex(isOverflow ? 0xef4444 : 0x8db600);
+                targetRingMat.emissive.setHex(isOverflow ? 0xef4444 : 0x8db600);
+                targetRingMat.emissiveIntensity = inSweetSpot ? 1.8 + Math.sin(t * 14) * 0.6 : 0.75;
+
+                puddleMesh.visible = isOverflow;
+
+                const showMotes = st.phase === 'sanitize';
+                const visibleCount = showMotes
+                    ? Math.ceil(dustMotes.length * (1 - st.sanitizePct / 100))
+                    : 0;
+                dustMotes.forEach((m, idx) => {
+                    m.mesh.visible = idx < visibleCount;
+                    if (m.mesh.visible) {
+                        const spin = t * 1.4 + m.angle;
+                        m.mesh.position.x = Math.cos(spin) * m.r;
+                        m.mesh.position.z = Math.sin(spin) * m.r;
+                        m.mesh.position.y = m.baseY + Math.sin(t * 2.5 + idx) * 0.05;
+                    }
+                });
+
+                ozoneConeMesh.visible = st.phase === 'sanitize' && st.isHolding;
+                if (ozoneConeMesh.visible) {
+                    ozoneConeMesh.position.z = nozzleGroup.position.z;
+                    ozoneConeMat.opacity = 0.2 + Math.sin(t * 22) * 0.08;
+                }
+
+                const pouringNow = st.phase === 'fill' && st.isHolding;
+                waterJetMesh.visible = pouringNow;
+                const waterSurfaceWorldY = -1.38 + Math.min(1, fillFraction) * 2.2;
+                if (pouringNow) {
+                    const streamLen = Math.max(0.2, 1.76 - waterSurfaceWorldY);
+                    waterJetMesh.scale.set(
+                        0.9 + Math.sin(t * 32) * 0.12,
+                        streamLen,
+                        0.9 + Math.cos(t * 32) * 0.12
+                    );
+                }
+
+                splashes.forEach((sp) => {
+                    if (pouringNow && sp.life <= 0) {
+                        sp.life = 1;
+                        sp.mesh.position.set(
+                            (Math.random() - 0.5) * 0.12,
+                            waterSurfaceWorldY + 0.03,
+                            nozzleGroup.position.z + (Math.random() - 0.5) * 0.12
+                        );
+                        sp.vx = (Math.random() - 0.5) * 1.4;
+                        sp.vy = 1.1 + Math.random() * 1.2;
+                        sp.vz = (Math.random() - 0.5) * 1.4;
+                    }
+                    if (sp.life > 0) {
+                        sp.mesh.visible = true;
+                        sp.mesh.position.x += sp.vx * dt;
+                        sp.mesh.position.y += sp.vy * dt;
+                        sp.mesh.position.z += sp.vz * dt;
+                        sp.vy -= 4.8 * dt;
+                        sp.life -= dt * 2.4;
+                        sp.mesh.scale.setScalar(Math.max(0.1, sp.life));
+                    } else {
+                        sp.mesh.visible = false;
+                    }
+                });
+
+                if (st.phase === 'result' && st.capAnim > 0.35 && st.capAnim < 1) {
+                    const ringT = (st.capAnim - 0.35) / 0.65;
+                    sealRingMesh.visible = true;
+                    sealRingMesh.position.set(0, isRound ? 1.56 : 1.22, nozzleGroup.position.z);
+                    sealRingMesh.scale.setScalar(1 + ringT * 2.4);
+                    sealRingMat.opacity = (1 - ringT) * 0.85;
+                } else {
+                    sealRingMesh.visible = false;
+                }
+
+                renderer.render(scene, camera);
+                animationFrameId = requestAnimationFrame(animate);
+            };
+
+            animationFrameId = requestAnimationFrame(animate);
+        } catch (err) {
+            console.warn('RefillSimulatorGame switched to 2D fallback (WebGL unavailable):', err?.message || err);
+            window.__SEASIDE_DISABLE_3D__ = true;
+            setWebglUnavailable(true);
+        }
 
         return () => {
-            cancelAnimationFrame(animationFrameId);
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
             window.removeEventListener('resize', handleResize);
             mount.removeEventListener('pointerdown', onPointerDown);
             window.removeEventListener('pointermove', onPointerMove);
             window.removeEventListener('pointerup', onPointerUp);
 
-            roundCarboy.dispose();
-            slimContainer.dispose();
+            timer?.dispose?.();
+            roundCarboy?.dispose?.();
+            slimContainer?.dispose?.();
             disposables.forEach((d) => d?.dispose?.());
-            renderer.dispose();
-            if (renderer.domElement && mount.contains(renderer.domElement)) {
-                mount.removeChild(renderer.domElement);
+            if (renderer) {
+                renderer.dispose();
+                if (renderer.domElement && mount.contains(renderer.domElement)) {
+                    mount.removeChild(renderer.domElement);
+                }
             }
         };
     }, [darkMode, isExpanded, stationName, tdsLabel]);
@@ -813,17 +1011,28 @@ export default function RefillSimulatorGame({
                 </div>
             </div>
 
-            {/* Interactive Three.js 3D Refilling Bay Viewport */}
+            {/* Interactive Three.js 3D Refilling Bay Viewport (with 2D Fallback) */}
             <div
                 className={`relative w-full rounded-2xl overflow-hidden border border-slate-200/70 dark:border-white/10 bg-gradient-to-b from-cyan-500/5 via-transparent to-lime-500/10 ${
                     expanded ? 'h-[320px] sm:h-[370px]' : 'h-[210px] sm:h-[235px]'
                 }`}
             >
-                <div
-                    ref={expanded ? expandedMountRef : inlineMountRef}
-                    className="w-full h-full cursor-grab active:cursor-grabbing touch-none"
-                    title="Drag horizontally to inspect 3D container"
-                />
+                {webglUnavailable ? (
+                    <RefillBay2DFallback
+                        jugType={jugType}
+                        phase={phase}
+                        sanitizePct={sanitizePct}
+                        liters={liters}
+                        darkMode={darkMode}
+                        stationName={stationName}
+                    />
+                ) : (
+                    <div
+                        ref={expanded ? expandedMountRef : inlineMountRef}
+                        className="w-full h-full cursor-grab active:cursor-grabbing touch-none"
+                        title="Drag horizontally to inspect 3D container"
+                    />
+                )}
 
                 {/* Top-Left Digital Liters & Step Pill Overlay */}
                 <div className="pointer-events-none absolute top-2 left-2.5 flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white/85 dark:bg-slate-950/75 backdrop-blur-md border border-slate-200/80 dark:border-white/10 text-[10px] font-mono font-black">
