@@ -176,11 +176,14 @@ export default function App({ Component, pageProps }) {
     const [isTransitionActive, setIsTransitionActive] = useState(false);
     const [isRouteLoading, setIsRouteLoading] = useState(false);
     const [isOffline, setIsOffline] = useState(false);
+    const [isReconnected, setIsReconnected] = useState(false);
     const [isCheckingConnection, setIsCheckingConnection] = useState(false);
 
     const initialCheckDoneRef = useRef(false);
     const lastWriteThrottleRef = useRef(0);
     const probeInFlightRef = useRef(false);
+    const isOfflineRef = useRef(false);
+    const reconnectTimerRef = useRef(null);
 
     const [queryClient] = useState(() => new QueryClient({
         defaultOptions: {
@@ -211,10 +214,50 @@ export default function App({ Component, pageProps }) {
         })
     }));
 
+    const enterOfflineState = useCallback(() => {
+        if (reconnectTimerRef.current) {
+            clearTimeout(reconnectTimerRef.current);
+            reconnectTimerRef.current = null;
+        }
+        isOfflineRef.current = true;
+        setIsReconnected(false);
+        setIsOffline(true);
+    }, []);
+
+    const triggerOnlineCelebration = useCallback(async () => {
+        // Refresh data immediately in the background while the celebration plays
+        queryClient.invalidateQueries({ refetchType: 'all' });
+        queryClient.refetchQueries({ type: 'active' });
+
+        if (!isOfflineRef.current) {
+            setIsOffline(false);
+            setIsReconnected(false);
+            return;
+        }
+
+        if (reconnectTimerRef.current) return; // Already playing celebration
+
+        setIsReconnected(true);
+        reconnectTimerRef.current = setTimeout(() => {
+            reconnectTimerRef.current = null;
+            isOfflineRef.current = false;
+            setIsReconnected(false);
+            setIsOffline(false);
+        }, 1450);
+    }, [queryClient]);
+
+    useEffect(() => {
+        return () => {
+            if (reconnectTimerRef.current) {
+                clearTimeout(reconnectTimerRef.current);
+            }
+        };
+    }, []);
+
     const verifyInternetConnection = useCallback(async () => {
         if (typeof window === 'undefined') return true;
         if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-            setIsOffline(true);
+            enterOfflineState();
             return false;
         }
 
@@ -230,27 +273,25 @@ export default function App({ Component, pageProps }) {
                 cache: 'no-store'
             });
 
-            setIsOffline(false);
-            await queryClient.invalidateQueries({ refetchType: 'all' });
-            queryClient.refetchQueries({ type: 'active' });
+            await triggerOnlineCelebration();
             return true;
         } catch {
-            setIsOffline(true);
+            enterOfflineState();
             return false;
         } finally {
             setIsCheckingConnection(false);
         }
-    }, [queryClient]);
+    }, [enterOfflineState, triggerOnlineCelebration]);
 
     // Global Offline / Disconnected Network Listener (works on all routes & localhost)
     useEffect(() => {
         if (typeof window === 'undefined') return;
 
         if (navigator.onLine === false) {
-            setIsOffline(true);
+            enterOfflineState();
         }
 
-        const handleOffline = () => setIsOffline(true);
+        const handleOffline = () => enterOfflineState();
         const handleOnline = () => {
             verifyInternetConnection();
         };
@@ -269,7 +310,7 @@ export default function App({ Component, pageProps }) {
 
                 if (!isAborted && isExternalApi) {
                     if (navigator.onLine === false) {
-                        setIsOffline(true);
+                        enterOfflineState();
                     } else if (!probeInFlightRef.current) {
                         probeInFlightRef.current = true;
                         const probeUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -278,10 +319,12 @@ export default function App({ Component, pageProps }) {
 
                         originalFetch(probeUrl, { method: 'HEAD', mode: 'no-cors', cache: 'no-store' })
                             .then(() => {
-                                setIsOffline(false);
+                                if (isOfflineRef.current) {
+                                    triggerOnlineCelebration();
+                                }
                             })
                             .catch(() => {
-                                setIsOffline(true);
+                                enterOfflineState();
                             })
                             .finally(() => {
                                 probeInFlightRef.current = false;
@@ -300,16 +343,16 @@ export default function App({ Component, pageProps }) {
             window.removeEventListener('offline', handleOffline);
             window.removeEventListener('online', handleOnline);
         };
-    }, [verifyInternetConnection]);
+    }, [enterOfflineState, triggerOnlineCelebration, verifyInternetConnection]);
 
-    // Auto-poll every 4s while offline so recovery is automatic once Wi-Fi returns
+    // Auto-poll every 3.5s while offline so reconnection celebration triggers automatically
     useEffect(() => {
-        if (!isOffline) return;
+        if (!isOffline || isReconnected) return;
         const interval = setInterval(() => {
             verifyInternetConnection();
-        }, 4000);
+        }, 3500);
         return () => clearInterval(interval);
-    }, [isOffline, verifyInternetConnection]);
+    }, [isOffline, isReconnected, verifyInternetConnection]);
 
     // Track active usage & redirect to login page (/) if app was closed/inactive for a long time
     useEffect(() => {
@@ -336,7 +379,7 @@ export default function App({ Component, pageProps }) {
 
             if (isStaleNextAsset) {
                 if (navigator.onLine === false) {
-                    setIsOffline(true);
+                    enterOfflineState();
                 } else {
                     safeHardNavigate('/');
                 }
@@ -349,7 +392,7 @@ export default function App({ Component, pageProps }) {
             const idleDuration = storedLastActive > 0 ? now - storedLastActive : 0;
 
             if (navigator.onLine === false) {
-                setIsOffline(true);
+                enterOfflineState();
                 return;
             }
 
@@ -432,7 +475,7 @@ export default function App({ Component, pageProps }) {
             window.removeEventListener('pagehide', onPageHide);
             window.removeEventListener('pageshow', onPageShow);
         };
-    }, [router.pathname, queryClient, logout]);
+    }, [router.pathname, queryClient, logout, enterOfflineState]);
 
     useEffect(() => {
         const checkShouldTransition = (path) => {
@@ -449,7 +492,7 @@ export default function App({ Component, pageProps }) {
 
         const handleRouteChangeStart = (url) => {
             if (navigator.onLine === false) {
-                setIsOffline(true);
+                enterOfflineState();
                 return;
             }
             const targetPath = url.split('?')[0].split('#')[0].toLowerCase();
@@ -480,7 +523,7 @@ export default function App({ Component, pageProps }) {
         const handleRouteChangeError = (err, url) => {
             setIsRouteLoading(false);
             if (navigator.onLine === false) {
-                setIsOffline(true);
+                enterOfflineState();
                 return;
             }
             if (!err?.cancelled && url) {
@@ -497,7 +540,7 @@ export default function App({ Component, pageProps }) {
             router.events.off('routeChangeComplete', handleRouteChangeDone);
             router.events.off('routeChangeError', handleRouteChangeError);
         };
-    }, [router, queryClient]);
+    }, [router, queryClient, enterOfflineState]);
 
     useEffect(() => {
         if (darkMode) {
@@ -539,6 +582,7 @@ export default function App({ Component, pageProps }) {
                     <OfflineScreen
                         onRetry={verifyInternetConnection}
                         isChecking={isCheckingConnection}
+                        isReconnected={isReconnected}
                     />
                 )}
 

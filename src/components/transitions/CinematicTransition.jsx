@@ -9,10 +9,8 @@ export default function CinematicTransition({ onComplete, isRouteLoading = false
     const onCompleteRef = useRef(onComplete);
     onCompleteRef.current = onComplete;
 
-    const { darkMode, sessionLoaded } = useStore((s) => ({
-        darkMode: s.darkMode,
-        sessionLoaded: s.sessionLoaded
-    }));
+    const darkMode = useStore((s) => s.darkMode);
+    const sessionLoaded = useStore((s) => s.sessionLoaded);
     const activeFetches = useIsFetching();
 
     const [liters, setLiters] = useState('0.0');
@@ -109,6 +107,11 @@ export default function CinematicTransition({ onComplete, isRouteLoading = false
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
+        if (!ctx) {
+            triggerComplete();
+            return;
+        }
+
         let animationFrameId;
         const startTime = performance.now();
         let lastFrameTime = startTime;
@@ -211,26 +214,21 @@ export default function CinematicTransition({ onComplete, isRouteLoading = false
 
             // Compute target progress from real page-loading milestones
             let targetProgress = 0.12;
-            if (isDom) targetProgress += 0.18; // 0.30 when DOM/window loaded
-            if (routeReady) targetProgress += 0.25; // 0.55 when Next.js route bundle is ready
-            if (sessionReady) targetProgress += 0.15; // 0.70 when auth session is hydrated
-            if (dataReady) targetProgress += 0.14; // 0.84 when active Supabase queries finish
-            if (isAssets) targetProgress += 0.16; // 1.00 when fonts & page images are decoded
+            if (isDom) targetProgress += 0.18;
+            if (routeReady) targetProgress += 0.25;
+            if (sessionReady) targetProgress += 0.15;
+            if (dataReady) targetProgress += 0.14;
+            if (isAssets) targetProgress += 0.16;
 
-            // Safety ceiling (8s) so slow external requests never trap the user
             if (elapsed > 8000) {
                 targetProgress = 1;
             }
 
             if (targetProgress < 1) {
-                // Hold realistically below 85% until all real page milestones finish
                 const holdCeiling = Math.min(0.84, targetProgress);
                 const step = (holdCeiling - displayProgress) * Math.min(1, dt * 1.4);
                 displayProgress += Math.min(step, 0.22 * dt);
             } else {
-                // Unhurried, appreciative fill & cap-seal pacing (~4.0s total sequence):
-                // - Sanitizing & Pouring (0.00 -> 0.85): 0.25/sec (~3.4s)
-                // - Sanitary Cap Snap & Seal Hold (0.85 -> 1.00): 0.19/sec (~0.8s)
                 const maxSpeed = displayProgress < 0.85 ? 0.25 : 0.19;
                 displayProgress = Math.min(1, displayProgress + maxSpeed * dt);
             }
@@ -238,13 +236,11 @@ export default function CinematicTransition({ onComplete, isRouteLoading = false
             const progress = Math.min(1, Math.max(0, displayProgress));
             setProgressPercent(progress * 100);
 
-            // Fade out only at the very end so the cap snap & 20.0L seal are clearly seen
             if (progress >= 0.965 && !hasTriggeredFade) {
                 hasTriggeredFade = true;
                 setFadeOut(true);
             }
 
-            // Map [0.08 .. 0.85] of progress to 0.0L .. 20.0L
             const rawFill = Math.max(0, Math.min(1, (progress - 0.08) / 0.77));
             const currentLiters = (rawFill * 20).toFixed(1);
             setLiters(currentLiters);
@@ -270,9 +266,7 @@ export default function CinematicTransition({ onComplete, isRouteLoading = false
 
             ctx.clearRect(0, 0, w, h);
 
-            // =========================================================
             // 1. THEME-SYNCED ATMOSPHERIC STUDIO BACKGROUND
-            // =========================================================
             const bgGrad = ctx.createLinearGradient(0, 0, w, h);
             if (darkMode) {
                 bgGrad.addColorStop(0, '#050a12');
@@ -299,9 +293,7 @@ export default function CinematicTransition({ onComplete, isRouteLoading = false
             ctx.fillStyle = studioGlow;
             ctx.fillRect(0, 0, w, h);
 
-            // =========================================================
             // 2. REFILLING STATION STAINLESS BACKPLATE & DRIP TRAY
-            // =========================================================
             const jugW = 196;
             const jugH = 276;
             const jugX = cx - jugW / 2;
@@ -346,7 +338,6 @@ export default function CinematicTransition({ onComplete, isRouteLoading = false
             ctx.fillRect(panelX + panelW - 15, panelTop + 28, 3, panelH - 56);
             ctx.restore();
 
-            // 3D Stainless Steel Slotted Drip Tray Base
             ctx.save();
             ctx.shadowColor = darkMode ? 'rgba(0, 0, 0, 0.65)' : 'rgba(15, 23, 42, 0.18)';
             ctx.shadowBlur = 22;
@@ -388,9 +379,7 @@ export default function CinematicTransition({ onComplete, isRouteLoading = false
             ctx.save();
             ctx.translate(impactVibration, 0);
 
-            // =========================================================
             // 3. 3D MOLDED CARRY HANDLE (RIGHT SIDE)
-            // =========================================================
             ctx.save();
             const handleX = jugX + jugW - 2;
             const handleY = jugY + jugH * 0.44;
@@ -413,9 +402,7 @@ export default function CinematicTransition({ onComplete, isRouteLoading = false
             ctx.stroke();
             ctx.restore();
 
-            // =========================================================
             // 4. 3D POLYCARBONATE CONTAINER SHELL (BACK WALL)
-            // =========================================================
             const waterMaxH = jugH * 0.86;
             const waterHeight = waterMaxH * rawFill;
             const waterSurfaceY = jugY + jugH - 8 - waterHeight;
@@ -440,9 +427,7 @@ export default function CinematicTransition({ onComplete, isRouteLoading = false
             ctx.fill();
             ctx.restore();
 
-            // =========================================================
             // 5. RISING PURIFIED WATER VOLUME, 3D MENISCUS & BUBBLES
-            // =========================================================
             const isPouring = progress >= 0.08 && progress <= 0.85;
             const streamTaper =
                 progress < 0.11
@@ -565,9 +550,7 @@ export default function CinematicTransition({ onComplete, isRouteLoading = false
                 ctx.restore();
             }
 
-            // =========================================================
             // 6. 3D MOLDED RIBS, GLASS HIGHLIGHTS & CONDENSATION
-            // =========================================================
             [0.34, 0.54, 0.74].forEach((ratio) => {
                 const ry = jugY + jugH * ratio;
                 ctx.strokeStyle = darkMode
@@ -628,9 +611,7 @@ export default function CinematicTransition({ onComplete, isRouteLoading = false
             ctx.fillStyle = collarGrad;
             ctx.fill();
 
-            // =========================================================
             // 7. STAINLESS STEEL DISPENSING NOZZLE & PRESSURIZED STREAM
-            // =========================================================
             const nozzleY = jugY - 62;
 
             const pipeGrad = ctx.createLinearGradient(cx - 16, 0, cx + 16, 0);
@@ -656,7 +637,6 @@ export default function CinematicTransition({ onComplete, isRouteLoading = false
             ctx.fillStyle = tipGrad;
             ctx.fillRect(cx - 8, nozzleY + 14, 16, 24);
 
-            // Phase 1: Ozone & UV Sanitizing Mist Pulse (0% - 9%)
             if (progress < 0.09) {
                 const mistAlpha = Math.sin((progress / 0.09) * Math.PI) * 0.65;
                 const mistGrad = ctx.createRadialGradient(
@@ -673,7 +653,6 @@ export default function CinematicTransition({ onComplete, isRouteLoading = false
                 ctx.fillRect(cx - 52, nozzleY + 36, 104, 72);
             }
 
-            // Phase 2: Pressurized Pouring Water Stream & Splashes (8% - 85%)
             if (isPouring && streamTaper > 0.02) {
                 const streamTopY = nozzleY + 38;
                 const streamEndY = Math.min(jugY + jugH - 12, waterSurfaceY + 8);
@@ -733,9 +712,7 @@ export default function CinematicTransition({ onComplete, isRouteLoading = false
                 ctx.restore();
             }
 
-            // =========================================================
             // 8. ANIMATED SANITARY NON-SPILL CAP SNAP & SEAL RING
-            // =========================================================
             if (progress > 0.84) {
                 const capT = Math.min(1, (progress - 0.84) / 0.06);
                 const dropOffset = (1 - capT) * (1 - capT) * 28;

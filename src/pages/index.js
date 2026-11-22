@@ -12,6 +12,58 @@ import LandingHero from '../components/landing/LandingHero';
 import LandingAuthCard from '../components/landing/LandingAuthCard';
 import LandingGlobalStyles from '../components/landing/LandingGlobalStyles';
 
+function checkWebGLSupport() {
+    if (typeof window === 'undefined') return false;
+    try {
+        const canvas = document.createElement('canvas');
+        const gl =
+            canvas.getContext('webgl2', { failIfMajorPerformanceCaveat: false }) ||
+            canvas.getContext('webgl', { failIfMajorPerformanceCaveat: false }) ||
+            canvas.getContext('experimental-webgl');
+        if (!gl) return false;
+        const loseExt = gl.getExtension('WEBGL_lose_context');
+        if (loseExt) loseExt.loseContext();
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+class BackgroundErrorBoundary extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = { hasError: false };
+    }
+
+    static getDerivedStateFromError() {
+        return { hasError: true };
+    }
+
+    componentDidCatch(error) {
+        console.warn('Landing 3D background disabled (WebGL unavailable):', error?.message || error);
+    }
+
+    render() {
+        if (this.state.hasError) {
+            return this.props.fallback || null;
+        }
+        return this.props.children;
+    }
+}
+
+function StaticLandingFallback() {
+    return (
+        <div
+            aria-hidden="true"
+            className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
+        >
+            <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-[#8DB600]/20 dark:bg-[#8DB600]/15 blur-3xl" />
+            <div className="absolute top-1/3 -right-24 w-[28rem] h-[28rem] rounded-full bg-sky-400/20 dark:bg-sky-500/15 blur-3xl" />
+            <div className="absolute -bottom-24 left-1/3 w-96 h-96 rounded-full bg-emerald-400/20 dark:bg-emerald-500/10 blur-3xl" />
+        </div>
+    );
+}
+
 export default function SeasideNewLanding() {
     const router = useRouter();
 
@@ -22,11 +74,9 @@ export default function SeasideNewLanding() {
     const physicalAddress = settings?.physical_address || 'Laois, Labrador, Pangasinan';
     const facebookLink = settings?.facebook_link || 'https://www.facebook.com/61587059323111/';
 
-    const { setAuth, darkMode, toggleDarkMode } = useStore((state) => ({
-        setAuth: state.setAuth,
-        darkMode: state.darkMode,
-        toggleDarkMode: state.toggleDarkMode
-    }));
+    const setAuth = useStore((state) => state.setAuth);
+    const darkMode = useStore((state) => state.darkMode);
+    const toggleDarkMode = useStore((state) => state.toggleDarkMode);
 
     // Active card view: 'login' | 'signup' | 'contact'
     const [activeCard, setActiveCard] = useState('login');
@@ -36,8 +86,10 @@ export default function SeasideNewLanding() {
     const [isDemoLoading, setIsDemoLoading] = useState(false);
     const [contactPrefill, setContactPrefill] = useState(null);
     const [tilt, setTilt] = useState({ x: 0, y: 0 });
+    const [canRenderWebGL, setCanRenderWebGL] = useState(false);
 
     useEffect(() => {
+        setCanRenderWebGL(checkWebGLSupport());
         router.prefetch('/about');
     }, [router]);
 
@@ -156,7 +208,13 @@ export default function SeasideNewLanding() {
                 <meta name="description" content="Seaside Enterprise Management System" />
             </Head>
 
-            <LandingBackground tilt={tilt} />
+            {canRenderWebGL ? (
+                <BackgroundErrorBoundary fallback={<StaticLandingFallback />}>
+                    <LandingBackground tilt={tilt} />
+                </BackgroundErrorBoundary>
+            ) : (
+                <StaticLandingFallback />
+            )}
 
             <LandingNavbar
                 activeCard={activeCard}

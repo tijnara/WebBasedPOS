@@ -33,15 +33,30 @@ export default function Custom404Page() {
     const sessionLoaded = useStore((s) => s.sessionLoaded);
     const [isRecovering, setIsRecovering] = useState(true);
     const [isOffline, setIsOffline] = useState(false);
+    const [isReconnected, setIsReconnected] = useState(false);
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
         setIsOffline(navigator.onLine === false);
-        const onOffline = () => setIsOffline(true);
-        const onOnline = () => setIsOffline(false);
+
+        let timer = null;
+        const onOffline = () => {
+            if (timer) clearTimeout(timer);
+            setIsReconnected(false);
+            setIsOffline(true);
+        };
+        const onOnline = () => {
+            setIsReconnected(true);
+            timer = setTimeout(() => {
+                setIsOffline(false);
+                setIsReconnected(false);
+            }, 1450);
+        };
+
         window.addEventListener('offline', onOffline);
         window.addEventListener('online', onOnline);
         return () => {
+            if (timer) clearTimeout(timer);
             window.removeEventListener('offline', onOffline);
             window.removeEventListener('online', onOnline);
         };
@@ -85,9 +100,11 @@ export default function Custom404Page() {
     if (isOffline) {
         return (
             <OfflineScreen
+                isReconnected={isReconnected}
                 onRetry={async () => {
                     if (navigator.onLine) {
-                        window.location.replace('/');
+                        setIsReconnected(true);
+                        setTimeout(() => window.location.replace('/'), 1350);
                         return true;
                     }
                     return false;
