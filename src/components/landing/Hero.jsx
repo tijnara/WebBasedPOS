@@ -3,9 +3,93 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import { useCustomers } from '../../hooks/useCustomers';
 import { useStore } from '../../store/useStore';
+import SafeWebGL from '../SafeWebGL';
 import WaterStation3DModel from './WaterStation3DModel';
 import RefillSimulatorGame from './RefillSimulatorGame';
 import AnimatedLandingIcon from './AnimatedLandingIcon';
+
+function WaterStation2DFallback({ darkMode, stationName, onPlaySim }) {
+    return (
+        <div className="w-full h-full flex flex-col items-center justify-center px-4 py-2 text-center select-none">
+            <div className="relative flex items-center justify-center mb-3">
+                {/* Ambient Halo */}
+                <div className="absolute w-36 h-36 rounded-full bg-cyan-400/20 dark:bg-cyan-500/15 blur-xl pointer-events-none" />
+
+                {/* 2D Vector 20L Round Purified Water Jug */}
+                <svg
+                    className="w-36 h-40 sm:w-40 sm:h-44 drop-shadow-[0_14px_24px_rgba(14,165,233,0.25)]"
+                    viewBox="0 0 160 185"
+                    fill="none"
+                >
+                    <defs>
+                        <linearGradient id="heroJugShell" x1="25" y1="20" x2="135" y2="170" gradientUnits="userSpaceOnUse">
+                            <stop offset="0%" stopColor={darkMode ? '#38bdf8' : '#e0f2fe'} stopOpacity="0.65" />
+                            <stop offset="50%" stopColor="#38bdf8" stopOpacity="0.28" />
+                            <stop offset="100%" stopColor="#0284c7" stopOpacity="0.55" />
+                        </linearGradient>
+                        <linearGradient id="heroJugWater" x1="30" y1="62" x2="130" y2="170" gradientUnits="userSpaceOnUse">
+                            <stop offset="0%" stopColor="#7dd3fc" stopOpacity="0.9" />
+                            <stop offset="55%" stopColor="#0ea5e9" stopOpacity="0.88" />
+                            <stop offset="100%" stopColor="#0369a1" stopOpacity="0.95" />
+                        </linearGradient>
+                    </defs>
+
+                    {/* Sanitary Red/Blue Non-Spill Cap */}
+                    <rect x="62" y="10" width="36" height="12" rx="4" fill="#0284c7" />
+                    <rect x="75" y="10" width="10" height="16" rx="2" fill="#ef4444" />
+                    <rect x="58" y="22" width="44" height="7" rx="3" fill="#38bdf8" />
+
+                    {/* Molded Carry Handle */}
+                    <path
+                        d="M128 76C144 78 144 126 128 128"
+                        stroke="#0284c7"
+                        strokeWidth="8"
+                        strokeLinecap="round"
+                    />
+
+                    {/* Jug Body */}
+                    <path
+                        d="M64 29H96C96 40 128 46 128 64V152C128 163 120 171 109 171H51C40 171 32 163 32 152V64C32 46 64 40 64 29Z"
+                        fill="url(#heroJugShell)"
+                        stroke={darkMode ? '#38bdf8' : '#0284c7'}
+                        strokeWidth="2.5"
+                    />
+
+                    {/* Purified Water Fill */}
+                    <path
+                        d="M35 68C55 62 75 74 96 68C110 64 120 66 125 68V151C125 160 118 168 108 168H52C42 168 35 160 35 151V68Z"
+                        fill="url(#heroJugWater)"
+                    />
+
+                    {/* Structural Ribs */}
+                    <path d="M35 92C65 98 95 98 125 92" stroke="white" strokeOpacity="0.45" strokeWidth="2" />
+                    <path d="M35 120C65 126 95 126 125 120" stroke="white" strokeOpacity="0.45" strokeWidth="2" />
+                    <path d="M35 146C65 152 95 152 125 146" stroke="white" strokeOpacity="0.45" strokeWidth="2" />
+
+                    {/* Glass Highlight */}
+                    <rect x="42" y="58" width="7" height="96" rx="3.5" fill="white" fillOpacity="0.45" />
+                </svg>
+
+                {/* Center Station Emblem Badge */}
+                <div className="absolute bottom-2 px-2.5 py-1 rounded-full bg-white/95 dark:bg-slate-900/95 border border-lime-300/80 dark:border-lime-700/60 shadow-sm flex items-center gap-1.5">
+                    <img src="/seaside.png" alt="Seaside WRS" className="w-4 h-4 object-contain" />
+                    <span className="text-[10px] font-black text-slate-800 dark:text-slate-100">
+                        20.0L {stationName || 'Seaside'}
+                    </span>
+                </div>
+            </div>
+
+            <button
+                type="button"
+                onClick={onPlaySim}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-white/90 dark:bg-slate-800/90 hover:bg-[#8DB600] hover:text-white dark:hover:bg-[#8DB600] text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-white/10 text-[11px] font-bold shadow-2xs transition-all cursor-pointer active:scale-95"
+            >
+                <AnimatedLandingIcon name="gamepad" size={14} strokeColor="currentColor" />
+                <span>Launch Interactive Refill Simulator</span>
+            </button>
+        </div>
+    );
+}
 
 export default function Hero({ settings }) {
     const { data: customersData, isLoading } = useCustomers();
@@ -353,11 +437,21 @@ export default function Hero({ settings }) {
                                             transition={{ duration: 0.3 }}
                                             className="w-full h-[275px] sm:h-[305px] relative"
                                         >
-                                            <WaterStation3DModel
-                                                darkMode={darkMode}
-                                                stationName={rawBusinessName}
-                                                tdsLabel={formattedTdsBadge}
-                                            />
+                                            <SafeWebGL
+                                                fallback={
+                                                    <WaterStation2DFallback
+                                                        darkMode={darkMode}
+                                                        stationName={rawBusinessName}
+                                                        onPlaySim={() => setStageView('game')}
+                                                    />
+                                                }
+                                            >
+                                                <WaterStation3DModel
+                                                    darkMode={darkMode}
+                                                    stationName={rawBusinessName}
+                                                    tdsLabel={formattedTdsBadge}
+                                                />
+                                            </SafeWebGL>
                                         </motion.div>
                                     )}
 
