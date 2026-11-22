@@ -1,7 +1,6 @@
 // src/components/Navbar.jsx
 import React, { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/router';
-import Image from 'next/image';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { subHours } from 'date-fns';
 import currency from 'currency.js';
@@ -175,7 +174,6 @@ export default function Navbar() {
         };
     }, []);
 
-    // Broadcast drawer state to TabBar so the rolling 3D sphere tracks "More"
     useEffect(() => {
         if (typeof window !== 'undefined') {
             window.dispatchEvent(
@@ -486,7 +484,6 @@ export default function Navbar() {
         await handleLogout();
     };
 
-    // Navigate cleanly via Next.js router AND force fresh Supabase data on target pages
     const handleNavigateAndRefresh = async (path, category, isMessages) => {
         if (category) setOpenCategories(new Set([category]));
         if (isMessages) markMessagesAsSeen();
@@ -611,36 +608,37 @@ export default function Navbar() {
     return (
         <>
             {/* MOBILE HEADER BAR */}
-            <div className="navbar md:hidden flex items-center justify-between px-3.5 py-2.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 z-30 sticky top-0 shadow-2xs">
-                <div className="flex items-center gap-2.5 min-w-0">
+            <div className="navbar md:hidden flex items-center justify-between gap-2 px-3 py-2 min-h-[52px] bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 z-30 sticky top-0 shadow-2xs overflow-visible">
+                <div className="flex items-center gap-2 min-w-0 shrink-0">
                     <Button
                         type="button"
                         variant="ghost"
                         size="sm"
                         onClick={() => setIsMenuOpen(true)}
                         aria-label="Open Navigation Drawer"
-                        className="p-1.5 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl"
+                        className="p-1.5 h-8 w-8 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl shrink-0"
                     >
-                        <HamburgerIcon className="h-6 w-6" />
+                        <HamburgerIcon className="h-5 w-5" />
                     </Button>
 
-                    <div className="brand flex items-center min-w-0 flex-shrink-0 cursor-pointer" onClick={() => handleNavigateAndRefresh('/pos', 'Sales & Operations', false)}>
-                        <Image
+                    <div
+                        className="brand flex items-center justify-center w-8 h-8 shrink-0 cursor-pointer"
+                        onClick={() => handleNavigateAndRefresh('/pos', 'Sales & Operations', false)}
+                    >
+                        <img
                             src="/seaside.png"
                             alt="Seaside Logo"
-                            width={36}
-                            height={36}
-                            style={{ width: 'auto', height: 'auto' }}
-                            loading="eager"
-                            className="flex-shrink-0 object-contain"
+                            width={32}
+                            height={32}
+                            className="w-8 h-8 max-w-[32px] max-h-[32px] object-contain shrink-0 block"
                         />
                     </div>
                 </div>
 
                 {/* Right Actions: Shift Indicator, Notifications & LiveClock */}
-                <div className="flex items-center gap-2 ml-auto">
+                <div className="flex items-center gap-1.5 sm:gap-2 ml-auto shrink-0">
                     {clientUser && (
-                        <div className="scale-90 origin-right">
+                        <div className="scale-90 origin-right shrink-0">
                             <ActiveShiftIndicator user={clientUser} onOpenStartShift={() => setIsStartShiftModalOpen(true)} />
                         </div>
                     )}
@@ -663,7 +661,7 @@ export default function Navbar() {
                         isMobile={true}
                     />
 
-                    <div className="border-l border-slate-200 dark:border-slate-700/80 pl-2">
+                    <div className="border-l border-slate-200 dark:border-slate-700/80 pl-1.5 sm:pl-2 shrink-0">
                         <LiveClock />
                     </div>
                 </div>
@@ -742,14 +740,12 @@ export default function Navbar() {
             {/* DESKTOP SIDEBAR */}
             <aside className="hidden md:flex flex-col w-64 fixed inset-y-0 left-0 bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-slate-800 z-40 shadow-xs">
                 <div className="h-16 flex items-center px-6 border-b border-slate-200/80 dark:border-slate-800 shrink-0 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors" onClick={() => router.push('/')}>
-                    <Image
+                    <img
                         src="/seaside.png"
                         alt="Seaside Logo"
-                        width={38}
-                        height={38}
-                        style={{ width: 'auto', height: 'auto' }}
-                        loading="eager"
-                        className="shrink-0"
+                        width={36}
+                        height={36}
+                        className="w-9 h-9 max-w-[36px] max-h-[36px] object-contain shrink-0 block"
                     />
                     <span className="font-black text-lg text-green-800 dark:text-lime-400 ml-3 tracking-tight">Seaside</span>
                 </div>
