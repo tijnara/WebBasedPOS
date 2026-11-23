@@ -8,8 +8,168 @@ import { useStore } from '../../store/useStore';
 import { Button, Input } from '../ui';
 import {
     Images, Search, Calendar, Eye, Trash2, ArrowLeft,
-    FileText, User, X, RotateCcw, ZoomIn, ZoomOut, Maximize2
+    Receipt, User, Package, Maximize2, Minimize2, X, RotateCcw,
+    FileText, ZoomIn, ZoomOut
 } from 'lucide-react';
+
+/**
+ * Reusable split viewer for both the Scanned Sheet Modal and Full Screen view.
+ * Guarantees the scanned sheet image and extracted items are always visible together
+ * on both mobile and desktop viewports.
+ */
+function ScannedLogComparisonView({
+                                      imageUrl,
+                                      title,
+                                      subtitle,
+                                      extractedOrders = [],
+                                      isFullScreen = false,
+                                      onToggleFullScreen,
+                                      zoomLevel = 1,
+                                      onToggleZoom
+                                  }) {
+    const items = Array.isArray(extractedOrders) ? extractedOrders : [];
+
+    return (
+        <div
+            className={`flex flex-col lg:grid lg:grid-cols-12 gap-3 sm:gap-4 w-full ${
+                isFullScreen ? 'lg:h-full p-2.5 sm:p-4' : 'lg:h-full'
+            }`}
+        >
+            {/* LEFT / TOP: Scanned Sheet Image */}
+            <div
+                className={`${
+                    isFullScreen ? 'lg:col-span-7' : 'lg:col-span-6'
+                } relative w-full rounded-2xl bg-slate-950 border border-slate-200/80 dark:border-slate-800 overflow-hidden shrink-0 ${
+                    isFullScreen
+                        ? 'h-[42dvh] sm:h-[46dvh] lg:h-full'
+                        : 'h-[220px] sm:h-[270px] lg:h-full'
+                }`}
+            >
+                <div
+                    className={`w-full h-full flex items-center justify-center p-2 ${
+                        zoomLevel > 1 ? 'overflow-auto cursor-zoom-out' : 'overflow-hidden cursor-zoom-in'
+                    }`}
+                    onClick={() => {
+                        if (typeof onToggleZoom === 'function') {
+                            onToggleZoom();
+                        } else if (!isFullScreen && typeof onToggleFullScreen === 'function') {
+                            onToggleFullScreen();
+                        }
+                    }}
+                >
+                    {imageUrl ? (
+                        <img
+                            src={imageUrl}
+                            alt={title || 'Scanned handwritten sheet'}
+                            style={
+                                zoomLevel > 1
+                                    ? { transform: `scale(${zoomLevel})`, transformOrigin: 'center center' }
+                                    : undefined
+                            }
+                            className="max-w-full max-h-full w-auto h-auto object-contain select-none transition-transform duration-150"
+                        />
+                    ) : (
+                        <span className="text-xs text-slate-400">No scanned image available</span>
+                    )}
+                </div>
+
+                {typeof onToggleFullScreen === 'function' && (
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onToggleFullScreen();
+                        }}
+                        className="absolute bottom-2.5 right-2.5 z-10 px-3 py-1.5 rounded-xl bg-white/95 dark:bg-slate-900/95 hover:bg-white text-slate-900 dark:text-slate-100 text-[11px] font-bold shadow-md border border-slate-200/80 dark:border-slate-700 flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all"
+                    >
+                        {isFullScreen ? (
+                            <>
+                                <Minimize2 className="w-3.5 h-3.5 text-[#659000]" />
+                                <span>Exit Full Screen</span>
+                            </>
+                        ) : (
+                            <>
+                                <Maximize2 className="w-3.5 h-3.5 text-[#659000]" />
+                                <span>Full Screen</span>
+                            </>
+                        )}
+                    </button>
+                )}
+            </div>
+
+            {/* RIGHT / BOTTOM: Extracted Items Card List */}
+            <div
+                className={`${
+                    isFullScreen ? 'lg:col-span-5' : 'lg:col-span-6'
+                } flex flex-col rounded-2xl bg-slate-50/90 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800 overflow-hidden lg:h-full lg:min-h-0`}
+            >
+                <div className="px-3.5 py-2.5 bg-white dark:bg-slate-900 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-2 shrink-0">
+                    <div className="flex items-center gap-1.5 text-[11px] sm:text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-200 shrink-0">
+                        <Receipt className="w-3.5 h-3.5 text-[#8DB600]" />
+                        <span>Extracted Orders ({items.length})</span>
+                    </div>
+                    {subtitle && (
+                        <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 truncate text-right">
+                            {subtitle}
+                        </span>
+                    )}
+                </div>
+
+                <div className="p-2.5 sm:p-3 space-y-2 lg:flex-1 lg:min-h-0 lg:overflow-y-auto">
+                    {items.length === 0 ? (
+                        <div className="text-center py-8 text-xs text-slate-400">
+                            No extracted line items found for this scan.
+                        </div>
+                    ) : (
+                        items.map((row, idx) => {
+                            const customerName =
+                                row.customer_name || row.customer || row.name || `Customer #${idx + 1}`;
+                            const productName =
+                                row.product_name || row.item_name || row.product || 'Purified Refill';
+                            const qty = Number(row.quantity ?? row.qty ?? 1);
+                            const amount = Number(row.total_amount ?? row.total ?? row.amount ?? 0);
+                            const isUtang = row.payment_method === 'Credit';
+
+                            return (
+                                <div
+                                    key={row.id || idx}
+                                    className="p-2.5 sm:p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700/80 flex items-center justify-between gap-2.5 shadow-2xs"
+                                >
+                                    <div className="min-w-0 space-y-0.5">
+                                        <div className="flex items-center gap-1.5">
+                                            <span className="text-[10px] font-mono font-black px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 shrink-0">
+                                                #{idx + 1}
+                                            </span>
+                                            <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 truncate flex items-center gap-1">
+                                                <User className="w-3 h-3 text-slate-400 shrink-0" />
+                                                <span className="truncate">{customerName}</span>
+                                            </span>
+                                            {isUtang && (
+                                                <span className="ml-1 text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 shrink-0">
+                                                    Utang
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 pl-6">
+                                            <Package className="w-3 h-3 shrink-0 text-[#659000] dark:text-lime-400" />
+                                            <span className="truncate">
+                                                {qty}× {productName}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <span className="text-xs sm:text-sm font-black font-mono text-[#659000] dark:text-lime-400 shrink-0">
+                                        {currency(amount, { symbol: '₱' }).format()}
+                                    </span>
+                                </div>
+                            );
+                        })
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
 
 export default function ScannedLogsPage() {
     const user = useStore((s) => s.user);
@@ -52,23 +212,30 @@ export default function ScannedLogsPage() {
         }
     };
 
-    const handleZoomIn = (e) => {
-        e.stopPropagation();
-        setZoomLevel(prev => Math.min(prev + 0.5, 4));
-    };
+    const extractedItems = useMemo(() => {
+        const raw = selectedLog?.items_snapshot;
+        if (Array.isArray(raw)) return raw;
+        if (typeof raw === 'string') {
+            try {
+                const parsed = JSON.parse(raw);
+                return Array.isArray(parsed) ? parsed : [];
+            } catch {
+                return [];
+            }
+        }
+        return [];
+    }, [selectedLog]);
 
-    const handleZoomOut = (e) => {
-        e.stopPropagation();
-        setZoomLevel(prev => Math.max(prev - 0.5, 1));
-    };
+    const formattedSheetDate = selectedLog?.delivery_date
+        ? format(new Date(`${selectedLog.delivery_date}T00:00:00+08:00`), 'MMM d, yyyy')
+        : '';
 
-    const extractedItems = Array.isArray(selectedLog?.items_snapshot)
-        ? selectedLog.items_snapshot
-        : [];
+    const sheetSummarySubtitle = selectedLog
+        ? `${currency(selectedLog.total_amount, { symbol: '₱' }).format()} • ${selectedLog.scanned_by_name || 'Staff'}`
+        : '';
 
     return (
-        <div className="scanned-logs-page w-full max-w-7xl mx-auto px-1.5 py-2 sm:p-6 space-y-2.5 sm:space-y-6 transition-colors pb-24 md:pb-8">
-            {/* Match POS, Expenses, Dashboard, Report & History edge-to-edge .container fit on mobile (< 640px) */}
+        <div className="scanned-logs-page w-full max-w-7xl mx-auto px-1.5 py-2 sm:p-6 space-y-2.5 sm:space-y-6 transition-colors pb-28 md:pb-8">
             <style jsx global>{`
                 @media (max-width: 639px) {
                     .app:has(.scanned-logs-page) .container {
@@ -112,7 +279,10 @@ export default function ScannedLogsPage() {
                             Archived Sheets
                         </span>
                         <span className="text-sm font-black text-slate-900 dark:text-white">
-                            {logs.length} sheets <span className="font-mono text-[#5f7d00] dark:text-lime-400 font-bold ml-1">({currency(totalArchivedSales, { symbol: '₱' }).format()})</span>
+                            {logs.length} sheets{' '}
+                            <span className="font-mono text-[#5f7d00] dark:text-lime-400 font-bold ml-1">
+                                ({currency(totalArchivedSales, { symbol: '₱' }).format()})
+                            </span>
                         </span>
                     </div>
                 </div>
@@ -125,15 +295,29 @@ export default function ScannedLogsPage() {
                         <label className="block text-[10px] sm:text-xs font-bold text-slate-700 dark:text-slate-300 mb-0.5 sm:mb-1 pl-0.5">
                             Search Customer, Product, or Staff
                         </label>
-                        <div className="relative">
-                            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <div className="relative flex items-center">
+                            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none z-10" />
                             <Input
                                 type="text"
                                 placeholder="Search customer name or staff..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="h-9 sm:h-10 pl-9 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                                style={{
+                                    paddingLeft: '2.5rem',
+                                    paddingRight: searchTerm ? '2.25rem' : '0.875rem'
+                                }}
+                                className="h-9 sm:h-10 !pl-10 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500"
                             />
+                            {searchTerm && (
+                                <button
+                                    type="button"
+                                    onClick={() => setSearchTerm('')}
+                                    aria-label="Clear search"
+                                    className="absolute right-2.5 top-1/2 -translate-y-1/2 z-10 p-1 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer"
+                                >
+                                    <X className="w-3.5 h-3.5" />
+                                </button>
+                            )}
                         </div>
                     </div>
 
@@ -243,7 +427,9 @@ export default function ScannedLogsPage() {
                             <div className="p-3 sm:p-3.5 flex items-center justify-between text-xs border-t border-slate-100 dark:border-slate-800">
                                 <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 truncate">
                                     <User className="w-3.5 h-3.5 shrink-0" />
-                                    <span className="truncate">Scanned by <strong className="text-slate-700 dark:text-slate-200">{log.scanned_by_name || 'Staff'}</strong></span>
+                                    <span className="truncate">
+                                        Scanned by <strong className="text-slate-700 dark:text-slate-200">{log.scanned_by_name || 'Staff'}</strong>
+                                    </span>
                                 </div>
                                 <span className="text-[#5f7d00] dark:text-lime-400 font-bold flex items-center gap-1 shrink-0">
                                     <Eye className="w-3.5 h-3.5" /> View
@@ -254,165 +440,127 @@ export default function ScannedLogsPage() {
                 </div>
             )}
 
-            {/* Split-View Inspection Modal: Full Uncropped Image + Visible Extracted Orders List */}
+            {/* Split-View Inspection Modal */}
             {selectedLog && !lightboxOpen && (
                 <div
                     className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[130] flex items-center justify-center p-2 sm:p-5"
                     onClick={() => setSelectedLog(null)}
                 >
                     <div
-                        className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl max-w-6xl w-full max-h-[92vh] overflow-hidden flex flex-col border border-slate-200 dark:border-slate-800 shadow-2xl"
+                        className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl max-w-6xl w-full h-[90dvh] sm:h-[85vh] max-h-[820px] overflow-hidden flex flex-col border border-slate-200 dark:border-slate-800 shadow-2xl"
                         onClick={(e) => e.stopPropagation()}
                     >
+                        {/* Modal Header */}
                         <div className="px-4 sm:px-5 py-3 sm:py-3.5 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0">
                             <div className="min-w-0 pr-2">
-                                <h3 className="text-sm sm:text-lg font-black text-slate-900 dark:text-white tracking-tight truncate">
-                                    Scanned Sheet — {selectedLog.delivery_date ? format(new Date(`${selectedLog.delivery_date}T00:00:00+08:00`), 'MMM d, yyyy') : ''}
+                                <h3 className="text-sm sm:text-lg font-black text-slate-900 dark:text-white tracking-tight truncate flex items-center gap-1.5">
+                                    <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-[#8DB600] shrink-0" />
+                                    <span className="truncate">Scanned Sheet — {formattedSheetDate}</span>
                                 </h3>
-                                <p className="text-[10px] sm:text-xs text-slate-500 mt-0.5 truncate">
-                                    Recorded {selectedLog.items_count || extractedItems.length} transactions totaling {currency(selectedLog.total_amount, { symbol: '₱' }).format()} • Uploaded by {selectedLog.scanned_by_name || 'Staff'}
+                                <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+                                    Recorded {selectedLog.items_count || extractedItems.length} transactions totaling{' '}
+                                    {currency(selectedLog.total_amount, { symbol: '₱' }).format()} • Uploaded by{' '}
+                                    {selectedLog.scanned_by_name || 'Staff'}
                                 </p>
                             </div>
                             <button
                                 type="button"
                                 onClick={() => setSelectedLog(null)}
                                 className="p-1.5 sm:p-2 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-700 cursor-pointer transition-colors shrink-0"
+                                aria-label="Close modal"
                             >
                                 <X className="w-4 h-4 sm:w-5 sm:h-5" />
                             </button>
                         </div>
 
-                        <div className="p-3 sm:p-5 overflow-y-auto grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-5 bg-slate-50 dark:bg-slate-900">
-                            {/* Left: Full Uncropped Image */}
-                            <div className="flex flex-col gap-1.5">
-                                <div
-                                    className="relative w-full bg-slate-950 rounded-xl sm:rounded-2xl overflow-hidden border border-slate-800 group cursor-zoom-in shadow-inner flex items-center justify-center p-2"
-                                    onClick={() => setLightboxOpen(true)}
-                                >
-                                    <img
-                                        src={selectedLog.image_url}
-                                        alt="Scanned sheet full view"
-                                        className="w-full h-auto max-h-[34vh] sm:max-h-[40vh] lg:max-h-[65vh] object-contain"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setLightboxOpen(true);
-                                        }}
-                                        className="absolute bottom-2.5 right-2.5 bg-slate-900/85 hover:bg-slate-800 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-1.5 text-white font-bold text-[11px] border border-white/20 shadow-md cursor-pointer"
-                                    >
-                                        <Maximize2 className="w-3.5 h-3.5 text-[#8DB600]" />
-                                        <span>Full Screen</span>
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* Right / Bottom: Extracted Orders Table */}
-                            <div className="space-y-2 flex flex-col min-w-0">
-                                <h4 className="text-[11px] sm:text-xs font-black uppercase tracking-wider text-slate-600 dark:text-slate-300 flex items-center gap-1.5 bg-white dark:bg-slate-800 py-1.5 sm:py-2 px-3 rounded-lg sm:rounded-xl border border-slate-200 dark:border-slate-700">
-                                    <FileText className="w-3.5 h-3.5 text-[#8DB600]" />
-                                    <span>Extracted Orders ({selectedLog.items_count || extractedItems.length})</span>
-                                </h4>
-
-                                <div className="border border-slate-200 dark:border-slate-700 rounded-xl sm:rounded-2xl overflow-hidden bg-white dark:bg-slate-800 shadow-sm flex-1">
-                                    {extractedItems.length === 0 ? (
-                                        <div className="p-6 text-center text-xs text-slate-400">
-                                            No line-item details recorded for this sheet.
-                                        </div>
-                                    ) : (
-                                        <div className="overflow-x-auto max-h-[42vh] lg:max-h-[58vh] overflow-y-auto">
-                                            <table className="w-full text-[10px] sm:text-xs">
-                                                <thead className="sticky top-0 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 font-bold">
-                                                <tr>
-                                                    <th className="px-3 sm:px-4 py-2 sm:py-2.5 text-left">Customer</th>
-                                                    <th className="px-3 sm:px-4 py-2 sm:py-2.5 text-left">Item</th>
-                                                    <th className="px-3 sm:px-4 py-2 sm:py-2.5 text-center">Qty</th>
-                                                    <th className="px-3 sm:px-4 py-2 sm:py-2.5 text-right">Amount</th>
-                                                </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
-                                                {extractedItems.map((item, idx) => (
-                                                    <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
-                                                        <td className="px-3 sm:px-4 py-2.5 sm:py-3 font-bold text-slate-800 dark:text-slate-100">
-                                                            {item.customer_name}
-                                                            {item.payment_method === 'Credit' && (
-                                                                <span className="ml-1.5 text-[9px] px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-300 font-bold border border-amber-200 dark:border-amber-800">
-                                                                        Utang
-                                                                    </span>
-                                                            )}
-                                                        </td>
-                                                        <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-slate-600 dark:text-slate-300 font-medium">
-                                                            {item.product_name}
-                                                        </td>
-                                                        <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-bold text-slate-800 dark:text-slate-100">
-                                                            {item.quantity}
-                                                        </td>
-                                                        <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-right font-mono font-bold text-[#5f7d00] dark:text-lime-400">
-                                                            {currency(item.total_amount, { symbol: '₱' }).format()}
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
+                        {/* Scrollable Body */}
+                        <div className="flex-1 min-h-0 overflow-y-auto lg:overflow-hidden p-2.5 sm:p-4 bg-slate-50/60 dark:bg-slate-900">
+                            <ScannedLogComparisonView
+                                imageUrl={selectedLog.image_url}
+                                title={`Scanned sheet ${selectedLog.delivery_date}`}
+                                subtitle={sheetSummarySubtitle}
+                                extractedOrders={extractedItems}
+                                isFullScreen={false}
+                                onToggleFullScreen={() => {
+                                    setZoomLevel(1);
+                                    setLightboxOpen(true);
+                                }}
+                            />
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* True Fullscreen Lightbox Modal */}
+            {/* True Fullscreen Split-View Modal */}
             {selectedLog && lightboxOpen && (
                 <div
-                    className="fixed inset-0 bg-slate-950/95 backdrop-blur-xl z-[150] flex flex-col items-center justify-center"
-                    onClick={() => setLightboxOpen(false)}
+                    className="fixed inset-0 bg-slate-950 z-[150] flex flex-col h-[100dvh] w-screen overflow-hidden"
+                    onClick={() => {
+                        setLightboxOpen(false);
+                        setZoomLevel(1);
+                    }}
                 >
-                    <div className="absolute top-4 right-4 z-10 flex items-center gap-2 sm:gap-3">
-                        <div className="bg-slate-900/80 backdrop-blur-md rounded-full p-1 border border-slate-700 flex items-center gap-1 shadow-lg" onClick={e => e.stopPropagation()}>
-                            <button type="button" onClick={handleZoomOut} className="p-1.5 sm:p-2 text-white hover:bg-slate-800 rounded-full cursor-pointer" title="Zoom Out">
-                                <ZoomOut className="w-4 h-4 sm:w-5 sm:h-5" />
-                            </button>
-                            <span className="text-white text-xs font-mono font-bold w-10 text-center select-none">
-                                {Math.round(zoomLevel * 100)}%
-                            </span>
-                            <button type="button" onClick={handleZoomIn} className="p-1.5 sm:p-2 text-white hover:bg-slate-800 rounded-full cursor-pointer" title="Zoom In">
-                                <ZoomIn className="w-4 h-4 sm:w-5 sm:h-5" />
-                            </button>
-                            <button type="button" onClick={() => setZoomLevel(1)} className="p-1.5 sm:p-2 text-lime-400 hover:bg-slate-800 rounded-full text-[10px] font-bold uppercase tracking-wider cursor-pointer" title="Reset Zoom">
-                                Reset
+                    <div
+                        className="px-3 sm:px-5 py-2.5 sm:py-3 flex items-center justify-between gap-2 border-b border-white/10 shrink-0 bg-slate-950/90 backdrop-blur-md z-20"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <h3 className="text-xs sm:text-base font-black text-white tracking-tight truncate flex items-center gap-1.5 min-w-0">
+                            <FileText className="w-4 h-4 text-[#8DB600] shrink-0" />
+                            <span className="truncate">Scanned Sheet — {formattedSheetDate}</span>
+                        </h3>
+
+                        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                            <div className="bg-slate-900 rounded-full p-0.5 border border-slate-700 flex items-center gap-0.5">
+                                <button
+                                    type="button"
+                                    onClick={() => setZoomLevel(prev => Math.max(1, prev - 0.5))}
+                                    className="p-1.5 text-white hover:bg-slate-800 rounded-full cursor-pointer"
+                                    title="Zoom Out"
+                                >
+                                    <ZoomOut className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                </button>
+                                <span className="text-white text-[10px] sm:text-xs font-mono font-bold w-9 text-center select-none">
+                                    {Math.round(zoomLevel * 100)}%
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => setZoomLevel(prev => Math.min(3, prev + 0.5))}
+                                    className="p-1.5 text-white hover:bg-slate-800 rounded-full cursor-pointer"
+                                    title="Zoom In"
+                                >
+                                    <ZoomIn className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                </button>
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setLightboxOpen(false);
+                                    setZoomLevel(1);
+                                }}
+                                className="bg-white/10 hover:bg-white/20 text-white p-1.5 sm:p-2 rounded-full border border-white/15 transition-colors cursor-pointer"
+                                aria-label="Close full screen"
+                            >
+                                <X className="w-4 h-4 sm:w-5 sm:h-5" />
                             </button>
                         </div>
-
-                        <button
-                            type="button"
-                            onClick={() => setLightboxOpen(false)}
-                            className="bg-rose-600/90 hover:bg-rose-600 text-white p-2 sm:p-2.5 rounded-full shadow-lg border border-rose-500 transition-colors cursor-pointer"
-                        >
-                            <X className="w-5 h-5 sm:w-6 sm:h-6" />
-                        </button>
                     </div>
 
                     <div
-                        className="w-full h-full p-2 sm:p-4 md:p-12 overflow-auto flex items-center justify-center"
-                        style={{ cursor: zoomLevel > 1 ? 'grab' : 'auto' }}
+                        className="flex-1 min-h-0 overflow-y-auto lg:overflow-hidden bg-slate-950"
+                        onClick={(e) => e.stopPropagation()}
                     >
-                        <img
-                            src={selectedLog.image_url}
-                            alt="Fullscreen Scanned Log"
-                            className="max-w-none max-h-none transition-transform duration-200 ease-out origin-center"
-                            style={{
-                                transform: `scale(${zoomLevel})`,
-                                maxHeight: zoomLevel === 1 ? '100%' : 'none',
-                                maxWidth: zoomLevel === 1 ? '100%' : 'none',
-                                objectFit: 'contain'
-                            }}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                if (zoomLevel === 1) setZoomLevel(2);
-                                else setZoomLevel(1);
+                        <ScannedLogComparisonView
+                            imageUrl={selectedLog.image_url}
+                            title={`Scanned sheet ${selectedLog.delivery_date}`}
+                            subtitle={sheetSummarySubtitle}
+                            extractedOrders={extractedItems}
+                            isFullScreen={true}
+                            zoomLevel={zoomLevel}
+                            onToggleZoom={() => setZoomLevel(prev => (prev > 1 ? 1 : 2))}
+                            onToggleFullScreen={() => {
+                                setLightboxOpen(false);
+                                setZoomLevel(1);
                             }}
                         />
                     </div>
