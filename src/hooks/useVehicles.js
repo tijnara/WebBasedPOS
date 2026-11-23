@@ -49,7 +49,8 @@ export function useVehicles() {
             if (error) throw error;
             return data || [];
         },
-        enabled: !!user && !isDemo
+        enabled: !!user && !isDemo,
+        refetchOnWindowFocus: false
     });
 }
 
@@ -305,8 +306,8 @@ export function useMaintenanceAlerts() {
             };
         },
         enabled: !!user && !isDemo,
-        staleTime: 1000 * 60 * 2,
-        refetchOnWindowFocus: true
+        staleTime: 1000 * 60 * 5,
+        refetchOnWindowFocus: false
     });
 }
 
@@ -364,7 +365,7 @@ export function useOverdueVehicles() {
             return processedVehicles.filter(v => v.isOverdue);
         },
         enabled: !!user && !isDemo,
-        staleTime: 1000 * 60 * 2,
-        refetchOnWindowFocus: true
+        staleTime: 1000 * 60 * 5,
+        refetchOnWindowFocus: false
     });
 }

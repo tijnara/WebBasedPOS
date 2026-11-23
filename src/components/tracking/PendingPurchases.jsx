@@ -1,7 +1,7 @@
 // src/components/tracking/PendingPurchases.jsx
 import React, { useState } from 'react';
 import { Card, CardContent, Button } from '../ui';
-import { ShoppingCart, Info, ChevronDown, ChevronUp, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { ShoppingCart, Info, ChevronDown, ChevronUp, CheckCircle2, Wrench } from 'lucide-react';
 import currency from 'currency.js';
 
 export default function PendingPurchases({
@@ -27,7 +27,7 @@ export default function PendingPurchases({
                             All Filters in Good Condition
                         </h4>
                         <p className="text-[11px] text-emerald-700 dark:text-emerald-400">
-                            No cartridge replacements or pending expenses required.
+                            No cartridge replacements required right now.
                         </p>
                     </div>
                 </div>
@@ -52,20 +52,21 @@ export default function PendingPurchases({
                     <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
                             <h3 className="font-extrabold text-xs text-amber-950 dark:text-amber-100 truncate">
-                                Pending Purchases
+                                Overdue Replacements
                             </h3>
                             <span className="text-[9px] font-black bg-rose-600 text-white px-1.5 py-0.2 rounded-full font-mono">
                                 {overdueFilters.length} DUE
                             </span>
                         </div>
                         <p className="text-[10px] text-amber-800 dark:text-amber-300 font-medium">
-                            {currency(totalOverdueCost, { symbol: '₱' }).format()} estimated expense
+                            {currency(totalOverdueCost, { symbol: '₱' }).format()} estimated cost
                         </p>
                     </div>
                 </div>
 
                 <button
                     type="button"
+                    aria-label={isExpanded ? 'Collapse overdue replacements' : 'Expand overdue replacements'}
                     className="p-1 rounded-lg text-amber-800 dark:text-amber-300 hover:bg-amber-200/50 dark:hover:bg-amber-900/50 transition-colors"
                 >
                     {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -97,19 +98,19 @@ export default function PendingPurchases({
                         })}
                     </ul>
 
-                    {/* Total Due Banner */}
+                    {/* Estimated Cost Banner */}
                     <div className="bg-white dark:bg-slate-800/80 rounded-xl p-2.5 px-3 border border-amber-200/60 dark:border-slate-700 flex justify-between items-center">
-                        <span className="text-xs font-bold text-slate-600 dark:text-slate-300">Total Due</span>
+                        <span className="text-xs font-bold text-slate-600 dark:text-slate-300">Estimated Cost</span>
                         <span className="text-base font-black font-mono text-rose-600 dark:text-rose-400">
                             {currency(totalOverdueCost, { symbol: '₱' }).format()}
                         </span>
                     </div>
 
-                    {/* Operational Amortization Notice */}
+                    {/* Manual Expense Entry Notice */}
                     <div className="bg-blue-50/80 dark:bg-blue-950/30 text-blue-900 dark:text-blue-200 text-[10.5px] p-2.5 rounded-xl border border-blue-200/70 dark:border-blue-900/50 flex gap-2 leading-relaxed">
                         <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-blue-600 dark:text-blue-400" />
                         <p>
-                            Automatically amortizes <strong>weekly operating expenses</strong> across each filter's lifespan to align with your 6-day operating cycle.
+                            Resets filter lifespan counters only. Please record the purchase receipt manually on the <strong>Expenses</strong> page.
                         </p>
                     </div>
 
@@ -119,9 +120,10 @@ export default function PendingPurchases({
                         onClick={handlePurchaseAndRecord}
                         disabled={isPurchasing || isDemo}
                         variant="primary"
-                        className="w-full h-10 text-xs font-black shadow-xs bg-amber-600 hover:bg-amber-700 text-white rounded-xl active:scale-[0.98] transition-transform flex items-center justify-center gap-1.5"
+                        className="w-full h-10 text-xs font-black shadow-xs bg-[#8DB600] hover:bg-[#7ca000] text-white rounded-xl active:scale-[0.98] transition-transform flex items-center justify-center gap-1.5 cursor-pointer"
                     >
-                        {isPurchasing ? 'Recording Expense...' : 'Purchase & Record Expense'}
+                        <Wrench className="w-3.5 h-3.5" />
+                        <span>{isPurchasing ? 'Recording Replacements...' : 'Record All Replacements'}</span>
                     </Button>
                 </CardContent>
             )}

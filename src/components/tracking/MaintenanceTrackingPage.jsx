@@ -2,16 +2,17 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { useStore } from '../../store/useStore';
-import { useCreateExpense } from '../../hooks/useExpenses';
 import { logActivity } from '../../hooks/useActivityLogs';
-import { startOfWeek, addWeeks, addDays, format } from 'date-fns';
+import { addDays, format } from 'date-fns';
 import { useQueryClient } from '@tanstack/react-query';
 import {
     Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
-    Button, Input, Label, Textarea, Select, Table, TableHeader, TableRow, TableHead,
-    TableBody, TableCell
+    Button, Input, Label, Textarea, Select
 } from '../ui';
-import { Edit2, Trash2, Sliders, Droplets, Truck, AlertTriangle, FlaskConical, Plus, Check } from 'lucide-react';
+import {
+    Edit2, Trash2, Sliders, Droplets, Truck, AlertTriangle,
+    FlaskConical, Plus, Check, History, Calendar, User
+} from 'lucide-react';
 
 import PendingPurchases from '../tracking/PendingPurchases';
 import FilterList from '../tracking/FilterList';
@@ -58,8 +59,10 @@ export default function MaintenanceTrackingPage() {
     const [usageData, setUsageData] = useState({});
     const [dbVehicles, setDbVehicles] = useState([]);
     const [fullHistory, setFullHistory] = useState([]);
+    const [usersMap, setUsersMap] = useState({});
     const [isLoading, setIsLoading] = useState(true);
     const [isPurchasing, setIsPurchasing] = useState(false);
+    const [deletingHistoryId, setDeletingHistoryId] = useState(null);
 
     // Water Test Schedule & Saved Test Types State
     const [waterTestSchedule, setWaterTestSchedule] = useState(DEFAULT_WATER_TEST_SCHEDULE);
@@ -110,8 +113,6 @@ export default function MaintenanceTrackingPage() {
         lastMaintenanceDate: format(new Date(), 'yyyy-MM-dd')
     });
 
-    const createExpense = useCreateExpense();
-
     const preventEnterReload = (e) => {
         if (e.key === 'Enter') {
             e.preventDefault();
@@ -143,7 +144,7 @@ export default function MaintenanceTrackingPage() {
 
                 if (!configError && dbConfigs && dbConfigs.length > 0) {
                     activeFilters = FILTER_CONFIG.map(defaultFilter => {
-                        const matched = dbConfigs.find(c => c.id === defaultFilter.id);
+                        const matched = dbConfigs.find(c => String(c.id) === String(defaultFilter.id));
                         if (!matched) return defaultFilter;
                         return {
                             ...defaultFilter,
@@ -160,16 +161,31 @@ export default function MaintenanceTrackingPage() {
             }
             setFilterConfigs(activeFilters);
 
-            // 2. Fetch Vehicles, Maintenance History, Water Test Schedule, and Water Test Types
-            const [vehiclesRes, historyRes, waterTestRes, testTypesRes] = await Promise.all([
+            // 2. Fetch Vehicles, Maintenance History, Users, Water Test Schedule, and Water Test Types
+            const [vehiclesRes, historyRes, usersRes, waterTestRes, testTypesRes] = await Promise.all([
                 supabase.from('vehicles').select('*').order('created_at', { ascending: true }),
-                supabase.from('maintenance_history').select('*').order('replaced_at', { ascending: false }),
+                supabase
+                    .from('maintenance_history')
+                    .select('*')
+                    .order('replaced_at', { ascending: false })
+                    .order('created_at', { ascending: false }),
+                supabase.from('users').select('id, name'),
                 supabase.from('water_test_schedules').select('*').eq('id', 1).maybeSingle(),
                 supabase.from('water_test_types').select('*').order('created_at', { ascending: true })
             ]);
 
             if (vehiclesRes.error) throw vehiclesRes.error;
             if (historyRes.error) throw historyRes.error;
+
+            if (!usersRes.error && Array.isArray(usersRes.data)) {
+                const map = {};
+                usersRes.data.forEach(u => {
+                    if (u?.id != null) {
+                        map[String(u.id)] = u.name || `Staff #${u.id}`;
+                    }
+                });
+                setUsersMap(map);
+            }
 
             if (!waterTestRes.error && waterTestRes.data) {
                 setWaterTestSchedule(waterTestRes.data);
@@ -199,13 +215,15 @@ export default function MaintenanceTrackingPage() {
             }
 
             const vehiclesList = vehiclesRes.data || [];
+            const historyList = historyRes.data || [];
             setDbVehicles(vehiclesList);
-            setFullHistory(historyRes.data || []);
+            setFullHistory(historyList);
 
             const latestDates = {};
-            (historyRes.data || []).forEach(record => {
-                if (!latestDates[record.item_id]) {
-                    latestDates[record.item_id] = record.replaced_at;
+            historyList.forEach(record => {
+                const key = String(record.item_id);
+                if (!latestDates[key]) {
+                    latestDates[key] = record.replaced_at;
                 }
             });
             setTrackingData(latestDates);
@@ -213,13 +231,14 @@ export default function MaintenanceTrackingPage() {
             // 3. Compute Filter Usages (Sold since last replacement for volume monitoring)
             const mappedUsage = {};
             for (const filter of activeFilters) {
-                if (latestDates[filter.id]) {
+                const latestFilterDate = latestDates[String(filter.id)];
+                if (latestFilterDate) {
                     const { data: salesData, error: salesError } = await supabase
                         .from('sale_items')
                         .select('quantity, sales!inner(saletimestamp, status)')
                         .in('product_id', [2, 3, 30])
                         .eq('sales.status', 'Completed')
-                        .gte('sales.saletimestamp', latestDates[filter.id]);
+                        .gte('sales.saletimestamp', latestFilterDate);
 
                     if (salesError) throw salesError;
                     mappedUsage[filter.id] = salesData ? salesData.reduce((sum, item) => sum + (item.quantity || 0), 0) : 0;
@@ -246,7 +265,8 @@ export default function MaintenanceTrackingPage() {
         const overdueItems = [];
 
         filters.forEach(filter => {
-            const lastReplaced = dates[filter.id] ? new Date(dates[filter.id]) : new Date();
+            const rawDate = dates[String(filter.id)];
+            const lastReplaced = rawDate ? new Date(rawDate) : new Date();
             const daysPassed = Math.floor((new Date() - lastReplaced) / (1000 * 60 * 60 * 24));
             if (daysPassed >= filter.lifespanDays) {
                 overdueItems.push(filter.name);
@@ -264,7 +284,8 @@ export default function MaintenanceTrackingPage() {
 
     // Calculate processed values: Time is the replacement driver; Gallons are for volume monitoring
     const processedFilters = filterConfigs.map(filter => {
-        const lastReplaced = trackingData[filter.id] ? new Date(trackingData[filter.id]) : new Date();
+        const rawDate = trackingData[String(filter.id)];
+        const lastReplaced = rawDate ? new Date(rawDate) : new Date();
         const daysPassed = Math.max(0, Math.floor((new Date() - lastReplaced) / (1000 * 60 * 60 * 24)));
         const daysLeft = Math.max(0, filter.lifespanDays - daysPassed);
         const timePercent = Math.min(100, Math.max(0, (daysPassed / filter.lifespanDays) * 100));
@@ -291,7 +312,8 @@ export default function MaintenanceTrackingPage() {
 
     // Calculate processed values for vehicles strictly by time/days
     const processedVehicles = dbVehicles.map(vehicle => {
-        const lastReplaced = trackingData[vehicle.id] ? new Date(trackingData[vehicle.id]) : new Date(vehicle.created_at || new Date());
+        const rawDate = trackingData[String(vehicle.id)];
+        const lastReplaced = rawDate ? new Date(rawDate) : new Date(vehicle.created_at || new Date());
         const now = new Date();
 
         const totalLifespanDays = vehicle.lifespan_days || (vehicle.lifespan_months ? vehicle.lifespan_months * 30 : 180);
@@ -314,6 +336,12 @@ export default function MaintenanceTrackingPage() {
     const overdueFilters = processedFilters.filter(f => f.isOverdue);
     const totalOverdueCost = overdueFilters.reduce((sum, f) => sum + (Number(f.cost || 0) * Number(f.pcs || 1)), 0);
     const overdueVehicles = processedVehicles.filter(v => v.isOverdue);
+
+    // Filtered history rows for the active History Modal
+    const modalHistoryRecords = useMemo(() => {
+        if (!historyModal.itemId) return [];
+        return fullHistory.filter(h => String(h.item_id) === String(historyModal.itemId));
+    }, [fullHistory, historyModal.itemId]);
 
     // --- Water Test Types & Schedule Handlers ---
     const handleOpenWaterTestModal = () => {
@@ -673,10 +701,10 @@ export default function MaintenanceTrackingPage() {
         if (isDemo || !recordModal.customDate) return;
 
         const { error } = await supabase.from('maintenance_history').insert({
-            item_id: recordModal.itemId,
+            item_id: String(recordModal.itemId),
             item_type: recordModal.itemType,
             replaced_at: new Date(recordModal.customDate).toISOString(),
-            replaced_by: user?.id
+            replaced_by: user?.id || null
         });
 
         if (!error) {
@@ -687,7 +715,11 @@ export default function MaintenanceTrackingPage() {
                 description: `Recorded ${recordModal.itemType === 'vehicle' ? 'vehicle maintenance' : 'filter replacement'} for "${recordModal.itemName}"`
             });
 
-            addToast({ title: 'Success', description: 'Maintenance record saved.', variant: 'success' });
+            addToast({
+                title: 'Replacement Recorded',
+                description: 'Maintenance record saved. Please record the expense manually on the Expenses page.',
+                variant: 'success'
+            });
             setRecordModal({ isOpen: false, itemId: null, itemType: null, itemName: '', customDate: '' });
             invalidateMaintenanceCaches();
             fetchTrackingData();
@@ -696,34 +728,46 @@ export default function MaintenanceTrackingPage() {
         }
     };
 
+    const handleDeleteHistoryRecord = async (record) => {
+        if (!isAdmin || isDemo || !record?.id) return;
+        if (!window.confirm('Delete this maintenance history log?')) return;
+
+        setDeletingHistoryId(record.id);
+        try {
+            const { error } = await supabase
+                .from('maintenance_history')
+                .delete()
+                .eq('id', record.id);
+
+            if (error) throw error;
+
+            await logActivity({
+                user,
+                action: 'DELETE',
+                entity_type: 'MAINTENANCE',
+                description: `Deleted maintenance history entry for "${historyModal.itemName}" (${format(new Date(record.replaced_at), 'MMM d, yyyy h:mm a')})`
+            });
+
+            addToast({ title: 'Deleted', description: 'History record removed.', variant: 'success' });
+            invalidateMaintenanceCaches();
+            await fetchTrackingData();
+        } catch (err) {
+            addToast({ title: 'Error', description: err.message, variant: 'destructive' });
+        } finally {
+            setDeletingHistoryId(null);
+        }
+    };
+
+    // Records filter replacement ONLY — staff manually log expenses on the Expenses page
     const handlePurchaseAndRecord = async () => {
-        if (isDemo) return;
+        if (isDemo || overdueFilters.length === 0) return;
         setIsPurchasing(true);
         try {
-            const today = new Date();
-            const startOfCurrentWeek = startOfWeek(today, { weekStartsOn: 1 });
-            const expensePromises = [];
-
-            overdueFilters.forEach(filter => {
-                const weeklyCost = (Number(filter.cost || 0) * Number(filter.pcs || 1)) / (filter.lifespanWeeks || 1);
-                for (let i = 0; i < (filter.lifespanWeeks || 1); i++) {
-                    expensePromises.push(
-                        createExpense.mutateAsync({
-                            amount: weeklyCost.toFixed(2),
-                            category: 'Maintenance',
-                            description: `Filter Replacement (${filter.name}) - Week ${i + 1}/${filter.lifespanWeeks || 1}`,
-                            expense_date: addWeeks(startOfCurrentWeek, i).toISOString()
-                        })
-                    );
-                }
-            });
-            await Promise.all(expensePromises);
-
             const historyPromises = overdueFilters.map(f => supabase.from('maintenance_history').insert({
-                item_id: f.id,
+                item_id: String(f.id),
                 item_type: 'filter',
                 replaced_at: new Date().toISOString(),
-                replaced_by: user?.id
+                replaced_by: user?.id || null
             }));
             const results = await Promise.all(historyPromises);
 
@@ -735,14 +779,18 @@ export default function MaintenanceTrackingPage() {
                 user,
                 action: 'CREATE',
                 entity_type: 'MAINTENANCE',
-                description: `Purchased & replaced ${overdueFilters.length} overdue filter(s) (Total: ₱${Number(totalOverdueCost).toFixed(2)})`
+                description: `Recorded replacement for ${overdueFilters.length} overdue filter(s)`
             });
 
-            addToast({ title: 'Purchase Recorded', description: 'Expenses amortized and counters reset.', variant: 'success' });
+            addToast({
+                title: 'Replacement Recorded',
+                description: 'Filter counters reset. Please record the expense manually on the Expenses page.',
+                variant: 'success'
+            });
             invalidateMaintenanceCaches();
             fetchTrackingData();
         } catch (error) {
-            addToast({ title: 'Error', description: error.message || 'Failed to record expenses.', variant: 'destructive' });
+            addToast({ title: 'Error', description: error.message || 'Failed to record filter replacement.', variant: 'destructive' });
         } finally {
             setIsPurchasing(false);
         }
@@ -793,12 +841,14 @@ export default function MaintenanceTrackingPage() {
                 addToast({ title: 'Added', description: 'New vehicle added.', variant: 'success' });
             }
 
-            const currentTrackedDate = trackingData[vehicleId] ? format(new Date(trackingData[vehicleId]), 'yyyy-MM-dd') : null;
+            const currentTrackedDate = trackingData[String(vehicleId)]
+                ? format(new Date(trackingData[String(vehicleId)]), 'yyyy-MM-dd')
+                : null;
 
             if (!currentTrackedDate || currentTrackedDate !== vehicleForm.lastMaintenanceDate) {
                 const dateObj = new Date(`${vehicleForm.lastMaintenanceDate}T12:00:00+08:00`);
                 const { error: historyError } = await supabase.from('maintenance_history').insert({
-                    item_id: vehicleId,
+                    item_id: String(vehicleId),
                     item_type: 'vehicle',
                     replaced_at: dateObj.toISOString(),
                     replaced_by: user?.id || null
@@ -843,8 +893,9 @@ export default function MaintenanceTrackingPage() {
     };
 
     const handleEditVehicleClick = (v) => {
-        const lastDate = trackingData[v.id]
-            ? format(new Date(trackingData[v.id]), 'yyyy-MM-dd')
+        const rawDate = trackingData[String(v.id)];
+        const lastDate = rawDate
+            ? format(new Date(rawDate), 'yyyy-MM-dd')
             : format(new Date(), 'yyyy-MM-dd');
 
         const days = v.lifespan_days || (v.lifespan_months ? v.lifespan_months * 30 : 180);
@@ -878,9 +929,14 @@ export default function MaintenanceTrackingPage() {
     const selectedTypeObj = waterTestTypes.find(t => t.name === waterTestModal.testType);
 
     return (
-        <div className="maintenance-page w-full max-w-7xl mx-auto px-1.5 py-2 sm:p-5 md:p-6 space-y-2.5 sm:space-y-4 transition-colors">
-            {/* Match POS, Expenses, Dashboard, Report, History, Scanned Logs & Customer Management edge-to-edge .container fit on mobile (< 640px) */}
+        <div className="maintenance-page w-full max-w-7xl mx-auto px-1.5 pt-2 pb-32 sm:px-5 sm:pt-5 sm:pb-32 md:p-6 space-y-2.5 sm:space-y-4 transition-colors">
             <style jsx global>{`
+                @media (max-width: 767px) {
+                    .app:has(.maintenance-page) .main,
+                    .app:has(.maintenance-page) .container {
+                        padding-bottom: calc(7.5rem + env(safe-area-inset-bottom, 0px)) !important;
+                    }
+                }
                 @media (max-width: 639px) {
                     .app:has(.maintenance-page) .container {
                         max-width: 100% !important;
@@ -1324,45 +1380,84 @@ export default function MaintenanceTrackingPage() {
                 </DialogContent>
             </Dialog>
 
-            {/* View History Modal */}
+            {/* View History Modal (Responsive Card List — visible on both Mobile and Desktop) */}
             <Dialog open={historyModal.isOpen} onOpenChange={(open) => !open && setHistoryModal(prev => ({ ...prev, isOpen: false }))}>
                 <DialogContent className="w-[95vw] sm:w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl sm:rounded-3xl">
                     <DialogHeader>
-                        <DialogTitle className="text-slate-900 dark:text-slate-100">History: {historyModal.itemName}</DialogTitle>
+                        <DialogTitle className="flex items-center justify-between gap-2 text-slate-900 dark:text-slate-100 pr-6">
+                            <span className="flex items-center gap-2 truncate">
+                                <History className="w-4 h-4 text-[#8DB600] shrink-0" />
+                                <span className="truncate">History: {historyModal.itemName}</span>
+                            </span>
+                            {modalHistoryRecords.length > 0 && (
+                                <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 shrink-0">
+                                    {modalHistoryRecords.length} {modalHistoryRecords.length === 1 ? 'log' : 'logs'}
+                                </span>
+                            )}
+                        </DialogTitle>
                     </DialogHeader>
-                    <div className="p-4 max-h-96 overflow-y-auto">
-                        <Table>
-                            <TableHeader>
-                                <TableRow className="border-slate-200 dark:border-slate-800">
-                                    <TableHead className="text-slate-600 dark:text-slate-400">Date</TableHead>
-                                    <TableHead className="text-slate-600 dark:text-slate-400">Recorded By</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody className="divide-y divide-slate-100 dark:divide-slate-800">
-                                {fullHistory.filter(h => h.item_id === historyModal.itemId).map(record => (
-                                    <TableRow key={record.id}>
-                                        <TableCell className="text-slate-800 dark:text-slate-200 font-medium">
-                                            {format(new Date(record.replaced_at), 'MMM d, yyyy h:mm a')}
-                                        </TableCell>
-                                        <TableCell className="text-slate-500 dark:text-slate-400 text-sm">System User</TableCell>
-                                    </TableRow>
-                                ))}
-                                {fullHistory.filter(h => h.item_id === historyModal.itemId).length === 0 && (
-                                    <TableRow>
-                                        <TableCell colSpan={2} className="text-center text-slate-400 py-6">
-                                            No history found.
-                                        </TableCell>
-                                    </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
+
+                    <div className="p-4 max-h-96 overflow-y-auto space-y-2.5">
+                        {modalHistoryRecords.length === 0 ? (
+                            <div className="text-center py-8 px-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-dashed border-slate-200 dark:border-slate-700">
+                                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                                    No replacement history found for this item yet.
+                                </p>
+                            </div>
+                        ) : (
+                            modalHistoryRecords.map((record, idx) => {
+                                const replacedDate = new Date(record.replaced_at);
+                                const recordedByName =
+                                    record.replaced_by != null
+                                        ? usersMap[String(record.replaced_by)] || `Staff #${record.replaced_by}`
+                                        : 'System User';
+
+                                return (
+                                    <div
+                                        key={record.id}
+                                        className="flex items-center justify-between gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-700/80"
+                                    >
+                                        <div className="min-w-0 space-y-1">
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <span className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100">
+                                                    <Calendar className="w-3.5 h-3.5 text-[#8DB600] shrink-0" />
+                                                    <span>{format(replacedDate, 'MMM d, yyyy • h:mm a')}</span>
+                                                </span>
+                                                {idx === 0 && (
+                                                    <span className="text-[9.5px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-lime-100 dark:bg-lime-950/70 text-[#5f7d00] dark:text-lime-400 border border-lime-200 dark:border-lime-800/60">
+                                                        Latest
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                                                <User className="w-3 h-3 shrink-0" />
+                                                <span>Recorded by {recordedByName}</span>
+                                            </div>
+                                        </div>
+
+                                        {isAdmin && !isDemo && (
+                                            <button
+                                                type="button"
+                                                onClick={() => handleDeleteHistoryRecord(record)}
+                                                disabled={deletingHistoryId === record.id}
+                                                className="p-2 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors shrink-0 cursor-pointer disabled:opacity-40"
+                                                title="Delete this history record"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        )}
+                                    </div>
+                                );
+                            })
+                        )}
                     </div>
+
                     <DialogFooter className="p-4 border-t border-slate-100 dark:border-slate-800">
                         <Button
                             type="button"
                             variant="outline"
                             onClick={() => setHistoryModal(prev => ({ ...prev, isOpen: false }))}
-                            className="border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer"
+                            className="w-full sm:w-auto border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer"
                         >
                             Close
                         </Button>
@@ -1370,7 +1465,7 @@ export default function MaintenanceTrackingPage() {
                 </DialogContent>
             </Dialog>
 
-            {/* Manage Vehicles Modal */}
+            {/* Manage Vehicles Modal (Responsive Card List — visible on both Mobile and Desktop) */}
             <Dialog open={manageVehiclesModal} onOpenChange={setManageVehiclesModal}>
                 <DialogContent className="w-[95vw] sm:w-full max-w-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl sm:rounded-3xl dark:[color-scheme:dark]">
                     <DialogHeader>
@@ -1452,44 +1547,47 @@ export default function MaintenanceTrackingPage() {
                             </div>
                         </div>
 
-                        <div className="max-h-80 overflow-y-auto border border-slate-200 dark:border-slate-700 rounded-xl">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow className="border-slate-200 dark:border-slate-800">
-                                        <TableHead className="text-slate-600 dark:text-slate-400">Name</TableHead>
-                                        <TableHead className="text-slate-600 dark:text-slate-400">Interval (Days)</TableHead>
-                                        <TableHead className="text-right text-slate-600 dark:text-slate-400">Actions</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody className="divide-y divide-slate-100 dark:divide-slate-800">
-                                    {dbVehicles.map(v => (
-                                        <TableRow key={v.id}>
-                                            <TableCell className="font-medium text-slate-900 dark:text-slate-100">{v.name}</TableCell>
-                                            <TableCell className="text-slate-600 dark:text-slate-300 font-mono">
-                                                {v.lifespan_days || (v.lifespan_months ? v.lifespan_months * 30 : 180)} Days
-                                            </TableCell>
-                                            <TableCell className="text-right space-x-2">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleEditVehicleClick(v)}
-                                                    className="p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-md cursor-pointer"
-                                                    title="Edit Vehicle"
-                                                >
-                                                    <Edit2 className="w-4 h-4" />
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleDeleteVehicle(v.id)}
-                                                    className="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-slate-800 rounded-md cursor-pointer"
-                                                    title="Delete Vehicle"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
+                        <div className="max-h-80 overflow-y-auto space-y-2">
+                            {dbVehicles.length === 0 ? (
+                                <p className="text-center text-xs text-slate-400 py-6 border border-dashed border-slate-200 dark:border-slate-700 rounded-xl">
+                                    No vehicles registered yet.
+                                </p>
+                            ) : (
+                                dbVehicles.map(v => (
+                                    <div
+                                        key={v.id}
+                                        className="flex items-center justify-between gap-3 p-3 rounded-xl bg-white dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700"
+                                    >
+                                        <div className="min-w-0">
+                                            <div className="font-bold text-sm text-slate-900 dark:text-slate-100 truncate">
+                                                {v.name}
+                                            </div>
+                                            <div className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5">
+                                                Every {v.lifespan_days || (v.lifespan_months ? v.lifespan_months * 30 : 180)} Days
+                                                {v.purpose ? ` • ${v.purpose}` : ''}
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 shrink-0">
+                                            <button
+                                                type="button"
+                                                onClick={() => handleEditVehicleClick(v)}
+                                                className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-700 rounded-lg cursor-pointer"
+                                                title="Edit Vehicle"
+                                            >
+                                                <Edit2 className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleDeleteVehicle(v.id)}
+                                                className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-slate-700 rounded-lg cursor-pointer"
+                                                title="Delete Vehicle"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
                         </div>
                     </div>
                     <DialogFooter className="p-4 border-t border-slate-100 dark:border-slate-800">
