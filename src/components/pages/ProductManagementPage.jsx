@@ -444,8 +444,14 @@ export default function ProductManagementPage() {
     const isMutating = createProduct.isPending || updateProduct.isPending || deleteProduct.isPending || saving;
 
     return (
-        <div className="product-page w-full max-w-7xl mx-auto px-1.5 py-2 sm:p-6 space-y-2.5 sm:space-y-6 transition-colors">
+        <div className="product-page w-full max-w-7xl mx-auto px-1.5 pt-2 pb-32 sm:px-6 sm:pt-6 sm:pb-32 md:pb-8 space-y-2.5 sm:space-y-6 transition-colors">
             <style jsx global>{`
+                @media (max-width: 767px) {
+                    .app:has(.product-page) .main,
+                    .app:has(.product-page) .container {
+                        padding-bottom: calc(7.5rem + env(safe-area-inset-bottom, 0px)) !important;
+                    }
+                }
                 @media (max-width: 639px) {
                     .app:has(.product-page) .container {
                         max-width: 100% !important;
@@ -538,22 +544,27 @@ export default function ProductManagementPage() {
             {/* Filter Bar */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-3 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-2xs">
                 <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 w-full sm:w-auto flex-1 max-w-xl">
-                    <div className="relative w-full sm:w-72">
-                        <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <div className="relative flex items-center w-full sm:w-72">
+                        <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none z-10" />
                         <Input
                             ref={searchInputRef}
+                            type="text"
                             placeholder="Search products by name or barcode... (/)"
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
                             onKeyDown={preventEnterReload}
-                            className="pl-9 pr-8 bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 text-xs sm:text-sm h-9 sm:h-10 rounded-xl focus:border-[#8DB600] focus:ring-[#8DB600]"
+                            style={{
+                                paddingLeft: '2.5rem',
+                                paddingRight: searchTerm ? '2.25rem' : '0.875rem'
+                            }}
+                            className="w-full !pl-10 bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-xs sm:text-sm h-9 sm:h-10 rounded-xl focus:border-[#8DB600] focus:ring-[#8DB600]"
                         />
                         {searchTerm && (
                             <button
                                 type="button"
                                 onClick={() => setSearchTerm('')}
                                 aria-label="Clear search"
-                                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-0.5 rounded-full cursor-pointer"
+                                className="absolute right-2.5 top-1/2 -translate-y-1/2 z-10 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1 rounded-full cursor-pointer"
                             >
                                 <X className="w-3.5 h-3.5" />
                             </button>
