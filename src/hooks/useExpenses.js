@@ -1,4 +1,4 @@
-// C:\Users\UserT\WebstormProjects\WebBasedPOS\src\hooks\useExpenses.js
+// src/hooks/useExpenses.js
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient';
 import { useStore } from '../store/useStore';
@@ -7,8 +7,20 @@ import { logActivity } from './useActivityLogs';
 const EXPENSES_KEY = ['expenses'];
 const CATEGORIES_KEY = ['expense-categories'];
 
-// Helper to get the end of the day for a given date string
-const getEndOfDay = (dateStr) => {
+// Asia/Manila (UTC+8) start/end boundary helpers
+const getManilaStartOfDay = (dateStr) => {
+    const clean = String(dateStr || '').trim().slice(0, 10);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(clean)) {
+        return new Date(`${clean}T00:00:00+08:00`).toISOString();
+    }
+    return new Date(dateStr).toISOString();
+};
+
+const getManilaEndOfDay = (dateStr) => {
+    const clean = String(dateStr || '').trim().slice(0, 10);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(clean)) {
+        return new Date(`${clean}T23:59:59.999+08:00`).toISOString();
+    }
     const date = new Date(dateStr);
     date.setUTCHours(23, 59, 59, 999);
     return date.toISOString();
@@ -22,8 +34,8 @@ export function useExpenses({ startDate, endDate, page = 1, pageSize = 20, searc
             const to = from + pageSize - 1;
 
             const applyFilters = (query) => {
-                if (startDate) query = query.gte('expense_date', startDate);
-                if (endDate) query = query.lte('expense_date', getEndOfDay(endDate));
+                if (startDate) query = query.gte('expense_date', getManilaStartOfDay(startDate));
+                if (endDate) query = query.lte('expense_date', getManilaEndOfDay(endDate));
 
                 if (category && category !== 'All') {
                     query = query.eq('category', category);
@@ -59,14 +71,14 @@ export function useExpenses({ startDate, endDate, page = 1, pageSize = 20, searc
 
             const totalSum = (sumRes.data || []).reduce((acc, curr) => acc + Number(curr.amount), 0);
 
-            const expenses = mainRes.data.map(e => ({
+            const expenses = (mainRes.data || []).map(e => ({
                 ...e,
                 staffName: e.users?.name || 'Unknown',
                 userColor: e.users?.color || '#374151',
             }));
 
             return {
-                expenses: expenses || [],
+                expenses,
                 totalCount: mainRes.count || 0,
                 totalPages: Math.ceil((mainRes.count || 0) / pageSize),
                 totalSum
@@ -81,11 +93,16 @@ export function useCreateExpense() {
 
     return useMutation({
         mutationFn: async (expenseData) => {
+            const rawDate = String(expenseData.expense_date || '').trim();
+            const normalizedIso = /^\d{4}-\d{2}-\d{2}$/.test(rawDate)
+                ? new Date(`${rawDate}T12:00:00+08:00`).toISOString()
+                : new Date(rawDate).toISOString();
+
             const payload = {
                 amount: parseFloat(expenseData.amount),
                 category: expenseData.category,
                 description: expenseData.description,
-                expense_date: new Date(expenseData.expense_date).toISOString(),
+                expense_date: normalizedIso,
                 created_by: user?.id || null,
                 employee_name: expenseData.employee_name || null
             };
@@ -113,11 +130,11 @@ export function useExpenseSummary(dateFrom, dateTo, selectedMonth) {
     return useQuery({
         queryKey: ['expense-summary', dateFrom, dateTo, selectedMonth],
         queryFn: async () => {
-            // 1. All time (Restricted to April 20, 2026 onwards)
+            // 1. All time (Restricted to April 20, 2026 onwards in Asia/Manila)
             const { data: allTimeData, error: allTimeError } = await supabase
                 .from('expenses')
                 .select('amount')
-                .gte('expense_date', '2026-04-20');
+                .gte('expense_date', '2026-04-20T00:00:00+08:00');
 
             if (allTimeError) throw allTimeError;
             const grandTotal = allTimeData?.reduce((acc, curr) => acc + Number(curr.amount), 0) || 0;
@@ -126,7 +143,7 @@ export function useExpenseSummary(dateFrom, dateTo, selectedMonth) {
             let monthlyTotal = 0;
             if (selectedMonth) {
                 const [year, month] = selectedMonth.split('-');
-                const endDay = new Date(year, month, 0).getDate();
+                const endDay = String(new Date(Number(year), Number(month), 0).getDate()).padStart(2, '0');
 
                 const startOfMonthStr = `${selectedMonth}-01`;
                 const endOfMonthStr = `${selectedMonth}-${endDay}`;
@@ -134,8 +151,8 @@ export function useExpenseSummary(dateFrom, dateTo, selectedMonth) {
                 const { data: monthData, error: monthError } = await supabase
                     .from('expenses')
                     .select('amount')
-                    .gte('expense_date', startOfMonthStr)
-                    .lte('expense_date', getEndOfDay(endOfMonthStr));
+                    .gte('expense_date', getManilaStartOfDay(startOfMonthStr))
+                    .lte('expense_date', getManilaEndOfDay(endOfMonthStr));
 
                 if (monthError) throw monthError;
                 monthlyTotal = monthData?.reduce((acc, curr) => acc + Number(curr.amount), 0) || 0;
@@ -147,8 +164,8 @@ export function useExpenseSummary(dateFrom, dateTo, selectedMonth) {
                 const { data: weekData, error: weekError } = await supabase
                     .from('expenses')
                     .select('amount')
-                    .gte('expense_date', dateFrom)
-                    .lte('expense_date', getEndOfDay(dateTo));
+                    .gte('expense_date', getManilaStartOfDay(dateFrom))
+                    .lte('expense_date', getManilaEndOfDay(dateTo));
 
                 if (weekError) throw weekError;
                 weeklyTotal = weekData?.reduce((acc, curr) => acc + Number(curr.amount), 0) || 0;
@@ -164,7 +181,7 @@ export function useExpenseSummary(dateFrom, dateTo, selectedMonth) {
     });
 }
 
-// --- NEW CATEGORY HOOKS ---
+// --- CATEGORY HOOKS ---
 
 export function useExpenseCategories() {
     return useQuery({
@@ -172,7 +189,9 @@ export function useExpenseCategories() {
         queryFn: async () => {
             const { data, error } = await supabase.from('expense_categories').select('*').order('name');
             if (error) throw error;
-            return data || [];
+            return (data || []).filter(
+                (cat) => String(cat?.name || '').trim().toLowerCase() !== 'maintenance'
+            );
         },
     });
 }
@@ -189,7 +208,7 @@ export function useCreateExpenseCategory() {
                 default_description: default_description || null,
                 is_recurring: !!is_recurring,
                 is_recurring_daily: !!is_recurring_daily,
-                recurring_day: parseInt(recurring_day) || 1, // Store the custom day
+                recurring_day: parseInt(recurring_day, 10) || 1,
                 created_by: user?.id || null
             }]);
             if (error) throw error;
@@ -223,7 +242,7 @@ export function useUpdateExpenseCategory() {
                     default_description: default_description || null,
                     is_recurring: !!is_recurring,
                     is_recurring_daily: !!is_recurring_daily,
-                    recurring_day: parseInt(recurring_day) || 1 // Update custom day
+                    recurring_day: parseInt(recurring_day, 10) || 1
                 })
                 .eq('id', id);
             if (error) throw error;
@@ -249,13 +268,18 @@ export function useUpdateExpense() {
 
     return useMutation({
         mutationFn: async ({ id, ...expenseData }) => {
+            const rawDate = String(expenseData.expense_date || '').trim();
+            const normalizedIso = /^\d{4}-\d{2}-\d{2}$/.test(rawDate)
+                ? new Date(`${rawDate}T12:00:00+08:00`).toISOString()
+                : new Date(rawDate).toISOString();
+
             const { error } = await supabase
                 .from('expenses')
                 .update({
                     amount: parseFloat(expenseData.amount),
                     category: expenseData.category,
                     description: expenseData.description,
-                    expense_date: new Date(expenseData.expense_date).toISOString(),
+                    expense_date: normalizedIso,
                     employee_name: expenseData.employee_name || null
                 })
                 .eq('id', id);

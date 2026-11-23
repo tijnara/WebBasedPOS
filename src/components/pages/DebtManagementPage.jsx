@@ -55,7 +55,7 @@ export default function DebtManagementPage() {
             });
 
             const totalPaid = debtPayments.reduce((sum, p) => sum.add(currency(p.amount_paid)), currency(0)).value;
-            const remainingDebt = currency(debt.total_debt_amount).subtract(totalPaid).value;
+            const remainingDebt = Math.max(0, currency(debt.total_debt_amount).subtract(totalPaid).value);
             const sortedPayments = [...debtPayments].sort((a, b) => {
                 const dateA = new Date(a.date_paid || a.payment_date || 0);
                 const dateB = new Date(b.date_paid || b.payment_date || 0);
@@ -127,22 +127,34 @@ export default function DebtManagementPage() {
         }
     };
 
-    const handleConfirmPayment = async ({ debt, amount, date }) => {
+    const handleConfirmPayment = async ({ debt, amount, date, recordToExpense = false }) => {
         if (isDemo) return addToast({ title: 'Demo Mode', description: 'Recording payments is disabled in demo mode.', variant: 'warning' });
         setIsSubmittingPayment(true);
         try {
+            const numericAmount = currency(amount).value;
+            const cleanDateStr = String(date || '').trim().slice(0, 10);
+
+            // 1. Always record payment to reduce the debt balance
             await createPaymentMutation.mutateAsync({
                 debt_id: parseInt(debt.id, 10),
-                amount_paid: amount,
-                date_paid: date
+                amount_paid: numericAmount,
+                date_paid: cleanDateStr || date
             });
 
-            if (!debt.type || debt.type === 'company') {
+            // 2. Only record to Expenses if it's a company debt AND user toggled "Record to Expenses" ON
+            const isCompanyDebt = !debt.type || debt.type === 'company';
+            const shouldLogExpense = isCompanyDebt && Boolean(recordToExpense);
+
+            if (shouldLogExpense) {
+                const manilaExpenseIso = /^\d{4}-\d{2}-\d{2}$/.test(cleanDateStr)
+                    ? new Date(`${cleanDateStr}T12:00:00+08:00`).toISOString()
+                    : date;
+
                 await createExpenseMutation.mutateAsync({
-                    expense_date: date,
+                    expense_date: manilaExpenseIso,
                     category: 'Debt Repayment',
-                    description: `Amortization - ${debt.description || `Account #${debt.id}`}`,
-                    amount
+                    description: `Debt Payment - ${debt.description || `Account #${debt.id}`}`,
+                    amount: numericAmount
                 });
             }
 
@@ -150,12 +162,14 @@ export default function DebtManagementPage() {
                 user,
                 action: 'UPDATE',
                 entity_type: 'DEBT',
-                description: `Recorded ₱${Number(amount).toFixed(2)} payment for "${debt.description || `Account #${debt.id}`}"`
+                description: `Recorded ₱${numericAmount.toFixed(2)} payment for "${debt.description || `Account #${debt.id}`}"${shouldLogExpense ? ' (also logged to Expenses)' : ' (debt deduction only)'}`
             });
 
             addToast({
                 title: 'Payment Recorded',
-                description: `Successfully logged ₱${Number(amount).toFixed(2)} for ${debt.description}.`,
+                description: shouldLogExpense
+                    ? `Deducted ₱${numericAmount.toFixed(2)} from ${debt.description} and recorded to Expenses.`
+                    : `Deducted ₱${numericAmount.toFixed(2)} from ${debt.description}.`,
                 variant: 'success'
             });
 
@@ -163,9 +177,11 @@ export default function DebtManagementPage() {
             refetch?.();
             queryClient?.invalidateQueries({ queryKey: ['debts'] });
             queryClient?.invalidateQueries({ queryKey: ['salary-records'] });
-            queryClient?.invalidateQueries({ queryKey: ['expenses'] });
-            queryClient?.invalidateQueries({ queryKey: ['expense-summary'] });
             queryClient?.invalidateQueries({ queryKey: ['activity-logs'] });
+            if (shouldLogExpense) {
+                queryClient?.invalidateQueries({ queryKey: ['expenses'] });
+                queryClient?.invalidateQueries({ queryKey: ['expense-summary'] });
+            }
         } catch (error) {
             addToast({ title: 'Payment Error', description: error.message, variant: 'destructive' });
         } finally {
@@ -237,13 +253,19 @@ export default function DebtManagementPage() {
     };
 
     return (
-        <div className="debt-page w-full max-w-7xl mx-auto px-1.5 py-2 sm:p-5 md:p-6 space-y-2.5 sm:space-y-6 pb-24 md:pb-8 overflow-x-hidden transition-colors dark:[color-scheme:dark]">
+        <div className="debt-page w-full max-w-7xl mx-auto px-1.5 pt-2 pb-32 sm:px-5 sm:pt-5 sm:pb-32 md:p-6 space-y-2.5 sm:space-y-6 overflow-x-hidden transition-colors dark:[color-scheme:dark]">
             <Head>
                 <title>Debt Management | Seaside WRS</title>
             </Head>
 
-            {/* Match POS, Expenses, Dashboard, Report, History, Scanned Logs, Customer, Maintenance, Product, 3D Icons, Inventory, Gallery & Salary edge-to-edge fit on mobile (< 640px) */}
+            {/* Ensure full mobile bottom dock clearance (< 768px) and edge-to-edge fit (< 640px) */}
             <style jsx global>{`
+                @media (max-width: 767px) {
+                    .app:has(.debt-page) .main,
+                    .app:has(.debt-page) .container {
+                        padding-bottom: calc(7.5rem + env(safe-area-inset-bottom, 0px)) !important;
+                    }
+                }
                 @media (max-width: 639px) {
                     .app:has(.debt-page) .container {
                         max-width: 100% !important;

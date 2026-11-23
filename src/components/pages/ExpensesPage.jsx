@@ -53,6 +53,9 @@ const getManilaDateStr = (dateObj = new Date()) => {
     }
 };
 
+const isExcludedMaintenanceCategory = (catName) =>
+    String(catName || '').trim().toLowerCase() === 'maintenance';
+
 export default function ExpensesPage() {
     const queryClient = useQueryClient();
     const user = useStore((s) => s.user);
@@ -98,7 +101,13 @@ export default function ExpensesPage() {
     });
 
     const { data: summary } = useExpenseSummary(fetchStart, fetchEnd, selectedMonth);
-    const { data: categories = [] } = useExpenseCategories();
+    const { data: rawCategories = [] } = useExpenseCategories();
+
+    // Exclude 'Maintenance' from category dropdowns, filters, and recurring auto-sync
+    const categories = useMemo(
+        () => (rawCategories || []).filter((c) => !isExcludedMaintenanceCategory(c?.name)),
+        [rawCategories]
+    );
 
     const { data: salesSummary } = useSalesSummary({
         startDate: dateFrom ? new Date(`${dateFrom}T00:00:00+08:00`) : undefined,
@@ -136,6 +145,7 @@ export default function ExpensesPage() {
     }, [weekNetSales, previousWeekData]);
 
     const createExpense = useCreateExpense();
+    // Only auto-sync non-Maintenance recurring categories
     useAutoSyncExpenses({ categories, user, isFetching, createExpense, queryClient, addToast });
 
     // Grouping computation for the ExpenseList
@@ -225,6 +235,10 @@ export default function ExpensesPage() {
         if (!name.trim()) return;
 
         const capitalizedName = capitalizeWords(name);
+        if (isExcludedMaintenanceCategory(capitalizedName)) {
+            notify('Category Disabled', 'Maintenance category is disabled on Expenses.', 'warning');
+            return;
+        }
         const capitalizedDescription = capitalizeWords(default_description);
 
         try {
@@ -334,7 +348,7 @@ export default function ExpensesPage() {
     const handleEditClick = (exp) => {
         setEditingExpense(exp);
         setAmount(exp.amount);
-        setCategory(exp.category);
+        setCategory(isExcludedMaintenanceCategory(exp.category) ? '' : exp.category);
         setDescription(exp.description);
         setEmployeeName(exp.employee_name || '');
         setExpenseDate(getManilaDateStr(parseISO(exp.expense_date)));
@@ -406,11 +420,17 @@ export default function ExpensesPage() {
     };
 
     return (
-        <div className="expenses-page w-full min-h-screen bg-background px-1.5 py-2 sm:p-6 lg:p-8 pb-24 md:pb-8 dark:[color-scheme:dark]">
+        <div className="expenses-page w-full min-h-screen bg-background px-1.5 pt-2 pb-32 sm:px-6 sm:pt-6 sm:pb-32 lg:p-8 md:pb-8 dark:[color-scheme:dark]">
             <Head><title>Expenses &amp; Financial Performance | Seaside POS</title></Head>
 
-            {/* Match POS page edge-to-edge .container fit on mobile (< 640px) & ensure dark native pickers */}
+            {/* Ensure full mobile bottom dock clearance (< 768px) & edge-to-edge fit (< 640px) */}
             <style jsx global>{`
+                @media (max-width: 767px) {
+                    .app:has(.expenses-page) .main,
+                    .app:has(.expenses-page) .container {
+                        padding-bottom: calc(7.5rem + env(safe-area-inset-bottom, 0px)) !important;
+                    }
+                }
                 @media (max-width: 639px) {
                     .app:has(.expenses-page) .container {
                         max-width: 100% !important;
@@ -438,7 +458,7 @@ export default function ExpensesPage() {
                     <button
                         type="button"
                         onClick={() => setMobileTab('operations')}
-                        className={`flex-1 py-2 text-xs font-bold rounded-lg sm:rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                        className={`flex-1 py-2 px-2 text-xs font-bold rounded-lg sm:rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                             mobileTab === 'operations'
                                 ? 'bg-[#8DB600] text-white shadow-xs'
                                 : 'text-text-muted hover:text-text'
@@ -459,7 +479,7 @@ export default function ExpensesPage() {
                     <button
                         type="button"
                         onClick={() => setMobileTab('analytics')}
-                        className={`flex-1 py-2 text-xs font-bold rounded-lg sm:rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                        className={`flex-1 py-2 px-2 text-xs font-bold rounded-lg sm:rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                             mobileTab === 'analytics'
                                 ? 'bg-slate-900 dark:bg-slate-700 text-white shadow-xs'
                                 : 'text-text-muted hover:text-text'
@@ -525,7 +545,7 @@ export default function ExpensesPage() {
                                 <p className="text-text-muted text-[10px] sm:text-xs font-semibold uppercase tracking-wider">Selected Period Expenses</p>
                                 <h2 className="text-2xl sm:text-4xl font-extrabold font-mono mb-2.5 sm:mb-4 text-red-600">{formatPeso(localTotalSum || 0)}</h2>
 
-                                <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-3 sm:gap-8 border-t border-slate-100 dark:border-slate-800 pt-2.5 sm:pt-3 items-end">
+                                <div className="grid grid-cols-1 sm:flex sm:flex-wrap gap-3 sm:gap-8 border-t border-slate-100 dark:border-slate-800 pt-2.5 sm:pt-3 items-start sm:items-end">
                                     <div className="min-w-0">
                                         <div className="flex flex-wrap items-center gap-1.5 mb-1">
                                             <p className="text-[10px] sm:text-xs uppercase font-semibold text-text-muted">Monthly Filter</p>
@@ -533,7 +553,7 @@ export default function ExpensesPage() {
                                                 type="month"
                                                 value={selectedMonth}
                                                 onChange={(e) => setSelectedMonth(e.target.value)}
-                                                className="text-[11px] sm:text-xs font-semibold bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-0.5 text-slate-900 dark:text-slate-100 cursor-pointer focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:[color-scheme:dark]"
+                                                className="text-xs font-semibold bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1 text-slate-900 dark:text-slate-100 cursor-pointer focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:[color-scheme:dark]"
                                             />
                                         </div>
                                         <p className="text-sm sm:text-base font-bold font-mono text-text">{formatPeso(summary?.monthlyTotal || 0)}</p>

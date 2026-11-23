@@ -2134,3 +2134,42 @@ aside,
 .dark div[class*="bg-gray-500"] {
     background-color: transparent !important;
 }
+
+/* Fix white modal buttons (e.g. EditDebtModal Cancel button) in dark mode */
+.dark [role="dialog"] button.bg-white,
+.dark .dialog-content button.bg-white {
+    background-color: #1e293b !important; /* slate-800 */
+    color: #f1f5f9 !important;            /* slate-100 */
+    border-color: #334155 !important;     /* slate-700 */
+}
+
+.dark [role="dialog"] button.bg-white:hover,
+.dark .dialog-content button.bg-white:hover {
+    background-color: #334155 !important; /* slate-700 */
+}
+/* Fix light modal headers, footers, and invisible outline buttons in dark mode */
+.dark [role="dialog"] .dialog-header,
+.dark [role="dialog"] .dialog-footer,
+.dark .dialog-content .dialog-header,
+.dark .dialog-content .dialog-footer {
+    background-color: #0f172a !important; /* slate-900 */
+    color: #f8fafc !important;            /* slate-50 */
+    border-color: #1e293b !important;     /* slate-800 */
+}
+
+.dark [role="dialog"] .btn--outline,
+.dark [role="dialog"] button.bg-white,
+.dark .dialog-content .btn--outline,
+.dark .dialog-content button.bg-white {
+    background-color: #1e293b !important; /* slate-800 */
+    color: #f1f5f9 !important;            /* slate-100 */
+    border-color: #334155 !important;     /* slate-700 */
+}
+
+.dark [role="dialog"] .btn--outline:hover,
+.dark [role="dialog"] button.bg-white:hover,
+.dark .dialog-content .btn--outline:hover,
+.dark .dialog-content button.bg-white:hover {
+    background-color: #334155 !important; /* slate-700 */
+    color: #ffffff !important;
+}
