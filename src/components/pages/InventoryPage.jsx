@@ -20,6 +20,11 @@ import {
 const isServiceProduct = (product) =>
     product?.category === 'Refills/Services' || product?.track_stock === false;
 
+const isValidCatalogItem = (product) => {
+    const cleanName = (product?.name || '').trim().toLowerCase();
+    return Boolean(cleanName) && cleanName !== 'unknown' && !cleanName.includes('removed');
+};
+
 // --- Sub-Component: Break Bulk Grid ---
 function BreakBulk({ products, onSuccess, isDemo }) {
     const childProducts = products.filter(p => p.parent_product_id && p.conversion_rate > 1);
@@ -235,7 +240,7 @@ export default function InventoryPage() {
         fetchAll: viewMode === 'convert'
     });
 
-    const rawProducts = productsData?.products || [];
+    const rawProducts = (productsData?.products || []).filter(isValidCatalogItem);
     const totalPages = productsData?.totalPages || 1;
 
     // Filter by low/out stock (excluding unlimited refill services)
@@ -247,7 +252,7 @@ export default function InventoryPage() {
     });
 
     // KPI Metrics calculation
-    const totalSKUs = productsData?.totalCount ?? rawProducts.length;
+    const totalSKUs = rawProducts.length;
     const outOfStockCount = rawProducts.filter(p => !isServiceProduct(p) && p.stock === 0).length;
     const lowStockCount = rawProducts.filter(p => !isServiceProduct(p) && p.stock <= (p.minStock || 10) && p.stock > 0).length;
     const healthyStockCount = rawProducts.filter(p => isServiceProduct(p) || p.stock > (p.minStock || 10)).length;
@@ -343,9 +348,15 @@ export default function InventoryPage() {
     };
 
     return (
-        <div className="inventory-page w-full max-w-7xl mx-auto px-1.5 py-2 sm:p-5 md:p-6 space-y-2.5 sm:space-y-6 transition-colors">
-            {/* Match POS, Expenses, Dashboard, Report, History, Scanned Logs, Customer, Maintenance, Product & 3D Icons edge-to-edge .container fit on mobile (< 640px) */}
+        <div className="inventory-page w-full max-w-7xl mx-auto px-1.5 pt-2 pb-32 sm:px-5 sm:pt-5 sm:pb-32 md:p-6 space-y-2.5 sm:space-y-6 transition-colors">
+            {/* Ensure full mobile bottom dock clearance (< 768px) and edge-to-edge fit (< 640px) */}
             <style jsx global>{`
+                @media (max-width: 767px) {
+                    .app:has(.inventory-page) .main,
+                    .app:has(.inventory-page) .container {
+                        padding-bottom: calc(7.5rem + env(safe-area-inset-bottom, 0px)) !important;
+                    }
+                }
                 @media (max-width: 639px) {
                     .app:has(.inventory-page) .container {
                         max-width: 100% !important;
@@ -458,22 +469,26 @@ export default function InventoryPage() {
                 <div className="space-y-2.5 sm:space-y-4">
                     {/* Controls Row: Search + Quick Filter Pills */}
                     <div className="bg-white dark:bg-slate-900 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-3">
-                        <div className="relative flex-1 max-w-md">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500 pointer-events-none" />
+                        <div className="relative flex items-center flex-1 max-w-md">
+                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500 pointer-events-none z-10" />
                             <Input
                                 ref={searchInputRef}
                                 placeholder="Search by item name or barcode... (/)"
                                 value={searchTerm}
                                 onChange={e => setSearchTerm(e.target.value)}
                                 onKeyDown={preventEnterReload}
-                                className="!pl-9 pr-8 h-9 sm:h-10 text-xs sm:text-sm bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl focus:border-[#8DB600] focus:ring-[#8DB600]"
+                                style={{
+                                    paddingLeft: '2.5rem',
+                                    paddingRight: searchTerm ? '2.25rem' : '0.875rem'
+                                }}
+                                className="!pl-10 h-9 sm:h-10 text-xs sm:text-sm bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl focus:border-[#8DB600] focus:ring-[#8DB600]"
                             />
                             {searchTerm && (
                                 <button
                                     type="button"
                                     onClick={() => setSearchTerm('')}
                                     aria-label="Clear search"
-                                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-0.5 rounded-full cursor-pointer"
+                                    className="absolute right-2.5 top-1/2 -translate-y-1/2 z-10 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-0.5 rounded-full cursor-pointer"
                                 >
                                     <X className="w-3.5 h-3.5" />
                                 </button>
