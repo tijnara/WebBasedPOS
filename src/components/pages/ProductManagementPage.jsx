@@ -16,20 +16,66 @@ import {
     useUpdateProduct,
     useDeleteProduct
 } from '../../hooks/useProductMutations';
-import { useProduct3DAssets } from '../../hooks/useProduct3DAssets';
 
 import currency from 'currency.js';
 import { EditIcon, DeleteIcon } from '../Icons';
 import {
     Eye, EyeOff, Download, Plus, Search, X,
-    Layers, AlertTriangle, CheckCircle2, TrendingUp, Boxes, Sparkles
+    Layers, AlertTriangle, CheckCircle2, TrendingUp, Boxes
 } from 'lucide-react';
 
-import Product3DVisual, {
-    resolveProduct3DType,
-    BUILTIN_WRS_3D_ASSETS
-} from '../pos/Product3DVisual';
-import Product3DIconPicker from '../pos/Product3DIconPicker';
+import Product3DVisual, { resolveProduct3DType } from '../pos/Product3DVisual';
+import ProductImageSelector, {
+    PH_WRS_3D_PRESETS,
+    exportPresetAsUniformFile
+} from '../products/ProductImageSelector';
+
+function isDirectImageUrl(url) {
+    if (!url || typeof url !== 'string') return false;
+    return (
+        url.startsWith('http://') ||
+        url.startsWith('https://') ||
+        url.startsWith('data:image/') ||
+        url.startsWith('/')
+    );
+}
+
+function UniformProductThumbnail({ product }) {
+    if (isDirectImageUrl(product?.image_url)) {
+        return (
+            <img
+                src={product.image_url}
+                alt={product.name || 'Product'}
+                className="w-9 h-9 aspect-square object-contain"
+            />
+        );
+    }
+    return <Product3DVisual product={product} className="w-9 h-9 aspect-square" />;
+}
+
+async function uploadUniformProductFile(file) {
+    if (!file) return null;
+    const fileName = `products/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.png`;
+
+    for (const bucket of ['products', 'gallery']) {
+        try {
+            const { error } = await supabase.storage
+                .from(bucket)
+                .upload(fileName, file, {
+                    contentType: 'image/png',
+                    upsert: true
+                });
+
+            if (!error) {
+                const { data } = supabase.storage.from(bucket).getPublicUrl(fileName);
+                if (data?.publicUrl) return data.publicUrl;
+            }
+        } catch {
+            // Try next bucket or fall back to normalized data URL
+        }
+    }
+    return null;
+}
 
 export default function ProductManagementPage() {
     const router = useRouter();
@@ -46,8 +92,6 @@ export default function ProductManagementPage() {
         category: categoryFilter,
         isHidden: true
     });
-
-    const { data: all3DAssets = BUILTIN_WRS_3D_ASSETS } = useProduct3DAssets();
 
     const products = productsData.products || [];
     const totalPages = productsData.totalPages || 1;
@@ -73,7 +117,10 @@ export default function ProductManagementPage() {
     const [name, setName] = useState('');
     const [price, setPrice] = useState('');
     const [cost, setCost] = useState('0');
-    const [selected3DKey, setSelected3DKey] = useState('refill-25');
+    const [selectedPresetId, setSelectedPresetId] = useState('walk-in-refill');
+    const [previewImageUrl, setPreviewImageUrl] = useState('');
+    const [pendingImageFile, setPendingImageFile] = useState(null);
+    const [legacy3DKey, setLegacy3DKey] = useState('refill-25');
     const [saving, setSaving] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [barcode, setBarcode] = useState('');
@@ -142,20 +189,19 @@ export default function ProductManagementPage() {
         return { total, visible, hidden, lowStock };
     }, [products, productsData.totalCount]);
 
-    const active3DAssetMeta = useMemo(() => {
-        return (
-            all3DAssets.find(a => a.asset_key === selected3DKey) ||
-            BUILTIN_WRS_3D_ASSETS.find(a => a.asset_key === selected3DKey) ||
-            BUILTIN_WRS_3D_ASSETS[0]
-        );
-    }, [all3DAssets, selected3DKey]);
+    const applyDefaultPreset = async (presetId = 'walk-in-refill') => {
+        if (typeof document === 'undefined') return;
+        const { file, dataUrl } = await exportPresetAsUniformFile(presetId);
+        setSelectedPresetId(presetId);
+        setPreviewImageUrl(dataUrl);
+        setPendingImageFile(file);
+    };
 
     const startEdit = (p) => {
         setEditing(p);
         setName(p?.name || '');
         setPrice(p?.price != null ? String(p.price) : '');
         setCost(String(p?.cost ?? 0));
-        setSelected3DKey(resolveProduct3DType(p));
         setBarcode(p?.barcode || '');
         setCategory(p?.category || 'General');
         setStock(Number(p?.stock ?? 0));
@@ -164,12 +210,27 @@ export default function ProductManagementPage() {
         setParentId(p?.parent_product_id || null);
         setConversionRate(p?.conversion_rate ? String(p.conversion_rate) : '');
         setIsHidden(p?.is_hidden || false);
+        setPendingImageFile(null);
+
+        const existingKey = p?.icon_3d_key || resolveProduct3DType(p);
+        setLegacy3DKey(existingKey);
+
+        if (isDirectImageUrl(p?.image_url)) {
+            setPreviewImageUrl(p.image_url);
+            const matchedPreset = PH_WRS_3D_PRESETS.find(pr => pr.id === existingKey);
+            setSelectedPresetId(matchedPreset ? matchedPreset.id : null);
+        } else {
+            setPreviewImageUrl('');
+            setSelectedPresetId(null);
+        }
+
         setIsModalOpen(true);
     };
 
-    const openModal = () => {
+    const openModal = async () => {
         resetForm();
         setIsModalOpen(true);
+        await applyDefaultPreset('walk-in-refill');
     };
 
     const closeModal = () => {
@@ -182,7 +243,10 @@ export default function ProductManagementPage() {
         setName('');
         setPrice('');
         setCost('0');
-        setSelected3DKey('refill-25');
+        setSelectedPresetId('walk-in-refill');
+        setPreviewImageUrl('');
+        setPendingImageFile(null);
+        setLegacy3DKey('refill-25');
         setBarcode('');
         setCategory('Refills/Services');
         setStock(0);
@@ -196,20 +260,28 @@ export default function ProductManagementPage() {
         setIsHidden(false);
     };
 
-    const handleSelect3DAsset = (asset) => {
-        if (!asset?.asset_key) return;
-        setSelected3DKey(asset.asset_key);
+    const handleImageSelection = ({ imageUrl, file, preset, presetId, source }) => {
+        if (!source) {
+            setSelectedPresetId(null);
+            setPreviewImageUrl('');
+            setPendingImageFile(null);
+            return;
+        }
 
-        if (!editing) {
+        setSelectedPresetId(presetId || null);
+        setPreviewImageUrl(imageUrl || '');
+        setPendingImageFile(file || null);
+
+        if (preset && !editing) {
             if (!name.trim()) {
-                setName(asset.label);
+                setName(preset.label);
             }
-            if (!price && asset.suggested_price > 0) {
-                setPrice(String(asset.suggested_price));
+            if (!price && preset.suggestedPrice > 0) {
+                setPrice(String(preset.suggestedPrice));
             }
-            if (asset.category) {
-                setCategory(asset.category);
-                setTrackStock(asset.category !== 'Refills/Services');
+            if (preset.category) {
+                setCategory(preset.category);
+                setTrackStock(preset.category !== 'Refills/Services');
             }
         }
     };
@@ -227,26 +299,36 @@ export default function ProductManagementPage() {
         }
 
         setSaving(true);
-        const finalIcon3DKey = selected3DKey || 'refill-25';
-        const finalImageUrl = `3d:${finalIcon3DKey}`;
-
-        const payload = {
-            name: name.trim(),
-            price: parsedPrice,
-            cost: currency(cost || '0').value,
-            image_url: finalImageUrl,
-            icon_3d_key: finalIcon3DKey,
-            barcode: barcode?.trim() || null,
-            stock: trackStock ? Math.max(0, parseInt(stock, 10) || 0) : 0,
-            minStock: trackStock ? Math.max(0, parseInt(minStock, 10) || 0) : 0,
-            track_stock: trackStock,
-            category: category || 'General',
-            parent_product_id: parentId,
-            conversion_rate: conversionRate ? parseInt(conversionRate, 10) : null,
-            is_hidden: isHidden,
-        };
 
         try {
+            let finalImageUrl = previewImageUrl || null;
+            const finalIcon3DKey = selectedPresetId || (finalImageUrl ? null : legacy3DKey || 'refill-25');
+
+            if (pendingImageFile) {
+                const uploadedPublicUrl = await uploadUniformProductFile(pendingImageFile);
+                if (uploadedPublicUrl) {
+                    finalImageUrl = uploadedPublicUrl;
+                }
+            } else if (!finalImageUrl) {
+                finalImageUrl = `3d:${finalIcon3DKey}`;
+            }
+
+            const payload = {
+                name: name.trim(),
+                price: parsedPrice,
+                cost: currency(cost || '0').value,
+                image_url: finalImageUrl,
+                icon_3d_key: finalIcon3DKey,
+                barcode: barcode?.trim() || null,
+                stock: trackStock ? Math.max(0, parseInt(stock, 10) || 0) : 0,
+                minStock: trackStock ? Math.max(0, parseInt(minStock, 10) || 0) : 0,
+                track_stock: trackStock,
+                category: category || 'General',
+                parent_product_id: parentId,
+                conversion_rate: conversionRate ? parseInt(conversionRate, 10) : null,
+                is_hidden: isHidden,
+            };
+
             let savedRecord = null;
             if (editing) {
                 savedRecord = await updateProduct.mutateAsync({ ...payload, id: editing.id });
@@ -309,7 +391,7 @@ export default function ProductManagementPage() {
 
     const handleExportCSV = () => {
         if (!products.length) return;
-        const headers = ['ID', 'Name', 'Barcode', 'Category', 'Price', 'Cost', 'Stock', 'Min_Stock', '3D_Icon', 'Status'];
+        const headers = ['ID', 'Name', 'Barcode', 'Category', 'Price', 'Cost', 'Stock', 'Min_Stock', 'Visual', 'Status'];
         const rows = products.map(p => [
             p.id,
             `"${(p.name || '').replace(/"/g, '""')}"`,
@@ -319,7 +401,7 @@ export default function ProductManagementPage() {
             p.cost || 0,
             p.stock || 0,
             p.minStock || 5,
-            resolveProduct3DType(p),
+            isDirectImageUrl(p.image_url) ? 'Custom/Preset 400x400' : resolveProduct3DType(p),
             p.is_hidden ? 'Hidden' : 'Visible'
         ]);
 
@@ -363,7 +445,6 @@ export default function ProductManagementPage() {
 
     return (
         <div className="product-page w-full max-w-7xl mx-auto px-1.5 py-2 sm:p-6 space-y-2.5 sm:space-y-6 transition-colors">
-            {/* Match POS, Expenses, Dashboard, Report, History, Scanned Logs, Customer & Maintenance edge-to-edge .container fit on mobile (< 640px) */}
             <style jsx global>{`
                 @media (max-width: 639px) {
                     .app:has(.product-page) .container {
@@ -389,22 +470,11 @@ export default function ProductManagementPage() {
                 </div>
 
                 <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 w-full sm:w-auto">
-                    {isAdmin && (
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => router.push('/3d-icons')}
-                            className="w-full sm:w-auto h-9 sm:h-10 px-3 sm:px-3.5 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:border-[#8DB600] text-xs font-bold flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
-                        >
-                            <Sparkles className="w-3.5 h-3.5 text-[#8DB600] shrink-0" />
-                            <span className="truncate">3D Icons Library</span>
-                        </Button>
-                    )}
                     <Button
                         type="button"
                         variant="outline"
                         onClick={handleExportCSV}
-                        className={`${isAdmin ? 'col-span-1' : 'col-span-2'} w-full sm:w-auto h-9 sm:h-10 px-3 sm:px-3.5 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 text-xs font-bold flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer`}
+                        className="w-full sm:w-auto h-9 sm:h-10 px-3 sm:px-3.5 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 text-xs font-bold flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
                     >
                         <Download className="w-3.5 h-3.5 shrink-0" />
                         <span className="truncate">Export CSV</span>
@@ -413,7 +483,7 @@ export default function ProductManagementPage() {
                         type="button"
                         variant="primary"
                         onClick={openModal}
-                        className="col-span-2 sm:col-span-1 w-full sm:w-auto h-9 sm:h-10 px-4 rounded-xl bg-[#8DB600] hover:bg-[#7ca000] text-white font-bold text-xs shadow-sm flex items-center justify-center gap-1.5 active:scale-95 transition-all cursor-pointer"
+                        className="w-full sm:w-auto h-9 sm:h-10 px-4 rounded-xl bg-[#8DB600] hover:bg-[#7ca000] text-white font-bold text-xs shadow-sm flex items-center justify-center gap-1.5 active:scale-95 transition-all cursor-pointer"
                         disabled={isDemo}
                     >
                         <Plus className="w-4 h-4 stroke-[2.5] shrink-0" />
@@ -508,7 +578,7 @@ export default function ProductManagementPage() {
                         <Table>
                             <TableHeader>
                                 <TableRow className="bg-slate-50 dark:bg-slate-800/70 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200/80 dark:border-slate-800">
-                                    <TableHead className="w-[32%] px-5 py-3.5">Product &amp; 3D Visual</TableHead>
+                                    <TableHead className="w-[32%] px-5 py-3.5">Product &amp; Visual</TableHead>
                                     <TableHead className="px-4 py-3.5">Category</TableHead>
                                     <TableHead className="px-4 py-3.5">Selling Price</TableHead>
                                     <TableHead className="px-4 py-3.5">Inventory</TableHead>
@@ -527,20 +597,23 @@ export default function ProductManagementPage() {
                                         const isService = p.category === 'Refills/Services' || p.track_stock === false;
                                         const isLow = !isService && Number(p.stock) <= Number(p.minStock || 5) && Number(p.stock) > 0;
                                         const isOut = !isService && Number(p.stock) === 0;
-                                        const resolved3D = resolveProduct3DType(p);
+                                        const hasPhoto = isDirectImageUrl(p.image_url);
+                                        const visualLabel = hasPhoto
+                                            ? (p.icon_3d_key ? `3D: ${p.icon_3d_key}` : 'Photo 400×400')
+                                            : `3D: ${resolveProduct3DType(p)}`;
 
                                         return (
                                             <tr key={p.id} className={`group hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors ${p.is_hidden ? 'opacity-60 bg-slate-50/40 dark:bg-slate-800/20' : ''}`}>
                                                 <TableCell className="px-5 py-3.5">
                                                     <div className="flex items-center gap-3">
-                                                        <div className="w-11 h-11 rounded-xl bg-slate-100/90 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700 overflow-hidden flex items-center justify-center shrink-0 shadow-2xs p-1">
-                                                            <Product3DVisual product={p} className="w-9 h-9" />
+                                                        <div className="w-11 h-11 aspect-square rounded-xl bg-slate-100/90 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700 overflow-hidden flex items-center justify-center shrink-0 shadow-2xs p-1">
+                                                            <UniformProductThumbnail product={p} />
                                                         </div>
                                                         <div className="flex flex-col min-w-0">
                                                             <span className="font-bold text-slate-900 dark:text-slate-100 truncate">{p.name}</span>
                                                             <div className="flex items-center gap-1.5 mt-0.5">
                                                                 <span className="text-[9.5px] font-mono px-1.5 py-0.2 rounded bg-lime-50 dark:bg-lime-950/60 text-[#5f7d00] dark:text-lime-400 border border-lime-200/70 dark:border-lime-800/50">
-                                                                    3D: {resolved3D}
+                                                                    {visualLabel}
                                                                 </span>
                                                                 {p.barcode && <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500">{p.barcode}</span>}
                                                             </div>
@@ -618,7 +691,7 @@ export default function ProductManagementPage() {
                                                             type="button"
                                                             onClick={() => startEdit(p)}
                                                             className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors cursor-pointer"
-                                                            title="Edit Details & 3D Visual"
+                                                            title="Edit Details & Visual"
                                                             disabled={isDemo}
                                                         >
                                                             <EditIcon className="w-4 h-4" />
@@ -667,8 +740,8 @@ export default function ProductManagementPage() {
                         return (
                             <div key={p.id} className={`group bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs flex items-center justify-between gap-2.5 ${p.is_hidden ? 'opacity-60 bg-slate-50 dark:bg-slate-800/40' : ''}`}>
                                 <div className="flex items-center gap-2.5 min-w-0">
-                                    <div className="w-11 h-11 rounded-xl bg-slate-100/90 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 overflow-hidden flex items-center justify-center shrink-0 p-1">
-                                        <Product3DVisual product={p} className="w-9 h-9" />
+                                    <div className="w-11 h-11 aspect-square rounded-xl bg-slate-100/90 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 overflow-hidden flex items-center justify-center shrink-0 p-1">
+                                        <UniformProductThumbnail product={p} />
                                     </div>
                                     <div className="min-w-0">
                                         <div className="font-bold text-sm text-slate-900 dark:text-slate-100 truncate">{p.name}</div>
@@ -746,7 +819,7 @@ export default function ProductManagementPage() {
                                     {editing ? 'Edit Product Details' : 'Add New Inventory Item'}
                                 </DialogTitle>
                                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                                    {editing ? `SKU Item ID: #${editing.id}` : 'Select a saved 3D station visual from the library and configure POS pricing.'}
+                                    {editing ? `SKU Item ID: #${editing.id}` : 'Choose a 3D station product preset or upload a photo (uniform 400×400px).'}
                                 </p>
                             </div>
                             <DialogCloseButton type="button" onClick={closeModal} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-full cursor-pointer" />
@@ -754,107 +827,85 @@ export default function ProductManagementPage() {
 
                         {/* Modal Body */}
                         <div className="p-4 sm:p-6 max-h-[76vh] overflow-y-auto space-y-5 sm:space-y-6 bg-white dark:bg-slate-900">
-                            {/* Section 1: Selected 3D Visual Preview & Basic Info */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 items-start">
-                                <div className="md:col-span-1 space-y-2">
-                                    <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
-                                        Selected 3D Visual
-                                    </Label>
+                            {/* Section 1: Uniform 3D Preset / Uploaded Photo Selector */}
+                            <ProductImageSelector
+                                value={previewImageUrl}
+                                selectedPresetId={selectedPresetId}
+                                onChange={handleImageSelection}
+                                disabled={isDemo}
+                            />
 
-                                    <div className="group relative w-full max-w-[180px] md:max-w-none mx-auto aspect-square rounded-2xl bg-gradient-to-b from-cyan-500/10 via-slate-50 to-lime-500/10 dark:from-cyan-950/30 dark:via-slate-800/90 dark:to-lime-950/30 border-2 border-[#8DB600]/60 dark:border-lime-500/40 flex flex-col items-center justify-center p-3 text-center shadow-2xs">
-                                        <Product3DVisual
-                                            assetKey={selected3DKey}
-                                            customImageUrl={active3DAssetMeta?.image_url}
-                                            className="w-24 h-24 sm:w-28 sm:h-28"
-                                        />
-                                        <span className="mt-2 text-[10.5px] font-extrabold text-slate-800 dark:text-slate-100 line-clamp-1">
-                                            {active3DAssetMeta.label}
-                                        </span>
-                                        <span className="text-[9px] font-mono font-bold text-[#5f7d00] dark:text-lime-400">
-                                            Uniform 256×256
-                                        </span>
-                                    </div>
+                            {/* Section 1B: Product Name, Category & Barcode */}
+                            <div className="space-y-4">
+                                <div>
+                                    <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Product Name <span className="text-rose-500">*</span></Label>
+                                    <Input
+                                        value={name}
+                                        onChange={e => setName(e.target.value)}
+                                        placeholder="e.g. Container (Round) or Refill (25L)"
+                                        className="h-10 mt-1 text-sm rounded-xl bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:border-[#8DB600] dark:focus:border-lime-500"
+                                        disabled={isDemo}
+                                    />
                                 </div>
 
-                                <div className="md:col-span-2 space-y-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     <div>
-                                        <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Product Name <span className="text-rose-500">*</span></Label>
+                                        <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Category</Label>
+                                        <div className="flex gap-1.5 mt-1">
+                                            <Select
+                                                value={category}
+                                                onChange={e => {
+                                                    const nextCat = e.target.value;
+                                                    setCategory(nextCat);
+                                                    if (!editing) {
+                                                        setTrackStock(nextCat !== 'Refills/Services');
+                                                    }
+                                                }}
+                                                className="h-10 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 cursor-pointer"
+                                                disabled={isDemo}
+                                            >
+                                                {mergedCategories.map(c => (
+                                                    <option key={c} value={c} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+                                                        {c}
+                                                    </option>
+                                                ))}
+                                            </Select>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                className="h-10 w-10 px-0 rounded-xl shrink-0 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer"
+                                                onClick={() => setIsAddingCategory(prev => !prev)}
+                                                disabled={isDemo}
+                                            >
+                                                +
+                                            </Button>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Barcode / SKU</Label>
                                         <Input
-                                            value={name}
-                                            onChange={e => setName(e.target.value)}
-                                            placeholder="e.g. Container (Round) or Refill (25L)"
-                                            className="h-10 mt-1 text-sm rounded-xl bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:border-[#8DB600] dark:focus:border-lime-500"
+                                            value={barcode}
+                                            onChange={e => setBarcode(e.target.value)}
+                                            placeholder="Scan or enter code"
+                                            className="h-10 mt-1 text-xs font-mono rounded-xl bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900"
                                             disabled={isDemo}
                                         />
                                     </div>
-
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                        <div>
-                                            <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Category</Label>
-                                            <div className="flex gap-1.5 mt-1">
-                                                <Select
-                                                    value={category}
-                                                    onChange={e => {
-                                                        const nextCat = e.target.value;
-                                                        setCategory(nextCat);
-                                                        if (!editing) {
-                                                            setTrackStock(nextCat !== 'Refills/Services');
-                                                        }
-                                                    }}
-                                                    className="h-10 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 cursor-pointer"
-                                                    disabled={isDemo}
-                                                >
-                                                    {mergedCategories.map(c => (
-                                                        <option key={c} value={c} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
-                                                            {c}
-                                                        </option>
-                                                    ))}
-                                                </Select>
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    className="h-10 w-10 px-0 rounded-xl shrink-0 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer"
-                                                    onClick={() => setIsAddingCategory(prev => !prev)}
-                                                    disabled={isDemo}
-                                                >
-                                                    +
-                                                </Button>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Barcode / SKU</Label>
-                                            <Input
-                                                value={barcode}
-                                                onChange={e => setBarcode(e.target.value)}
-                                                placeholder="Scan or enter code"
-                                                className="h-10 mt-1 text-xs font-mono rounded-xl bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900"
-                                                disabled={isDemo}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    {isAddingCategory && (
-                                        <div className="flex gap-2 p-3 bg-lime-50/60 dark:bg-lime-950/30 border border-lime-200 dark:border-lime-900/60 rounded-xl">
-                                            <Input
-                                                placeholder="New Category Name"
-                                                value={newCategoryName}
-                                                onChange={e => setNewCategoryName(e.target.value)}
-                                                className="bg-white dark:bg-slate-900 h-9 text-xs rounded-lg border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100"
-                                                disabled={isDemo}
-                                            />
-                                            <Button type="button" size="sm" onClick={addCategory} className="bg-[#8DB600] hover:bg-[#7ca000] text-white text-xs px-3 rounded-lg cursor-pointer" disabled={isDemo}>Add</Button>
-                                        </div>
-                                    )}
                                 </div>
-                            </div>
 
-                            {/* Section 1B: Pick from Saved 3D Icons & Product Visuals */}
-                            <Product3DIconPicker
-                                selectedKey={selected3DKey}
-                                onSelect={handleSelect3DAsset}
-                                compact
-                                isAdmin={isAdmin}
-                            />
+                                {isAddingCategory && (
+                                    <div className="flex gap-2 p-3 bg-lime-50/60 dark:bg-lime-950/30 border border-lime-200 dark:border-lime-900/60 rounded-xl">
+                                        <Input
+                                            placeholder="New Category Name"
+                                            value={newCategoryName}
+                                            onChange={e => setNewCategoryName(e.target.value)}
+                                            className="bg-white dark:bg-slate-900 h-9 text-xs rounded-lg border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100"
+                                            disabled={isDemo}
+                                        />
+                                        <Button type="button" size="sm" onClick={addCategory} className="bg-[#8DB600] hover:bg-[#7ca000] text-white text-xs px-3 rounded-lg cursor-pointer" disabled={isDemo}>Add</Button>
+                                    </div>
+                                )}
+                            </div>
 
                             <hr className="border-slate-100 dark:border-slate-800" />
 

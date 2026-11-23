@@ -1,8 +1,47 @@
 // src/components/pos/POSProductGrid.jsx
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import currency from 'currency.js';
 import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import Product3DVisual from './Product3DVisual';
+
+function isDirectImageUrl(url) {
+    if (!url || typeof url !== 'string') return false;
+    return (
+        url.startsWith('http://') ||
+        url.startsWith('https://') ||
+        url.startsWith('data:image/') ||
+        url.startsWith('/')
+    );
+}
+
+function UniformPOSProductVisual({ product }) {
+    const [imgError, setImgError] = useState(false);
+    const imageUrl = product?.image_url;
+
+    useEffect(() => {
+        setImgError(false);
+    }, [imageUrl]);
+
+    const showImage = isDirectImageUrl(imageUrl) && !imgError;
+
+    return (
+        <div className="w-16 h-16 sm:w-20 sm:h-20 aspect-square rounded-xl flex items-center justify-center overflow-hidden shrink-0">
+            {showImage ? (
+                <img
+                    src={imageUrl}
+                    alt={product?.name || 'Product'}
+                    onError={() => setImgError(true)}
+                    className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-200 select-none"
+                />
+            ) : (
+                <Product3DVisual
+                    product={product}
+                    className="w-full h-full group-hover:scale-105 transition-transform duration-200"
+                />
+            )}
+        </div>
+    );
+}
 
 const POSProductGrid = ({
                             isLoading,
@@ -39,7 +78,7 @@ const POSProductGrid = ({
                             key={i}
                             className="animate-pulse bg-white dark:bg-[#161f30] rounded-2xl border border-slate-200/80 dark:border-slate-800 p-3 h-44 sm:h-48 flex flex-col justify-between"
                         >
-                            <div className="w-16 h-16 mx-auto my-auto bg-slate-100 dark:bg-slate-800 rounded-full" />
+                            <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto my-auto bg-slate-100 dark:bg-slate-800 rounded-2xl" />
                             <div className="space-y-1.5 mt-2">
                                 <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded w-1/3" />
                                 <div className="h-3 bg-slate-100 dark:bg-slate-800 rounded w-3/4" />
@@ -49,7 +88,7 @@ const POSProductGrid = ({
                 </div>
             ) : (
                 <>
-                    {/* Mobile-First 2-Col -> Tablet 3-Col -> Desktop 4-Col 3D Product Grid */}
+                    {/* Mobile-First 2-Col -> Tablet 3-Col -> Desktop 4-Col Product Grid */}
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 items-stretch">
                         {/* --- FIRST SLOT: Open Sale • Custom Item (P) --- */}
                         <button
@@ -68,12 +107,11 @@ const POSProductGrid = ({
                             </span>
                         </button>
 
-                        {/* --- Catalog Products with 3D Visuals --- */}
+                        {/* --- Catalog Products with Uniform 3D Presets & Uploaded Photos --- */}
                         {validProducts.map((p) => {
                             const hotkey = p.id === 30 ? '1' : p.id === 3 ? '2' : p.id === 2 ? '3' : null;
                             const stockNum = Number(p.stock ?? p.stock_quantity ?? 0);
                             const isService = isServiceItem(p);
-
                             const isOutOfStock = !isService && stockNum <= 0;
 
                             const qtyInCart = Object.values(currentSale || {}).reduce((sum, item) => {
@@ -103,7 +141,7 @@ const POSProductGrid = ({
                                     <div className="flex items-center justify-between gap-1 w-full z-10">
                                         <div className="flex items-center gap-1">
                                             {hotkey && (
-                                                <span className="w-4.5 h-4.5 px-1.5 py-0.5 flex items-center justify-center bg-slate-900 dark:bg-slate-700 text-white font-mono text-[9px] font-black rounded shadow-2xs">
+                                                <span className="min-w-[18px] h-[18px] px-1.5 py-0.5 flex items-center justify-center bg-slate-900 dark:bg-slate-700 text-white font-mono text-[9px] font-black rounded shadow-2xs">
                                                     {hotkey}
                                                 </span>
                                             )}
@@ -129,12 +167,9 @@ const POSProductGrid = ({
                                         )}
                                     </div>
 
-                                    {/* Center: Clean 3D Product Render (Ignores product.image_url) */}
+                                    {/* Center: Uniform Square 3D Preset or Uploaded Photo */}
                                     <div className="w-full my-auto py-1 flex items-center justify-center">
-                                        <Product3DVisual
-                                            product={p}
-                                            className="w-16 h-16 sm:w-20 sm:h-20"
-                                        />
+                                        <UniformPOSProductVisual product={p} />
                                     </div>
 
                                     {/* Bottom: Category, Name, Price & '+' Add Pill */}
