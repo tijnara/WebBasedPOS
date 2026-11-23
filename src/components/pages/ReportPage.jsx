@@ -24,9 +24,20 @@ import {
 } from '../ui';
 import { useWeeklyGrowth } from '../../hooks/useWeeklyGrowth';
 import { useMonthlyGrowth } from '../../hooks/useMonthlyGrowth';
-import SummaryCard from '../ui/SummaryCard';
 import currency from 'currency.js';
-import { Pencil, Trash2, AlertTriangle } from 'lucide-react';
+import {
+    Pencil,
+    Trash2,
+    AlertTriangle,
+    BarChart3,
+    Droplets,
+    TrendingUp,
+    TrendingDown,
+    Calendar,
+    Receipt,
+    Repeat,
+    UserX
+} from 'lucide-react';
 
 // Extracted Modular Tabs
 import SalesTab from '../reports/SalesTab';
@@ -35,6 +46,86 @@ import LapsedCustomersTab from '../reports/LapsedCustomersTab';
 
 const formatCurrency = (amount) => {
     return currency(amount, { symbol: '₱', precision: 2 }).format();
+};
+
+// Modern Compact KPI Card for 2x2 Mobile / 4-Col Desktop Grid
+const ExecutiveKpiCard = ({
+                              title,
+                              value,
+                              previousValue,
+                              comparisonRange,
+                              percentage = 0,
+                              isPositive = true,
+                              isLoading = false,
+                              icon: Icon,
+                              accent = 'lime'
+                          }) => {
+    const accentStyles = {
+        lime: 'bg-lime-50 dark:bg-lime-950/50 text-[#659000] dark:text-lime-400 border-lime-200/70 dark:border-lime-800/50',
+        cyan: 'bg-cyan-50 dark:bg-cyan-950/50 text-cyan-600 dark:text-cyan-400 border-cyan-200/70 dark:border-cyan-800/50',
+        emerald: 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border-emerald-200/70 dark:border-emerald-800/50',
+        blue: 'bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 border-blue-200/70 dark:border-blue-800/50'
+    };
+
+    return (
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 p-3 sm:p-4 shadow-2xs hover:shadow-sm transition-all flex flex-col justify-between gap-2 min-w-0">
+            <div className="flex items-start justify-between gap-2">
+                <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 leading-tight">
+                    {title}
+                </span>
+                {Icon && (
+                    <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl border flex items-center justify-center shrink-0 ${accentStyles[accent] || accentStyles.lime}`}>
+                        <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    </div>
+                )}
+            </div>
+
+            {isLoading ? (
+                <div className="space-y-2 py-1 animate-pulse">
+                    <div className="h-6 bg-slate-100 dark:bg-slate-800 rounded-lg w-3/4" />
+                    <div className="h-3 bg-slate-100 dark:bg-slate-800 rounded w-1/2" />
+                </div>
+            ) : (
+                <>
+                    <div className="space-y-1 min-w-0">
+                        <div className="text-lg sm:text-2xl font-black font-mono tracking-tight text-slate-900 dark:text-white truncate">
+                            {value}
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-1.5">
+                            <span
+                                className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-black font-mono ${
+                                    isPositive
+                                        ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200/80 dark:border-emerald-800/60'
+                                        : 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400 border border-rose-200/80 dark:border-rose-800/60'
+                                }`}
+                            >
+                                {isPositive ? (
+                                    <TrendingUp className="w-2.5 h-2.5 shrink-0" />
+                                ) : (
+                                    <TrendingDown className="w-2.5 h-2.5 shrink-0" />
+                                )}
+                                <span>{Number(percentage || 0).toFixed(1)}%</span>
+                            </span>
+
+                            {comparisonRange && (
+                                <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 truncate">
+                                    {comparisonRange}
+                                </span>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="pt-1.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-1 text-[10.5px] text-slate-500 dark:text-slate-400">
+                        <span className="truncate">Prev:</span>
+                        <span className="font-mono font-bold text-slate-700 dark:text-slate-300 truncate">
+                            {previousValue}
+                        </span>
+                    </div>
+                </>
+            )}
+        </div>
+    );
 };
 
 // Admin Edit Modal for Reports
@@ -79,8 +170,8 @@ const EditSaleModal = ({ sale, isOpen, onClose }) => {
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="p-0 sm:max-w-md w-full bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden rounded-3xl dark:[color-scheme:dark] transition-colors">
-                <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between">
+            <DialogContent className="p-0 sm:max-w-md w-[95vw] sm:w-full bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden rounded-3xl dark:[color-scheme:dark] transition-colors">
+                <div className="px-6 py-4 bg-slate-50 dark:bg-slate-900 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between">
                     <DialogTitle className="text-base font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
                         <div className="w-7 h-7 rounded-lg bg-lime-100 dark:bg-lime-950/60 text-[#5f7d00] dark:text-lime-400 flex items-center justify-center">
                             <Pencil className="w-4 h-4 stroke-[2.5]" />
@@ -92,7 +183,7 @@ const EditSaleModal = ({ sale, isOpen, onClose }) => {
 
                 <form onSubmit={handleSubmit}>
                     <div className="p-6 space-y-4">
-                        <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 flex justify-between items-center text-xs">
+                        <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 flex justify-between items-center text-xs">
                             <span className="text-slate-500 dark:text-slate-400 font-semibold">Total Amount:</span>
                             <span className="text-base font-black text-slate-900 dark:text-slate-100 font-mono">{formatCurrency(sale.totalAmount)}</span>
                         </div>
@@ -150,7 +241,7 @@ const EditSaleModal = ({ sale, isOpen, onClose }) => {
                         )}
                     </div>
 
-                    <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-200/80 dark:border-slate-800 flex items-center justify-end gap-2.5">
+                    <div className="px-6 py-4 bg-slate-50 dark:bg-slate-900 border-t border-slate-200/80 dark:border-slate-800 flex items-center justify-end gap-2.5">
                         <Button variant="outline" type="button" onClick={onClose} className="h-10 px-5 rounded-xl text-xs font-bold border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer">
                             Cancel
                         </Button>
@@ -188,7 +279,7 @@ const BulkDeleteSalesModal = ({ salesToDelete = [], isOpen, onClose, onConfirm, 
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="p-0 sm:max-w-md w-full bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden rounded-3xl">
+            <DialogContent className="p-0 sm:max-w-md w-[95vw] sm:w-full bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden rounded-3xl">
                 <div className="px-6 py-4 bg-rose-50 dark:bg-rose-950/40 border-b border-rose-100 dark:border-rose-900/50 flex items-center justify-between">
                     <DialogTitle className="text-base font-black text-rose-900 dark:text-rose-200 flex items-center gap-2">
                         <div className="w-8 h-8 rounded-xl bg-rose-100 dark:bg-rose-900/60 text-rose-600 dark:text-rose-300 flex items-center justify-center">
@@ -198,24 +289,24 @@ const BulkDeleteSalesModal = ({ salesToDelete = [], isOpen, onClose, onConfirm, 
                             {count === 1 ? `Delete Transaction #${salesToDelete[0].id}` : `Delete ${count} Transactions`}
                         </span>
                     </DialogTitle>
-                    <DialogCloseButton onClick={onClose} className="p-1.5 rounded-full text-slate-400 hover:text-slate-600 cursor-pointer" />
+                    <DialogCloseButton onClick={onClose} className="p-1.5 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer" />
                 </div>
 
                 <form onSubmit={handleSubmit}>
                     <div className="p-6 space-y-4">
                         <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-1.5 text-xs">
                             <div className="flex justify-between">
-                                <span className="text-slate-500 font-semibold">Transactions Selected:</span>
+                                <span className="text-slate-500 dark:text-slate-400 font-semibold">Transactions Selected:</span>
                                 <span className="font-black text-slate-900 dark:text-white">{count}</span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-slate-500 font-semibold">Combined Amount:</span>
+                                <span className="text-slate-500 dark:text-slate-400 font-semibold">Combined Amount:</span>
                                 <span className="font-black font-mono text-rose-600 dark:text-rose-400">
                                     {formatCurrency(totalAmount)}
                                 </span>
                             </div>
                             {count <= 6 && (
-                                <div className="pt-1.5 border-t border-slate-200 dark:border-slate-700 text-[11px] text-slate-500 truncate">
+                                <div className="pt-1.5 border-t border-slate-200 dark:border-slate-700 text-[11px] text-slate-500 dark:text-slate-400 truncate">
                                     Customers: {salesToDelete.map(s => s.customerName || 'Walk-in').join(', ')}
                                 </div>
                             )}
@@ -233,18 +324,18 @@ const BulkDeleteSalesModal = ({ salesToDelete = [], isOpen, onClose, onConfirm, 
                                 value={reason}
                                 onChange={(e) => setReason(e.target.value)}
                                 placeholder="e.g. Duplicate scan entry, test order..."
-                                className="h-10 mt-1 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700"
+                                className="h-10 mt-1 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100"
                             />
                         </div>
                     </div>
 
-                    <div className="px-6 py-4 bg-slate-50 dark:bg-slate-850 border-t border-slate-200/80 dark:border-slate-800 flex items-center justify-end gap-2.5">
+                    <div className="px-6 py-4 bg-slate-50 dark:bg-slate-900 border-t border-slate-200/80 dark:border-slate-800 flex items-center justify-end gap-2.5">
                         <Button
                             type="button"
                             variant="outline"
                             onClick={onClose}
                             disabled={isDeleting}
-                            className="h-10 px-4 rounded-xl text-xs font-bold cursor-pointer"
+                            className="h-10 px-4 rounded-xl text-xs font-bold border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer"
                         >
                             Cancel
                         </Button>
@@ -329,8 +420,8 @@ const ReportPage = () => {
 
     useEffect(() => {
         const tab = searchParams.get('tab');
-        if (tab === 'frequent') {
-            setActiveTab('frequent');
+        if (tab === 'frequent' || tab === 'inactive' || tab === 'sales') {
+            setActiveTab(tab);
         }
     }, [searchParams]);
 
@@ -786,10 +877,24 @@ const ReportPage = () => {
         setEditingSale(null);
     };
 
+    const monthComparisonRange = monthlyGrowthData?.thisMonthStart && monthlyGrowthData?.lastMonthStart
+        ? `${format(new Date(monthlyGrowthData.thisMonthStart), 'MMM d')}–${format(new Date(monthlyGrowthData.thisMonthEnd), 'd')} vs ${format(new Date(monthlyGrowthData.lastMonthStart), 'MMM d')}–${format(new Date(monthlyGrowthData.lastMonthEnd), 'd')}`
+        : undefined;
+
+    const weekComparisonRange = weeklyGrowthData?.thisWeekStart && weeklyGrowthData?.lastWeekStart
+        ? `${format(new Date(weeklyGrowthData.thisWeekStart), 'MMM d')}–${format(new Date(weeklyGrowthData.thisWeekEnd), 'd')} vs ${format(new Date(weeklyGrowthData.lastWeekStart), 'MMM d')}–${format(new Date(weeklyGrowthData.lastWeekEnd), 'd')}`
+        : undefined;
+
     return (
-        <div className="report-page w-full max-w-7xl mx-auto px-1.5 py-2 sm:p-6 space-y-2.5 sm:space-y-6 transition-colors">
-            {/* Match POS, Expenses & Dashboard edge-to-edge .container fit on mobile (< 640px) */}
+        <div className="report-page w-full max-w-7xl mx-auto px-1.5 pt-2 pb-32 sm:px-6 sm:pt-6 sm:pb-32 md:pb-8 space-y-3 sm:space-y-5 transition-colors">
+            {/* Ensure full mobile bottom dock clearance (< 768px) & edge-to-edge fit (< 640px) */}
             <style jsx global>{`
+                @media (max-width: 767px) {
+                    .app:has(.report-page) .main,
+                    .app:has(.report-page) .container {
+                        padding-bottom: calc(7.5rem + env(safe-area-inset-bottom, 0px)) !important;
+                    }
+                }
                 @media (max-width: 639px) {
                     .app:has(.report-page) .container {
                         max-width: 100% !important;
@@ -803,103 +908,134 @@ const ReportPage = () => {
                         padding-left: 0 !important;
                         padding-right: 0 !important;
                     }
-                    .report-page .grid > div {
-                        padding: 0.75rem !important;
-                        border-radius: 0.875rem !important;
-                    }
+                }
+                .report-page input[class*="pl-9"],
+                .report-page input[class*="pl-10"] {
+                    padding-left: 2.5rem !important;
                 }
             `}</style>
 
-            {/* Page Header */}
-            <div className="px-0.5 sm:px-0">
-                <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Reports</h1>
-                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-                    Track station revenue, sales velocity, volume trends, and customer purchase patterns.
-                </p>
+            {/* Executive Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 px-0.5 sm:px-0">
+                <div className="flex items-start sm:items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-[#8DB600]/15 border border-[#8DB600]/30 text-[#5f7d00] dark:text-lime-400 flex items-center justify-center shrink-0">
+                        <BarChart3 className="w-5 h-5" />
+                    </div>
+                    <div>
+                        <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white leading-tight">
+                            Reports &amp; Analytics
+                        </h1>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                            Revenue performance, gallon volume trends, and customer retention insights.
+                        </p>
+                    </div>
+                </div>
+
+                <div className="inline-flex items-center gap-2 self-start sm:self-auto px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs text-xs font-bold text-slate-700 dark:text-slate-200">
+                    <Calendar className="w-3.5 h-3.5 text-[#8DB600] shrink-0" />
+                    <span className="truncate">{activeRangeLabel}</span>
+                </div>
             </div>
 
-            {/* Growth KPI Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
-                <SummaryCard
+            {/* Compact 2x2 Mobile / 4-Column Desktop KPI Grid */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+                <ExecutiveKpiCard
                     title="Monthly Sales"
                     isLoading={isMonthlyGrowthLoading}
-                    value={`₱${(monthlyGrowthData?.thisMonthSales || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                    previousValue={`₱${(monthlyGrowthData?.lastMonthSales || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                    previousPeriodRange={monthlyGrowthData?.lastMonthStart ? `(${format(new Date(monthlyGrowthData.lastMonthStart), 'MMM d')} - ${format(new Date(monthlyGrowthData.lastMonthEnd), 'MMM d')})` : undefined}
+                    value={formatCurrency(monthlyGrowthData?.thisMonthSales || 0)}
+                    previousValue={formatCurrency(monthlyGrowthData?.lastMonthSales || 0)}
+                    comparisonRange={monthComparisonRange}
                     percentage={Math.abs(monthlyGrowthData?.salesGrowth || 0)}
-                    isPositive={(monthlyGrowthData?.salesGrowth || 0) >= 0}
-                    isPositiveColor={(monthlyGrowthData?.thisMonthSales || 0) >= (monthlyGrowthData?.lastMonthSales || 0)}
-                    comparisonText={`(${format(monthlyGrowthData?.thisMonthStart || new Date(), 'MMM d')} - ${format(monthlyGrowthData?.thisMonthEnd || new Date(), 'd')}) vs. (${format(monthlyGrowthData?.lastMonthStart || new Date(), 'MMM d')} - ${format(monthlyGrowthData?.lastMonthEnd || new Date(), 'd')})`}
+                    isPositive={(monthlyGrowthData?.thisMonthSales || 0) >= (monthlyGrowthData?.lastMonthSales || 0)}
+                    icon={TrendingUp}
+                    accent="lime"
                 />
-                <SummaryCard
-                    title="Monthly Gallons Sold"
+
+                <ExecutiveKpiCard
+                    title="Monthly Volume"
                     isLoading={isMonthlyGrowthLoading}
                     value={`${(monthlyGrowthData?.thisMonthGallons || 0).toLocaleString()} gal`}
                     previousValue={`${(monthlyGrowthData?.lastMonthGallons || 0).toLocaleString()} gal`}
-                    previousPeriodRange={monthlyGrowthData?.lastMonthStart ? `(${format(new Date(monthlyGrowthData.lastMonthStart), 'MMM d')} - ${format(new Date(monthlyGrowthData.lastMonthEnd), 'MMM d')})` : undefined}
+                    comparisonRange={monthComparisonRange}
                     percentage={Math.abs(monthlyGrowthData?.gallonsGrowth || 0)}
-                    isPositive={(monthlyGrowthData?.gallonsGrowth || 0) >= 0}
-                    isPositiveColor={(monthlyGrowthData?.thisMonthGallons || 0) >= (monthlyGrowthData?.lastMonthGallons || 0)}
-                    comparisonText={`(${format(monthlyGrowthData?.thisMonthStart || new Date(), 'MMM d')} - ${format(monthlyGrowthData?.thisMonthEnd || new Date(), 'd')}) vs. (${format(monthlyGrowthData?.lastMonthStart || new Date(), 'MMM d')} - ${format(monthlyGrowthData?.lastMonthEnd || new Date(), 'd')})`}
+                    isPositive={(monthlyGrowthData?.thisMonthGallons || 0) >= (monthlyGrowthData?.lastMonthGallons || 0)}
+                    icon={Droplets}
+                    accent="cyan"
                 />
-                <SummaryCard
+
+                <ExecutiveKpiCard
                     title="Weekly Sales"
                     isLoading={isWeeklyGrowthLoading}
-                    value={`₱${(weeklyGrowthData?.thisWeekSales || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                    previousValue={`₱${(weeklyGrowthData?.lastWeekSales || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                    previousPeriodRange={weeklyGrowthData?.lastWeekStart ? `(${format(new Date(weeklyGrowthData.lastWeekStart), 'MMM d')} - ${format(new Date(weeklyGrowthData.lastWeekEnd), 'MMM d')})` : undefined}
+                    value={formatCurrency(weeklyGrowthData?.thisWeekSales || 0)}
+                    previousValue={formatCurrency(weeklyGrowthData?.lastWeekSales || 0)}
+                    comparisonRange={weekComparisonRange}
                     percentage={Math.abs(weeklyGrowthData?.salesGrowth || 0)}
-                    isPositive={(weeklyGrowthData?.salesGrowth || 0) >= 0}
-                    isPositiveColor={(weeklyGrowthData?.thisWeekSales || 0) >= (weeklyGrowthData?.lastWeekSales || 0)}
-                    comparisonText={`(${format(weeklyGrowthData?.thisWeekStart || new Date(), 'MMM d')} - ${format(weeklyGrowthData?.thisWeekEnd || new Date(), 'd')}) vs. (${format(weeklyGrowthData?.lastWeekStart || new Date(), 'MMM d')} - ${format(weeklyGrowthData?.lastWeekEnd || new Date(), 'd')})`}
+                    isPositive={(weeklyGrowthData?.thisWeekSales || 0) >= (weeklyGrowthData?.lastWeekSales || 0)}
+                    icon={BarChart3}
+                    accent="emerald"
                 />
-                <SummaryCard
-                    title="Weekly Gallons Sold"
+
+                <ExecutiveKpiCard
+                    title="Weekly Volume"
                     isLoading={isWeeklyGrowthLoading}
                     value={`${(weeklyGrowthData?.thisWeekGallons || 0).toLocaleString()} gal`}
                     previousValue={`${(weeklyGrowthData?.lastWeekGallons || 0).toLocaleString()} gal`}
-                    previousPeriodRange={weeklyGrowthData?.lastWeekStart ? `(${format(new Date(weeklyGrowthData.lastWeekStart), 'MMM d')} - ${format(new Date(weeklyGrowthData.lastWeekEnd), 'MMM d')})` : undefined}
+                    comparisonRange={weekComparisonRange}
                     percentage={Math.abs(weeklyGrowthData?.gallonsGrowth || 0)}
-                    isPositive={(weeklyGrowthData?.gallonsGrowth || 0) >= 0}
-                    isPositiveColor={(weeklyGrowthData?.thisWeekGallons || 0) >= (weeklyGrowthData?.lastWeekGallons || 0)}
-                    comparisonText={`(${format(weeklyGrowthData?.thisWeekStart || new Date(), 'MMM d')} - ${format(weeklyGrowthData?.thisWeekEnd || new Date(), 'd')}) vs. (${format(weeklyGrowthData?.lastWeekStart || new Date(), 'MMM d')} - ${format(weeklyGrowthData?.lastWeekEnd || new Date(), 'd')})`}
+                    isPositive={(weeklyGrowthData?.thisWeekGallons || 0) >= (weeklyGrowthData?.lastWeekGallons || 0)}
+                    icon={Droplets}
+                    accent="blue"
                 />
             </div>
 
-            {/* Modular Tab Switcher */}
-            <div className="flex bg-slate-100 dark:bg-slate-800/90 p-1 rounded-xl sm:rounded-2xl w-full sm:w-auto border border-slate-200/80 dark:border-slate-700/80 shadow-2xs">
+            {/* Segmented Report Domain Switcher */}
+            <div className="flex bg-white dark:bg-slate-900 p-1 rounded-2xl w-full sm:w-max border border-slate-200 dark:border-slate-800 shadow-2xs">
                 <button
                     type="button"
                     onClick={() => handleTabChange('sales')}
-                    className={`flex-1 sm:flex-initial px-4 py-2 text-xs font-bold rounded-lg sm:rounded-xl transition-all cursor-pointer ${
+                    className={`flex-1 sm:flex-initial px-3 sm:px-4 py-2 text-xs font-extrabold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                         activeTab === 'sales'
                             ? 'bg-[#8DB600] text-white shadow-xs'
                             : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
                     }`}
                 >
-                    Sales Report
+                    <Receipt className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate">Sales Report</span>
+                    <span
+                        className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-black ${
+                            activeTab === 'sales'
+                                ? 'bg-black/20 text-white'
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+                        }`}
+                    >
+                        {totalSalesCount}
+                    </span>
                 </button>
+
                 <button
                     type="button"
                     onClick={() => handleTabChange('frequent')}
-                    className={`flex-1 sm:flex-initial px-4 py-2 text-xs font-bold rounded-lg sm:rounded-xl transition-all cursor-pointer ${
+                    className={`flex-1 sm:flex-initial px-3 sm:px-4 py-2 text-xs font-extrabold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                         activeTab === 'frequent'
                             ? 'bg-[#8DB600] text-white shadow-xs'
                             : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
                     }`}
                 >
-                    Frequent Orders
+                    <Repeat className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate">Frequent Orders</span>
                 </button>
+
                 <button
                     type="button"
                     onClick={() => handleTabChange('inactive')}
-                    className={`flex-1 sm:flex-initial px-4 py-2 text-xs font-bold rounded-lg sm:rounded-xl transition-all cursor-pointer ${
+                    className={`flex-1 sm:flex-initial px-3 sm:px-4 py-2 text-xs font-extrabold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                         activeTab === 'inactive'
                             ? 'bg-[#8DB600] text-white shadow-xs'
                             : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
                     }`}
                 >
-                    Dropped Off
+                    <UserX className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate">Dropped Off</span>
                 </button>
             </div>
 
