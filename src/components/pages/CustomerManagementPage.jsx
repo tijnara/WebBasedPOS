@@ -506,22 +506,27 @@ export default function CustomerManagementPage() {
 
             {/* Search & Filter Bar */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-3 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
-                <div className="relative w-full sm:max-w-md">
-                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <div className="relative flex items-center w-full sm:max-w-md">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none z-10" />
                     <Input
                         ref={searchInputRef}
+                        type="text"
                         placeholder="Search customer by name, contact, or address... (/)"
                         value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
+                        onChange={(e) => setSearchTerm(e.target.value)}
                         onKeyDown={preventEnterReload}
-                        className="w-full pl-9 pr-8 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 text-xs sm:text-sm h-9 sm:h-10 rounded-xl focus:border-[#8DB600] focus:ring-[#8DB600]"
+                        style={{
+                            paddingLeft: '2.5rem',
+                            paddingRight: searchTerm ? '2.25rem' : '0.875rem'
+                        }}
+                        className="w-full h-9 sm:h-10 !pl-10 text-xs sm:text-sm rounded-xl bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500"
                     />
                     {searchTerm && (
                         <button
                             type="button"
                             onClick={() => setSearchTerm('')}
                             aria-label="Clear search"
-                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-0.5 rounded-full cursor-pointer"
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 z-10 p-1 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer"
                         >
                             <X className="w-3.5 h-3.5" />
                         </button>
