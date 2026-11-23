@@ -2177,3 +2177,32 @@ aside,
     background-color: #334155 !important; /* slate-700 */
     color: #ffffff !important;
 }
+
+/* Prevent mobile navbar logo from expanding on PWA / browser resume without clipping NotificationBell */
+.navbar {
+    transition: background-color 0.2s ease !important;
+}
+
+.navbar .brand {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    max-width: 32px !important;
+    max-height: 32px !important;
+    overflow: hidden !important;
+    flex-shrink: 0 !important;
+}
+
+.navbar .brand img,
+.navbar .brand svg {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    max-width: 32px !important;
+    max-height: 32px !important;
+    object-fit: contain !important;
+    transform: none !important;
+    transition: none !important;
+}

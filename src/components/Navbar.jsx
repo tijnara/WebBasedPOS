@@ -85,6 +85,28 @@ const navCategoriesSource = [
     },
 ];
 
+const MOBILE_LOGO_STYLE = {
+    width: '32px',
+    height: '32px',
+    minWidth: '32px',
+    minHeight: '32px',
+    maxWidth: '32px',
+    maxHeight: '32px',
+    transform: 'none',
+    transition: 'none'
+};
+
+const DESKTOP_LOGO_STYLE = {
+    width: '36px',
+    height: '36px',
+    minWidth: '36px',
+    minHeight: '36px',
+    maxWidth: '36px',
+    maxHeight: '36px',
+    transform: 'none',
+    transition: 'none'
+};
+
 export default function Navbar() {
     const router = useRouter();
     const queryClient = useQueryClient();
@@ -599,7 +621,10 @@ export default function Navbar() {
     return (
         <>
             {/* MOBILE HEADER BAR */}
-            <div className="navbar md:hidden flex items-center justify-between gap-2 px-3 py-2 min-h-[52px] bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 z-30 sticky top-0 shadow-2xs overflow-visible">
+            <div
+                style={{ transition: 'background-color 0.2s ease' }}
+                className="navbar md:hidden flex items-center justify-between gap-2 px-3 py-2 h-14 min-h-[56px] max-h-14 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 z-30 sticky top-0 shadow-2xs overflow-visible"
+            >
                 <div className="flex items-center gap-2 min-w-0 shrink-0">
                     <Button
                         type="button"
@@ -613,7 +638,8 @@ export default function Navbar() {
                     </Button>
 
                     <div
-                        className="brand flex items-center justify-center w-8 h-8 shrink-0 cursor-pointer"
+                        style={MOBILE_LOGO_STYLE}
+                        className="brand flex items-center justify-center w-8 h-8 shrink-0 overflow-hidden cursor-pointer select-none"
                         onClick={() => handleNavigate('/pos', 'Sales & Operations', false)}
                     >
                         <img
@@ -621,6 +647,7 @@ export default function Navbar() {
                             alt="Seaside Logo"
                             width={32}
                             height={32}
+                            style={MOBILE_LOGO_STYLE}
                             className="w-8 h-8 max-w-[32px] max-h-[32px] object-contain shrink-0 block"
                         />
                     </div>
@@ -736,6 +763,7 @@ export default function Navbar() {
                         alt="Seaside Logo"
                         width={36}
                         height={36}
+                        style={DESKTOP_LOGO_STYLE}
                         className="w-9 h-9 max-w-[36px] max-h-[36px] object-contain shrink-0 block"
                     />
                     <span className="font-black text-lg text-green-800 dark:text-lime-400 ml-3 tracking-tight">Seaside</span>
