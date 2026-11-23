@@ -7,6 +7,7 @@ import '../components/pages/POSPage.css';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useStore } from '../store/useStore';
 import { useRouter } from 'next/router';
+import { supabase } from '../lib/supabaseClient';
 import Navbar from '../components/Navbar';
 import TabBar from '../components/TabBar';
 import OfflineScreen from '../components/OfflineScreen';
@@ -29,7 +30,6 @@ const titleMap = {
     '/report': 'Reports | Seaside WRS',
     '/user-management': 'User Management | Seaside WRS',
     '/product-management': 'Product Management | Seaside WRS',
-    '/3d-icons': '3D Icons & Visuals | Seaside WRS',
     '/customer-management': 'Customer Management | Seaside WRS',
     '/gallery-management': 'Gallery Management | Seaside WRS',
     '/article-management': 'Article Management | Seaside WRS',
@@ -47,6 +47,17 @@ const titleMap = {
     '/activity-logs': 'Activity Logs | Seaside WRS',
     '/refill-game': 'Refill Simulator Data | Seaside WRS',
 };
+
+const NON_TRANSACTION_QUERY_KEYS = new Set([
+    'notes',
+    'business-settings',
+    'maintenance-alerts',
+    'pending-approvals-count',
+    'recent-contact-messages-count',
+    'activity-logs',
+    'refill-game',
+    'refill-leaderboard'
+]);
 
 const RELOAD_GUARD_KEY = 'seaside_last_auto_reload_ts';
 const LAST_ACTIVE_STORAGE_KEY = 'seaside_last_active_at';
@@ -268,35 +279,103 @@ export default function App({ Component, pageProps }) {
     const probeInFlightRef = useRef(false);
     const isOfflineRef = useRef(false);
     const reconnectTimerRef = useRef(null);
+    const txSyncTimerRef = useRef(null);
 
-    const [queryClient] = useState(() => new QueryClient({
-        defaultOptions: {
-            queries: {
-                gcTime: 1000 * 60 * 60 * 24,
-                staleTime: 0,
-                refetchOnWindowFocus: false,
-                refetchOnReconnect: true,
-                refetchOnMount: 'always',
-                retry: false,
-            },
-        },
-        mutationCache: new MutationCache({
-            onMutate: async () => {
-                const { user: currentUser, addToast } = useStore.getState();
-
-                if (currentUser?.isDemo) {
-                    setTimeout(() => {
-                        addToast({
-                            title: 'Demo Mode Active',
-                            description: 'Adding, editing, and deleting is disabled in this environment.',
-                            variant: 'warning'
-                        });
-                    }, 0);
-                    return Promise.reject(new Error('Action blocked: Demo Mode is strictly read-only.'));
+    const scheduleTransactionSync = useCallback((client) => {
+        if (!client) return;
+        if (txSyncTimerRef.current) {
+            clearTimeout(txSyncTimerRef.current);
+        }
+        txSyncTimerRef.current = setTimeout(() => {
+            txSyncTimerRef.current = null;
+            client.invalidateQueries({
+                refetchType: 'active',
+                predicate: (query) => {
+                    const rootKey = Array.isArray(query.queryKey) ? String(query.queryKey[0]) : '';
+                    return !NON_TRANSACTION_QUERY_KEYS.has(rootKey);
                 }
+            });
+        }, 600);
+    }, []);
+
+    const [queryClient] = useState(() => {
+        const client = new QueryClient({
+            defaultOptions: {
+                queries: {
+                    gcTime: 1000 * 60 * 60 * 24,
+                    staleTime: 1000 * 60 * 10, // Keep pages cached for 10 mins so switching routes is instant
+                    refetchOnWindowFocus: false,
+                    refetchOnReconnect: false,
+                    refetchOnMount: false, // Do not re-fetch on mount unless invalidated by a new transaction
+                    retry: false,
+                },
+            },
+            mutationCache: new MutationCache({
+                onMutate: async () => {
+                    const { user: currentUser, addToast } = useStore.getState();
+
+                    if (currentUser?.isDemo) {
+                        setTimeout(() => {
+                            addToast({
+                                title: 'Demo Mode Active',
+                                description: 'Adding, editing, and deleting is disabled in this environment.',
+                                variant: 'warning'
+                            });
+                        }, 0);
+                        return Promise.reject(new Error('Action blocked: Demo Mode is strictly read-only.'));
+                    }
+                },
+                onSuccess: (_data, _variables, _context, mutation) => {
+                    const mKey = Array.isArray(mutation?.options?.mutationKey)
+                        ? String(mutation.options.mutationKey[0])
+                        : '';
+                    if (mKey.includes('activity') || mKey.includes('refill')) return;
+
+                    // Mark transaction/inventory queries stale only when a transaction mutation succeeds
+                    client.invalidateQueries({
+                        refetchType: 'active',
+                        predicate: (query) => {
+                            const rootKey = Array.isArray(query.queryKey) ? String(query.queryKey[0]) : '';
+                            return !NON_TRANSACTION_QUERY_KEYS.has(rootKey);
+                        }
+                    });
+                }
+            })
+        });
+        return client;
+    });
+
+    // Listen for new transactions in Supabase Realtime (sales, expenses, debts, products, shifts)
+    // Only invalidates data when an actual transaction occurs; zero polling/reloading when idle
+    useEffect(() => {
+        if (!user?.id || user?.isDemo) return;
+
+        const txChannel = supabase
+            .channel(`rt:transactions-${user.id}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'sales' }, () => {
+                scheduleTransactionSync(queryClient);
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses' }, () => {
+                scheduleTransactionSync(queryClient);
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'debts' }, () => {
+                scheduleTransactionSync(queryClient);
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => {
+                scheduleTransactionSync(queryClient);
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'shifts' }, () => {
+                scheduleTransactionSync(queryClient);
+            })
+            .subscribe();
+
+        return () => {
+            if (txSyncTimerRef.current) {
+                clearTimeout(txSyncTimerRef.current);
             }
-        })
-    }));
+            supabase.removeChannel(txChannel);
+        };
+    }, [user?.id, user?.isDemo, queryClient, scheduleTransactionSync]);
 
     const enterOfflineState = useCallback(() => {
         if (reconnectTimerRef.current) {
@@ -308,10 +387,7 @@ export default function App({ Component, pageProps }) {
         setIsOffline(true);
     }, []);
 
-    const triggerOnlineCelebration = useCallback(async () => {
-        queryClient.invalidateQueries({ refetchType: 'all' });
-        queryClient.refetchQueries({ type: 'active' });
-
+    const triggerOnlineCelebration = useCallback(() => {
         if (!isOfflineRef.current) {
             setIsOffline(false);
             setIsReconnected(false);
@@ -327,7 +403,7 @@ export default function App({ Component, pageProps }) {
             setIsReconnected(false);
             setIsOffline(false);
         }, 1450);
-    }, [queryClient]);
+    }, []);
 
     useEffect(() => {
         return () => {
@@ -356,7 +432,7 @@ export default function App({ Component, pageProps }) {
                 cache: 'no-store'
             });
 
-            await triggerOnlineCelebration();
+            triggerOnlineCelebration();
             return true;
         } catch {
             enterOfflineState();
@@ -366,6 +442,7 @@ export default function App({ Component, pageProps }) {
         }
     }, [enterOfflineState, triggerOnlineCelebration]);
 
+    // Global Offline / Disconnected Network Listener
     useEffect(() => {
         if (typeof window === 'undefined') return;
 
@@ -426,21 +503,23 @@ export default function App({ Component, pageProps }) {
         };
     }, [enterOfflineState, triggerOnlineCelebration, verifyInternetConnection]);
 
+    // Poll every 4s only while offline so reconnection triggers automatically
     useEffect(() => {
         if (!isOffline || isReconnected) return;
         const interval = setInterval(() => {
             verifyInternetConnection();
-        }, 3500);
+        }, 4000);
         return () => clearInterval(interval);
     }, [isOffline, isReconnected, verifyInternetConnection]);
 
+    // Track active usage & redirect to login page (/) only if app was closed/inactive for > 30 mins
     useEffect(() => {
         if (typeof window === 'undefined') return;
 
         const recordActivityThrottled = () => {
             if (!useStore.getState().user) return;
             const now = Date.now();
-            if (now - lastWriteThrottleRef.current > 15000) {
+            if (now - lastWriteThrottleRef.current > 30000) {
                 lastWriteThrottleRef.current = now;
                 writeLastActiveTime(now);
             }
@@ -465,7 +544,7 @@ export default function App({ Component, pageProps }) {
             }
         };
 
-        const handleWakeUp = async (persisted = false) => {
+        const handleWakeUp = async () => {
             const now = Date.now();
             const storedLastActive = readLastActiveTime();
             const idleDuration = storedLastActive > 0 ? now - storedLastActive : 0;
@@ -490,29 +569,6 @@ export default function App({ Component, pageProps }) {
             if (useStore.getState().user) {
                 writeLastActiveTime(now);
             }
-
-            if (persisted || idleDuration > 5 * 60 * 1000) {
-                const currentBuildId = window.__NEXT_DATA__?.buildId;
-                const currentPath = router.pathname === '/' ? '/index' : router.pathname;
-
-                if (currentBuildId) {
-                    try {
-                        const res = await fetch(`/_next/data/${currentBuildId}${currentPath}.json`, {
-                            method: 'HEAD',
-                            cache: 'no-store'
-                        });
-                        if (res.status === 404) {
-                            safeHardNavigate('/');
-                            return;
-                        }
-                    } catch {
-                        // Ignore transient network hiccups
-                    }
-                }
-
-                queryClient.invalidateQueries({ refetchType: 'all' });
-                queryClient.refetchQueries({ type: 'active' });
-            }
         };
 
         const onVisibilityChange = () => {
@@ -521,7 +577,7 @@ export default function App({ Component, pageProps }) {
                     writeLastActiveTime(Date.now());
                 }
             } else if (document.visibilityState === 'visible') {
-                handleWakeUp(false);
+                handleWakeUp();
             }
         };
 
@@ -531,19 +587,12 @@ export default function App({ Component, pageProps }) {
             }
         };
 
-        const onPageShow = (e) => {
-            if (e.persisted) {
-                handleWakeUp(true);
-            }
-        };
-
         window.addEventListener('pointerdown', recordActivityThrottled, { passive: true });
         window.addEventListener('keydown', recordActivityThrottled, { passive: true });
         window.addEventListener('error', handleChunkOrAssetError, true);
         window.addEventListener('unhandledrejection', handleChunkOrAssetError);
         document.addEventListener('visibilitychange', onVisibilityChange);
         window.addEventListener('pagehide', onPageHide);
-        window.addEventListener('pageshow', onPageShow);
 
         return () => {
             window.removeEventListener('pointerdown', recordActivityThrottled);
@@ -552,9 +601,8 @@ export default function App({ Component, pageProps }) {
             window.removeEventListener('unhandledrejection', handleChunkOrAssetError);
             document.removeEventListener('visibilitychange', onVisibilityChange);
             window.removeEventListener('pagehide', onPageHide);
-            window.removeEventListener('pageshow', onPageShow);
         };
-    }, [router.pathname, queryClient, logout, enterOfflineState]);
+    }, [router.pathname, logout, enterOfflineState]);
 
     useEffect(() => {
         const hasWebGL = isWebGLAvailable();
@@ -586,20 +634,10 @@ export default function App({ Component, pageProps }) {
             }
         };
 
-        const handleRouteChangeDone = async (url) => {
+        const handleRouteChangeDone = () => {
             setIsRouteLoading(false);
             if (useStore.getState().user) {
                 writeLastActiveTime(Date.now());
-            }
-            if (url) {
-                const cleanPath = url.split('?')[0].split('#')[0];
-                await queryClient.invalidateQueries({ refetchType: 'all' });
-                queryClient.refetchQueries({ type: 'active' });
-                if (typeof window !== 'undefined') {
-                    window.dispatchEvent(
-                        new CustomEvent('pos:route-refreshed', { detail: { path: cleanPath } })
-                    );
-                }
             }
         };
 
@@ -623,7 +661,7 @@ export default function App({ Component, pageProps }) {
             router.events.off('routeChangeComplete', handleRouteChangeDone);
             router.events.off('routeChangeError', handleRouteChangeError);
         };
-    }, [router, queryClient, enterOfflineState]);
+    }, [router, enterOfflineState]);
 
     useEffect(() => {
         if (darkMode) {

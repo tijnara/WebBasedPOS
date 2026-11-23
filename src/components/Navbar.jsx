@@ -483,19 +483,11 @@ export default function Navbar() {
         await handleLogout();
     };
 
-    const handleNavigateAndRefresh = async (path, category, isMessages) => {
+    // Instant SPA navigation without redundant query invalidation
+    const handleNavigate = (path, category, isMessages) => {
         if (category) setOpenCategories(new Set([category]));
         if (isMessages) markMessagesAsSeen();
         setIsMenuOpen(false);
-
-        await queryClient.invalidateQueries({ refetchType: 'all' });
-        queryClient.refetchQueries({ type: 'active' });
-
-        if (typeof window !== 'undefined') {
-            window.dispatchEvent(
-                new CustomEvent('pos:route-refreshed', { detail: { path } })
-            );
-        }
 
         if (router.pathname !== path) {
             router.push(path);
@@ -553,7 +545,7 @@ export default function Navbar() {
                                             : 'text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold'
                                     }`}
                                     style={isActive ? { background: 'linear-gradient(90deg, rgba(106,191,69,0.95) 0%, rgba(78,158,45,0.9) 100%)' } : {}}
-                                    onClick={() => handleNavigateAndRefresh(link.path, category, isMessages)}
+                                    onClick={() => handleNavigate(link.path, category, isMessages)}
                                 >
                                     <div className="flex items-center justify-between w-full min-w-0">
                                         <div className="flex items-center gap-3 min-w-0">
@@ -622,7 +614,7 @@ export default function Navbar() {
 
                     <div
                         className="brand flex items-center justify-center w-8 h-8 shrink-0 cursor-pointer"
-                        onClick={() => handleNavigateAndRefresh('/pos', 'Sales & Operations', false)}
+                        onClick={() => handleNavigate('/pos', 'Sales & Operations', false)}
                     >
                         <img
                             src="/seaside.png"

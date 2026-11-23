@@ -1,7 +1,6 @@
 // src/components/TabBar.jsx
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/router';
-import { useQueryClient } from '@tanstack/react-query';
 import { useStore } from '../store/useStore';
 import {
     CartIcon,
@@ -14,7 +13,6 @@ const PREV_TAB_STORAGE_KEY = 'seaside_mobile_tab_prev_idx';
 
 export default function TabBar() {
     const router = useRouter();
-    const queryClient = useQueryClient();
     const user = useStore((state) => state.user);
     const darkMode = useStore((state) => state.darkMode);
     const [mounted, setMounted] = useState(false);
@@ -85,7 +83,6 @@ export default function TabBar() {
         ];
     }, [isAdmin, isDemo]);
 
-    // Sync with Navbar mobile slide-over drawer state and Next.js route events
     useEffect(() => {
         const handleDrawerState = (e) => {
             setDrawerOpen(Boolean(e?.detail?.open));
@@ -106,7 +103,6 @@ export default function TabBar() {
         };
     }, [router.events]);
 
-    // Active tab index (0..4); secondary pages highlight "More" (index 4)
     const activeIndex = useMemo(() => {
         if (drawerOpen) return 4;
         const currentPath = (pendingPath || router.pathname || '').toLowerCase();
@@ -116,7 +112,6 @@ export default function TabBar() {
         return foundIdx !== -1 ? foundIdx : 4;
     }, [drawerOpen, pendingPath, router.pathname, tabs]);
 
-    // 3D Rolling Glass Sphere physics refs
     const sphereWrapRef = useRef(null);
     const rollingEmblemRef = useRef(null);
     const spotlightRef = useRef(null);
@@ -227,26 +222,15 @@ export default function TabBar() {
         }
     };
 
-    const handleTabNavigate = async (tab) => {
+    // Instant mobile tab navigation without blocking query refetches
+    const handleTabNavigate = (tab) => {
         if (tab.id === 'more') {
             handleOpenMore();
             return;
         }
 
         setDrawerOpen(false);
-        if (!tab.path) return;
-
-        // Force fresh data on target page (Report, Expenses, Dashboard, POS, History)
-        await queryClient.invalidateQueries({ refetchType: 'all' });
-        queryClient.refetchQueries({ type: 'active' });
-
-        if (typeof window !== 'undefined') {
-            window.dispatchEvent(
-                new CustomEvent('pos:route-refreshed', { detail: { path: tab.path } })
-            );
-        }
-
-        if (router.pathname === tab.path) return;
+        if (!tab.path || router.pathname === tab.path) return;
 
         try {
             sessionStorage.setItem(PREV_TAB_STORAGE_KEY, String(activeIndex));
@@ -338,7 +322,7 @@ export default function TabBar() {
                                 : 'inset 0 1.5px 3.5px rgba(15, 23, 42, 0.2), 0 1px 0 rgba(255, 255, 255, 0.95)'
                         }}
                     >
-                        {/* 3D Glass Sphere Wrapper (Translates laterally along the track) */}
+                        {/* 3D Glass Sphere Wrapper */}
                         <div
                             ref={sphereWrapRef}
                             aria-hidden="true"
@@ -351,7 +335,7 @@ export default function TabBar() {
                                     : '0 4px 10px rgba(15, 23, 42, 0.32), 0 0 12px rgba(141, 182, 0, 0.35)'
                             }}
                         >
-                            {/* 1. Spherical Core + Visibly Rolling Seaside Emblem (Lands Upright at 360° Multiples) */}
+                            {/* 1. Spherical Core + Visibly Rolling Seaside Emblem */}
                             <div
                                 className="absolute inset-0 w-full h-full rounded-full overflow-hidden flex items-center justify-center border border-white/60 dark:border-lime-400/45"
                                 style={{
