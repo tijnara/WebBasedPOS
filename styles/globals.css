@@ -100,6 +100,10 @@ html, body {
     color: var(--text);
     border: 1px solid var(--border);
 }
+.input[class*="pl-9"],
+.input[class*="pl-10"] {
+    padding-left: 2.5rem !important;
+}
 .dark .input, .dark select.input {
     background-color: #020617;
     color: white;

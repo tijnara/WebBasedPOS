@@ -139,13 +139,19 @@ export default function DashboardPage() {
     const { data: monthlyGrowthData, isLoading: isMonthlyGrowthLoading } = useMonthlyGrowth();
 
     return (
-        <div className="dashboard-page flex-1 w-full min-h-screen bg-transparent font-sans pb-12 transition-colors duration-300">
+        <div className="dashboard-page flex-1 w-full min-h-screen bg-transparent font-sans pb-32 md:pb-12 transition-colors duration-300">
             <Head>
                 <title>Dashboard | Seaside POS</title>
             </Head>
 
-            {/* Match POS & Expenses edge-to-edge .container fit on mobile (< 640px) */}
+            {/* Ensure full mobile bottom dock clearance (< 768px) & edge-to-edge fit (< 640px) */}
             <style jsx global>{`
+                @media (max-width: 767px) {
+                    .app:has(.dashboard-page) .main,
+                    .app:has(.dashboard-page) .container {
+                        padding-bottom: calc(7.5rem + env(safe-area-inset-bottom, 0px)) !important;
+                    }
+                }
                 @media (max-width: 639px) {
                     .app:has(.dashboard-page) .container {
                         max-width: 100% !important;
