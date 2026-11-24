@@ -291,7 +291,6 @@ export default function SeasideNewLanding() {
                 isOpen={forgotOpen}
                 onClose={() => setForgotOpen(false)}
                 initialEmail={forgotInitialEmail}
-                defaultReceiver="aranjitarchita@gmail.com"
             />
 
             <footer className="relative z-20 py-4 px-6 text-center text-[11px] sm:text-xs font-medium text-slate-600 dark:text-slate-400 border-t border-slate-200/70 dark:border-white/10 bg-white/50 dark:bg-slate-950/50 backdrop-blur-md transition-colors">

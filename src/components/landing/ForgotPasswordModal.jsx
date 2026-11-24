@@ -1,17 +1,37 @@
 // src/components/landing/ForgotPasswordModal.jsx
 import React, { useState, useEffect } from 'react';
 
-const DEFAULT_ADMIN_RECEIVER = 'aranjitarchita@gmail.com'; // Admin user id = 1
+// Normalize pasted or typed input to up to 10 numeric digits (starting after +63)
+function sanitizePhLocalDigits(rawValue) {
+    let digits = String(rawValue || '').replace(/\D/g, '');
+
+    // If user pasted full +639XXXXXXXXX or 639XXXXXXXXX, strip leading 63
+    if (digits.startsWith('63') && digits.length > 10) {
+        digits = digits.slice(2);
+    }
+    // If user typed/pasted 09XXXXXXXXX, strip leading 0
+    if (digits.startsWith('0')) {
+        digits = digits.slice(1);
+    }
+
+    return digits.slice(0, 10);
+}
+
+function isValidPhMobileLocal(digits) {
+    return /^9\d{9}$/.test(digits);
+}
 
 export default function ForgotPasswordModal({
                                                 isOpen,
                                                 onClose,
-                                                initialEmail = '',
-                                                defaultReceiver = DEFAULT_ADMIN_RECEIVER
+                                                initialEmail = ''
                                             }) {
     const [requesterEmail, setRequesterEmail] = useState(initialEmail);
-    const [recipientEmail, setRecipientEmail] = useState(defaultReceiver);
-    const [isEditingReceiver, setIsEditingReceiver] = useState(false);
+    const [phoneDigits, setPhoneDigits] = useState(''); // 10 digits after +63, e.g. 9171234567
+    const [receiverInfo, setReceiverInfo] = useState({
+        name: 'Aranjit Archita',
+        email: 'aranjitarchita@gmail.com'
+    });
     const [notes, setNotes] = useState('');
     const [loading, setLoading] = useState(false);
     const [status, setStatus] = useState(null);
@@ -22,17 +42,84 @@ export default function ForgotPasswordModal({
         }
     }, [initialEmail]);
 
+    // Fetch current system-configured Admin receiver when modal opens
     useEffect(() => {
-        if (defaultReceiver) {
-            setRecipientEmail(defaultReceiver);
-        }
-    }, [defaultReceiver]);
+        if (!isOpen) return;
+        let active = true;
+
+        fetch('/api/forgot-password')
+            .then((r) => r.json())
+            .then((data) => {
+                if (active && data?.ok && data.receiver?.email) {
+                    setReceiverInfo({
+                        name: data.receiver.name || 'Administrator',
+                        email: data.receiver.email
+                    });
+                }
+            })
+            .catch(() => {});
+
+        return () => {
+            active = false;
+        };
+    }, [isOpen]);
 
     if (!isOpen) return null;
+
+    const isPhoneValid = isValidPhMobileLocal(phoneDigits);
+    const fullPhPhone = `+63${phoneDigits}`;
+
+    const handlePhoneChange = (e) => {
+        const cleaned = sanitizePhLocalDigits(e.target.value);
+        setPhoneDigits(cleaned);
+        if (status?.type === 'error') {
+            setStatus(null);
+        }
+    };
+
+    const handlePhoneKeyDown = (e) => {
+        // Allow navigation, backspace, delete, tab, copy/paste shortcuts
+        if (
+            ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key) ||
+            e.ctrlKey ||
+            e.metaKey
+        ) {
+            return;
+        }
+        // Block any non-digit key press
+        if (!/^\d$/.test(e.key)) {
+            e.preventDefault();
+        }
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setStatus(null);
+
+        if (!requesterEmail.trim()) {
+            setStatus({
+                type: 'error',
+                text: 'Please enter your account email address.'
+            });
+            return;
+        }
+
+        if (!phoneDigits) {
+            setStatus({
+                type: 'error',
+                text: 'Phone number is required and cannot be empty.'
+            });
+            return;
+        }
+
+        if (!isPhoneValid) {
+            setStatus({
+                type: 'error',
+                text: 'Please enter a valid 10-digit Philippine mobile number starting with 9 (e.g., +639171234567).'
+            });
+            return;
+        }
+
         setLoading(true);
 
         try {
@@ -40,8 +127,8 @@ export default function ForgotPasswordModal({
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    requesterEmail,
-                    recipientEmailOverride: recipientEmail,
+                    requesterEmail: requesterEmail.trim(),
+                    requesterPhone: fullPhPhone,
                     notes
                 })
             });
@@ -60,6 +147,7 @@ export default function ForgotPasswordModal({
                 type: 'success',
                 text: data.message
             });
+            setPhoneDigits('');
             setNotes('');
         } catch (err) {
             setStatus({
@@ -73,8 +161,8 @@ export default function ForgotPasswordModal({
 
     const handleClose = () => {
         setStatus(null);
+        setPhoneDigits('');
         setNotes('');
-        setIsEditingReceiver(false);
         onClose?.();
     };
 
@@ -85,7 +173,7 @@ export default function ForgotPasswordModal({
                     <div>
                         <h2 className="text-lg font-extrabold tracking-tight">Forgot Password</h2>
                         <p className="text-xs text-slate-500 dark:text-slate-400">
-                            Sends directly to Contact Messages & Admin (ID #1).
+                            Sends your password reset request to the assigned System Administrator.
                         </p>
                     </div>
                     <button
@@ -97,36 +185,15 @@ export default function ForgotPasswordModal({
                     </button>
                 </div>
 
-                {/* Editable Admin Receiver */}
+                {/* Read-Only System Receiver Display */}
                 <div className="mb-4 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200/80 dark:border-white/10">
-                    <div className="flex items-center justify-between gap-2">
-                        <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                            Request Receiver (Admin #1)
-                        </span>
-                        <button
-                            type="button"
-                            onClick={() => setIsEditingReceiver((prev) => !prev)}
-                            className="text-[11px] font-bold text-[#0284c7] dark:text-sky-400 hover:underline cursor-pointer"
-                        >
-                            {isEditingReceiver ? 'Done' : 'Change Receiver'}
-                        </button>
-                    </div>
-
-                    {isEditingReceiver ? (
-                        <input
-                            type="email"
-                            required
-                            value={recipientEmail}
-                            onChange={(e) => setRecipientEmail(e.target.value)}
-                            placeholder="aranjitarchita@gmail.com"
-                            className="mt-2 w-full px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-white/15 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#8DB600]"
-                        />
-                    ) : (
-                        <p className="mt-1 text-xs font-bold text-slate-700 dark:text-slate-200">
-                            Aranjit Archita —{' '}
-                            <span className="text-[#0284c7] dark:text-sky-400">{recipientEmail}</span>
-                        </p>
-                    )}
+                    <span className="block text-[10.5px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                        Assigned Admin Receiver
+                    </span>
+                    <p className="mt-1 text-xs font-bold text-slate-700 dark:text-slate-200">
+                        {receiverInfo.name} —{' '}
+                        <span className="text-[#0284c7] dark:text-sky-400">{receiverInfo.email}</span>
+                    </p>
                 </div>
 
                 {status && (
@@ -141,10 +208,10 @@ export default function ForgotPasswordModal({
                     </div>
                 )}
 
-                <form onSubmit={handleSubmit} className="space-y-3.5">
+                <form onSubmit={handleSubmit} className="space-y-3.5" noValidate>
                     <div>
                         <label className="block text-xs font-bold uppercase mb-1">
-                            Your Account Email
+                            Your Account Email <span className="text-rose-500">*</span>
                         </label>
                         <input
                             type="email"
@@ -154,6 +221,40 @@ export default function ForgotPasswordModal({
                             placeholder="staff@seaside.com"
                             className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-[#8DB600]"
                         />
+                    </div>
+
+                    {/* Required Philippine Phone Number (+63) */}
+                    <div>
+                        <div className="flex items-center justify-between mb-1">
+                            <label className="block text-xs font-bold uppercase">
+                                Phone Number <span className="text-rose-500">*</span>
+                            </label>
+                            <span className="text-[10.5px] font-semibold text-slate-400 dark:text-slate-500">
+                                Format: +639XXXXXXXXX
+                            </span>
+                        </div>
+                        <div className="flex items-center rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-white/10 focus-within:ring-2 focus-within:ring-[#8DB600] overflow-hidden">
+                            <span className="px-3.5 py-2.5 text-sm font-extrabold text-slate-700 dark:text-slate-200 bg-slate-200/70 dark:bg-slate-700/70 border-r border-slate-300 dark:border-white/10 select-none">
+                                +63
+                            </span>
+                            <input
+                                type="tel"
+                                inputMode="numeric"
+                                pattern="9[0-9]{9}"
+                                maxLength={10}
+                                required
+                                value={phoneDigits}
+                                onChange={handlePhoneChange}
+                                onKeyDown={handlePhoneKeyDown}
+                                placeholder="9171234567"
+                                className="w-full px-3 py-2.5 bg-transparent text-sm font-medium tracking-wide focus:outline-none"
+                            />
+                        </div>
+                        {phoneDigits.length > 0 && !isPhoneValid && (
+                            <p className="mt-1 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
+                                Enter 10 digits starting with 9 ({phoneDigits.length}/10 digits).
+                            </p>
+                        )}
                     </div>
 
                     <div>
@@ -171,8 +272,8 @@ export default function ForgotPasswordModal({
 
                     <button
                         type="submit"
-                        disabled={loading}
-                        className="w-full py-2.5 rounded-xl bg-[#8DB600] hover:bg-lime-600 text-white text-sm font-extrabold transition cursor-pointer disabled:opacity-60"
+                        disabled={loading || !requesterEmail.trim() || !isPhoneValid}
+                        className="w-full py-2.5 rounded-xl bg-[#8DB600] hover:bg-lime-600 text-white text-sm font-extrabold transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {loading ? 'Sending Request...' : 'Send Reset Request'}
                     </button>

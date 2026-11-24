@@ -12,6 +12,7 @@ import {
 } from '../ui';
 import Checkbox from '../ui/Checkbox';
 import Pagination from '../Pagination';
+import ForgotReceiverSettingsCard from '../admin/ForgotReceiverSettingsCard';
 
 import {
     useUsers,
@@ -530,6 +531,9 @@ export default function UserManagementPage() {
                     </div>
                 </Link>
             </div>
+
+            {/* Admin-Only Forgot Password Receiver Configuration */}
+            <ForgotReceiverSettingsCard canManageUsers={canManageUsers} />
 
             {/* Filter / Search Bar with Role Chips */}
             <div className="p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-3 transition-colors">
