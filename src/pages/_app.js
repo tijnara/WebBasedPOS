@@ -78,20 +78,19 @@ const WaterRippleLoader = ({ text = "Loading..." }) => {
                 }
             `}</style>
             <div className="relative w-20 h-20 flex items-center justify-center">
-                {/* Expanding Outer Ring (Blue) */}
                 <div
                     className="absolute inset-0 rounded-full border-sky-400 opacity-0"
                     style={{ animation: 'water-ripple 1.5s cubic-bezier(0.1, 0.8, 0.3, 1) infinite' }}
                 />
-                {/* Expanding Inner Ring (Seaside Green) */}
                 <div
                     className="absolute inset-0 rounded-full border-[#8DB600] opacity-0"
                     style={{ animation: 'water-ripple 1.5s cubic-bezier(0.1, 0.8, 0.3, 1) infinite 0.4s' }}
                 />
-                {/* Center Brand Identity */}
                 <img
                     src="/seaside.png"
                     alt="Seaside Logo"
+                    width={36}
+                    height={36}
                     className="w-9 h-9 object-contain z-10"
                     style={{ animation: 'float-bounce 2s ease-in-out infinite' }}
                 />
@@ -289,7 +288,6 @@ function AuthGate({ children }) {
         }
     }, []);
 
-    // Initial load state replaced with Ripple Animation
     if (!sessionLoaded || isExpiringSession) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-950">
@@ -334,15 +332,31 @@ export default function App({ Component, pageProps }) {
     const isOfflineRef = useRef(false);
     const reconnectTimerRef = useRef(null);
 
+    // Synchronously mark cinematic splash active on '/' before child effects mount
+    if (typeof window !== 'undefined') {
+        const cleanPath = (router.pathname || '').split('?')[0].split('#')[0].toLowerCase();
+        if (!initialCheckDoneRef.current && (cleanPath === '/' || cleanPath === '/about') && !isOffline) {
+            window.__SEASIDE_CINEMATIC_ACTIVE__ = true;
+        }
+    }
+
+    const finishCinematicTransition = useCallback(() => {
+        setIsTransitionActive(false);
+        if (typeof window !== 'undefined') {
+            window.__SEASIDE_CINEMATIC_ACTIVE__ = false;
+            window.dispatchEvent(new Event('seaside-cinematic-done'));
+        }
+    }, []);
+
     const [queryClient] = useState(() => {
         const client = new QueryClient({
             defaultOptions: {
                 queries: {
                     gcTime: 1000 * 60 * 60 * 24,
-                    staleTime: 1000 * 60 * 10, // Keep pages cached for 10 mins so switching routes is instant
+                    staleTime: 1000 * 60 * 10,
                     refetchOnWindowFocus: false,
                     refetchOnReconnect: false,
-                    refetchOnMount: false, // Do not re-fetch on mount unless invalidated by a new transaction
+                    refetchOnMount: false,
                     retry: false,
                 },
             },
@@ -367,7 +381,6 @@ export default function App({ Component, pageProps }) {
                         : '';
                     if (mKey.includes('activity') || mKey.includes('refill')) return;
 
-                    // Mark active transaction/inventory queries stale when a local mutation succeeds
                     client.invalidateQueries({
                         refetchType: 'active',
                         predicate: (query) => {
@@ -389,6 +402,10 @@ export default function App({ Component, pageProps }) {
         isOfflineRef.current = true;
         setIsReconnected(false);
         setIsOffline(true);
+        if (typeof window !== 'undefined') {
+            window.__SEASIDE_CINEMATIC_ACTIVE__ = false;
+            window.dispatchEvent(new Event('seaside-cinematic-done'));
+        }
     }, []);
 
     const triggerOnlineCelebration = useCallback(() => {
@@ -446,7 +463,6 @@ export default function App({ Component, pageProps }) {
         }
     }, [enterOfflineState, triggerOnlineCelebration]);
 
-    // Global Offline / Disconnected Network Listener
     useEffect(() => {
         if (typeof window === 'undefined') return;
 
@@ -507,7 +523,6 @@ export default function App({ Component, pageProps }) {
         };
     }, [enterOfflineState, triggerOnlineCelebration, verifyInternetConnection]);
 
-    // Poll every 4s only while offline so reconnection triggers automatically
     useEffect(() => {
         if (!isOffline || isReconnected) return;
         const interval = setInterval(() => {
@@ -516,7 +531,6 @@ export default function App({ Component, pageProps }) {
         return () => clearInterval(interval);
     }, [isOffline, isReconnected, verifyInternetConnection]);
 
-    // Track active usage & redirect to login page (/) only if app was closed/inactive for > 30 mins
     useEffect(() => {
         if (typeof window === 'undefined') return;
 
@@ -622,6 +636,12 @@ export default function App({ Component, pageProps }) {
             initialCheckDoneRef.current = true;
             if (checkShouldTransition(router.pathname)) {
                 setIsTransitionActive(true);
+                if (typeof window !== 'undefined') {
+                    window.__SEASIDE_CINEMATIC_ACTIVE__ = true;
+                }
+            } else if (typeof window !== 'undefined') {
+                window.__SEASIDE_CINEMATIC_ACTIVE__ = false;
+                window.dispatchEvent(new Event('seaside-cinematic-done'));
             }
         }
 
@@ -636,8 +656,10 @@ export default function App({ Component, pageProps }) {
             if (hasWebGL && (targetPath === '/' || targetPath === '/about') && targetPath !== currentPath) {
                 setIsRouteLoading(true);
                 setIsTransitionActive(true);
+                if (typeof window !== 'undefined') {
+                    window.__SEASIDE_CINEMATIC_ACTIVE__ = true;
+                }
             } else if (targetPath !== currentPath) {
-                // Engage standard layout loader for inner app pages
                 setIsRouteLoading(true);
             }
         };
@@ -717,15 +739,14 @@ export default function App({ Component, pageProps }) {
                 )}
 
                 {isTransitionActive && webglSupported && !isOffline && (
-                    <TransitionErrorBoundary onErrorComplete={() => setIsTransitionActive(false)}>
+                    <TransitionErrorBoundary onErrorComplete={finishCinematicTransition}>
                         <CinematicTransition
                             isRouteLoading={isRouteLoading}
-                            onComplete={() => setIsTransitionActive(false)}
+                            onComplete={finishCinematicTransition}
                         />
                     </TransitionErrorBoundary>
                 )}
 
-                {/* Global Standard Route Transition Loader overlay */}
                 {isRouteLoading && !isTransitionActive && !isOffline && (
                     <div className="fixed inset-0 z-[999] flex items-center justify-center bg-white/70 dark:bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200">
                         <WaterRippleLoader text="Loading..." />

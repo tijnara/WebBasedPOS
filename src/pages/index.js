@@ -11,6 +11,7 @@ import LandingNavbar from '../components/landing/LandingNavbar';
 import LandingHero from '../components/landing/LandingHero';
 import LandingAuthCard from '../components/landing/LandingAuthCard';
 import LandingGlobalStyles from '../components/landing/LandingGlobalStyles';
+import LoginCharacterEntrance from '../components/transitions/LoginCharacterEntrance';
 
 function checkWebGLSupport() {
     if (typeof window === 'undefined') return false;
@@ -227,29 +228,31 @@ export default function SeasideNewLanding() {
                 <div className="max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
                     <LandingHero />
 
-                    <LandingAuthCard
-                        activeCard={activeCard}
-                        onSwitchCard={switchCard}
-                        tilt={tilt}
-                        onTiltChange={setTilt}
-                        // Login props
-                        onLogin={handleLogin}
-                        onDemoLogin={handleDemoLogin}
-                        isDemoLoading={isDemoLoading}
-                        authError={authError}
-                        pendingApprovalInfo={pendingApprovalInfo}
-                        onDismissPending={() => setPendingApprovalInfo(null)}
-                        onNotifyAdmin={handleRequestApprovalFollowUp}
-                        onForgotPassword={handleContactToggle}
-                        // Sign Up props
-                        onSignUp={handleSignUp}
-                        regError={regError}
-                        // Contact props
-                        businessHours={businessHours}
-                        physicalAddress={physicalAddress}
-                        facebookLink={facebookLink}
-                        contactPrefill={contactPrefill}
-                    />
+                    <LoginCharacterEntrance canRenderWebGL={canRenderWebGL} enabled={true}>
+                        <LandingAuthCard
+                            activeCard={activeCard}
+                            onSwitchCard={switchCard}
+                            tilt={tilt}
+                            onTiltChange={setTilt}
+                            // Login props
+                            onLogin={handleLogin}
+                            onDemoLogin={handleDemoLogin}
+                            isDemoLoading={isDemoLoading}
+                            authError={authError}
+                            pendingApprovalInfo={pendingApprovalInfo}
+                            onDismissPending={() => setPendingApprovalInfo(null)}
+                            onNotifyAdmin={handleRequestApprovalFollowUp}
+                            onForgotPassword={handleContactToggle}
+                            // Sign Up props
+                            onSignUp={handleSignUp}
+                            regError={regError}
+                            // Contact props
+                            businessHours={businessHours}
+                            physicalAddress={physicalAddress}
+                            facebookLink={facebookLink}
+                            contactPrefill={contactPrefill}
+                        />
+                    </LoginCharacterEntrance>
                 </div>
             </main>
 
