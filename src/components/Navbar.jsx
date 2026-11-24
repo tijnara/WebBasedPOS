@@ -344,7 +344,22 @@ export default function Navbar() {
     useEffect(() => {
         if (!clientUser?.id || isDemo) return;
 
-        const navChannel = supabase.channel(`rt:navbar-${clientUser.id}`);
+        // Clean up any stale navbar channels from previous renders / Strict Mode / HMR
+        const basePrefix = `rt:navbar-${clientUser.id}`;
+        supabase.getChannels().forEach((ch) => {
+            if (
+                ch.topic === basePrefix ||
+                ch.topic === `realtime:${basePrefix}` ||
+                ch.topic.startsWith(`${basePrefix}-`) ||
+                ch.topic.startsWith(`realtime:${basePrefix}-`)
+            ) {
+                supabase.removeChannel(ch);
+            }
+        });
+
+        // Unique channel name guarantees a fresh, unsubscribed instance every time
+        const uniqueChannelName = `${basePrefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+        const navChannel = supabase.channel(uniqueChannelName);
 
         if (isAdmin) {
             navChannel
@@ -353,6 +368,7 @@ export default function Navbar() {
                 })
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'contact_messages' }, () => {
                     queryClient.invalidateQueries({ queryKey: ['recent-contact-messages-count'] });
+                    queryClient.invalidateQueries({ queryKey: ['contact-messages'] });
                 });
         }
 
@@ -410,9 +426,8 @@ export default function Navbar() {
     }, [user, router.events]);
 
     const handleLogout = async () => {
-        await router.push('/');
-        await supabase.auth.signOut();
         if (logout) await logout();
+        await router.push('/');
     };
 
     const checkActiveShift = async () => {
