@@ -12,6 +12,7 @@ import LandingHero from '../components/landing/LandingHero';
 import LandingAuthCard from '../components/landing/LandingAuthCard';
 import LandingGlobalStyles from '../components/landing/LandingGlobalStyles';
 import LoginCharacterEntrance from '../components/transitions/LoginCharacterEntrance';
+import ForgotPasswordModal from '../components/landing/ForgotPasswordModal';
 
 function checkWebGLSupport() {
     if (typeof window === 'undefined') return false;
@@ -81,6 +82,8 @@ export default function SeasideNewLanding() {
 
     // Active card view: 'login' | 'signup' | 'contact'
     const [activeCard, setActiveCard] = useState('login');
+    const [forgotOpen, setForgotOpen] = useState(false);
+    const [forgotInitialEmail, setForgotInitialEmail] = useState('');
     const [authError, setAuthError] = useState(null);
     const [regError, setRegError] = useState(null);
     const [pendingApprovalInfo, setPendingApprovalInfo] = useState(null);
@@ -205,6 +208,13 @@ export default function SeasideNewLanding() {
         }
     };
 
+    const handleOpenForgotPassword = (typedEmail) => {
+        if (typeof typedEmail === 'string' && typedEmail.includes('@')) {
+            setForgotInitialEmail(typedEmail.trim());
+        }
+        setForgotOpen(true);
+    };
+
     const handleRequestApprovalFollowUp = () => {
         const identifier = pendingApprovalInfo?.identifier || '';
         const prefillEmail = identifier.includes('@') ? identifier : '';
@@ -263,7 +273,7 @@ export default function SeasideNewLanding() {
                             pendingApprovalInfo={pendingApprovalInfo}
                             onDismissPending={() => setPendingApprovalInfo(null)}
                             onNotifyAdmin={handleRequestApprovalFollowUp}
-                            onForgotPassword={handleContactToggle}
+                            onForgotPassword={handleOpenForgotPassword}
                             // Sign Up props
                             onSignUp={handleSignUp}
                             regError={regError}
@@ -276,6 +286,13 @@ export default function SeasideNewLanding() {
                     </LoginCharacterEntrance>
                 </div>
             </main>
+
+            <ForgotPasswordModal
+                isOpen={forgotOpen}
+                onClose={() => setForgotOpen(false)}
+                initialEmail={forgotInitialEmail}
+                defaultReceiver="aranjitarchita@gmail.com"
+            />
 
             <footer className="relative z-20 py-4 px-6 text-center text-[11px] sm:text-xs font-medium text-slate-600 dark:text-slate-400 border-t border-slate-200/70 dark:border-white/10 bg-white/50 dark:bg-slate-950/50 backdrop-blur-md transition-colors">
                 <p>

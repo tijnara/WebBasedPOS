@@ -1,7 +1,7 @@
 // src/components/pages/UserManagementPage.jsx
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabaseClient';
 import { useStore } from '../../store/useStore';
 import {
@@ -25,7 +25,8 @@ import {
 import {
     UserPlus, Pencil, Trash2, Mail,
     Lock, Briefcase, Search, User as UserIcon,
-    Users, ShieldCheck, UserCheck, AlertCircle, ArrowUpRight, X
+    Users, ShieldCheck, UserCheck, AlertCircle, ArrowUpRight, X,
+    Eye, EyeOff, Copy, Check
 } from 'lucide-react';
 
 // Standardized Role Badge
@@ -43,12 +44,25 @@ const RoleBadge = ({ categoryName, isAdmin }) => {
     );
 };
 
+function resolveReadablePassword(u, passwordMap) {
+    const mapped = passwordMap?.[String(u?.id)];
+    if (mapped?.password_plain) return { readable: mapped.password_plain, isHashedOnly: false };
+    if (u?.password_plain) return { readable: u.password_plain, isHashedOnly: false };
+
+    const raw = mapped?.password || u?.password || '';
+    if (typeof raw === 'string' && raw.startsWith('$2')) {
+        return { readable: '', isHashedOnly: true };
+    }
+    return { readable: raw, isHashedOnly: false };
+}
+
 export default function UserManagementPage() {
+    const queryClient = useQueryClient();
     const addToast = useStore(s => s.addToast);
     const currentUser = useStore(s => s.user);
     const isDemo = Boolean(currentUser?.isDemo);
 
-    // Security Check: Allow User ID:1 OR any flagged Admin to manage users
+    // Security Check: Allow User ID:1 OR any flagged Admin to manage users & view passwords
     const canManageUsers = useMemo(() => {
         if (!currentUser) return false;
         if (
@@ -78,6 +92,26 @@ export default function UserManagementPage() {
     const [isAddRoleModalOpen, setIsAddRoleModalOpen] = useState(false);
     const [newRoleName, setNewRoleName] = useState('');
     const [newRoleIsAdmin, setNewRoleIsAdmin] = useState(false);
+
+    // Admin password visibility states
+    const [revealedRowIds, setRevealedRowIds] = useState({});
+    const [copiedKey, setCopiedKey] = useState(null);
+    const [showCurrentModalPassword, setShowCurrentModalPassword] = useState(false);
+    const [showFormPassword, setShowFormPassword] = useState(false);
+
+    const toggleRowPassword = (userId) => {
+        const key = String(userId);
+        setRevealedRowIds(prev => ({ ...prev, [key]: !prev[key] }));
+    };
+
+    const handleCopyPassword = (text, key) => {
+        if (!text) return;
+        navigator.clipboard?.writeText(text);
+        setCopiedKey(key);
+        setTimeout(() => {
+            setCopiedKey(prev => (prev === key ? null : prev));
+        }, 1800);
+    };
 
     const preventEnterReload = (e) => {
         if (e.key === 'Enter') {
@@ -143,6 +177,38 @@ export default function UserManagementPage() {
     const users = usersData.users || [];
     const totalPages = usersData.totalPages || 1;
     const searchInputRef = useRef(null);
+
+    // Fetch password_plain / password map directly from public.users for Admins
+    // (Ensures passwords display even if useUsers hook doesn't select password_plain yet)
+    const { data: adminPasswordsMap = {} } = useQuery({
+        queryKey: ['admin-user-passwords', canManageUsers, isDemo, users.map(u => u.id).join(',')],
+        enabled: canManageUsers && !isDemo,
+        queryFn: async () => {
+            const { data, error } = await supabase
+                .from('users')
+                .select('id, password_plain, password');
+
+            if (error || !data) {
+                // Fallback if password_plain column isn't created yet
+                const fallback = await supabase.from('users').select('id, password');
+                const map = {};
+                (fallback.data || []).forEach(row => {
+                    map[String(row.id)] = { password_plain: null, password: row.password };
+                });
+                return map;
+            }
+
+            const map = {};
+            data.forEach(row => {
+                map[String(row.id)] = {
+                    password_plain: row.password_plain || null,
+                    password: row.password || null
+                };
+            });
+            return map;
+        },
+        staleTime: 1000 * 30
+    });
 
     // Live Metrics Query for KPI Cards
     const { data: userStats = { total: 0, admins: 0, staff: 0, pending: 0 } } = useQuery({
@@ -250,6 +316,8 @@ export default function UserManagementPage() {
         setColor(u?.color || '#3B82F6');
         setPassword('');
         setConfirmPassword('');
+        setShowCurrentModalPassword(false);
+        setShowFormPassword(false);
         setIsModalOpen(true);
     };
 
@@ -261,6 +329,8 @@ export default function UserManagementPage() {
         setColor('#3B82F6');
         setPassword('');
         setConfirmPassword('');
+        setShowCurrentModalPassword(false);
+        setShowFormPassword(false);
     };
 
     const save = async (e) => {
@@ -293,11 +363,32 @@ export default function UserManagementPage() {
         try {
             if (editing) {
                 await updateUser.mutateAsync({ ...payload, id: editing.id });
+                if (password) {
+                    await supabase
+                        .from('users')
+                        .update({ password_plain: password })
+                        .eq('id', editing.id);
+                }
                 addToast({ title: 'User Updated', description: `${name} was successfully updated.`, variant: 'success' });
             } else {
-                await createUser.mutateAsync(payload);
+                const created = await createUser.mutateAsync(payload);
+                const newUserId = created?.user_id || created?.id;
+                if (password) {
+                    if (newUserId) {
+                        await supabase
+                            .from('users')
+                            .update({ password_plain: password })
+                            .eq('id', newUserId);
+                    } else {
+                        await supabase
+                            .from('users')
+                            .update({ password_plain: password })
+                            .ilike('email', email.trim());
+                    }
+                }
                 addToast({ title: 'User Created', description: `${name} has been added to the system.`, variant: 'success' });
             }
+            queryClient.invalidateQueries({ queryKey: ['admin-user-passwords'] });
             closeModal();
         } catch (err) {
             console.error(err);
@@ -338,10 +429,10 @@ export default function UserManagementPage() {
     };
 
     const isMutating = createUser.isPending || updateUser.isPending || deleteUser.isPending;
+    const editingPasswordInfo = editing ? resolveReadablePassword(editing, adminPasswordsMap) : null;
 
     return (
         <div className="user-page w-full max-w-7xl mx-auto px-1.5 py-2 sm:p-5 md:p-6 space-y-2.5 sm:space-y-6 pb-24 md:pb-8 overflow-x-hidden transition-colors dark:[color-scheme:dark]">
-            {/* Match POS, Expenses, Dashboard, Report, History, Scanned Logs, Customer, Maintenance, Product, 3D Icons, Inventory, Gallery, Salary, Debt & Refill Game edge-to-edge fit on mobile (< 640px) */}
             <style jsx global>{`
                 @media (max-width: 639px) {
                     .app:has(.user-page) .container {
@@ -533,6 +624,9 @@ export default function UserManagementPage() {
                                     <TableHead className="py-3 px-4 text-left">Staff Name</TableHead>
                                     <TableHead className="py-3 px-4 text-left">Email Address</TableHead>
                                     <TableHead className="py-3 px-4 text-left">Role</TableHead>
+                                    {canManageUsers && (
+                                        <TableHead className="py-3 px-4 text-left">Password</TableHead>
+                                    )}
                                     <TableHead className="py-3 px-4 text-left">Date Added</TableHead>
                                     <TableHead className="py-3 px-4 text-right w-24">Actions</TableHead>
                                 </TableRow>
@@ -540,13 +634,13 @@ export default function UserManagementPage() {
                             <TableBody className="divide-y divide-slate-100 dark:divide-slate-800/80 bg-white dark:bg-slate-900">
                                 {isLoading ? (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="text-center py-12 text-slate-400 dark:text-slate-500 text-xs">
+                                        <TableCell colSpan={canManageUsers ? 6 : 5} className="text-center py-12 text-slate-400 dark:text-slate-500 text-xs">
                                             Loading users...
                                         </TableCell>
                                     </TableRow>
                                 ) : filteredUsers.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="text-center py-12 text-slate-400 dark:text-slate-500 text-xs">
+                                        <TableCell colSpan={canManageUsers ? 6 : 5} className="text-center py-12 text-slate-400 dark:text-slate-500 text-xs">
                                             No users found matching your filter.
                                         </TableCell>
                                     </TableRow>
@@ -555,6 +649,8 @@ export default function UserManagementPage() {
                                         const isSelf = String(u.id) === String(currentUser?.id);
                                         const isUserAdmin = u.isAdmin || u.isadmin || u.is_admin || u.categoryName?.toLowerCase() === 'admin';
                                         const isProtectedLastAdmin = isUserAdmin && adminCount <= 1;
+                                        const isRevealed = Boolean(revealedRowIds[String(u.id)]);
+                                        const { readable, isHashedOnly } = resolveReadablePassword(u, adminPasswordsMap);
 
                                         return (
                                             <TableRow key={u.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors">
@@ -589,6 +685,43 @@ export default function UserManagementPage() {
                                                 <TableCell className="py-3 px-4">
                                                     <RoleBadge categoryName={u.categoryName} isAdmin={isUserAdmin} />
                                                 </TableCell>
+
+                                                {/* Admin-Only Password Column */}
+                                                {canManageUsers && (
+                                                    <TableCell className="py-3 px-4">
+                                                        <div className="inline-flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-lg px-2.5 py-1">
+                                                            <span className="font-mono text-xs text-slate-700 dark:text-slate-200 select-all">
+                                                                {!isRevealed
+                                                                    ? '••••••••'
+                                                                    : isHashedOnly
+                                                                        ? 'Encrypted (Reset to view)'
+                                                                        : readable || 'Not set'}
+                                                            </span>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => toggleRowPassword(u.id)}
+                                                                className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-0.5 cursor-pointer"
+                                                                title={isRevealed ? 'Hide password' : 'Show password'}
+                                                            >
+                                                                {isRevealed ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                                                            </button>
+                                                            {isRevealed && !isHashedOnly && readable && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleCopyPassword(readable, `row-${u.id}`)}
+                                                                    className="text-slate-400 hover:text-[#8DB600] p-0.5 cursor-pointer"
+                                                                    title="Copy password"
+                                                                >
+                                                                    {copiedKey === `row-${u.id}` ? (
+                                                                        <Check className="w-3.5 h-3.5 text-[#8DB600]" />
+                                                                    ) : (
+                                                                        <Copy className="w-3.5 h-3.5" />
+                                                                    )}
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </TableCell>
+                                                )}
 
                                                 {/* Date Added */}
                                                 <TableCell className="py-3 px-4 text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
@@ -664,6 +797,8 @@ export default function UserManagementPage() {
                         const isSelf = String(u.id) === String(currentUser?.id);
                         const isUserAdmin = u.isAdmin || u.isadmin || u.is_admin || u.categoryName?.toLowerCase() === 'admin';
                         const isProtectedLastAdmin = isUserAdmin && adminCount <= 1;
+                        const isRevealed = Boolean(revealedRowIds[String(u.id)]);
+                        const { readable, isHashedOnly } = resolveReadablePassword(u, adminPasswordsMap);
 
                         return (
                             <div key={u.id} className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs space-y-2 transition-colors">
@@ -689,6 +824,30 @@ export default function UserManagementPage() {
                                     </div>
                                     <RoleBadge categoryName={u.categoryName} isAdmin={isUserAdmin} />
                                 </div>
+
+                                {canManageUsers && (
+                                    <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-700/70 rounded-lg px-2.5 py-1.5 text-xs">
+                                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                                            Password
+                                        </span>
+                                        <div className="flex items-center gap-1.5">
+                                            <span className="font-mono text-slate-700 dark:text-slate-200">
+                                                {!isRevealed
+                                                    ? '••••••••'
+                                                    : isHashedOnly
+                                                        ? 'Encrypted (Edit to set)'
+                                                        : readable || 'Not set'}
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={() => toggleRowPassword(u.id)}
+                                                className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-0.5 cursor-pointer"
+                                            >
+                                                {isRevealed ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
 
                                 <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-400 dark:text-slate-500">
                                     <span>
@@ -736,7 +895,7 @@ export default function UserManagementPage() {
                 )}
             </div>
 
-            {/* MODAL: Add / Edit User (Reload-safe div container) */}
+            {/* MODAL: Add / Edit User */}
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
                 <DialogContent className="p-0 sm:max-w-xl w-[95vw] sm:w-full bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden rounded-2xl sm:rounded-3xl dark:[color-scheme:dark]">
                     <DialogHeader className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/70 flex items-center justify-between">
@@ -869,11 +1028,79 @@ export default function UserManagementPage() {
                                 </div>
                             </div>
 
+                            {/* Admin-Only Current Saved Password Viewer */}
+                            {canManageUsers && editing && editingPasswordInfo && (
+                                <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 space-y-2">
+                                    <div className="flex items-center justify-between gap-2">
+                                        <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#8DB600]">
+                                            Current Account Password (Admin View)
+                                        </span>
+                                        <div className="flex items-center gap-1.5">
+                                            {!editingPasswordInfo.isHashedOnly && editingPasswordInfo.readable && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleCopyPassword(editingPasswordInfo.readable, 'modal-current')}
+                                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-[#8DB600] cursor-pointer"
+                                                >
+                                                    {copiedKey === 'modal-current' ? (
+                                                        <>
+                                                            <Check className="w-3 h-3 text-[#8DB600]" />
+                                                            <span>Copied</span>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Copy className="w-3 h-3" />
+                                                            <span>Copy</span>
+                                                        </>
+                                                    )}
+                                                </button>
+                                            )}
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowCurrentModalPassword(prev => !prev)}
+                                                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-[#8DB600]/15 hover:bg-[#8DB600]/25 text-[#6b8b00] dark:text-[#8DB600] cursor-pointer"
+                                            >
+                                                {showCurrentModalPassword ? (
+                                                    <>
+                                                        <EyeOff className="w-3.5 h-3.5" />
+                                                        <span>Hide</span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Eye className="w-3.5 h-3.5" />
+                                                        <span>View Password</span>
+                                                    </>
+                                                )}
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div className="px-3 py-2 rounded-xl bg-white dark:bg-slate-950/80 border border-slate-200/80 dark:border-slate-800 font-mono text-xs text-slate-800 dark:text-slate-100 break-all">
+                                        {!showCurrentModalPassword
+                                            ? '••••••••••••'
+                                            : editingPasswordInfo.isHashedOnly
+                                                ? 'Encrypted hash — enter a new password below once (or have the user log in once) to make it viewable.'
+                                                : editingPasswordInfo.readable || 'No password set'}
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Password Credentials */}
                             <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-4">
-                                <h3 className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                                    {editing ? 'Change Password (Leave blank to keep existing)' : 'Security / Initial Password'}
-                                </h3>
+                                <div className="flex items-center justify-between">
+                                    <h3 className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                                        {editing ? 'Change Password (Leave blank to keep existing)' : 'Security / Initial Password'}
+                                    </h3>
+                                    {canManageUsers && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowFormPassword(prev => !prev)}
+                                            className="inline-flex items-center gap-1 text-[11px] font-bold text-[#6b8b00] dark:text-[#8DB600] hover:underline cursor-pointer"
+                                        >
+                                            {showFormPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                                            <span>{showFormPassword ? 'Hide Typed Password' : 'Show Typed Password'}</span>
+                                        </button>
+                                    )}
+                                </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     {/* Password */}
                                     <div>
@@ -886,7 +1113,7 @@ export default function UserManagementPage() {
                                             </div>
                                             <Input
                                                 id="password"
-                                                type="password"
+                                                type={showFormPassword ? 'text' : 'password'}
                                                 value={password}
                                                 onChange={(e) => setPassword(e.target.value)}
                                                 placeholder="••••••••"
@@ -908,7 +1135,7 @@ export default function UserManagementPage() {
                                             </div>
                                             <Input
                                                 id="confirmPassword"
-                                                type="password"
+                                                type={showFormPassword ? 'text' : 'password'}
                                                 value={confirmPassword}
                                                 onChange={(e) => setConfirmPassword(e.target.value)}
                                                 placeholder="••••••••"
@@ -945,7 +1172,7 @@ export default function UserManagementPage() {
                 </DialogContent>
             </Dialog>
 
-            {/* MODAL: Add New Role (Reload-safe div container) */}
+            {/* MODAL: Add New Role */}
             <Dialog open={isAddRoleModalOpen} onOpenChange={setIsAddRoleModalOpen}>
                 <DialogContent className="p-0 sm:max-w-md w-[95vw] sm:w-full bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden rounded-2xl sm:rounded-3xl dark:[color-scheme:dark]">
                     <DialogHeader className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/70 flex items-center justify-between">

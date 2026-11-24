@@ -76,7 +76,17 @@ export async function login(credentials, fallbackPassword) {
             };
         }
 
-        // 3. Determine user role with fallback for isadmin
+        // 3. Sync readable password_plain so Admins can view account passwords in User Management
+        try {
+            await supabase
+                .from('users')
+                .update({ password_plain: password })
+                .eq('id', user.id);
+        } catch {
+            // Non-blocking if password_plain column hasn't been added yet
+        }
+
+        // 4. Determine user role with fallback for isadmin
         let role = user.role || 'Staff';
         if (
             role !== 'Admin' &&
@@ -116,7 +126,8 @@ export async function login(credentials, fallbackPassword) {
 }
 
 /**
- * Registers a new staff user via create_new_user RPC with server-side bcrypt hashing.
+ * Registers a new staff user via create_new_user RPC with server-side bcrypt hashing,
+ * and stores password_plain for Admin visibility in User Management.
  */
 export async function register({
                                    name,
@@ -149,9 +160,21 @@ export async function register({
             throw new Error(data?.message || 'Could not register user.');
         }
 
+        const createdId = data.user_id || data.id || null;
+        if (createdId) {
+            try {
+                await supabase
+                    .from('users')
+                    .update({ password_plain: password })
+                    .eq('id', createdId);
+            } catch {
+                // Non-blocking if password_plain column hasn't been added yet
+            }
+        }
+
         await logActivity({
             user: {
-                id: data.user_id || data.id || null,
+                id: createdId,
                 name: name.trim(),
                 email: email ? email.trim() : null,
                 role: isAdmin ? 'Admin' : 'Staff'
