@@ -2206,3 +2206,89 @@ aside,
     transform: none !important;
     transition: none !important;
 }
+/* Fix CustomerSelectionModal & legacy white-surface dialogs in dark mode */
+.dark [role="dialog"],
+.dark .dialog-content {
+    background-color: #0f172a !important; /* slate-900 */
+    color: #f8fafc !important;            /* slate-50 */
+    border-color: #1e293b !important;     /* slate-800 */
+}
+
+.dark [role="dialog"] .bg-white,
+.dark .dialog-content .bg-white,
+.dark [role="dialog"] .bg-slate-50,
+.dark .dialog-content .bg-slate-50,
+.dark [role="dialog"] .bg-gray-50,
+.dark .dialog-content .bg-gray-50 {
+    background-color: #0f172a !important; /* slate-900 */
+    color: #f8fafc !important;
+}
+
+.dark [role="dialog"] .dialog-header,
+.dark [role="dialog"] .dialog-footer,
+.dark .dialog-content .dialog-header,
+.dark .dialog-content .dialog-footer {
+    background-color: #111827 !important; /* gray-900 */
+    color: #f8fafc !important;
+    border-color: #1e293b !important;
+}
+
+.dark [role="dialog"] h2,
+.dark [role="dialog"] h3,
+.dark [role="dialog"] .dialog-title,
+.dark .dialog-content .dialog-title {
+    color: #f8fafc !important;
+}
+
+.dark [role="dialog"] .btn--outline,
+.dark [role="dialog"] button.bg-white,
+.dark .dialog-content .btn--outline,
+.dark .dialog-content button.bg-white {
+    background-color: #1e293b !important; /* slate-800 */
+    color: #f1f5f9 !important;            /* slate-100 */
+    border-color: #334155 !important;     /* slate-700 */
+}
+
+.dark [role="dialog"] .btn--outline:hover,
+.dark [role="dialog"] button.bg-white:hover,
+.dark .dialog-content .btn--outline:hover,
+.dark .dialog-content button.bg-white:hover {
+    background-color: #334155 !important; /* slate-700 */
+    color: #ffffff !important;
+}
+/* Fix CustomSaleModal & dialog headers, footers, tabs, and Cancel buttons in dark mode */
+.dark [role="dialog"],
+.dark [role="dialog"] > div,
+.dark [role="dialog"] form {
+    background-color: #0f172a !important; /* slate-900 */
+    color: #f8fafc !important;
+    border-color: #1e293b !important;
+}
+
+.dark [role="dialog"] .bg-white,
+.dark [role="dialog"] .bg-slate-50,
+.dark [role="dialog"] .bg-gray-50,
+.dark [role="dialog"] .bg-slate-100 {
+    background-color: #1e293b !important; /* slate-800 */
+    color: #f8fafc !important;
+    border-color: #334155 !important;
+}
+
+.dark [role="dialog"] h2,
+.dark [role="dialog"] h3,
+.dark [role="dialog"] button {
+    color: #f8fafc;
+}
+
+.dark [role="dialog"] .btn--outline,
+.dark [role="dialog"] button[variant="outline"] {
+    background-color: #1e293b !important; /* slate-800 */
+    color: #f1f5f9 !important;            /* slate-100 */
+    border-color: #334155 !important;     /* slate-700 */
+}
+
+.dark [role="dialog"] .btn--outline:hover,
+.dark [role="dialog"] button[variant="outline"]:hover {
+    background-color: #334155 !important;
+    color: #ffffff !important;
+}

@@ -7,13 +7,13 @@ import '../components/pages/POSPage.css';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useStore } from '../store/useStore';
 import { useRouter } from 'next/router';
-import { supabase } from '../lib/supabaseClient';
 import Navbar from '../components/Navbar';
 import TabBar from '../components/TabBar';
 import OfflineScreen from '../components/OfflineScreen';
 import GlobalVehicleAlert from '../components/tracking/GlobalVehicleAlert';
 import ScheduledFloaterToast from '../components/ScheduledFloaterToast';
 import { isWebGLAvailable } from '../components/SafeWebGL';
+import { useRealtimeSync } from '../hooks/useRealtimeSync';
 import { Button } from '../components/ui';
 import { QueryClient, QueryClientProvider, HydrationBoundary, MutationCache } from '@tanstack/react-query';
 import Head from 'next/head';
@@ -62,6 +62,11 @@ const NON_TRANSACTION_QUERY_KEYS = new Set([
 const RELOAD_GUARD_KEY = 'seaside_last_auto_reload_ts';
 const LAST_ACTIVE_STORAGE_KEY = 'seaside_last_active_at';
 const IDLE_THRESHOLD_MS = 30 * 60 * 1000; // 30 minutes closed/idle threshold
+
+function RealtimeSyncManager() {
+    useRealtimeSync();
+    return null;
+}
 
 class TransitionErrorBoundary extends React.Component {
     constructor(props) {
@@ -115,7 +120,13 @@ class AppErrorBoundary extends React.Component {
                 <div className="min-h-screen w-full flex items-center justify-center p-5 bg-slate-100 dark:bg-slate-950 text-center">
                     <div className="max-w-sm w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
                         <div className="w-14 h-14 rounded-2xl bg-lime-50 dark:bg-lime-950/60 border border-lime-200 dark:border-lime-800/60 flex items-center justify-center mx-auto">
-                            <img src="/seaside.png" alt="Seaside WRS" className="w-9 h-9 object-contain" />
+                            <img
+                                src="/seaside.png"
+                                alt="Seaside WRS"
+                                width={36}
+                                height={36}
+                                className="w-9 h-9 object-contain"
+                            />
                         </div>
                         <div className="space-y-1.5">
                             <h1 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">
@@ -279,24 +290,6 @@ export default function App({ Component, pageProps }) {
     const probeInFlightRef = useRef(false);
     const isOfflineRef = useRef(false);
     const reconnectTimerRef = useRef(null);
-    const txSyncTimerRef = useRef(null);
-
-    const scheduleTransactionSync = useCallback((client) => {
-        if (!client) return;
-        if (txSyncTimerRef.current) {
-            clearTimeout(txSyncTimerRef.current);
-        }
-        txSyncTimerRef.current = setTimeout(() => {
-            txSyncTimerRef.current = null;
-            client.invalidateQueries({
-                refetchType: 'active',
-                predicate: (query) => {
-                    const rootKey = Array.isArray(query.queryKey) ? String(query.queryKey[0]) : '';
-                    return !NON_TRANSACTION_QUERY_KEYS.has(rootKey);
-                }
-            });
-        }, 600);
-    }, []);
 
     const [queryClient] = useState(() => {
         const client = new QueryClient({
@@ -331,7 +324,7 @@ export default function App({ Component, pageProps }) {
                         : '';
                     if (mKey.includes('activity') || mKey.includes('refill')) return;
 
-                    // Mark transaction/inventory queries stale only when a transaction mutation succeeds
+                    // Mark active transaction/inventory queries stale when a local mutation succeeds
                     client.invalidateQueries({
                         refetchType: 'active',
                         predicate: (query) => {
@@ -344,38 +337,6 @@ export default function App({ Component, pageProps }) {
         });
         return client;
     });
-
-    // Listen for new transactions in Supabase Realtime (sales, expenses, debts, products, shifts)
-    // Only invalidates data when an actual transaction occurs; zero polling/reloading when idle
-    useEffect(() => {
-        if (!user?.id || user?.isDemo) return;
-
-        const txChannel = supabase
-            .channel(`rt:transactions-${user.id}`)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'sales' }, () => {
-                scheduleTransactionSync(queryClient);
-            })
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses' }, () => {
-                scheduleTransactionSync(queryClient);
-            })
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'debts' }, () => {
-                scheduleTransactionSync(queryClient);
-            })
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => {
-                scheduleTransactionSync(queryClient);
-            })
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'shifts' }, () => {
-                scheduleTransactionSync(queryClient);
-            })
-            .subscribe();
-
-        return () => {
-            if (txSyncTimerRef.current) {
-                clearTimeout(txSyncTimerRef.current);
-            }
-            supabase.removeChannel(txChannel);
-        };
-    }, [user?.id, user?.isDemo, queryClient, scheduleTransactionSync]);
 
     const enterOfflineState = useCallback(() => {
         if (reconnectTimerRef.current) {
@@ -683,6 +644,7 @@ export default function App({ Component, pageProps }) {
 
     return (
         <QueryClientProvider client={queryClient}>
+            <RealtimeSyncManager />
             <HydrationBoundary state={pageProps.dehydratedState}>
                 <Head>
                     <title>Seaside WRS</title>
@@ -733,7 +695,7 @@ export default function App({ Component, pageProps }) {
                             {isPublicPage ? (
                                 <Component {...pageProps} />
                             ) : (
-                                <main className="main pb-24 md:pb-6">
+                                <main className="main pb-32 md:pb-6">
                                     <div className="container">
                                         <Component {...pageProps} />
                                     </div>

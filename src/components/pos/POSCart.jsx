@@ -1,14 +1,21 @@
 // src/components/pos/POSCart.jsx
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader } from '../ui';
 import currency from 'currency.js';
 import {
     Trash2,
     ShoppingBag,
     User,
-    ChevronRight,
+    UserCheck,
+    UserPlus,
     Banknote,
-    Wallet
+    Wallet,
+    Search,
+    X,
+    Check,
+    Phone,
+    MapPin,
+    Loader2
 } from 'lucide-react';
 
 const PAYMENT_METHODS = [
@@ -39,7 +46,15 @@ const POSCart = ({
                      handleSetQuantity,
                      stockWarningKey,
                      selectedCustomer,
-                     openCustomerModal,
+                     onSelectCustomer,
+                     desktopCustomerInputRef,
+                     customerSearchTerm = '',
+                     setCustomerSearchTerm,
+                     debouncedCustomerSearchTerm = '',
+                     customerSearchResults = [],
+                     isSearchingCustomers = false,
+                     handleAddCustomer,
+                     createCustomerMutation,
                      isDemo = false,
                      paymentMethod: controlledPaymentMethod,
                      setPaymentMethod: controlledSetPaymentMethod,
@@ -50,10 +65,45 @@ const POSCart = ({
     const [localPaymentMethod, setLocalPaymentMethod] = useState('Cash');
     const [localAmountReceived, setLocalAmountReceived] = useState('');
 
+    // Inline customer autocomplete state
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [isEditingSelected, setIsEditingSelected] = useState(false);
+    const [highlightedIndex, setHighlightedIndex] = useState(-1);
+
+    const internalInputRef = useRef(null);
+    const inputRef = desktopCustomerInputRef || internalInputRef;
+    const searchContainerRef = useRef(null);
+
     const paymentMethod = controlledPaymentMethod ?? localPaymentMethod;
     const setPaymentMethod = controlledSetPaymentMethod ?? setLocalPaymentMethod;
     const amountReceived = controlledAmountReceived ?? localAmountReceived;
     const setAmountReceived = controlledSetAmountReceived ?? setLocalAmountReceived;
+
+    // Close recommendations dropdown when clicking outside the customer search box
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (searchContainerRef.current && !searchContainerRef.current.contains(e.target)) {
+                setIsDropdownOpen(false);
+                setIsEditingSelected(false);
+                setHighlightedIndex(-1);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    // Reset keyboard highlight when results update
+    useEffect(() => {
+        setHighlightedIndex(customerSearchResults.length > 0 ? 0 : -1);
+    }, [customerSearchResults]);
+
+    // When a customer becomes selected, exit editing mode
+    useEffect(() => {
+        if (selectedCustomer) {
+            setIsEditingSelected(false);
+            setIsDropdownOpen(false);
+        }
+    }, [selectedCustomer]);
 
     const items = Object.entries(currentSale || {});
     const isEmpty = items.length === 0;
@@ -92,66 +142,308 @@ const POSCart = ({
         setAmountReceived(target.toFixed(2));
     };
 
+    const handleChooseCustomer = (customer) => {
+        onSelectCustomer?.(customer);
+        setCustomerSearchTerm?.('');
+        setIsDropdownOpen(false);
+        setIsEditingSelected(false);
+        setHighlightedIndex(-1);
+    };
+
+    const handleSwitchToSearch = () => {
+        setIsEditingSelected(true);
+        setCustomerSearchTerm?.('');
+        setIsDropdownOpen(true);
+        setTimeout(() => {
+            inputRef.current?.focus();
+        }, 10);
+    };
+
     const lastTxTotal = Number(lastCustomer?.lastAmount ?? lastCustomer?.total ?? 0);
+    const selectedBalance = Number(selectedCustomer?.credit_balance || 0);
+    const trimmedSearch = (customerSearchTerm || '').trim();
+
+    const hasExactNameMatch = useMemo(() => {
+        const q = (debouncedCustomerSearchTerm || '').trim().toLowerCase();
+        if (!q) return true;
+        return customerSearchResults.some(
+            (c) => String(c.name || '').trim().toLowerCase() === q
+        );
+    }, [debouncedCustomerSearchTerm, customerSearchResults]);
+
+    const handleSearchKeyDown = async (e) => {
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (customerSearchResults.length > 0) {
+                setIsDropdownOpen(true);
+                setHighlightedIndex((prev) =>
+                    prev < customerSearchResults.length - 1 ? prev + 1 : 0
+                );
+            }
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (customerSearchResults.length > 0) {
+                setIsDropdownOpen(true);
+                setHighlightedIndex((prev) =>
+                    prev > 0 ? prev - 1 : customerSearchResults.length - 1
+                );
+            }
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (highlightedIndex >= 0 && customerSearchResults[highlightedIndex]) {
+                handleChooseCustomer(customerSearchResults[highlightedIndex]);
+            } else if (debouncedCustomerSearchTerm && !hasExactNameMatch && handleAddCustomer && !isDemo) {
+                await handleAddCustomer(debouncedCustomerSearchTerm);
+                setIsDropdownOpen(false);
+                setIsEditingSelected(false);
+            }
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            e.stopPropagation();
+            setCustomerSearchTerm?.('');
+            setIsDropdownOpen(false);
+            setIsEditingSelected(false);
+            setHighlightedIndex(-1);
+            inputRef.current?.blur();
+        }
+    };
+
+    const showSearchInput = !selectedCustomer || isEditingSelected;
+    const showRecommendations =
+        isDropdownOpen && (trimmedSearch.length > 0 || (lastCustomer && lastCustomer.id));
 
     return (
         <Card className="flex flex-col shadow-2xs rounded-2xl bg-white dark:bg-[#111827] border border-slate-200/90 dark:border-slate-800 overflow-hidden h-full max-h-full transition-colors select-none">
-            {/* TOP HEADER: Current Order + Customer Selector Pill */}
-            <CardHeader className="bg-white dark:bg-[#111827] border-b border-slate-100 dark:border-slate-800/90 p-3.5 sm:p-4 flex-shrink-0 space-y-2.5">
-                <div className="flex justify-between items-start gap-2">
-                    <div>
-                        <h3 className="font-black text-base sm:text-lg text-slate-900 dark:text-white tracking-tight leading-tight">
-                            Current Order
-                        </h3>
-                        <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 mt-0.5">
-                            <User className="w-3.5 h-3.5 shrink-0" />
-                            <span className="truncate max-w-[175px]">
-                                {selectedCustomer ? selectedCustomer.name : 'Walk-in Customer'}
+            {/* TOP HEADER: Current Order + Direct Customer Search Field */}
+            <CardHeader className="bg-white dark:bg-[#111827] border-b border-slate-100 dark:border-slate-800/90 p-3.5 sm:p-4 flex-shrink-0 space-y-2.5 z-30">
+                <div className="flex justify-between items-center gap-2">
+                    <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                            <h3 className="font-black text-base sm:text-lg text-slate-900 dark:text-white tracking-tight leading-tight">
+                                Current Order
+                            </h3>
+                            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-[#1a2333] text-slate-500 dark:text-slate-400 border border-slate-200/70 dark:border-slate-700/70">
+                                {orderNumber}
                             </span>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-1.5">
-                        {!isEmpty && (
-                            <button
-                                type="button"
-                                className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
-                                onClick={clearSale}
-                                disabled={isDemo}
-                                title="Clear Order (Shift + Delete)"
-                            >
-                                <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                        )}
+                    {!isEmpty && (
                         <button
                             type="button"
-                            onClick={openCustomerModal}
-                            className="inline-flex items-center gap-0.5 text-[11px] font-bold text-slate-500 dark:text-slate-400 hover:text-[#5f7d00] dark:hover:text-emerald-400 transition-colors cursor-pointer"
+                            className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors disabled:opacity-50 cursor-pointer shrink-0"
+                            onClick={clearSale}
+                            disabled={isDemo}
+                            title="Clear Order (Shift + Delete)"
                         >
-                            <span>(F2) change</span>
-                            <ChevronRight className="w-3.5 h-3.5" />
+                            <Trash2 className="w-4 h-4" />
                         </button>
-                    </div>
+                    )}
                 </div>
 
-                {/* Customer Pill Bar (#ORD-XXXX) */}
-                <div className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-slate-100/90 dark:bg-[#1a2333] border border-slate-200/80 dark:border-slate-700/70 rounded-xl">
-                    <div className="flex items-center gap-2 min-w-0">
-                        <User className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400 shrink-0" />
-                        <span className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">
-                            {selectedCustomer ? selectedCustomer.name : 'Walk in Customer'}
-                        </span>
-                        <button
-                            type="button"
-                            onClick={openCustomerModal}
-                            className="text-[11px] font-bold text-sky-600 dark:text-sky-400 hover:underline shrink-0 cursor-pointer"
-                        >
-                            Edit
-                        </button>
-                    </div>
-                    <span className="text-[10px] font-mono font-bold text-slate-400 dark:text-slate-400 shrink-0">
-                        {orderNumber}
-                    </span>
+                {/* Customer Search Field / Active Registered Customer Bar */}
+                <div ref={searchContainerRef} className="relative">
+                    {showSearchInput ? (
+                        <div className="relative flex items-center">
+                            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10" />
+                            <input
+                                ref={inputRef}
+                                type="text"
+                                placeholder="Walk-in Customer (type to search)..."
+                                value={customerSearchTerm}
+                                onFocus={() => setIsDropdownOpen(true)}
+                                onChange={(e) => {
+                                    setCustomerSearchTerm?.(e.target.value);
+                                    setIsDropdownOpen(true);
+                                }}
+                                onKeyDown={handleSearchKeyDown}
+                                style={{
+                                    paddingLeft: '2.15rem',
+                                    paddingRight: trimmedSearch || isEditingSelected ? '2.25rem' : '2.25rem'
+                                }}
+                                className="w-full h-9 sm:h-10 rounded-xl bg-slate-100/90 dark:bg-[#1a2333] border border-slate-200/90 dark:border-slate-700/80 focus:bg-white dark:focus:bg-slate-900 focus:border-[#8DB600] dark:focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-semibold text-slate-900 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 outline-none transition-all"
+                            />
+
+                            {trimmedSearch || isEditingSelected ? (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setCustomerSearchTerm?.('');
+                                        setIsDropdownOpen(false);
+                                        setIsEditingSelected(false);
+                                    }}
+                                    aria-label="Clear search"
+                                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer z-10"
+                                >
+                                    <X className="w-3.5 h-3.5" />
+                                </button>
+                            ) : (
+                                <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 px-1.5 py-0.5 text-[9px] font-mono font-bold text-slate-400 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded pointer-events-none">
+                                    F2
+                                </kbd>
+                            )}
+                        </div>
+                    ) : (
+                        /* Selected Registered Customer Chip (Click to search another or × for Walk-in) */
+                        <div className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-emerald-500/10 dark:bg-emerald-950/35 border border-emerald-500/40 rounded-xl transition-all">
+                            <button
+                                type="button"
+                                onClick={handleSwitchToSearch}
+                                title="Click to search another customer"
+                                className="flex items-center gap-2 min-w-0 flex-1 text-left cursor-pointer"
+                            >
+                                <UserCheck className="w-3.5 h-3.5 text-[#5f7d00] dark:text-emerald-400 shrink-0" />
+                                <span className="text-xs font-extrabold text-slate-900 dark:text-white truncate">
+                                    {selectedCustomer.name}
+                                </span>
+                                {selectedBalance > 0 && (
+                                    <span className="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 shrink-0">
+                                        ₱{selectedBalance.toFixed(0)}
+                                    </span>
+                                )}
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => handleChooseCustomer(null)}
+                                title="Reset to Walk-in Customer"
+                                aria-label="Reset to Walk-in Customer"
+                                className="p-1 rounded-lg text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-white/70 dark:hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
+                            >
+                                <X className="w-3.5 h-3.5" />
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Floating Registered Customer Recommendations Dropdown */}
+                    {showRecommendations && (
+                        <div className="absolute left-0 right-0 top-full mt-1.5 rounded-xl bg-white dark:bg-[#131c2e] border border-slate-200 dark:border-slate-700 shadow-2xl z-50 overflow-hidden">
+                            <div className="max-h-60 overflow-y-auto p-1.5 space-y-1">
+                                {/* Quick Recent Customer when input is focused but empty */}
+                                {!trimmedSearch && lastCustomer && lastCustomer.id && (
+                                    <>
+                                        <div className="px-2 py-1 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                                            Recent Customer
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleChooseCustomer(lastCustomer)}
+                                            className="w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg text-left text-xs bg-slate-50 dark:bg-[#1a2438] text-slate-800 dark:text-slate-100 hover:bg-emerald-500/15 hover:text-[#5f7d00] dark:hover:text-emerald-300 font-bold transition-colors cursor-pointer"
+                                        >
+                                            <div className="flex items-center gap-2 min-w-0">
+                                                <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                                <span className="truncate">{lastCustomer.name}</span>
+                                            </div>
+                                            <span className="text-[10px] font-semibold text-slate-400 shrink-0">
+                                                Select
+                                            </span>
+                                        </button>
+                                    </>
+                                )}
+
+                                {trimmedSearch.length > 0 && (
+                                    <>
+                                        <div className="px-2 py-1 flex items-center justify-between text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                                            <span>Registered Customers</span>
+                                            {isSearchingCustomers && (
+                                                <Loader2 className="w-3 h-3 animate-spin text-emerald-500" />
+                                            )}
+                                        </div>
+
+                                        {isSearchingCustomers && customerSearchResults.length === 0 ? (
+                                            <div className="py-4 text-center text-[11px] font-medium text-slate-400">
+                                                Searching registered names...
+                                            </div>
+                                        ) : (
+                                            <>
+                                                {customerSearchResults.map((customer, idx) => {
+                                                    const isSelected = selectedCustomer?.id === customer.id;
+                                                    const isHighlighted = highlightedIndex === idx;
+                                                    const bal = Number(customer.credit_balance || 0);
+
+                                                    return (
+                                                        <button
+                                                            key={customer.id}
+                                                            type="button"
+                                                            onMouseEnter={() => setHighlightedIndex(idx)}
+                                                            onClick={() => handleChooseCustomer(customer)}
+                                                            className={`w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg text-left text-xs transition-colors cursor-pointer ${
+                                                                isHighlighted || isSelected
+                                                                    ? 'bg-emerald-500/15 text-[#5f7d00] dark:text-emerald-300 font-extrabold'
+                                                                    : 'text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800/80 font-semibold'
+                                                            }`}
+                                                        >
+                                                            <div className="min-w-0 flex-1">
+                                                                <div className="flex items-center gap-1.5 min-w-0">
+                                                                    <span className="truncate">{customer.name}</span>
+                                                                    {bal > 0 && (
+                                                                        <span className="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-amber-500/15 text-amber-600 dark:text-amber-300 shrink-0">
+                                                                            ₱{bal.toFixed(0)}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                {(customer.phone || customer.address) && (
+                                                                    <div className="flex items-center gap-2 text-[10px] text-slate-400 mt-0.5 truncate">
+                                                                        {customer.phone && (
+                                                                            <span className="inline-flex items-center gap-0.5 shrink-0">
+                                                                                <Phone className="w-2.5 h-2.5" />
+                                                                                {customer.phone}
+                                                                            </span>
+                                                                        )}
+                                                                        {customer.address && (
+                                                                            <span className="inline-flex items-center gap-0.5 truncate">
+                                                                                <MapPin className="w-2.5 h-2.5 shrink-0" />
+                                                                                <span className="truncate">{customer.address}</span>
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            {isSelected && (
+                                                                <Check className="w-3.5 h-3.5 shrink-0 stroke-[2.5]" />
+                                                            )}
+                                                        </button>
+                                                    );
+                                                })}
+
+                                                {!isSearchingCustomers && customerSearchResults.length === 0 && (
+                                                    <div className="py-2.5 px-2 text-center text-[11px] text-slate-400">
+                                                        No registered customer named &ldquo;{trimmedSearch}&rdquo;
+                                                    </div>
+                                                )}
+
+                                                {/* Quick Register New Customer Option */}
+                                                {!isSearchingCustomers &&
+                                                    debouncedCustomerSearchTerm &&
+                                                    !hasExactNameMatch &&
+                                                    handleAddCustomer && (
+                                                        <div className="pt-1 border-t border-slate-100 dark:border-slate-800">
+                                                            <button
+                                                                type="button"
+                                                                onClick={async () => {
+                                                                    await handleAddCustomer(debouncedCustomerSearchTerm);
+                                                                    setIsDropdownOpen(false);
+                                                                    setIsEditingSelected(false);
+                                                                }}
+                                                                disabled={createCustomerMutation?.isPending || isDemo}
+                                                                className="w-full h-8 px-2.5 rounded-lg bg-[#8DB600] hover:bg-[#7ca000] text-white text-[11px] font-bold flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer disabled:opacity-50 transition-colors"
+                                                            >
+                                                                <UserPlus className="w-3.5 h-3.5 shrink-0" />
+                                                                <span className="truncate">
+                                                                    {createCustomerMutation?.isPending
+                                                                        ? 'Adding...'
+                                                                        : `+ Register "${debouncedCustomerSearchTerm}"`}
+                                                                </span>
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                            </>
+                                        )}
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </CardHeader>
 
