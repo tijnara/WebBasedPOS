@@ -63,6 +63,48 @@ const RELOAD_GUARD_KEY = 'seaside_last_auto_reload_ts';
 const LAST_ACTIVE_STORAGE_KEY = 'seaside_last_active_at';
 const IDLE_THRESHOLD_MS = 30 * 60 * 1000; // 30 minutes closed/idle threshold
 
+// --- WATER RIPPLE CSS LOADER ---
+const WaterRippleLoader = ({ text = "Loading..." }) => {
+    return (
+        <div className="flex flex-col items-center justify-center gap-5">
+            <style>{`
+                @keyframes water-ripple {
+                    0% { transform: scale(0.1); opacity: 1; border-width: 4px; }
+                    100% { transform: scale(1.6); opacity: 0; border-width: 1px; }
+                }
+                @keyframes float-bounce {
+                    0%, 100% { transform: translateY(0); }
+                    50% { transform: translateY(-4px); }
+                }
+            `}</style>
+            <div className="relative w-20 h-20 flex items-center justify-center">
+                {/* Expanding Outer Ring (Blue) */}
+                <div
+                    className="absolute inset-0 rounded-full border-sky-400 opacity-0"
+                    style={{ animation: 'water-ripple 1.5s cubic-bezier(0.1, 0.8, 0.3, 1) infinite' }}
+                />
+                {/* Expanding Inner Ring (Seaside Green) */}
+                <div
+                    className="absolute inset-0 rounded-full border-[#8DB600] opacity-0"
+                    style={{ animation: 'water-ripple 1.5s cubic-bezier(0.1, 0.8, 0.3, 1) infinite 0.4s' }}
+                />
+                {/* Center Brand Identity */}
+                <img
+                    src="/seaside.png"
+                    alt="Seaside Logo"
+                    className="w-9 h-9 object-contain z-10"
+                    style={{ animation: 'float-bounce 2s ease-in-out infinite' }}
+                />
+            </div>
+            {text && (
+                <div className="text-[10px] sm:text-[11px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 animate-pulse">
+                    {text}
+                </div>
+            )}
+        </div>
+    );
+};
+
 function RealtimeSyncManager() {
     useRealtimeSync();
     return null;
@@ -247,10 +289,11 @@ function AuthGate({ children }) {
         }
     }, []);
 
+    // Initial load state replaced with Ripple Animation
     if (!sessionLoaded || isExpiringSession) {
         return (
-            <div className="flex items-center justify-center min-h-screen bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300 text-xs sm:text-sm font-medium">
-                {isExpiringSession ? 'Session expired after inactivity. Returning to login...' : 'Loading application...'}
+            <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-950">
+                <WaterRippleLoader text={isExpiringSession ? 'Session Expiring...' : 'Loading Workspace...'} />
             </div>
         );
     }
@@ -264,8 +307,8 @@ function AuthGate({ children }) {
     }
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300 text-xs sm:text-sm font-medium">
-            Returning to login...
+        <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-950">
+            <WaterRippleLoader text="Returning to login..." />
         </div>
     );
 }
@@ -589,9 +632,13 @@ export default function App({ Component, pageProps }) {
             }
             const targetPath = url.split('?')[0].split('#')[0].toLowerCase();
             const currentPath = router.asPath.split('?')[0].split('#')[0].toLowerCase();
+
             if (hasWebGL && (targetPath === '/' || targetPath === '/about') && targetPath !== currentPath) {
                 setIsRouteLoading(true);
                 setIsTransitionActive(true);
+            } else if (targetPath !== currentPath) {
+                // Engage standard layout loader for inner app pages
+                setIsRouteLoading(true);
             }
         };
 
@@ -676,6 +723,13 @@ export default function App({ Component, pageProps }) {
                             onComplete={() => setIsTransitionActive(false)}
                         />
                     </TransitionErrorBoundary>
+                )}
+
+                {/* Global Standard Route Transition Loader overlay */}
+                {isRouteLoading && !isTransitionActive && !isOffline && (
+                    <div className="fixed inset-0 z-[999] flex items-center justify-center bg-white/70 dark:bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200">
+                        <WaterRippleLoader text="Loading..." />
+                    </div>
                 )}
 
                 <AppErrorBoundary>
