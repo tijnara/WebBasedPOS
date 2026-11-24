@@ -85,63 +85,84 @@ export default function SeasideNewLanding() {
     const [regError, setRegError] = useState(null);
     const [pendingApprovalInfo, setPendingApprovalInfo] = useState(null);
     const [isDemoLoading, setIsDemoLoading] = useState(false);
+    const [isLoggingIn, setIsLoggingIn] = useState(false);
     const [contactPrefill, setContactPrefill] = useState(null);
     const [tilt, setTilt] = useState({ x: 0, y: 0 });
     const [canRenderWebGL, setCanRenderWebGL] = useState(false);
 
     useEffect(() => {
         setCanRenderWebGL(checkWebGLSupport());
-        router.prefetch('/about');
+        router.prefetch?.('/about')?.catch(() => {});
     }, [router]);
 
-    const handleDemoLogin = () => {
+    const handleDemoLogin = async () => {
+        if (isLoggingIn || isDemoLoading) return;
+        setIsLoggingIn(true);
         setIsDemoLoading(true);
-        setAuth({
-            id: 'demo-user',
-            name: 'Demo User',
-            email: 'demo@gmail.com',
-            role: 'Admin',
-            isadmin: true,
-            isDemo: true
-        });
-        router.push('/pos');
-    };
-
-    const handleLogin = async (data) => {
         setAuthError(null);
         setPendingApprovalInfo(null);
 
-        if (data.email === 'demo@gmail.com' && data.password === 'demodemo') {
-            handleDemoLogin();
-            return;
-        }
-
-        const result = await login({
-            email: data.email,
-            password: data.password
-        });
-
-        if (result?.status === 'PENDING_APPROVAL') {
-            setPendingApprovalInfo({
-                identifier: data.email.trim(),
-                title: 'Account Awaiting Admin Approval',
-                message:
-                    result.message ||
-                    'Your account is pending administrator approval before you can access the system.'
+        try {
+            setAuth({
+                id: 'demo-user',
+                name: 'Demo User',
+                email: 'demo@gmail.com',
+                role: 'Admin',
+                isadmin: true,
+                isAdmin: true,
+                isDemo: true
             });
-            return;
+            await router.push('/pos');
+        } finally {
+            setIsLoggingIn(false);
         }
+    };
 
-        if (result?.status === 'INVALID_CREDENTIALS' || result?.status === 'ERROR') {
-            setAuthError(result.message || 'Invalid email or password.');
-            return;
-        }
+    const handleLogin = async (data) => {
+        if (isLoggingIn) return;
+        setIsLoggingIn(true);
+        setAuthError(null);
+        setPendingApprovalInfo(null);
 
-        if (result && result.id) {
-            setAuth({ ...result, isDemo: false });
-            router.push('/pos');
-        } else {
-            setAuthError('Invalid email or password.');
+        try {
+            if (data.email === 'demo@gmail.com' && data.password === 'demodemo') {
+                await handleDemoLogin();
+                return;
+            }
+
+            const result = await login({
+                email: data.email,
+                password: data.password
+            });
+
+            if (result?.status === 'PENDING_APPROVAL') {
+                setPendingApprovalInfo({
+                    identifier: data.email.trim(),
+                    title: 'Account Awaiting Admin Approval',
+                    message:
+                        result.message ||
+                        'Your account is pending administrator approval before you can access the system.'
+                });
+                return;
+            }
+
+            if (result?.status === 'INVALID_CREDENTIALS' || result?.status === 'ERROR') {
+                setAuthError(result.message || 'Invalid email or password.');
+                return;
+            }
+
+            const authenticatedUser = result?.user || (result?.id ? result : null);
+            if (authenticatedUser && authenticatedUser.id) {
+                setAuth({
+                    ...authenticatedUser,
+                    isDemo: false
+                });
+                await router.push('/pos');
+            } else {
+                setAuthError('Invalid email or password.');
+            }
+        } finally {
+            setIsLoggingIn(false);
         }
     };
 
