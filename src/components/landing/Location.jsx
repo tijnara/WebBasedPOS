@@ -1,20 +1,60 @@
 // src/components/landing/Location.jsx
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useStore } from '../../store/useStore';
 import AnimatedLandingIcon from './AnimatedLandingIcon';
+
+const DEFAULT_EMBED_URL =
+    'https://maps.google.com/maps?q=16.0432862,120.1322205+(SEASIDE+Water+Refilling+Station)&z=16&output=embed';
+
+function resolveSafeMapEmbedUrl(rawValue, fallbackAddress) {
+    if (!rawValue || typeof rawValue !== 'string') {
+        return DEFAULT_EMBED_URL;
+    }
+
+    let candidate = rawValue.trim();
+
+    // 1. If full <iframe src="..."> HTML was pasted in Page Settings, extract the src URL
+    const iframeMatch = candidate.match(/src=["']([^"']+)["']/i);
+    if (iframeMatch?.[1]) {
+        candidate = iframeMatch[1].trim();
+    }
+
+    // 2. Allow clean embed URLs directly
+    if (
+        candidate.startsWith('https://www.google.com/maps/embed?') ||
+        candidate.includes('output=embed')
+    ) {
+        return candidate;
+    }
+
+    // 3. If a regular Google Maps share/place URL was saved (which triggers frame-ancestors 'self'),
+    //    extract coordinates if present or fall back to an embed-safe query URL
+    const coordMatch = candidate.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+    if (coordMatch) {
+        const [, lat, lng] = coordMatch;
+        return `https://maps.google.com/maps?q=${lat},${lng}+(SEASIDE+Water+Refilling+Station)&z=16&output=embed`;
+    }
+
+    const query = encodeURIComponent(
+        `SEASIDE Water Refilling Station, ${fallbackAddress || 'Laois, Labrador, Pangasinan'}`
+    );
+    return `https://maps.google.com/maps?q=${query}&z=16&output=embed`;
+}
 
 export default function Location({ settings }) {
     const darkMode = useStore((s) => s.darkMode);
     const [hoverRow, setHoverRow] = useState(-1);
     const [rowTick, setRowTick] = useState(0);
 
-    const googleMapsEmbedUrl =
-        settings?.location_embed ||
-        'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3834.3333333333335!2d120.1322205!3d16.0432862!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3393e1d08454d96f%3A0xfd7e1df20c90037d!2sSEASIDE%20Water%20Refilling%20Station!5e0!3m2!1sen!2sph!4v1630000000000!5m2!1sen!2sph';
     const physicalAddress = settings?.physical_address || 'Barangay Laois, Labrador, 2402 Pangasinan';
     const businessHours = settings?.business_hours || 'Mon - Sat: 8:00 AM - 5:00 PM';
     const phone = settings?.contact_number || '+63 960 219 6388';
+
+    const googleMapsEmbedUrl = useMemo(
+        () => resolveSafeMapEmbedUrl(settings?.location_embed, physicalAddress),
+        [settings?.location_embed, physicalAddress]
+    );
 
     const iconStroke = darkMode ? '#a3d100' : '#659000';
 
@@ -165,7 +205,7 @@ export default function Location({ settings }) {
                             width="100%"
                             height="100%"
                             className="w-full h-full min-h-[380px] border-0"
-                            allowFullScreen=""
+                            allowFullScreen
                             loading="lazy"
                             referrerPolicy="no-referrer-when-downgrade"
                             title="Station Location"

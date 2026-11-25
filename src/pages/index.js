@@ -9,9 +9,8 @@ import { login, register as registerAccount } from '../lib/api';
 import LandingBackground from '../components/landing/LandingBackground';
 import LandingNavbar from '../components/landing/LandingNavbar';
 import LandingHero from '../components/landing/LandingHero';
-import LandingAuthCard from '../components/landing/LandingAuthCard';
+import VoltAuthCard from '../components/landing/VoltAuthCard';
 import LandingGlobalStyles from '../components/landing/LandingGlobalStyles';
-import LoginCharacterEntrance from '../components/transitions/LoginCharacterEntrance';
 import ForgotPasswordModal from '../components/landing/ForgotPasswordModal';
 
 function checkWebGLSupport() {
@@ -90,7 +89,7 @@ export default function SeasideNewLanding() {
     const [isDemoLoading, setIsDemoLoading] = useState(false);
     const [isLoggingIn, setIsLoggingIn] = useState(false);
     const [contactPrefill, setContactPrefill] = useState(null);
-    const [tilt, setTilt] = useState({ x: 0, y: 0 });
+    const [tilt] = useState({ x: 0, y: 0 });
     const [canRenderWebGL, setCanRenderWebGL] = useState(false);
 
     useEffect(() => {
@@ -234,11 +233,61 @@ export default function SeasideNewLanding() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-[#f3fae6] via-[#ecfdf5] to-[#e0f2fe] dark:from-[#060b13] dark:via-[#08101c] dark:to-[#060b13] relative overflow-x-hidden font-sans text-slate-800 dark:text-slate-100 flex flex-col justify-between perspective-wrapper transition-colors duration-300">
+        <div className="seaside-landing-shell h-[100dvh] max-h-[100dvh] bg-[#070d18] bg-gradient-to-br from-[#f3fae6] via-[#ecfdf5] to-[#e0f2fe] dark:from-[#060b13] dark:via-[#08101c] dark:to-[#060b13] relative overflow-hidden font-sans text-slate-800 dark:text-slate-100 flex flex-col justify-between perspective-wrapper transition-colors duration-300">
             <Head>
                 <title>Seaside | Welcome</title>
                 <meta name="description" content="Seaside Enterprise Management System" />
+                <link rel="preconnect" href="https://fonts.googleapis.com" />
+                <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+                <link
+                    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap"
+                    rel="stylesheet"
+                />
             </Head>
+
+            {/* Lock vertical & horizontal scroll across ALL viewports (Desktop + Mobile) */}
+            <style jsx global>{`
+                html:has(.seaside-landing-shell),
+                body:has(.seaside-landing-shell) {
+                    overflow: hidden !important;
+                    height: 100dvh !important;
+                    overscroll-behavior: none;
+                }
+
+                /* Desktop compact laptop height scaling */
+                @media (min-width: 1024px) and (max-height: 820px) {
+                    .seaside-landing-grid {
+                        transform: scale(0.9);
+                        transform-origin: center center;
+                    }
+                }
+                @media (min-width: 1024px) and (max-height: 730px) {
+                    .seaside-landing-grid {
+                        transform: scale(0.82);
+                        transform-origin: center center;
+                    }
+                }
+
+                /* Mobile compact phone height scaling */
+                @media (max-width: 1023px) and (max-height: 780px) {
+                    .seaside-volt-mobile-fit {
+                        transform: scale(0.9);
+                        transform-origin: center center;
+                    }
+                }
+                @media (max-width: 1023px) and (max-height: 690px) {
+                    .seaside-volt-mobile-fit {
+                        transform: scale(0.8);
+                        transform-origin: center center;
+                    }
+                }
+                @media (max-width: 1023px) and (max-height: 610px) {
+                    .seaside-volt-mobile-fit {
+                        transform: scale(0.72);
+                        transform-origin: center center;
+                    }
+                }
+            `}</style>
 
             {canRenderWebGL ? (
                 <BackgroundErrorBoundary fallback={<StaticLandingFallback />}>
@@ -248,42 +297,42 @@ export default function SeasideNewLanding() {
                 <StaticLandingFallback />
             )}
 
-            <LandingNavbar
-                activeCard={activeCard}
-                onToggleContact={handleContactToggle}
-                darkMode={darkMode}
-                toggleDarkMode={toggleDarkMode}
-            />
+            <div className="shrink-0 relative z-30">
+                <LandingNavbar
+                    activeCard={activeCard}
+                    onToggleContact={handleContactToggle}
+                    darkMode={darkMode}
+                    toggleDarkMode={toggleDarkMode}
+                />
+            </div>
 
-            <main className="relative z-10 flex-grow flex items-center justify-center p-4 sm:p-6 mt-2 sm:mt-0">
-                <div className="max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
-                    <LandingHero />
+            <main className="relative z-20 flex-1 min-h-0 flex items-center justify-center px-3 py-0 sm:px-6 lg:px-12">
+                <div className="seaside-landing-grid max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-0 lg:gap-14 items-center">
+                    <div className="hidden lg:block">
+                        <LandingHero />
+                    </div>
 
-                    <LoginCharacterEntrance canRenderWebGL={canRenderWebGL} enabled={true}>
-                        <LandingAuthCard
+                    <div className="seaside-volt-mobile-fit w-full flex justify-center lg:justify-end">
+                        <VoltAuthCard
                             activeCard={activeCard}
                             onSwitchCard={switchCard}
-                            tilt={tilt}
-                            onTiltChange={setTilt}
-                            // Login props
                             onLogin={handleLogin}
                             onDemoLogin={handleDemoLogin}
                             isDemoLoading={isDemoLoading}
+                            isLoggingIn={isLoggingIn}
                             authError={authError}
                             pendingApprovalInfo={pendingApprovalInfo}
                             onDismissPending={() => setPendingApprovalInfo(null)}
                             onNotifyAdmin={handleRequestApprovalFollowUp}
                             onForgotPassword={handleOpenForgotPassword}
-                            // Sign Up props
                             onSignUp={handleSignUp}
                             regError={regError}
-                            // Contact props
                             businessHours={businessHours}
                             physicalAddress={physicalAddress}
                             facebookLink={facebookLink}
                             contactPrefill={contactPrefill}
                         />
-                    </LoginCharacterEntrance>
+                    </div>
                 </div>
             </main>
 
@@ -293,8 +342,8 @@ export default function SeasideNewLanding() {
                 initialEmail={forgotInitialEmail}
             />
 
-            <footer className="relative z-20 py-4 px-6 text-center text-[11px] sm:text-xs font-medium text-slate-600 dark:text-slate-400 border-t border-slate-200/70 dark:border-white/10 bg-white/50 dark:bg-slate-950/50 backdrop-blur-md transition-colors">
-                <p>
+            <footer className="shrink-0 relative z-20 py-2 px-4 text-center text-[10.5px] sm:text-xs font-medium text-slate-600 dark:text-slate-400 border-t border-slate-200/70 dark:border-white/10 bg-white/50 dark:bg-slate-950/50 backdrop-blur-md transition-colors">
+                <p className="truncate">
                     &copy; {new Date().getFullYear()} Seaside Purified Water Refilling Station. All rights reserved. • By{' '}
                     <span className="font-bold text-green-800 dark:text-[#8DB600]">tijnara</span>
                 </p>

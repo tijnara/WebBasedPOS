@@ -1,86 +1,52 @@
 // src/components/landing/LandingHero.jsx
-import React, { useState } from 'react';
-import { useStore } from '../../store/useStore';
-import AnimatedLandingIcon from './AnimatedLandingIcon';
+import React from 'react';
+import {
+    Activity,
+    Warehouse,
+    FileSpreadsheet,
+    UserPlus,
+    Truck,
+    Share2
+} from 'lucide-react';
 
-const STATION_FEATURES = [
-    {
-        id: 'analytics',
-        iconName: 'activity',
-        text: 'Real-time Sales Analytics'
-    },
-    {
-        id: 'inventory',
-        iconName: 'folder',
-        text: 'Multi-warehouse Inventory'
-    },
-    {
-        id: 'finance',
-        iconName: 'calendar',
-        text: 'Financial Reporting'
-    },
-    {
-        id: 'customer',
-        iconName: 'userPlus',
-        text: 'Customer Management'
-    },
-    {
-        id: 'delivery',
-        iconName: 'home',
-        text: 'Delivery Tracking'
-    },
-    {
-        id: 'social',
-        iconName: 'share',
-        text: 'Social Media Integration'
-    }
+const FEATURES = [
+    { icon: Activity, label: 'Real-time Sales Analytics' },
+    { icon: Warehouse, label: 'Multi-warehouse Inventory' },
+    { icon: FileSpreadsheet, label: 'Financial Reporting' },
+    { icon: UserPlus, label: 'Customer Management' },
+    { icon: Truck, label: 'Delivery Tracking' },
+    { icon: Share2, label: 'Social Media Integration' }
 ];
 
 export default function LandingHero() {
-    const darkMode = useStore((s) => s.darkMode);
-    const [hoveredIndex, setHoveredIndex] = useState(-1);
-    const [hoverTick, setHoverTick] = useState(0);
-
     return (
-        <div className="space-y-6">
-            <h1 className="text-5xl lg:text-7xl font-extrabold leading-tight tracking-tight text-slate-900 dark:text-white drop-shadow-2xs">
-                Seaside <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#659000] via-emerald-600 to-cyan-600 dark:from-[#8DB600] dark:via-emerald-400 dark:to-cyan-400 animate-gradient-x">
-                    Sales
-                </span>{' '}
-                <br />
-                System
-            </h1>
+        <div className="hidden lg:flex flex-col justify-center space-y-6 select-none pr-4">
+            <div>
+                <h1 className="text-5xl xl:text-6xl font-black tracking-tight leading-[1.06] text-slate-900 dark:text-white">
+                    Seaside
+                    <span className="block text-emerald-500 dark:text-[#10b981]">
+                        Sales
+                    </span>
+                    <span className="block">System</span>
+                </h1>
 
-            <p className="text-base sm:text-lg text-slate-600 dark:text-slate-300 font-medium max-w-lg leading-relaxed">
-                Complete business management platform for modern water refilling stations. Streamline your operations from sales to delivery.
-            </p>
-
-            <div className="flex flex-col space-y-3 pt-2">
-                {STATION_FEATURES.map((item, idx) => (
-                    <div
-                        key={item.id}
-                        onMouseEnter={() => {
-                            setHoveredIndex(idx);
-                            setHoverTick((t) => t + 1);
-                        }}
-                        onMouseLeave={() => setHoveredIndex(-1)}
-                        className="group flex items-center space-x-3.5 text-slate-800 dark:text-slate-200 transition-transform duration-200 hover:translate-x-1"
-                    >
-                        <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-white/85 dark:bg-white/10 backdrop-blur-md flex items-center justify-center border border-lime-500/25 dark:border-white/15 text-[#5f7d00] dark:text-[#a3d100] shadow-[0_2px_10px_rgba(141,182,0,0.12)] dark:shadow-[0_0_12px_rgba(141,182,0,0.12)] group-hover:border-[#8DB600]/60 transition-colors">
-                            <AnimatedLandingIcon
-                                name={item.iconName}
-                                size={20}
-                                strokeColor={darkMode ? '#a3d100' : '#5f7d00'}
-                                triggerKey={hoveredIndex === idx ? hoverTick : 0}
-                            />
-                        </div>
-                        <span className="font-bold text-xs sm:text-sm group-hover:text-[#5f7d00] dark:group-hover:text-[#a3d100] transition-colors">
-                            {item.text}
-                        </span>
-                    </div>
-                ))}
+                <p className="mt-4 text-sm xl:text-base text-slate-600 dark:text-slate-300 max-w-lg leading-relaxed font-medium">
+                    Complete business management platform for modern water refilling stations. Streamline your operations from sales to delivery.
+                </p>
             </div>
+
+            <ul className="space-y-2.5 pt-1">
+                {FEATURES.map(({ icon: Icon, label }) => (
+                    <li key={label} className="flex items-center gap-3.5 group">
+                        <div className="w-8 h-8 rounded-full bg-white/80 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 flex items-center justify-center text-[#659000] dark:text-[#a3e635] shadow-2xs group-hover:border-[#8DB600]/60 transition-colors shrink-0">
+                            <Icon className="w-3.5 h-3.5" />
+                        </div>
+                        <span className="text-xs xl:text-sm font-bold text-slate-800 dark:text-slate-100 tracking-tight">
+                            {label}
+                        </span>
+                    </li>
+                ))}
+            </ul>
         </div>
     );
 }
