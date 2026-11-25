@@ -126,6 +126,7 @@ export default function Navbar() {
     const [cashShortage, setCashShortage] = useState(null);
     const [isStartShiftModalOpen, setIsStartShiftModalOpen] = useState(false);
     const [startingCash, setStartingCash] = useState('');
+    const [isEndingShift, setIsEndingShift] = useState(false);
 
     const [openCategories, setOpenCategories] = useState(() => new Set(['Sales & Operations']));
     const toggleCategory = (cat) => setOpenCategories(prev => {
@@ -344,7 +345,6 @@ export default function Navbar() {
     useEffect(() => {
         if (!clientUser?.id || isDemo) return;
 
-        // Clean up any stale navbar channels from previous renders / Strict Mode / HMR
         const basePrefix = `rt:navbar-${clientUser.id}`;
         supabase.getChannels().forEach((ch) => {
             if (
@@ -357,7 +357,6 @@ export default function Navbar() {
             }
         });
 
-        // Unique channel name guarantees a fresh, unsubscribed instance every time
         const uniqueChannelName = `${basePrefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
         const navChannel = supabase.channel(uniqueChannelName);
 
@@ -426,8 +425,17 @@ export default function Navbar() {
     }, [user, router.events]);
 
     const handleLogout = async () => {
-        if (logout) await logout();
-        await router.push('/');
+        try {
+            if (logout) await logout();
+        } catch (err) {
+            console.error('Logout error:', err);
+        } finally {
+            if (router.pathname !== '/') {
+                await router.replace('/');
+            } else if (typeof window !== 'undefined') {
+                window.location.assign('/');
+            }
+        }
     };
 
     const checkActiveShift = async () => {
@@ -457,14 +465,17 @@ export default function Navbar() {
     };
 
     const handleStartShift = async () => {
-        if (!startingCash) return;
+        if (startingCash === '' || startingCash === null || startingCash === undefined) return;
+        const parsedStart = parseFloat(startingCash);
+        if (Number.isNaN(parsedStart) || parsedStart < 0) return;
+
         if (user.isDemo) {
-            sessionStorage.setItem(`demo_shift_${user.id}`, JSON.stringify({ start_time: new Date().toISOString(), starting_cash: parseFloat(startingCash), demo_sales: 0 }));
+            sessionStorage.setItem(`demo_shift_${user.id}`, JSON.stringify({ start_time: new Date().toISOString(), starting_cash: parsedStart, demo_sales: 0 }));
             setIsStartShiftModalOpen(false);
             await queryClient.invalidateQueries({ queryKey: ['sales', 'active-shift'] });
             return;
         }
-        const { error } = await supabase.from('shifts').insert({ staff_id: user.id, start_time: new Date().toISOString(), starting_cash: parseFloat(startingCash), status: 'OPEN' });
+        const { error } = await supabase.from('shifts').insert({ staff_id: user.id, start_time: new Date().toISOString(), starting_cash: parsedStart, status: 'OPEN' });
         if (!error) {
             setIsStartShiftModalOpen(false);
             await queryClient.invalidateQueries({ queryKey: ['sales', 'active-shift'] });
@@ -506,21 +517,43 @@ export default function Navbar() {
         }
     };
 
-    const handleConfirmEndShift = async () => {
-        if (!user) return;
-        if (user.isDemo) {
-            sessionStorage.removeItem(`demo_shift_${user.id}`);
-            sessionStorage.removeItem(`pos_shift_prompted_${user.id}`);
+    const handleConfirmEndShift = async (submittedCash) => {
+        const activeUser = user || clientUser;
+        if (!activeUser || isEndingShift) return;
+
+        const rawCash =
+            submittedCash !== undefined && submittedCash !== null && submittedCash !== ''
+                ? submittedCash
+                : actualCash;
+        const parsedEndingCash = parseFloat(rawCash);
+        const endingCashValue = Number.isNaN(parsedEndingCash) ? 0 : parsedEndingCash;
+
+        setIsEndingShift(true);
+        try {
+            if (activeUser.isDemo) {
+                sessionStorage.removeItem(`demo_shift_${activeUser.id}`);
+                sessionStorage.removeItem(`pos_shift_prompted_${activeUser.id}`);
+            } else {
+                await supabase
+                    .from('shifts')
+                    .update({
+                        end_time: new Date().toISOString(),
+                        ending_cash: endingCashValue,
+                        status: 'CLOSED'
+                    })
+                    .eq('staff_id', activeUser.id)
+                    .eq('status', 'OPEN');
+                sessionStorage.removeItem(`pos_shift_prompted_${activeUser.id}`);
+            }
+        } catch (err) {
+            console.error('End shift error:', err);
+        } finally {
             setIsShiftModalOpen(false);
-            return handleLogout();
+            setIsEndingShift(false);
+            await handleLogout();
         }
-        await supabase.from('shifts').update({ end_time: new Date().toISOString(), ending_cash: parseFloat(actualCash), status: 'CLOSED' }).eq('staff_id', user.id).eq('status', 'OPEN');
-        sessionStorage.removeItem(`pos_shift_prompted_${user.id}`);
-        setIsShiftModalOpen(false);
-        await handleLogout();
     };
 
-    // Instant SPA navigation without redundant query invalidation
     const handleNavigate = (path, category, isMessages) => {
         if (category) setOpenCategories(new Set([category]));
         if (isMessages) markMessagesAsSeen();
@@ -866,12 +899,15 @@ export default function Navbar() {
 
             <EndShiftModal
                 isOpen={isShiftModalOpen}
-                onClose={() => setIsShiftModalOpen(false)}
+                onClose={() => {
+                    if (!isEndingShift) setIsShiftModalOpen(false);
+                }}
                 shiftStats={shiftStats}
                 actualCash={actualCash}
                 onCashInputChange={handleCashInputChange}
                 cashShortage={cashShortage}
                 onConfirmEndShift={handleConfirmEndShift}
+                isSubmitting={isEndingShift}
             />
         </>
     );
