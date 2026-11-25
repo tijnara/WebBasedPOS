@@ -265,7 +265,7 @@ export default function VoltAuthCard({
                         transform: translateY(0px) rotate(0deg);
                     }
                     25% {
-                        transform: translateY(-4.5px) rotate(-5deg);
+                        transform: translateY(-5px) rotate(-5deg);
                     }
                     50% {
                         transform: translateY(2px) rotate(2.5deg);
@@ -287,7 +287,7 @@ export default function VoltAuthCard({
                         transform: translateY(2px) rotate(2.5deg);
                     }
                     50% {
-                        transform: translateY(-5px) rotate(5deg);
+                        transform: translateY(-5.5px) rotate(5deg);
                     }
                     75% {
                         transform: translateY(1px) rotate(-2.5deg);
@@ -300,41 +300,64 @@ export default function VoltAuthCard({
 
                 @keyframes thrusterConePulse {
                     0%, 100% {
-                        transform: scaleX(0.92) scaleY(0.92);
+                        transform: scaleX(0.9) scaleY(0.88);
                         opacity: 0.78;
                     }
-                    50% {
-                        transform: scaleX(1.14) scaleY(1.16);
+                    45% {
+                        transform: scaleX(1.24) scaleY(1.24);
                         opacity: 1;
+                    }
+                    75% {
+                        transform: scaleX(1.08) scaleY(1.05);
+                        opacity: 0.9;
                     }
                 }
                 .thruster-cone {
-                    animation: thrusterConePulse 1.45s ease-in-out infinite;
-                    transform-origin: 38px 20px;
+                    animation: thrusterConePulse 1.15s ease-in-out infinite;
+                    transform-origin: 40px 21px;
+                }
+
+                @keyframes boosterWaveRing {
+                    0% {
+                        transform: translateY(0px) scaleX(0.75);
+                        opacity: 0.95;
+                    }
+                    100% {
+                        transform: translateY(22px) scaleX(1.45);
+                        opacity: 0;
+                    }
+                }
+                .booster-ring-1 {
+                    animation: boosterWaveRing 1.2s ease-out infinite;
+                    transform-origin: 40px 24px;
+                }
+                .booster-ring-2 {
+                    animation: boosterWaveRing 1.2s ease-out infinite 0.6s;
+                    transform-origin: 40px 24px;
                 }
 
                 @keyframes thrusterBubbleDrift {
                     0% {
                         transform: translateY(0px) scale(0.75);
-                        opacity: 0.9;
+                        opacity: 0.95;
                     }
                     65% {
-                        transform: translateY(13px) scale(1.08);
-                        opacity: 0.7;
+                        transform: translateY(15px) scale(1.15);
+                        opacity: 0.75;
                     }
                     100% {
-                        transform: translateY(22px) scale(0.5);
+                        transform: translateY(26px) scale(0.45);
                         opacity: 0;
                     }
                 }
                 .thruster-bubble-a {
-                    animation: thrusterBubbleDrift 2s ease-out infinite;
+                    animation: thrusterBubbleDrift 1.45s ease-out infinite;
                 }
                 .thruster-bubble-b {
-                    animation: thrusterBubbleDrift 2.4s ease-out infinite 0.55s;
+                    animation: thrusterBubbleDrift 1.75s ease-out infinite 0.4s;
                 }
                 .thruster-bubble-c {
-                    animation: thrusterBubbleDrift 1.85s ease-out infinite 1.05s;
+                    animation: thrusterBubbleDrift 1.35s ease-out infinite 0.8s;
                 }
 
                 @keyframes peaceWave {
@@ -531,7 +554,7 @@ export default function VoltAuthCard({
                 }
             `}</style>
 
-            <div className="w-full max-w-[385px] sm:max-w-[400px] flex flex-col items-center relative my-0 pb-10 z-10 mx-auto">
+            <div className="w-full max-w-[385px] sm:max-w-[400px] flex flex-col items-center relative my-0 pb-14 z-10 mx-auto">
                 {/* Speech Bubble */}
                 <section
                     aria-label="Robot dialogue"
@@ -648,7 +671,7 @@ export default function VoltAuthCard({
                     </div>
                 </div>
 
-                {/* Form Card Container with Volt's Peace Hand & Hydro-Thruster Boots Behind Card */}
+                {/* Form Card Container with Volt's Peace Hand & High-Thrust Boots Behind Card */}
                 <div className="relative w-full z-20">
                     {/* Volt Left Peace-Sign Hand Behind Top-Left Edge of Card */}
                     <div
@@ -739,110 +762,122 @@ export default function VoltAuthCard({
                     </div>
 
                     {/* Left Hydro-Thruster Boot Peeking Out Behind Bottom-Left of Login Card */}
-                    <div className="robot-foot-left absolute -bottom-7 left-10 sm:left-12 z-10 pointer-events-none flex flex-col items-center">
+                    <div className="robot-foot-left absolute -bottom-11 left-8 sm:left-10 z-10 pointer-events-none flex flex-col items-center">
                         <svg
-                            width="76"
-                            height="44"
-                            viewBox="0 0 76 44"
+                            width="82"
+                            height="54"
+                            viewBox="0 0 82 54"
                             fill="none"
                             xmlns="http://www.w3.org/2000/svg"
-                            className="overflow-visible drop-shadow-[0_6px_14px_rgba(56,189,248,0.35)]"
+                            className="overflow-visible drop-shadow-[0_8px_20px_rgba(56,189,248,0.65)]"
                             aria-hidden="true"
                         >
                             <defs>
-                                <linearGradient id="leftHydroOuter" x1="38" y1="15" x2="38" y2="40" gradientUnits="userSpaceOnUse">
-                                    <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.82" />
-                                    <stop offset="65%" stopColor="#22d3ee" stopOpacity="0.28" />
+                                <linearGradient id="leftBoosterOuter" x1="41" y1="18" x2="41" y2="50" gradientUnits="userSpaceOnUse">
+                                    <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.95" />
+                                    <stop offset="55%" stopColor="#22d3ee" stopOpacity="0.48" />
                                     <stop offset="100%" stopColor="#38bdf8" stopOpacity="0" />
                                 </linearGradient>
-                                <linearGradient id="leftHydroCore" x1="38" y1="15" x2="38" y2="30" gradientUnits="userSpaceOnUse">
-                                    <stop offset="0%" stopColor="#bef264" stopOpacity="0.9" />
-                                    <stop offset="55%" stopColor="#38bdf8" stopOpacity="0.65" />
+                                <linearGradient id="leftBoosterCore" x1="41" y1="18" x2="41" y2="38" gradientUnits="userSpaceOnUse">
+                                    <stop offset="0%" stopColor="#bef264" stopOpacity="1" />
+                                    <stop offset="50%" stopColor="#38bdf8" stopOpacity="0.85" />
                                     <stop offset="100%" stopColor="#38bdf8" stopOpacity="0" />
                                 </linearGradient>
                             </defs>
 
                             {/* Ankle Strut & Glowing Cyan Joint */}
-                            <rect x="31" y="0" width="14" height="9.5" rx="2.5" fill="#0f172a" stroke="#334155" strokeWidth="1.6" />
-                            <circle cx="38" cy="4.8" r="2.9" fill="#38bdf8" />
-                            <circle cx="38" cy="4.8" r="1.2" fill="#e0f2fe" />
+                            <rect x="34" y="0" width="14" height="10" rx="2.5" fill="#0f172a" stroke="#334155" strokeWidth="1.6" />
+                            <circle cx="41" cy="5" r="3" fill="#38bdf8" />
+                            <circle cx="41" cy="5" r="1.2" fill="#e0f2fe" />
 
                             {/* Side Hydro-Stabilizer Fins */}
-                            <path d="M12 12L17.5 10V17L12 15.5V12Z" fill="#0f172a" stroke="#334155" strokeWidth="1.4" />
-                            <path d="M64 12L58.5 10V17L64 15.5V12Z" fill="#0f172a" stroke="#334155" strokeWidth="1.4" />
+                            <path d="M12 12.5L18.5 10.5V17.5L12 16V12.5Z" fill="#0f172a" stroke="#334155" strokeWidth="1.4" />
+                            <path d="M70 12.5L63.5 10.5V17.5L70 16V12.5Z" fill="#0f172a" stroke="#334155" strokeWidth="1.4" />
 
                             {/* Main Hydro-Thruster Boot Housing */}
-                            <rect x="16.5" y="8.5" width="43" height="9.5" rx="4.75" fill="#131d2e" stroke="#38bdf8" strokeWidth="1.5" />
-                            <rect x="19.5" y="11.3" width="7.5" height="4" rx="2" fill="#38bdf8" />
-                            <rect x="29" y="11" width="18" height="4.5" rx="2.25" fill="#a3e635" />
-                            <rect x="49" y="11.3" width="7.5" height="4" rx="2" fill="#38bdf8" />
+                            <rect x="17.5" y="9" width="47" height="10" rx="5" fill="#131d2e" stroke="#38bdf8" strokeWidth="1.6" />
+                            <rect x="21" y="11.8" width="8" height="4.2" rx="2.1" fill="#38bdf8" />
+                            <rect x="31" y="11.5" width="20" height="4.8" rx="2.4" fill="#a3e635" />
+                            <rect x="53" y="11.8" width="8" height="4.2" rx="2.1" fill="#38bdf8" />
 
-                            {/* Bottom Nozzle Collar */}
-                            <rect x="27.5" y="17.5" width="21" height="2.8" rx="1.4" fill="#0f172a" stroke="#38bdf8" strokeOpacity="0.7" strokeWidth="1" />
+                            {/* High-Power Nozzle Collar */}
+                            <rect x="29.5" y="18.5" width="23" height="3.2" rx="1.6" fill="#0f172a" stroke="#bef264" strokeOpacity="0.85" strokeWidth="1.1" />
 
-                            {/* Hydro-Thruster Plume */}
-                            <polygon points="27,20.3 49,20.3 45.5,38 30.5,38" fill="url(#leftHydroOuter)" className="thruster-cone" />
-                            <polygon points="32.5,20.3 43.5,20.3 41,30 35,30" fill="url(#leftHydroCore)" className="thruster-cone" />
+                            {/* Strong Booster Jet Cone & High-Energy Core */}
+                            <polygon points="27,21.7 55,21.7 51,48 31,48" fill="url(#leftBoosterOuter)" className="thruster-cone" />
+                            <polygon points="33.5,21.7 48.5,21.7 45.5,37 36.5,37" fill="url(#leftBoosterCore)" className="thruster-cone" />
 
-                            {/* Animated Water Bubbles */}
-                            <circle cx="21" cy="23" r="2.5" stroke="#7dd3fc" strokeOpacity="0.85" strokeWidth="1.15" className="thruster-bubble-a" />
-                            <circle cx="55" cy="23.5" r="2.7" stroke="#7dd3fc" strokeOpacity="0.8" strokeWidth="1.15" className="thruster-bubble-b" />
-                            <circle cx="25.5" cy="30" r="2" stroke="#a5f3fc" strokeOpacity="0.75" strokeWidth="1.1" className="thruster-bubble-c" />
-                            <circle cx="50.5" cy="30.5" r="2.1" stroke="#a5f3fc" strokeOpacity="0.75" strokeWidth="1.1" className="thruster-bubble-a" />
+                            {/* Booster Thrust Shock Rings */}
+                            <ellipse cx="41" cy="25" rx="11" ry="2.2" stroke="#bef264" strokeOpacity="0.85" strokeWidth="1.2" className="booster-ring-1" />
+                            <ellipse cx="41" cy="27" rx="13" ry="2.5" stroke="#38bdf8" strokeOpacity="0.8" strokeWidth="1.2" className="booster-ring-2" />
+
+                            {/* High-Thrust Water & Booster Bubbles */}
+                            <circle cx="20" cy="24" r="3" stroke="#7dd3fc" strokeOpacity="0.95" strokeWidth="1.25" className="thruster-bubble-a" />
+                            <circle cx="62" cy="24.5" r="3.2" stroke="#bef264" strokeOpacity="0.9" strokeWidth="1.25" className="thruster-bubble-b" />
+                            <circle cx="25" cy="34" r="2.4" stroke="#a5f3fc" strokeOpacity="0.85" strokeWidth="1.15" className="thruster-bubble-c" />
+                            <circle cx="57" cy="34.5" r="2.5" stroke="#a5f3fc" strokeOpacity="0.85" strokeWidth="1.15" className="thruster-bubble-a" />
+                            <circle cx="16.5" cy="39" r="1.8" fill="#38bdf8" fillOpacity="0.8" className="thruster-bubble-b" />
+                            <circle cx="65.5" cy="39" r="1.8" fill="#a3e635" fillOpacity="0.8" className="thruster-bubble-c" />
                         </svg>
                     </div>
 
                     {/* Right Hydro-Thruster Boot Peeking Out Behind Bottom-Right of Login Card */}
-                    <div className="robot-foot-right absolute -bottom-7 right-10 sm:right-12 z-10 pointer-events-none flex flex-col items-center">
+                    <div className="robot-foot-right absolute -bottom-11 right-8 sm:right-10 z-10 pointer-events-none flex flex-col items-center">
                         <svg
-                            width="76"
-                            height="44"
-                            viewBox="0 0 76 44"
+                            width="82"
+                            height="54"
+                            viewBox="0 0 82 54"
                             fill="none"
                             xmlns="http://www.w3.org/2000/svg"
-                            className="overflow-visible drop-shadow-[0_6px_14px_rgba(56,189,248,0.35)]"
+                            className="overflow-visible drop-shadow-[0_8px_20px_rgba(56,189,248,0.65)]"
                             aria-hidden="true"
                         >
                             <defs>
-                                <linearGradient id="rightHydroOuter" x1="38" y1="15" x2="38" y2="40" gradientUnits="userSpaceOnUse">
-                                    <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.82" />
-                                    <stop offset="65%" stopColor="#22d3ee" stopOpacity="0.28" />
+                                <linearGradient id="rightBoosterOuter" x1="41" y1="18" x2="41" y2="50" gradientUnits="userSpaceOnUse">
+                                    <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.95" />
+                                    <stop offset="55%" stopColor="#22d3ee" stopOpacity="0.48" />
                                     <stop offset="100%" stopColor="#38bdf8" stopOpacity="0" />
                                 </linearGradient>
-                                <linearGradient id="rightHydroCore" x1="38" y1="15" x2="38" y2="30" gradientUnits="userSpaceOnUse">
-                                    <stop offset="0%" stopColor="#bef264" stopOpacity="0.9" />
-                                    <stop offset="55%" stopColor="#38bdf8" stopOpacity="0.65" />
+                                <linearGradient id="rightBoosterCore" x1="41" y1="18" x2="41" y2="38" gradientUnits="userSpaceOnUse">
+                                    <stop offset="0%" stopColor="#bef264" stopOpacity="1" />
+                                    <stop offset="50%" stopColor="#38bdf8" stopOpacity="0.85" />
                                     <stop offset="100%" stopColor="#38bdf8" stopOpacity="0" />
                                 </linearGradient>
                             </defs>
 
                             {/* Ankle Strut & Glowing Cyan Joint */}
-                            <rect x="31" y="0" width="14" height="9.5" rx="2.5" fill="#0f172a" stroke="#334155" strokeWidth="1.6" />
-                            <circle cx="38" cy="4.8" r="2.9" fill="#38bdf8" />
-                            <circle cx="38" cy="4.8" r="1.2" fill="#e0f2fe" />
+                            <rect x="34" y="0" width="14" height="10" rx="2.5" fill="#0f172a" stroke="#334155" strokeWidth="1.6" />
+                            <circle cx="41" cy="5" r="3" fill="#38bdf8" />
+                            <circle cx="41" cy="5" r="1.2" fill="#e0f2fe" />
 
                             {/* Side Hydro-Stabilizer Fins */}
-                            <path d="M12 12L17.5 10V17L12 15.5V12Z" fill="#0f172a" stroke="#334155" strokeWidth="1.4" />
-                            <path d="M64 12L58.5 10V17L64 15.5V12Z" fill="#0f172a" stroke="#334155" strokeWidth="1.4" />
+                            <path d="M12 12.5L18.5 10.5V17.5L12 16V12.5Z" fill="#0f172a" stroke="#334155" strokeWidth="1.4" />
+                            <path d="M70 12.5L63.5 10.5V17.5L70 16V12.5Z" fill="#0f172a" stroke="#334155" strokeWidth="1.4" />
 
                             {/* Main Hydro-Thruster Boot Housing */}
-                            <rect x="16.5" y="8.5" width="43" height="9.5" rx="4.75" fill="#131d2e" stroke="#38bdf8" strokeWidth="1.5" />
-                            <rect x="19.5" y="11.3" width="7.5" height="4" rx="2" fill="#a3e635" />
-                            <rect x="29" y="11" width="18" height="4.5" rx="2.25" fill="#a3e635" />
-                            <rect x="49" y="11.3" width="7.5" height="4" rx="2" fill="#38bdf8" />
+                            <rect x="17.5" y="9" width="47" height="10" rx="5" fill="#131d2e" stroke="#38bdf8" strokeWidth="1.6" />
+                            <rect x="21" y="11.8" width="8" height="4.2" rx="2.1" fill="#a3e635" />
+                            <rect x="31" y="11.5" width="20" height="4.8" rx="2.4" fill="#a3e635" />
+                            <rect x="53" y="11.8" width="8" height="4.2" rx="2.1" fill="#38bdf8" />
 
-                            {/* Bottom Nozzle Collar */}
-                            <rect x="27.5" y="17.5" width="21" height="2.8" rx="1.4" fill="#0f172a" stroke="#38bdf8" strokeOpacity="0.7" strokeWidth="1" />
+                            {/* High-Power Nozzle Collar */}
+                            <rect x="29.5" y="18.5" width="23" height="3.2" rx="1.6" fill="#0f172a" stroke="#bef264" strokeOpacity="0.85" strokeWidth="1.1" />
 
-                            {/* Hydro-Thruster Plume */}
-                            <polygon points="27,20.3 49,20.3 45.5,38 30.5,38" fill="url(#rightHydroOuter)" className="thruster-cone" />
-                            <polygon points="32.5,20.3 43.5,20.3 41,30 35,30" fill="url(#rightHydroCore)" className="thruster-cone" />
+                            {/* Strong Booster Jet Cone & High-Energy Core */}
+                            <polygon points="27,21.7 55,21.7 51,48 31,48" fill="url(#rightBoosterOuter)" className="thruster-cone" />
+                            <polygon points="33.5,21.7 48.5,21.7 45.5,37 36.5,37" fill="url(#rightBoosterCore)" className="thruster-cone" />
 
-                            {/* Animated Water Bubbles */}
-                            <circle cx="20.5" cy="23.5" r="2.6" stroke="#7dd3fc" strokeOpacity="0.85" strokeWidth="1.15" className="thruster-bubble-b" />
-                            <circle cx="55.5" cy="23" r="2.4" stroke="#7dd3fc" strokeOpacity="0.8" strokeWidth="1.15" className="thruster-bubble-a" />
-                            <circle cx="25" cy="30.5" r="2.1" stroke="#a5f3fc" strokeOpacity="0.75" strokeWidth="1.1" className="thruster-bubble-c" />
-                            <circle cx="51" cy="30" r="2" stroke="#a5f3fc" strokeOpacity="0.75" strokeWidth="1.1" className="thruster-bubble-b" />
+                            {/* Booster Thrust Shock Rings */}
+                            <ellipse cx="41" cy="25" rx="11" ry="2.2" stroke="#bef264" strokeOpacity="0.85" strokeWidth="1.2" className="booster-ring-1" />
+                            <ellipse cx="41" cy="27" rx="13" ry="2.5" stroke="#38bdf8" strokeOpacity="0.8" strokeWidth="1.2" className="booster-ring-2" />
+
+                            {/* High-Thrust Water & Booster Bubbles */}
+                            <circle cx="20" cy="24.5" r="3.1" stroke="#bef264" strokeOpacity="0.9" strokeWidth="1.25" className="thruster-bubble-b" />
+                            <circle cx="62" cy="24" r="2.9" stroke="#7dd3fc" strokeOpacity="0.95" strokeWidth="1.25" className="thruster-bubble-a" />
+                            <circle cx="25" cy="34.5" r="2.5" stroke="#a5f3fc" strokeOpacity="0.85" strokeWidth="1.15" className="thruster-bubble-c" />
+                            <circle cx="57" cy="34" r="2.4" stroke="#a5f3fc" strokeOpacity="0.85" strokeWidth="1.15" className="thruster-bubble-b" />
+                            <circle cx="16.5" cy="39" r="1.8" fill="#a3e635" fillOpacity="0.8" className="thruster-bubble-a" />
+                            <circle cx="65.5" cy="39" r="1.8" fill="#38bdf8" fillOpacity="0.8" className="thruster-bubble-c" />
                         </svg>
                     </div>
 
