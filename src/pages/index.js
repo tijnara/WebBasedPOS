@@ -95,7 +95,29 @@ export default function SeasideNewLanding() {
     useEffect(() => {
         setCanRenderWebGL(checkWebGLSupport());
         router.prefetch?.('/about')?.catch(() => {});
+        router.prefetch?.('/pos')?.catch(() => {});
     }, [router]);
+
+    const completeLoginAndNavigate = async (userPayload) => {
+        if (typeof window !== 'undefined') {
+            window.__SEASIDE_CINEMATIC_ACTIVE__ = false;
+            window.dispatchEvent(new Event('seaside-cinematic-done'));
+            try {
+                localStorage.setItem('seaside_last_active_at', String(Date.now()));
+                sessionStorage.setItem('pos_tab_initialized', 'true');
+            } catch {
+                // Ignore storage errors
+            }
+        }
+
+        useStore.setState({ sessionLoaded: true });
+        setAuth(userPayload);
+
+        const navigated = await router.replace('/pos');
+        if (!navigated && typeof window !== 'undefined') {
+            window.location.assign('/pos');
+        }
+    };
 
     const handleDemoLogin = async () => {
         if (isLoggingIn || isDemoLoading) return;
@@ -105,7 +127,7 @@ export default function SeasideNewLanding() {
         setPendingApprovalInfo(null);
 
         try {
-            setAuth({
+            await completeLoginAndNavigate({
                 id: 'demo-user',
                 name: 'Demo User',
                 email: 'demo@gmail.com',
@@ -114,8 +136,8 @@ export default function SeasideNewLanding() {
                 isAdmin: true,
                 isDemo: true
             });
-            await router.push('/pos');
-        } finally {
+        } catch {
+            setIsDemoLoading(false);
             setIsLoggingIn(false);
         }
     };
@@ -128,7 +150,16 @@ export default function SeasideNewLanding() {
 
         try {
             if (data.email === 'demo@gmail.com' && data.password === 'demodemo') {
-                await handleDemoLogin();
+                setIsDemoLoading(true);
+                await completeLoginAndNavigate({
+                    id: 'demo-user',
+                    name: 'Demo User',
+                    email: 'demo@gmail.com',
+                    role: 'Admin',
+                    isadmin: true,
+                    isAdmin: true,
+                    isDemo: true
+                });
                 return;
             }
 
@@ -145,25 +176,29 @@ export default function SeasideNewLanding() {
                         result.message ||
                         'Your account is pending administrator approval before you can access the system.'
                 });
+                setIsLoggingIn(false);
                 return;
             }
 
             if (result?.status === 'INVALID_CREDENTIALS' || result?.status === 'ERROR') {
                 setAuthError(result.message || 'Invalid email or password.');
+                setIsLoggingIn(false);
                 return;
             }
 
             const authenticatedUser = result?.user || (result?.id ? result : null);
             if (authenticatedUser && authenticatedUser.id) {
-                setAuth({
+                await completeLoginAndNavigate({
                     ...authenticatedUser,
                     isDemo: false
                 });
-                await router.push('/pos');
             } else {
                 setAuthError('Invalid email or password.');
+                setIsLoggingIn(false);
             }
-        } finally {
+        } catch (err) {
+            setAuthError(err?.message || 'Unable to sign in right now. Please try again.');
+            setIsDemoLoading(false);
             setIsLoggingIn(false);
         }
     };

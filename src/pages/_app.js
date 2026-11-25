@@ -680,7 +680,7 @@ export default function App({ Component, pageProps }) {
                 enterOfflineState();
                 return;
             }
-            if (!err?.cancelled && url) {
+            if (!err?.cancelled && url && router.pathname !== '/pos') {
                 safeHardNavigate('/');
             }
         };

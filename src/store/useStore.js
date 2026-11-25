@@ -14,7 +14,7 @@ export const useStore = create(
             toasts: [],
             darkMode: false,
 
-            // Internal action to be called by the persist middleware once hydration is complete
+            // Internal action to be called once hydration is complete
             _setSessionLoaded: () => set({ sessionLoaded: true }),
 
             setCurrentCustomer: (cust) => set({ currentCustomer: cust }),
@@ -98,18 +98,18 @@ export const useStore = create(
                 const { [key]: _, ...rest } = state.currentSale;
                 return { currentSale: rest };
             }),
-            
+
             clearSale: () => {
                 set({ currentSale: {}, currentCustomer: null });
             },
-            
+
             getTotalAmount: () => {
                 const sale = get().currentSale;
                 return Object.values(sale).reduce((total, item) => {
                     return total.add(currency(item.price).multiply(item.quantity));
                 }, currency(0)).value;
             },
-            
+
             addToast: (t) => {
                 const id = Date.now() + Math.random();
                 set((s) => ({ toasts: [...s.toasts, { ...t, id }] }));
@@ -117,33 +117,62 @@ export const useStore = create(
                     get().dismissToast(id);
                 }, 2000);
             },
-            
+
             dismissToast: (id) => set((s) => ({ toasts: s.toasts.filter(x => x.id !== id) })),
 
             setAuth: (user) => {
-                set({ user });
+                if (typeof window !== 'undefined') {
+                    try {
+                        sessionStorage.setItem('pos_tab_initialized', 'true');
+                        if (user) {
+                            localStorage.setItem('seaside_last_active_at', String(Date.now()));
+                        }
+                    } catch {
+                        // Ignore storage errors
+                    }
+                }
+                set({ user: user || null, sessionLoaded: true });
             },
 
             logout: async () => {
                 try {
                     await supabase.auth.signOut();
-                    set({ user: null, currentSale: {}, currentCustomer: null });
                 } catch (error) {
                     get().addToast({ title: 'Logout Error', description: error.message, variant: 'destructive' });
+                } finally {
+                    set({ user: null, sessionLoaded: true, currentSale: {}, currentCustomer: null });
                 }
             },
-            
+
             toggleDarkMode: () => set((state) => ({ darkMode: !state.darkMode })),
         }),
         {
-            name: 'pos_custom_user', 
+            name: 'pos_custom_user',
             storage: createJSONStorage(() => localStorage),
             partialize: (state) => ({ user: state.user, darkMode: state.darkMode }),
             onRehydrateStorage: () => (state) => {
-                state._setSessionLoaded();
+                if (state && typeof state._setSessionLoaded === 'function') {
+                    state._setSessionLoaded();
+                } else {
+                    useStore.setState({ sessionLoaded: true });
+                }
             },
         }
     )
 );
+
+// Ensure sessionLoaded is marked true on client even if rehydration callback fires before mount
+if (typeof window !== 'undefined') {
+    const markHydrated = () => {
+        if (!useStore.getState().sessionLoaded) {
+            useStore.setState({ sessionLoaded: true });
+        }
+    };
+    if (useStore.persist?.hasHydrated?.()) {
+        markHydrated();
+    } else {
+        queueMicrotask(markHydrated);
+    }
+}
 
 export default useStore;
