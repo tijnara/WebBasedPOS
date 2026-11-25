@@ -61,7 +61,7 @@ export default function VoltAuthCard({
     // Volt interactive mascot state
     const [eyesClosed, setEyesClosed] = useState(false);
     const [celebrateEyes, setCelebrateEyes] = useState(false);
-    const [voltMessage, setVoltMessage] = useState('Mmm, refreshing Seaside water! 💧');
+    const [voltMessage, setVoltMessage] = useState('Look at our pure Seaside water! 💧');
 
     useEffect(() => {
         if (contactPrefill) {
@@ -74,7 +74,7 @@ export default function VoltAuthCard({
     useEffect(() => {
         if (authError) {
             setCelebrateEyes(false);
-            setVoltMessage('Oops! Check your credentials and take a sip! 💧');
+            setVoltMessage('Oops! Double-check your login details! 💧');
         }
     }, [authError]);
 
@@ -87,15 +87,15 @@ export default function VoltAuthCard({
     const handleInputFocus = (type) => {
         setEyesClosed(true);
         if (type === 'password') {
-            setVoltMessage('Eyes closed tight! *gulp gulp* Your password is safe! 🤫');
+            setVoltMessage('Eyes closed tight! Your password is safe with me! 🤫');
         } else {
-            setVoltMessage('*Gulp gulp* Drinking fresh water while you type... 💧✨');
+            setVoltMessage('Showing off pure Seaside water while you type... 💧✨');
         }
     };
 
     const handleInputBlur = () => {
         setEyesClosed(false);
-        setVoltMessage('Mmm, refreshing Seaside water! 💧');
+        setVoltMessage('Look at our pure Seaside water! 💧');
     };
 
     const handleTogglePassword = () => {
@@ -103,8 +103,8 @@ export default function VoltAuthCard({
             const next = !prev;
             setVoltMessage(
                 next
-                    ? 'Password revealed! Still not peeking! 🙈💧'
-                    : 'Encrypted seaside vault locked tight! 💧'
+                    ? 'Password visible! Still not peeking! 🙈💧'
+                    : 'Seaside vault locked tight! 💧'
             );
             return next;
         });
@@ -116,7 +116,7 @@ export default function VoltAuthCard({
 
         setEyesClosed(false);
         setCelebrateEyes(true);
-        setVoltMessage('Verifying credentials! Enjoy Seaside Pure! 💧');
+        setVoltMessage('Verifying credentials! Seaside Pure on deck! 💧');
 
         await onLogin?.({
             email: loginEmail,
@@ -132,7 +132,7 @@ export default function VoltAuthCard({
         if (isLoggingIn || isDemoLoading) return;
         setLoginEmail('demo@gmail.com');
         setLoginPassword('demodemo');
-        setVoltMessage('Demo credentials loaded! Take a fresh gulp! 💧');
+        setVoltMessage('Demo credentials loaded! Ready to explore! 💧');
         onDemoLogin?.();
     };
 
@@ -260,6 +260,83 @@ export default function VoltAuthCard({
                     animation: sippingBob 2.6s ease-in-out infinite;
                 }
 
+                @keyframes hydroFootLeft {
+                    0%, 100% {
+                        transform: translateY(0px) rotate(0deg);
+                    }
+                    25% {
+                        transform: translateY(-4.5px) rotate(-5deg);
+                    }
+                    50% {
+                        transform: translateY(2px) rotate(2.5deg);
+                    }
+                    75% {
+                        transform: translateY(-2.5px) rotate(-2.5deg);
+                    }
+                }
+                .robot-foot-left {
+                    animation: hydroFootLeft 2.6s ease-in-out infinite;
+                    transform-origin: top center;
+                }
+
+                @keyframes hydroFootRight {
+                    0%, 100% {
+                        transform: translateY(0px) rotate(0deg);
+                    }
+                    25% {
+                        transform: translateY(2px) rotate(2.5deg);
+                    }
+                    50% {
+                        transform: translateY(-5px) rotate(5deg);
+                    }
+                    75% {
+                        transform: translateY(1px) rotate(-2.5deg);
+                    }
+                }
+                .robot-foot-right {
+                    animation: hydroFootRight 2.6s ease-in-out infinite;
+                    transform-origin: top center;
+                }
+
+                @keyframes thrusterConePulse {
+                    0%, 100% {
+                        transform: scaleX(0.92) scaleY(0.92);
+                        opacity: 0.78;
+                    }
+                    50% {
+                        transform: scaleX(1.14) scaleY(1.16);
+                        opacity: 1;
+                    }
+                }
+                .thruster-cone {
+                    animation: thrusterConePulse 1.45s ease-in-out infinite;
+                    transform-origin: 38px 20px;
+                }
+
+                @keyframes thrusterBubbleDrift {
+                    0% {
+                        transform: translateY(0px) scale(0.75);
+                        opacity: 0.9;
+                    }
+                    65% {
+                        transform: translateY(13px) scale(1.08);
+                        opacity: 0.7;
+                    }
+                    100% {
+                        transform: translateY(22px) scale(0.5);
+                        opacity: 0;
+                    }
+                }
+                .thruster-bubble-a {
+                    animation: thrusterBubbleDrift 2s ease-out infinite;
+                }
+                .thruster-bubble-b {
+                    animation: thrusterBubbleDrift 2.4s ease-out infinite 0.55s;
+                }
+                .thruster-bubble-c {
+                    animation: thrusterBubbleDrift 1.85s ease-out infinite 1.05s;
+                }
+
                 @keyframes peaceWave {
                     0%, 100% {
                         transform: rotate(-10deg) translateY(0px);
@@ -343,23 +420,17 @@ export default function VoltAuthCard({
                     animation: gulpExpansion 2.6s ease-out infinite;
                 }
 
-                @keyframes bottleDirectTilt {
+                @keyframes bottleDisplayHold {
                     0%, 100% {
-                        transform: rotate(-38deg) translateY(0px) translateX(0px);
+                        transform: rotate(-2deg) translateY(0px);
                     }
-                    35% {
-                        transform: rotate(-44deg) translateY(-2px) translateX(1px);
-                    }
-                    70% {
-                        transform: rotate(-48deg) translateY(-3px) translateX(2px) scale(1.02);
-                    }
-                    85% {
-                        transform: rotate(-40deg) translateY(-1px) translateX(1px);
+                    50% {
+                        transform: rotate(2deg) translateY(-3px);
                     }
                 }
-                .bottle-direct-chug {
-                    animation: bottleDirectTilt 2.6s ease-in-out infinite;
-                    transform-origin: 18% 12%;
+                .bottle-showcase-hold {
+                    animation: bottleDisplayHold 2.6s ease-in-out infinite;
+                    transform-origin: bottom center;
                 }
 
                 @keyframes riseBubbles {
@@ -394,10 +465,10 @@ export default function VoltAuthCard({
 
                 @keyframes waterSlosh {
                     0%, 100% {
-                        transform: rotate(6deg) scaleY(1);
+                        transform: rotate(0deg) scaleY(1);
                     }
                     50% {
-                        transform: rotate(14deg) scaleY(1.08);
+                        transform: rotate(-2deg) scaleY(1.05);
                     }
                 }
                 .water-surface-slosh {
@@ -460,7 +531,7 @@ export default function VoltAuthCard({
                 }
             `}</style>
 
-            <div className="w-full max-w-[385px] sm:max-w-[400px] flex flex-col items-center relative my-0 pb-2.5 z-10 mx-auto">
+            <div className="w-full max-w-[385px] sm:max-w-[400px] flex flex-col items-center relative my-0 pb-10 z-10 mx-auto">
                 {/* Speech Bubble */}
                 <section
                     aria-label="Robot dialogue"
@@ -478,7 +549,7 @@ export default function VoltAuthCard({
                     </div>
                 </section>
 
-                {/* Volt Robot Mascot with Right Chugging Bottle */}
+                {/* Volt Robot Mascot Holding Full Seaside Bottle With Peace-Hand Spacing */}
                 <div className="robot-sipping-bob relative flex items-center justify-center z-10 -mb-[20px]">
                     <div className="relative w-[100px] h-[78px] flex items-center justify-center">
                         {/* Robot Left Ear Bolt */}
@@ -508,7 +579,7 @@ export default function VoltAuthCard({
                                     />
                                 </div>
 
-                                {/* Robot Smiling / Drinking Mouth */}
+                                {/* Robot Smiling Mouth */}
                                 <div className="relative flex items-center justify-center w-6 h-2.5">
                                     <svg
                                         className="w-6 h-2.5 overflow-visible drop-shadow-[0_0_6px_rgba(163,230,53,0.9)]"
@@ -542,33 +613,33 @@ export default function VoltAuthCard({
                         </div>
                     </div>
 
-                    {/* SEASIDE CHILLED WATER BOTTLE */}
-                    <div className="bottle-direct-chug absolute right-[2px] top-[30px] z-30 flex flex-col items-center select-none pointer-events-none">
+                    {/* FULL SEASIDE BOTTLE HELD UPRIGHT WITH SPACE MATCHING PEACE HAND */}
+                    <div className="bottle-showcase-hold absolute -right-[54px] top-[14px] z-30 flex flex-col items-center select-none pointer-events-none">
                         <div className="relative flex flex-col items-center z-20">
-                            <div className="w-3 h-1.5 bg-sky-200/90 border border-sky-300 rounded-full shadow-[0_0_8px_rgba(56,189,248,0.7)]" />
-                            <div className="w-2.5 h-1.5 bg-gradient-to-b from-sky-200/60 to-sky-400/50 border-x border-sky-300/50 relative overflow-hidden">
+                            <div className="w-3.5 h-1.5 bg-sky-200/95 border border-sky-300 rounded-full shadow-[0_0_8px_rgba(56,189,248,0.75)]" />
+                            <div className="w-3 h-1.5 bg-gradient-to-b from-sky-200/70 to-sky-400/55 border-x border-sky-300/60 relative overflow-hidden">
                                 <div className="absolute inset-0 bg-lime-400/30 animate-pulse" />
                             </div>
                         </div>
 
-                        <div className="relative w-7.5 h-[56px] rounded-xl bottle-shimmer border border-sky-300/40 backdrop-blur-sm shadow-[0_4px_18px_rgba(2,132,199,0.45)] flex flex-col items-center justify-center overflow-hidden">
+                        <div className="relative w-9 h-[58px] rounded-xl bottle-shimmer border border-sky-300/50 backdrop-blur-sm shadow-[0_4px_18px_rgba(2,132,199,0.5)] flex flex-col items-center justify-center overflow-hidden">
                             <div className="water-surface-slosh absolute bottom-0 inset-x-0 h-10 bg-gradient-to-t from-sky-500/70 via-sky-400/40 to-sky-300/25" />
                             <div className="rising-bubble-1 absolute bottom-1.5 left-2 w-1.5 h-1.5 rounded-full bg-white/85 border border-sky-200 shadow-sm" />
                             <div className="rising-bubble-2 absolute bottom-1 right-2 w-1.5 h-1.5 rounded-full bg-white/80 shadow-sm" />
-                            <div className="rising-bubble-3 absolute bottom-2.5 left-2.5 w-1 h-1 rounded-full bg-white/75" />
+                            <div className="rising-bubble-3 absolute bottom-2.5 left-3 w-1 h-1 rounded-full bg-white/75" />
 
-                            <div className="relative z-10 w-full bg-[#0369a1]/95 py-0.5 px-0.5 border-y border-sky-300/60 flex flex-col items-center shadow-inner">
-                                <span className="text-[6.5px] font-black tracking-tight leading-none text-[#a3e635] drop-shadow-[0_0_4px_rgba(163,230,53,0.8)]">
+                            <div className="relative z-10 w-full bg-[#0369a1]/95 py-1 px-0.5 border-y border-sky-300/70 flex flex-col items-center shadow-inner">
+                                <span className="text-[7px] font-black tracking-tight leading-none text-[#a3e635] drop-shadow-[0_0_4px_rgba(163,230,53,0.85)]">
                                     SEASIDE
                                 </span>
-                                <span className="text-[3.5px] font-bold tracking-widest uppercase leading-none mt-0.5 text-[#bef264]">
+                                <span className="text-[4px] font-extrabold tracking-wider uppercase leading-none mt-0.5 text-[#bef264]">
                                     PURIFIED WATER
                                 </span>
                             </div>
                         </div>
 
-                        {/* Volt's Right Paw Gripping Bottle */}
-                        <div className="absolute top-5 -left-2.5 z-20 flex items-center pointer-events-none">
+                        {/* Volt's Right Paw Holding Base of Bottle */}
+                        <div className="absolute bottom-2 -left-2.5 z-20 flex items-center pointer-events-none">
                             <div className="w-3.5 h-5 bg-[#131d2e] border border-[#334155] rounded-l-lg flex flex-col justify-evenly py-0.5 px-0.5 shadow-md">
                                 <div className="w-2 h-[2px] bg-[#38bdf8]/60 rounded" />
                                 <div className="w-2 h-[2px] bg-[#38bdf8]/60 rounded" />
@@ -577,9 +648,9 @@ export default function VoltAuthCard({
                     </div>
                 </div>
 
-                {/* Form Card Container with Volt's Peace Hand Behind Top-Left Edge & Feet Below */}
+                {/* Form Card Container with Volt's Peace Hand & Hydro-Thruster Boots Behind Card */}
                 <div className="relative w-full z-20">
-                    {/* Volt Left Peace-Sign Hand Behind Top-Left Edge of Card (Desktop & Mobile) */}
+                    {/* Volt Left Peace-Sign Hand Behind Top-Left Edge of Card */}
                     <div
                         className="peace-hand-wave absolute -top-[44px] left-6 sm:left-9 z-10 pointer-events-none select-none"
                         data-purpose="robot-peace-hand"
@@ -664,6 +735,114 @@ export default function VoltAuthCard({
                                 strokeWidth="2"
                             />
                             <rect x="16" y="43.5" width="10" height="2.6" rx="1.3" fill="#a3e635" filter="url(#peaceLimeGlow)" />
+                        </svg>
+                    </div>
+
+                    {/* Left Hydro-Thruster Boot Peeking Out Behind Bottom-Left of Login Card */}
+                    <div className="robot-foot-left absolute -bottom-7 left-10 sm:left-12 z-10 pointer-events-none flex flex-col items-center">
+                        <svg
+                            width="76"
+                            height="44"
+                            viewBox="0 0 76 44"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="overflow-visible drop-shadow-[0_6px_14px_rgba(56,189,248,0.35)]"
+                            aria-hidden="true"
+                        >
+                            <defs>
+                                <linearGradient id="leftHydroOuter" x1="38" y1="15" x2="38" y2="40" gradientUnits="userSpaceOnUse">
+                                    <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.82" />
+                                    <stop offset="65%" stopColor="#22d3ee" stopOpacity="0.28" />
+                                    <stop offset="100%" stopColor="#38bdf8" stopOpacity="0" />
+                                </linearGradient>
+                                <linearGradient id="leftHydroCore" x1="38" y1="15" x2="38" y2="30" gradientUnits="userSpaceOnUse">
+                                    <stop offset="0%" stopColor="#bef264" stopOpacity="0.9" />
+                                    <stop offset="55%" stopColor="#38bdf8" stopOpacity="0.65" />
+                                    <stop offset="100%" stopColor="#38bdf8" stopOpacity="0" />
+                                </linearGradient>
+                            </defs>
+
+                            {/* Ankle Strut & Glowing Cyan Joint */}
+                            <rect x="31" y="0" width="14" height="9.5" rx="2.5" fill="#0f172a" stroke="#334155" strokeWidth="1.6" />
+                            <circle cx="38" cy="4.8" r="2.9" fill="#38bdf8" />
+                            <circle cx="38" cy="4.8" r="1.2" fill="#e0f2fe" />
+
+                            {/* Side Hydro-Stabilizer Fins */}
+                            <path d="M12 12L17.5 10V17L12 15.5V12Z" fill="#0f172a" stroke="#334155" strokeWidth="1.4" />
+                            <path d="M64 12L58.5 10V17L64 15.5V12Z" fill="#0f172a" stroke="#334155" strokeWidth="1.4" />
+
+                            {/* Main Hydro-Thruster Boot Housing */}
+                            <rect x="16.5" y="8.5" width="43" height="9.5" rx="4.75" fill="#131d2e" stroke="#38bdf8" strokeWidth="1.5" />
+                            <rect x="19.5" y="11.3" width="7.5" height="4" rx="2" fill="#38bdf8" />
+                            <rect x="29" y="11" width="18" height="4.5" rx="2.25" fill="#a3e635" />
+                            <rect x="49" y="11.3" width="7.5" height="4" rx="2" fill="#38bdf8" />
+
+                            {/* Bottom Nozzle Collar */}
+                            <rect x="27.5" y="17.5" width="21" height="2.8" rx="1.4" fill="#0f172a" stroke="#38bdf8" strokeOpacity="0.7" strokeWidth="1" />
+
+                            {/* Hydro-Thruster Plume */}
+                            <polygon points="27,20.3 49,20.3 45.5,38 30.5,38" fill="url(#leftHydroOuter)" className="thruster-cone" />
+                            <polygon points="32.5,20.3 43.5,20.3 41,30 35,30" fill="url(#leftHydroCore)" className="thruster-cone" />
+
+                            {/* Animated Water Bubbles */}
+                            <circle cx="21" cy="23" r="2.5" stroke="#7dd3fc" strokeOpacity="0.85" strokeWidth="1.15" className="thruster-bubble-a" />
+                            <circle cx="55" cy="23.5" r="2.7" stroke="#7dd3fc" strokeOpacity="0.8" strokeWidth="1.15" className="thruster-bubble-b" />
+                            <circle cx="25.5" cy="30" r="2" stroke="#a5f3fc" strokeOpacity="0.75" strokeWidth="1.1" className="thruster-bubble-c" />
+                            <circle cx="50.5" cy="30.5" r="2.1" stroke="#a5f3fc" strokeOpacity="0.75" strokeWidth="1.1" className="thruster-bubble-a" />
+                        </svg>
+                    </div>
+
+                    {/* Right Hydro-Thruster Boot Peeking Out Behind Bottom-Right of Login Card */}
+                    <div className="robot-foot-right absolute -bottom-7 right-10 sm:right-12 z-10 pointer-events-none flex flex-col items-center">
+                        <svg
+                            width="76"
+                            height="44"
+                            viewBox="0 0 76 44"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="overflow-visible drop-shadow-[0_6px_14px_rgba(56,189,248,0.35)]"
+                            aria-hidden="true"
+                        >
+                            <defs>
+                                <linearGradient id="rightHydroOuter" x1="38" y1="15" x2="38" y2="40" gradientUnits="userSpaceOnUse">
+                                    <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.82" />
+                                    <stop offset="65%" stopColor="#22d3ee" stopOpacity="0.28" />
+                                    <stop offset="100%" stopColor="#38bdf8" stopOpacity="0" />
+                                </linearGradient>
+                                <linearGradient id="rightHydroCore" x1="38" y1="15" x2="38" y2="30" gradientUnits="userSpaceOnUse">
+                                    <stop offset="0%" stopColor="#bef264" stopOpacity="0.9" />
+                                    <stop offset="55%" stopColor="#38bdf8" stopOpacity="0.65" />
+                                    <stop offset="100%" stopColor="#38bdf8" stopOpacity="0" />
+                                </linearGradient>
+                            </defs>
+
+                            {/* Ankle Strut & Glowing Cyan Joint */}
+                            <rect x="31" y="0" width="14" height="9.5" rx="2.5" fill="#0f172a" stroke="#334155" strokeWidth="1.6" />
+                            <circle cx="38" cy="4.8" r="2.9" fill="#38bdf8" />
+                            <circle cx="38" cy="4.8" r="1.2" fill="#e0f2fe" />
+
+                            {/* Side Hydro-Stabilizer Fins */}
+                            <path d="M12 12L17.5 10V17L12 15.5V12Z" fill="#0f172a" stroke="#334155" strokeWidth="1.4" />
+                            <path d="M64 12L58.5 10V17L64 15.5V12Z" fill="#0f172a" stroke="#334155" strokeWidth="1.4" />
+
+                            {/* Main Hydro-Thruster Boot Housing */}
+                            <rect x="16.5" y="8.5" width="43" height="9.5" rx="4.75" fill="#131d2e" stroke="#38bdf8" strokeWidth="1.5" />
+                            <rect x="19.5" y="11.3" width="7.5" height="4" rx="2" fill="#a3e635" />
+                            <rect x="29" y="11" width="18" height="4.5" rx="2.25" fill="#a3e635" />
+                            <rect x="49" y="11.3" width="7.5" height="4" rx="2" fill="#38bdf8" />
+
+                            {/* Bottom Nozzle Collar */}
+                            <rect x="27.5" y="17.5" width="21" height="2.8" rx="1.4" fill="#0f172a" stroke="#38bdf8" strokeOpacity="0.7" strokeWidth="1" />
+
+                            {/* Hydro-Thruster Plume */}
+                            <polygon points="27,20.3 49,20.3 45.5,38 30.5,38" fill="url(#rightHydroOuter)" className="thruster-cone" />
+                            <polygon points="32.5,20.3 43.5,20.3 41,30 35,30" fill="url(#rightHydroCore)" className="thruster-cone" />
+
+                            {/* Animated Water Bubbles */}
+                            <circle cx="20.5" cy="23.5" r="2.6" stroke="#7dd3fc" strokeOpacity="0.85" strokeWidth="1.15" className="thruster-bubble-b" />
+                            <circle cx="55.5" cy="23" r="2.4" stroke="#7dd3fc" strokeOpacity="0.8" strokeWidth="1.15" className="thruster-bubble-a" />
+                            <circle cx="25" cy="30.5" r="2.1" stroke="#a5f3fc" strokeOpacity="0.75" strokeWidth="1.1" className="thruster-bubble-c" />
+                            <circle cx="51" cy="30" r="2" stroke="#a5f3fc" strokeOpacity="0.75" strokeWidth="1.1" className="thruster-bubble-b" />
                         </svg>
                     </div>
 
@@ -1139,14 +1318,6 @@ export default function VoltAuthCard({
                             </div>
                         )}
                     </section>
-
-                    {/* Robot Left & Right Feet Peeking from Bottom */}
-                    <div className="absolute -bottom-2 left-14 z-10 pointer-events-none">
-                        <div className="w-10 h-3 bg-[#131d2e] border border-[#334155] rounded-b-xl rounded-t-sm shadow-md" />
-                    </div>
-                    <div className="absolute -bottom-2 right-14 z-10 pointer-events-none">
-                        <div className="w-10 h-3 bg-[#131d2e] border border-[#334155] rounded-b-xl rounded-t-sm shadow-md" />
-                    </div>
                 </div>
             </div>
         </div>

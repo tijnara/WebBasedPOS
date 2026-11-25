@@ -4,6 +4,26 @@ import api from '../lib/api';
 import currency from 'currency.js';
 import { supabase } from '../lib/supabaseClient';
 
+const clearAuthAndShiftStorage = () => {
+    if (typeof window === 'undefined') return;
+    try {
+        localStorage.removeItem('pos_custom_user');
+        localStorage.removeItem('seaside_last_active_at');
+        sessionStorage.removeItem('pos_tab_initialized');
+
+        const sessionKeysToRemove = [];
+        for (let i = 0; i < sessionStorage.length; i++) {
+            const key = sessionStorage.key(i);
+            if (key && (key.startsWith('pos_shift_prompted_') || key.startsWith('demo_shift_'))) {
+                sessionKeysToRemove.push(key);
+            }
+        }
+        sessionKeysToRemove.forEach((key) => sessionStorage.removeItem(key));
+    } catch {
+        // Ignore storage access errors
+    }
+};
+
 export const useStore = create(
     persist(
         (set, get) => ({
@@ -126,6 +146,8 @@ export const useStore = create(
                         sessionStorage.setItem('pos_tab_initialized', 'true');
                         if (user) {
                             localStorage.setItem('seaside_last_active_at', String(Date.now()));
+                        } else {
+                            clearAuthAndShiftStorage();
                         }
                     } catch {
                         // Ignore storage errors
@@ -140,6 +162,7 @@ export const useStore = create(
                 } catch (error) {
                     get().addToast({ title: 'Logout Error', description: error.message, variant: 'destructive' });
                 } finally {
+                    clearAuthAndShiftStorage();
                     set({ user: null, sessionLoaded: true, currentSale: {}, currentCustomer: null });
                 }
             },
