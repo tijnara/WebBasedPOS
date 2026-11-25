@@ -233,7 +233,7 @@ export default function SeasideNewLanding() {
     };
 
     return (
-        <div className="seaside-landing-shell h-[100dvh] max-h-[100dvh] bg-[#070d18] bg-gradient-to-br from-[#f3fae6] via-[#ecfdf5] to-[#e0f2fe] dark:from-[#060b13] dark:via-[#08101c] dark:to-[#060b13] relative overflow-hidden font-sans text-slate-800 dark:text-slate-100 flex flex-col justify-between perspective-wrapper transition-colors duration-300">
+        <div className="seaside-landing-shell min-h-[100dvh] bg-[#070d18] bg-gradient-to-br from-[#f3fae6] via-[#ecfdf5] to-[#e0f2fe] dark:from-[#060b13] dark:via-[#08101c] dark:to-[#060b13] relative overflow-x-hidden font-sans text-slate-800 dark:text-slate-100 flex flex-col justify-between perspective-wrapper transition-colors duration-300">
             <Head>
                 <title>Seaside | Welcome</title>
                 <meta name="description" content="Seaside Enterprise Management System" />
@@ -245,45 +245,16 @@ export default function SeasideNewLanding() {
                 />
             </Head>
 
-            {/* Lock vertical & horizontal scroll across ALL viewports (Desktop + Mobile) */}
             <style jsx global>{`
-                html:has(.seaside-landing-shell),
-                body:has(.seaside-landing-shell) {
-                    overflow: hidden !important;
-                    height: 100dvh !important;
-                    overscroll-behavior: none;
-                }
-
-                /* Desktop compact laptop height scaling */
-                @media (min-width: 1024px) and (max-height: 820px) {
-                    .seaside-landing-grid {
-                        transform: scale(0.9);
-                        transform-origin: center center;
-                    }
-                }
-                @media (min-width: 1024px) and (max-height: 730px) {
-                    .seaside-landing-grid {
-                        transform: scale(0.82);
-                        transform-origin: center center;
-                    }
-                }
-
-                /* Mobile compact phone height scaling */
                 @media (max-width: 1023px) and (max-height: 780px) {
                     .seaside-volt-mobile-fit {
                         transform: scale(0.9);
                         transform-origin: center center;
                     }
                 }
-                @media (max-width: 1023px) and (max-height: 690px) {
+                @media (max-width: 1023px) and (max-height: 680px) {
                     .seaside-volt-mobile-fit {
                         transform: scale(0.8);
-                        transform-origin: center center;
-                    }
-                }
-                @media (max-width: 1023px) and (max-height: 610px) {
-                    .seaside-volt-mobile-fit {
-                        transform: scale(0.72);
                         transform-origin: center center;
                     }
                 }
@@ -306,8 +277,8 @@ export default function SeasideNewLanding() {
                 />
             </div>
 
-            <main className="relative z-20 flex-1 min-h-0 flex items-center justify-center px-3 py-0 sm:px-6 lg:px-12">
-                <div className="seaside-landing-grid max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-0 lg:gap-14 items-center">
+            <main className="relative z-20 flex-1 flex items-center justify-center px-3 py-2 sm:px-6 lg:px-12">
+                <div className="seaside-landing-grid max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-0 lg:gap-12 items-center">
                     <div className="hidden lg:block">
                         <LandingHero />
                     </div>
@@ -336,18 +307,25 @@ export default function SeasideNewLanding() {
                 </div>
             </main>
 
+            <footer
+                data-purpose="site-footer"
+                className="shrink-0 relative z-30 w-full border-t border-white/10 bg-[#060b13]/90 backdrop-blur-xl py-3 px-6 shadow-[0_-10px_25px_-5px_rgba(0,0,0,0.5)]"
+            >
+                <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-center text-center text-xs text-slate-300 tracking-wide font-medium">
+                    <p className="leading-relaxed">
+                        &copy; {new Date().getFullYear()} Seaside Purified Water Refilling Station. All rights reserved. &bull; By{' '}
+                        <span className="font-extrabold text-[#8DB600] text-lime-400 drop-shadow-[0_0_8px_rgba(141,182,0,0.5)]">
+                            tijnara
+                        </span>
+                    </p>
+                </div>
+            </footer>
+
             <ForgotPasswordModal
                 isOpen={forgotOpen}
                 onClose={() => setForgotOpen(false)}
                 initialEmail={forgotInitialEmail}
             />
-
-            <footer className="shrink-0 relative z-20 py-2 px-4 text-center text-[10.5px] sm:text-xs font-medium text-slate-600 dark:text-slate-400 border-t border-slate-200/70 dark:border-white/10 bg-white/50 dark:bg-slate-950/50 backdrop-blur-md transition-colors">
-                <p className="truncate">
-                    &copy; {new Date().getFullYear()} Seaside Purified Water Refilling Station. All rights reserved. • By{' '}
-                    <span className="font-bold text-green-800 dark:text-[#8DB600]">tijnara</span>
-                </p>
-            </footer>
 
             <LandingGlobalStyles />
         </div>

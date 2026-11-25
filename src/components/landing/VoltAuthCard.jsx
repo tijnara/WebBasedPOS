@@ -287,8 +287,8 @@ export default function VoltAuthCard({
                 }
 
                 .robot-eye {
-                    width: 15px;
-                    height: 14px;
+                    width: 14px;
+                    height: 13px;
                     border-radius: 9999px;
                     background: linear-gradient(145deg, #bef264 0%, #a3e635 45%, #4ade80 100%);
                     box-shadow: 0 0 14px rgba(163, 230, 53, 0.95), 0 0 24px rgba(74, 222, 128, 0.6), inset 0 1.5px 2.5px rgba(255, 255, 255, 0.95);
@@ -460,11 +460,11 @@ export default function VoltAuthCard({
                 }
             `}</style>
 
-            <div className="w-full max-w-[385px] sm:max-w-[400px] flex flex-col items-center relative my-0 pb-3 z-10 mx-auto">
+            <div className="w-full max-w-[385px] sm:max-w-[400px] flex flex-col items-center relative my-0 pb-2.5 z-10 mx-auto">
                 {/* Speech Bubble */}
                 <section
                     aria-label="Robot dialogue"
-                    className="bubble-float flex flex-col items-center mb-1.5 z-30"
+                    className="bubble-float flex flex-col items-center mb-1 z-30"
                 >
                     <div className="bg-[#0f172a] border border-[#1e293b] shadow-lg shadow-black/40 px-3 py-1 rounded-full text-center flex items-center gap-2 max-w-[330px]">
                         <span className="w-2 h-2 rounded-full bg-lime-400 animate-pulse shrink-0" />
@@ -479,20 +479,20 @@ export default function VoltAuthCard({
                 </section>
 
                 {/* Volt Robot Mascot with Right Chugging Bottle */}
-                <div className="robot-sipping-bob relative flex items-center justify-center z-10 -mb-[24px]">
-                    <div className="relative w-[110px] h-[90px] flex items-center justify-center">
+                <div className="robot-sipping-bob relative flex items-center justify-center z-10 -mb-[20px]">
+                    <div className="relative w-[100px] h-[78px] flex items-center justify-center">
                         {/* Robot Left Ear Bolt */}
-                        <div className="absolute -left-2 top-[32px] w-2.5 h-4 bg-[#1e293b] border border-[#334155] rounded-l-md z-0 shadow-inner" />
+                        <div className="absolute -left-2 top-[28px] w-2.5 h-3.5 bg-[#1e293b] border border-[#334155] rounded-l-md z-0 shadow-inner" />
                         {/* Robot Right Ear Bolt */}
-                        <div className="absolute -right-2 top-[32px] w-2.5 h-4 bg-[#1e293b] border border-[#334155] rounded-r-md z-0 shadow-inner" />
+                        <div className="absolute -right-2 top-[28px] w-2.5 h-3.5 bg-[#1e293b] border border-[#334155] rounded-r-md z-0 shadow-inner" />
 
                         {/* Head Outer Slate Frame */}
-                        <div className="w-full h-full bg-[#131d2e] border-2 border-[#1e293b] rounded-[22px] p-1.5 flex items-center justify-center relative z-10 shadow-xl">
+                        <div className="w-full h-full bg-[#131d2e] border-2 border-[#1e293b] rounded-[20px] p-1.5 flex items-center justify-center relative z-10 shadow-xl">
                             {/* Robot Screen / Face */}
-                            <div className="w-full h-full bg-[#070b14] rounded-[16px] p-2 flex flex-col items-center justify-center relative overflow-hidden transition-colors duration-300 border border-[#1e293b]/70">
+                            <div className="w-full h-full bg-[#070b14] rounded-[15px] p-1.5 flex flex-col items-center justify-center relative overflow-hidden transition-colors duration-300 border border-[#1e293b]/70">
                                 {/* Eyes Wrapper */}
                                 <div
-                                    className={`flex items-center justify-between w-[54px] mb-1.5 px-1 relative transition-all duration-300 ${
+                                    className={`flex items-center justify-between w-[50px] mb-1 px-1 relative transition-all duration-300 ${
                                         eyesClosed ? 'eyes-closed' : ''
                                     }`}
                                 >
@@ -509,9 +509,9 @@ export default function VoltAuthCard({
                                 </div>
 
                                 {/* Robot Smiling / Drinking Mouth */}
-                                <div className="relative flex items-center justify-center w-6.5 h-3">
+                                <div className="relative flex items-center justify-center w-6 h-2.5">
                                     <svg
-                                        className="w-6.5 h-3 overflow-visible drop-shadow-[0_0_6px_rgba(163,230,53,0.9)]"
+                                        className="w-6 h-2.5 overflow-visible drop-shadow-[0_0_6px_rgba(163,230,53,0.9)]"
                                         fill="none"
                                         viewBox="0 0 24 12"
                                         xmlns="http://www.w3.org/2000/svg"
@@ -532,61 +532,56 @@ export default function VoltAuthCard({
                                             strokeWidth="0.8"
                                         />
                                     </svg>
-                                    <div className="gulp-swallow absolute -bottom-1 right-1 w-3.5 h-2 rounded-full bg-lime-400/30 blur-[1px] pointer-events-none" />
+                                    <div className="gulp-swallow absolute -bottom-1 right-1 w-3 h-2 rounded-full bg-lime-400/30 blur-[1px] pointer-events-none" />
                                 </div>
 
                                 {/* Blushing Cheeks */}
-                                <div className="gulp-swallow absolute bottom-2 left-2.5 w-2.5 h-1.5 bg-lime-400/80 rounded-full blur-[0.6px]" />
-                                <div className="gulp-swallow absolute bottom-2 right-2.5 w-2.5 h-1.5 bg-lime-400/80 rounded-full blur-[0.6px]" />
+                                <div className="gulp-swallow absolute bottom-1.5 left-2.5 w-2 h-1.5 bg-lime-400/80 rounded-full blur-[0.6px]" />
+                                <div className="gulp-swallow absolute bottom-1.5 right-2.5 w-2 h-1.5 bg-lime-400/80 rounded-full blur-[0.6px]" />
                             </div>
                         </div>
                     </div>
 
                     {/* SEASIDE CHILLED WATER BOTTLE */}
-                    <div className="bottle-direct-chug absolute right-[2px] top-[36px] z-30 flex flex-col items-center select-none pointer-events-none">
+                    <div className="bottle-direct-chug absolute right-[2px] top-[30px] z-30 flex flex-col items-center select-none pointer-events-none">
                         <div className="relative flex flex-col items-center z-20">
-                            <div className="w-3.5 h-1.5 bg-sky-200/90 border border-sky-300 rounded-full shadow-[0_0_8px_rgba(56,189,248,0.7)]" />
-                            <div className="w-3 h-1.5 bg-gradient-to-b from-sky-200/60 to-sky-400/50 border-x border-sky-300/50 relative overflow-hidden">
+                            <div className="w-3 h-1.5 bg-sky-200/90 border border-sky-300 rounded-full shadow-[0_0_8px_rgba(56,189,248,0.7)]" />
+                            <div className="w-2.5 h-1.5 bg-gradient-to-b from-sky-200/60 to-sky-400/50 border-x border-sky-300/50 relative overflow-hidden">
                                 <div className="absolute inset-0 bg-lime-400/30 animate-pulse" />
                             </div>
-                            <div className="w-1.5 h-1.5 rounded-full bg-lime-300/95 absolute -left-1 top-0 animate-ping opacity-60" />
                         </div>
 
-                        <div className="relative w-8 h-[64px] rounded-xl bottle-shimmer border border-sky-300/40 backdrop-blur-sm shadow-[0_4px_18px_rgba(2,132,199,0.45)] flex flex-col items-center justify-center overflow-hidden">
-                            <div className="water-surface-slosh absolute bottom-0 inset-x-0 h-12 bg-gradient-to-t from-sky-500/70 via-sky-400/40 to-sky-300/25" />
-                            <div className="rising-bubble-1 absolute bottom-2 left-2 w-1.5 h-1.5 rounded-full bg-white/85 border border-sky-200 shadow-sm" />
+                        <div className="relative w-7.5 h-[56px] rounded-xl bottle-shimmer border border-sky-300/40 backdrop-blur-sm shadow-[0_4px_18px_rgba(2,132,199,0.45)] flex flex-col items-center justify-center overflow-hidden">
+                            <div className="water-surface-slosh absolute bottom-0 inset-x-0 h-10 bg-gradient-to-t from-sky-500/70 via-sky-400/40 to-sky-300/25" />
+                            <div className="rising-bubble-1 absolute bottom-1.5 left-2 w-1.5 h-1.5 rounded-full bg-white/85 border border-sky-200 shadow-sm" />
                             <div className="rising-bubble-2 absolute bottom-1 right-2 w-1.5 h-1.5 rounded-full bg-white/80 shadow-sm" />
-                            <div className="rising-bubble-3 absolute bottom-3 left-2.5 w-1.5 h-1.5 rounded-full bg-white/75" />
-                            <div className="rising-bubble-4 absolute bottom-3.5 right-1.5 w-1 h-1 rounded-full bg-lime-200/80" />
-                            <div className="absolute top-2 left-1 w-1 h-1 rounded-full bg-white/90 shadow-[0_0_2px_white]" />
-                            <div className="absolute bottom-4 right-1 w-0.5 h-1 rounded-full bg-white/80" />
+                            <div className="rising-bubble-3 absolute bottom-2.5 left-2.5 w-1 h-1 rounded-full bg-white/75" />
 
                             <div className="relative z-10 w-full bg-[#0369a1]/95 py-0.5 px-0.5 border-y border-sky-300/60 flex flex-col items-center shadow-inner">
-                                <span className="text-[7px] font-black tracking-tight leading-none text-[#a3e635] drop-shadow-[0_0_4px_rgba(163,230,53,0.8)]">
+                                <span className="text-[6.5px] font-black tracking-tight leading-none text-[#a3e635] drop-shadow-[0_0_4px_rgba(163,230,53,0.8)]">
                                     SEASIDE
                                 </span>
-                                <span className="text-[3.8px] font-bold tracking-widest uppercase leading-none mt-0.5 text-[#bef264]">
+                                <span className="text-[3.5px] font-bold tracking-widest uppercase leading-none mt-0.5 text-[#bef264]">
                                     PURIFIED WATER
                                 </span>
                             </div>
                         </div>
 
                         {/* Volt's Right Paw Gripping Bottle */}
-                        <div className="absolute top-6 -left-3 z-20 flex items-center pointer-events-none">
-                            <div className="w-4 h-5.5 bg-[#131d2e] border border-[#334155] rounded-l-lg flex flex-col justify-evenly py-0.5 px-0.5 shadow-md">
-                                <div className="w-2.5 h-[2px] bg-[#38bdf8]/60 rounded" />
-                                <div className="w-2.5 h-[2px] bg-[#38bdf8]/60 rounded" />
-                                <div className="w-2.5 h-[2px] bg-[#38bdf8]/60 rounded" />
+                        <div className="absolute top-5 -left-2.5 z-20 flex items-center pointer-events-none">
+                            <div className="w-3.5 h-5 bg-[#131d2e] border border-[#334155] rounded-l-lg flex flex-col justify-evenly py-0.5 px-0.5 shadow-md">
+                                <div className="w-2 h-[2px] bg-[#38bdf8]/60 rounded" />
+                                <div className="w-2 h-[2px] bg-[#38bdf8]/60 rounded" />
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Form Card Container with Volt's Peace Hand Behind Card & Feet Below */}
+                {/* Form Card Container with Volt's Peace Hand Behind Top-Left Edge & Feet Below */}
                 <div className="relative w-full z-20">
                     {/* Volt Left Peace-Sign Hand Behind Top-Left Edge of Card (Desktop & Mobile) */}
                     <div
-                        className="peace-hand-wave absolute -top-[28px] left-8 sm:left-11 z-10 pointer-events-none select-none"
+                        className="peace-hand-wave absolute -top-[44px] left-6 sm:left-9 z-10 pointer-events-none select-none"
                         data-purpose="robot-peace-hand"
                         aria-hidden="true"
                     >
@@ -672,10 +667,10 @@ export default function VoltAuthCard({
                         </svg>
                     </div>
 
-                    <section className="w-full dark-glass-card rounded-[28px] p-5 sm:px-6 sm:py-5 relative z-20 backdrop-blur-xl text-slate-100">
+                    <section className="w-full dark-glass-card rounded-[26px] p-4 sm:px-6 sm:py-4 relative z-20 backdrop-blur-xl text-slate-100">
                         {/* Top Segmented Pill Toggle (Sign In / Staff Sign Up) */}
                         {activeCard !== 'contact' ? (
-                            <div className="w-full bg-[#0a101d] border border-white/5 p-1 rounded-2xl flex items-center mb-4">
+                            <div className="w-full bg-[#0a101d] border border-white/5 p-1 rounded-2xl flex items-center mb-3">
                                 <button
                                     type="button"
                                     onClick={() => onSwitchCard?.('login')}
@@ -702,7 +697,7 @@ export default function VoltAuthCard({
                                 </button>
                             </div>
                         ) : (
-                            <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center justify-between mb-3">
                                 <span className="text-xs font-extrabold uppercase tracking-wider text-lime-400">
                                     Contact Seaside Station
                                 </span>
@@ -719,18 +714,18 @@ export default function VoltAuthCard({
                         {/* ==================== SIGN IN VIEW ==================== */}
                         {activeCard === 'login' && (
                             <>
-                                <div className="text-center mb-4">
-                                    <h1 className="text-[26px] sm:text-[28px] font-extrabold text-white tracking-tight leading-tight">
+                                <div className="text-center mb-3">
+                                    <h1 className="text-[24px] sm:text-[26px] font-extrabold text-white tracking-tight leading-tight">
                                         Welcome Back
                                     </h1>
-                                    <p className="text-[13px] text-slate-400 mt-0.5 font-medium">
+                                    <p className="text-[12.5px] text-slate-400 mt-0.5 font-medium">
                                         Log in to your Seaside dashboard.
                                     </p>
                                 </div>
 
                                 {/* Pending Admin Approval Notice */}
                                 {pendingApprovalInfo && (
-                                    <div className="mb-3.5 p-3 rounded-2xl bg-amber-500/10 border border-amber-400/30 text-amber-200 text-xs space-y-1.5">
+                                    <div className="mb-3 p-2.5 rounded-2xl bg-amber-500/10 border border-amber-400/30 text-amber-200 text-xs space-y-1">
                                         <div className="flex items-start justify-between gap-2">
                                             <p className="font-extrabold text-amber-300">
                                                 {pendingApprovalInfo.title}
@@ -743,7 +738,7 @@ export default function VoltAuthCard({
                                                 <X className="w-3.5 h-3.5" />
                                             </button>
                                         </div>
-                                        <p className="text-amber-100/90 leading-relaxed">
+                                        <p className="text-amber-100/90 leading-snug">
                                             {pendingApprovalInfo.message}
                                         </p>
                                         {onNotifyAdmin && (
@@ -762,18 +757,18 @@ export default function VoltAuthCard({
                                 {authError && (
                                     <div
                                         role="alert"
-                                        className="mb-3.5 px-3 py-2 rounded-2xl bg-rose-500/15 border border-rose-500/40 text-rose-200 text-xs font-bold flex items-center gap-2"
+                                        className="mb-3 px-3 py-2 rounded-2xl bg-rose-500/15 border border-rose-500/40 text-rose-200 text-xs font-bold flex items-center gap-2"
                                     >
                                         <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
                                         <span>{authError}</span>
                                     </div>
                                 )}
 
-                                <form onSubmit={handleLoginSubmit} className="space-y-3">
+                                <form onSubmit={handleLoginSubmit} className="space-y-2.5">
                                     <div>
                                         <label
                                             htmlFor="volt-email"
-                                            className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1 ml-1"
+                                            className="block text-[10.5px] font-bold text-slate-300 uppercase tracking-wider mb-1 ml-1"
                                         >
                                             USERNAME OR EMAIL
                                         </label>
@@ -790,7 +785,7 @@ export default function VoltAuthCard({
                                                 onFocus={() => handleInputFocus('email')}
                                                 onBlur={handleInputBlur}
                                                 placeholder="name@seaside.com"
-                                                className="w-full pl-10 pr-4 py-2.5 bg-[#080e1b] border border-[#1e293b] rounded-2xl text-slate-100 placeholder-slate-500 text-[13.5px] focus:outline-none focus:border-lime-400 focus:ring-1 focus:ring-lime-400 transition-all duration-200 shadow-inner"
+                                                className="w-full pl-10 pr-4 py-2 bg-[#080e1b] border border-[#1e293b] rounded-2xl text-slate-100 placeholder-slate-500 text-[13px] focus:outline-none focus:border-lime-400 focus:ring-1 focus:ring-lime-400 transition-all duration-200 shadow-inner"
                                             />
                                         </div>
                                     </div>
@@ -799,14 +794,14 @@ export default function VoltAuthCard({
                                         <div className="flex items-center justify-between mb-1 px-1">
                                             <label
                                                 htmlFor="volt-password"
-                                                className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider"
+                                                className="block text-[10.5px] font-bold text-slate-300 uppercase tracking-wider"
                                             >
                                                 PASSWORD
                                             </label>
                                             <button
                                                 type="button"
                                                 onClick={() => onForgotPassword?.(loginEmail)}
-                                                className="text-[11.5px] font-bold text-lime-400 hover:text-lime-300 transition-colors cursor-pointer"
+                                                className="text-[11px] font-bold text-lime-400 hover:text-lime-300 transition-colors cursor-pointer"
                                             >
                                                 Forgot?
                                             </button>
@@ -824,7 +819,7 @@ export default function VoltAuthCard({
                                                 onFocus={() => handleInputFocus('password')}
                                                 onBlur={handleInputBlur}
                                                 placeholder="••••••••"
-                                                className="w-full pl-10 pr-11 py-2.5 bg-[#080e1b] border border-[#1e293b] rounded-2xl text-slate-100 placeholder-slate-500 text-[13.5px] tracking-wide focus:outline-none focus:border-lime-400 focus:ring-1 focus:ring-lime-400 transition-all duration-200 shadow-inner"
+                                                className="w-full pl-10 pr-11 py-2 bg-[#080e1b] border border-[#1e293b] rounded-2xl text-slate-100 placeholder-slate-500 text-[13px] tracking-wide focus:outline-none focus:border-lime-400 focus:ring-1 focus:ring-lime-400 transition-all duration-200 shadow-inner"
                                             />
                                             <button
                                                 type="button"
@@ -845,7 +840,7 @@ export default function VoltAuthCard({
                                         <button
                                             type="submit"
                                             disabled={isLoggingIn || isDemoLoading}
-                                            className="w-full py-3 px-4 btn-neon-glow text-slate-950 font-black text-[14.5px] rounded-2xl flex items-center justify-center gap-2 cursor-pointer select-none disabled:opacity-60"
+                                            className="w-full py-2.5 px-4 btn-neon-glow text-slate-950 font-black text-[14px] rounded-2xl flex items-center justify-center gap-2 cursor-pointer select-none disabled:opacity-60"
                                         >
                                             {isLoggingIn ? (
                                                 <>
@@ -861,8 +856,8 @@ export default function VoltAuthCard({
                                         </button>
                                     </div>
 
-                                    <div className="text-center pt-0.5">
-                                        <p className="text-[12.5px] text-slate-400 font-medium">
+                                    <div className="text-center">
+                                        <p className="text-[12px] text-slate-400 font-medium">
                                             New Seaside staff?{' '}
                                             <button
                                                 type="button"
@@ -874,9 +869,9 @@ export default function VoltAuthCard({
                                         </p>
                                     </div>
 
-                                    <div className="relative flex items-center justify-center my-2">
+                                    <div className="relative flex items-center justify-center my-1.5">
                                         <div className="border-t border-slate-800 w-full" />
-                                        <span className="bg-[#0c1424] px-2.5 text-[10.5px] font-extrabold text-slate-400 tracking-wider uppercase rounded-full border border-slate-800">
+                                        <span className="bg-[#0c1424] px-2.5 text-[10px] font-extrabold text-slate-400 tracking-wider uppercase rounded-full border border-slate-800">
                                             OR
                                         </span>
                                     </div>
@@ -886,7 +881,7 @@ export default function VoltAuthCard({
                                             type="button"
                                             disabled={isDemoLoading || isLoggingIn}
                                             onClick={handleDemoClick}
-                                            className="w-full py-2.5 px-4 bg-[#0a101d] hover:bg-[#111a2d] border border-slate-800 hover:border-slate-700 text-white font-bold text-[13.5px] rounded-2xl flex items-center justify-center gap-2 transition-all duration-200 shadow-md cursor-pointer disabled:opacity-60"
+                                            className="w-full py-2 px-4 bg-[#0a101d] hover:bg-[#111a2d] border border-slate-800 hover:border-slate-700 text-white font-bold text-[13px] rounded-2xl flex items-center justify-center gap-2 transition-all duration-200 shadow-md cursor-pointer disabled:opacity-60"
                                         >
                                             <span className="text-lime-400 text-base leading-none font-bold">+</span>
                                             <span>
@@ -901,25 +896,25 @@ export default function VoltAuthCard({
                         {/* ==================== STAFF SIGN UP VIEW ==================== */}
                         {activeCard === 'signup' && (
                             <>
-                                <div className="text-center mb-3.5">
-                                    <h2 className="text-[23px] font-extrabold text-white tracking-tight leading-tight">
+                                <div className="text-center mb-3">
+                                    <h2 className="text-[22px] font-extrabold text-white tracking-tight leading-tight">
                                         Staff Registration
                                     </h2>
-                                    <p className="text-[12.5px] text-slate-400 mt-0.5 font-medium">
+                                    <p className="text-[12px] text-slate-400 mt-0.5 font-medium">
                                         Create a Seaside staff account for Admin approval.
                                     </p>
                                 </div>
 
                                 {(localRegError || regError) && (
-                                    <div className="mb-3 px-3 py-2 rounded-2xl bg-rose-500/15 border border-rose-500/40 text-rose-200 text-xs font-bold flex items-center gap-2">
+                                    <div className="mb-2.5 px-3 py-1.5 rounded-2xl bg-rose-500/15 border border-rose-500/40 text-rose-200 text-xs font-bold flex items-center gap-2">
                                         <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
                                         <span>{localRegError || regError}</span>
                                     </div>
                                 )}
 
-                                <form onSubmit={handleSignUpSubmit} className="space-y-2.5">
+                                <form onSubmit={handleSignUpSubmit} className="space-y-2">
                                     <div>
-                                        <label className="block text-[10.5px] font-bold text-slate-300 uppercase tracking-wider mb-1 ml-1">
+                                        <label className="block text-[10px] font-bold text-slate-300 uppercase tracking-wider mb-1 ml-1">
                                             FULL NAME
                                         </label>
                                         <div className="relative">
@@ -934,13 +929,13 @@ export default function VoltAuthCard({
                                                 onFocus={() => handleInputFocus('name')}
                                                 onBlur={handleInputBlur}
                                                 placeholder="Juan Dela Cruz"
-                                                className="w-full pl-10 pr-4 py-2 bg-[#080e1b] border border-[#1e293b] rounded-2xl text-slate-100 placeholder-slate-500 text-[13px] focus:outline-none focus:border-lime-400 focus:ring-1 focus:ring-lime-400"
+                                                className="w-full pl-10 pr-4 py-1.5 bg-[#080e1b] border border-[#1e293b] rounded-2xl text-slate-100 placeholder-slate-500 text-[12.5px] focus:outline-none focus:border-lime-400 focus:ring-1 focus:ring-lime-400"
                                             />
                                         </div>
                                     </div>
 
                                     <div>
-                                        <label className="block text-[10.5px] font-bold text-slate-300 uppercase tracking-wider mb-1 ml-1">
+                                        <label className="block text-[10px] font-bold text-slate-300 uppercase tracking-wider mb-1 ml-1">
                                             EMAIL ADDRESS
                                         </label>
                                         <div className="relative">
@@ -955,17 +950,17 @@ export default function VoltAuthCard({
                                                 onFocus={() => handleInputFocus('email')}
                                                 onBlur={handleInputBlur}
                                                 placeholder="staff@seaside.com"
-                                                className="w-full pl-10 pr-4 py-2 bg-[#080e1b] border border-[#1e293b] rounded-2xl text-slate-100 placeholder-slate-500 text-[13px] focus:outline-none focus:border-lime-400 focus:ring-1 focus:ring-lime-400"
+                                                className="w-full pl-10 pr-4 py-1.5 bg-[#080e1b] border border-[#1e293b] rounded-2xl text-slate-100 placeholder-slate-500 text-[12.5px] focus:outline-none focus:border-lime-400 focus:ring-1 focus:ring-lime-400"
                                             />
                                         </div>
                                     </div>
 
                                     <div>
-                                        <label className="block text-[10.5px] font-bold text-slate-300 uppercase tracking-wider mb-1 ml-1">
+                                        <label className="block text-[10px] font-bold text-slate-300 uppercase tracking-wider mb-1 ml-1">
                                             PHONE NUMBER (+63)
                                         </label>
                                         <div className="flex items-center bg-[#080e1b] border border-[#1e293b] rounded-2xl overflow-hidden focus-within:border-lime-400 focus-within:ring-1 focus-within:ring-lime-400">
-                                            <span className="px-3 py-2 text-xs font-extrabold text-lime-400 bg-[#0d1628] border-r border-[#1e293b] select-none flex items-center gap-1">
+                                            <span className="px-3 py-1.5 text-xs font-extrabold text-lime-400 bg-[#0d1628] border-r border-[#1e293b] select-none flex items-center gap-1">
                                                 <Phone className="w-3.5 h-3.5" />
                                                 +63
                                             </span>
@@ -981,14 +976,14 @@ export default function VoltAuthCard({
                                                 onFocus={() => handleInputFocus('phone')}
                                                 onBlur={handleInputBlur}
                                                 placeholder="9171234567"
-                                                className="w-full px-3 py-2 bg-transparent text-slate-100 placeholder-slate-500 text-[13px] focus:outline-none"
+                                                className="w-full px-3 py-1.5 bg-transparent text-slate-100 placeholder-slate-500 text-[12.5px] focus:outline-none"
                                             />
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                         <div>
-                                            <label className="block text-[10.5px] font-bold text-slate-300 uppercase tracking-wider mb-1 ml-1">
+                                            <label className="block text-[10px] font-bold text-slate-300 uppercase tracking-wider mb-1 ml-1">
                                                 PASSWORD
                                             </label>
                                             <div className="relative">
@@ -1000,7 +995,7 @@ export default function VoltAuthCard({
                                                     onFocus={() => handleInputFocus('password')}
                                                     onBlur={handleInputBlur}
                                                     placeholder="••••••••"
-                                                    className="w-full pl-3.5 pr-9 py-2 bg-[#080e1b] border border-[#1e293b] rounded-2xl text-slate-100 placeholder-slate-500 text-[13px] focus:outline-none focus:border-lime-400"
+                                                    className="w-full pl-3.5 pr-9 py-1.5 bg-[#080e1b] border border-[#1e293b] rounded-2xl text-slate-100 placeholder-slate-500 text-[12.5px] focus:outline-none focus:border-lime-400"
                                                 />
                                                 <button
                                                     type="button"
@@ -1017,7 +1012,7 @@ export default function VoltAuthCard({
                                         </div>
 
                                         <div>
-                                            <label className="block text-[10.5px] font-bold text-slate-300 uppercase tracking-wider mb-1 ml-1">
+                                            <label className="block text-[10px] font-bold text-slate-300 uppercase tracking-wider mb-1 ml-1">
                                                 CONFIRM
                                             </label>
                                             <input
@@ -1028,16 +1023,16 @@ export default function VoltAuthCard({
                                                 onFocus={() => handleInputFocus('password')}
                                                 onBlur={handleInputBlur}
                                                 placeholder="••••••••"
-                                                className="w-full px-3.5 py-2 bg-[#080e1b] border border-[#1e293b] rounded-2xl text-slate-100 placeholder-slate-500 text-[13px] focus:outline-none focus:border-lime-400"
+                                                className="w-full px-3.5 py-1.5 bg-[#080e1b] border border-[#1e293b] rounded-2xl text-slate-100 placeholder-slate-500 text-[12.5px] focus:outline-none focus:border-lime-400"
                                             />
                                         </div>
                                     </div>
 
-                                    <div className="pt-1.5">
+                                    <div className="pt-1">
                                         <button
                                             type="submit"
                                             disabled={isSigningUp}
-                                            className="w-full py-2.5 px-4 btn-neon-glow text-slate-950 font-black text-[14px] rounded-2xl flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+                                            className="w-full py-2.5 px-4 btn-neon-glow text-slate-950 font-black text-[13.5px] rounded-2xl flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
                                         >
                                             {isSigningUp ? (
                                                 <>
@@ -1058,9 +1053,9 @@ export default function VoltAuthCard({
 
                         {/* ==================== CONTACT VIEW ==================== */}
                         {activeCard === 'contact' && (
-                            <div className="space-y-3">
+                            <div className="space-y-2.5">
                                 <div>
-                                    <h2 className="text-[22px] font-extrabold text-white tracking-tight">
+                                    <h2 className="text-[21px] font-extrabold text-white tracking-tight">
                                         Get in Touch
                                     </h2>
                                     <p className="text-xs text-slate-400 mt-0.5">
@@ -1068,7 +1063,7 @@ export default function VoltAuthCard({
                                     </p>
                                 </div>
 
-                                <div className="p-3 rounded-2xl bg-[#080e1b] border border-[#1e293b] space-y-1.5 text-xs text-slate-300">
+                                <div className="p-2.5 rounded-2xl bg-[#080e1b] border border-[#1e293b] space-y-1 text-xs text-slate-300">
                                     <div className="flex items-start gap-2">
                                         <MapPin className="w-4 h-4 text-lime-400 shrink-0 mt-0.5" />
                                         <span>{physicalAddress}</span>
@@ -1082,7 +1077,7 @@ export default function VoltAuthCard({
                                             href={facebookLink}
                                             target="_blank"
                                             rel="noreferrer"
-                                            className="inline-block text-lime-400 font-bold hover:underline pt-0.5"
+                                            className="inline-block text-lime-400 font-bold hover:underline"
                                         >
                                             Visit Official Facebook Page →
                                         </a>
@@ -1091,7 +1086,7 @@ export default function VoltAuthCard({
 
                                 {contactStatus && (
                                     <div
-                                        className={`px-3 py-2 rounded-2xl text-xs font-bold ${
+                                        className={`px-3 py-1.5 rounded-2xl text-xs font-bold ${
                                             contactStatus.type === 'success'
                                                 ? 'bg-emerald-500/15 border border-emerald-500/40 text-emerald-200'
                                                 : 'bg-rose-500/15 border border-rose-500/40 text-rose-200'
@@ -1101,9 +1096,9 @@ export default function VoltAuthCard({
                                     </div>
                                 )}
 
-                                <form onSubmit={handleContactSubmit} className="space-y-2.5">
+                                <form onSubmit={handleContactSubmit} className="space-y-2">
                                     <div>
-                                        <label className="block text-[10.5px] font-bold text-slate-300 uppercase tracking-wider mb-1 ml-1">
+                                        <label className="block text-[10px] font-bold text-slate-300 uppercase tracking-wider mb-1 ml-1">
                                             YOUR EMAIL
                                         </label>
                                         <input
@@ -1114,22 +1109,22 @@ export default function VoltAuthCard({
                                             onFocus={() => handleInputFocus('email')}
                                             onBlur={handleInputBlur}
                                             placeholder="you@example.com"
-                                            className="w-full px-3.5 py-2 bg-[#080e1b] border border-[#1e293b] rounded-2xl text-slate-100 placeholder-slate-500 text-xs sm:text-sm focus:outline-none focus:border-lime-400"
+                                            className="w-full px-3.5 py-1.5 bg-[#080e1b] border border-[#1e293b] rounded-2xl text-slate-100 placeholder-slate-500 text-xs sm:text-sm focus:outline-none focus:border-lime-400"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-[10.5px] font-bold text-slate-300 uppercase tracking-wider mb-1 ml-1">
+                                        <label className="block text-[10px] font-bold text-slate-300 uppercase tracking-wider mb-1 ml-1">
                                             MESSAGE
                                         </label>
                                         <textarea
-                                            rows={3}
+                                            rows={2}
                                             required
                                             value={contactMessage}
                                             onChange={(e) => setContactMessage(e.target.value)}
                                             onFocus={() => handleInputFocus('message')}
                                             onBlur={handleInputBlur}
                                             placeholder="How can we help you?"
-                                            className="w-full px-3.5 py-2 bg-[#080e1b] border border-[#1e293b] rounded-2xl text-slate-100 placeholder-slate-500 text-xs focus:outline-none focus:border-lime-400"
+                                            className="w-full px-3.5 py-1.5 bg-[#080e1b] border border-[#1e293b] rounded-2xl text-slate-100 placeholder-slate-500 text-xs focus:outline-none focus:border-lime-400"
                                         />
                                     </div>
                                     <button
@@ -1146,11 +1141,11 @@ export default function VoltAuthCard({
                     </section>
 
                     {/* Robot Left & Right Feet Peeking from Bottom */}
-                    <div className="absolute -bottom-2.5 left-14 z-10 pointer-events-none">
-                        <div className="w-10 h-3.5 bg-[#131d2e] border border-[#334155] rounded-b-xl rounded-t-sm shadow-md" />
+                    <div className="absolute -bottom-2 left-14 z-10 pointer-events-none">
+                        <div className="w-10 h-3 bg-[#131d2e] border border-[#334155] rounded-b-xl rounded-t-sm shadow-md" />
                     </div>
-                    <div className="absolute -bottom-2.5 right-14 z-10 pointer-events-none">
-                        <div className="w-10 h-3.5 bg-[#131d2e] border border-[#334155] rounded-b-xl rounded-t-sm shadow-md" />
+                    <div className="absolute -bottom-2 right-14 z-10 pointer-events-none">
+                        <div className="w-10 h-3 bg-[#131d2e] border border-[#334155] rounded-b-xl rounded-t-sm shadow-md" />
                     </div>
                 </div>
             </div>
