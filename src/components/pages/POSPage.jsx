@@ -29,6 +29,7 @@ import CartDrawer from '../pos/CartDrawer';
 import EditCartItemModal from '../pos/EditCartItemModal';
 import BarcodeScannerModal from '../pos/BarcodeScannerModal';
 import ScanSalesListModal from '../pos/ScanSalesListModal';
+import POSProductTour from '../pos/POSProductTour';
 import { supabase } from '../../lib/supabaseClient';
 
 export default function POSPage() {
@@ -600,7 +601,10 @@ export default function POSPage() {
             <div className="flex-1 flex flex-col min-w-0 bg-white dark:bg-[#111827] rounded-2xl shadow-2xs border border-slate-200 dark:border-slate-800 overflow-hidden relative z-10 h-full max-h-full min-h-0">
 
                 {/* Clean Header Row: Search + Camera + Scan List */}
-                <div className="p-2.5 sm:p-3 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2 bg-white dark:bg-[#111827] shrink-0">
+                <div
+                    id="tour-pos-search-bar"
+                    className="p-2.5 sm:p-3 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2 bg-white dark:bg-[#111827] shrink-0"
+                >
                     <div className="relative flex-1 flex items-center group min-w-0">
                         <Search className="w-4 h-4 absolute left-3 text-slate-400 group-focus-within:text-emerald-500 transition-colors pointer-events-none z-10" />
                         <input
@@ -657,7 +661,10 @@ export default function POSPage() {
                 </div>
 
                 {/* Single Clean Category Filter Bar + Desktop-Only Hotkeys */}
-                <div className="px-2.5 sm:px-3 py-2 border-b border-slate-100 dark:border-slate-800/90 flex flex-col gap-2 shrink-0 bg-slate-50/50 dark:bg-[#111827]">
+                <div
+                    id="tour-pos-categories-hotkeys"
+                    className="px-2.5 sm:px-3 py-2 border-b border-slate-100 dark:border-slate-800/90 flex flex-col gap-2 shrink-0 bg-slate-50/50 dark:bg-[#111827]"
+                >
                     {/* Category Pill Strip */}
                     <div className="category-scroll-container flex items-center gap-1.5 overflow-x-auto w-full">
                         {availableCategories.map((cat) => {
@@ -734,7 +741,10 @@ export default function POSPage() {
                 </div>
 
                 {/* --- Scrollable 3D Product Grid Region --- */}
-                <div className="pos-product-scroll-area flex-1 p-2.5 sm:p-3.5 pb-36 md:pb-3.5 bg-slate-50/50 dark:bg-[#0e1525] relative min-h-0 overflow-y-auto">
+                <div
+                    id="tour-pos-product-grid"
+                    className="pos-product-scroll-area flex-1 p-2.5 sm:p-3.5 pb-36 md:pb-3.5 bg-slate-50/50 dark:bg-[#0e1525] relative min-h-0 overflow-y-auto"
+                >
                     <POSProductGrid
                         isLoading={isLoadingProducts}
                         products={products}
@@ -749,7 +759,10 @@ export default function POSPage() {
             </div>
 
             {/* --- RIGHT PANEL: CURRENT ORDER (Desktop Split View with Direct Customer Search) --- */}
-            <div className="hidden md:flex w-full md:w-[340px] lg:w-[385px] xl:w-[410px] flex-shrink-0 flex-col h-full max-h-full z-10 min-h-0">
+            <div
+                id="tour-pos-cart-panel"
+                className="hidden md:flex w-full md:w-[340px] lg:w-[385px] xl:w-[410px] flex-shrink-0 flex-col h-full max-h-full z-10 min-h-0"
+            >
                 <POSCart
                     currentSale={currentSale}
                     clearSale={handleClearCart}
@@ -891,14 +904,16 @@ export default function POSPage() {
 
             {/* Mobile Cart Floating Action Bar */}
             {!isAnyModalOpen && (
-                <MobileCartBar
-                    itemCount={Object.keys(currentSale).length}
-                    totalQty={totalQty}
-                    subtotal={subtotal}
-                    onOpenCart={openCartDrawer}
-                    onDirectCheckout={openPaymentModal}
-                    onClearCart={handleClearCart}
-                />
+                <div id="tour-pos-mobile-cart">
+                    <MobileCartBar
+                        itemCount={Object.keys(currentSale).length}
+                        totalQty={totalQty}
+                        subtotal={subtotal}
+                        onOpenCart={openCartDrawer}
+                        onDirectCheckout={openPaymentModal}
+                        onClearCart={handleClearCart}
+                    />
+                </div>
             )}
 
             {/* Mobile Slide-Up Cart Drawer */}
@@ -919,6 +934,8 @@ export default function POSPage() {
                 stockWarningKey={stockWarningKey}
                 isDemo={isDemo}
             />
+
+            <POSProductTour isProductsLoading={isLoadingProducts} />
         </div>
     );
 }
