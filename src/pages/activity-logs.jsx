@@ -9,6 +9,7 @@ import { ShieldAlert, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react'
 import ActivityLogsHeader from '../components/activity-logs/ActivityLogsHeader';
 import ActivityLogsFilters from '../components/activity-logs/ActivityLogsFilters';
 import ActivityLogsTable from '../components/activity-logs/ActivityLogsTable';
+import ActivityLogsTour from '../components/activity-logs/ActivityLogsTour';
 
 export default function ActivityLogsPage() {
     const user = useStore((s) => s.user);
@@ -119,26 +120,31 @@ export default function ActivityLogsPage() {
                 }
             `}</style>
 
-            <div className="px-0.5 sm:px-0">
+            <div id="tour-al-header" className="px-0.5 sm:px-0">
                 <ActivityLogsHeader />
             </div>
 
             <Card className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-xl sm:rounded-2xl shadow-sm overflow-hidden flex flex-col">
-                <ActivityLogsFilters
-                    searchTerm={searchTerm}
-                    setSearchTerm={handleSearchChange}
-                    filterAction={filterAction}
-                    setFilterAction={handleActionChange}
-                    filterType={filterType}
-                    setFilterType={handleTypeChange}
-                />
+                <div id="tour-al-filters">
+                    <ActivityLogsFilters
+                        searchTerm={searchTerm}
+                        setSearchTerm={handleSearchChange}
+                        filterAction={filterAction}
+                        setFilterAction={handleActionChange}
+                        filterType={filterType}
+                        setFilterType={handleTypeChange}
+                    />
+                </div>
 
-                <CardContent className="p-0">
+                <CardContent id="tour-al-table" className="p-0">
                     <ActivityLogsTable logs={logs} isLoading={isLoading} />
                 </CardContent>
 
                 {/* Pagination Controls */}
-                <div className="flex items-center justify-between gap-2 border-t border-slate-100 dark:border-slate-800 px-3 py-2.5 sm:p-4 bg-slate-50/90 dark:bg-slate-800/70">
+                <div
+                    id="tour-al-pagination"
+                    className="flex items-center justify-between gap-2 border-t border-slate-100 dark:border-slate-800 px-3 py-2.5 sm:p-4 bg-slate-50/90 dark:bg-slate-800/70"
+                >
                     <Button
                         type="button"
                         variant="outline"
@@ -173,6 +179,8 @@ export default function ActivityLogsPage() {
                     </Button>
                 </div>
             </Card>
+
+            <ActivityLogsTour isLogsLoading={isLoading} />
         </div>
     );
 }
