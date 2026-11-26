@@ -14,6 +14,7 @@ import {
     DialogTitle, DialogCloseButton, Textarea, Select
 } from '../ui';
 import Pagination from '../Pagination';
+import ArticleManagementTour from '../articles/ArticleManagementTour';
 
 import {
     Plus, Pencil, Trash2, ExternalLink, Copy, Check,
@@ -342,7 +343,6 @@ export default function ArticleManagementPage() {
 
     return (
         <div className="article-page w-full max-w-7xl mx-auto px-1.5 py-2 sm:p-5 md:p-6 space-y-2.5 sm:space-y-6 pb-24 md:pb-8 overflow-x-hidden transition-colors dark:[color-scheme:dark]">
-            {/* Match POS, Expenses, Dashboard, Report, History, Scanned Logs, Customer, Maintenance, Product, 3D Icons, Inventory, Gallery, Salary, Debt, Refill Game, Users & Approvals edge-to-edge fit on mobile (< 640px) */}
             <style jsx global>{`
                 @media (max-width: 639px) {
                     .app:has(.article-page) .container {
@@ -372,7 +372,7 @@ export default function ArticleManagementPage() {
                     </p>
                 </div>
 
-                <div className="flex items-center gap-2 w-full sm:w-auto">
+                <div id="tour-article-new-btn" className="flex items-center gap-2 w-full sm:w-auto">
                     <Button
                         type="button"
                         onClick={() => { resetForm(); setIsModalOpen(true); }}
@@ -387,7 +387,7 @@ export default function ArticleManagementPage() {
             </div>
 
             {/* KPI Summary Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+            <div id="tour-article-kpis" className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
                 <div className="bg-white dark:bg-slate-900 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs flex items-center justify-between gap-2 min-w-0 transition-colors">
                     <div className="min-w-0">
                         <span className="text-[9.5px] sm:text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block truncate">Total Articles</span>
@@ -432,7 +432,10 @@ export default function ArticleManagementPage() {
             </div>
 
             {/* Filter Bar */}
-            <div className="p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-3 transition-colors">
+            <div
+                id="tour-article-filters"
+                className="p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-3 transition-colors"
+            >
                 <div className="relative w-full sm:max-w-md">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-slate-500 z-10">
                         <Search className="w-4 h-4" />
@@ -513,142 +516,144 @@ export default function ArticleManagementPage() {
             </div>
 
             {/* Desktop Table View */}
-            <Card className="hidden md:block border border-slate-200/90 dark:border-slate-800 shadow-2xs bg-white dark:bg-slate-900 rounded-2xl overflow-hidden transition-colors">
-                <CardContent className="p-0">
-                    <div className="w-full overflow-hidden">
-                        <table className="w-full table-fixed text-xs divide-y divide-slate-100 dark:divide-slate-800">
-                            <thead className="bg-slate-50 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200/80 dark:border-slate-800">
-                            <tr>
-                                <th className="w-28 py-3 px-3 text-left">Status</th>
-                                <th className="py-3 px-3 text-left">Article Details</th>
-                                <th className="w-48 py-3 px-3 text-left">URL Slug</th>
-                                <th className="w-28 py-3 px-3 text-right">Actions</th>
-                            </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 bg-white dark:bg-slate-900">
-                            {isLoading ? (
+            <div id="tour-article-desktop-table">
+                <Card className="hidden md:block border border-slate-200/90 dark:border-slate-800 shadow-2xs bg-white dark:bg-slate-900 rounded-2xl overflow-hidden transition-colors">
+                    <CardContent className="p-0">
+                        <div className="w-full overflow-hidden">
+                            <table className="w-full table-fixed text-xs divide-y divide-slate-100 dark:divide-slate-800">
+                                <thead className="bg-slate-50 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200/80 dark:border-slate-800">
                                 <tr>
-                                    <td colSpan={4} className="text-center py-16 text-slate-400 dark:text-slate-500 text-xs">
-                                        Loading articles...
-                                    </td>
+                                    <th className="w-28 py-3 px-3 text-left">Status</th>
+                                    <th className="py-3 px-3 text-left">Article Details</th>
+                                    <th className="w-48 py-3 px-3 text-left">URL Slug</th>
+                                    <th className="w-28 py-3 px-3 text-right">Actions</th>
                                 </tr>
-                            ) : paginatedArticles.length === 0 ? (
-                                <tr>
-                                    <td colSpan={4} className="text-center py-16 text-slate-400 dark:text-slate-500 text-xs">
-                                        No articles found matching your criteria.
-                                    </td>
-                                </tr>
-                            ) : (
-                                paginatedArticles.map((item) => (
-                                    <tr key={item.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors">
-                                        <td className="w-28 py-3 px-3 align-middle whitespace-nowrap">
-                                            <button
-                                                type="button"
-                                                onClick={() => handleTogglePublish(item)}
-                                                disabled={isDemo}
-                                                className={`px-2.5 py-1 rounded-full text-[11px] font-bold border inline-flex items-center gap-1.5 transition-colors cursor-pointer ${
-                                                    item.is_published
-                                                        ? 'bg-lime-50 dark:bg-lime-950/50 text-[#5f7d00] dark:text-lime-400 border-lime-200 dark:border-lime-900/60 hover:bg-lime-100 dark:hover:bg-lime-900/40'
-                                                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700'
-                                                }`}
-                                                title="Click to toggle status"
-                                            >
-                                                <span className={`w-1.5 h-1.5 rounded-full ${item.is_published ? 'bg-[#8DB600] dark:bg-lime-400' : 'bg-slate-400 dark:bg-slate-500'}`}></span>
-                                                <span>{item.is_published ? 'Published' : 'Draft'}</span>
-                                            </button>
-                                        </td>
-
-                                        <td className="py-3 px-3 align-middle min-w-0">
-                                            <div className="flex items-center gap-2.5 min-w-0">
-                                                <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden shrink-0 flex items-center justify-center">
-                                                    {item.image_url ? (
-                                                        <img
-                                                            src={item.image_url}
-                                                            alt={item.title}
-                                                            className="w-full h-full object-cover"
-                                                            onError={(e) => { e.target.onerror = null; e.target.src = '/seaside.png'; }}
-                                                        />
-                                                    ) : (
-                                                        <BookOpen className="w-4 h-4 text-slate-400 dark:text-slate-500" />
-                                                    )}
-                                                </div>
-                                                <div className="min-w-0 flex-1">
-                                                    <h3 className="font-bold text-slate-900 dark:text-slate-100 text-xs sm:text-sm truncate" title={item.title}>
-                                                        {item.title}
-                                                    </h3>
-                                                    <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5" title={item.description}>
-                                                        {item.description || 'No description provided'}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </td>
-
-                                        <td className="w-48 py-3 px-3 align-middle min-w-0">
-                                            <div className="flex items-center gap-1.5 min-w-0">
-                                                <span className="truncate text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/80 px-2 py-1 rounded-md border border-slate-200/80 dark:border-slate-700 font-mono text-[11px] min-w-0 flex-1" title={`/${item.slug}`}>
-                                                    /{item.slug}
-                                                </span>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleCopySlug(item.slug)}
-                                                    className="w-7 h-7 flex items-center justify-center text-slate-400 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shrink-0 transition-colors cursor-pointer"
-                                                    title="Copy link"
-                                                >
-                                                    {copiedSlug === item.slug ? <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                                                </button>
-                                            </div>
-                                        </td>
-
-                                        <td className="w-28 py-3 px-3 text-right align-middle whitespace-nowrap">
-                                            <div className="flex items-center justify-end gap-1">
-                                                <a
-                                                    href={`/articles/${item.slug}`}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="w-7 h-7 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors"
-                                                    title="Preview live article"
-                                                >
-                                                    <ExternalLink className="w-3.5 h-3.5" />
-                                                </a>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleEdit(item)}
-                                                    disabled={isDemo}
-                                                    className="w-7 h-7 flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/50 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors disabled:opacity-30 cursor-pointer"
-                                                    title="Edit article"
-                                                >
-                                                    <Pencil className="w-3.5 h-3.5" />
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleDelete(item)}
-                                                    disabled={isDemo}
-                                                    className="w-7 h-7 flex items-center justify-center text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors disabled:opacity-30 cursor-pointer"
-                                                    title="Delete article"
-                                                >
-                                                    <Trash2 className="w-3.5 h-3.5" />
-                                                </button>
-                                            </div>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 bg-white dark:bg-slate-900">
+                                {isLoading ? (
+                                    <tr>
+                                        <td colSpan={4} className="text-center py-16 text-slate-400 dark:text-slate-500 text-xs">
+                                            Loading articles...
                                         </td>
                                     </tr>
-                                ))
-                            )}
-                            </tbody>
-                        </table>
-                    </div>
+                                ) : paginatedArticles.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={4} className="text-center py-16 text-slate-400 dark:text-slate-500 text-xs">
+                                            No articles found matching your criteria.
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    paginatedArticles.map((item) => (
+                                        <tr key={item.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors">
+                                            <td className="w-28 py-3 px-3 align-middle whitespace-nowrap">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleTogglePublish(item)}
+                                                    disabled={isDemo}
+                                                    className={`px-2.5 py-1 rounded-full text-[11px] font-bold border inline-flex items-center gap-1.5 transition-colors cursor-pointer ${
+                                                        item.is_published
+                                                            ? 'bg-lime-50 dark:bg-lime-950/50 text-[#5f7d00] dark:text-lime-400 border-lime-200 dark:border-lime-900/60 hover:bg-lime-100 dark:hover:bg-lime-900/40'
+                                                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700'
+                                                    }`}
+                                                    title="Click to toggle status"
+                                                >
+                                                    <span className={`w-1.5 h-1.5 rounded-full ${item.is_published ? 'bg-[#8DB600] dark:bg-lime-400' : 'bg-slate-400 dark:bg-slate-500'}`}></span>
+                                                    <span>{item.is_published ? 'Published' : 'Draft'}</span>
+                                                </button>
+                                            </td>
 
-                    <div className="p-3 border-t border-slate-100 dark:border-slate-800 flex justify-end">
-                        <Pagination
-                            currentPage={currentPage}
-                            totalPages={totalPages}
-                            onPageChange={page => setCurrentPage(page)}
-                        />
-                    </div>
-                </CardContent>
-            </Card>
+                                            <td className="py-3 px-3 align-middle min-w-0">
+                                                <div className="flex items-center gap-2.5 min-w-0">
+                                                    <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden shrink-0 flex items-center justify-center">
+                                                        {item.image_url ? (
+                                                            <img
+                                                                src={item.image_url}
+                                                                alt={item.title}
+                                                                className="w-full h-full object-cover"
+                                                                onError={(e) => { e.target.onerror = null; e.target.src = '/seaside.png'; }}
+                                                            />
+                                                        ) : (
+                                                            <BookOpen className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+                                                        )}
+                                                    </div>
+                                                    <div className="min-w-0 flex-1">
+                                                        <h3 className="font-bold text-slate-900 dark:text-slate-100 text-xs sm:text-sm truncate" title={item.title}>
+                                                            {item.title}
+                                                        </h3>
+                                                        <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5" title={item.description}>
+                                                            {item.description || 'No description provided'}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </td>
+
+                                            <td className="w-48 py-3 px-3 align-middle min-w-0">
+                                                <div className="flex items-center gap-1.5 min-w-0">
+                                                    <span className="truncate text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/80 px-2 py-1 rounded-md border border-slate-200/80 dark:border-slate-700 font-mono text-[11px] min-w-0 flex-1" title={`/${item.slug}`}>
+                                                        /{item.slug}
+                                                    </span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleCopySlug(item.slug)}
+                                                        className="w-7 h-7 flex items-center justify-center text-slate-400 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shrink-0 transition-colors cursor-pointer"
+                                                        title="Copy link"
+                                                    >
+                                                        {copiedSlug === item.slug ? <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                                                    </button>
+                                                </div>
+                                            </td>
+
+                                            <td className="w-28 py-3 px-3 text-right align-middle whitespace-nowrap">
+                                                <div className="flex items-center justify-end gap-1">
+                                                    <a
+                                                        href={`/articles/${item.slug}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="w-7 h-7 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors"
+                                                        title="Preview live article"
+                                                    >
+                                                        <ExternalLink className="w-3.5 h-3.5" />
+                                                    </a>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleEdit(item)}
+                                                        disabled={isDemo}
+                                                        className="w-7 h-7 flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/50 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors disabled:opacity-30 cursor-pointer"
+                                                        title="Edit article"
+                                                    >
+                                                        <Pencil className="w-3.5 h-3.5" />
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleDelete(item)}
+                                                        disabled={isDemo}
+                                                        className="w-7 h-7 flex items-center justify-center text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors disabled:opacity-30 cursor-pointer"
+                                                        title="Delete article"
+                                                    >
+                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div className="p-3 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+                            <Pagination
+                                currentPage={currentPage}
+                                totalPages={totalPages}
+                                onPageChange={page => setCurrentPage(page)}
+                            />
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
 
             {/* Mobile Card List View */}
-            <div className="space-y-2 md:hidden">
+            <div id="tour-article-mobile-list" className="space-y-2 md:hidden">
                 {isLoading ? (
                     <div className="text-center py-8 text-slate-400 dark:text-slate-500 text-xs bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
                         Loading articles...
@@ -780,7 +785,7 @@ export default function ArticleManagementPage() {
                         {/* Full-Height Scrollable Body */}
                         <div className="px-4 sm:px-6 py-4 sm:py-5 space-y-4 sm:space-y-5 overflow-y-auto flex-1 min-h-0">
                             {/* Row 1: Details & Artwork */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+                            <div id="tour-article-modal-meta" className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
                                 <div className="space-y-3.5">
                                     <div>
                                         <Label htmlFor="title" className="text-xs font-bold text-slate-700 dark:text-slate-300">
@@ -830,66 +835,71 @@ export default function ArticleManagementPage() {
                                 </div>
                             </div>
 
-                            {/* Row 2: Short SEO Summary */}
-                            <div>
-                                <Label htmlFor="description" className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                                    Short Summary / Meta Description <span className="text-rose-500">*</span>
-                                </Label>
-                                <Input
-                                    id="description"
-                                    value={description}
-                                    onChange={(e) => setDescription(e.target.value)}
-                                    placeholder="A concise summary of the article displayed on search engines and social cards..."
-                                    className="h-10 mt-1 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:border-[#8DB600]"
-                                    disabled={isDemo}
-                                />
-                            </div>
-
-                            {/* Row 3: Main Article Content */}
-                            <div className="space-y-1">
-                                <div className="flex flex-wrap items-center justify-between gap-1">
-                                    <Label htmlFor="content" className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                                        Article Body Content <span className="text-rose-500">*</span>
+                            <div id="tour-article-modal-body" className="space-y-4 sm:space-y-5">
+                                {/* Row 2: Short SEO Summary */}
+                                <div>
+                                    <Label htmlFor="description" className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                                        Short Summary / Meta Description <span className="text-rose-500">*</span>
                                     </Label>
-                                    <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">HTML tags permitted (&lt;p&gt;, &lt;h2&gt;, &lt;ul&gt;)</span>
-                                </div>
-                                <Textarea
-                                    id="content"
-                                    value={content}
-                                    onChange={(e) => setContent(e.target.value)}
-                                    rows={12}
-                                    placeholder="Write your article body here..."
-                                    className="w-full mt-1 min-h-[220px] text-xs sm:text-sm p-3.5 sm:p-4 bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl sm:rounded-2xl font-mono focus:bg-white dark:focus:bg-slate-900 focus:border-[#8DB600] leading-relaxed"
-                                    disabled={isDemo}
-                                />
-                            </div>
-
-                            {/* Row 4: Publishing Toggle */}
-                            <div className="p-3 sm:p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-700/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5">
-                                <div className="flex items-start sm:items-center gap-2">
-                                    <Globe className="w-4 h-4 text-slate-500 dark:text-slate-400 shrink-0 mt-0.5 sm:mt-0" />
-                                    <div>
-                                        <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">Visibility Setting</span>
-                                        <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                                            {isPublished ? 'This article is live and accessible on the public website.' : 'Saved as a draft. Hidden from the customer-facing blog.'}
-                                        </span>
-                                    </div>
-                                </div>
-                                <label className="flex items-center gap-2 cursor-pointer bg-white dark:bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs shrink-0 self-end sm:self-auto">
-                                    <input
-                                        type="checkbox"
-                                        checked={isPublished}
-                                        onChange={(e) => setIsPublished(e.target.checked)}
-                                        className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-[#8DB600] focus:ring-[#8DB600]"
+                                    <Input
+                                        id="description"
+                                        value={description}
+                                        onChange={(e) => setDescription(e.target.value)}
+                                        placeholder="A concise summary of the article displayed on search engines and social cards..."
+                                        className="h-10 mt-1 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:border-[#8DB600]"
                                         disabled={isDemo}
                                     />
-                                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Published Live</span>
-                                </label>
+                                </div>
+
+                                {/* Row 3: Main Article Content */}
+                                <div className="space-y-1">
+                                    <div className="flex flex-wrap items-center justify-between gap-1">
+                                        <Label htmlFor="content" className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                                            Article Body Content <span className="text-rose-500">*</span>
+                                        </Label>
+                                        <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">HTML tags permitted (&lt;p&gt;, &lt;h2&gt;, &lt;ul&gt;)</span>
+                                    </div>
+                                    <Textarea
+                                        id="content"
+                                        value={content}
+                                        onChange={(e) => setContent(e.target.value)}
+                                        rows={12}
+                                        placeholder="Write your article body here..."
+                                        className="w-full mt-1 min-h-[220px] text-xs sm:text-sm p-3.5 sm:p-4 bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl sm:rounded-2xl font-mono focus:bg-white dark:focus:bg-slate-900 focus:border-[#8DB600] leading-relaxed"
+                                        disabled={isDemo}
+                                    />
+                                </div>
+
+                                {/* Row 4: Publishing Toggle */}
+                                <div className="p-3 sm:p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-700/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5">
+                                    <div className="flex items-start sm:items-center gap-2">
+                                        <Globe className="w-4 h-4 text-slate-500 dark:text-slate-400 shrink-0 mt-0.5 sm:mt-0" />
+                                        <div>
+                                            <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">Visibility Setting</span>
+                                            <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                                                {isPublished ? 'This article is live and accessible on the public website.' : 'Saved as a draft. Hidden from the customer-facing blog.'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <label className="flex items-center gap-2 cursor-pointer bg-white dark:bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs shrink-0 self-end sm:self-auto">
+                                        <input
+                                            type="checkbox"
+                                            checked={isPublished}
+                                            onChange={(e) => setIsPublished(e.target.checked)}
+                                            className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-[#8DB600] focus:ring-[#8DB600]"
+                                            disabled={isDemo}
+                                        />
+                                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Published Live</span>
+                                    </label>
+                                </div>
                             </div>
                         </div>
 
                         {/* Pinned Sticky Footer */}
-                        <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-800/80 flex items-center justify-end gap-2.5 flex-shrink-0">
+                        <div
+                            id="tour-article-modal-footer"
+                            className="px-4 sm:px-6 py-3.5 sm:py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-800/80 flex items-center justify-end gap-2.5 flex-shrink-0"
+                        >
                             <Button
                                 type="button"
                                 variant="outline"
@@ -910,6 +920,12 @@ export default function ArticleManagementPage() {
                     </div>
                 </DialogContent>
             </Dialog>
+
+            <ArticleManagementTour
+                isArticlesLoading={isLoading}
+                isModalOpen={isModalOpen}
+                isEditing={Boolean(editing)}
+            />
         </div>
     );
 }
