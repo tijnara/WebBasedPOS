@@ -5,6 +5,7 @@ import { useSettings, useUpdateSettings } from '../../hooks/useSettings';
 import { supabase } from '../../lib/supabaseClient';
 import { useStore } from '../../store/useStore';
 import { resetScheduledFloaterStorage } from '../ScheduledFloaterToast';
+import PageSettingsTour from './PageSettingsTour';
 import {
     Image as ImageIcon,
     Sliders,
@@ -372,7 +373,10 @@ export default function PageSettings() {
                 <form onSubmit={handleSave} className="space-y-5">
 
                     {/* 1. STAFF POP-UP REMINDER */}
-                    <section className="p-4 sm:p-5 rounded-2xl bg-lime-50/50 dark:bg-lime-950/20 border border-lime-200/80 dark:border-lime-900/50 space-y-4">
+                    <section
+                        id="tour-ps-floater"
+                        className="p-4 sm:p-5 rounded-2xl bg-lime-50/50 dark:bg-lime-950/20 border border-lime-200/80 dark:border-lime-900/50 space-y-4"
+                    >
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-lime-200/70 dark:border-lime-900/40">
                             <div className="flex items-center gap-2.5">
                                 <div className="w-8 h-8 rounded-xl bg-[#8DB600]/20 text-[#5f7d00] dark:text-lime-400 flex items-center justify-center shrink-0">
@@ -545,7 +549,10 @@ export default function PageSettings() {
                     </section>
 
                     {/* 2. STATION INFO & LOGO */}
-                    <section className="p-4 sm:p-5 rounded-2xl bg-slate-50/70 dark:bg-slate-800/35 border border-slate-200/80 dark:border-slate-800 space-y-4">
+                    <section
+                        id="tour-ps-station"
+                        className="p-4 sm:p-5 rounded-2xl bg-slate-50/70 dark:bg-slate-800/35 border border-slate-200/80 dark:border-slate-800 space-y-4"
+                    >
                         <div className="flex items-center gap-2.5 pb-2 border-b border-slate-200/70 dark:border-slate-800">
                             <div className="w-8 h-8 rounded-xl bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center justify-center shrink-0">
                                 <Store className="w-4 h-4" />
@@ -643,7 +650,10 @@ export default function PageSettings() {
                     </section>
 
                     {/* 3. COLLAPSIBLE: LANDING BANNER, PRICES & SERVICES */}
-                    <section className="rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
+                    <section
+                        id="tour-ps-banner-services"
+                        className="rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden"
+                    >
                         <button
                             type="button"
                             onClick={() => toggleSection('bannerAndServices')}
@@ -853,7 +863,10 @@ export default function PageSettings() {
                     </section>
 
                     {/* 4. COLLAPSIBLE: LOCATION, HOURS & SOCIAL LINKS */}
-                    <section className="rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
+                    <section
+                        id="tour-ps-location-links"
+                        className="rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden"
+                    >
                         <button
                             type="button"
                             onClick={() => toggleSection('locationAndLinks')}
@@ -959,7 +972,10 @@ export default function PageSettings() {
                         )}
                     </section>
 
-                    <div className="flex justify-end pt-3 border-t border-slate-100 dark:border-slate-800">
+                    <div
+                        id="tour-ps-save"
+                        className="flex justify-end pt-3 border-t border-slate-100 dark:border-slate-800"
+                    >
                         <Button
                             type="submit"
                             variant="primary"
@@ -971,6 +987,8 @@ export default function PageSettings() {
                     </div>
                 </form>
             </CardContent>
+
+            <PageSettingsTour isSettingsLoading={isLoading} />
         </Card>
     );
 }
