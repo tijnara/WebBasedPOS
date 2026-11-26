@@ -22,6 +22,8 @@ import {
 } from '../../hooks/useCustomerMutations';
 import { useCustomers, useCustomerStats } from '../../hooks/useCustomers';
 import RepaymentModal from '../customers/RepaymentModal';
+import CustomerManagementTour from '../customers/CustomerManagementTour';
+import CustomerRegistrationModalTour from '../customers/CustomerRegistrationModalTour';
 
 import {
     Users, UserPlus, FileText, ShoppingBag,
@@ -390,7 +392,6 @@ export default function CustomerManagementPage() {
 
     return (
         <div className="customer-page w-full max-w-7xl mx-auto px-1.5 py-2 sm:p-5 md:p-6 space-y-2.5 sm:space-y-5 overflow-x-hidden transition-colors">
-            {/* Match POS, Expenses, Dashboard, Report, History & Scanned Logs edge-to-edge .container fit on mobile (< 640px) */}
             <style jsx global>{`
                 @media (max-width: 639px) {
                     .app:has(.customer-page) .container {
@@ -419,7 +420,7 @@ export default function CustomerManagementPage() {
                     </p>
                 </div>
 
-                <div className="flex items-center gap-2 w-full sm:w-auto">
+                <div id="tour-customer-actions" className="flex items-center gap-2 w-full sm:w-auto">
                     <Link href="/report?tab=inactive" className="flex-1 sm:flex-initial">
                         <Button
                             type="button"
@@ -444,7 +445,7 @@ export default function CustomerManagementPage() {
             </div>
 
             {/* KPI Summary Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+            <div id="tour-customer-kpis" className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
                 <div className="bg-white dark:bg-slate-900 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs flex items-center justify-between gap-2 min-w-0">
                     <div className="min-w-0">
                         <span className="text-[9.5px] sm:text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider block truncate">
@@ -505,7 +506,10 @@ export default function CustomerManagementPage() {
             </div>
 
             {/* Search & Filter Bar */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-3 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
+            <div
+                id="tour-customer-filters"
+                className="flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-3 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs"
+            >
                 <div className="relative flex items-center w-full sm:max-w-md">
                     <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none z-10" />
                     <Input
@@ -605,268 +609,270 @@ export default function CustomerManagementPage() {
             </div>
 
             {/* Desktop Table View - Global Cross-Page ASC/DESC Sorting */}
-            <Card className="hidden md:block border border-slate-200 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900 rounded-2xl overflow-hidden">
-                <CardContent className="p-0 overflow-x-hidden">
-                    <div className="w-full overflow-x-hidden">
-                        <table className="w-full table-fixed text-xs divide-y divide-slate-100 dark:divide-slate-800">
-                            <thead>
-                            <tr className="bg-slate-50 dark:bg-slate-850 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200/80 dark:border-slate-800">
-                                <th className="w-[18%] py-3 px-3 text-left">
-                                    <button
-                                        type="button"
-                                        onClick={() => requestSort('name')}
-                                        className="w-full flex items-center justify-between text-left font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors group cursor-pointer select-none outline-none"
-                                    >
-                                        <span className="truncate">Customer Name</span>
-                                        <SortIcon columnKey="name" sortConfig={sortConfig} />
-                                    </button>
-                                </th>
+            <div id="tour-customer-desktop-table">
+                <Card className="hidden md:block border border-slate-200 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900 rounded-2xl overflow-hidden">
+                    <CardContent className="p-0 overflow-x-hidden">
+                        <div className="w-full overflow-x-hidden">
+                            <table className="w-full table-fixed text-xs divide-y divide-slate-100 dark:divide-slate-800">
+                                <thead>
+                                <tr className="bg-slate-50 dark:bg-slate-850 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200/80 dark:border-slate-800">
+                                    <th className="w-[18%] py-3 px-3 text-left">
+                                        <button
+                                            type="button"
+                                            onClick={() => requestSort('name')}
+                                            className="w-full flex items-center justify-between text-left font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors group cursor-pointer select-none outline-none"
+                                        >
+                                            <span className="truncate">Customer Name</span>
+                                            <SortIcon columnKey="name" sortConfig={sortConfig} />
+                                        </button>
+                                    </th>
 
-                                <th className="w-[11%] py-3 px-2.5 text-left">
-                                    <button
-                                        type="button"
-                                        onClick={() => requestSort('phone')}
-                                        className="w-full flex items-center justify-between text-left font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors group cursor-pointer select-none outline-none"
-                                    >
-                                        <span className="truncate">Contact</span>
-                                        <SortIcon columnKey="phone" sortConfig={sortConfig} />
-                                    </button>
-                                </th>
+                                    <th className="w-[11%] py-3 px-2.5 text-left">
+                                        <button
+                                            type="button"
+                                            onClick={() => requestSort('phone')}
+                                            className="w-full flex items-center justify-between text-left font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors group cursor-pointer select-none outline-none"
+                                        >
+                                            <span className="truncate">Contact</span>
+                                            <SortIcon columnKey="phone" sortConfig={sortConfig} />
+                                        </button>
+                                    </th>
 
-                                <th className="w-[15%] py-3 px-2.5 text-left">
-                                    <button
-                                        type="button"
-                                        onClick={() => requestSort('address')}
-                                        className="w-full flex items-center justify-between text-left font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors group cursor-pointer select-none outline-none"
-                                    >
-                                        <span className="truncate">Delivery Address</span>
-                                        <SortIcon columnKey="address" sortConfig={sortConfig} />
-                                    </button>
-                                </th>
+                                    <th className="w-[15%] py-3 px-2.5 text-left">
+                                        <button
+                                            type="button"
+                                            onClick={() => requestSort('address')}
+                                            className="w-full flex items-center justify-between text-left font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors group cursor-pointer select-none outline-none"
+                                        >
+                                            <span className="truncate">Delivery Address</span>
+                                            <SortIcon columnKey="address" sortConfig={sortConfig} />
+                                        </button>
+                                    </th>
 
-                                <th className="w-[10%] py-3 px-2 text-left">
-                                    <button
-                                        type="button"
-                                        onClick={() => requestSort('dateAdded')}
-                                        className="w-full flex items-center justify-between text-left font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors group cursor-pointer select-none outline-none"
-                                    >
-                                        <span className="truncate">Date Added</span>
-                                        <SortIcon columnKey="dateAdded" sortConfig={sortConfig} />
-                                    </button>
-                                </th>
+                                    <th className="w-[10%] py-3 px-2 text-left">
+                                        <button
+                                            type="button"
+                                            onClick={() => requestSort('dateAdded')}
+                                            className="w-full flex items-center justify-between text-left font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors group cursor-pointer select-none outline-none"
+                                        >
+                                            <span className="truncate">Date Added</span>
+                                            <SortIcon columnKey="dateAdded" sortConfig={sortConfig} />
+                                        </button>
+                                    </th>
 
-                                <th className="w-[12%] py-3 px-2 text-left">
-                                    <button
-                                        type="button"
-                                        onClick={() => requestSort('lastOrderDate')}
-                                        className="w-full flex items-center justify-between text-left font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors group cursor-pointer select-none outline-none"
-                                    >
-                                        <span className="truncate">Last Order Date</span>
-                                        <SortIcon columnKey="lastOrderDate" sortConfig={sortConfig} />
-                                    </button>
-                                </th>
+                                    <th className="w-[12%] py-3 px-2 text-left">
+                                        <button
+                                            type="button"
+                                            onClick={() => requestSort('lastOrderDate')}
+                                            className="w-full flex items-center justify-between text-left font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors group cursor-pointer select-none outline-none"
+                                        >
+                                            <span className="truncate">Last Order Date</span>
+                                            <SortIcon columnKey="lastOrderDate" sortConfig={sortConfig} />
+                                        </button>
+                                    </th>
 
-                                <th className="w-[10%] py-3 px-2 text-center">
-                                    <button
-                                        type="button"
-                                        onClick={() => requestSort('credit_balance')}
-                                        className="w-full flex items-center justify-center text-center font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors group cursor-pointer select-none outline-none"
-                                    >
-                                        <span className="truncate">Utang</span>
-                                        <SortIcon columnKey="credit_balance" sortConfig={sortConfig} />
-                                    </button>
-                                </th>
+                                    <th className="w-[10%] py-3 px-2 text-center">
+                                        <button
+                                            type="button"
+                                            onClick={() => requestSort('credit_balance')}
+                                            className="w-full flex items-center justify-center text-center font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors group cursor-pointer select-none outline-none"
+                                        >
+                                            <span className="truncate">Utang</span>
+                                            <SortIcon columnKey="credit_balance" sortConfig={sortConfig} />
+                                        </button>
+                                    </th>
 
-                                <th className="w-[10%] py-3 px-2 text-left">
-                                    <button
-                                        type="button"
-                                        onClick={() => requestSort('utangDate')}
-                                        className="w-full flex items-center justify-between text-left font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors group cursor-pointer select-none outline-none"
-                                    >
-                                        <span className="truncate">Utang Date</span>
-                                        <SortIcon columnKey="utangDate" sortConfig={sortConfig} />
-                                    </button>
-                                </th>
+                                    <th className="w-[10%] py-3 px-2 text-left">
+                                        <button
+                                            type="button"
+                                            onClick={() => requestSort('utangDate')}
+                                            className="w-full flex items-center justify-between text-left font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors group cursor-pointer select-none outline-none"
+                                        >
+                                            <span className="truncate">Utang Date</span>
+                                            <SortIcon columnKey="utangDate" sortConfig={sortConfig} />
+                                        </button>
+                                    </th>
 
-                                <th className="w-[14%] py-3 px-3 text-right font-bold text-slate-600 dark:text-slate-300">
-                                    Actions
-                                </th>
-                            </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900">
-                            {isLoading ? (
-                                <tr>
-                                    <td colSpan={8} className="text-center py-12 text-slate-400">
-                                        Loading customer records...
-                                    </td>
+                                    <th className="w-[14%] py-3 px-3 text-right font-bold text-slate-600 dark:text-slate-300">
+                                        Actions
+                                    </th>
                                 </tr>
-                            ) : customers.length === 0 ? (
-                                <tr>
-                                    <td colSpan={8} className="text-center py-12 text-slate-400">
-                                        No customer accounts match your search.
-                                    </td>
-                                </tr>
-                            ) : (
-                                customers.map(c => {
-                                    const debt = Number(c.credit_balance || 0);
-                                    const hasDebt = debt > 0;
-                                    const utangDate = c.utangApprovedAt || c.utang_approved_at;
-                                    const utangStaff = c.utangApprovedBy || c.utang_approved_by;
-                                    const lastOrderDate = c.lastOrderDate || c.lastSeen;
+                                </thead>
+                                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900">
+                                {isLoading ? (
+                                    <tr>
+                                        <td colSpan={8} className="text-center py-12 text-slate-400">
+                                            Loading customer records...
+                                        </td>
+                                    </tr>
+                                ) : customers.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={8} className="text-center py-12 text-slate-400">
+                                            No customer accounts match your search.
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    customers.map(c => {
+                                        const debt = Number(c.credit_balance || 0);
+                                        const hasDebt = debt > 0;
+                                        const utangDate = c.utangApprovedAt || c.utang_approved_at;
+                                        const utangStaff = c.utangApprovedBy || c.utang_approved_by;
+                                        const lastOrderDate = c.lastOrderDate || c.lastSeen;
 
-                                    return (
-                                        <tr key={c.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors">
-                                            <td className="py-2.5 px-3 truncate">
-                                                <div className="flex items-center gap-2 min-w-0">
-                                                    <div className="w-7 h-7 rounded-full bg-[#8DB600]/15 text-[#8DB600] flex items-center justify-center font-black text-xs shrink-0">
-                                                        {c.name?.charAt(0)?.toUpperCase() || 'C'}
-                                                    </div>
-                                                    <div className="flex flex-col min-w-0 truncate">
-                                                        <span className="font-bold text-slate-900 dark:text-white truncate" title={c.name}>
-                                                            {c.name}
-                                                        </span>
-                                                        {c.users?.name && (
-                                                            <span className="text-[10px] text-slate-400 flex items-center gap-1 truncate">
-                                                                <span
-                                                                    className="w-1.5 h-1.5 rounded-full inline-block shrink-0"
-                                                                    style={{ backgroundColor: c.users?.color || '#94a3b8' }}
-                                                                />
-                                                                <span className="truncate">By {c.users.name}</span>
+                                        return (
+                                            <tr key={c.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors">
+                                                <td className="py-2.5 px-3 truncate">
+                                                    <div className="flex items-center gap-2 min-w-0">
+                                                        <div className="w-7 h-7 rounded-full bg-[#8DB600]/15 text-[#8DB600] flex items-center justify-center font-black text-xs shrink-0">
+                                                            {c.name?.charAt(0)?.toUpperCase() || 'C'}
+                                                        </div>
+                                                        <div className="flex flex-col min-w-0 truncate">
+                                                            <span className="font-bold text-slate-900 dark:text-white truncate" title={c.name}>
+                                                                {c.name}
                                                             </span>
+                                                            {c.users?.name && (
+                                                                <span className="text-[10px] text-slate-400 flex items-center gap-1 truncate">
+                                                                    <span
+                                                                        className="w-1.5 h-1.5 rounded-full inline-block shrink-0"
+                                                                        style={{ backgroundColor: c.users?.color || '#94a3b8' }}
+                                                                    />
+                                                                    <span className="truncate">By {c.users.name}</span>
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </td>
+
+                                                <td className="py-2.5 px-2.5 text-slate-600 dark:text-slate-300 font-medium truncate" title={c.phone}>
+                                                    {c.phone && c.phone !== 'N/A' ? (
+                                                        <a href={`tel:${c.phone}`} className="font-mono text-xs text-slate-700 dark:text-slate-200 hover:text-[#8DB600] truncate block">
+                                                            {c.phone}
+                                                        </a>
+                                                    ) : (
+                                                        <span className="text-slate-300 dark:text-slate-600 font-normal">—</span>
+                                                    )}
+                                                </td>
+
+                                                <td className="py-2.5 px-2.5 text-slate-600 dark:text-slate-300 text-xs truncate" title={c.address}>
+                                                    {c.address && c.address !== 'N/A' ? (
+                                                        <span className="truncate block">{c.address}</span>
+                                                    ) : (
+                                                        <span className="text-slate-300 dark:text-slate-600 font-normal">—</span>
+                                                    )}
+                                                </td>
+
+                                                <td className="py-2.5 px-2 text-[11px] text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                                                    {c.dateAdded ? formatDateTime(c.dateAdded) : formatDateTime(c.created_at)}
+                                                </td>
+
+                                                <td className="py-2.5 px-2 text-[11px] whitespace-nowrap">
+                                                    {lastOrderDate ? (
+                                                        <div className="flex flex-col leading-tight">
+                                                            <span className="font-bold text-slate-800 dark:text-slate-100">
+                                                                {formatDateTime(lastOrderDate)}
+                                                            </span>
+                                                            <span className="text-[10px] text-slate-400 font-mono">
+                                                                {formatTime(lastOrderDate)}
+                                                            </span>
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-slate-300 dark:text-slate-600 font-normal">—</span>
+                                                    )}
+                                                </td>
+
+                                                <td className="py-2.5 px-2 text-center whitespace-nowrap">
+                                                    {hasDebt ? (
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-black bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-900/60 font-mono">
+                                                            {currency(debt, { symbol: '₱' }).format()}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 font-mono">
+                                                            ₱0.00
+                                                        </span>
+                                                    )}
+                                                </td>
+
+                                                <td className="py-2.5 px-2 text-[11px] whitespace-nowrap">
+                                                    {hasDebt && utangDate ? (
+                                                        <div className="flex flex-col leading-tight">
+                                                            <span className="font-semibold text-slate-800 dark:text-slate-200">{formatDateTime(utangDate)}</span>
+                                                            <span className="text-[10px] text-slate-400 font-mono">{utangStaff ? `By ${utangStaff}` : formatTime(utangDate)}</span>
+                                                        </div>
+                                                    ) : hasDebt ? (
+                                                        <span className="text-slate-400 italic text-[11px]">Unrecorded date</span>
+                                                    ) : (
+                                                        <span className="text-slate-300 dark:text-slate-600 font-normal">—</span>
+                                                    )}
+                                                </td>
+
+                                                <td className="py-2.5 px-3 text-right">
+                                                    <div className="flex items-center justify-end gap-1 whitespace-nowrap">
+                                                        {hasDebt && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setRepayCustomer({
+                                                                    id: c.id,
+                                                                    name: c.name,
+                                                                    phone: c.phone || '',
+                                                                    address: c.address || '',
+                                                                    credit_balance: debt,
+                                                                    remaining_balance: debt,
+                                                                    debt_id: null
+                                                                })}
+                                                                className="px-2 py-1 text-[10px] font-bold bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-900/60 hover:bg-rose-100 rounded-lg transition-colors cursor-pointer"
+                                                                title="Record Debt Repayment"
+                                                                disabled={isDemo}
+                                                            >
+                                                                Collect
+                                                            </button>
                                                         )}
-                                                    </div>
-                                                </div>
-                                            </td>
 
-                                            <td className="py-2.5 px-2.5 text-slate-600 dark:text-slate-300 font-medium truncate" title={c.phone}>
-                                                {c.phone && c.phone !== 'N/A' ? (
-                                                    <a href={`tel:${c.phone}`} className="font-mono text-xs text-slate-700 dark:text-slate-200 hover:text-[#8DB600] truncate block">
-                                                        {c.phone}
-                                                    </a>
-                                                ) : (
-                                                    <span className="text-slate-300 dark:text-slate-600 font-normal">—</span>
-                                                )}
-                                            </td>
-
-                                            <td className="py-2.5 px-2.5 text-slate-600 dark:text-slate-300 text-xs truncate" title={c.address}>
-                                                {c.address && c.address !== 'N/A' ? (
-                                                    <span className="truncate block">{c.address}</span>
-                                                ) : (
-                                                    <span className="text-slate-300 dark:text-slate-600 font-normal">—</span>
-                                                )}
-                                            </td>
-
-                                            <td className="py-2.5 px-2 text-[11px] text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                                                {c.dateAdded ? formatDateTime(c.dateAdded) : formatDateTime(c.created_at)}
-                                            </td>
-
-                                            <td className="py-2.5 px-2 text-[11px] whitespace-nowrap">
-                                                {lastOrderDate ? (
-                                                    <div className="flex flex-col leading-tight">
-                                                        <span className="font-bold text-slate-800 dark:text-slate-100">
-                                                            {formatDateTime(lastOrderDate)}
-                                                        </span>
-                                                        <span className="text-[10px] text-slate-400 font-mono">
-                                                            {formatTime(lastOrderDate)}
-                                                        </span>
-                                                    </div>
-                                                ) : (
-                                                    <span className="text-slate-300 dark:text-slate-600 font-normal">—</span>
-                                                )}
-                                            </td>
-
-                                            <td className="py-2.5 px-2 text-center whitespace-nowrap">
-                                                {hasDebt ? (
-                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-black bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-900/60 font-mono">
-                                                        {currency(debt, { symbol: '₱' }).format()}
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 font-mono">
-                                                        ₱0.00
-                                                    </span>
-                                                )}
-                                            </td>
-
-                                            <td className="py-2.5 px-2 text-[11px] whitespace-nowrap">
-                                                {hasDebt && utangDate ? (
-                                                    <div className="flex flex-col leading-tight">
-                                                        <span className="font-semibold text-slate-800 dark:text-slate-200">{formatDateTime(utangDate)}</span>
-                                                        <span className="text-[10px] text-slate-400 font-mono">{utangStaff ? `By ${utangStaff}` : formatTime(utangDate)}</span>
-                                                    </div>
-                                                ) : hasDebt ? (
-                                                    <span className="text-slate-400 italic text-[11px]">Unrecorded date</span>
-                                                ) : (
-                                                    <span className="text-slate-300 dark:text-slate-600 font-normal">—</span>
-                                                )}
-                                            </td>
-
-                                            <td className="py-2.5 px-3 text-right">
-                                                <div className="flex items-center justify-end gap-1 whitespace-nowrap">
-                                                    {hasDebt && (
                                                         <button
                                                             type="button"
-                                                            onClick={() => setRepayCustomer({
-                                                                id: c.id,
-                                                                name: c.name,
-                                                                phone: c.phone || '',
-                                                                address: c.address || '',
-                                                                credit_balance: debt,
-                                                                remaining_balance: debt,
-                                                                debt_id: null
-                                                            })}
-                                                            className="px-2 py-1 text-[10px] font-bold bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-900/60 hover:bg-rose-100 rounded-lg transition-colors cursor-pointer"
-                                                            title="Record Debt Repayment"
+                                                            onClick={() => handleRingInPOS(c)}
+                                                            className="w-7 h-7 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-[#5f7d00] hover:bg-lime-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors cursor-pointer"
+                                                            title="Ring up in POS"
+                                                        >
+                                                            <ShoppingBag className="w-3.5 h-3.5" />
+                                                        </button>
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => startEdit(c)}
+                                                            className="w-7 h-7 flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors cursor-pointer"
+                                                            title="Edit Details"
                                                             disabled={isDemo}
                                                         >
-                                                            Collect
+                                                            <EditIcon />
                                                         </button>
-                                                    )}
 
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleRingInPOS(c)}
-                                                        className="w-7 h-7 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-[#5f7d00] hover:bg-lime-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors cursor-pointer"
-                                                        title="Ring up in POS"
-                                                    >
-                                                        <ShoppingBag className="w-3.5 h-3.5" />
-                                                    </button>
-
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => startEdit(c)}
-                                                        className="w-7 h-7 flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors cursor-pointer"
-                                                        title="Edit Details"
-                                                        disabled={isDemo}
-                                                    >
-                                                        <EditIcon />
-                                                    </button>
-
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => remove(c)}
-                                                        className="w-7 h-7 flex items-center justify-center text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors cursor-pointer"
-                                                        title="Delete Customer"
-                                                        disabled={isDemo}
-                                                    >
-                                                        <DeleteIcon />
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    );
-                                })
-                            )}
-                            </tbody>
-                        </table>
-                    </div>
-                    <div className="p-3 border-t border-slate-100 dark:border-slate-800 flex justify-end">
-                        <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
-                    </div>
-                </CardContent>
-            </Card>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => remove(c)}
+                                                            className="w-7 h-7 flex items-center justify-center text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors cursor-pointer"
+                                                            title="Delete Customer"
+                                                            disabled={isDemo}
+                                                        >
+                                                            <DeleteIcon />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
+                                )}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div className="p-3 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+                            <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
 
             {/* Mobile Card List View */}
-            <div className="block md:hidden space-y-2">
+            <div id="tour-customer-mobile-list" className="block md:hidden space-y-2">
                 {isLoading ? (
                     <div className="text-center text-slate-400 p-6 text-xs bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
                         Loading customer accounts...
@@ -1038,7 +1044,7 @@ export default function CustomerManagementPage() {
                     </DialogHeader>
 
                     {!editing && (
-                        <div className="px-6 pt-4">
+                        <div id="tour-cust-modal-mode-tabs" className="px-6 pt-4">
                             <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl border border-slate-200/80 dark:border-slate-700/80">
                                 <button
                                     type="button"
@@ -1070,7 +1076,7 @@ export default function CustomerManagementPage() {
                     )}
 
                     <div onKeyDown={preventEnterReload}>
-                        <div className="p-6 space-y-4">
+                        <div id="tour-cust-modal-fields" className="p-6 space-y-4">
                             {entryMode === 'existing' && !editing && (
                                 <div className="p-3.5 bg-lime-50/70 dark:bg-lime-950/30 rounded-2xl border border-lime-200 dark:border-lime-900/50 space-y-2">
                                     <Label className="text-xs font-bold text-lime-900 dark:text-lime-300">
@@ -1174,7 +1180,10 @@ export default function CustomerManagementPage() {
                             )}
                         </div>
 
-                        <DialogFooter className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-850 flex items-center justify-end gap-2.5">
+                        <DialogFooter
+                            id="tour-cust-modal-footer"
+                            className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-850 flex items-center justify-end gap-2.5"
+                        >
                             <Button
                                 variant="outline"
                                 type="button"
@@ -1197,6 +1206,11 @@ export default function CustomerManagementPage() {
                 </DialogContent>
             </Dialog>
 
+            <CustomerRegistrationModalTour
+                isModalOpen={isModalOpen}
+                isEditing={Boolean(editing)}
+            />
+
             {/* Repayment Modal */}
             {repayCustomer && (
                 <RepaymentModal
@@ -1208,6 +1222,8 @@ export default function CustomerManagementPage() {
                     isDemo={isDemo}
                 />
             )}
+
+            <CustomerManagementTour isCustomersLoading={isLoading} />
         </div>
     );
 }
