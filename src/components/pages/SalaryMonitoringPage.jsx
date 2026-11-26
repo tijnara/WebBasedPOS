@@ -17,6 +17,8 @@ import AutoPayrollCard from '../salary/AutoPayrollCard';
 import ManualSalaryCard from '../salary/ManualSalaryCard';
 import SalaryHistoryCard from '../salary/SalaryHistoryCard';
 import EmployeeManagementModal from '../salary/EmployeeManagementModal';
+import SalaryMonitoringTour from '../salary/SalaryMonitoringTour';
+import EmployeeManagementModalTour from '../salary/EmployeeManagementModalTour';
 
 const TIME_ZONE = 'Asia/Manila';
 
@@ -478,7 +480,6 @@ export default function SalaryMonitoringPage() {
                 <title>Salary Monitoring | Seaside POS</title>
             </Head>
 
-            {/* Match POS, Expenses, Dashboard, Report, History, Scanned Logs, Customer, Maintenance, Product, 3D Icons, Inventory & Gallery edge-to-edge fit on mobile (< 640px) */}
             <style jsx global>{`
                 @media (max-width: 639px) {
                     .app:has(.salary-page) .container {
@@ -514,6 +515,7 @@ export default function SalaryMonitoringPage() {
                     </p>
                 </div>
                 <Button
+                    id="tour-sal-manage-staff"
                     type="button"
                     onClick={() => setIsManageModalOpen(true)}
                     variant="outline"
@@ -525,7 +527,10 @@ export default function SalaryMonitoringPage() {
             </div>
 
             {/* Mobile Sub-Tab Navigation Bar */}
-            <div className="flex xl:hidden bg-white dark:bg-slate-800 p-1 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xs">
+            <div
+                id="tour-sal-mobile-tabs"
+                className="flex xl:hidden bg-white dark:bg-slate-800 p-1 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xs"
+            >
                 <button
                     type="button"
                     onClick={() => setMobileTab('payroll')}
@@ -554,40 +559,44 @@ export default function SalaryMonitoringPage() {
 
             {/* Section 1: Process & Log (Auto-Payroll & Manual Cards) */}
             <div className={mobileTab === 'payroll' ? 'grid grid-cols-1 xl:grid-cols-2 gap-2.5 sm:gap-6 items-start' : 'hidden xl:grid xl:grid-cols-2 gap-2.5 sm:gap-6 items-start'}>
-                <AutoPayrollCard
-                    payrollEmpId={payrollEmpId}
-                    setPayrollEmpId={setPayrollEmpId}
-                    payrollDate={payrollDate}
-                    setPayrollDate={setPayrollDate}
-                    employees={employees}
-                    activeDeductions={activeDeductions}
-                    payrollGross={payrollGross}
-                    payrollTotalDeductions={payrollTotalDeductions}
-                    payrollNet={payrollNet}
-                    handleProcessPayroll={handleProcessPayroll}
-                    isPending={processDeductionsMutation.isPending}
-                />
+                <div id="tour-sal-auto-payroll" className="min-w-0">
+                    <AutoPayrollCard
+                        payrollEmpId={payrollEmpId}
+                        setPayrollEmpId={setPayrollEmpId}
+                        payrollDate={payrollDate}
+                        setPayrollDate={setPayrollDate}
+                        employees={employees}
+                        activeDeductions={activeDeductions}
+                        payrollGross={payrollGross}
+                        payrollTotalDeductions={payrollTotalDeductions}
+                        payrollNet={payrollNet}
+                        handleProcessPayroll={handleProcessPayroll}
+                        isPending={processDeductionsMutation.isPending}
+                    />
+                </div>
 
-                <ManualSalaryCard
-                    employeeName={employeeName}
-                    handleEmployeeSelect={handleEmployeeSelect}
-                    employees={employees}
-                    amount={amount}
-                    setAmount={setAmount}
-                    payoutDate={payoutDate}
-                    setPayoutDate={setPayoutDate}
-                    description={description}
-                    setDescription={setDescription}
-                    dailyGallons={dailyGallons}
-                    excessMultiplier={excessMultiplier}
-                    setExcessMultiplier={setExcessMultiplier}
-                    handleAddSalary={handleAddSalary}
-                    isPending={createSalary.isPending}
-                />
+                <div id="tour-sal-manual-salary" className="min-w-0">
+                    <ManualSalaryCard
+                        employeeName={employeeName}
+                        handleEmployeeSelect={handleEmployeeSelect}
+                        employees={employees}
+                        amount={amount}
+                        setAmount={setAmount}
+                        payoutDate={payoutDate}
+                        setPayoutDate={setPayoutDate}
+                        description={description}
+                        setDescription={setDescription}
+                        dailyGallons={dailyGallons}
+                        excessMultiplier={excessMultiplier}
+                        setExcessMultiplier={setExcessMultiplier}
+                        handleAddSalary={handleAddSalary}
+                        isPending={createSalary.isPending}
+                    />
+                </div>
             </div>
 
             {/* Section 2: Salary History & Records */}
-            <div className={mobileTab === 'history' ? 'block' : 'hidden xl:block'}>
+            <div id="tour-sal-history" className={mobileTab === 'history' ? 'block' : 'hidden xl:block'}>
                 <SalaryHistoryCard
                     period={period}
                     filterEmployee={filterEmployee}
@@ -628,6 +637,15 @@ export default function SalaryMonitoringPage() {
                 employees={employees}
                 handleEditClick={handleEditClick}
                 handleDeleteEmployee={handleDeleteEmployee}
+            />
+
+            <EmployeeManagementModalTour isModalOpen={isManageModalOpen} />
+
+            <SalaryMonitoringTour
+                isDataLoading={isSalaryLoading || isEmpLoading}
+                mobileTab={mobileTab}
+                onSwitchMobileTab={setMobileTab}
+                isManageModalOpen={isManageModalOpen}
             />
         </div>
     );

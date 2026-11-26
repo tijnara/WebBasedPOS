@@ -77,112 +77,114 @@ export default function EmployeeManagementModal({
                 <div className="p-5 sm:p-6 space-y-6 max-h-[75vh] overflow-y-auto">
 
                     {/* Add / Edit Form Card */}
-                    <form onSubmit={handleSaveEmployee} className="p-4 sm:p-5 rounded-2xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/80 space-y-4">
-                        <div className="flex items-center justify-between">
-                            <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                                <UserCheck className="w-4 h-4 text-[#8DB600] dark:text-lime-400" />
-                                {editingEmpId ? 'Edit Employee Details' : 'Add New Employee'}
-                            </span>
-                            {editingEmpId && (
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setEditingEmpId(null);
-                                        setEmpFormName('');
-                                        setEmpFormSalary('');
-                                        setEmpFormSalaryType('per_day');
-                                        setEmpFormMultiplier('');
-                                    }}
-                                    className="text-[11px] font-bold text-rose-600 dark:text-rose-400 hover:underline cursor-pointer"
-                                >
-                                    Cancel Edit
-                                </button>
-                            )}
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                            <div>
-                                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                                    Employee Name <span className="text-rose-500">*</span>
-                                </Label>
-                                <Input
-                                    value={empFormName}
-                                    onChange={(e) => setEmpFormName(e.target.value)}
-                                    required
-                                    placeholder="e.g. Junar Garcia"
-                                    className="h-10 mt-1 text-xs sm:text-sm rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-[#8DB600] focus:ring-[#8DB600]"
-                                />
+                    <div id="tour-emp-modal-form">
+                        <form onSubmit={handleSaveEmployee} className="p-4 sm:p-5 rounded-2xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/80 space-y-4">
+                            <div className="flex items-center justify-between">
+                                <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                                    <UserCheck className="w-4 h-4 text-[#8DB600] dark:text-lime-400" />
+                                    {editingEmpId ? 'Edit Employee Details' : 'Add New Employee'}
+                                </span>
+                                {editingEmpId && (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setEditingEmpId(null);
+                                            setEmpFormName('');
+                                            setEmpFormSalary('');
+                                            setEmpFormSalaryType('per_day');
+                                            setEmpFormMultiplier('');
+                                        }}
+                                        className="text-[11px] font-bold text-rose-600 dark:text-rose-400 hover:underline cursor-pointer"
+                                    >
+                                        Cancel Edit
+                                    </button>
+                                )}
                             </div>
 
-                            <div>
-                                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                                    Salary Type
-                                </Label>
-                                <Select
-                                    value={empFormSalaryType}
-                                    onChange={(e) => setEmpFormSalaryType(e.target.value)}
-                                    className="h-10 mt-1 w-full text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 px-3 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 outline-none cursor-pointer focus:border-[#8DB600]"
-                                >
-                                    <option value="per_day" className="bg-white dark:bg-slate-900">Per Day (Fixed Rate)</option>
-                                    <option value="per_container" className="bg-white dark:bg-slate-900">Per Container (Commission)</option>
-                                </Select>
-                            </div>
-
-                            {empFormSalaryType === 'per_day' ? (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                                 <div>
                                     <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                                        Daily Wage Rate (₱) <span className="text-rose-500">*</span>
+                                        Employee Name <span className="text-rose-500">*</span>
                                     </Label>
-                                    <div className="relative mt-1">
-                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono font-bold text-slate-400 dark:text-slate-500 text-xs">₱</span>
-                                        <Input
-                                            type="number"
-                                            step="0.01"
-                                            min="0"
-                                            value={empFormSalary}
-                                            onChange={(e) => setEmpFormSalary(e.target.value)}
-                                            required
-                                            placeholder="0.00"
-                                            className="h-10 pl-7 font-mono font-bold text-xs sm:text-sm rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-[#8DB600]"
-                                        />
-                                    </div>
+                                    <Input
+                                        value={empFormName}
+                                        onChange={(e) => setEmpFormName(e.target.value)}
+                                        required
+                                        placeholder="e.g. Junar Garcia"
+                                        className="h-10 mt-1 text-xs sm:text-sm rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-[#8DB600] focus:ring-[#8DB600]"
+                                    />
                                 </div>
-                            ) : (
+
                                 <div>
                                     <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                                        Container Multiplier <span className="text-rose-500">*</span>
+                                        Salary Type
                                     </Label>
                                     <Select
-                                        value={empFormMultiplier}
-                                        onChange={(e) => setEmpFormMultiplier(e.target.value)}
-                                        required
+                                        value={empFormSalaryType}
+                                        onChange={(e) => setEmpFormSalaryType(e.target.value)}
                                         className="h-10 mt-1 w-full text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 px-3 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 outline-none cursor-pointer focus:border-[#8DB600]"
                                     >
-                                        <option value="" disabled className="bg-white dark:bg-slate-900">Select Multiplier...</option>
-                                        <option value="1" className="bg-white dark:bg-slate-900">x1 (₱1.00 / jug)</option>
-                                        <option value="2" className="bg-white dark:bg-slate-900">x2 (₱2.00 / jug)</option>
-                                        <option value="3" className="bg-white dark:bg-slate-900">x3 (₱3.00 / jug)</option>
-                                        <option value="4" className="bg-white dark:bg-slate-900">x4 (₱4.00 / jug)</option>
-                                        <option value="5" className="bg-white dark:bg-slate-900">x5 (₱5.00 / jug)</option>
+                                        <option value="per_day" className="bg-white dark:bg-slate-900">Per Day (Fixed Rate)</option>
+                                        <option value="per_container" className="bg-white dark:bg-slate-900">Per Container (Commission)</option>
                                     </Select>
                                 </div>
-                            )}
 
-                            <div className="flex items-end justify-end">
-                                <Button
-                                    type="submit"
-                                    disabled={isPending || !empFormName.trim()}
-                                    className="w-full sm:w-auto h-10 px-6 rounded-xl bg-[#8DB600] hover:bg-[#7ca000] text-white text-xs font-bold shadow-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all cursor-pointer"
-                                >
-                                    {editingEmpId ? <Check className="w-4 h-4 stroke-[2.5]" /> : <Plus className="w-4 h-4 stroke-[2.5]" />}
-                                    <span>{isPending ? 'Saving...' : (editingEmpId ? 'Update Employee' : 'Add Employee')}</span>
-                                </Button>
+                                {empFormSalaryType === 'per_day' ? (
+                                    <div>
+                                        <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                                            Daily Wage Rate (₱) <span className="text-rose-500">*</span>
+                                        </Label>
+                                        <div className="relative mt-1">
+                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono font-bold text-slate-400 dark:text-slate-500 text-xs">₱</span>
+                                            <Input
+                                                type="number"
+                                                step="0.01"
+                                                min="0"
+                                                value={empFormSalary}
+                                                onChange={(e) => setEmpFormSalary(e.target.value)}
+                                                required
+                                                placeholder="0.00"
+                                                className="h-10 pl-7 font-mono font-bold text-xs sm:text-sm rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-[#8DB600]"
+                                            />
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div>
+                                        <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                                            Container Multiplier <span className="text-rose-500">*</span>
+                                        </Label>
+                                        <Select
+                                            value={empFormMultiplier}
+                                            onChange={(e) => setEmpFormMultiplier(e.target.value)}
+                                            required
+                                            className="h-10 mt-1 w-full text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 px-3 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 outline-none cursor-pointer focus:border-[#8DB600]"
+                                        >
+                                            <option value="" disabled className="bg-white dark:bg-slate-900">Select Multiplier...</option>
+                                            <option value="1" className="bg-white dark:bg-slate-900">x1 (₱1.00 / jug)</option>
+                                            <option value="2" className="bg-white dark:bg-slate-900">x2 (₱2.00 / jug)</option>
+                                            <option value="3" className="bg-white dark:bg-slate-900">x3 (₱3.00 / jug)</option>
+                                            <option value="4" className="bg-white dark:bg-slate-900">x4 (₱4.00 / jug)</option>
+                                            <option value="5" className="bg-white dark:bg-slate-900">x5 (₱5.00 / jug)</option>
+                                        </Select>
+                                    </div>
+                                )}
+
+                                <div className="flex items-end justify-end">
+                                    <Button
+                                        type="submit"
+                                        disabled={isPending || !empFormName.trim()}
+                                        className="w-full sm:w-auto h-10 px-6 rounded-xl bg-[#8DB600] hover:bg-[#7ca000] text-white text-xs font-bold shadow-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all cursor-pointer"
+                                    >
+                                        {editingEmpId ? <Check className="w-4 h-4 stroke-[2.5]" /> : <Plus className="w-4 h-4 stroke-[2.5]" />}
+                                        <span>{isPending ? 'Saving...' : (editingEmpId ? 'Update Employee' : 'Add Employee')}</span>
+                                    </Button>
+                                </div>
                             </div>
-                        </div>
-                    </form>
+                        </form>
+                    </div>
 
                     {/* Employee Directory Table */}
-                    <div className="space-y-3">
+                    <div id="tour-emp-modal-list" className="space-y-3">
                         <div className="flex items-center justify-between">
                             <span className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
                                 Registered Employees ({employees?.length || 0})
