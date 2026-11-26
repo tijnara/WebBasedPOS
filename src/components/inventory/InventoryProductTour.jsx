@@ -240,6 +240,7 @@ export default function InventoryProductTour({
         };
     }, [isInventoryLoading, hasAutoTriggered]);
 
+    // Center each visible target step and re-measure target bounding box
     useEffect(() => {
         if (!isOpen || typeof window === 'undefined') {
             setTargetRect(null);
@@ -253,28 +254,58 @@ export default function InventoryProductTour({
             return;
         }
 
-        const updateRect = () => {
+        let hasScrolled = false;
+        let attempts = 0;
+
+        const measureStepTarget = () => {
             const currentEl = document.getElementById(step.targetId);
+            if (!currentEl || !isElementVisible(currentEl)) {
+                attempts += 1;
+                if (attempts < 16) {
+                    return false;
+                }
+                setTargetRect(null);
+                return true;
+            }
+
+            if (!hasScrolled) {
+                hasScrolled = true;
+                currentEl.scrollIntoView({ behavior: 'auto', block: 'center' });
+            }
+
             setTargetRect(computeTargetRect(currentEl));
+            return true;
         };
 
-        const el = document.getElementById(step.targetId);
-        if (el && isElementVisible(el) && step.side !== 'top') {
-            el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
+        const retryTimer = setInterval(() => {
+            if (measureStepTarget()) {
+                clearInterval(retryTimer);
+            }
+        }, 50);
 
-        updateRect();
-        const t1 = setTimeout(updateRect, 60);
-        const t2 = setTimeout(updateRect, 240);
+        const t1 = setTimeout(() => {
+            const currentEl = document.getElementById(step.targetId);
+            if (currentEl && isElementVisible(currentEl)) {
+                currentEl.scrollIntoView({ behavior: 'auto', block: 'center' });
+            }
+            measureStepTarget();
+        }, 180);
 
-        window.addEventListener('resize', updateRect);
-        window.addEventListener('scroll', updateRect, true);
+        const t2 = setTimeout(() => measureStepTarget(), 340);
+
+        const onViewportChange = () => {
+            setTargetRect(computeTargetRect(document.getElementById(step.targetId)));
+        };
+
+        window.addEventListener('resize', onViewportChange);
+        window.addEventListener('scroll', onViewportChange, true);
 
         return () => {
+            clearInterval(retryTimer);
             clearTimeout(t1);
             clearTimeout(t2);
-            window.removeEventListener('resize', updateRect);
-            window.removeEventListener('scroll', updateRect, true);
+            window.removeEventListener('resize', onViewportChange);
+            window.removeEventListener('scroll', onViewportChange, true);
         };
     }, [isOpen, stepIndex, steps]);
 

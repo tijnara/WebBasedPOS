@@ -249,7 +249,7 @@ export default function ExpensesProductTour({
         };
     }, [isExpensesLoading, hasAutoTriggered]);
 
-    // Switch mobile tab when needed and measure current step target
+    // Switch mobile tab when needed, center target in view, and measure
     useEffect(() => {
         if (!isOpen || typeof window === 'undefined') {
             setTargetRect(null);
@@ -270,32 +270,55 @@ export default function ExpensesProductTour({
             return;
         }
 
-        const updateRect = () => {
-            const currentEl = document.getElementById(step.targetId);
-            setTargetRect(computeTargetRect(currentEl));
-        };
+        let hasScrolled = false;
+        let attempts = 0;
 
-        const scrollAndMeasure = () => {
+        const measureStepTarget = () => {
             const currentEl = document.getElementById(step.targetId);
-            if (currentEl && isElementVisible(currentEl) && step.side !== 'top') {
-                currentEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            if (!currentEl || !isElementVisible(currentEl)) {
+                attempts += 1;
+                if (attempts < 16) {
+                    return false;
+                }
+                setTargetRect(null);
+                return true;
             }
-            updateRect();
+
+            if (!hasScrolled) {
+                hasScrolled = true;
+                currentEl.scrollIntoView({ behavior: 'auto', block: 'center' });
+            }
+
+            setTargetRect(computeTargetRect(currentEl));
+            return true;
         };
 
-        const t0 = setTimeout(scrollAndMeasure, 40);
-        const t1 = setTimeout(updateRect, 180);
-        const t2 = setTimeout(updateRect, 360);
+        const retryTimer = setInterval(() => {
+            if (measureStepTarget()) {
+                clearInterval(retryTimer);
+            }
+        }, 50);
 
-        window.addEventListener('resize', updateRect);
-        window.addEventListener('scroll', updateRect, true);
+        const t1 = setTimeout(() => {
+            const currentEl = document.getElementById(step.targetId);
+            if (currentEl && isElementVisible(currentEl)) {
+                currentEl.scrollIntoView({ behavior: 'auto', block: 'center' });
+            }
+            measureStepTarget();
+        }, 180);
+
+        const t2 = setTimeout(() => measureStepTarget(), 340);
+
+        const onViewportChange = () => setTargetRect(computeTargetRect(document.getElementById(step.targetId)));
+        window.addEventListener('resize', onViewportChange);
+        window.addEventListener('scroll', onViewportChange, true);
 
         return () => {
-            clearTimeout(t0);
+            clearInterval(retryTimer);
             clearTimeout(t1);
             clearTimeout(t2);
-            window.removeEventListener('resize', updateRect);
-            window.removeEventListener('scroll', updateRect, true);
+            window.removeEventListener('resize', onViewportChange);
+            window.removeEventListener('scroll', onViewportChange, true);
         };
     }, [isOpen, stepIndex, steps, mobileTab, onSwitchMobileTab]);
 

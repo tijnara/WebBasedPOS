@@ -55,6 +55,47 @@ function hasActiveLoadingUi() {
     return false;
 }
 
+function computeTargetRect(el, isInsideModal) {
+    if (!el || !isElementVisible(el) || typeof window === 'undefined') return null;
+
+    const rect = el.getBoundingClientRect();
+    const pad = 6;
+
+    let top = rect.top - pad;
+    let left = rect.left - pad;
+    let right = rect.right + pad;
+    let bottom = rect.bottom + pad;
+
+    if (isInsideModal) {
+        const scrollParent = el.closest('.overflow-y-auto');
+        if (scrollParent && el.id !== 'tour-wt-footer') {
+            const spRect = scrollParent.getBoundingClientRect();
+            top = Math.max(top, spRect.top + 4);
+            bottom = Math.min(bottom, spRect.bottom - 4);
+        }
+    }
+
+    const clampedTop = Math.max(8, top);
+    const clampedLeft = Math.max(8, left);
+    const clampedWidth = Math.max(
+        0,
+        Math.min(window.innerWidth - 8, right) - clampedLeft
+    );
+    const clampedHeight = Math.max(
+        0,
+        Math.min(window.innerHeight - 8, bottom) - clampedTop
+    );
+
+    if (clampedWidth < 12 || clampedHeight < 12) return null;
+
+    return {
+        top: clampedTop,
+        left: clampedLeft,
+        width: clampedWidth,
+        height: clampedHeight
+    };
+}
+
 export default function MaintenanceTrackingTour({
                                                     isDataLoading = false,
                                                     activeTab = 'filters',
@@ -302,7 +343,7 @@ export default function MaintenanceTrackingTour({
         triggeredContexts
     ]);
 
-    // Measure current target and scroll into view on mobile/desktop
+    // Scroll target to center on each step and measure bounding box
     useEffect(() => {
         if (!isOpen || typeof window === 'undefined') {
             setTargetRect(null);
@@ -316,45 +357,61 @@ export default function MaintenanceTrackingTour({
             return;
         }
 
-        const el = document.getElementById(step.targetId);
-        if (!el || !isElementVisible(el)) {
-            setTargetRect(null);
-            return;
-        }
+        const isInsideModal = contextKey !== 'page';
+        let hasScrolled = false;
+        let attempts = 0;
 
-        if (step.side !== 'top') {
-            el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
-
-        const updateRect = () => {
+        const measureStepTarget = () => {
             const currentEl = document.getElementById(step.targetId);
             if (!currentEl || !isElementVisible(currentEl)) {
+                attempts += 1;
+                if (attempts < 16) {
+                    return false;
+                }
                 setTargetRect(null);
-                return;
+                return true;
             }
-            const rect = currentEl.getBoundingClientRect();
-            const pad = 6;
-            setTargetRect({
-                top: Math.max(8, rect.top - pad),
-                left: Math.max(8, rect.left - pad),
-                width: Math.min(window.innerWidth - 16, rect.width + pad * 2),
-                height: Math.min(window.innerHeight - 16, rect.height + pad * 2)
-            });
+
+            if (!hasScrolled) {
+                hasScrolled = true;
+                currentEl.scrollIntoView({ behavior: 'auto', block: 'center' });
+            }
+
+            setTargetRect(computeTargetRect(currentEl, isInsideModal));
+            return true;
         };
 
-        const t1 = setTimeout(updateRect, 60);
-        const t2 = setTimeout(updateRect, 240);
+        const retryTimer = setInterval(() => {
+            if (measureStepTarget()) {
+                clearInterval(retryTimer);
+            }
+        }, 50);
 
-        window.addEventListener('resize', updateRect);
-        window.addEventListener('scroll', updateRect, true);
+        const t1 = setTimeout(() => {
+            const currentEl = document.getElementById(step.targetId);
+            if (currentEl && isElementVisible(currentEl)) {
+                currentEl.scrollIntoView({ behavior: 'auto', block: 'center' });
+            }
+            measureStepTarget();
+        }, 180);
+
+        const t2 = setTimeout(() => measureStepTarget(), 340);
+
+        const onViewportChange = () => {
+            setTargetRect(computeTargetRect(document.getElementById(step.targetId), isInsideModal));
+        };
+
+        window.addEventListener('resize', onViewportChange);
+        window.addEventListener('scroll', onViewportChange, true);
 
         return () => {
+            clearInterval(retryTimer);
             clearTimeout(t1);
             clearTimeout(t2);
-            window.removeEventListener('resize', updateRect);
-            window.removeEventListener('scroll', updateRect, true);
+            window.removeEventListener('resize', onViewportChange);
+            window.removeEventListener('scroll', onViewportChange, true);
         };
-    }, [isOpen, stepIndex, steps]);
+    }, [isOpen, stepIndex, steps, contextKey]);
 
     // Keyboard navigation (Esc, ArrowLeft, ArrowRight)
     useEffect(() => {

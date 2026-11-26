@@ -285,7 +285,7 @@ export default function ProductManagementTour({
         };
     }, [contextKey, storageKey, isProductsLoading, isModalOpen, triggeredContexts]);
 
-    // Measure current target and scroll into view on mobile/desktop
+    // Center each visible target step and re-measure target bounding box
     useEffect(() => {
         if (!isOpen || typeof window === 'undefined') {
             setTargetRect(null);
@@ -300,36 +300,58 @@ export default function ProductManagementTour({
         }
 
         const isInsideModal = contextKey === 'modal';
+        let hasScrolled = false;
+        let attempts = 0;
 
-        const updateRect = () => {
+        const measureStepTarget = () => {
             const currentEl = document.getElementById(step.targetId);
+            if (!currentEl || !isElementVisible(currentEl)) {
+                attempts += 1;
+                if (attempts < 16) {
+                    return false;
+                }
+                setTargetRect(null);
+                return true;
+            }
+
+            if (!hasScrolled) {
+                hasScrolled = true;
+                currentEl.scrollIntoView({ behavior: 'auto', block: 'center' });
+            }
+
             setTargetRect(computeTargetRect(currentEl, isInsideModal));
+            return true;
         };
 
-        const el = document.getElementById(step.targetId);
-        if (el && isElementVisible(el) && step.id !== 'pm-footer') {
-            if (step.id === 'pm-visual') {
-                const scrollParent = el.closest('.overflow-y-auto');
-                if (scrollParent) scrollParent.scrollTop = 0;
-            } else {
-                el.scrollIntoView({ behavior: 'auto', block: 'center' });
+        const retryTimer = setInterval(() => {
+            if (measureStepTarget()) {
+                clearInterval(retryTimer);
             }
-        }
+        }, 50);
 
-        updateRect();
-        const t1 = setTimeout(updateRect, 50);
-        const t2 = setTimeout(updateRect, 180);
-        const t3 = setTimeout(updateRect, 360);
+        const t1 = setTimeout(() => {
+            const currentEl = document.getElementById(step.targetId);
+            if (currentEl && isElementVisible(currentEl)) {
+                currentEl.scrollIntoView({ behavior: 'auto', block: 'center' });
+            }
+            measureStepTarget();
+        }, 180);
 
-        window.addEventListener('resize', updateRect);
-        window.addEventListener('scroll', updateRect, true);
+        const t2 = setTimeout(() => measureStepTarget(), 360);
+
+        const onViewportChange = () => {
+            setTargetRect(computeTargetRect(document.getElementById(step.targetId), isInsideModal));
+        };
+
+        window.addEventListener('resize', onViewportChange);
+        window.addEventListener('scroll', onViewportChange, true);
 
         return () => {
+            clearInterval(retryTimer);
             clearTimeout(t1);
             clearTimeout(t2);
-            clearTimeout(t3);
-            window.removeEventListener('resize', updateRect);
-            window.removeEventListener('scroll', updateRect, true);
+            window.removeEventListener('resize', onViewportChange);
+            window.removeEventListener('scroll', onViewportChange, true);
         };
     }, [isOpen, stepIndex, steps, contextKey]);
 
