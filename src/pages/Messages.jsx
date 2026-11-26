@@ -6,6 +6,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient';
 import { useStore } from '../store/useStore';
 import { logActivity } from '../hooks/useActivityLogs';
+import MessagesProductTour from '../components/messages/MessagesProductTour';
 import {
   Mail,
   RefreshCw,
@@ -370,7 +371,6 @@ const MessagesPage = () => {
           <title>Contact Messages | Seaside POS</title>
         </Head>
 
-        {/* Match POS and all management pages edge-to-edge .container fit on mobile (< 640px) */}
         <style jsx global>{`
           @media (max-width: 639px) {
             .app:has(.messages-page) .container {
@@ -400,7 +400,10 @@ const MessagesPage = () => {
             </p>
           </div>
 
-          <div className="w-full sm:w-auto flex items-center gap-2 shrink-0">
+          <div
+              id="tour-msg-header-actions"
+              className="w-full sm:w-auto flex items-center gap-2 shrink-0"
+          >
             {selectedIds.length > 0 && (
                 <button
                     type="button"
@@ -431,7 +434,10 @@ const MessagesPage = () => {
 
         {/* Search & Selection Bar */}
         {!loading && !error && messages.length > 0 && (
-            <div className="bg-white dark:bg-slate-900 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-3 transition-colors">
+            <div
+                id="tour-msg-search-bar"
+                className="bg-white dark:bg-slate-900 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-3 transition-colors"
+            >
               <div className="flex items-center gap-2.5 flex-1 w-full">
                 <label className="inline-flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-200 cursor-pointer select-none shrink-0">
                   <input
@@ -515,7 +521,7 @@ const MessagesPage = () => {
         ) : (
             <>
               {/* Mobile Card List View (< 768px) */}
-              <div className="block md:hidden space-y-2">
+              <div id="tour-msg-mobile-list" className="block md:hidden space-y-2">
                 {filteredMessages.map((message) => {
                   const isChecked = selectedSet.has(message.id);
                   return (
@@ -589,7 +595,10 @@ const MessagesPage = () => {
               </div>
 
               {/* Desktop Table View (>= 768px) */}
-              <div className="hidden md:block bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs overflow-hidden transition-colors">
+              <div
+                  id="tour-msg-desktop-table"
+                  className="hidden md:block bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs overflow-hidden transition-colors"
+              >
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs divide-y divide-slate-100 dark:divide-slate-800">
                     <thead className="bg-slate-50/80 dark:bg-slate-800/80 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200/80 dark:border-slate-800">
@@ -767,6 +776,11 @@ const MessagesPage = () => {
               </div>
             </div>
         )}
+
+        <MessagesProductTour
+            isMessagesLoading={loading}
+            hasMessages={!loading && !error && filteredMessages.length > 0}
+        />
       </div>
   );
 };
