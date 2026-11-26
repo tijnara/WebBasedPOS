@@ -24,6 +24,7 @@ import {
     useResetRefillGameData
 } from '../../hooks/useRefillGame';
 import { useStore } from '../../store/useStore';
+import RefillGameAnalyticsTour from './RefillGameAnalyticsTour';
 
 function formatManilaDateTime(isoString) {
     if (!isoString) return '—';
@@ -242,7 +243,6 @@ export default function RefillGameAnalyticsPage() {
 
     return (
         <div className="refill-game-page w-full space-y-2.5 sm:space-y-6 px-1.5 py-2 sm:px-0 sm:py-4 md:py-6 pb-24 md:pb-8 dark:[color-scheme:dark]">
-            {/* Match POS, Expenses, Dashboard, Report, History, Scanned Logs, Customer, Maintenance, Product, 3D Icons, Inventory, Gallery, Salary & Debt edge-to-edge fit on mobile (< 640px) */}
             <style jsx global>{`
                 @media (max-width: 639px) {
                     .app:has(.refill-game-page) .container,
@@ -282,7 +282,10 @@ export default function RefillGameAnalyticsPage() {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 lg:flex lg:flex-wrap items-center gap-2 w-full lg:w-auto shrink-0">
+                <div
+                    id="tour-rg-header-actions"
+                    className="grid grid-cols-2 lg:flex lg:flex-wrap items-center gap-2 w-full lg:w-auto shrink-0"
+                >
                     <button
                         type="button"
                         onClick={() => refetch()}
@@ -317,7 +320,7 @@ export default function RefillGameAnalyticsPage() {
             </div>
 
             {/* 4 KPI Summary Cards */}
-            <div className="grid grid-cols-2 xl:grid-cols-4 gap-2 sm:gap-4">
+            <div id="tour-rg-kpis" className="grid grid-cols-2 xl:grid-cols-4 gap-2 sm:gap-4">
                 {/* KPI 1: Total Players */}
                 <div className="bg-white dark:bg-slate-900 p-2.5 sm:p-5 rounded-xl sm:rounded-3xl border border-slate-200/90 dark:border-slate-800 shadow-xs flex flex-col justify-between min-w-0">
                     <div className="flex items-center justify-between gap-1.5">
@@ -426,7 +429,10 @@ export default function RefillGameAnalyticsPage() {
             </div>
 
             {/* Filters & View Switcher Card */}
-            <div className="bg-white dark:bg-slate-900 p-2.5 sm:p-5 rounded-xl sm:rounded-3xl border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-2.5 sm:space-y-4">
+            <div
+                id="tour-rg-filters"
+                className="bg-white dark:bg-slate-900 p-2.5 sm:p-5 rounded-xl sm:rounded-3xl border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-2.5 sm:space-y-4"
+            >
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5 sm:gap-3">
                     {/* View Tabs: Leaderboard vs Refill Logs */}
                     <div className="flex bg-slate-100 dark:bg-slate-950 p-1 rounded-xl sm:rounded-2xl border border-slate-200/80 dark:border-slate-800 w-full md:w-max">
@@ -593,7 +599,7 @@ export default function RefillGameAnalyticsPage() {
             </div>
 
             {/* Mobile Card List Views (< 768px) */}
-            <div className="block md:hidden space-y-2">
+            <div id="tour-rg-mobile-records" className="block md:hidden space-y-2">
                 {isLoading ? (
                     <div className="p-8 text-center text-xs font-semibold text-slate-400 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
                         Loading simulator records...
@@ -722,7 +728,10 @@ export default function RefillGameAnalyticsPage() {
             </div>
 
             {/* Desktop Data Table Container (>= 768px) */}
-            <div className="hidden md:block bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/90 dark:border-slate-800 shadow-xs overflow-hidden">
+            <div
+                id="tour-rg-desktop-records"
+                className="hidden md:block bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/90 dark:border-slate-800 shadow-xs overflow-hidden"
+            >
                 {isLoading ? (
                     <div className="p-12 text-center text-sm font-semibold text-slate-400">
                         Loading simulator records...
@@ -884,6 +893,11 @@ export default function RefillGameAnalyticsPage() {
                     </div>
                 )}
             </div>
+
+            <RefillGameAnalyticsTour
+                isAnalyticsLoading={isLoading}
+                activeTab={activeTab}
+            />
         </div>
     );
 }
