@@ -18,6 +18,7 @@ import PendingPurchases from '../tracking/PendingPurchases';
 import FilterList from '../tracking/FilterList';
 import VehicleList from '../tracking/VehicleList';
 import WaterTestScheduleCard from '../tracking/WaterTestScheduleCard';
+import MaintenanceTrackingTour from '../tracking/MaintenanceTrackingTour';
 import { FILTER_CONFIG } from '../../config/constants';
 
 const DEFAULT_WATER_TEST_TYPES = [
@@ -964,7 +965,10 @@ export default function MaintenanceTrackingPage() {
                     </p>
                 </div>
                 {isAdmin && (
-                    <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 w-full sm:w-auto shrink-0">
+                    <div
+                        id="tour-maint-admin-actions"
+                        className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 w-full sm:w-auto shrink-0"
+                    >
                         <Button
                             type="button"
                             variant="outline"
@@ -989,7 +993,10 @@ export default function MaintenanceTrackingPage() {
             </div>
 
             {/* Segmented Control Tabs */}
-            <div className="flex items-center gap-1.5 sm:gap-2 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl sm:rounded-2xl w-full sm:w-max border border-slate-200/80 dark:border-slate-700/60 select-none">
+            <div
+                id="tour-maint-tabs"
+                className="flex items-center gap-1.5 sm:gap-2 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl sm:rounded-2xl w-full sm:w-max border border-slate-200/80 dark:border-slate-700/60 select-none"
+            >
                 <button
                     type="button"
                     onClick={() => setActiveTab('filters')}
@@ -1043,7 +1050,10 @@ export default function MaintenanceTrackingPage() {
                     {activeTab === 'filters' && (
                         <div className="flex flex-col lg:flex-row gap-2.5 sm:gap-5 items-start">
                             {/* Right Sidebar: Filter Status Note + Live Water Test Schedule Countdown */}
-                            <div className="w-full lg:w-80 shrink-0 order-first lg:order-last space-y-2.5 sm:space-y-4">
+                            <div
+                                id="tour-maint-filter-sidebar"
+                                className="w-full lg:w-80 shrink-0 order-first lg:order-last space-y-2.5 sm:space-y-4"
+                            >
                                 <PendingPurchases
                                     overdueFilters={overdueFilters}
                                     totalOverdueCost={totalOverdueCost}
@@ -1069,7 +1079,10 @@ export default function MaintenanceTrackingPage() {
                             </div>
 
                             {/* Filter Cards List */}
-                            <div className="flex-1 w-full order-last lg:order-first">
+                            <div
+                                id="tour-maint-filter-list"
+                                className="flex-1 w-full order-last lg:order-first"
+                            >
                                 <FilterList
                                     processedFilters={processedFilters}
                                     handleReplace={(id) => handleOpenRecordModal(id, filterConfigs.find(f => f.id === id)?.name, 'filter')}
@@ -1084,7 +1097,7 @@ export default function MaintenanceTrackingPage() {
 
                     {/* Tab 2: Delivery Fleet */}
                     {activeTab === 'fleet' && (
-                        <div className="w-full">
+                        <div id="tour-maint-vehicle-list" className="w-full">
                             <VehicleList
                                 processedVehicles={processedVehicles}
                                 handleReplace={(id) => handleOpenRecordModal(id, dbVehicles.find(v => v.id === id)?.name, 'vehicle')}
@@ -1111,7 +1124,7 @@ export default function MaintenanceTrackingPage() {
                         </DialogTitle>
                     </DialogHeader>
                     <div onKeyDown={preventEnterReload} className="p-4 space-y-4">
-                        <div className="space-y-2">
+                        <div id="tour-wt-type-section" className="space-y-2">
                             <div className="flex items-center justify-between">
                                 <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-0">
                                     Test Title / Laboratory Type
@@ -1193,62 +1206,64 @@ export default function MaintenanceTrackingPage() {
                             )}
                         </div>
 
-                        <div className="grid grid-cols-2 gap-3">
-                            <div>
-                                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                                    Next Scheduled Date
-                                </Label>
-                                <Input
-                                    type="date"
-                                    value={waterTestModal.nextTestDate}
-                                    onChange={e => setWaterTestModal(prev => ({ ...prev, nextTestDate: e.target.value }))}
-                                    className="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100"
-                                />
+                        <div id="tour-wt-schedule-fields" className="space-y-4">
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                                        Next Scheduled Date
+                                    </Label>
+                                    <Input
+                                        type="date"
+                                        value={waterTestModal.nextTestDate}
+                                        onChange={e => setWaterTestModal(prev => ({ ...prev, nextTestDate: e.target.value }))}
+                                        className="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100"
+                                    />
+                                </div>
+
+                                <div>
+                                    <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                                        Scheduled Time (Manila)
+                                    </Label>
+                                    <Input
+                                        type="time"
+                                        value={waterTestModal.testTime}
+                                        onChange={e => setWaterTestModal(prev => ({ ...prev, testTime: e.target.value }))}
+                                        className="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100"
+                                    />
+                                </div>
                             </div>
 
                             <div>
                                 <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                                    Scheduled Time (Manila)
+                                    Recurring Cycle Interval (Days)
                                 </Label>
                                 <Input
-                                    type="time"
-                                    value={waterTestModal.testTime}
-                                    onChange={e => setWaterTestModal(prev => ({ ...prev, testTime: e.target.value }))}
+                                    type="number"
+                                    min="1"
+                                    value={waterTestModal.intervalDays}
+                                    onChange={e => setWaterTestModal(prev => ({ ...prev, intervalDays: e.target.value }))}
+                                    className="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 font-mono"
+                                />
+                                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                                    Automatically advances the next test date by this many days when &ldquo;Log Test Done&rdquo; is clicked.
+                                </p>
+                            </div>
+
+                            <div>
+                                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                                    Status Note / Instructions
+                                </Label>
+                                <Textarea
+                                    rows={3}
+                                    value={waterTestModal.notes}
+                                    onChange={e => setWaterTestModal(prev => ({ ...prev, notes: e.target.value }))}
+                                    placeholder="e.g. Water quality parameters are normal. Prepare sterile sample bottles prior to scheduled lab testing."
                                     className="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100"
                                 />
                             </div>
                         </div>
 
-                        <div>
-                            <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                                Recurring Cycle Interval (Days)
-                            </Label>
-                            <Input
-                                type="number"
-                                min="1"
-                                value={waterTestModal.intervalDays}
-                                onChange={e => setWaterTestModal(prev => ({ ...prev, intervalDays: e.target.value }))}
-                                className="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 font-mono"
-                            />
-                            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-                                Automatically advances the next test date by this many days when &ldquo;Log Test Done&rdquo; is clicked.
-                            </p>
-                        </div>
-
-                        <div>
-                            <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                                Status Note / Instructions
-                            </Label>
-                            <Textarea
-                                rows={3}
-                                value={waterTestModal.notes}
-                                onChange={e => setWaterTestModal(prev => ({ ...prev, notes: e.target.value }))}
-                                placeholder="e.g. Water quality parameters are normal. Prepare sterile sample bottles prior to scheduled lab testing."
-                                className="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100"
-                            />
-                        </div>
-
-                        <DialogFooter className="pt-2">
+                        <DialogFooter id="tour-wt-footer" className="pt-2">
                             <Button
                                 type="button"
                                 variant="outline"
@@ -1472,7 +1487,11 @@ export default function MaintenanceTrackingPage() {
                         <DialogTitle className="text-slate-900 dark:text-slate-100">Manage Vehicles</DialogTitle>
                     </DialogHeader>
                     <div className="p-4 space-y-5 max-h-[80vh] overflow-y-auto">
-                        <div onKeyDown={preventEnterReload} className="space-y-4 bg-slate-50 dark:bg-slate-800/60 p-3.5 sm:p-4 rounded-xl border border-slate-200 dark:border-slate-700">
+                        <div
+                            id="tour-veh-form"
+                            onKeyDown={preventEnterReload}
+                            className="space-y-4 bg-slate-50 dark:bg-slate-800/60 p-3.5 sm:p-4 rounded-xl border border-slate-200 dark:border-slate-700"
+                        >
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                                 <div>
                                     <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Vehicle Name</Label>
@@ -1547,7 +1566,7 @@ export default function MaintenanceTrackingPage() {
                             </div>
                         </div>
 
-                        <div className="max-h-80 overflow-y-auto space-y-2">
+                        <div id="tour-veh-list" className="max-h-80 overflow-y-auto space-y-2">
                             {dbVehicles.length === 0 ? (
                                 <p className="text-center text-xs text-slate-400 py-6 border border-dashed border-slate-200 dark:border-slate-700 rounded-xl">
                                     No vehicles registered yet.
@@ -1602,6 +1621,13 @@ export default function MaintenanceTrackingPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <MaintenanceTrackingTour
+                isDataLoading={isLoading}
+                activeTab={activeTab}
+                isWaterTestModalOpen={waterTestModal.isOpen}
+                isManageVehiclesModalOpen={manageVehiclesModal}
+            />
         </div>
     );
 }
