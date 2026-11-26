@@ -18,6 +18,7 @@ import SalesPerformanceCard from '../dashboard/SalesPerformanceCard';
 import PeriodComparisonCard from '../dashboard/PeriodComparisonCard';
 import ProductSalesDonutCard from '../dashboard/ProductSalesDonutCard';
 import TopCustomersCard from '../dashboard/TopCustomersCard';
+import DashboardProductTour from '../dashboard/DashboardProductTour';
 
 // Refill Product IDs: 2 (Refill 30), 3 (Refill 25), 30 (Refill-Walk-in 20)
 const REFILL_PRODUCT_IDS = [2, 3, 30];
@@ -138,6 +139,14 @@ export default function DashboardPage() {
     const { data: weeklyGrowthData, isLoading: isWeeklyGrowthLoading } = useWeeklyGrowth();
     const { data: monthlyGrowthData, isLoading: isMonthlyGrowthLoading } = useMonthlyGrowth();
 
+    const isAnyDashboardLoading =
+        isSummaryLoading ||
+        isTodayLoading ||
+        isOrdersLoading ||
+        isRefillStatsLoading ||
+        isWeeklyGrowthLoading ||
+        isMonthlyGrowthLoading;
+
     return (
         <div className="dashboard-page flex-1 w-full min-h-screen bg-transparent font-sans pb-32 md:pb-12 transition-colors duration-300">
             <Head>
@@ -178,47 +187,54 @@ export default function DashboardPage() {
             <main className="w-full max-w-7xl mx-auto px-1.5 sm:px-6 mt-1.5 sm:mt-6">
                 <div className="flex flex-col gap-2.5 sm:gap-6">
                     {/* ROW 1: 4-CARD EXECUTIVE KPI MATRIX */}
-                    <KpiMatrix
-                        todaySales={todaySales}
-                        yesterdaySales={yesterdaySales}
-                        recentSalesPct={recentSalesPct}
-                        isTodayLoading={isTodayLoading}
-                        todayOrdersCount={todayOrdersCount}
-                        isOrdersLoading={isOrdersLoading}
-                        monthlyGrowthData={monthlyGrowthData}
-                        isMonthlyGrowthLoading={isMonthlyGrowthLoading}
-                        weeklyGrowthData={weeklyGrowthData}
-                        isWeeklyGrowthLoading={isWeeklyGrowthLoading}
-                        overallSalesTotal={overallSalesTotal}
-                        lifetimeContainers={refillStats?.totalContainers ?? 24092}
-                        isLifetimeContainersLoading={isRefillStatsLoading}
-                        firstTransactionDate={firstTransactionDate}
-                        isSummaryLoading={isSummaryLoading}
-                    />
-
-                    {/* ROW 2: OPERATIONS (FILTER/FLEET LIFESPANS, EMPLOYEE DEBTS, CUSTOMER CRM) */}
-                    <OperationsRow />
-
-                    {/* ROW 3: CHARTS (SALES PERFORMANCE & PERIOD COMPARISON) */}
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-2.5 sm:gap-6 mt-0.5 sm:mt-1">
-                        <div className="lg:col-span-7 min-h-[340px] sm:min-h-[380px]">
-                            <SalesPerformanceCard summaryData={summaryData} />
-                        </div>
-                        <div className="lg:col-span-5 min-h-[340px] sm:min-h-[380px]">
-                            <PeriodComparisonCard
-                                monthlyGrowthData={monthlyGrowthData}
-                                weeklyGrowthData={weeklyGrowthData}
-                            />
-                        </div>
+                    <div id="tour-dash-kpis">
+                        <KpiMatrix
+                            todaySales={todaySales}
+                            yesterdaySales={yesterdaySales}
+                            recentSalesPct={recentSalesPct}
+                            isTodayLoading={isTodayLoading}
+                            todayOrdersCount={todayOrdersCount}
+                            isOrdersLoading={isOrdersLoading}
+                            monthlyGrowthData={monthlyGrowthData}
+                            isMonthlyGrowthLoading={isMonthlyGrowthLoading}
+                            weeklyGrowthData={weeklyGrowthData}
+                            isWeeklyGrowthLoading={isWeeklyGrowthLoading}
+                            overallSalesTotal={overallSalesTotal}
+                            lifetimeContainers={refillStats?.totalContainers ?? 24092}
+                            isLifetimeContainersLoading={isRefillStatsLoading}
+                            firstTransactionDate={firstTransactionDate}
+                            isSummaryLoading={isSummaryLoading}
+                        />
                     </div>
 
-                    {/* ROW 4: PRODUCT BREAKDOWN & TOP CUSTOMERS */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-2.5 sm:gap-6">
-                        <ProductSalesDonutCard />
-                        <TopCustomersCard />
+                    {/* ROW 2: OPERATIONS (FILTER/FLEET LIFESPANS, EMPLOYEE DEBTS, CUSTOMER CRM) */}
+                    <div id="tour-dash-operations">
+                        <OperationsRow />
+                    </div>
+
+                    {/* ROW 3 & 4: ANALYTICS CHARTS, PRODUCT BREAKDOWN & TOP CUSTOMERS */}
+                    <div id="tour-dash-analytics" className="flex flex-col gap-2.5 sm:gap-6">
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-2.5 sm:gap-6 mt-0.5 sm:mt-1">
+                            <div className="lg:col-span-7 min-h-[340px] sm:min-h-[380px]">
+                                <SalesPerformanceCard summaryData={summaryData} />
+                            </div>
+                            <div className="lg:col-span-5 min-h-[340px] sm:min-h-[380px]">
+                                <PeriodComparisonCard
+                                    monthlyGrowthData={monthlyGrowthData}
+                                    weeklyGrowthData={weeklyGrowthData}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-2.5 sm:gap-6">
+                            <ProductSalesDonutCard />
+                            <TopCustomersCard />
+                        </div>
                     </div>
                 </div>
             </main>
+
+            <DashboardProductTour isDataLoading={isAnyDashboardLoading} />
         </div>
     );
 }
