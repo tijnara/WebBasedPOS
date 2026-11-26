@@ -13,6 +13,7 @@ import { useScannedLogs } from '../../hooks/useScannedLogs';
 import { logActivity } from '../../hooks/useActivityLogs';
 import { format } from 'date-fns';
 import currency from 'currency.js';
+import ScanSalesListTour from './ScanSalesListTour';
 
 const compressImage = (file, maxDimension = 1200, quality = 0.8) => {
     return new Promise((resolve, reject) => {
@@ -549,7 +550,10 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
 
                     <div className="flex items-center gap-2.5 self-end sm:self-auto ml-auto">
                         {modalTab === 'scan' && (
-                            <div className="flex items-center gap-2 bg-emerald-700/90 hover:bg-emerald-700 border border-emerald-500/60 rounded-xl px-2.5 py-1 text-xs shadow-inner transition-colors">
+                            <div
+                                id="tour-scan-delivery-date"
+                                className="flex items-center gap-2 bg-emerald-700/90 hover:bg-emerald-700 border border-emerald-500/60 rounded-xl px-2.5 py-1 text-xs shadow-inner transition-colors"
+                            >
                                 <Calendar className="w-3.5 h-3.5 text-emerald-200 shrink-0" />
                                 <div className="flex flex-col">
                                     <label className="text-[9px] uppercase tracking-wider font-bold text-emerald-200 leading-none">
@@ -577,7 +581,10 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
                 </div>
 
                 {/* Modal Sub-Navigation Tabs */}
-                <div className="px-5 pt-3 pb-2 bg-slate-50 dark:bg-slate-850 border-b border-slate-200/80 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2">
+                <div
+                    id="tour-scan-sub-tabs"
+                    className="px-5 pt-3 pb-2 bg-slate-50 dark:bg-slate-850 border-b border-slate-200/80 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2"
+                >
                     <div className="flex bg-slate-200/70 dark:bg-slate-800 p-1 rounded-xl">
                         <button
                             type="button"
@@ -627,7 +634,10 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
                             )}
 
                             {!imagePreview && (
-                                <div className="border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-500 rounded-2xl p-6 sm:p-8 text-center transition-colors bg-slate-50/50 dark:bg-slate-800/50">
+                                <div
+                                    id="tour-scan-capture-zone"
+                                    className="border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-500 rounded-2xl p-6 sm:p-8 text-center transition-colors bg-slate-50/50 dark:bg-slate-800/50"
+                                >
                                     <input
                                         ref={cameraInputRef}
                                         type="file"
@@ -850,7 +860,10 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
                             )}
                         </div>
 
-                        <div className="p-4 bg-slate-50 dark:bg-slate-900/95 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3 shrink-0 transition-colors">
+                        <div
+                            id="tour-scan-save-bar"
+                            className="p-4 bg-slate-50 dark:bg-slate-900/95 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3 shrink-0 transition-colors"
+                        >
                             <button
                                 type="button"
                                 onClick={onClose}
@@ -1005,6 +1018,11 @@ export default function ScanSalesListModal({ isOpen, onClose, products = [], onS
                         </div>
                     </div>
                 )}
+
+                <ScanSalesListTour
+                    isModalOpen={isOpen}
+                    isBusy={isAnalyzing || isSaving}
+                />
             </div>
         </div>
     );
