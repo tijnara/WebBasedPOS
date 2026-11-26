@@ -10,6 +10,7 @@ import {
     DialogTitle, DialogCloseButton, Label
 } from '../ui';
 import Pagination from '../Pagination';
+import HistoryProductTour from '../history/HistoryProductTour';
 
 import { format } from 'date-fns';
 import currency from 'currency.js';
@@ -498,7 +499,10 @@ export default function HistoryPage() {
                 </div>
 
                 {/* Compact Filter Bar */}
-                <div className="mb-2.5 sm:mb-4 bg-white dark:bg-slate-900 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs space-y-2 sm:space-y-3">
+                <div
+                    id="tour-history-filters"
+                    className="mb-2.5 sm:mb-4 bg-white dark:bg-slate-900 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs space-y-2 sm:space-y-3"
+                >
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 items-end">
                         <div className="col-span-2 md:col-span-1">
                             <Input
@@ -559,144 +563,146 @@ export default function HistoryPage() {
                 </div>
 
                 {/* --- DESKTOP TABLE --- */}
-                <Card className="mb-4 hidden md:block border border-slate-200 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900 overflow-hidden rounded-2xl">
-                    <CardContent className="p-0 overflow-hidden">
-                        <div className="w-full overflow-hidden">
-                            <Table className="w-full table-auto">
-                                <TableHeader className="bg-slate-50 dark:bg-slate-800/70 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200/80 dark:border-slate-800">
-                                    <TableRow>
-                                        <TableHead className="py-3 px-3 whitespace-nowrap text-xs">Date &amp; Time</TableHead>
-                                        <TableHead className="py-3 px-3 text-xs">Customer</TableHead>
-                                        <TableHead className="py-3 px-3 text-xs">Staff</TableHead>
-                                        <TableHead className="py-3 px-2 text-xs">Status</TableHead>
-                                        <TableHead className="py-3 px-2 text-xs">Payment</TableHead>
-                                        <TableHead className="py-3 px-1 text-center text-xs w-12">Qty</TableHead>
-                                        <TableHead className="py-3 px-2 text-xs w-20">Price</TableHead>
-                                        <TableHead className="py-3 px-3 text-right text-xs">Total</TableHead>
-                                        <TableHead className="py-3 px-3 text-right text-xs w-28">Actions</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody className="divide-y divide-slate-100 dark:divide-slate-800/80 text-xs">
-                                    {isLoading ? (
-                                        <TableRow><TableCell colSpan={9} className="text-center py-8 text-slate-400">Loading sales...</TableCell></TableRow>
-                                    ) : sortedSales.length === 0 ? (
-                                        <TableRow><TableCell colSpan={9} className="text-center py-8 text-slate-400">No sales found.</TableCell></TableRow>
-                                    ) : (
-                                        sortedSales.map(s => {
-                                            const items = s.sale_items || [];
-                                            const displayItems = items.slice(0, 2);
-                                            const remainingCount = items.length - 2;
+                <div id="tour-history-desktop-table">
+                    <Card className="mb-4 hidden md:block border border-slate-200 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900 overflow-hidden rounded-2xl">
+                        <CardContent className="p-0 overflow-hidden">
+                            <div className="w-full overflow-hidden">
+                                <Table className="w-full table-auto">
+                                    <TableHeader className="bg-slate-50 dark:bg-slate-800/70 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200/80 dark:border-slate-800">
+                                        <TableRow>
+                                            <TableHead className="py-3 px-3 whitespace-nowrap text-xs">Date &amp; Time</TableHead>
+                                            <TableHead className="py-3 px-3 text-xs">Customer</TableHead>
+                                            <TableHead className="py-3 px-3 text-xs">Staff</TableHead>
+                                            <TableHead className="py-3 px-2 text-xs">Status</TableHead>
+                                            <TableHead className="py-3 px-2 text-xs">Payment</TableHead>
+                                            <TableHead className="py-3 px-1 text-center text-xs w-12">Qty</TableHead>
+                                            <TableHead className="py-3 px-2 text-xs w-20">Price</TableHead>
+                                            <TableHead className="py-3 px-3 text-right text-xs">Total</TableHead>
+                                            <TableHead className="py-3 px-3 text-right text-xs w-28">Actions</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody className="divide-y divide-slate-100 dark:divide-slate-800/80 text-xs">
+                                        {isLoading ? (
+                                            <TableRow><TableCell colSpan={9} className="text-center py-8 text-slate-400">Loading sales...</TableCell></TableRow>
+                                        ) : sortedSales.length === 0 ? (
+                                            <TableRow><TableCell colSpan={9} className="text-center py-8 text-slate-400">No sales found.</TableCell></TableRow>
+                                        ) : (
+                                            sortedSales.map(s => {
+                                                const items = s.sale_items || [];
+                                                const displayItems = items.slice(0, 2);
+                                                const remainingCount = items.length - 2;
 
-                                            return (
-                                                <TableRow key={s.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors">
-                                                    <TableCell className="font-medium text-slate-700 dark:text-slate-300 text-xs whitespace-nowrap py-2.5 px-3">
-                                                        {formatDate(s.saleTimestamp)}
-                                                    </TableCell>
-                                                    <TableCell className="text-[#5f7d00] dark:text-lime-400 font-bold py-2.5 px-3 truncate max-w-[130px]" title={s.customerName}>
-                                                        {s.customerName}
-                                                    </TableCell>
-                                                    <TableCell className="py-2.5 px-3 truncate max-w-[130px]">
-                                                        <div className="inline-flex items-center space-x-1.5 font-semibold" style={{ color: s.userColor }}>
-                                                            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: s.userColor }}></span>
-                                                            <span className="truncate">{s.createdBy || 'N/A'}</span>
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell className="py-2.5 px-2">
-                                                        <StatusBadge status={s.status} />
-                                                    </TableCell>
-                                                    <TableCell className="py-2.5 px-2 font-medium text-slate-600 dark:text-slate-300">
-                                                        {s.paymentMethod}
-                                                    </TableCell>
-                                                    <TableCell className="py-2.5 px-1 text-center">
-                                                        <div className="flex flex-col space-y-0.5 items-center">
-                                                            {displayItems.map((item, idx) => (
-                                                                <span key={idx} className="font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.2 rounded text-[11px] min-w-[20px] text-center">
-                                                                    {item.quantity}
-                                                                </span>
-                                                            ))}
-                                                            {remainingCount > 0 && <span className="text-[9px] text-slate-400">+{remainingCount}</span>}
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell className="py-2.5 px-2">
-                                                        <div className="flex flex-col space-y-0.5">
-                                                            {displayItems.map((item, idx) => (
-                                                                <span key={idx} className="font-medium text-slate-600 dark:text-slate-300 text-xs font-mono">
-                                                                    {formatCurrency(item.price_at_sale)}
-                                                                </span>
-                                                            ))}
-                                                            {remainingCount > 0 && (
-                                                                <span
-                                                                    className="text-[10px] text-blue-600 dark:text-blue-400 font-bold cursor-pointer hover:underline"
-                                                                    onClick={(e) => { e.stopPropagation(); openModal(s); }}
-                                                                >
-                                                                    +{remainingCount} more
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell className="text-right font-black text-slate-900 dark:text-slate-100 font-mono py-2.5 px-3 whitespace-nowrap text-xs sm:text-sm">
-                                                        {formatCurrency(s.totalAmount)}
-                                                    </TableCell>
-                                                    <TableCell className="py-2.5 px-3 text-right">
-                                                        <div className="flex gap-1 justify-end items-center">
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => openModal(s)}
-                                                                className="w-7 h-7 flex items-center justify-center text-slate-500 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors cursor-pointer"
-                                                                title="View Receipt"
-                                                            >
-                                                                <ViewIcon />
-                                                            </button>
-
-                                                            {s.status === 'Unpaid' && (
+                                                return (
+                                                    <TableRow key={s.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors">
+                                                        <TableCell className="font-medium text-slate-700 dark:text-slate-300 text-xs whitespace-nowrap py-2.5 px-3">
+                                                            {formatDate(s.saleTimestamp)}
+                                                        </TableCell>
+                                                        <TableCell className="text-[#5f7d00] dark:text-lime-400 font-bold py-2.5 px-3 truncate max-w-[130px]" title={s.customerName}>
+                                                            {s.customerName}
+                                                        </TableCell>
+                                                        <TableCell className="py-2.5 px-3 truncate max-w-[130px]">
+                                                            <div className="inline-flex items-center space-x-1.5 font-semibold" style={{ color: s.userColor }}>
+                                                                <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: s.userColor }}></span>
+                                                                <span className="truncate">{s.createdBy || 'N/A'}</span>
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell className="py-2.5 px-2">
+                                                            <StatusBadge status={s.status} />
+                                                        </TableCell>
+                                                        <TableCell className="py-2.5 px-2 font-medium text-slate-600 dark:text-slate-300">
+                                                            {s.paymentMethod}
+                                                        </TableCell>
+                                                        <TableCell className="py-2.5 px-1 text-center">
+                                                            <div className="flex flex-col space-y-0.5 items-center">
+                                                                {displayItems.map((item, idx) => (
+                                                                    <span key={idx} className="font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.2 rounded text-[11px] min-w-[20px] text-center">
+                                                                        {item.quantity}
+                                                                    </span>
+                                                                ))}
+                                                                {remainingCount > 0 && <span className="text-[9px] text-slate-400">+{remainingCount}</span>}
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell className="py-2.5 px-2">
+                                                            <div className="flex flex-col space-y-0.5">
+                                                                {displayItems.map((item, idx) => (
+                                                                    <span key={idx} className="font-medium text-slate-600 dark:text-slate-300 text-xs font-mono">
+                                                                        {formatCurrency(item.price_at_sale)}
+                                                                    </span>
+                                                                ))}
+                                                                {remainingCount > 0 && (
+                                                                    <span
+                                                                        className="text-[10px] text-blue-600 dark:text-blue-400 font-bold cursor-pointer hover:underline"
+                                                                        onClick={(e) => { e.stopPropagation(); openModal(s); }}
+                                                                    >
+                                                                        +{remainingCount} more
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell className="text-right font-black text-slate-900 dark:text-slate-100 font-mono py-2.5 px-3 whitespace-nowrap text-xs sm:text-sm">
+                                                            {formatCurrency(s.totalAmount)}
+                                                        </TableCell>
+                                                        <TableCell className="py-2.5 px-3 text-right">
+                                                            <div className="flex gap-1 justify-end items-center">
                                                                 <button
                                                                     type="button"
-                                                                    className="px-2 py-1 text-[10px] font-bold text-white bg-orange-600 hover:bg-orange-700 rounded-lg shadow-2xs transition-colors shrink-0 cursor-pointer"
-                                                                    onClick={() => handleSettle(s)}
+                                                                    onClick={() => openModal(s)}
+                                                                    className="w-7 h-7 flex items-center justify-center text-slate-500 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors cursor-pointer"
+                                                                    title="View Receipt"
                                                                 >
-                                                                    Settle
+                                                                    <ViewIcon />
                                                                 </button>
-                                                            )}
 
-                                                            {isAdmin && (
-                                                                <>
+                                                                {s.status === 'Unpaid' && (
                                                                     <button
                                                                         type="button"
-                                                                        onClick={() => setEditingSale(s)}
-                                                                        className="w-7 h-7 flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors cursor-pointer"
-                                                                        title="Edit Transaction"
-                                                                        disabled={isDemo}
+                                                                        className="px-2 py-1 text-[10px] font-bold text-white bg-orange-600 hover:bg-orange-700 rounded-lg shadow-2xs transition-colors shrink-0 cursor-pointer"
+                                                                        onClick={() => handleSettle(s)}
                                                                     >
-                                                                        <Pencil className="w-3.5 h-3.5" />
+                                                                        Settle
                                                                     </button>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => setDeletingSale(s)}
-                                                                        className="w-7 h-7 flex items-center justify-center text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors cursor-pointer"
-                                                                        title="Delete Transaction & Restock"
-                                                                        disabled={isDemo}
-                                                                    >
-                                                                        <Trash2 className="w-3.5 h-3.5" />
-                                                                    </button>
-                                                                </>
-                                                            )}
-                                                        </div>
-                                                    </TableCell>
-                                                </TableRow>
-                                            );
-                                        })
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </div>
-                        <div className="p-3.5 border-t border-slate-100 dark:border-slate-800 flex justify-end">
-                            <Pagination currentPage={currentPage} totalPages={totalPages || 1} onPageChange={page => setCurrentPage(page)} />
-                        </div>
-                    </CardContent>
-                </Card>
+                                                                )}
+
+                                                                {isAdmin && (
+                                                                    <>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => setEditingSale(s)}
+                                                                            className="w-7 h-7 flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors cursor-pointer"
+                                                                            title="Edit Transaction"
+                                                                            disabled={isDemo}
+                                                                        >
+                                                                            <Pencil className="w-3.5 h-3.5" />
+                                                                        </button>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => setDeletingSale(s)}
+                                                                            className="w-7 h-7 flex items-center justify-center text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors cursor-pointer"
+                                                                            title="Delete Transaction & Restock"
+                                                                            disabled={isDemo}
+                                                                        >
+                                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                                        </button>
+                                                                    </>
+                                                                )}
+                                                            </div>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                );
+                                            })
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                            <div id="tour-history-pagination" className="p-3.5 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+                                <Pagination currentPage={currentPage} totalPages={totalPages || 1} onPageChange={page => setCurrentPage(page)} />
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
 
                 {/* --- MOBILE CARD LIST --- */}
-                <div className="block md:hidden">
+                <div id="tour-history-mobile-list" className="block md:hidden">
                     <Card className="border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs overflow-hidden bg-white dark:bg-slate-900">
                         <CardContent className="p-0">
                             {isLoading ? (
@@ -800,6 +806,8 @@ export default function HistoryPage() {
                 <EditSaleModal sale={editingSale} isOpen={!!editingSale} onClose={() => setEditingSale(null)} />
                 <DeleteSaleDialog sale={deletingSale} isOpen={!!deletingSale} onClose={() => setDeletingSale(null)} />
             </div>
+
+            <HistoryProductTour isSalesLoading={isLoading} isAdmin={isAdmin} />
         </div>
     );
 }
