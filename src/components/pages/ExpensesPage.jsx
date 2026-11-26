@@ -26,6 +26,7 @@ import ExpenseFilters from '../expenses/ExpenseFilters';
 import ExpenseList from '../expenses/ExpenseList';
 import ExpenseModals from '../expenses/ExpenseModals';
 import FinancialPerformanceSection from '../expenses/FinancialPerformanceSection';
+import ExpensesProductTour from '../expenses/ExpensesProductTour';
 
 const categoryStyles = {
     'Food': { icon: Utensils, colorClass: 'bg-orange-100 text-orange-600' },
@@ -454,7 +455,10 @@ export default function ExpensesPage() {
             <div className="w-full max-w-7xl mx-auto space-y-2 sm:space-y-6">
 
                 {/* Mobile Sub-Tab Navigation Bar */}
-                <div className="flex lg:hidden bg-surface p-1 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs">
+                <div
+                    id="tour-exp-mobile-tabs"
+                    className="flex lg:hidden bg-surface p-1 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs"
+                >
                     <button
                         type="button"
                         onClick={() => setMobileTab('operations')}
@@ -491,7 +495,7 @@ export default function ExpensesPage() {
                 </div>
 
                 {/* 1. FINANCIAL PERFORMANCE & MARGINS SECTION */}
-                <div className={mobileTab === 'analytics' ? 'block' : 'hidden lg:block'}>
+                <div id="tour-exp-performance" className={mobileTab === 'analytics' ? 'block' : 'hidden lg:block'}>
                     <FinancialPerformanceSection
                         dateFrom={dateFrom}
                         setDateFrom={setDateFrom}
@@ -515,7 +519,10 @@ export default function ExpensesPage() {
                 <div className={mobileTab === 'operations' ? 'block' : 'hidden lg:block'}>
                     <div className="w-full bg-transparent sm:bg-surface sm:shadow-xl flex flex-col lg:flex-row sm:rounded-2xl sm:border sm:border-slate-200/80 dark:sm:border-slate-800 overflow-hidden space-y-2 sm:space-y-0">
                         <div className="w-full lg:w-7/12 flex flex-col sm:bg-surface">
-                            <div className="bg-surface text-text p-3 sm:p-6 lg:p-8 rounded-xl sm:rounded-none sm:rounded-br-[3rem] shadow-xs sm:shadow-sm z-10 border border-slate-200/80 dark:border-slate-800 sm:border-0 sm:border-b">
+                            <div
+                                id="tour-exp-summary"
+                                className="bg-surface text-text p-3 sm:p-6 lg:p-8 rounded-xl sm:rounded-none sm:rounded-br-[3rem] shadow-xs sm:shadow-sm z-10 border border-slate-200/80 dark:border-slate-800 sm:border-0 sm:border-b"
+                            >
                                 <div className="flex justify-between items-start gap-2 mb-2.5 sm:mb-4">
                                     <div className="min-w-0">
                                         <h1 className="text-lg sm:text-2xl font-bold flex items-center gap-2 text-text">
@@ -566,7 +573,10 @@ export default function ExpensesPage() {
                             </div>
 
                             <div className="px-0 pt-2 sm:p-6 space-y-2 sm:space-y-6">
-                                <div className="bg-surface rounded-xl sm:rounded-none p-3 sm:p-0 border border-slate-200/80 dark:border-slate-800 sm:border-0 shadow-xs sm:shadow-none">
+                                <div
+                                    id="tour-exp-form"
+                                    className="bg-surface rounded-xl sm:rounded-none p-3 sm:p-0 border border-slate-200/80 dark:border-slate-800 sm:border-0 shadow-xs sm:shadow-none"
+                                >
                                     <ExpenseForm
                                         amount={amount}
                                         setAmount={setAmount}
@@ -589,7 +599,10 @@ export default function ExpensesPage() {
                                     />
                                 </div>
 
-                                <div className="bg-surface rounded-xl sm:rounded-none p-3 sm:p-0 border border-slate-200/80 dark:border-slate-800 sm:border-0 shadow-xs sm:shadow-none">
+                                <div
+                                    id="tour-exp-filters"
+                                    className="bg-surface rounded-xl sm:rounded-none p-3 sm:p-0 border border-slate-200/80 dark:border-slate-800 sm:border-0 shadow-xs sm:shadow-none"
+                                >
                                     <ExpenseFilters
                                         searchTerm={searchTerm}
                                         setSearchTerm={setSearchTerm}
@@ -610,7 +623,10 @@ export default function ExpensesPage() {
                             </div>
                         </div>
 
-                        <div className="w-full lg:w-5/12 bg-surface flex flex-col p-3 sm:p-6 rounded-xl sm:rounded-none border border-slate-200/80 dark:border-slate-800 sm:border-0 lg:border-l h-full">
+                        <div
+                            id="tour-exp-list"
+                            className="w-full lg:w-5/12 bg-surface flex flex-col p-3 sm:p-6 rounded-xl sm:rounded-none border border-slate-200/80 dark:border-slate-800 sm:border-0 lg:border-l h-full"
+                        >
                             <ExpenseList
                                 groupedExpenses={groupedExpenses}
                                 isLoading={isLoading}
@@ -651,6 +667,12 @@ export default function ExpensesPage() {
                 reasonText={reasonText}
                 setReasonText={setReasonText}
                 handleConfirmSkip={handleConfirmSkip}
+            />
+
+            <ExpensesProductTour
+                isExpensesLoading={isLoading}
+                mobileTab={mobileTab}
+                onSwitchMobileTab={setMobileTab}
             />
         </div>
     );
