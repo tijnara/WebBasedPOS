@@ -7,6 +7,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabaseClient';
 import { useStore } from '../../store/useStore';
 import { logActivity } from '../../hooks/useActivityLogs';
+import UserApprovalsTour from '../../components/admin/UserApprovalsTour';
 import {
     UserCheck,
     Shield,
@@ -362,7 +363,6 @@ export default function UserApprovalsPage() {
                 <title>User Approvals | Seaside Admin</title>
             </Head>
 
-            {/* Match POS, Expenses, Dashboard, Report, History, Scanned Logs, Customer, Maintenance, Product, 3D Icons, Inventory, Gallery, Salary, Debt, Refill Game & Users edge-to-edge fit on mobile (< 640px) */}
             <style jsx global>{`
                 @media (max-width: 639px) {
                     .app:has(.user-approvals-page) .container {
@@ -392,7 +392,10 @@ export default function UserApprovalsPage() {
                     </p>
                 </div>
 
-                <div className="grid grid-cols-2 sm:flex items-center gap-2 w-full sm:w-auto shrink-0">
+                <div
+                    id="tour-approvals-header-actions"
+                    className="grid grid-cols-2 sm:flex items-center gap-2 w-full sm:w-auto shrink-0"
+                >
                     <Link
                         href="/user-management"
                         className="w-full sm:w-auto h-9 inline-flex items-center justify-center gap-1.5 px-3.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 transition-colors"
@@ -414,7 +417,7 @@ export default function UserApprovalsPage() {
             </div>
 
             {/* KPI Metric Toggle Cards (Side-by-side 2-column on all screens) */}
-            <div className="grid grid-cols-2 gap-2 sm:gap-4">
+            <div id="tour-approvals-tabs" className="grid grid-cols-2 gap-2 sm:gap-4">
                 <button
                     type="button"
                     onClick={() => setActiveTab('pending')}
@@ -471,7 +474,10 @@ export default function UserApprovalsPage() {
             </div>
 
             {/* Search & Count Bar */}
-            <div className="bg-white dark:bg-slate-900 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-3 transition-colors">
+            <div
+                id="tour-approvals-search"
+                className="bg-white dark:bg-slate-900 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-3 transition-colors"
+            >
                 <div className="relative w-full sm:max-w-md">
                     <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
                     <input
@@ -499,7 +505,7 @@ export default function UserApprovalsPage() {
             </div>
 
             {/* Mobile Card List View (< 768px) */}
-            <div className="block md:hidden space-y-2">
+            <div id="tour-approvals-mobile-list" className="block md:hidden space-y-2">
                 {isLoading ? (
                     <div className="py-10 text-center text-xs text-slate-400 dark:text-slate-500 font-medium flex flex-col items-center gap-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
                         <RefreshCw className="w-5 h-5 animate-spin text-[#8DB600] dark:text-lime-400" />
@@ -634,7 +640,10 @@ export default function UserApprovalsPage() {
             </div>
 
             {/* Desktop Registry Table (>= 768px) */}
-            <div className="hidden md:block bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-colors">
+            <div
+                id="tour-approvals-desktop-table"
+                className="hidden md:block bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-colors"
+            >
                 <div className="overflow-x-auto">
                     {isLoading ? (
                         <div className="py-16 text-center text-xs text-slate-400 dark:text-slate-500 font-medium flex flex-col items-center gap-2">
@@ -779,6 +788,11 @@ export default function UserApprovalsPage() {
                     )}
                 </div>
             </div>
+
+            <UserApprovalsTour
+                isApprovalsLoading={isLoading}
+                activeTab={activeTab}
+            />
         </div>
     );
 }
