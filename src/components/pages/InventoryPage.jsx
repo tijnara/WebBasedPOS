@@ -11,6 +11,7 @@ import {
 import { useStore } from '../../store/useStore';
 import { PackageIcon } from '../Icons';
 import Pagination from '../Pagination';
+import InventoryProductTour from '../inventory/InventoryProductTour';
 import { useQueryClient } from '@tanstack/react-query';
 import {
     Plus, Minus, Search, AlertTriangle, CheckCircle2,
@@ -387,7 +388,10 @@ export default function InventoryPage() {
                     <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">Monitor station levels, record deliveries, and manage stock losses.</p>
                 </div>
 
-                <div className="flex bg-slate-100 dark:bg-slate-800/90 p-1 rounded-xl w-full sm:w-auto border border-slate-200/80 dark:border-slate-700/80 shadow-2xs">
+                <div
+                    id="tour-inv-mode-toggle"
+                    className="flex bg-slate-100 dark:bg-slate-800/90 p-1 rounded-xl w-full sm:w-auto border border-slate-200/80 dark:border-slate-700/80 shadow-2xs"
+                >
                     <button
                         type="button"
                         onClick={() => { setViewMode('inventory'); setSearchTerm(''); }}
@@ -416,7 +420,7 @@ export default function InventoryPage() {
 
             {/* KPI Summary Cards */}
             {viewMode === 'inventory' && (
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+                <div id="tour-inv-kpis" className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
                     <div className="bg-white dark:bg-slate-900 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs flex items-center justify-between gap-2 min-w-0 transition-colors">
                         <div className="min-w-0">
                             <span className="text-[9.5px] sm:text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block truncate">Total SKUs</span>
@@ -461,14 +465,19 @@ export default function InventoryPage() {
 
             {/* Break Bulk View */}
             {viewMode === 'convert' && (
-                <BreakBulk products={rawProducts} onSuccess={refetch} isDemo={isDemo} />
+                <div id="tour-inv-break-bulk">
+                    <BreakBulk products={rawProducts} onSuccess={refetch} isDemo={isDemo} />
+                </div>
             )}
 
             {/* Standard Inventory View */}
             {viewMode === 'inventory' && (
                 <div className="space-y-2.5 sm:space-y-4">
                     {/* Controls Row: Search + Quick Filter Pills */}
-                    <div className="bg-white dark:bg-slate-900 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-3">
+                    <div
+                        id="tour-inv-filters"
+                        className="bg-white dark:bg-slate-900 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-3"
+                    >
                         <div className="relative flex items-center flex-1 max-w-md">
                             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500 pointer-events-none z-10" />
                             <Input
@@ -519,7 +528,7 @@ export default function InventoryPage() {
                     </div>
 
                     {/* Mobile Stock Cards (Prevents horizontal table cutoff on < 768px) */}
-                    <div className="block md:hidden space-y-2">
+                    <div id="tour-inv-mobile-list" className="block md:hidden space-y-2">
                         {isLoading ? (
                             <div className="text-center text-slate-400 p-6 text-xs bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
                                 Loading station inventory...
@@ -641,7 +650,10 @@ export default function InventoryPage() {
                     </div>
 
                     {/* Desktop Table Card */}
-                    <div className="hidden md:block bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-colors">
+                    <div
+                        id="tour-inv-desktop-table"
+                        className="hidden md:block bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-colors"
+                    >
                         <div className="overflow-x-auto">
                             <table className="w-full text-xs sm:text-sm text-left">
                                 <thead className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200/80 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-[11px]">
@@ -918,6 +930,10 @@ export default function InventoryPage() {
                 </DialogContent>
             </Dialog>
 
+            <InventoryProductTour
+                isInventoryLoading={isLoading}
+                viewMode={viewMode}
+            />
         </div>
     );
 }
