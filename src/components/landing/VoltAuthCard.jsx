@@ -1,5 +1,5 @@
 // src/components/landing/VoltAuthCard.jsx
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Lock,
     Mail,
@@ -17,6 +17,7 @@ import {
     X
 } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
+import { useStore } from '../../store/useStore';
 
 export default function VoltAuthCard({
                                          activeCard = 'login', // 'login' | 'signup' | 'contact'
@@ -36,11 +37,11 @@ export default function VoltAuthCard({
                                          physicalAddress = '',
                                          facebookLink = '',
                                          contactPrefill = null,
-                                         isDarkMode: isDarkModeProp,
-                                         darkMode,
-                                         theme
+                                         isDarkMode: isDarkModeProp
                                      }) {
-    const rootRef = useRef(null);
+    // Directly subscribe to Zustand's darkMode state!
+    const storeDarkMode = useStore((s) => s.darkMode);
+    const isDark = typeof isDarkModeProp === 'boolean' ? isDarkModeProp : Boolean(storeDarkMode);
 
     // Login form state
     const [loginEmail, setLoginEmail] = useState('');
@@ -67,166 +68,6 @@ export default function VoltAuthCard({
     const [eyesClosed, setEyesClosed] = useState(false);
     const [celebrateEyes, setCelebrateEyes] = useState(false);
     const [voltMessage, setVoltMessage] = useState('Look at our pure Seaside water! 💧');
-
-    // Detect Day vs Night mode strictly for the Login/Sign-Up/Contact Form Card
-    const explicitDarkProp =
-        typeof isDarkModeProp === 'boolean'
-            ? isDarkModeProp
-            : typeof darkMode === 'boolean'
-                ? darkMode
-                : theme === 'dark'
-                    ? true
-                    : theme === 'light' || theme === 'day'
-                        ? false
-                        : undefined;
-
-    const [detectedDark, setDetectedDark] = useState(true);
-
-    useEffect(() => {
-        if (typeof explicitDarkProp === 'boolean') {
-            setDetectedDark(explicitDarkProp);
-            return;
-        }
-        if (typeof window === 'undefined') return;
-
-        const parseLuminance = (colorStr) => {
-            if (!colorStr || colorStr === 'transparent' || colorStr === 'rgba(0, 0, 0, 0)') {
-                return null;
-            }
-            const nums = colorStr.match(/[\d.]+/g);
-            if (!nums || nums.length < 3) return null;
-            const r = Number(nums[0]);
-            const g = Number(nums[1]);
-            const b = Number(nums[2]);
-            const a = nums.length >= 4 ? Number(nums[3]) : 1;
-            if (a < 0.15) return null;
-            return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-        };
-
-        const checkTheme = () => {
-            // 1. Check header sun/moon toggle icon on the landing page:
-            // In Day Mode, the toggle button renders the Moon icon (.lucide-moon); in Night Mode, Sun (.lucide-sun).
-            const hasMoonToggle = document.querySelector('button svg.lucide-moon, svg.lucide-moon');
-            const hasSunToggle = document.querySelector('button svg.lucide-sun, svg.lucide-sun');
-            if (hasMoonToggle && !hasSunToggle) {
-                setDetectedDark(false);
-                return;
-            }
-            if (hasSunToggle && !hasMoonToggle) {
-                setDetectedDark(true);
-                return;
-            }
-
-            // 2. Check common localStorage theme keys
-            try {
-                for (const key of [
-                    'theme',
-                    'seaside-theme',
-                    'seaside_theme',
-                    'landing-theme',
-                    'color-theme',
-                    'darkMode',
-                    'isDarkMode'
-                ]) {
-                    const val = localStorage.getItem(key);
-                    if (val === 'light' || val === 'day' || val === 'false') {
-                        setDetectedDark(false);
-                        return;
-                    }
-                    if (val === 'dark' || val === 'night' || val === 'true') {
-                        setDetectedDark(true);
-                        return;
-                    }
-                }
-            } catch {
-                // Ignore storage errors
-            }
-
-            // 3. Walk up ancestor wrappers above VoltAuthCard (excluding body/html defaults)
-            let el = rootRef.current?.parentElement;
-            while (el && el !== document.body && el !== document.documentElement) {
-                const dt = el.getAttribute('data-theme') || el.getAttribute('data-mode');
-                if (dt === 'light' || dt === 'day' || el.classList.contains('light')) {
-                    setDetectedDark(false);
-                    return;
-                }
-                if (dt === 'dark' || dt === 'night' || el.classList.contains('dark')) {
-                    setDetectedDark(true);
-                    return;
-                }
-
-                const style = window.getComputedStyle(el);
-                const lum = parseLuminance(style.backgroundColor);
-                if (lum !== null) {
-                    setDetectedDark(lum < 0.55);
-                    return;
-                }
-
-                const bgImg = style.backgroundImage;
-                if (bgImg && bgImg !== 'none') {
-                    const rgbMatches = [...bgImg.matchAll(/rgba?\(([^)]+)\)/g)];
-                    if (rgbMatches.length > 0) {
-                        const lums = rgbMatches
-                            .map((m) => parseLuminance(`rgb(${m[1]})`))
-                            .filter((v) => v !== null);
-                        if (lums.length > 0) {
-                            const avgLum = lums.reduce((a, b) => a + b, 0) / lums.length;
-                            setDetectedDark(avgLum < 0.55);
-                            return;
-                        }
-                    }
-                }
-
-                el = el.parentElement;
-            }
-
-            // 4. Fallback to html/body attributes
-            const html = document.documentElement;
-            const body = document.body;
-            if (
-                html.getAttribute('data-theme') === 'light' ||
-                body?.getAttribute('data-theme') === 'light' ||
-                html.classList.contains('light') ||
-                body?.classList.contains('light')
-            ) {
-                setDetectedDark(false);
-                return;
-            }
-            if (
-                html.getAttribute('data-theme') === 'dark' ||
-                body?.getAttribute('data-theme') === 'dark' ||
-                html.classList.contains('dark') ||
-                body?.classList.contains('dark')
-            ) {
-                setDetectedDark(true);
-            }
-        };
-
-        checkTheme();
-
-        const observer = new MutationObserver(() => {
-            requestAnimationFrame(checkTheme);
-        });
-
-        observer.observe(document.documentElement, {
-            attributes: true,
-            childList: true,
-            subtree: true,
-            attributeFilter: ['class', 'data-theme', 'data-mode', 'style']
-        });
-
-        const handleClick = () => setTimeout(checkTheme, 30);
-        window.addEventListener('click', handleClick);
-        window.addEventListener('storage', checkTheme);
-
-        return () => {
-            observer.disconnect();
-            window.removeEventListener('click', handleClick);
-            window.removeEventListener('storage', checkTheme);
-        };
-    }, [explicitDarkProp]);
-
-    const isDark = typeof explicitDarkProp === 'boolean' ? explicitDarkProp : detectedDark;
 
     useEffect(() => {
         if (contactPrefill) {
@@ -401,17 +242,33 @@ export default function VoltAuthCard({
         }
     };
 
-    // Adaptive classes ONLY for the Login / Sign-Up / Contact Form Card
+    // Adaptive styles strictly for the Login / Sign-Up / Contact Form Card
+    const formCardSurfaceStyle = isDark
+        ? {
+            background:
+                'linear-gradient(180deg, rgba(16, 24, 40, 0.95) 0%, rgba(10, 16, 28, 0.98) 100%)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            boxShadow:
+                '0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 35px -5px rgba(16, 185, 129, 0.08)'
+        }
+        : {
+            background:
+                'linear-gradient(155deg, rgba(255, 255, 255, 0.94) 0%, rgba(240, 253, 248, 0.96) 52%, rgba(224, 246, 240, 0.98) 100%)',
+            border: '1.5px solid rgba(16, 185, 129, 0.28)',
+            boxShadow:
+                '0 24px 48px -12px rgba(14, 116, 144, 0.18), 0 8px 24px -6px rgba(16, 185, 129, 0.14), inset 0 1.5px 2px rgba(255, 255, 255, 1)'
+        };
+
     const labelClass = isDark ? 'text-slate-300' : 'text-slate-600';
 
     const inputClass = isDark
         ? 'bg-[#080e1b] border-[#1e293b] text-slate-100 placeholder-slate-500 focus:border-lime-400 focus:ring-lime-400 shadow-inner'
-        : 'bg-white/95 border-emerald-900/15 text-slate-800 placeholder-slate-400 focus:border-emerald-500 focus:ring-emerald-500/30 shadow-[inset_0_1px_2px_rgba(15,23,42,0.04)]';
+        : 'bg-white border-emerald-900/15 text-slate-900 placeholder-slate-400 focus:border-emerald-500 focus:ring-emerald-500/25 shadow-[inset_0_1px_2px_rgba(15,23,42,0.05)]';
 
     const iconAccentClass = isDark ? 'text-lime-400' : 'text-emerald-600';
 
     return (
-        <div ref={rootRef} className="volt-login-root w-full flex justify-center items-center">
+        <div className="volt-login-root w-full flex justify-center items-center">
             <style jsx>{`
                 @keyframes sippingBob {
                     0%, 100% {
@@ -809,28 +666,6 @@ export default function VoltAuthCard({
                     animation: bubbleFloat 3.8s ease-in-out infinite 0.3s;
                 }
 
-                /* Night Mode Login Form Glass Card */
-                .dark-glass-card {
-                    background: linear-gradient(180deg, rgba(16, 24, 40, 0.95) 0%, rgba(10, 16, 28, 0.98) 100%);
-                    border: 1px solid rgba(255, 255, 255, 0.08);
-                    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 35px -5px rgba(16, 185, 129, 0.08);
-                }
-
-                /* Day Mode Login Form Frosted Water-Mint Glass Card */
-                .day-glass-card {
-                    background: linear-gradient(
-                            180deg,
-                            rgba(255, 255, 255, 0.88) 0%,
-                            rgba(240, 253, 248, 0.93) 55%,
-                            rgba(228, 248, 243, 0.96) 100%
-                    );
-                    border: 1.5px solid rgba(16, 185, 129, 0.24);
-                    box-shadow:
-                            0 22px 45px -12px rgba(14, 116, 144, 0.16),
-                            0 8px 24px -6px rgba(16, 185, 129, 0.12),
-                            inset 0 1.5px 2px rgba(255, 255, 255, 0.98);
-                }
-
                 .btn-neon-glow {
                     background: linear-gradient(90deg, #84cc16 0%, #10b981 100%);
                     box-shadow: 0 10px 25px -4px rgba(132, 204, 22, 0.4), 0 4px 12px rgba(16, 185, 129, 0.3);
@@ -871,7 +706,7 @@ export default function VoltAuthCard({
             `}</style>
 
             <div className="w-full max-w-[385px] sm:max-w-[400px] flex flex-col items-center relative my-0 pb-14 z-10 mx-auto">
-                {/* Speech Bubble (Kept Identical Across Day & Night Mode) */}
+                {/* Speech Bubble (Kept 100% Identical Across Day & Night Mode) */}
                 <section
                     aria-label="Robot dialogue"
                     className="bubble-float flex flex-col items-center mb-2.5 z-30"
@@ -957,7 +792,7 @@ export default function VoltAuthCard({
                     </div>
                 </div>
 
-                {/* Form Card Container with Unchanged Robot Parts & Adaptive Day/Night Login Form */}
+                {/* Form Card Container with Unchanged Robot Parts & Zustand-Synced Day/Night Login Form */}
                 <div className="relative w-full z-20">
                     {/* FULL SEASIDE BOTTLE (Unchanged Across Day & Night Mode, No Arm Connector) */}
                     <div
@@ -1306,10 +1141,11 @@ export default function VoltAuthCard({
                         </svg>
                     </div>
 
-                    {/* ==================== ADAPTIVE LOGIN / SIGNUP / CONTACT FORM CARD ==================== */}
+                    {/* ==================== ZUSTAND-SYNCED LOGIN / SIGNUP / CONTACT FORM CARD ==================== */}
                     <section
+                        style={formCardSurfaceStyle}
                         className={`w-full rounded-[26px] p-4 sm:px-6 sm:py-4 relative z-20 backdrop-blur-xl transition-all duration-300 ${
-                            isDark ? 'dark-glass-card text-slate-100' : 'day-glass-card text-slate-800'
+                            isDark ? 'text-slate-100' : 'text-slate-800'
                         }`}
                     >
                         {/* Top Segmented Pill Toggle (Sign In / Staff Sign Up) */}
@@ -1369,7 +1205,7 @@ export default function VoltAuthCard({
                                     className={`text-xs font-bold px-2.5 py-1 rounded-lg border cursor-pointer transition-colors ${
                                         isDark
                                             ? 'text-slate-300 hover:text-white bg-[#0a101d] border-slate-800'
-                                            : 'text-slate-700 hover:text-slate-950 bg-white/85 border-emerald-900/15 shadow-xs'
+                                            : 'text-slate-700 hover:text-slate-950 bg-white/90 border-emerald-900/15 shadow-xs'
                                     }`}
                                 >
                                     Back to Sign In
@@ -1599,7 +1435,7 @@ export default function VoltAuthCard({
                                             className={`px-2.5 text-[10px] font-extrabold tracking-wider uppercase rounded-full border ${
                                                 isDark
                                                     ? 'bg-[#0c1424] text-slate-400 border-slate-800'
-                                                    : 'bg-white/95 text-slate-500 border-emerald-900/10'
+                                                    : 'bg-white text-slate-500 border-emerald-900/10'
                                             }`}
                                         >
                                             OR
@@ -1614,7 +1450,7 @@ export default function VoltAuthCard({
                                             className={`w-full py-2 px-4 border font-bold text-[13px] rounded-2xl flex items-center justify-center gap-2 transition-all duration-200 cursor-pointer disabled:opacity-60 ${
                                                 isDark
                                                     ? 'bg-[#0a101d] hover:bg-[#111a2d] border-slate-800 hover:border-slate-700 text-white shadow-md'
-                                                    : 'bg-white/90 hover:bg-emerald-50/90 border-emerald-900/15 hover:border-emerald-500/40 text-slate-800 shadow-sm'
+                                                    : 'bg-white hover:bg-emerald-50/80 border-emerald-900/15 hover:border-emerald-500/40 text-slate-800 shadow-sm'
                                             }`}
                                         >
                                             <span className={`${iconAccentClass} text-base leading-none font-bold`}>
@@ -1717,7 +1553,7 @@ export default function VoltAuthCard({
                                             className={`flex items-center border rounded-2xl overflow-hidden focus-within:ring-1 ${
                                                 isDark
                                                     ? 'bg-[#080e1b] border-[#1e293b] focus-within:border-lime-400 focus-within:ring-lime-400'
-                                                    : 'bg-white/95 border-emerald-900/15 focus-within:border-emerald-500 focus-within:ring-emerald-500/30'
+                                                    : 'bg-white border-emerald-900/15 focus-within:border-emerald-500 focus-within:ring-emerald-500/25'
                                             }`}
                                         >
                                             <span
@@ -1745,7 +1581,7 @@ export default function VoltAuthCard({
                                                 className={`w-full px-3 py-1.5 bg-transparent text-[12.5px] focus:outline-none ${
                                                     isDark
                                                         ? 'text-slate-100 placeholder-slate-500'
-                                                        : 'text-slate-800 placeholder-slate-400'
+                                                        : 'text-slate-900 placeholder-slate-400'
                                                 }`}
                                             />
                                         </div>
@@ -1849,7 +1685,7 @@ export default function VoltAuthCard({
                                     className={`p-2.5 rounded-2xl border space-y-1 text-xs ${
                                         isDark
                                             ? 'bg-[#080e1b] border-[#1e293b] text-slate-300'
-                                            : 'bg-white/90 border-emerald-900/10 text-slate-700 shadow-xs'
+                                            : 'bg-white border-emerald-900/10 text-slate-700 shadow-xs'
                                     }`}
                                 >
                                     <div className="flex items-start gap-2">
