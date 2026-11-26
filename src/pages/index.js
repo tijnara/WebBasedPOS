@@ -12,6 +12,7 @@ import LandingHero from '../components/landing/LandingHero';
 import VoltAuthCard from '../components/landing/VoltAuthCard';
 import LandingGlobalStyles from '../components/landing/LandingGlobalStyles';
 import ForgotPasswordModal from '../components/landing/ForgotPasswordModal';
+import LandingProductTour from '../components/landing/LandingProductTour';
 
 function checkWebGLSupport() {
     if (typeof window === 'undefined') return false;
@@ -303,7 +304,7 @@ export default function SeasideNewLanding() {
                 <StaticLandingFallback />
             )}
 
-            <div className="shrink-0 relative z-30">
+            <div id="tour-navbar" className="shrink-0 relative z-30">
                 <LandingNavbar
                     activeCard={activeCard}
                     onToggleContact={handleContactToggle}
@@ -314,7 +315,7 @@ export default function SeasideNewLanding() {
 
             <main className="relative z-20 flex-1 flex items-center justify-center px-3 py-2 sm:px-6 lg:px-12">
                 <div className="seaside-landing-grid max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-0 lg:gap-12 items-center">
-                    <div className="hidden lg:block">
+                    <div data-tour="hero-features" className="hidden lg:block">
                         <LandingHero />
                     </div>
 
@@ -337,6 +338,7 @@ export default function SeasideNewLanding() {
                             physicalAddress={physicalAddress}
                             facebookLink={facebookLink}
                             contactPrefill={contactPrefill}
+                            isDarkMode={darkMode}
                         />
                     </div>
                 </div>
@@ -362,6 +364,7 @@ export default function SeasideNewLanding() {
                 initialEmail={forgotInitialEmail}
             />
 
+            <LandingProductTour onSwitchCard={switchCard} />
             <LandingGlobalStyles />
         </div>
     );

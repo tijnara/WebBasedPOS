@@ -1143,6 +1143,7 @@ export default function VoltAuthCard({
 
                     {/* ==================== ZUSTAND-SYNCED LOGIN / SIGNUP / CONTACT FORM CARD ==================== */}
                     <section
+                        id="tour-auth-card"
                         style={formCardSurfaceStyle}
                         className={`w-full rounded-[26px] p-4 sm:px-6 sm:py-4 relative z-20 backdrop-blur-xl transition-all duration-300 ${
                             isDark ? 'text-slate-100' : 'text-slate-800'
@@ -1151,6 +1152,7 @@ export default function VoltAuthCard({
                         {/* Top Segmented Pill Toggle (Sign In / Staff Sign Up) */}
                         {activeCard !== 'contact' ? (
                             <div
+                                id="tour-auth-tabs"
                                 className={`w-full p-1 rounded-2xl flex items-center mb-3 transition-colors duration-300 ${
                                     isDark
                                         ? 'bg-[#0a101d] border border-white/5'
@@ -1444,6 +1446,7 @@ export default function VoltAuthCard({
 
                                     <div>
                                         <button
+                                            id="tour-demo-btn"
                                             type="button"
                                             disabled={isDemoLoading || isLoggingIn}
                                             onClick={handleDemoClick}
