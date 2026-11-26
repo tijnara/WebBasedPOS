@@ -29,6 +29,7 @@ import ProductImageSelector, {
     PH_WRS_3D_PRESETS,
     exportPresetAsUniformFile
 } from '../products/ProductImageSelector';
+import ProductManagementTour from '../products/ProductManagementTour';
 
 function isDirectImageUrl(url) {
     if (!url || typeof url !== 'string') return false;
@@ -475,7 +476,10 @@ export default function ProductManagementPage() {
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Control refilling services, 3D station visuals, bottle inventory, and POS availability.</p>
                 </div>
 
-                <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 w-full sm:w-auto">
+                <div
+                    id="tour-prod-header-actions"
+                    className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 w-full sm:w-auto"
+                >
                     <Button
                         type="button"
                         variant="outline"
@@ -499,7 +503,7 @@ export default function ProductManagementPage() {
             </div>
 
             {/* KPI Summary Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+            <div id="tour-prod-kpis" className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
                 <div className="bg-white dark:bg-slate-900 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs flex items-center justify-between gap-2 min-w-0">
                     <div className="min-w-0">
                         <span className="text-[9.5px] sm:text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block truncate">Catalog Items</span>
@@ -542,7 +546,10 @@ export default function ProductManagementPage() {
             </div>
 
             {/* Filter Bar */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-3 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-2xs">
+            <div
+                id="tour-prod-filters"
+                className="flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-3 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-2xs"
+            >
                 <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 w-full sm:w-auto flex-1 max-w-xl">
                     <div className="relative flex items-center w-full sm:w-72">
                         <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none z-10" />
@@ -583,157 +590,159 @@ export default function ProductManagementPage() {
             </div>
 
             {/* Desktop Table View */}
-            <Card className="hidden md:block border border-slate-200 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900 overflow-hidden rounded-2xl">
-                <CardContent className="p-0">
-                    <ScrollArea>
-                        <Table>
-                            <TableHeader>
-                                <TableRow className="bg-slate-50 dark:bg-slate-800/70 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200/80 dark:border-slate-800">
-                                    <TableHead className="w-[32%] px-5 py-3.5">Product &amp; Visual</TableHead>
-                                    <TableHead className="px-4 py-3.5">Category</TableHead>
-                                    <TableHead className="px-4 py-3.5">Selling Price</TableHead>
-                                    <TableHead className="px-4 py-3.5">Inventory</TableHead>
-                                    <TableHead className="px-4 py-3.5">POS Status</TableHead>
-                                    <TableHead className="px-4 py-3.5">Last Updated</TableHead>
-                                    <TableHead className="px-5 py-3.5 text-right">Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody className="divide-y divide-slate-100 dark:divide-slate-800/80 text-xs sm:text-sm">
-                                {isLoading ? (
-                                    <TableRow><TableCell colSpan={7} className="text-center py-12 text-slate-400">Loading catalog...</TableCell></TableRow>
-                                ) : products.length === 0 ? (
-                                    <TableRow><TableCell colSpan={7} className="text-center py-12 text-slate-400">No products matching criteria.</TableCell></TableRow>
-                                ) : (
-                                    products.map(p => {
-                                        const isService = p.category === 'Refills/Services' || p.track_stock === false;
-                                        const isLow = !isService && Number(p.stock) <= Number(p.minStock || 5) && Number(p.stock) > 0;
-                                        const isOut = !isService && Number(p.stock) === 0;
-                                        const hasPhoto = isDirectImageUrl(p.image_url);
-                                        const visualLabel = hasPhoto
-                                            ? (p.icon_3d_key ? `3D: ${p.icon_3d_key}` : 'Photo 400×400')
-                                            : `3D: ${resolveProduct3DType(p)}`;
+            <div id="tour-prod-desktop-table">
+                <Card className="hidden md:block border border-slate-200 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900 overflow-hidden rounded-2xl">
+                    <CardContent className="p-0">
+                        <ScrollArea>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow className="bg-slate-50 dark:bg-slate-800/70 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200/80 dark:border-slate-800">
+                                        <TableHead className="w-[32%] px-5 py-3.5">Product &amp; Visual</TableHead>
+                                        <TableHead className="px-4 py-3.5">Category</TableHead>
+                                        <TableHead className="px-4 py-3.5">Selling Price</TableHead>
+                                        <TableHead className="px-4 py-3.5">Inventory</TableHead>
+                                        <TableHead className="px-4 py-3.5">POS Status</TableHead>
+                                        <TableHead className="px-4 py-3.5">Last Updated</TableHead>
+                                        <TableHead className="px-5 py-3.5 text-right">Actions</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody className="divide-y divide-slate-100 dark:divide-slate-800/80 text-xs sm:text-sm">
+                                    {isLoading ? (
+                                        <TableRow><TableCell colSpan={7} className="text-center py-12 text-slate-400">Loading catalog...</TableCell></TableRow>
+                                    ) : products.length === 0 ? (
+                                        <TableRow><TableCell colSpan={7} className="text-center py-12 text-slate-400">No products matching criteria.</TableCell></TableRow>
+                                    ) : (
+                                        products.map(p => {
+                                            const isService = p.category === 'Refills/Services' || p.track_stock === false;
+                                            const isLow = !isService && Number(p.stock) <= Number(p.minStock || 5) && Number(p.stock) > 0;
+                                            const isOut = !isService && Number(p.stock) === 0;
+                                            const hasPhoto = isDirectImageUrl(p.image_url);
+                                            const visualLabel = hasPhoto
+                                                ? (p.icon_3d_key ? `3D: ${p.icon_3d_key}` : 'Photo 400×400')
+                                                : `3D: ${resolveProduct3DType(p)}`;
 
-                                        return (
-                                            <tr key={p.id} className={`group hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors ${p.is_hidden ? 'opacity-60 bg-slate-50/40 dark:bg-slate-800/20' : ''}`}>
-                                                <TableCell className="px-5 py-3.5">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-11 h-11 aspect-square rounded-xl bg-slate-100/90 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700 overflow-hidden flex items-center justify-center shrink-0 shadow-2xs p-1">
-                                                            <UniformProductThumbnail product={p} />
-                                                        </div>
-                                                        <div className="flex flex-col min-w-0">
-                                                            <span className="font-bold text-slate-900 dark:text-slate-100 truncate">{p.name}</span>
-                                                            <div className="flex items-center gap-1.5 mt-0.5">
-                                                                <span className="text-[9.5px] font-mono px-1.5 py-0.2 rounded bg-lime-50 dark:bg-lime-950/60 text-[#5f7d00] dark:text-lime-400 border border-lime-200/70 dark:border-lime-800/50">
-                                                                    {visualLabel}
-                                                                </span>
-                                                                {p.barcode && <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500">{p.barcode}</span>}
+                                            return (
+                                                <tr key={p.id} className={`group hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors ${p.is_hidden ? 'opacity-60 bg-slate-50/40 dark:bg-slate-800/20' : ''}`}>
+                                                    <TableCell className="px-5 py-3.5">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-11 h-11 aspect-square rounded-xl bg-slate-100/90 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700 overflow-hidden flex items-center justify-center shrink-0 shadow-2xs p-1">
+                                                                <UniformProductThumbnail product={p} />
+                                                            </div>
+                                                            <div className="flex flex-col min-w-0">
+                                                                <span className="font-bold text-slate-900 dark:text-slate-100 truncate">{p.name}</span>
+                                                                <div className="flex items-center gap-1.5 mt-0.5">
+                                                                    <span className="text-[9.5px] font-mono px-1.5 py-0.2 rounded bg-lime-50 dark:bg-lime-950/60 text-[#5f7d00] dark:text-lime-400 border border-lime-200/70 dark:border-lime-800/50">
+                                                                        {visualLabel}
+                                                                    </span>
+                                                                    {p.barcode && <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500">{p.barcode}</span>}
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                </TableCell>
+                                                    </TableCell>
 
-                                                <TableCell className="px-4 py-3.5">
-                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700">
-                                                        {p.category || 'General'}
-                                                    </span>
-                                                </TableCell>
-
-                                                <TableCell className="px-4 py-3.5 font-black text-sm text-[#8DB600] dark:text-lime-400 font-mono">
-                                                    {currency(p.price || 0, { symbol: '₱' }).format()}
-                                                </TableCell>
-
-                                                <TableCell className="px-4 py-3.5">
-                                                    {isService ? (
-                                                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full">
-                                                            Service / Unlimited
+                                                    <TableCell className="px-4 py-3.5">
+                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700">
+                                                            {p.category || 'General'}
                                                         </span>
-                                                    ) : (
-                                                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${
-                                                            isOut
-                                                                ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50'
-                                                                : isLow
-                                                                    ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50'
-                                                                    : 'bg-lime-50 dark:bg-lime-950/40 text-[#5f7d00] dark:text-lime-400 border border-lime-200 dark:border-lime-900/50'
-                                                        }`}>
-                                                            {Number(p.stock || 0).toLocaleString()} units
-                                                        </span>
-                                                    )}
-                                                </TableCell>
+                                                    </TableCell>
 
-                                                <TableCell className="px-4 py-3.5">
-                                                    {p.is_hidden ? (
-                                                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2.5 py-0.5 rounded-full">
-                                                            <EyeOff className="w-3 h-3 text-slate-400" /> Hidden
-                                                        </span>
-                                                    ) : (
-                                                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 px-2.5 py-0.5 rounded-full">
-                                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Visible
-                                                        </span>
-                                                    )}
-                                                </TableCell>
+                                                    <TableCell className="px-4 py-3.5 font-black text-sm text-[#8DB600] dark:text-lime-400 font-mono">
+                                                        {currency(p.price || 0, { symbol: '₱' }).format()}
+                                                    </TableCell>
 
-                                                <TableCell className="px-4 py-3.5 text-xs text-slate-500 dark:text-slate-400 font-medium">
-                                                    {formatDate(p.updated_at)}
-                                                </TableCell>
+                                                    <TableCell className="px-4 py-3.5">
+                                                        {isService ? (
+                                                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full">
+                                                                Service / Unlimited
+                                                            </span>
+                                                        ) : (
+                                                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                                                                isOut
+                                                                    ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50'
+                                                                    : isLow
+                                                                        ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50'
+                                                                        : 'bg-lime-50 dark:bg-lime-950/40 text-[#5f7d00] dark:text-lime-400 border border-lime-200 dark:border-lime-900/50'
+                                                            }`}>
+                                                                {Number(p.stock || 0).toLocaleString()} units
+                                                            </span>
+                                                        )}
+                                                    </TableCell>
 
-                                                <TableCell className="px-5 py-3.5 text-right">
-                                                    <div className="flex items-center justify-end gap-1.5">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => router.push(`/inventory?restockProductId=${p.id}`)}
-                                                            className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-[#8DB600] dark:text-lime-400 hover:bg-lime-50 dark:hover:bg-lime-950/40 hover:border-lime-300 transition-colors cursor-pointer"
-                                                            title="Restock in Inventory"
-                                                            disabled={isDemo}
-                                                        >
-                                                            <Boxes className="w-4 h-4" />
-                                                        </button>
+                                                    <TableCell className="px-4 py-3.5">
+                                                        {p.is_hidden ? (
+                                                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2.5 py-0.5 rounded-full">
+                                                                <EyeOff className="w-3 h-3 text-slate-400" /> Hidden
+                                                            </span>
+                                                        ) : (
+                                                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 px-2.5 py-0.5 rounded-full">
+                                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Visible
+                                                            </span>
+                                                        )}
+                                                    </TableCell>
 
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => toggleHide(p)}
-                                                            className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                                                            title={p.is_hidden ? 'Show on POS' : 'Hide from POS'}
-                                                            disabled={isDemo}
-                                                        >
-                                                            {p.is_hidden ? <EyeOff className="w-4 h-4 text-amber-600 dark:text-amber-400" /> : <Eye className="w-4 h-4" />}
-                                                        </button>
+                                                    <TableCell className="px-4 py-3.5 text-xs text-slate-500 dark:text-slate-400 font-medium">
+                                                        {formatDate(p.updated_at)}
+                                                    </TableCell>
 
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => startEdit(p)}
-                                                            className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors cursor-pointer"
-                                                            title="Edit Details & Visual"
-                                                            disabled={isDemo}
-                                                        >
-                                                            <EditIcon className="w-4 h-4" />
-                                                        </button>
+                                                    <TableCell className="px-5 py-3.5 text-right">
+                                                        <div className="flex items-center justify-end gap-1.5">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => router.push(`/inventory?restockProductId=${p.id}`)}
+                                                                className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-[#8DB600] dark:text-lime-400 hover:bg-lime-50 dark:hover:bg-lime-950/40 hover:border-lime-300 transition-colors cursor-pointer"
+                                                                title="Restock in Inventory"
+                                                                disabled={isDemo}
+                                                            >
+                                                                <Boxes className="w-4 h-4" />
+                                                            </button>
 
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => remove(p)}
-                                                            className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
-                                                            title="Delete Product"
-                                                            disabled={isDemo}
-                                                        >
-                                                            <DeleteIcon className="w-4 h-4" />
-                                                        </button>
-                                                    </div>
-                                                </TableCell>
-                                            </tr>
-                                        );
-                                    })
-                                )}
-                            </TableBody>
-                        </Table>
-                    </ScrollArea>
-                    <div className="p-3.5 border-t border-slate-100 dark:border-slate-800 flex justify-end">
-                        <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
-                    </div>
-                </CardContent>
-            </Card>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => toggleHide(p)}
+                                                                className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                                                                title={p.is_hidden ? 'Show on POS' : 'Hide from POS'}
+                                                                disabled={isDemo}
+                                                            >
+                                                                {p.is_hidden ? <EyeOff className="w-4 h-4 text-amber-600 dark:text-amber-400" /> : <Eye className="w-4 h-4" />}
+                                                            </button>
+
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => startEdit(p)}
+                                                                className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors cursor-pointer"
+                                                                title="Edit Details & Visual"
+                                                                disabled={isDemo}
+                                                            >
+                                                                <EditIcon className="w-4 h-4" />
+                                                            </button>
+
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => remove(p)}
+                                                                className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                                                                title="Delete Product"
+                                                                disabled={isDemo}
+                                                            >
+                                                                <DeleteIcon className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
+                                                    </TableCell>
+                                                </tr>
+                                            );
+                                        })
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </ScrollArea>
+                        <div className="p-3.5 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+                            <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
 
             {/* Mobile Card View */}
-            <div className="block md:hidden space-y-2">
+            <div id="tour-prod-mobile-list" className="block md:hidden space-y-2">
                 {isLoading ? (
                     <div className="text-center text-slate-400 p-6 text-xs bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
                         Loading products...
@@ -839,223 +848,228 @@ export default function ProductManagementPage() {
                         {/* Modal Body */}
                         <div className="p-4 sm:p-6 max-h-[76vh] overflow-y-auto space-y-5 sm:space-y-6 bg-white dark:bg-slate-900">
                             {/* Section 1: Uniform 3D Preset / Uploaded Photo Selector */}
-                            <ProductImageSelector
-                                value={previewImageUrl}
-                                selectedPresetId={selectedPresetId}
-                                onChange={handleImageSelection}
-                                disabled={isDemo}
-                            />
+                            <div id="tour-prod-modal-visual">
+                                <ProductImageSelector
+                                    value={previewImageUrl}
+                                    selectedPresetId={selectedPresetId}
+                                    onChange={handleImageSelection}
+                                    disabled={isDemo}
+                                />
+                            </div>
 
-                            {/* Section 1B: Product Name, Category & Barcode */}
-                            <div className="space-y-4">
-                                <div>
-                                    <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Product Name <span className="text-rose-500">*</span></Label>
-                                    <Input
-                                        value={name}
-                                        onChange={e => setName(e.target.value)}
-                                        placeholder="e.g. Container (Round) or Refill (25L)"
-                                        className="h-10 mt-1 text-sm rounded-xl bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:border-[#8DB600] dark:focus:border-lime-500"
-                                        disabled={isDemo}
-                                    />
+                            {/* Section 1B & 2: Product Name, Category, Barcode & Pricing */}
+                            <div id="tour-prod-modal-info-pricing" className="space-y-5 sm:space-y-6">
+                                <div className="space-y-4">
+                                    <div>
+                                        <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Product Name <span className="text-rose-500">*</span></Label>
+                                        <Input
+                                            value={name}
+                                            onChange={e => setName(e.target.value)}
+                                            placeholder="e.g. Container (Round) or Refill (25L)"
+                                            className="h-10 mt-1 text-sm rounded-xl bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:border-[#8DB600] dark:focus:border-lime-500"
+                                            disabled={isDemo}
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <div>
+                                            <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Category</Label>
+                                            <div className="flex gap-1.5 mt-1">
+                                                <Select
+                                                    value={category}
+                                                    onChange={e => {
+                                                        const nextCat = e.target.value;
+                                                        setCategory(nextCat);
+                                                        if (!editing) {
+                                                            setTrackStock(nextCat !== 'Refills/Services');
+                                                        }
+                                                    }}
+                                                    className="h-10 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 cursor-pointer"
+                                                    disabled={isDemo}
+                                                >
+                                                    {mergedCategories.map(c => (
+                                                        <option key={c} value={c} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+                                                            {c}
+                                                        </option>
+                                                    ))}
+                                                </Select>
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    className="h-10 w-10 px-0 rounded-xl shrink-0 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer"
+                                                    onClick={() => setIsAddingCategory(prev => !prev)}
+                                                    disabled={isDemo}
+                                                >
+                                                    +
+                                                </Button>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Barcode / SKU</Label>
+                                            <Input
+                                                value={barcode}
+                                                onChange={e => setBarcode(e.target.value)}
+                                                placeholder="Scan or enter code"
+                                                className="h-10 mt-1 text-xs font-mono rounded-xl bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900"
+                                                disabled={isDemo}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {isAddingCategory && (
+                                        <div className="flex gap-2 p-3 bg-lime-50/60 dark:bg-lime-950/30 border border-lime-200 dark:border-lime-900/60 rounded-xl">
+                                            <Input
+                                                placeholder="New Category Name"
+                                                value={newCategoryName}
+                                                onChange={e => setNewCategoryName(e.target.value)}
+                                                className="bg-white dark:bg-slate-900 h-9 text-xs rounded-lg border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100"
+                                                disabled={isDemo}
+                                            />
+                                            <Button type="button" size="sm" onClick={addCategory} className="bg-[#8DB600] hover:bg-[#7ca000] text-white text-xs px-3 rounded-lg cursor-pointer" disabled={isDemo}>Add</Button>
+                                        </div>
+                                    )}
                                 </div>
 
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    <div>
-                                        <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Category</Label>
-                                        <div className="flex gap-1.5 mt-1">
+                                <hr className="border-slate-100 dark:border-slate-800" />
+
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <h4 className="text-xs font-black uppercase tracking-wider text-[#8DB600] dark:text-lime-400">Pricing &amp; Profit Margin</h4>
+                                        <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                                            <TrendingUp className="w-3.5 h-3.5 text-[#8DB600] dark:text-lime-400" /> Live Margin Calc
+                                        </span>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                                        <div className="p-3 sm:p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl sm:rounded-2xl border border-slate-200/80 dark:border-slate-700/80">
+                                            <Label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Supplier Cost (₱)</Label>
+                                            <Input
+                                                type="number"
+                                                step="0.01"
+                                                value={cost}
+                                                onChange={e => setCost(e.target.value)}
+                                                placeholder="0.00"
+                                                className="h-10 mt-1 font-mono font-bold text-slate-900 dark:text-slate-100 rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700"
+                                                disabled={isDemo}
+                                            />
+                                        </div>
+
+                                        <div className="p-3 sm:p-3.5 bg-lime-50/50 dark:bg-lime-950/30 rounded-xl sm:rounded-2xl border border-lime-200 dark:border-lime-900/60">
+                                            <Label className="text-[10px] font-bold uppercase tracking-wider text-[#5f7d00] dark:text-lime-400">Selling Price (₱) <span className="text-rose-500">*</span></Label>
+                                            <Input
+                                                type="number"
+                                                step="0.01"
+                                                value={price}
+                                                onChange={e => setPrice(e.target.value)}
+                                                placeholder="0.00"
+                                                className="h-10 mt-1 font-mono font-black text-[#8DB600] dark:text-lime-400 text-base rounded-xl bg-white dark:bg-slate-900 border-lime-300 dark:border-lime-800/70"
+                                                disabled={isDemo}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 flex items-center justify-between text-xs">
+                                        <span className="text-slate-600 dark:text-slate-300 font-medium">Estimated Gross Profit:</span>
+                                        <div className="flex items-center gap-2">
+                                            <span className={`font-mono font-bold ${liveProfitMetrics.profit >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                                                ₱{liveProfitMetrics.profit.toFixed(2)}
+                                            </span>
+                                            <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${liveProfitMetrics.profit >= 0 ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60' : 'bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60'}`}>
+                                                {liveProfitMetrics.margin}% Margin
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <hr className="border-slate-100 dark:border-slate-800" />
+
+                            {/* Section 3 & 4: Stock Mode & Bulk Pack */}
+                            <div id="tour-prod-modal-stock-bulk" className="space-y-5 sm:space-y-6">
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">Stock &amp; Tracking Mode</h4>
+                                        <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-700 dark:text-slate-300">
+                                            <input
+                                                type="checkbox"
+                                                checked={trackStock}
+                                                onChange={e => setTrackStock(e.target.checked)}
+                                                className="rounded text-[#8DB600] focus:ring-[#8DB600] dark:bg-slate-800 dark:border-slate-700"
+                                            />
+                                            <span>Track Physical Stock</span>
+                                        </label>
+                                    </div>
+
+                                    {trackStock ? (
+                                        <div className="grid grid-cols-2 gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80">
+                                            <div>
+                                                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Starting Stock On-Hand</Label>
+                                                <Input
+                                                    type="number"
+                                                    value={stock}
+                                                    onChange={e => setStock(e.target.value)}
+                                                    disabled={(editing && !isAdmin) || isDemo}
+                                                    className="h-10 mt-1 font-mono font-bold bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl"
+                                                />
+                                            </div>
+                                            <div>
+                                                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Low Stock Alert Level</Label>
+                                                <Input
+                                                    type="number"
+                                                    value={minStock}
+                                                    onChange={e => setMinStock(e.target.value)}
+                                                    className="h-10 mt-1 font-mono font-bold bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl"
+                                                    disabled={isDemo}
+                                                />
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="p-3.5 rounded-xl bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/60 text-blue-900 dark:text-blue-300 text-xs">
+                                            <strong>Service Mode Selected:</strong> This item (e.g. Walk-in water refill) does not decrement warehouse units upon checkout.
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-amber-50/40 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 space-y-3">
+                                    <h4 className="text-xs font-black uppercase tracking-wider text-amber-900 dark:text-amber-300">
+                                        Bulk Pack Relationship (Optional)
+                                    </h4>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <div>
+                                            <Label className="text-[11px] font-bold text-amber-900 dark:text-amber-300">Parent Wholesale Pack</Label>
                                             <Select
-                                                value={category}
-                                                onChange={e => {
-                                                    const nextCat = e.target.value;
-                                                    setCategory(nextCat);
-                                                    if (!editing) {
-                                                        setTrackStock(nextCat !== 'Refills/Services');
-                                                    }
-                                                }}
-                                                className="h-10 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 cursor-pointer"
+                                                value={parentId || ''}
+                                                onChange={e => setParentId(e.target.value || null)}
+                                                className="h-10 mt-1 text-xs bg-white dark:bg-slate-900 border-amber-200 dark:border-amber-800/60 text-slate-900 dark:text-slate-100 rounded-xl"
                                                 disabled={isDemo}
                                             >
-                                                {mergedCategories.map(c => (
-                                                    <option key={c} value={c} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
-                                                        {c}
-                                                    </option>
+                                                <option value="" className="bg-white dark:bg-slate-900">-- No Parent (Standalone) --</option>
+                                                {products.filter(p => p.id !== editing?.id).map(p => (
+                                                    <option key={p.id} value={p.id} className="bg-white dark:bg-slate-900">{p.name}</option>
                                                 ))}
                                             </Select>
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                className="h-10 w-10 px-0 rounded-xl shrink-0 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer"
-                                                onClick={() => setIsAddingCategory(prev => !prev)}
-                                                disabled={isDemo}
-                                            >
-                                                +
-                                            </Button>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Barcode / SKU</Label>
-                                        <Input
-                                            value={barcode}
-                                            onChange={e => setBarcode(e.target.value)}
-                                            placeholder="Scan or enter code"
-                                            className="h-10 mt-1 text-xs font-mono rounded-xl bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900"
-                                            disabled={isDemo}
-                                        />
-                                    </div>
-                                </div>
-
-                                {isAddingCategory && (
-                                    <div className="flex gap-2 p-3 bg-lime-50/60 dark:bg-lime-950/30 border border-lime-200 dark:border-lime-900/60 rounded-xl">
-                                        <Input
-                                            placeholder="New Category Name"
-                                            value={newCategoryName}
-                                            onChange={e => setNewCategoryName(e.target.value)}
-                                            className="bg-white dark:bg-slate-900 h-9 text-xs rounded-lg border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100"
-                                            disabled={isDemo}
-                                        />
-                                        <Button type="button" size="sm" onClick={addCategory} className="bg-[#8DB600] hover:bg-[#7ca000] text-white text-xs px-3 rounded-lg cursor-pointer" disabled={isDemo}>Add</Button>
-                                    </div>
-                                )}
-                            </div>
-
-                            <hr className="border-slate-100 dark:border-slate-800" />
-
-                            {/* Section 2: Pricing & Live Margin Calculator */}
-                            <div className="space-y-4">
-                                <div className="flex items-center justify-between">
-                                    <h4 className="text-xs font-black uppercase tracking-wider text-[#8DB600] dark:text-lime-400">Pricing &amp; Profit Margin</h4>
-                                    <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                                        <TrendingUp className="w-3.5 h-3.5 text-[#8DB600] dark:text-lime-400" /> Live Margin Calc
-                                    </span>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                                    <div className="p-3 sm:p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl sm:rounded-2xl border border-slate-200/80 dark:border-slate-700/80">
-                                        <Label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Supplier Cost (₱)</Label>
-                                        <Input
-                                            type="number"
-                                            step="0.01"
-                                            value={cost}
-                                            onChange={e => setCost(e.target.value)}
-                                            placeholder="0.00"
-                                            className="h-10 mt-1 font-mono font-bold text-slate-900 dark:text-slate-100 rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700"
-                                            disabled={isDemo}
-                                        />
-                                    </div>
-
-                                    <div className="p-3 sm:p-3.5 bg-lime-50/50 dark:bg-lime-950/30 rounded-xl sm:rounded-2xl border border-lime-200 dark:border-lime-900/60">
-                                        <Label className="text-[10px] font-bold uppercase tracking-wider text-[#5f7d00] dark:text-lime-400">Selling Price (₱) <span className="text-rose-500">*</span></Label>
-                                        <Input
-                                            type="number"
-                                            step="0.01"
-                                            value={price}
-                                            onChange={e => setPrice(e.target.value)}
-                                            placeholder="0.00"
-                                            className="h-10 mt-1 font-mono font-black text-[#8DB600] dark:text-lime-400 text-base rounded-xl bg-white dark:bg-slate-900 border-lime-300 dark:border-lime-800/70"
-                                            disabled={isDemo}
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Live Profit Margin Indicator Strip */}
-                                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 flex items-center justify-between text-xs">
-                                    <span className="text-slate-600 dark:text-slate-300 font-medium">Estimated Gross Profit:</span>
-                                    <div className="flex items-center gap-2">
-                                        <span className={`font-mono font-bold ${liveProfitMetrics.profit >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                                            ₱{liveProfitMetrics.profit.toFixed(2)}
-                                        </span>
-                                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${liveProfitMetrics.profit >= 0 ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60' : 'bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60'}`}>
-                                            {liveProfitMetrics.margin}% Margin
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <hr className="border-slate-100 dark:border-slate-800" />
-
-                            {/* Section 3: Physical Goods vs Refill Service Mode */}
-                            <div className="space-y-4">
-                                <div className="flex items-center justify-between">
-                                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">Stock &amp; Tracking Mode</h4>
-                                    <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-700 dark:text-slate-300">
-                                        <input
-                                            type="checkbox"
-                                            checked={trackStock}
-                                            onChange={e => setTrackStock(e.target.checked)}
-                                            className="rounded text-[#8DB600] focus:ring-[#8DB600] dark:bg-slate-800 dark:border-slate-700"
-                                        />
-                                        <span>Track Physical Stock</span>
-                                    </label>
-                                </div>
-
-                                {trackStock ? (
-                                    <div className="grid grid-cols-2 gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80">
-                                        <div>
-                                            <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Starting Stock On-Hand</Label>
-                                            <Input
-                                                type="number"
-                                                value={stock}
-                                                onChange={e => setStock(e.target.value)}
-                                                disabled={(editing && !isAdmin) || isDemo}
-                                                className="h-10 mt-1 font-mono font-bold bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl"
-                                            />
                                         </div>
                                         <div>
-                                            <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Low Stock Alert Level</Label>
+                                            <Label className="text-[11px] font-bold text-amber-900 dark:text-amber-300">Units Per Case</Label>
                                             <Input
                                                 type="number"
-                                                value={minStock}
-                                                onChange={e => setMinStock(e.target.value)}
-                                                className="h-10 mt-1 font-mono font-bold bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl"
-                                                disabled={isDemo}
+                                                value={conversionRate}
+                                                onChange={e => setConversionRate(e.target.value)}
+                                                disabled={!parentId || isDemo}
+                                                placeholder="e.g. 24"
+                                                className="h-10 mt-1 text-xs font-mono text-center bg-white dark:bg-slate-900 border-amber-200 dark:border-amber-800/60 text-slate-900 dark:text-slate-100 rounded-xl"
                                             />
                                         </div>
                                     </div>
-                                ) : (
-                                    <div className="p-3.5 rounded-xl bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/60 text-blue-900 dark:text-blue-300 text-xs">
-                                        <strong>Service Mode Selected:</strong> This item (e.g. Walk-in water refill) does not decrement warehouse units upon checkout.
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Section 4: Wholesale Break Bulk Relationships */}
-                            <div className="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-amber-50/40 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 space-y-3">
-                                <h4 className="text-xs font-black uppercase tracking-wider text-amber-900 dark:text-amber-300">
-                                    Bulk Pack Relationship (Optional)
-                                </h4>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    <div>
-                                        <Label className="text-[11px] font-bold text-amber-900 dark:text-amber-300">Parent Wholesale Pack</Label>
-                                        <Select
-                                            value={parentId || ''}
-                                            onChange={e => setParentId(e.target.value || null)}
-                                            className="h-10 mt-1 text-xs bg-white dark:bg-slate-900 border-amber-200 dark:border-amber-800/60 text-slate-900 dark:text-slate-100 rounded-xl"
-                                            disabled={isDemo}
-                                        >
-                                            <option value="" className="bg-white dark:bg-slate-900">-- No Parent (Standalone) --</option>
-                                            {products.filter(p => p.id !== editing?.id).map(p => (
-                                                <option key={p.id} value={p.id} className="bg-white dark:bg-slate-900">{p.name}</option>
-                                            ))}
-                                        </Select>
-                                    </div>
-                                    <div>
-                                        <Label className="text-[11px] font-bold text-amber-900 dark:text-amber-300">Units Per Case</Label>
-                                        <Input
-                                            type="number"
-                                            value={conversionRate}
-                                            onChange={e => setConversionRate(e.target.value)}
-                                            disabled={!parentId || isDemo}
-                                            placeholder="e.g. 24"
-                                            className="h-10 mt-1 text-xs font-mono text-center bg-white dark:bg-slate-900 border-amber-200 dark:border-amber-800/60 text-slate-900 dark:text-slate-100 rounded-xl"
-                                        />
-                                    </div>
                                 </div>
                             </div>
-
                         </div>
 
                         {/* Footer */}
-                        <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/95 flex items-center justify-end gap-2.5">
+                        <div
+                            id="tour-prod-modal-footer"
+                            className="px-4 sm:px-6 py-3.5 sm:py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/95 flex items-center justify-end gap-2.5"
+                        >
                             <Button
                                 variant="outline"
                                 type="button"
@@ -1078,6 +1092,11 @@ export default function ProductManagementPage() {
                 </DialogContent>
             </Dialog>
 
+            <ProductManagementTour
+                isProductsLoading={isLoading}
+                isModalOpen={isModalOpen}
+                isEditing={Boolean(editing)}
+            />
         </div>
     );
 }
