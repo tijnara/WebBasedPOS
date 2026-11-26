@@ -13,6 +13,7 @@ import {
 import Checkbox from '../ui/Checkbox';
 import Pagination from '../Pagination';
 import ForgotReceiverSettingsCard from '../admin/ForgotReceiverSettingsCard';
+import UserManagementTour from '../admin/UserManagementTour';
 
 import {
     useUsers,
@@ -180,7 +181,6 @@ export default function UserManagementPage() {
     const searchInputRef = useRef(null);
 
     // Fetch password_plain / password map directly from public.users for Admins
-    // (Ensures passwords display even if useUsers hook doesn't select password_plain yet)
     const { data: adminPasswordsMap = {} } = useQuery({
         queryKey: ['admin-user-passwords', canManageUsers, isDemo, users.map(u => u.id).join(',')],
         enabled: canManageUsers && !isDemo,
@@ -190,7 +190,6 @@ export default function UserManagementPage() {
                 .select('id, password_plain, password');
 
             if (error || !data) {
-                // Fallback if password_plain column isn't created yet
                 const fallback = await supabase.from('users').select('id, password');
                 const map = {};
                 (fallback.data || []).forEach(row => {
@@ -458,7 +457,7 @@ export default function UserManagementPage() {
                     <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">Add, edit, or manage staff and administrator credentials.</p>
                 </div>
 
-                <div className="flex items-center gap-2 w-full sm:w-auto">
+                <div id="tour-user-add-btn" className="flex items-center gap-2 w-full sm:w-auto">
                     <Button
                         type="button"
                         onClick={openModal}
@@ -474,7 +473,7 @@ export default function UserManagementPage() {
             </div>
 
             {/* Top KPI Metric Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+            <div id="tour-user-kpis" className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
                 <div className="bg-white dark:bg-slate-900 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs flex items-center justify-between gap-2 min-w-0 transition-colors">
                     <div className="min-w-0">
                         <span className="text-[9.5px] sm:text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block truncate">Total Accounts</span>
@@ -533,10 +532,15 @@ export default function UserManagementPage() {
             </div>
 
             {/* Admin-Only Forgot Password Receiver Configuration */}
-            <ForgotReceiverSettingsCard canManageUsers={canManageUsers} />
+            <div id="tour-user-receiver-card">
+                <ForgotReceiverSettingsCard canManageUsers={canManageUsers} />
+            </div>
 
             {/* Filter / Search Bar with Role Chips */}
-            <div className="p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-3 transition-colors">
+            <div
+                id="tour-user-filters"
+                className="p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-3 transition-colors"
+            >
                 <div className="relative w-full sm:max-w-md">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-slate-500 z-10">
                         <Search className="w-4 h-4" />
@@ -619,175 +623,171 @@ export default function UserManagementPage() {
             </div>
 
             {/* Desktop Table View */}
-            <Card className="hidden md:block border border-slate-200 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900 rounded-2xl overflow-hidden transition-colors">
-                <CardContent className="p-0 overflow-x-hidden">
-                    <div className="w-full overflow-hidden">
-                        <Table className="w-full table-auto text-xs sm:text-sm">
-                            <TableHeader>
-                                <TableRow className="bg-slate-50 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200/80 dark:border-slate-800">
-                                    <TableHead className="py-3 px-4 text-left">Staff Name</TableHead>
-                                    <TableHead className="py-3 px-4 text-left">Email Address</TableHead>
-                                    <TableHead className="py-3 px-4 text-left">Role</TableHead>
-                                    {canManageUsers && (
-                                        <TableHead className="py-3 px-4 text-left">Password</TableHead>
-                                    )}
-                                    <TableHead className="py-3 px-4 text-left">Date Added</TableHead>
-                                    <TableHead className="py-3 px-4 text-right w-24">Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody className="divide-y divide-slate-100 dark:divide-slate-800/80 bg-white dark:bg-slate-900">
-                                {isLoading ? (
-                                    <TableRow>
-                                        <TableCell colSpan={canManageUsers ? 6 : 5} className="text-center py-12 text-slate-400 dark:text-slate-500 text-xs">
-                                            Loading users...
-                                        </TableCell>
+            <div id="tour-user-desktop-table">
+                <Card className="hidden md:block border border-slate-200 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900 rounded-2xl overflow-hidden transition-colors">
+                    <CardContent className="p-0 overflow-x-hidden">
+                        <div className="w-full overflow-hidden">
+                            <Table className="w-full table-auto text-xs sm:text-sm">
+                                <TableHeader>
+                                    <TableRow className="bg-slate-50 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200/80 dark:border-slate-800">
+                                        <TableHead className="py-3 px-4 text-left">Staff Name</TableHead>
+                                        <TableHead className="py-3 px-4 text-left">Email Address</TableHead>
+                                        <TableHead className="py-3 px-4 text-left">Role</TableHead>
+                                        {canManageUsers && (
+                                            <TableHead className="py-3 px-4 text-left">Password</TableHead>
+                                        )}
+                                        <TableHead className="py-3 px-4 text-left">Date Added</TableHead>
+                                        <TableHead className="py-3 px-4 text-right w-24">Actions</TableHead>
                                     </TableRow>
-                                ) : filteredUsers.length === 0 ? (
-                                    <TableRow>
-                                        <TableCell colSpan={canManageUsers ? 6 : 5} className="text-center py-12 text-slate-400 dark:text-slate-500 text-xs">
-                                            No users found matching your filter.
-                                        </TableCell>
-                                    </TableRow>
-                                ) : (
-                                    filteredUsers.map(u => {
-                                        const isSelf = String(u.id) === String(currentUser?.id);
-                                        const isUserAdmin = u.isAdmin || u.isadmin || u.is_admin || u.categoryName?.toLowerCase() === 'admin';
-                                        const isProtectedLastAdmin = isUserAdmin && adminCount <= 1;
-                                        const isRevealed = Boolean(revealedRowIds[String(u.id)]);
-                                        const { readable, isHashedOnly } = resolveReadablePassword(u, adminPasswordsMap);
+                                </TableHeader>
+                                <TableBody className="divide-y divide-slate-100 dark:divide-slate-800/80 bg-white dark:bg-slate-900">
+                                    {isLoading ? (
+                                        <TableRow>
+                                            <TableCell colSpan={canManageUsers ? 6 : 5} className="text-center py-12 text-slate-400 dark:text-slate-500 text-xs">
+                                                Loading users...
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : filteredUsers.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={canManageUsers ? 6 : 5} className="text-center py-12 text-slate-400 dark:text-slate-500 text-xs">
+                                                No users found matching your filter.
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : (
+                                        filteredUsers.map(u => {
+                                            const isSelf = String(u.id) === String(currentUser?.id);
+                                            const isUserAdmin = u.isAdmin || u.isadmin || u.is_admin || u.categoryName?.toLowerCase() === 'admin';
+                                            const isProtectedLastAdmin = isUserAdmin && adminCount <= 1;
+                                            const isRevealed = Boolean(revealedRowIds[String(u.id)]);
+                                            const { readable, isHashedOnly } = resolveReadablePassword(u, adminPasswordsMap);
 
-                                        return (
-                                            <TableRow key={u.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors">
-                                                {/* Staff Name with Avatar Badge */}
-                                                <TableCell className="py-3 px-4">
-                                                    <div className="flex items-center gap-2.5">
-                                                        <div
-                                                            className="w-7 h-7 rounded-full flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-2xs"
-                                                            style={{ backgroundColor: u.color || '#3B82F6' }}
-                                                        >
-                                                            {u.name?.charAt(0)?.toUpperCase() || 'U'}
-                                                        </div>
-                                                        <div className="flex flex-col min-w-0">
-                                                            <span className="font-bold text-slate-900 dark:text-slate-100 truncate">
-                                                                {u.name}
-                                                                {isSelf && (
-                                                                    <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-1.5 py-0.5 rounded ml-1.5">
-                                                                        You
-                                                                    </span>
-                                                                )}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </TableCell>
-
-                                                {/* Email Address */}
-                                                <TableCell className="py-3 px-4 text-slate-600 dark:text-slate-300 font-medium">
-                                                    {u.email || '—'}
-                                                </TableCell>
-
-                                                {/* Role Badge */}
-                                                <TableCell className="py-3 px-4">
-                                                    <RoleBadge categoryName={u.categoryName} isAdmin={isUserAdmin} />
-                                                </TableCell>
-
-                                                {/* Admin-Only Password Column */}
-                                                {canManageUsers && (
+                                            return (
+                                                <TableRow key={u.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors">
                                                     <TableCell className="py-3 px-4">
-                                                        <div className="inline-flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-lg px-2.5 py-1">
-                                                            <span className="font-mono text-xs text-slate-700 dark:text-slate-200 select-all">
-                                                                {!isRevealed
-                                                                    ? '••••••••'
-                                                                    : isHashedOnly
-                                                                        ? 'Encrypted (Reset to view)'
-                                                                        : readable || 'Not set'}
-                                                            </span>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => toggleRowPassword(u.id)}
-                                                                className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-0.5 cursor-pointer"
-                                                                title={isRevealed ? 'Hide password' : 'Show password'}
+                                                        <div className="flex items-center gap-2.5">
+                                                            <div
+                                                                className="w-7 h-7 rounded-full flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-2xs"
+                                                                style={{ backgroundColor: u.color || '#3B82F6' }}
                                                             >
-                                                                {isRevealed ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                                                            </button>
-                                                            {isRevealed && !isHashedOnly && readable && (
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => handleCopyPassword(readable, `row-${u.id}`)}
-                                                                    className="text-slate-400 hover:text-[#8DB600] p-0.5 cursor-pointer"
-                                                                    title="Copy password"
-                                                                >
-                                                                    {copiedKey === `row-${u.id}` ? (
-                                                                        <Check className="w-3.5 h-3.5 text-[#8DB600]" />
-                                                                    ) : (
-                                                                        <Copy className="w-3.5 h-3.5" />
+                                                                {u.name?.charAt(0)?.toUpperCase() || 'U'}
+                                                            </div>
+                                                            <div className="flex flex-col min-w-0">
+                                                                <span className="font-bold text-slate-900 dark:text-slate-100 truncate">
+                                                                    {u.name}
+                                                                    {isSelf && (
+                                                                        <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-1.5 py-0.5 rounded ml-1.5">
+                                                                            You
+                                                                        </span>
                                                                     )}
-                                                                </button>
-                                                            )}
+                                                                </span>
+                                                            </div>
                                                         </div>
                                                     </TableCell>
-                                                )}
 
-                                                {/* Date Added */}
-                                                <TableCell className="py-3 px-4 text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                                                    {u.dateAdded instanceof Date && !isNaN(u.dateAdded)
-                                                        ? u.dateAdded.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
-                                                        : '—'}
-                                                </TableCell>
+                                                    <TableCell className="py-3 px-4 text-slate-600 dark:text-slate-300 font-medium">
+                                                        {u.email || '—'}
+                                                    </TableCell>
 
-                                                {/* Action Buttons */}
-                                                <TableCell className="py-3 px-4 text-right">
-                                                    <div className="flex items-center justify-end gap-1">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => startEdit(u)}
-                                                            disabled={isDemo || !canManageUsers}
-                                                            className="w-7 h-7 flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/50 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
-                                                            title="Edit user credentials"
-                                                        >
-                                                            <Pencil className="w-3.5 h-3.5" />
-                                                        </button>
+                                                    <TableCell className="py-3 px-4">
+                                                        <RoleBadge categoryName={u.categoryName} isAdmin={isUserAdmin} />
+                                                    </TableCell>
 
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => remove(u)}
-                                                            disabled={isDemo || !canManageUsers || isSelf || isProtectedLastAdmin}
-                                                            className={`w-7 h-7 flex items-center justify-center border rounded-lg transition-colors cursor-pointer ${
-                                                                isSelf || isProtectedLastAdmin
-                                                                    ? 'text-slate-300 dark:text-slate-600 border-slate-100 dark:border-slate-800 cursor-not-allowed bg-slate-50 dark:bg-slate-800/40'
-                                                                    : 'text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 border-slate-200 dark:border-slate-700'
-                                                            }`}
-                                                            title={
-                                                                isSelf
-                                                                    ? 'Cannot delete your own active account'
-                                                                    : isProtectedLastAdmin
-                                                                        ? 'Cannot delete the sole remaining administrator'
-                                                                        : 'Delete user account'
-                                                            }
-                                                        >
-                                                            <Trash2 className="w-3.5 h-3.5" />
-                                                        </button>
-                                                    </div>
-                                                </TableCell>
-                                            </TableRow>
-                                        );
-                                    })
-                                )}
-                            </TableBody>
-                        </Table>
-                    </div>
+                                                    {canManageUsers && (
+                                                        <TableCell className="py-3 px-4">
+                                                            <div className="inline-flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-lg px-2.5 py-1">
+                                                                <span className="font-mono text-xs text-slate-700 dark:text-slate-200 select-all">
+                                                                    {!isRevealed
+                                                                        ? '••••••••'
+                                                                        : isHashedOnly
+                                                                            ? 'Encrypted (Reset to view)'
+                                                                            : readable || 'Not set'}
+                                                                </span>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => toggleRowPassword(u.id)}
+                                                                    className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-0.5 cursor-pointer"
+                                                                    title={isRevealed ? 'Hide password' : 'Show password'}
+                                                                >
+                                                                    {isRevealed ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                                                                </button>
+                                                                {isRevealed && !isHashedOnly && readable && (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleCopyPassword(readable, `row-${u.id}`)}
+                                                                        className="text-slate-400 hover:text-[#8DB600] p-0.5 cursor-pointer"
+                                                                        title="Copy password"
+                                                                    >
+                                                                        {copiedKey === `row-${u.id}` ? (
+                                                                            <Check className="w-3.5 h-3.5 text-[#8DB600]" />
+                                                                        ) : (
+                                                                            <Copy className="w-3.5 h-3.5" />
+                                                                        )}
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        </TableCell>
+                                                    )}
 
-                    <div className="p-3 border-t border-slate-100 dark:border-slate-800 flex justify-end">
-                        <Pagination
-                            currentPage={currentPage}
-                            totalPages={totalPages || 1}
-                            onPageChange={page => setCurrentPage(page)}
-                        />
-                    </div>
-                </CardContent>
-            </Card>
+                                                    <TableCell className="py-3 px-4 text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                                                        {u.dateAdded instanceof Date && !isNaN(u.dateAdded)
+                                                            ? u.dateAdded.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+                                                            : '—'}
+                                                    </TableCell>
+
+                                                    <TableCell className="py-3 px-4 text-right">
+                                                        <div className="flex items-center justify-end gap-1">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => startEdit(u)}
+                                                                disabled={isDemo || !canManageUsers}
+                                                                className="w-7 h-7 flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/50 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                                                                title="Edit user credentials"
+                                                            >
+                                                                <Pencil className="w-3.5 h-3.5" />
+                                                            </button>
+
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => remove(u)}
+                                                                disabled={isDemo || !canManageUsers || isSelf || isProtectedLastAdmin}
+                                                                className={`w-7 h-7 flex items-center justify-center border rounded-lg transition-colors cursor-pointer ${
+                                                                    isSelf || isProtectedLastAdmin
+                                                                        ? 'text-slate-300 dark:text-slate-600 border-slate-100 dark:border-slate-800 cursor-not-allowed bg-slate-50 dark:bg-slate-800/40'
+                                                                        : 'text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 border-slate-200 dark:border-slate-700'
+                                                                }`}
+                                                                title={
+                                                                    isSelf
+                                                                        ? 'Cannot delete your own active account'
+                                                                        : isProtectedLastAdmin
+                                                                            ? 'Cannot delete the sole remaining administrator'
+                                                                            : 'Delete user account'
+                                                                }
+                                                            >
+                                                                <Trash2 className="w-3.5 h-3.5" />
+                                                            </button>
+                                                        </div>
+                                                    </TableCell>
+                                                </TableRow>
+                                            );
+                                        })
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
+
+                        <div className="p-3 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+                            <Pagination
+                                currentPage={currentPage}
+                                totalPages={totalPages || 1}
+                                onPageChange={page => setCurrentPage(page)}
+                            />
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
 
             {/* Mobile Card List View */}
-            <div className="space-y-2 md:hidden">
+            <div id="tour-user-mobile-list" className="space-y-2 md:hidden">
                 {isLoading ? (
                     <div className="text-center py-8 text-slate-400 dark:text-slate-500 text-xs bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
                         Loading users...
@@ -916,44 +916,22 @@ export default function UserManagementPage() {
 
                     <div onKeyDown={preventEnterReload} className="flex flex-col max-h-[80vh]">
                         <div className="overflow-y-auto px-4 sm:px-6 py-4 sm:py-5 space-y-4 sm:space-y-5">
-                            {/* Full Name Input */}
-                            <div>
-                                <Label htmlFor="name" className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                                    Full Name <span className="text-rose-500">*</span>
-                                </Label>
-                                <div className="relative mt-1">
-                                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 dark:text-slate-500 z-10">
-                                        <UserIcon className="w-4 h-4" />
-                                    </div>
-                                    <Input
-                                        id="name"
-                                        value={name}
-                                        onChange={(e) => setName(e.target.value)}
-                                        autoFocus
-                                        placeholder="e.g. Juan Dela Cruz"
-                                        style={{ paddingLeft: '2.5rem' }}
-                                        className="w-full text-xs py-2 bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl h-10 focus:bg-white dark:focus:bg-slate-900"
-                                        disabled={isDemo}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {/* Email Address Input */}
+                            <div id="tour-user-modal-profile" className="space-y-4 sm:space-y-5">
+                                {/* Full Name Input */}
                                 <div>
-                                    <Label htmlFor="email" className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                                        Email Address <span className="text-rose-500">*</span>
+                                    <Label htmlFor="name" className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                                        Full Name <span className="text-rose-500">*</span>
                                     </Label>
                                     <div className="relative mt-1">
                                         <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 dark:text-slate-500 z-10">
-                                            <Mail className="w-4 h-4" />
+                                            <UserIcon className="w-4 h-4" />
                                         </div>
                                         <Input
-                                            id="email"
-                                            type="email"
-                                            value={email}
-                                            onChange={(e) => setEmail(e.target.value)}
-                                            placeholder="staff@seaside.com"
+                                            id="name"
+                                            value={name}
+                                            onChange={(e) => setName(e.target.value)}
+                                            autoFocus
+                                            placeholder="e.g. Juan Dela Cruz"
                                             style={{ paddingLeft: '2.5rem' }}
                                             className="w-full text-xs py-2 bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl h-10 focus:bg-white dark:focus:bg-slate-900"
                                             disabled={isDemo}
@@ -961,199 +939,226 @@ export default function UserManagementPage() {
                                     </div>
                                 </div>
 
-                                {/* User Role Select */}
-                                <div>
-                                    <Label htmlFor="category_id" className="text-xs font-bold text-slate-700 dark:text-slate-300">User Role</Label>
-                                    <div className="flex items-center space-x-2 mt-1">
-                                        <div className="relative flex-1">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {/* Email Address Input */}
+                                    <div>
+                                        <Label htmlFor="email" className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                                            Email Address <span className="text-rose-500">*</span>
+                                        </Label>
+                                        <div className="relative mt-1">
                                             <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 dark:text-slate-500 z-10">
-                                                <Briefcase className="w-4 h-4" />
+                                                <Mail className="w-4 h-4" />
                                             </div>
-                                            <Select
-                                                id="category_id"
-                                                value={categoryId}
-                                                onChange={(e) => setCategoryId(e.target.value)}
+                                            <Input
+                                                id="email"
+                                                type="email"
+                                                value={email}
+                                                onChange={(e) => setEmail(e.target.value)}
+                                                placeholder="staff@seaside.com"
                                                 style={{ paddingLeft: '2.5rem' }}
-                                                className="w-full text-xs py-2 bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl h-10 appearance-none cursor-pointer focus:bg-white dark:focus:bg-slate-900"
-                                                disabled={isDemo || categories.length === 0}
-                                            >
-                                                <option value="" disabled className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Select a role...</option>
-                                                {categories.map(c => (
-                                                    <option key={c.id} value={c.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{c.name}</option>
-                                                ))}
-                                            </Select>
-                                        </div>
-
-                                        {!editing && (
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                className="h-10 px-3 rounded-xl text-xs font-bold border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer shrink-0"
-                                                onClick={openAddRoleModal}
-                                                disabled={isDemo || createCategory.isPending}
-                                                title="Add new role"
-                                            >
-                                                + New
-                                            </Button>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Assigned Station Palette */}
-                            <div>
-                                <Label htmlFor="color" className="text-xs font-bold text-slate-700 dark:text-slate-300">Assigned Station Palette</Label>
-                                <div className="flex items-center gap-3 mt-1.5 flex-wrap">
-                                    <div className="flex items-center gap-1.5">
-                                        {['#3B82F6', '#10B981', '#8B5CF6', '#F59E0B', '#EC4899', '#8DB600'].map(presetColor => (
-                                            <button
-                                                key={presetColor}
-                                                type="button"
-                                                onClick={() => setColor(presetColor)}
-                                                style={{ backgroundColor: presetColor }}
-                                                className={`w-7 h-7 rounded-lg transition-transform active:scale-95 cursor-pointer ${
-                                                    color.toLowerCase() === presetColor.toLowerCase() ? 'ring-2 ring-offset-2 ring-slate-800 dark:ring-slate-100 scale-110' : 'opacity-80 hover:opacity-100'
-                                                }`}
-                                                title={presetColor}
+                                                className="w-full text-xs py-2 bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl h-10 focus:bg-white dark:focus:bg-slate-900"
+                                                disabled={isDemo}
                                             />
-                                        ))}
+                                        </div>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <Input
-                                            id="color"
-                                            type="color"
-                                            value={color}
-                                            onChange={(e) => setColor(e.target.value)}
-                                            className="w-9 h-8 p-0.5 cursor-pointer border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 shadow-2xs"
-                                            disabled={isDemo}
-                                        />
-                                        <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Color badge used in receipts and activity audit trails.</span>
+
+                                    {/* User Role Select */}
+                                    <div>
+                                        <Label htmlFor="category_id" className="text-xs font-bold text-slate-700 dark:text-slate-300">User Role</Label>
+                                        <div className="flex items-center space-x-2 mt-1">
+                                            <div className="relative flex-1">
+                                                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 dark:text-slate-500 z-10">
+                                                    <Briefcase className="w-4 h-4" />
+                                                </div>
+                                                <Select
+                                                    id="category_id"
+                                                    value={categoryId}
+                                                    onChange={(e) => setCategoryId(e.target.value)}
+                                                    style={{ paddingLeft: '2.5rem' }}
+                                                    className="w-full text-xs py-2 bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl h-10 appearance-none cursor-pointer focus:bg-white dark:focus:bg-slate-900"
+                                                    disabled={isDemo || categories.length === 0}
+                                                >
+                                                    <option value="" disabled className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Select a role...</option>
+                                                    {categories.map(c => (
+                                                        <option key={c.id} value={c.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{c.name}</option>
+                                                    ))}
+                                                </Select>
+                                            </div>
+
+                                            {!editing && (
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    className="h-10 px-3 rounded-xl text-xs font-bold border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer shrink-0"
+                                                    onClick={openAddRoleModal}
+                                                    disabled={isDemo || createCategory.isPending}
+                                                    title="Add new role"
+                                                >
+                                                    + New
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Assigned Station Palette */}
+                                <div>
+                                    <Label htmlFor="color" className="text-xs font-bold text-slate-700 dark:text-slate-300">Assigned Station Palette</Label>
+                                    <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                                        <div className="flex items-center gap-1.5">
+                                            {['#3B82F6', '#10B981', '#8B5CF6', '#F59E0B', '#EC4899', '#8DB600'].map(presetColor => (
+                                                <button
+                                                    key={presetColor}
+                                                    type="button"
+                                                    onClick={() => setColor(presetColor)}
+                                                    style={{ backgroundColor: presetColor }}
+                                                    className={`w-7 h-7 rounded-lg transition-transform active:scale-95 cursor-pointer ${
+                                                        color.toLowerCase() === presetColor.toLowerCase() ? 'ring-2 ring-offset-2 ring-slate-800 dark:ring-slate-100 scale-110' : 'opacity-80 hover:opacity-100'
+                                                    }`}
+                                                    title={presetColor}
+                                                />
+                                            ))}
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <Input
+                                                id="color"
+                                                type="color"
+                                                value={color}
+                                                onChange={(e) => setColor(e.target.value)}
+                                                className="w-9 h-8 p-0.5 cursor-pointer border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 shadow-2xs"
+                                                disabled={isDemo}
+                                            />
+                                            <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Color badge used in receipts and activity audit trails.</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Admin-Only Current Saved Password Viewer */}
-                            {canManageUsers && editing && editingPasswordInfo && (
-                                <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 space-y-2">
-                                    <div className="flex items-center justify-between gap-2">
-                                        <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#8DB600]">
-                                            Current Account Password (Admin View)
-                                        </span>
-                                        <div className="flex items-center gap-1.5">
-                                            {!editingPasswordInfo.isHashedOnly && editingPasswordInfo.readable && (
+                            <div id="tour-user-modal-security" className="space-y-4 sm:space-y-5">
+                                {/* Admin-Only Current Saved Password Viewer */}
+                                {canManageUsers && editing && editingPasswordInfo && (
+                                    <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 space-y-2">
+                                        <div className="flex items-center justify-between gap-2">
+                                            <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#8DB600]">
+                                                Current Account Password (Admin View)
+                                            </span>
+                                            <div className="flex items-center gap-1.5">
+                                                {!editingPasswordInfo.isHashedOnly && editingPasswordInfo.readable && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleCopyPassword(editingPasswordInfo.readable, 'modal-current')}
+                                                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-[#8DB600] cursor-pointer"
+                                                    >
+                                                        {copiedKey === 'modal-current' ? (
+                                                            <>
+                                                                <Check className="w-3 h-3 text-[#8DB600]" />
+                                                                <span>Copied</span>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <Copy className="w-3 h-3" />
+                                                                <span>Copy</span>
+                                                            </>
+                                                        )}
+                                                    </button>
+                                                )}
                                                 <button
                                                     type="button"
-                                                    onClick={() => handleCopyPassword(editingPasswordInfo.readable, 'modal-current')}
-                                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-[#8DB600] cursor-pointer"
+                                                    onClick={() => setShowCurrentModalPassword(prev => !prev)}
+                                                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-[#8DB600]/15 hover:bg-[#8DB600]/25 text-[#6b8b00] dark:text-[#8DB600] cursor-pointer"
                                                 >
-                                                    {copiedKey === 'modal-current' ? (
+                                                    {showCurrentModalPassword ? (
                                                         <>
-                                                            <Check className="w-3 h-3 text-[#8DB600]" />
-                                                            <span>Copied</span>
+                                                            <EyeOff className="w-3.5 h-3.5" />
+                                                            <span>Hide</span>
                                                         </>
                                                     ) : (
                                                         <>
-                                                            <Copy className="w-3 h-3" />
-                                                            <span>Copy</span>
+                                                            <Eye className="w-3.5 h-3.5" />
+                                                            <span>View Password</span>
                                                         </>
                                                     )}
                                                 </button>
-                                            )}
+                                            </div>
+                                        </div>
+                                        <div className="px-3 py-2 rounded-xl bg-white dark:bg-slate-950/80 border border-slate-200/80 dark:border-slate-800 font-mono text-xs text-slate-800 dark:text-slate-100 break-all">
+                                            {!showCurrentModalPassword
+                                                ? '••••••••••••'
+                                                : editingPasswordInfo.isHashedOnly
+                                                    ? 'Encrypted hash — enter a new password below once (or have the user log in once) to make it viewable.'
+                                                    : editingPasswordInfo.readable || 'No password set'}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Password Credentials */}
+                                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <h3 className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                                            {editing ? 'Change Password (Leave blank to keep existing)' : 'Security / Initial Password'}
+                                        </h3>
+                                        {canManageUsers && (
                                             <button
                                                 type="button"
-                                                onClick={() => setShowCurrentModalPassword(prev => !prev)}
-                                                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-[#8DB600]/15 hover:bg-[#8DB600]/25 text-[#6b8b00] dark:text-[#8DB600] cursor-pointer"
+                                                onClick={() => setShowFormPassword(prev => !prev)}
+                                                className="inline-flex items-center gap-1 text-[11px] font-bold text-[#6b8b00] dark:text-[#8DB600] hover:underline cursor-pointer"
                                             >
-                                                {showCurrentModalPassword ? (
-                                                    <>
-                                                        <EyeOff className="w-3.5 h-3.5" />
-                                                        <span>Hide</span>
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <Eye className="w-3.5 h-3.5" />
-                                                        <span>View Password</span>
-                                                    </>
-                                                )}
+                                                {showFormPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                                                <span>{showFormPassword ? 'Hide Typed Password' : 'Show Typed Password'}</span>
                                             </button>
-                                        </div>
+                                        )}
                                     </div>
-                                    <div className="px-3 py-2 rounded-xl bg-white dark:bg-slate-950/80 border border-slate-200/80 dark:border-slate-800 font-mono text-xs text-slate-800 dark:text-slate-100 break-all">
-                                        {!showCurrentModalPassword
-                                            ? '••••••••••••'
-                                            : editingPasswordInfo.isHashedOnly
-                                                ? 'Encrypted hash — enter a new password below once (or have the user log in once) to make it viewable.'
-                                                : editingPasswordInfo.readable || 'No password set'}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Password Credentials */}
-                            <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-4">
-                                <div className="flex items-center justify-between">
-                                    <h3 className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                                        {editing ? 'Change Password (Leave blank to keep existing)' : 'Security / Initial Password'}
-                                    </h3>
-                                    {canManageUsers && (
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowFormPassword(prev => !prev)}
-                                            className="inline-flex items-center gap-1 text-[11px] font-bold text-[#6b8b00] dark:text-[#8DB600] hover:underline cursor-pointer"
-                                        >
-                                            {showFormPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                                            <span>{showFormPassword ? 'Hide Typed Password' : 'Show Typed Password'}</span>
-                                        </button>
-                                    )}
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {/* Password */}
-                                    <div>
-                                        <Label htmlFor="password" className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                                            Password {!editing && <span className="text-rose-500">*</span>}
-                                        </Label>
-                                        <div className="relative mt-1">
-                                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 dark:text-slate-500 z-10">
-                                                <Lock className="w-4 h-4" />
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <Label htmlFor="password" className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                                                Password {!editing && <span className="text-rose-500">*</span>}
+                                            </Label>
+                                            <div className="relative mt-1">
+                                                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 dark:text-slate-500 z-10">
+                                                    <Lock className="w-4 h-4" />
+                                                </div>
+                                                <Input
+                                                    id="password"
+                                                    type={showFormPassword ? 'text' : 'password'}
+                                                    value={password}
+                                                    onChange={(e) => setPassword(e.target.value)}
+                                                    placeholder="••••••••"
+                                                    style={{ paddingLeft: '2.5rem' }}
+                                                    className="w-full text-xs py-2 bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl h-10 focus:bg-white dark:focus:bg-slate-900"
+                                                    disabled={isDemo}
+                                                />
                                             </div>
-                                            <Input
-                                                id="password"
-                                                type={showFormPassword ? 'text' : 'password'}
-                                                value={password}
-                                                onChange={(e) => setPassword(e.target.value)}
-                                                placeholder="••••••••"
-                                                style={{ paddingLeft: '2.5rem' }}
-                                                className="w-full text-xs py-2 bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl h-10 focus:bg-white dark:focus:bg-slate-900"
-                                                disabled={isDemo}
-                                            />
                                         </div>
-                                    </div>
 
-                                    {/* Confirm Password */}
-                                    <div>
-                                        <Label htmlFor="confirmPassword" className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                                            Confirm Password {!editing && <span className="text-rose-500">*</span>}
-                                        </Label>
-                                        <div className="relative mt-1">
-                                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 dark:text-slate-500 z-10">
-                                                <Lock className="w-4 h-4" />
+                                        <div>
+                                            <Label htmlFor="confirmPassword" className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                                                Confirm Password {!editing && <span className="text-rose-500">*</span>}
+                                            </Label>
+                                            <div className="relative mt-1">
+                                                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 dark:text-slate-500 z-10">
+                                                    <Lock className="w-4 h-4" />
+                                                </div>
+                                                <Input
+                                                    id="confirmPassword"
+                                                    type={showFormPassword ? 'text' : 'password'}
+                                                    value={confirmPassword}
+                                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                                    placeholder="••••••••"
+                                                    style={{ paddingLeft: '2.5rem' }}
+                                                    className="w-full text-xs py-2 bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl h-10 focus:bg-white dark:focus:bg-slate-900"
+                                                    disabled={isDemo}
+                                                />
                                             </div>
-                                            <Input
-                                                id="confirmPassword"
-                                                type={showFormPassword ? 'text' : 'password'}
-                                                value={confirmPassword}
-                                                onChange={(e) => setConfirmPassword(e.target.value)}
-                                                placeholder="••••••••"
-                                                style={{ paddingLeft: '2.5rem' }}
-                                                className="w-full text-xs py-2 bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl h-10 focus:bg-white dark:focus:bg-slate-900"
-                                                disabled={isDemo}
-                                            />
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <DialogFooter className="px-4 sm:px-6 py-3.5 sm:py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/60 flex items-center justify-end gap-2.5 mt-auto">
+                        <DialogFooter
+                            id="tour-user-modal-footer"
+                            className="px-4 sm:px-6 py-3.5 sm:py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/60 flex items-center justify-end gap-2.5 mt-auto"
+                        >
                             <Button
                                 variant="outline"
                                 type="button"
@@ -1225,6 +1230,12 @@ export default function UserManagementPage() {
                     </div>
                 </DialogContent>
             </Dialog>
+
+            <UserManagementTour
+                isUsersLoading={isLoading}
+                isModalOpen={isModalOpen}
+                isEditing={Boolean(editing)}
+            />
         </div>
     );
 }
