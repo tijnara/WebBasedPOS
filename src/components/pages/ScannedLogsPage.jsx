@@ -11,11 +11,12 @@ import {
     Receipt, User, Package, Maximize2, Minimize2, X, RotateCcw,
     FileText, ZoomIn, ZoomOut
 } from 'lucide-react';
+import ScannedLogsProductTour from '../scanned-logs/ScannedLogsProductTour';
 
 /**
- * Reusable split viewer for both the Scanned Sheet Modal and Full Screen view.
- * Guarantees the scanned sheet image and extracted items are always visible together
- * on both mobile and desktop viewports.
+ - Reusable split viewer for both the Scanned Sheet Modal and Full Screen view.
+ - Guarantees the scanned sheet image and extracted items are always visible together
+ - on both mobile and desktop viewports.
  */
 function ScannedLogComparisonView({
                                       imageUrl,
@@ -272,7 +273,10 @@ export default function ScannedLogsPage() {
                     </p>
                 </div>
 
-                <div className="flex items-center gap-2.5 bg-white dark:bg-slate-900 p-3 sm:px-4 sm:py-2.5 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs">
+                <div
+                    id="tour-scanned-summary"
+                    className="flex items-center gap-2.5 bg-white dark:bg-slate-900 p-3 sm:px-4 sm:py-2.5 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs"
+                >
                     <Images className="w-5 h-5 text-[#8DB600]" />
                     <div>
                         <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
@@ -289,7 +293,10 @@ export default function ScannedLogsPage() {
             </div>
 
             {/* Filter Bar */}
-            <div className="bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs space-y-2 sm:space-y-3">
+            <div
+                id="tour-scanned-filters"
+                className="bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs space-y-2 sm:space-y-3"
+            >
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 items-end">
                     <div className="col-span-2 md:col-span-2">
                         <label className="block text-[10px] sm:text-xs font-bold text-slate-700 dark:text-slate-300 mb-0.5 sm:mb-1 pl-0.5">
@@ -379,7 +386,10 @@ export default function ScannedLogsPage() {
                     </p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                <div
+                    id="tour-scanned-gallery"
+                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4"
+                >
                     {logs.map((log) => (
                         <div
                             key={log.id}
@@ -566,6 +576,12 @@ export default function ScannedLogsPage() {
                     </div>
                 </div>
             )}
+
+            <ScannedLogsProductTour
+                isLogsLoading={isLoading}
+                hasLogs={logs.length > 0}
+                isAdmin={isAdmin}
+            />
         </div>
     );
 }
