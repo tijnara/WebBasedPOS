@@ -1,7 +1,7 @@
 // src/components/dashboard/SalesPerformanceCard.jsx
 import React, { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
-import './chartSetup'; // Registers CategoryScale, LinearScale, PointElement, LineElement, Filler
+import './chartSetup';
 import { Card, CardHeader, CardContent, Select } from '../ui';
 
 const Line = dynamic(() => import('react-chartjs-2').then((mod) => mod.Line), {
@@ -20,37 +20,55 @@ export default function SalesPerformanceCard({ summaryData }) {
 
         if (salesView === 'Monthly' && summaryData.monthlyRevenue) {
             const sortedMonths = Object.keys(summaryData.monthlyRevenue).sort();
-            labels = sortedMonths.map(month => {
+            labels = sortedMonths.map((month) => {
                 const [year, m] = month.split('-');
                 const date = new Date(year, Number(m) - 1);
                 return `${date.toLocaleString('default', { month: 'short' })} '${String(year).slice(-2)}`;
             });
-            data = sortedMonths.map(month => summaryData.monthlyRevenue[month]);
+            data = sortedMonths.map((month) => Number(summaryData.monthlyRevenue[month]) || 0);
         } else if (salesView === 'Weekly' && summaryData.weeklyRevenue) {
             const sortedWeeks = Object.keys(summaryData.weeklyRevenue).sort();
-            labels = sortedWeeks.map(weekStart => {
+            labels = sortedWeeks.map((weekStart) => {
                 const [year, m, d] = weekStart.split('-');
                 const date = new Date(year, Number(m) - 1, d);
                 return `${date.toLocaleString('default', { month: 'short', day: 'numeric' })}`;
             });
-            data = sortedWeeks.map(week => summaryData.weeklyRevenue[week]);
+            data = sortedWeeks.map((week) => Number(summaryData.weeklyRevenue[week]) || 0);
+        } else if (salesView === 'Quarterly' && summaryData.monthlyRevenue) {
+            const quarterTotals = {};
+            Object.entries(summaryData.monthlyRevenue)
+                .sort(([a], [b]) => a.localeCompare(b))
+                .forEach(([ym, val]) => {
+                    const [year, m] = ym.split('-');
+                    const q = Math.floor((Number(m) - 1) / 3) + 1;
+                    const key = `${year}-Q${q}`;
+                    quarterTotals[key] = (quarterTotals[key] || 0) + (Number(val) || 0);
+                });
+            const sortedQuarters = Object.keys(quarterTotals).sort();
+            labels = sortedQuarters.map((qKey) => {
+                const [year, qPart] = qKey.split('-');
+                return `${qPart} '${String(year).slice(-2)}`;
+            });
+            data = sortedQuarters.map((qKey) => quarterTotals[qKey]);
         }
 
         return {
             labels,
-            datasets: [{
-                label: `${salesView} Sales`,
-                data: data,
-                borderColor: '#10b981',
-                backgroundColor: 'rgba(16, 185, 129, 0.12)',
-                fill: true,
-                tension: 0.35,
-                pointBackgroundColor: '#fff',
-                pointBorderColor: '#10b981',
-                pointBorderWidth: 2,
-                pointRadius: 4,
-                pointHoverRadius: 6,
-            }]
+            datasets: [
+                {
+                    label: `${salesView} Sales`,
+                    data,
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(14, 165, 233, 0.14)',
+                    fill: true,
+                    tension: 0.35,
+                    pointBackgroundColor: '#ffffff',
+                    pointBorderColor: '#0284c7',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                }
+            ]
         };
     }, [summaryData, salesView]);
 
@@ -96,7 +114,7 @@ export default function SalesPerformanceCard({ summaryData }) {
     };
 
     return (
-        <Card className="h-full shadow-xs flex flex-col bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl">
+        <Card className="h-full shadow-2xs flex flex-col bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl">
             <CardHeader className="bg-transparent pb-0 flex flex-row items-center justify-between">
                 <h3 className="font-bold text-slate-800 dark:text-white text-base">Sales Performance Over Time</h3>
                 <Select
@@ -106,6 +124,7 @@ export default function SalesPerformanceCard({ summaryData }) {
                 >
                     <option value="Monthly">Monthly</option>
                     <option value="Weekly">Weekly</option>
+                    <option value="Quarterly">Quarterly</option>
                 </Select>
             </CardHeader>
             <CardContent className="p-4 pt-4 flex-1 flex flex-col w-full h-full">

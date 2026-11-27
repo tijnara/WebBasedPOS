@@ -1,5 +1,5 @@
 // src/components/dashboard/OperationsRow.jsx
-import React, { useMemo, useEffect } from 'react';
+import React, { useMemo, useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import currency from 'currency.js';
@@ -8,7 +8,7 @@ import { supabase } from '../../lib/supabaseClient';
 import { useStore } from '../../store/useStore';
 import { useDebts } from '../../hooks/useDebts';
 import { FILTER_CONFIG } from '../../config/constants';
-import { Filter, Truck, ChevronRight, Users, UserPlus, MapPin, Wrench, CheckCircle2 } from 'lucide-react';
+import { Filter, Truck, ChevronRight, Users, UserPlus, MapPin, Wrench, CheckCircle2, MinusCircle } from 'lucide-react';
 
 const LEGACY_FILTER_ALIASES = {
     '10_micron': ['10_micron', 'stage_1', '1', 'stage1'],
@@ -20,9 +20,9 @@ const LEGACY_FILTER_ALIASES = {
 export default function OperationsRow() {
     const router = useRouter();
     const queryClient = useQueryClient();
-    const user = useStore(state => state.user);
+    const user = useStore((state) => state.user);
+    const [deductionsByEmployee, setDeductionsByEmployee] = useState({});
 
-    // Realtime sync whenever maintenance_history, filter_configs, or vehicles change
     useEffect(() => {
         if (!user || user.isDemo) return;
 
@@ -44,7 +44,6 @@ export default function OperationsRow() {
         };
     }, [user, queryClient]);
 
-    // 1. Live Filter Lifespan & Vehicles Query (matches MaintenanceTrackingPage.jsx)
     const { data: maintenanceData, isLoading: isMaintenanceLoading } = useQuery({
         queryKey: ['dashboard-live-maintenance-lifespans', user?.isDemo],
         queryFn: async () => {
@@ -79,9 +78,8 @@ export default function OperationsRow() {
             const vehiclesList = vehiclesRes.data || [];
             const historyList = historyRes.data || [];
 
-            // Map latest replacement timestamp per item_id (historyList is ordered replaced_at DESC)
             const latestDates = {};
-            historyList.forEach(record => {
+            historyList.forEach((record) => {
                 const key = String(record.item_id ?? '').trim();
                 if (key && !latestDates[key] && record.replaced_at) {
                     latestDates[key] = record.replaced_at;
@@ -92,14 +90,14 @@ export default function OperationsRow() {
             let minDays = Infinity;
             let overdueFiltersCount = 0;
 
-            // Process Filters using FILTER_CONFIG + filter_configs overrides + maintenance_history
-            const processedFilters = FILTER_CONFIG.map(defaultFilter => {
-                const matchedConfig = dbConfigs.find(c => String(c.id) === String(defaultFilter.id));
+            const processedFilters = FILTER_CONFIG.map((defaultFilter) => {
+                const matchedConfig = dbConfigs.find((c) => String(c.id) === String(defaultFilter.id));
                 const totalDays = Number(matchedConfig?.lifespan_days ?? defaultFilter.lifespanDays);
                 const baseName = matchedConfig?.name || defaultFilter.name;
-                const displayName = defaultFilter.pcs > 1 && !baseName.includes('pcs')
-                    ? `${baseName} (${defaultFilter.pcs} pcs)`
-                    : baseName;
+                const displayName =
+                    defaultFilter.pcs > 1 && !baseName.includes('pcs')
+                        ? `${baseName} (${defaultFilter.pcs} pcs)`
+                        : baseName;
 
                 const aliases = LEGACY_FILTER_ALIASES[defaultFilter.id] || [defaultFilter.id];
                 let lastReplacedStr = null;
@@ -111,7 +109,10 @@ export default function OperationsRow() {
                 }
 
                 const lastReplaced = lastReplacedStr ? new Date(lastReplacedStr) : now;
-                const daysPassed = Math.max(0, Math.floor((now.getTime() - lastReplaced.getTime()) / (1000 * 60 * 60 * 24)));
+                const daysPassed = Math.max(
+                    0,
+                    Math.floor((now.getTime() - lastReplaced.getTime()) / (1000 * 60 * 60 * 24))
+                );
                 const currentDays = Math.min(daysPassed, totalDays);
                 const daysLeft = Math.max(0, totalDays - daysPassed);
                 const percentUsed = Math.min(100, Math.max(0, Math.round((daysPassed / totalDays) * 100)));
@@ -131,16 +132,18 @@ export default function OperationsRow() {
                 };
             });
 
-            // Process Vehicles using vehicles table + maintenance_history by vehicle.id
             let overdueVehiclesCount = 0;
-            const processedVehicles = vehiclesList.map(v => {
+            const processedVehicles = vehiclesList.map((v) => {
                 const totalDays = Number(v.lifespan_days || (v.lifespan_months ? v.lifespan_months * 30 : 180));
                 const lastReplacedStr = latestDates[String(v.id)];
                 const lastReplaced = lastReplacedStr
                     ? new Date(lastReplacedStr)
                     : new Date(v.last_serviced_at || v.created_at || now);
 
-                const daysPassed = Math.max(0, Math.floor((now.getTime() - lastReplaced.getTime()) / (1000 * 60 * 60 * 24)));
+                const daysPassed = Math.max(
+                    0,
+                    Math.floor((now.getTime() - lastReplaced.getTime()) / (1000 * 60 * 60 * 24))
+                );
                 const currentDays = Math.min(daysPassed, totalDays);
                 const daysLeft = Math.max(0, totalDays - daysPassed);
                 const percentPassed = Math.min(100, Math.max(0, Math.round((daysPassed / totalDays) * 100)));
@@ -172,65 +175,122 @@ export default function OperationsRow() {
         staleTime: 0
     });
 
-    // 2. Employee Debts
     const { data: rawDebts = [], isLoading: isDebtsLoading } = useDebts();
+
+    const handleApplyPayrollDeduction = useCallback(async (emp) => {
+        const currentRemaining = Math.max(
+            0,
+            Number(emp.remainingDebt) - (Number(deductionsByEmployee[emp.name]) || 0)
+        );
+        if (currentRemaining <= 0) return;
+
+        const applied = Math.min(500, currentRemaining);
+        setDeductionsByEmployee((prev) => ({
+            ...prev,
+            [emp.name]: (Number(prev[emp.name]) || 0) + applied
+        }));
+
+        if (emp.primaryDebtId && user && !user.isDemo) {
+            try {
+                await supabase.from('debt_payments').insert([
+                    {
+                        debt_id: emp.primaryDebtId,
+                        amount_paid: applied,
+                        payment_method: 'Payroll Deduction',
+                        notes: 'Dashboard live ₱500 payroll deduction'
+                    }
+                ]);
+                queryClient.invalidateQueries({ queryKey: ['debts'] });
+            } catch (err) {
+                console.error('Payroll deduction persist failed:', err);
+            }
+        }
+    }, [deductionsByEmployee, user, queryClient]);
+
     const { employeeDebtsList, employeeDebtMetrics } = useMemo(() => {
+        const baseList = [];
         if (!rawDebts || !rawDebts.length) {
             if (user?.isDemo) {
-                return {
-                    employeeDebtsList: [
-                        { name: 'Mark Santos', remainingDebt: 4500, totalPaid: 5500 },
-                        { name: 'Jayson Ramos', remainingDebt: 6000, totalPaid: 2000 },
-                        { name: 'Arnel Dizon', remainingDebt: 4000, totalPaid: 3000 }
-                    ],
-                    employeeDebtMetrics: { totalRemaining: 14500, totalPaid: 10500, activeCount: 3 }
-                };
+                baseList.push(
+                    { name: 'Mark Santos', remainingDebt: 4500, totalPaid: 5500, primaryDebtId: null },
+                    { name: 'Jayson Ramos', remainingDebt: 6000, totalPaid: 2000, primaryDebtId: null },
+                    { name: 'Arnel Dizon', remainingDebt: 4000, totalPaid: 3000, primaryDebtId: null }
+                );
             }
-            return { employeeDebtsList: [], employeeDebtMetrics: { totalRemaining: 0, totalPaid: 0, activeCount: 0 } };
-        }
+        } else {
+            const rawEmployeeDebts = rawDebts.filter((d) => d.type === 'employee');
+            const employeeMap = {};
 
-        const rawEmployeeDebts = rawDebts.filter(d => d.type === 'employee');
-        let grandRemaining = currency(0);
-        let grandPaid = currency(0);
-        const employeeMap = {};
+            rawEmployeeDebts.forEach((debt) => {
+                const rawPayments = debt.debt_payments || [];
+                const debtPayments = rawPayments.filter((p) => {
+                    const pId = p.debt_id ?? p.company_debt_id ?? p.debtId;
+                    return pId !== undefined && pId !== null ? String(pId) === String(debt.id) : true;
+                });
 
-        rawEmployeeDebts.forEach(debt => {
-            const rawPayments = debt.debt_payments || [];
-            const debtPayments = rawPayments.filter(p => {
-                const pId = p.debt_id ?? p.company_debt_id ?? p.debtId;
-                return pId !== undefined && pId !== null ? String(pId) === String(debt.id) : true;
+                const totalPaid = debtPayments.reduce(
+                    (sum, p) => sum.add(currency(p.amount_paid || 0)),
+                    currency(0)
+                ).value;
+                const remainingDebt = currency(debt.total_debt_amount || 0).subtract(totalPaid).value;
+
+                const empName =
+                    debt.employee?.name || debt.employee_name || debt.description || `Staff #${debt.id}`;
+                if (!employeeMap[empName]) {
+                    employeeMap[empName] = {
+                        name: empName,
+                        remainingDebt: currency(0),
+                        totalPaid: currency(0),
+                        primaryDebtId: debt.id
+                    };
+                }
+                employeeMap[empName].remainingDebt = employeeMap[empName].remainingDebt.add(remainingDebt);
+                employeeMap[empName].totalPaid = employeeMap[empName].totalPaid.add(totalPaid);
             });
 
-            const totalPaid = debtPayments.reduce((sum, p) => sum.add(currency(p.amount_paid || 0)), currency(0)).value;
-            const remainingDebt = currency(debt.total_debt_amount || 0).subtract(totalPaid).value;
+            Object.values(employeeMap).forEach((e) => {
+                baseList.push({
+                    name: e.name,
+                    remainingDebt: e.remainingDebt.value,
+                    totalPaid: e.totalPaid.value,
+                    primaryDebtId: e.primaryDebtId
+                });
+            });
+        }
 
-            grandRemaining = grandRemaining.add(remainingDebt);
-            grandPaid = grandPaid.add(totalPaid);
-
-            const empName = debt.employee?.name || debt.employee_name || debt.description || `Staff #${debt.id}`;
-            if (!employeeMap[empName]) {
-                employeeMap[empName] = { name: empName, remainingDebt: currency(0), totalPaid: currency(0) };
-            }
-            employeeMap[empName].remainingDebt = employeeMap[empName].remainingDebt.add(remainingDebt);
-            employeeMap[empName].totalPaid = employeeMap[empName].totalPaid.add(totalPaid);
-        });
-
-        const activeDebtors = Object.values(employeeMap)
-            .map(e => ({ name: e.name, remainingDebt: e.remainingDebt.value, totalPaid: e.totalPaid.value }))
-            .filter(e => e.remainingDebt > 0)
+        const adjusted = baseList
+            .map((e) => {
+                const extraDed = Number(deductionsByEmployee[e.name]) || 0;
+                const nextRemaining = Math.max(0, currency(e.remainingDebt).subtract(extraDed).value);
+                const nextPaid = currency(e.totalPaid).add(extraDed).value;
+                return {
+                    ...e,
+                    remainingDebt: nextRemaining,
+                    totalPaid: nextPaid
+                };
+            })
+            .filter((e) => e.remainingDebt > 0)
             .sort((a, b) => b.remainingDebt - a.remainingDebt);
 
+        const totalRemaining = adjusted.reduce(
+            (sum, e) => sum.add(currency(e.remainingDebt)),
+            currency(0)
+        ).value;
+        const totalPaid = adjusted.reduce(
+            (sum, e) => sum.add(currency(e.totalPaid)),
+            currency(0)
+        ).value;
+
         return {
-            employeeDebtsList: activeDebtors,
+            employeeDebtsList: adjusted,
             employeeDebtMetrics: {
-                totalRemaining: grandRemaining.value,
-                totalPaid: grandPaid.value,
-                activeCount: activeDebtors.length
+                totalRemaining,
+                totalPaid,
+                activeCount: adjusted.length
             }
         };
-    }, [rawDebts, user?.isDemo]);
+    }, [rawDebts, user?.isDemo, deductionsByEmployee]);
 
-    // 3. Customer Acquisition
     const { data: customerAnalytics, isLoading: isCustomersLoading } = useQuery({
         queryKey: ['dashboard-customers-analytics-oct2025', user?.isDemo],
         queryFn: async () => {
@@ -266,7 +326,7 @@ export default function OperationsRow() {
                 let thisMonthCount = 0;
                 let lastMonthCount = 0;
 
-                data.forEach(c => {
+                data.forEach((c) => {
                     if (!c.created_at) return;
                     const ym = String(c.created_at).slice(0, 7);
                     if (ym === curYearMonth) thisMonthCount++;
@@ -280,7 +340,7 @@ export default function OperationsRow() {
                     recentCustomers: data.slice(0, 3)
                 };
             } catch (err) {
-                console.error("Error loading customer acquisition:", err);
+                console.error('Error loading customer acquisition:', err);
                 return { thisMonthAdded: 0, lastMonthAdded: 0, totalSinceOct2025: 0, recentCustomers: [] };
             }
         },
@@ -295,16 +355,16 @@ export default function OperationsRow() {
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
             {/* 1. FILTER & FLEET LIFESPAN */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-100 dark:border-slate-800 shadow-xs flex flex-col justify-between">
+            <div className="seaside-lift-card bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 shadow-2xs flex flex-col justify-between">
                 <div>
                     <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800/60">
+                            <div className="w-8 h-8 rounded-xl bg-emerald-500/12 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">
                                 <Filter className="w-4 h-4 stroke-[2.2]" />
                             </div>
                             <div>
                                 <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-none">
-                                    Filter & Fleet Lifespan
+                                    Filter &amp; Fleet Lifespan
                                 </h4>
                                 <span className="text-[10px] text-slate-400 font-medium">Time Lifespan Countdown</span>
                             </div>
@@ -343,12 +403,10 @@ export default function OperationsRow() {
                             <div className="space-y-2 py-2">
                                 <div className="h-3 bg-slate-100 dark:bg-slate-800 rounded animate-pulse" />
                                 <div className="h-3 bg-slate-100 dark:bg-slate-800 rounded animate-pulse" />
-                                <div className="h-3 bg-slate-100 dark:bg-slate-800 rounded animate-pulse" />
-                                <div className="h-3 bg-slate-100 dark:bg-slate-800 rounded animate-pulse" />
                             </div>
                         ) : (
                             (maintenanceData?.filters || []).map((f) => (
-                                <div key={f.id || f.name} className="space-y-0.5">
+                                <div key={f.id || f.name} data-row-hover="true" className="space-y-0.5 rounded-lg py-0.5">
                                     <div className="flex justify-between items-center text-[10px] sm:text-[11px]">
                                         <span className="font-semibold text-slate-700 dark:text-slate-300 truncate pr-1">{f.name}</span>
                                         <span className={`font-bold shrink-0 ${
@@ -366,7 +424,7 @@ export default function OperationsRow() {
                                                     ? 'bg-rose-500'
                                                     : f.percentUsed >= 85
                                                         ? 'bg-amber-500'
-                                                        : 'bg-[#8DB600]'
+                                                        : 'bg-gradient-to-r from-emerald-500 to-sky-500'
                                             }`}
                                             style={{ width: `${f.percentUsed}%` }}
                                         />
@@ -410,7 +468,7 @@ export default function OperationsRow() {
                                         : `${v.totalDays}-day cycle`;
 
                                     return (
-                                        <div key={v.id || v.name} className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+                                        <div key={v.id || v.name} data-row-hover="true" className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
                                             <div className="flex items-center justify-between text-[10px] mb-1">
                                                 <span className="font-bold text-slate-800 dark:text-slate-200 truncate pr-1">{v.name}</span>
                                                 <span className={`font-black shrink-0 ${
@@ -456,26 +514,26 @@ export default function OperationsRow() {
                 </div>
             </div>
 
-            {/* 2. EMPLOYEE DEBT TO SEASIDE */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-100 dark:border-slate-800 shadow-xs flex flex-col justify-between">
+            {/* 2. EMPLOYEE DEBT TO SEASIDE (WITH LIVE ₱500 PAYROLL DEDUCTION) */}
+            <div className="seaside-lift-card bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 shadow-2xs flex flex-col justify-between">
                 <div>
                     <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800/60">
+                            <div className="w-8 h-8 rounded-xl bg-sky-500/12 dark:bg-sky-950/50 flex items-center justify-center text-sky-600 dark:text-sky-400 border border-sky-500/25">
                                 <Users className="w-4 h-4 stroke-[2.2]" />
                             </div>
                             <div>
                                 <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-none">
                                     Employee Debt to Seaside
                                 </h4>
-                                <span className="text-[10px] text-slate-400 font-medium">Cash Advances & Payroll Balances</span>
+                                <span className="text-[10px] text-slate-400 font-medium">Cash Advances &amp; Payroll Balances</span>
                             </div>
                         </div>
 
                         <button
                             type="button"
                             onClick={() => router.push('/debt-management')}
-                            className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 inline-flex items-center gap-0.5 cursor-pointer"
+                            className="text-[10px] font-bold text-sky-600 hover:text-sky-700 dark:text-sky-400 inline-flex items-center gap-0.5 cursor-pointer"
                         >
                             Manage <ChevronRight className="w-3 h-3" />
                         </button>
@@ -512,7 +570,7 @@ export default function OperationsRow() {
                     <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800">
                         <div className="flex items-center justify-between text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1.5">
                             <span>Active Debtors</span>
-                            <span>Current Debt</span>
+                            <span>Balance &amp; Payroll</span>
                         </div>
 
                         {isDebtsLoading ? (
@@ -527,18 +585,29 @@ export default function OperationsRow() {
                         ) : (
                             <div className="space-y-1.5 max-h-[140px] sm:max-h-[155px] overflow-y-auto pr-1 [scrollbar-width:thin]">
                                 {employeeDebtsList.map((emp) => (
-                                    <div key={emp.name} className="flex items-center justify-between p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 text-xs">
-                                        <div className="min-w-0 pr-2">
+                                    <div key={emp.name} data-row-hover="true" className="flex items-center justify-between gap-2 p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 text-xs">
+                                        <div className="min-w-0">
                                             <span className="font-bold text-slate-800 dark:text-slate-200 block truncate leading-tight">{emp.name}</span>
                                             <span className="text-[10px] text-slate-400 font-medium block mt-0.5">
                                                 Paid: ₱{Number(emp.totalPaid).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                             </span>
                                         </div>
-                                        <div className="text-right shrink-0">
-                                            <span className="font-black text-rose-600 dark:text-rose-400 text-xs block">
-                                                ₱{Number(emp.remainingDebt).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                                            </span>
-                                            <span className="text-[9px] text-slate-400 font-semibold block">Unpaid</span>
+                                        <div className="flex items-center gap-2 shrink-0">
+                                            <div className="text-right">
+                                                <span className="font-black text-rose-600 dark:text-rose-400 text-xs block">
+                                                    ₱{Number(emp.remainingDebt).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                </span>
+                                                <span className="text-[9px] text-slate-400 font-semibold block">Unpaid</span>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleApplyPayrollDeduction(emp)}
+                                                title={`Deduct ₱500 from ${emp.name}'s balance`}
+                                                className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-500/12 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-[10px] font-extrabold transition-colors cursor-pointer"
+                                            >
+                                                <MinusCircle className="w-3 h-3 shrink-0" />
+                                                <span>-₱500</span>
+                                            </button>
                                         </div>
                                     </div>
                                 ))}
@@ -548,17 +617,17 @@ export default function OperationsRow() {
                 </div>
 
                 <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10px] text-slate-400">
-                    <span>Salary Deductions: Auto-Linked</span>
-                    <span className="font-semibold text-slate-600 dark:text-slate-300">Staff Advances</span>
+                    <span>Salary Deductions: ₱500 Live</span>
+                    <span className="font-semibold text-emerald-600 dark:text-emerald-400">Staff Advances</span>
                 </div>
             </div>
 
             {/* 3. CUSTOMER ACQUISITION (Since Oct 2025) */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-100 dark:border-slate-800 shadow-xs flex flex-col justify-between md:col-span-2 lg:col-span-1">
+            <div className="seaside-lift-card bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 shadow-2xs flex flex-col justify-between md:col-span-2 lg:col-span-1">
                 <div>
                     <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800/60">
+                            <div className="w-8 h-8 rounded-xl bg-emerald-500/12 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">
                                 <UserPlus className="w-4 h-4 stroke-[2.2]" />
                             </div>
                             <div>
@@ -572,7 +641,7 @@ export default function OperationsRow() {
                         <button
                             type="button"
                             onClick={() => router.push('/customer-management')}
-                            className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 inline-flex items-center gap-0.5 cursor-pointer"
+                            className="text-[10px] font-bold text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 inline-flex items-center gap-0.5 cursor-pointer"
                         >
                             Manage <ChevronRight className="w-3 h-3" />
                         </button>
@@ -582,7 +651,7 @@ export default function OperationsRow() {
                         <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
                             <span className="text-[10px] font-bold uppercase text-slate-400 block tracking-wider">Added This Month</span>
                             <div className="flex items-baseline gap-1 mt-0.5">
-                                <span className="text-xl font-black text-indigo-600 dark:text-indigo-400">
+                                <span className="text-xl font-black text-emerald-600 dark:text-emerald-400">
                                     +{customerAnalytics?.thisMonthAdded || 0}
                                 </span>
                                 <span className="text-[10px] text-slate-400 font-semibold">clients</span>
@@ -616,7 +685,7 @@ export default function OperationsRow() {
                         ) : (
                             <div className="space-y-1.5">
                                 {customerAnalytics.recentCustomers.map((c) => (
-                                    <div key={c.id} className="flex items-center justify-between p-1.5 px-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 text-[11px]">
+                                    <div key={c.id} data-row-hover="true" className="flex items-center justify-between p-1.5 px-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 text-[11px]">
                                         <div className="min-w-0 pr-2">
                                             <span className="font-bold text-slate-800 dark:text-slate-200 block truncate leading-tight">{c.name}</span>
                                             <span className="text-[9px] text-slate-400 flex items-center gap-0.5 truncate mt-0.5">
@@ -636,7 +705,7 @@ export default function OperationsRow() {
 
                 <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10px] text-slate-400">
                     <span>Station CRM Database</span>
-                    <span className="font-semibold text-indigo-600 dark:text-indigo-400">Live Sync</span>
+                    <span className="font-semibold text-sky-600 dark:text-sky-400">Live Sync</span>
                 </div>
             </div>
         </div>

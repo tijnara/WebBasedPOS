@@ -1,7 +1,7 @@
 // src/components/dashboard/PeriodComparisonCard.jsx
 import React, { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
-import './chartSetup'; // Registers CategoryScale, LinearScale, BarElement
+import './chartSetup';
 import { Card, CardHeader, CardContent } from '../ui';
 import { BarChart3 } from 'lucide-react';
 
@@ -93,24 +93,24 @@ export default function PeriodComparisonCard({ monthlyGrowthData, weeklyGrowthDa
     };
 
     return (
-        <Card className="h-full shadow-xs flex flex-col bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl">
+        <Card className="h-full shadow-2xs flex flex-col bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl">
             <CardHeader className="bg-transparent pb-0 flex flex-row items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <BarChart3 className="w-4 h-4 text-emerald-600" />
+                    <BarChart3 className="w-4 h-4 text-sky-600 dark:text-sky-400" />
                     <h3 className="font-bold text-slate-800 dark:text-white text-base">Period Comparison</h3>
                 </div>
                 <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg text-xs">
                     <button
                         type="button"
                         onClick={() => setPeriodGraphMode('revenue')}
-                        className={`px-2.5 py-1 rounded-md font-bold transition-all ${periodGraphMode === 'revenue' ? 'bg-white dark:bg-slate-900 text-emerald-600 shadow-2xs' : 'text-slate-500 hover:text-slate-800'}`}
+                        className={`px-2.5 py-1 rounded-md font-bold transition-all cursor-pointer ${periodGraphMode === 'revenue' ? 'bg-white dark:bg-slate-900 text-emerald-600 shadow-2xs' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}
                     >
                         Revenue
                     </button>
                     <button
                         type="button"
                         onClick={() => setPeriodGraphMode('gallons')}
-                        className={`px-2.5 py-1 rounded-md font-bold transition-all ${periodGraphMode === 'gallons' ? 'bg-white dark:bg-slate-900 text-sky-600 shadow-2xs' : 'text-slate-500 hover:text-slate-800'}`}
+                        className={`px-2.5 py-1 rounded-md font-bold transition-all cursor-pointer ${periodGraphMode === 'gallons' ? 'bg-white dark:bg-slate-900 text-sky-600 shadow-2xs' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}
                     >
                         Gallons
                     </button>
