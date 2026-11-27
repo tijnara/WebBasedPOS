@@ -33,6 +33,7 @@ import EmployeeDebtForm from '../debts/EmployeeDebtForm';
 import DebtRegistryTable from '../debts/DebtRegistryTable';
 import DebtPaymentModal from '../debts/DebtPaymentModal';
 import EditDebtModal from '../debts/EditDebtModal';
+import DebtManagementTour from '../debts/DebtManagementTour';
 
 const getManilaDateStr = (dateObj = new Date()) => {
     try {
@@ -1036,7 +1037,10 @@ export default function DebtManagementPage() {
                 </div>
 
                 {/* Segmented Top Switcher */}
-                <div className="flex bg-slate-100 dark:bg-slate-800/90 p-1 rounded-xl sm:rounded-2xl w-full sm:w-auto border border-slate-200/80 dark:border-slate-700/80 shadow-2xs">
+                <div
+                    id="tour-debt-switcher"
+                    className="flex bg-slate-100 dark:bg-slate-800/90 p-1 rounded-xl sm:rounded-2xl w-full sm:w-auto border border-slate-200/80 dark:border-slate-700/80 shadow-2xs"
+                >
                     <button
                         type="button"
                         onClick={() => { setActiveTab('company'); setStatusFilter('active'); }}
@@ -1065,13 +1069,15 @@ export default function DebtManagementPage() {
             </div>
 
             {/* KPI Summary Cards */}
-            <DebtMetricsCards metrics={currentMetrics} activeTab={activeTab} />
+            <div id="tour-debt-metrics">
+                <DebtMetricsCards metrics={currentMetrics} activeTab={activeTab} />
+            </div>
 
             {/* Main Section */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-2.5 sm:gap-6 items-start">
                 {/* Left Column: Form (Enabled for Admin) */}
                 {isAdmin && (
-                    <div className="lg:col-span-4 space-y-2.5 sm:space-y-4">
+                    <div id="tour-debt-form" className="lg:col-span-4 space-y-2.5 sm:space-y-4">
                         {activeTab === 'company' ? (
                             <CompanyDebtForm
                                 onSubmit={handleCreateDebt}
@@ -1092,7 +1098,10 @@ export default function DebtManagementPage() {
 
                 {/* Right Column: Registry Table, Quick Ledger Strip & Filters */}
                 <div className={`${isAdmin ? 'lg:col-span-8' : 'lg:col-span-12'} space-y-2.5 sm:space-y-4`}>
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-3 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-2xs transition-colors">
+                    <div
+                        id="tour-debt-filters"
+                        className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-3 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-2xs transition-colors"
+                    >
                         <div className="text-xs font-bold text-slate-700 dark:text-slate-300">
                             {activeTab === 'company' ? 'Company Liability Registry' : 'Employee Liability Registry'}
                         </div>
@@ -1151,7 +1160,10 @@ export default function DebtManagementPage() {
 
                     {/* Quick Debt Ledger Access Strip */}
                     {displayedDebts.length > 0 && (
-                        <div className="p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-indigo-50/50 dark:bg-slate-900/90 border border-indigo-200/60 dark:border-slate-800 flex flex-wrap items-center gap-1.5">
+                        <div
+                            id="tour-debt-ledgers"
+                            className="p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-indigo-50/50 dark:bg-slate-900/90 border border-indigo-200/60 dark:border-slate-800 flex flex-wrap items-center gap-1.5"
+                        >
                             <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold text-indigo-700 dark:text-indigo-300 mr-1">
                                 <History className="w-3.5 h-3.5 shrink-0" />
                                 <span>{isAdmin ? 'Manage Debt History Ledgers:' : 'Debt History Ledgers:'}</span>
@@ -1182,7 +1194,10 @@ export default function DebtManagementPage() {
                         </div>
                     )}
 
-                    <Card className="border border-slate-200/90 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl overflow-hidden transition-colors">
+                    <Card
+                        id="tour-debt-registry"
+                        className="border border-slate-200/90 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl overflow-hidden transition-colors"
+                    >
                         <CardContent className="p-0">
                             <DebtRegistryTable
                                 data={displayedDebts}
@@ -1665,6 +1680,8 @@ export default function DebtManagementPage() {
                     </div>,
                     document.body
                 )}
+
+            <DebtManagementTour isDataLoading={isLoading} isAdmin={isAdmin} />
         </div>
     );
 }
