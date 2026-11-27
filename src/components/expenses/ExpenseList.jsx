@@ -1,5 +1,5 @@
 // src/components/expenses/ExpenseList.jsx
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import currency from 'currency.js';
 import { format, parseISO } from 'date-fns';
 import { Receipt, Edit, Trash2, XCircle, Clock, Layers, ChevronLeft, ChevronRight, X } from 'lucide-react';
@@ -32,11 +32,23 @@ export default function ExpenseList({
                                         handlePrevPage,
                                         handleNextPage
                                     }) {
-    const selectedSet = new Set(selectedExpenseIds);
-    const allVisibleSelected =
-        Array.isArray(validExpenses) &&
-        validExpenses.length > 0 &&
-        validExpenses.every((exp) => selectedSet.has(exp.id));
+    const selectedSet = useMemo(() => new Set(selectedExpenseIds), [selectedExpenseIds]);
+
+    const allVisibleSelected = useMemo(
+        () =>
+            Array.isArray(validExpenses) &&
+            validExpenses.length > 0 &&
+            validExpenses.every((exp) => selectedSet.has(exp.id)),
+        [validExpenses, selectedSet]
+    );
+
+    const selectedTotalSum = useMemo(() => {
+        if (!Array.isArray(validExpenses) || selectedSet.size === 0) return 0;
+        return validExpenses.reduce((sum, exp) => {
+            if (!selectedSet.has(exp.id)) return sum;
+            return sum + (Number(exp.amount) || 0);
+        }, 0);
+    }, [validExpenses, selectedSet]);
 
     const handleToggleGroupSelect = useCallback(
         (groupExpenses = []) => {
@@ -117,20 +129,33 @@ export default function ExpenseList({
                 </div>
             </div>
 
-            {/* Bulk Selection & Mass Delete Toolbar */}
+            {/* Bulk Selection & Live Checked Sum Toolbar */}
             {!isLoading && Array.isArray(validExpenses) && validExpenses.length > 0 && (
                 <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 mb-3 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-700/80 text-xs">
-                    <label className="inline-flex items-center gap-2 font-bold text-slate-700 dark:text-slate-200 cursor-pointer select-none">
-                        <input
-                            type="checkbox"
-                            checked={allVisibleSelected}
-                            onChange={onToggleSelectAllExpenses}
-                            disabled={isBulkDeleting || isDemo}
-                            className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-[#8DB600] focus:ring-[#8DB600] cursor-pointer"
-                            aria-label="Select all expenses"
-                        />
-                        <span>Select All ({validExpenses.length})</span>
-                    </label>
+                    <div className="flex items-center gap-3 flex-wrap">
+                        <label className="inline-flex items-center gap-2 font-bold text-slate-700 dark:text-slate-200 cursor-pointer select-none">
+                            <input
+                                type="checkbox"
+                                checked={allVisibleSelected}
+                                onChange={onToggleSelectAllExpenses}
+                                disabled={isBulkDeleting || isDemo}
+                                className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-[#8DB600] focus:ring-[#8DB600] cursor-pointer"
+                                aria-label="Select all expenses"
+                            />
+                            <span>Select All ({validExpenses.length})</span>
+                        </label>
+
+                        {selectedExpenseIds.length > 0 && (
+                            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-50 dark:bg-rose-950/50 border border-rose-200/80 dark:border-rose-800/60">
+                                <span className="text-[10px] font-extrabold uppercase tracking-wider text-rose-700 dark:text-rose-300">
+                                    Checked ({selectedExpenseIds.length}):
+                                </span>
+                                <span className="font-mono font-black text-xs text-rose-600 dark:text-rose-400">
+                                    {currency(selectedTotalSum, { symbol: '₱' }).format()}
+                                </span>
+                            </div>
+                        )}
+                    </div>
 
                     {selectedExpenseIds.length > 0 && (
                         <div className="flex items-center gap-1.5">
@@ -154,7 +179,7 @@ export default function ExpenseList({
                                 <span>
                                     {isBulkDeleting
                                         ? 'Deleting...'
-                                        : `Delete Selected (${selectedExpenseIds.length})`}
+                                        : `Delete (${selectedExpenseIds.length})`}
                                 </span>
                             </button>
                         </div>
@@ -173,6 +198,10 @@ export default function ExpenseList({
                             groupIds.length > 0 && checkedInGroupCount === groupIds.length;
                         const someGroupSelected =
                             checkedInGroupCount > 0 && checkedInGroupCount < groupIds.length;
+                        const groupCheckedSum = (groupExpenses || []).reduce((sum, exp) => {
+                            if (!selectedSet.has(exp.id)) return sum;
+                            return sum + (Number(exp.amount) || 0);
+                        }, 0);
 
                         return (
                             <div key={groupTitle}>
@@ -193,7 +222,7 @@ export default function ExpenseList({
                                     </label>
                                     <span className="text-[11px] font-mono font-bold text-text-muted shrink-0">
                                         {checkedInGroupCount > 0
-                                            ? `${checkedInGroupCount}/${groupIds.length}`
+                                            ? `${currency(groupCheckedSum, { symbol: '₱' }).format()} (${checkedInGroupCount}/${groupIds.length})`
                                             : `${groupIds.length}`}
                                     </span>
                                 </div>
