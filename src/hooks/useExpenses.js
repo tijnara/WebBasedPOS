@@ -26,6 +26,11 @@ const getManilaEndOfDay = (dateStr) => {
     return date.toISOString();
 };
 
+const parseRecurringDay = (value) => {
+    const parsed = Number.parseInt(String(value ?? 1), 10);
+    return Number.isInteger(parsed) && parsed >= 0 && parsed <= 6 ? parsed : 1;
+};
+
 export function useExpenses({ startDate, endDate, page = 1, pageSize = 20, searchTerm = '', category = 'All', employeeName = 'all' } = {}) {
     return useQuery({
         queryKey: [...EXPENSES_KEY, startDate, endDate, page, pageSize, searchTerm, category, employeeName],
@@ -103,13 +108,12 @@ export function useCreateExpense() {
                 category: expenseData.category,
                 description: expenseData.description,
                 expense_date: normalizedIso,
-                created_by: user?.id || null,
+                created_by: expenseData.created_by ?? user?.id ?? null,
                 employee_name: expenseData.employee_name || null
             };
             const { error } = await supabase.from('expenses').insert([payload]);
             if (error) throw error;
 
-            // --- Log Activity ---
             const currentUser = useStore.getState().user;
             logActivity({
                 user: currentUser,
@@ -130,7 +134,6 @@ export function useExpenseSummary(dateFrom, dateTo, selectedMonth) {
     return useQuery({
         queryKey: ['expense-summary', dateFrom, dateTo, selectedMonth],
         queryFn: async () => {
-            // 1. All time (Restricted to April 20, 2026 onwards in Asia/Manila)
             const { data: allTimeData, error: allTimeError } = await supabase
                 .from('expenses')
                 .select('amount')
@@ -139,7 +142,6 @@ export function useExpenseSummary(dateFrom, dateTo, selectedMonth) {
             if (allTimeError) throw allTimeError;
             const grandTotal = allTimeData?.reduce((acc, curr) => acc + Number(curr.amount), 0) || 0;
 
-            // 2. Selected Month
             let monthlyTotal = 0;
             if (selectedMonth) {
                 const [year, month] = selectedMonth.split('-');
@@ -158,7 +160,6 @@ export function useExpenseSummary(dateFrom, dateTo, selectedMonth) {
                 monthlyTotal = monthData?.reduce((acc, curr) => acc + Number(curr.amount), 0) || 0;
             }
 
-            // 3. Selected Period
             let weeklyTotal = 0;
             if (dateFrom && dateTo) {
                 const { data: weekData, error: weekError } = await supabase
@@ -208,12 +209,11 @@ export function useCreateExpenseCategory() {
                 default_description: default_description || null,
                 is_recurring: !!is_recurring,
                 is_recurring_daily: !!is_recurring_daily,
-                recurring_day: parseInt(recurring_day, 10) || 1,
+                recurring_day: parseRecurringDay(recurring_day),
                 created_by: user?.id || null
             }]);
             if (error) throw error;
 
-            // --- Log Activity ---
             const currentUser = useStore.getState().user;
             logActivity({
                 user: currentUser,
@@ -242,12 +242,11 @@ export function useUpdateExpenseCategory() {
                     default_description: default_description || null,
                     is_recurring: !!is_recurring,
                     is_recurring_daily: !!is_recurring_daily,
-                    recurring_day: parseInt(recurring_day, 10) || 1
+                    recurring_day: parseRecurringDay(recurring_day)
                 })
                 .eq('id', id);
             if (error) throw error;
 
-            // --- Log Activity ---
             const currentUser = useStore.getState().user;
             logActivity({
                 user: currentUser,
@@ -285,7 +284,6 @@ export function useUpdateExpense() {
                 .eq('id', id);
             if (error) throw error;
 
-            // --- Log Activity ---
             const currentUser = useStore.getState().user;
             logActivity({
                 user: currentUser,
@@ -307,7 +305,6 @@ export function useDeleteExpense() {
 
     return useMutation({
         mutationFn: async (id) => {
-            // Fetch expense details first for the log
             const { data: expenseToDelete } = await supabase
                 .from('expenses')
                 .select('category, amount, description')
@@ -317,7 +314,6 @@ export function useDeleteExpense() {
             const { error } = await supabase.from('expenses').delete().eq('id', id);
             if (error) throw error;
 
-            // --- Log Activity ---
             if (expenseToDelete) {
                 const currentUser = useStore.getState().user;
                 logActivity({

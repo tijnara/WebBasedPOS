@@ -105,7 +105,7 @@ export default function ExpensesProductTour({
                 targetId: null,
                 title: '💸 Expenses & Financial Performance Guide',
                 description:
-                    'Track gross vs. net margins, log payouts and utilities, filter expenses, and review period totals—press Esc anytime to exit.',
+                    'Track gross vs. net margins in Manila time, log payouts and recurring utilities, sum and bulk-delete selected expenses, and review period totals—press Esc anytime to exit.',
                 side: 'bottom',
                 tab: null
             },
@@ -114,7 +114,7 @@ export default function ExpensesProductTour({
                 targetId: 'tour-exp-mobile-tabs',
                 title: '1. Mobile View Switcher',
                 description:
-                    'Switch between "Receipts & Add" for logging/filtering expenses and "Analytics & Margins" for weekly and monthly charts.',
+                    'Switch between "Receipts & Add" for logging/filtering/bulk-deleting expenses and "Analytics & Margins" for weekly and monthly charts.',
                 side: 'bottom',
                 tab: null
             },
@@ -141,7 +141,7 @@ export default function ExpensesProductTour({
                 targetId: 'tour-exp-form',
                 title: isDesktop ? '3. Quick Add Expense' : '4. Quick Add Expense',
                 description:
-                    'Enter amount, date, category (or add/edit categories), employee name when applicable, and description to log an expense.',
+                    'Enter amount, Manila date, category (or add/edit daily or weekly recurring categories), employee name when applicable, and description to log an expense.',
                 side: 'bottom',
                 tab: 'operations'
             },
@@ -157,9 +157,9 @@ export default function ExpensesProductTour({
             {
                 id: 'exp-list',
                 targetId: 'tour-exp-list',
-                title: isDesktop ? '5. List of Expenses' : '6. List of Expenses',
+                title: isDesktop ? '5. List of Expenses & Bulk Actions' : '6. List of Expenses & Bulk Actions',
                 description:
-                    'Group entries by date or category, edit or delete transactions, skip recurring items with a reason, and page through weeks.',
+                    'Check individual items or each day/group header to add up checked amounts live and bulk-delete selections, group by date or category, skip recurring items, and page through weeks (deleted recurring items re-sync once).',
                 side: 'top',
                 tab: 'operations'
             }
@@ -249,7 +249,7 @@ export default function ExpensesProductTour({
         };
     }, [isExpensesLoading, hasAutoTriggered]);
 
-    // Switch mobile tab when needed, center target in view, and measure
+    // Switch mobile tab when needed, scroll each visible target to center, and measure bounding box
     useEffect(() => {
         if (!isOpen || typeof window === 'undefined') {
             setTargetRect(null);

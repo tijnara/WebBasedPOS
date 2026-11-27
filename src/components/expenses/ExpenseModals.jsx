@@ -1,4 +1,4 @@
-// C:\Users\UserT\WebstormProjects\WebBasedPOS\src\components\expenses\ExpenseModals.jsx
+// src/components/expenses/ExpenseModals.jsx
 import React from 'react';
 import { Plus, AlertTriangle } from 'lucide-react';
 
@@ -93,7 +93,7 @@ export default function ExpenseModals({
                                             value={catForm.recurring_day ?? 1}
                                             onChange={(e) => setCatForm(prev => ({
                                                 ...prev,
-                                                recurring_day: parseInt(e.target.value),
+                                                recurring_day: parseInt(e.target.value, 10),
                                                 is_recurring: true,
                                                 is_recurring_daily: false
                                             }))}
@@ -133,12 +133,14 @@ export default function ExpenseModals({
 
                             <div className="pt-2 flex gap-3">
                                 <button
+                                    type="button"
                                     onClick={() => setShowCategoryModal(false)}
                                     className="btn flex-1 h-10 bg-gray-100 border border-gray-200 text-gray-700 hover:bg-gray-200 text-sm font-semibold"
                                 >
                                     Cancel
                                 </button>
                                 <button
+                                    type="button"
                                     onClick={handleSaveCategory}
                                     disabled={isCategoryPending || !catForm.name.trim() || isDemo}
                                     className="btn btn--primary flex-1 h-10 text-sm"
@@ -184,12 +186,14 @@ export default function ExpenseModals({
                         </div>
                         <div className="p-4 bg-background flex gap-3">
                             <button
+                                type="button"
                                 onClick={() => setReasonModal({ show: false, expense: null })}
                                 className="btn flex-1 bg-surface text-text-muted font-semibold"
                             >
                                 Cancel
                             </button>
                             <button
+                                type="button"
                                 onClick={handleConfirmSkip}
                                 disabled={!reasonText.trim() || isDemo}
                                 className="btn flex-1 bg-orange-600 text-black font-bold disabled:opacity-50"

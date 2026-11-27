@@ -48,7 +48,6 @@ const formatPeso = (val) => currency(Number(val) || 0, { symbol: '₱', precisio
 
 const getManilaWeekBounds = (dateObj = new Date()) => {
     const manila = getManilaNowParts(dateObj);
-    // Monday = 1, Sunday = 0 -> days since Monday in Manila
     const daysSinceMonday = (manila.dayOfWeek + 6) % 7;
     const mondayUtc = new Date(Date.UTC(manila.year, manila.month - 1, manila.day - daysSinceMonday));
     const sundayUtc = new Date(Date.UTC(manila.year, manila.month - 1, manila.day - daysSinceMonday + 6));
@@ -61,6 +60,8 @@ const getManilaWeekBounds = (dateObj = new Date()) => {
 
 const isExcludedMaintenanceCategory = (catName) =>
     String(catName || '').trim().toLowerCase() === 'maintenance';
+
+const EMPTY_EXPENSES = [];
 
 export default function ExpensesPage() {
     const queryClient = useQueryClient();
@@ -108,7 +109,7 @@ export default function ExpensesPage() {
     const fetchStart = dateFrom ? format(subDays(parseISO(`${dateFrom}T12:00:00+08:00`), 1), 'yyyy-MM-dd') : undefined;
     const fetchEnd = dateTo ? format(addDays(parseISO(`${dateTo}T12:00:00+08:00`), 1), 'yyyy-MM-dd') : undefined;
 
-    const { data: { expenses = [] } = {}, isLoading, isFetching } = useExpenses({
+    const { data: expensesQueryData, isLoading, isFetching } = useExpenses({
         startDate: fetchStart,
         endDate: fetchEnd,
         page: 1,
@@ -117,6 +118,20 @@ export default function ExpensesPage() {
         category: filterCategory,
         employeeName: filterEmployee
     });
+
+    const rawExpenses = expensesQueryData?.expenses || EMPTY_EXPENSES;
+    const expensesSignature = useMemo(
+        () =>
+            rawExpenses
+                .map((e) => `${e.id}:${e.amount}:${e.expense_date}:${e.category}:${e.description}`)
+                .join('|'),
+        [rawExpenses]
+    );
+    const expenses = useMemo(
+        () => rawExpenses,
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [expensesSignature]
+    );
 
     const { data: summary } = useExpenseSummary(fetchStart, fetchEnd, selectedMonth);
     const { data: rawCategories = [] } = useExpenseCategories();
@@ -148,7 +163,7 @@ export default function ExpensesPage() {
     });
 
     const { validExpenses, localTotalSum, localTotalCount } = useMemo(() => {
-        if (!expenses || expenses.length === 0) return { validExpenses: [], localTotalSum: 0, localTotalCount: 0 };
+        if (!expenses || expenses.length === 0) return { validExpenses: EMPTY_EXPENSES, localTotalSum: 0, localTotalCount: 0 };
         const start = new Date(`${dateFrom}T00:00:00+08:00`);
         const end = new Date(`${dateTo}T23:59:59.999+08:00`);
         const valid = expenses.filter(exp => {
@@ -164,10 +179,14 @@ export default function ExpensesPage() {
         return { validExpenses: valid, localTotalSum: sum, localTotalCount: valid.length };
     }, [expenses, dateFrom, dateTo]);
 
-    // Prune selected IDs that are no longer in the visible expense list
+    // Prune selected IDs only when a previously selected ID is no longer visible
     useEffect(() => {
-        const visibleIds = new Set(validExpenses.map((e) => e.id));
-        setSelectedExpenseIds((prev) => prev.filter((id) => visibleIds.has(id)));
+        setSelectedExpenseIds((prev) => {
+            if (!prev.length) return prev;
+            const visibleIds = new Set(validExpenses.map((e) => e.id));
+            const next = prev.filter((id) => visibleIds.has(id));
+            return next.length === prev.length ? prev : next;
+        });
     }, [validExpenses]);
 
     const weekGrossSales = salesSummary?.totalRevenue || 0;
@@ -425,7 +444,6 @@ export default function ExpensesPage() {
 
         const capitalizedDescription = capitalizeWords(description);
 
-        // Accurate Asia/Manila (+08:00) timestamp
         const manilaNow = getManilaNowParts(new Date());
         const localISOString = `${expenseDate}T${manilaNow.hour}:${manilaNow.minute}:${manilaNow.second}+08:00`;
         const exactCreatedAt = new Date().toISOString();
@@ -560,7 +578,6 @@ export default function ExpensesPage() {
         <div className="expenses-page w-full min-h-screen bg-background px-1.5 pt-2 pb-32 sm:px-6 sm:pt-6 sm:pb-32 lg:p-8 md:pb-8 dark:[color-scheme:dark]">
             <Head><title>Expenses &amp; Financial Performance | Seaside POS</title></Head>
 
-            {/* Ensure full mobile bottom dock clearance (< 768px) & edge-to-edge fit (< 640px) */}
             <style jsx global>{`
                 @media (max-width: 767px) {
                     .app:has(.expenses-page) .main,

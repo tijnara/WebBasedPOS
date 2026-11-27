@@ -72,10 +72,27 @@ export function getManilaDateString(dateObj = new Date()) {
     return getManilaNowParts(dateObj).dateStr;
 }
 
-function getManilaDateDaysAgo(days, baseDateStr) {
-    const [y, m, d] = baseDateStr.split('-').map(Number);
-    const utcDate = new Date(Date.UTC(y, m - 1, d - days));
-    return utcDate.toISOString().slice(0, 10);
+// Monday = 1 .. Saturday = 6, Sunday = 0 (last day of the week)
+function getManilaWeekDateForDay(recurringDay, manilaNow) {
+    const normalizedTarget =
+        Number.isInteger(Number(recurringDay)) && Number(recurringDay) >= 0 && Number(recurringDay) <= 6
+            ? Number(recurringDay)
+            : 1;
+
+    const offsetFromMonday = (normalizedTarget + 6) % 7; // Mon -> 0 .. Sat -> 5, Sun -> 6
+    const daysSinceMonday = (manilaNow.dayOfWeek + 6) % 7;
+    const mondayUtc = new Date(
+        Date.UTC(manilaNow.year, manilaNow.month - 1, manilaNow.day - daysSinceMonday)
+    );
+    const targetUtc = new Date(
+        Date.UTC(
+            mondayUtc.getUTCFullYear(),
+            mondayUtc.getUTCMonth(),
+            mondayUtc.getUTCDate() + offsetFromMonday
+        )
+    );
+
+    return targetUtc.toISOString().slice(0, 10);
 }
 
 function hasSyncedMarker(key) {
@@ -203,7 +220,6 @@ export function useAutoSyncExpenses({
 
                 const manilaNow = getManilaNowParts(new Date());
                 const todayStr = manilaNow.dateStr;
-                const todayDay = manilaNow.dayOfWeek;
 
                 const recurringDailyCategories = eligibleCategories.filter((cat) => Boolean(cat.is_recurring_daily));
                 let dailyCount = 0;
@@ -242,11 +258,7 @@ export function useAutoSyncExpenses({
                     const categoriesByDate = {};
 
                     recurringWeeklyCategories.forEach((cat) => {
-                        const targetDay = Number(cat.recurring_day ?? 1);
-                        const daysAgo = (todayDay + 7 - targetDay) % 7;
-                        const targetDateStr =
-                            daysAgo === 0 ? todayStr : getManilaDateDaysAgo(daysAgo, todayStr);
-
+                        const targetDateStr = getManilaWeekDateForDay(cat.recurring_day ?? 1, manilaNow);
                         if (!categoriesByDate[targetDateStr]) {
                             categoriesByDate[targetDateStr] = [];
                         }
