@@ -1,8 +1,8 @@
 // src/components/pages/ExpensesPage.jsx
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import Head from 'next/head';
 import currency from 'currency.js';
-import { startOfWeek, endOfWeek, parseISO, format, subWeeks, addWeeks, subDays, addDays } from 'date-fns';
+import { parseISO, format, subWeeks, addWeeks, subDays, addDays } from 'date-fns';
 import { Utensils, Car, ShoppingBag, Zap, Receipt, BarChart3 } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import { useQueryClient } from '@tanstack/react-query';
@@ -16,7 +16,12 @@ import {
 import { useEmployees } from '../../hooks/useEmployees';
 import { useSalesSummary } from '../../hooks/useSalesSummary';
 import { useDebounce } from '../../hooks/useDebounce';
-import { useAutoSyncExpenses } from '../../hooks/useAutoSyncExpenses';
+import {
+    useAutoSyncExpenses,
+    clearAutoSyncMarkersForExpense,
+    getManilaNowParts,
+    getManilaDateString
+} from '../../hooks/useAutoSyncExpenses';
 import { useMonthlyComparison } from '../../hooks/useMonthlyComparison';
 import { useWeeklyComparison } from '../../hooks/useWeeklyComparison';
 
@@ -41,17 +46,17 @@ const capitalizeWords = (str) => {
 
 const formatPeso = (val) => currency(Number(val) || 0, { symbol: '₱', precision: 2 }).format();
 
-const getManilaDateStr = (dateObj = new Date()) => {
-    try {
-        return new Intl.DateTimeFormat('en-CA', {
-            timeZone: 'Asia/Manila',
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit'
-        }).format(dateObj);
-    } catch {
-        return format(dateObj, 'yyyy-MM-dd');
-    }
+const getManilaWeekBounds = (dateObj = new Date()) => {
+    const manila = getManilaNowParts(dateObj);
+    // Monday = 1, Sunday = 0 -> days since Monday in Manila
+    const daysSinceMonday = (manila.dayOfWeek + 6) % 7;
+    const mondayUtc = new Date(Date.UTC(manila.year, manila.month - 1, manila.day - daysSinceMonday));
+    const sundayUtc = new Date(Date.UTC(manila.year, manila.month - 1, manila.day - daysSinceMonday + 6));
+    return {
+        todayStr: manila.dateStr,
+        weekStartStr: mondayUtc.toISOString().slice(0, 10),
+        weekEndStr: sundayUtc.toISOString().slice(0, 10)
+    };
 };
 
 const isExcludedMaintenanceCategory = (catName) =>
@@ -63,10 +68,15 @@ export default function ExpensesPage() {
     const addToast = useStore((s) => s.addToast);
     const isDemo = Boolean(user?.isDemo);
 
-    const todayStr = getManilaDateStr(new Date());
-    const manilaNow = new Date(`${todayStr}T12:00:00+08:00`);
-    const initialDateFrom = format(startOfWeek(manilaNow, { weekStartsOn: 1 }), 'yyyy-MM-dd');
-    const initialDateTo = format(endOfWeek(manilaNow, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+    const { todayStr, initialDateFrom, initialDateTo } = useMemo(() => {
+        const bounds = getManilaWeekBounds(new Date());
+        return {
+            todayStr: bounds.todayStr,
+            initialDateFrom: bounds.weekStartStr,
+            initialDateTo: bounds.weekEndStr
+        };
+    }, []);
+
     const initialSearchTerm = '';
     const initialFilterCategory = 'All';
     const initialFilterEmployee = 'all';
@@ -83,13 +93,20 @@ export default function ExpensesPage() {
     const [groupBy, setGroupBy] = useState('date');
     const debouncedSearch = useDebounce(searchTerm, 400);
 
+    // Bulk selection state for mass expense deletions
+    const [selectedExpenseIds, setSelectedExpenseIds] = useState([]);
+    const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+
+    // Trigger counter to re-run recurring auto-sync once after deletions
+    const [syncTick, setSyncTick] = useState(0);
+
     const [page, setPage] = useState(1);
     const pageSize = 1000;
 
     const { data: employees = [] } = useEmployees();
 
-    const fetchStart = dateFrom ? format(subDays(parseISO(dateFrom), 1), 'yyyy-MM-dd') : undefined;
-    const fetchEnd = dateTo ? format(addDays(parseISO(dateTo), 1), 'yyyy-MM-dd') : undefined;
+    const fetchStart = dateFrom ? format(subDays(parseISO(`${dateFrom}T12:00:00+08:00`), 1), 'yyyy-MM-dd') : undefined;
+    const fetchEnd = dateTo ? format(addDays(parseISO(`${dateTo}T12:00:00+08:00`), 1), 'yyyy-MM-dd') : undefined;
 
     const { data: { expenses = [] } = {}, isLoading, isFetching } = useExpenses({
         startDate: fetchStart,
@@ -105,9 +122,24 @@ export default function ExpensesPage() {
     const { data: rawCategories = [] } = useExpenseCategories();
 
     // Exclude 'Maintenance' from category dropdowns, filters, and recurring auto-sync
-    const categories = useMemo(
+    const filteredCategoryList = useMemo(
         () => (rawCategories || []).filter((c) => !isExcludedMaintenanceCategory(c?.name)),
         [rawCategories]
+    );
+    const categorySignature = useMemo(
+        () =>
+            filteredCategoryList
+                .map(
+                    (c) =>
+                        `${c?.id ?? c?.name}:${c?.is_recurring_daily ? 1 : 0}:${c?.is_recurring ? 1 : 0}:${c?.recurring_day ?? 1}:${c?.default_amount ?? 0}:${c?.default_description ?? ''}`
+                )
+                .join('|'),
+        [filteredCategoryList]
+    );
+    const categories = useMemo(
+        () => filteredCategoryList,
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [categorySignature]
     );
 
     const { data: salesSummary } = useSalesSummary({
@@ -120,12 +152,23 @@ export default function ExpensesPage() {
         const start = new Date(`${dateFrom}T00:00:00+08:00`);
         const end = new Date(`${dateTo}T23:59:59.999+08:00`);
         const valid = expenses.filter(exp => {
-            const expDate = parseISO(exp.expense_date);
+            const rawDate = String(exp.expense_date || '');
+            const normalizedDate = /^\d{4}-\d{2}-\d{2}$/.test(rawDate)
+                ? `${rawDate}T12:00:00+08:00`
+                : rawDate;
+            const expDate = new Date(normalizedDate);
+            if (Number.isNaN(expDate.getTime())) return false;
             return expDate >= start && expDate <= end;
         });
         const sum = valid.reduce((acc, exp) => acc + Number(exp.amount), 0);
         return { validExpenses: valid, localTotalSum: sum, localTotalCount: valid.length };
     }, [expenses, dateFrom, dateTo]);
+
+    // Prune selected IDs that are no longer in the visible expense list
+    useEffect(() => {
+        const visibleIds = new Set(validExpenses.map((e) => e.id));
+        setSelectedExpenseIds((prev) => prev.filter((id) => visibleIds.has(id)));
+    }, [validExpenses]);
 
     const weekGrossSales = salesSummary?.totalRevenue || 0;
     const weekNetSales = weekGrossSales - localTotalSum;
@@ -146,8 +189,22 @@ export default function ExpensesPage() {
     }, [weekNetSales, previousWeekData]);
 
     const createExpense = useCreateExpense();
-    // Only auto-sync non-Maintenance recurring categories
-    useAutoSyncExpenses({ categories, user, isFetching, createExpense, queryClient, addToast });
+    const { mutateAsync: mutateCreateExpenseAsync } = createExpense;
+    const stableCreateExpense = useMemo(
+        () => ({ mutateAsync: mutateCreateExpenseAsync }),
+        [mutateCreateExpenseAsync]
+    );
+
+    // Only auto-sync non-Maintenance recurring categories in Manila time
+    useAutoSyncExpenses({
+        categories,
+        user,
+        isFetching,
+        createExpense: stableCreateExpense,
+        queryClient,
+        addToast,
+        syncTick
+    });
 
     // Grouping computation for the ExpenseList
     const groupedExpenses = useMemo(() => {
@@ -165,7 +222,20 @@ export default function ExpensesPage() {
 
         if (groupBy === 'date') {
             return sortedExpenses.reduce((acc, exp) => {
-                const key = format(parseISO(exp.expense_date), 'EEE, MMMM d, yyyy');
+                const rawDate = String(exp.expense_date || '');
+                const normalizedDate = /^\d{4}-\d{2}-\d{2}$/.test(rawDate)
+                    ? `${rawDate}T12:00:00+08:00`
+                    : rawDate;
+                const d = new Date(normalizedDate);
+                const key = Number.isNaN(d.getTime())
+                    ? rawDate
+                    : new Intl.DateTimeFormat('en-US', {
+                        timeZone: 'Asia/Manila',
+                        weekday: 'short',
+                        month: 'long',
+                        day: 'numeric',
+                        year: 'numeric'
+                    }).format(d);
                 if (!acc[key]) acc[key] = [];
                 acc[key].push(exp);
                 return acc;
@@ -199,7 +269,7 @@ export default function ExpensesPage() {
     const [reasonModal, setReasonModal] = useState({ show: false, expense: null });
     const [reasonText, setReasonText] = useState('');
 
-    const notify = (title, description, variant = 'success') => {
+    const notify = useCallback((title, description, variant = 'success') => {
         addToast?.({
             title,
             description,
@@ -207,6 +277,61 @@ export default function ExpensesPage() {
             variant,
             type: variant === 'destructive' ? 'error' : variant
         });
+    }, [addToast]);
+
+    const handleToggleSelectExpense = useCallback((expenseId) => {
+        setSelectedExpenseIds((prev) =>
+            prev.includes(expenseId) ? prev.filter((id) => id !== expenseId) : [...prev, expenseId]
+        );
+    }, []);
+
+    const handleToggleSelectAllExpenses = useCallback(() => {
+        const visibleIds = validExpenses.map((e) => e.id);
+        if (!visibleIds.length) return;
+        setSelectedExpenseIds((prev) => {
+            const allSelected = visibleIds.every((id) => prev.includes(id));
+            if (allSelected) {
+                const visibleSet = new Set(visibleIds);
+                return prev.filter((id) => !visibleSet.has(id));
+            }
+            return Array.from(new Set([...prev, ...visibleIds]));
+        });
+    }, [validExpenses]);
+
+    const handleClearSelectedExpenses = useCallback(() => {
+        setSelectedExpenseIds([]);
+    }, []);
+
+    const handleBulkDeleteClick = async () => {
+        if (!selectedExpenseIds.length || isBulkDeleting) return;
+        if (isDemo) {
+            notify('Demo Mode', 'Deleting expenses is disabled in demo mode.', 'warning');
+            return;
+        }
+
+        const count = selectedExpenseIds.length;
+        if (!window.confirm(`Are you sure you want to delete ${count} selected ${count === 1 ? 'expense' : 'expenses'}? This cannot be undone.`)) {
+            return;
+        }
+
+        setIsBulkDeleting(true);
+        try {
+            const idsToDelete = [...selectedExpenseIds];
+            const targetsToDelete = validExpenses.filter((e) => idsToDelete.includes(e.id));
+            await Promise.all(idsToDelete.map((id) => deleteExpense.mutateAsync(id)));
+            targetsToDelete.forEach((exp) => clearAutoSyncMarkersForExpense(exp));
+            setSelectedExpenseIds((prev) => prev.filter((id) => !idsToDelete.includes(id)));
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: ['expenses'] }),
+                queryClient.invalidateQueries({ queryKey: ['expense-summary'] })
+            ]);
+            setSyncTick((n) => n + 1);
+            notify('Expenses Deleted', `Removed ${count} selected ${count === 1 ? 'expense' : 'expenses'}.`, 'success');
+        } catch (error) {
+            notify('Bulk Delete Failed', error.message || 'Could not delete selected expenses.', 'destructive');
+        } finally {
+            setIsBulkDeleting(false);
+        }
     };
 
     const handleCategoryChange = (val) => {
@@ -300,13 +425,10 @@ export default function ExpensesPage() {
 
         const capitalizedDescription = capitalizeWords(description);
 
-        // Accurate local timestamp with Asia/Manila (+08:00) alignment
-        const now = new Date();
-        const hours = String(now.getHours()).padStart(2, '0');
-        const minutes = String(now.getMinutes()).padStart(2, '0');
-        const seconds = String(now.getSeconds()).padStart(2, '0');
-        const localISOString = `${expenseDate}T${hours}:${minutes}:${seconds}+08:00`;
-        const exactCreatedAt = now.toISOString();
+        // Accurate Asia/Manila (+08:00) timestamp
+        const manilaNow = getManilaNowParts(new Date());
+        const localISOString = `${expenseDate}T${manilaNow.hour}:${manilaNow.minute}:${manilaNow.second}+08:00`;
+        const exactCreatedAt = new Date().toISOString();
 
         const currentStaffName = user?.name || user?.username || 'Staff';
 
@@ -352,7 +474,11 @@ export default function ExpensesPage() {
         setCategory(isExcludedMaintenanceCategory(exp.category) ? '' : exp.category);
         setDescription(exp.description);
         setEmployeeName(exp.employee_name || '');
-        setExpenseDate(getManilaDateStr(parseISO(exp.expense_date)));
+        const rawDate = String(exp.expense_date || '');
+        const normalizedDate = /^\d{4}-\d{2}-\d{2}$/.test(rawDate)
+            ? `${rawDate}T12:00:00+08:00`
+            : rawDate;
+        setExpenseDate(getManilaDateString(new Date(normalizedDate)));
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
@@ -363,7 +489,17 @@ export default function ExpensesPage() {
         }
         if (window.confirm('Are you sure you want to delete this expense?')) {
             try {
+                const targetExp = validExpenses.find((e) => e.id === id) || expenses.find((e) => e.id === id);
                 await deleteExpense.mutateAsync(id);
+                if (targetExp) {
+                    clearAutoSyncMarkersForExpense(targetExp);
+                }
+                setSelectedExpenseIds((prev) => prev.filter((itemId) => itemId !== id));
+                await Promise.all([
+                    queryClient.invalidateQueries({ queryKey: ['expenses'] }),
+                    queryClient.invalidateQueries({ queryKey: ['expense-summary'] })
+                ]);
+                setSyncTick((n) => n + 1);
                 notify('Deleted', 'Expense removed.', 'success');
             } catch (error) {
                 notify('Error', error.message, 'destructive');
@@ -400,15 +536,15 @@ export default function ExpensesPage() {
 
     const handleNextPage = () => {
         setPage(prev => prev + 1);
-        setDateFrom(format(subWeeks(parseISO(dateFrom), 1), 'yyyy-MM-dd'));
-        setDateTo(format(subWeeks(parseISO(dateTo), 1), 'yyyy-MM-dd'));
+        setDateFrom(format(subWeeks(parseISO(`${dateFrom}T12:00:00+08:00`), 1), 'yyyy-MM-dd'));
+        setDateTo(format(subWeeks(parseISO(`${dateTo}T12:00:00+08:00`), 1), 'yyyy-MM-dd'));
     };
 
     const handlePrevPage = () => {
         if (page <= 1) return;
         setPage(prev => prev - 1);
-        setDateFrom(format(addWeeks(parseISO(dateFrom), 1), 'yyyy-MM-dd'));
-        setDateTo(format(addWeeks(parseISO(dateTo), 1), 'yyyy-MM-dd'));
+        setDateFrom(format(addWeeks(parseISO(`${dateFrom}T12:00:00+08:00`), 1), 'yyyy-MM-dd'));
+        setDateTo(format(addWeeks(parseISO(`${dateTo}T12:00:00+08:00`), 1), 'yyyy-MM-dd'));
     };
 
     const handleResetFilters = () => {
@@ -641,6 +777,12 @@ export default function ExpensesPage() {
                                 editingExpense={editingExpense}
                                 handleEditClick={handleEditClick}
                                 handleDeleteClick={handleDeleteClick}
+                                selectedExpenseIds={selectedExpenseIds}
+                                onToggleSelectExpense={handleToggleSelectExpense}
+                                onToggleSelectAllExpenses={handleToggleSelectAllExpenses}
+                                onClearSelectedExpenses={handleClearSelectedExpenses}
+                                onBulkDeleteClick={handleBulkDeleteClick}
+                                isBulkDeleting={isBulkDeleting}
                                 setReasonModal={setReasonModal}
                                 setReasonText={setReasonText}
                                 isDemo={isDemo}

@@ -1,62 +1,251 @@
 // src/hooks/useAutoSyncExpenses.js
 import { useEffect, useRef } from 'react';
-import { format, subDays } from 'date-fns';
+import { format } from 'date-fns';
 import { supabase } from '../lib/supabaseClient';
 
-export function useAutoSyncExpenses({ categories, user, isFetching, createExpense, queryClient, addToast }) {
-    const isSyncing = useRef(false);
+const STORAGE_PREFIX = 'seaside_expense_autosync_v2:';
+const MANILA_TIME_ZONE = 'Asia/Manila';
+
+const WEEKDAY_SHORT_TO_INDEX = {
+    Sun: 0,
+    Mon: 1,
+    Tue: 2,
+    Wed: 3,
+    Thu: 4,
+    Fri: 5,
+    Sat: 6
+};
+
+export function getManilaNowParts(dateObj = new Date()) {
+    try {
+        const parts = new Intl.DateTimeFormat('en-US', {
+            timeZone: MANILA_TIME_ZONE,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            weekday: 'short',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+        }).formatToParts(dateObj);
+
+        const map = {};
+        for (const p of parts) {
+            if (p.type !== 'literal') map[p.type] = p.value;
+        }
+
+        const year = Number(map.year);
+        const month = Number(map.month);
+        const day = Number(map.day);
+        const dayOfWeek =
+            WEEKDAY_SHORT_TO_INDEX[map.weekday] ??
+            new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+
+        return {
+            year,
+            month,
+            day,
+            dayOfWeek,
+            dateStr: `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
+            hour: String(map.hour || '08').padStart(2, '0'),
+            minute: String(map.minute || '00').padStart(2, '0'),
+            second: String(map.second || '00').padStart(2, '0')
+        };
+    } catch {
+        const fallbackStr = format(dateObj, 'yyyy-MM-dd');
+        const [y, m, d] = fallbackStr.split('-').map(Number);
+        return {
+            year: y,
+            month: m,
+            day: d,
+            dayOfWeek: new Date(Date.UTC(y, m - 1, d)).getUTCDay(),
+            dateStr: fallbackStr,
+            hour: String(dateObj.getHours()).padStart(2, '0'),
+            minute: String(dateObj.getMinutes()).padStart(2, '0'),
+            second: String(dateObj.getSeconds()).padStart(2, '0')
+        };
+    }
+}
+
+export function getManilaDateString(dateObj = new Date()) {
+    return getManilaNowParts(dateObj).dateStr;
+}
+
+function getManilaDateDaysAgo(days, baseDateStr) {
+    const [y, m, d] = baseDateStr.split('-').map(Number);
+    const utcDate = new Date(Date.UTC(y, m - 1, d - days));
+    return utcDate.toISOString().slice(0, 10);
+}
+
+function hasSyncedMarker(key) {
+    if (typeof window === 'undefined') return false;
+    try {
+        return window.localStorage.getItem(`${STORAGE_PREFIX}${key}`) === '1';
+    } catch {
+        return false;
+    }
+}
+
+function markSyncedMarker(key) {
+    if (typeof window === 'undefined') return;
+    try {
+        window.localStorage.setItem(`${STORAGE_PREFIX}${key}`, '1');
+    } catch {
+        // Ignore storage restrictions
+    }
+}
+
+export function clearSyncedMarker(key) {
+    if (typeof window === 'undefined') return;
+    try {
+        window.localStorage.removeItem(`${STORAGE_PREFIX}${key}`);
+    } catch {
+        // Ignore storage restrictions
+    }
+}
+
+export function clearAutoSyncMarkersForExpense(exp) {
+    if (!exp?.category || typeof window === 'undefined') return;
+    const catName = String(exp.category).trim();
+    const manilaNow = getManilaNowParts(new Date());
+    let dateStr = manilaNow.dateStr;
+
+    if (exp.expense_date) {
+        const raw = String(exp.expense_date).trim();
+        const normalized = /^\d{4}-\d{2}-\d{2}$/.test(raw)
+            ? `${raw}T12:00:00+08:00`
+            : raw;
+        const parsed = new Date(normalized);
+        if (!Number.isNaN(parsed.getTime())) {
+            dateStr = getManilaDateString(parsed);
+        }
+    }
+
+    clearSyncedMarker(`daily:${dateStr}:${catName}`);
+    clearSyncedMarker(`weekly:${dateStr}:${catName}`);
+
+    try {
+        const keysToRemove = [];
+        for (let i = 0; i < window.localStorage.length; i += 1) {
+            const fullKey = window.localStorage.key(i);
+            if (fullKey && fullKey.startsWith(STORAGE_PREFIX) && fullKey.endsWith(`:${catName}`)) {
+                keysToRemove.push(fullKey);
+            }
+        }
+        keysToRemove.forEach((k) => window.localStorage.removeItem(k));
+    } catch {
+        // Ignore storage restrictions
+    }
+}
+
+async function hasExistingExpenseOnManilaDate(categoryName, dateStr) {
+    const dayStart = `${dateStr}T00:00:00.000+08:00`;
+    const dayEnd = `${dateStr}T23:59:59.999+08:00`;
+
+    const { data, error } = await supabase
+        .from('expenses')
+        .select('id, category, expense_date')
+        .eq('category', categoryName)
+        .gte('expense_date', dayStart)
+        .lte('expense_date', dayEnd)
+        .limit(1);
+
+    if (error) throw error;
+    return Array.isArray(data) && data.length > 0;
+}
+
+export function useAutoSyncExpenses({
+                                        categories,
+                                        user,
+                                        isFetching,
+                                        createExpense,
+                                        queryClient,
+                                        addToast,
+                                        syncTick = 0
+                                    }) {
+    const isSyncingRef = useRef(false);
+
+    const createExpenseRef = useRef(createExpense);
+    const queryClientRef = useRef(queryClient);
+    const addToastRef = useRef(addToast);
 
     useEffect(() => {
+        createExpenseRef.current = createExpense;
+        queryClientRef.current = queryClient;
+        addToastRef.current = addToast;
+    }, [createExpense, queryClient, addToast]);
+
+    const userId = user?.id ?? null;
+    const isDemo = Boolean(user?.isDemo);
+    const categoriesSignature = Array.isArray(categories)
+        ? categories
+            .map(
+                (c) =>
+                    `${c?.id ?? c?.name}:${c?.is_recurring_daily ? 1 : 0}:${c?.is_recurring ? 1 : 0}:${c?.recurring_day ?? 1}:${c?.default_amount ?? 0}`
+            )
+            .join('|')
+        : '';
+
+    useEffect(() => {
+        if (!categoriesSignature || !userId || isDemo || isFetching || isSyncingRef.current) {
+            return;
+        }
+
+        isSyncingRef.current = true;
+        let cancelled = false;
+
         const syncExpenses = async () => {
-            const today = new Date();
-            if (!categories.length || !user || user.isDemo || isSyncing.current || isFetching) return;
-
-            isSyncing.current = true;
-
             try {
-                const todayStr = format(today, 'yyyy-MM-dd');
-                const recurringDailyCategories = categories.filter(cat => cat.is_recurring_daily);
+                const eligibleCategories = (categories || []).filter(
+                    (cat) => cat?.name && String(cat.name).trim().toLowerCase() !== 'maintenance'
+                );
+
+                const manilaNow = getManilaNowParts(new Date());
+                const todayStr = manilaNow.dateStr;
+                const todayDay = manilaNow.dayOfWeek;
+
+                const recurringDailyCategories = eligibleCategories.filter((cat) => Boolean(cat.is_recurring_daily));
                 let dailyCount = 0;
 
-                if (recurringDailyCategories.length > 0) {
-                    const { data: existingDaily, error: dailyError } = await supabase
-                        .from('expenses')
-                        .select('category')
-                        .eq('expense_date', todayStr);
+                for (const cat of recurringDailyCategories) {
+                    if (cancelled) break;
+                    const key = `daily:${todayStr}:${cat.name}`;
+                    if (hasSyncedMarker(key)) continue;
 
-                    if (dailyError) throw dailyError;
+                    const exists = await hasExistingExpenseOnManilaDate(cat.name, todayStr);
+                    if (exists) {
+                        markSyncedMarker(key);
+                        continue;
+                    }
 
-                    const existingDailyNames = existingDaily?.map(e => e.category) || [];
-                    const missingDaily = recurringDailyCategories.filter(
-                        cat => !existingDailyNames.includes(cat.name)
-                    );
-
-                    if (missingDaily.length > 0) {
-                        const insertDaily = missingDaily.map(cat =>
-                            createExpense.mutateAsync({
-                                amount: cat.default_amount || 0,
-                                category: cat.name,
-                                description: cat.default_description || `Daily ${cat.name}`,
-                                expense_date: todayStr
-                            })
-                        );
-                        await Promise.all(insertDaily);
-                        dailyCount = missingDaily.length;
+                    markSyncedMarker(key);
+                    try {
+                        await createExpenseRef.current.mutateAsync({
+                            amount: Number(cat.default_amount) || 0,
+                            category: cat.name,
+                            description: cat.default_description || `Daily ${cat.name}`,
+                            expense_date: `${todayStr}T08:00:00+08:00`,
+                            created_by: userId
+                        });
+                        dailyCount += 1;
+                    } catch (err) {
+                        clearSyncedMarker(key);
+                        throw err;
                     }
                 }
 
-                const recurringWeeklyCategories = categories.filter(cat => cat.is_recurring);
+                const recurringWeeklyCategories = eligibleCategories.filter((cat) => Boolean(cat.is_recurring));
                 let weeklyCount = 0;
 
                 if (recurringWeeklyCategories.length > 0) {
                     const categoriesByDate = {};
 
-                    recurringWeeklyCategories.forEach(cat => {
-                        const targetDay = cat.recurring_day ?? 1;
-                        const todayDay = today.getDay();
+                    recurringWeeklyCategories.forEach((cat) => {
+                        const targetDay = Number(cat.recurring_day ?? 1);
                         const daysAgo = (todayDay + 7 - targetDay) % 7;
-                        const targetDate = subDays(today, daysAgo);
-                        const targetDateStr = format(targetDate, 'yyyy-MM-dd');
+                        const targetDateStr =
+                            daysAgo === 0 ? todayStr : getManilaDateDaysAgo(daysAgo, todayStr);
 
                         if (!categoriesByDate[targetDateStr]) {
                             categoriesByDate[targetDateStr] = [];
@@ -65,51 +254,69 @@ export function useAutoSyncExpenses({ categories, user, isFetching, createExpens
                     });
 
                     for (const [dateStr, cats] of Object.entries(categoriesByDate)) {
-                        const { data: existingWeekly, error: weeklyError } = await supabase
-                            .from('expenses')
-                            .select('category')
-                            .eq('expense_date', dateStr);
+                        if (cancelled) break;
 
-                        if (weeklyError) throw weeklyError;
+                        for (const cat of cats) {
+                            if (cancelled) break;
+                            const key = `weekly:${dateStr}:${cat.name}`;
+                            if (hasSyncedMarker(key)) continue;
 
-                        const existingWeeklyNames = existingWeekly?.map(e => e.category) || [];
-                        const missingWeekly = cats.filter(
-                            cat => !existingWeeklyNames.includes(cat.name)
-                        );
+                            const exists = await hasExistingExpenseOnManilaDate(cat.name, dateStr);
+                            if (exists) {
+                                markSyncedMarker(key);
+                                continue;
+                            }
 
-                        if (missingWeekly.length > 0) {
-                            const insertWeekly = missingWeekly.map(cat =>
-                                createExpense.mutateAsync({
-                                    amount: cat.default_amount || 0,
+                            markSyncedMarker(key);
+                            try {
+                                await createExpenseRef.current.mutateAsync({
+                                    amount: Number(cat.default_amount) || 0,
                                     category: cat.name,
                                     description: cat.default_description || `Weekly ${cat.name}`,
-                                    expense_date: dateStr
-                                })
-                            );
-                            await Promise.all(insertWeekly);
-                            weeklyCount += missingWeekly.length;
+                                    expense_date: `${dateStr}T08:00:00+08:00`,
+                                    created_by: userId
+                                });
+                                weeklyCount += 1;
+                            } catch (err) {
+                                clearSyncedMarker(key);
+                                throw err;
+                            }
                         }
                     }
                 }
 
-                if (dailyCount > 0 || weeklyCount > 0) {
-                    queryClient.invalidateQueries({ queryKey: ['expenses'] });
-                    queryClient.invalidateQueries({ queryKey: ['expense-summary'] });
+                if (!cancelled && (dailyCount > 0 || weeklyCount > 0)) {
+                    await Promise.all([
+                        queryClientRef.current?.invalidateQueries({ queryKey: ['expenses'] }),
+                        queryClientRef.current?.invalidateQueries({ queryKey: ['expense-summary'] })
+                    ]);
 
                     if (dailyCount > 0) {
-                        addToast({ title: 'Daily Sync', message: `Automatically synced ${dailyCount} recurring daily expenses.`, type: 'success' });
+                        addToastRef.current?.({
+                            title: 'Daily Sync',
+                            message: `Automatically synced ${dailyCount} recurring daily expenses.`,
+                            type: 'success'
+                        });
                     }
                     if (weeklyCount > 0) {
-                        addToast({ title: 'Weekly Sync', message: `Automatically synced ${weeklyCount} recurring expenses.`, type: 'success' });
+                        addToastRef.current?.({
+                            title: 'Weekly Sync',
+                            message: `Automatically synced ${weeklyCount} recurring expenses.`,
+                            type: 'success'
+                        });
                     }
                 }
             } catch (err) {
-                console.error("Auto-expense sync failed:", err);
+                console.error('Auto-expense sync failed:', err);
             } finally {
-                setTimeout(() => { isSyncing.current = false; }, 2000);
+                isSyncingRef.current = false;
             }
         };
 
         syncExpenses();
-    }, [categories, user, isFetching, createExpense, queryClient, addToast]);
+
+        return () => {
+            cancelled = true;
+        };
+    }, [categoriesSignature, userId, isDemo, isFetching, syncTick, categories]);
 }
