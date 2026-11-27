@@ -1,7 +1,8 @@
 // src/components/navbar/NotificationBell.jsx
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { Button } from '../ui';
+import NotificationBellTour from './NotificationBellTour';
 import {
     Bell,
     Clock,
@@ -11,7 +12,8 @@ import {
     Droplets,
     Truck,
     PackageX,
-    Megaphone
+    Megaphone,
+    HelpCircle
 } from 'lucide-react';
 
 export default function NotificationBell({
@@ -33,17 +35,28 @@ export default function NotificationBell({
                                          }) {
     const router = useRouter();
     const [isOpen, setIsOpen] = useState(false);
+    const [isTourOpen, setIsTourOpen] = useState(false);
     const popoverRef = useRef(null);
+
+    const idPrefix = isMobile ? 'mobile' : 'desktop';
 
     useEffect(() => {
         const handleClickOutside = (e) => {
+            // Keep dropdown open while interacting with the portal tour overlay/buttons
+            if (isTourOpen || e.target?.closest?.('[data-notif-tour="true"]')) {
+                return;
+            }
             if (popoverRef.current && !popoverRef.current.contains(e.target)) {
                 setIsOpen(false);
             }
         };
         if (isOpen) document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [isOpen]);
+    }, [isOpen, isTourOpen]);
+
+    const handleEnsurePanelOpen = useCallback(() => {
+        setIsOpen(true);
+    }, []);
 
     const handleOpenNotice = () => {
         setIsOpen(false);
@@ -61,24 +74,47 @@ export default function NotificationBell({
             } bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 z-[80] overflow-hidden animate-in fade-in zoom-in-95 duration-150`}
         >
             {/* Header */}
-            <div className="p-3.5 bg-slate-50/90 dark:bg-slate-800/90 border-b border-slate-200/80 dark:border-slate-700 flex items-center justify-between">
-                <span className="text-xs font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                    <Bell className="w-3.5 h-3.5 text-[#8DB600]" />
-                    <span>Notifications &amp; Action Alerts</span>
+            <div
+                id={`tour-notif-header-${idPrefix}`}
+                className="p-3.5 bg-slate-50/90 dark:bg-slate-800/90 border-b border-slate-200/80 dark:border-slate-700 flex items-center justify-between gap-2"
+            >
+                <span className="text-xs font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-1.5 min-w-0 truncate">
+                    <Bell className="w-3.5 h-3.5 text-[#8DB600] shrink-0" />
+                    <span className="truncate">Notifications &amp; Action Alerts</span>
                 </span>
-                {totalNotifications > 0 ? (
-                    <span className="text-[10px] font-black bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 px-2 py-0.5 rounded-full">
-                        {totalNotifications} action{totalNotifications === 1 ? '' : 's'}
-                    </span>
-                ) : (
-                    <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-                        All clear
-                    </span>
-                )}
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setIsTourOpen(true);
+                        }}
+                        title="Open Notifications Guide"
+                        aria-label="Open Notifications Guide"
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-[#8DB600] hover:text-[#5f7d00] dark:hover:text-lime-400 transition-colors cursor-pointer"
+                    >
+                        <HelpCircle className="w-3 h-3 text-[#8DB600] dark:text-lime-400 shrink-0" />
+                        <span>Guide</span>
+                    </button>
+
+                    {totalNotifications > 0 ? (
+                        <span className="text-[10px] font-black bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 px-2 py-0.5 rounded-full">
+                            {totalNotifications} action{totalNotifications === 1 ? '' : 's'}
+                        </span>
+                    ) : (
+                        <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                            All clear
+                        </span>
+                    )}
+                </div>
             </div>
 
             {/* Scrollable Notification Feed */}
-            <div className="max-h-[70vh] sm:max-h-96 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+            <div
+                id={`tour-notif-feed-${idPrefix}`}
+                className="max-h-[70vh] sm:max-h-96 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800"
+            >
                 {/* 1. Water Test Schedule (Staff & Admin) */}
                 {waterTestAlert && (
                     <>
@@ -387,7 +423,10 @@ export default function NotificationBell({
             </div>
 
             {/* Footer Quick Links */}
-            <div className="p-2 bg-slate-50/80 dark:bg-slate-800/60 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-1 text-xs">
+            <div
+                id={`tour-notif-footer-${idPrefix}`}
+                className="p-2 bg-slate-50/80 dark:bg-slate-800/60 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-1 text-xs"
+            >
                 <button
                     type="button"
                     onClick={() => {
@@ -441,6 +480,7 @@ export default function NotificationBell({
         return (
             <div className="relative flex items-center" ref={popoverRef}>
                 <button
+                    id={`tour-notif-trigger-${idPrefix}`}
                     type="button"
                     onClick={() => setIsOpen(prev => !prev)}
                     className="relative p-1.5 text-slate-600 dark:text-slate-300 hover:text-primary rounded-lg transition-colors cursor-pointer"
@@ -455,28 +495,46 @@ export default function NotificationBell({
                 </button>
 
                 {isOpen && renderDropdownPanel()}
+
+                <NotificationBellTour
+                    isOpen={isTourOpen}
+                    onClose={() => setIsTourOpen(false)}
+                    onEnsurePanelOpen={handleEnsurePanelOpen}
+                    idPrefix={idPrefix}
+                    isAdmin={isAdmin}
+                />
             </div>
         );
     }
 
     return (
         <div className="relative flex items-center" ref={popoverRef}>
-            <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsOpen(prev => !prev)}
-                className="p-1.5 h-8 w-8 text-slate-500 hover:text-primary bg-white dark:bg-slate-800 shadow-2xs border border-slate-200 dark:border-slate-700 rounded-xl relative cursor-pointer"
-                title="Notifications"
-            >
-                <Bell className="w-4 h-4" />
-                {totalNotifications > 0 && (
-                    <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-rose-500 text-[9px] font-black text-white shadow-xs">
-                        {totalNotifications > 9 ? '9+' : totalNotifications}
-                    </span>
-                )}
-            </Button>
+            <div id={`tour-notif-trigger-${idPrefix}`} className="inline-flex">
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsOpen(prev => !prev)}
+                    className="p-1.5 h-8 w-8 text-slate-500 hover:text-primary bg-white dark:bg-slate-800 shadow-2xs border border-slate-200 dark:border-slate-700 rounded-xl relative cursor-pointer"
+                    title="Notifications"
+                >
+                    <Bell className="w-4 h-4" />
+                    {totalNotifications > 0 && (
+                        <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-rose-500 text-[9px] font-black text-white shadow-xs">
+                            {totalNotifications > 9 ? '9+' : totalNotifications}
+                        </span>
+                    )}
+                </Button>
+            </div>
 
             {isOpen && renderDropdownPanel()}
+
+            <NotificationBellTour
+                isOpen={isTourOpen}
+                onClose={() => setIsTourOpen(false)}
+                onEnsurePanelOpen={handleEnsurePanelOpen}
+                idPrefix={idPrefix}
+                isAdmin={isAdmin}
+            />
         </div>
     );
 }
