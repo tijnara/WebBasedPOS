@@ -31,3 +31,5 @@ npm-debug.log
 .junie/
 GEMINI.md
 skills-lock.json
+
+.env*.bak
