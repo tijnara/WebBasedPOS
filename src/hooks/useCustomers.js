@@ -97,13 +97,17 @@ export function useCustomers({
                                  sortBy = 'name',
                                  sortDirection = 'asc',
                                  startDate = null,
-                                 endDate = null
+                                 endDate = null,
+                                 storeId = null
                              } = {}) {
     const isDemo = useStore(s => s.user?.isDemo);
+    const userStoreId = useStore(s => s.user?.store_id);
+    const targetStoreId = Number(storeId || userStoreId) || 1;
 
     return useQuery({
         queryKey: [
             'customers',
+            targetStoreId,
             isDemo,
             searchTerm,
             page,
@@ -161,10 +165,12 @@ export function useCustomers({
                 supabase
                     .from('customers_view')
                     .select('*')
+                    .eq('store_id', targetStoreId)
                     .limit(5000),
                 supabase
                     .from('sales')
                     .select('customerid, customername, saletimestamp, status')
+                    .eq('store_id', targetStoreId)
                     .order('saletimestamp', { ascending: false })
                     .limit(10000)
             ]);
@@ -348,10 +354,6 @@ function sortCustomers(a, b, sortBy, isAscending) {
 
         case 'utangDate':
         case 'utang_approved_at': {
-            // Match UI display rules:
-            // Tier 0: Active debt (credit_balance > 0) WITH valid utang date
-            // Tier 1: Active debt (credit_balance > 0) WITHOUT utang date ("Unrecorded date")
-            // Tier 2: Zero balance (credit_balance <= 0, displays "—")
             const hasDebtA = Number(a.credit_balance || 0) > 0;
             const hasDebtB = Number(b.credit_balance || 0) > 0;
             const timeA = hasDebtA ? toTimestamp(a.utangApprovedAt || a.utang_approved_at) : null;
@@ -384,11 +386,13 @@ function sortCustomers(a, b, sortBy, isAscending) {
 }
 
 // Hook for Top KPI Summary Cards
-export function useCustomerStats() {
+export function useCustomerStats(storeIdOverride = null) {
     const isDemo = useStore(s => s.user?.isDemo);
+    const userStoreId = useStore(s => s.user?.store_id);
+    const targetStoreId = Number(storeIdOverride || userStoreId) || 1;
 
     return useQuery({
-        queryKey: ['customer-stats', isDemo],
+        queryKey: ['customer-stats', targetStoreId, isDemo],
         queryFn: async () => {
             if (isDemo) {
                 return {
@@ -401,7 +405,8 @@ export function useCustomerStats() {
 
             const { data, count, error } = await supabase
                 .from('customers')
-                .select('credit_balance', { count: 'exact' });
+                .select('credit_balance', { count: 'exact' })
+                .eq('store_id', targetStoreId);
 
             if (error) throw error;
 

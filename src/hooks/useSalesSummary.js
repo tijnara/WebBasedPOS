@@ -20,11 +20,22 @@ const MOCK_SALES = [
     }
 ];
 
-export function useSalesSummary({ startDate, endDate, productName, productId } = {}) {
+const LEGACY_REFILL_IDS = ['3', '2', '30'];
+
+function isRefillProduct(productId, productName = '', category = '') {
+    if (LEGACY_REFILL_IDS.includes(String(productId))) return true;
+    const lowerName = String(productName || '').toLowerCase();
+    const lowerCat = String(category || '').toLowerCase();
+    return lowerName.includes('refill') || lowerCat.includes('refill');
+}
+
+export function useSalesSummary({ startDate, endDate, productName, productId, storeId = null } = {}) {
     const isDemo = useStore(s => s.user?.isDemo);
+    const userStoreId = useStore(s => s.user?.store_id);
+    const targetStoreId = Number(storeId || userStoreId) || 1;
 
     return useQuery({
-        queryKey: ['sales-summary', isDemo, startDate, endDate, productName, productId],
+        queryKey: ['sales-summary', targetStoreId, isDemo, startDate, endDate, productName, productId],
         queryFn: async () => {
             if (isDemo) {
                 let filtered = MOCK_SALES;
@@ -50,12 +61,10 @@ export function useSalesSummary({ startDate, endDate, productName, productId } =
                     }
 
                     if (sale.items) {
-                        // Monthly Key
                         const monthKey = `${sDate.getFullYear()}-${String(sDate.getMonth() + 1).padStart(2, '0')}`;
                         if (!monthlyRevenue[monthKey]) monthlyRevenue[monthKey] = 0;
                         if (!monthlyGallons[monthKey]) monthlyGallons[monthKey] = 0;
 
-                        // Weekly Key (Start of Week - Monday)
                         const d = new Date(sale.saleTimestamp);
                         const day = d.getDay();
                         const diff = d.getDate() - day + (day === 0 ? -6 : 1);
@@ -81,8 +90,7 @@ export function useSalesSummary({ startDate, endDate, productName, productId } =
                             saleRevenueForPeriod += revenue;
                             totalProfit += (revenue - cost);
 
-                            const targetRefillIds = ["3", "2", "30"];
-                            if (targetRefillIds.includes(String(item.product_id))) {
+                            if (isRefillProduct(item.product_id, name)) {
                                 totalGallons += qty;
                                 saleGallonsForPeriod += qty;
                             }
@@ -90,7 +98,7 @@ export function useSalesSummary({ startDate, endDate, productName, productId } =
                             const pid = item.product_id || name;
                             if (pid) {
                                 if (!productQuantities[pid]) {
-                                    productQuantities[pid] = { name: name, quantity: 0 };
+                                    productQuantities[pid] = { name, quantity: 0 };
                                 }
                                 productQuantities[pid].quantity += qty;
                             }
@@ -128,10 +136,12 @@ export function useSalesSummary({ startDate, endDate, productName, productId } =
                             cost_at_sale,
                             products (
                                 id,
-                                name
+                                name,
+                                category
                             )
                         )
                     `)
+                    .eq('store_id', targetStoreId)
                     .order('saletimestamp', { ascending: true })
                     .range(from, from + step - 1);
 
@@ -163,24 +173,19 @@ export function useSalesSummary({ startDate, endDate, productName, productId } =
             let weeklyGallons = {};
             let monthlyGallons = {};
 
-            const targetRefillIds = ["3", "2", "30"];
-
             allSales.forEach(sale => {
-                const isPaid = sale.status === 'Completed'; // Only count Completed sales as revenue
+                const isPaid = sale.status === 'Completed';
                 const sDate = new Date(sale.saletimestamp);
-            
-                // Keep existing firstTransactionDate logic...
+
                 if (!firstTransactionDate || sDate < firstTransactionDate) {
                     firstTransactionDate = sDate;
                     firstTransactionAmount = sale.totalamount || 0;
                 }
-            
-                // Monthly Key
+
                 const monthKey = `${sDate.getFullYear()}-${String(sDate.getMonth() + 1).padStart(2, '0')}`;
                 if (!monthlyRevenue[monthKey]) monthlyRevenue[monthKey] = 0;
                 if (!monthlyGallons[monthKey]) monthlyGallons[monthKey] = 0;
-            
-                // Weekly Key (Start of week - Monday)
+
                 const d = new Date(sale.saletimestamp);
                 const day = d.getDay();
                 const diff = d.getDate() - day + (day === 0 ? -6 : 1);
@@ -189,46 +194,45 @@ export function useSalesSummary({ startDate, endDate, productName, productId } =
                 const weekKey = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
                 if (!weeklyRevenue[weekKey]) weeklyRevenue[weekKey] = 0;
                 if (!weeklyGallons[weekKey]) weeklyGallons[weekKey] = 0;
-            
+
                 let saleRevenueForPeriod = 0;
                 let saleGallonsForPeriod = 0;
-            
+
                 if (sale.sale_items && Array.isArray(sale.sale_items)) {
                     sale.sale_items.forEach(item => {
                         const qty = item.quantity || 0;
                         const revenue = (item.price_at_sale || 0) * qty;
                         const cost = (item.cost_at_sale || 0) * qty;
-            
+
                         const pid = item.product_id;
                         const name = item.products?.name || 'Unknown Product';
+                        const category = item.products?.category || '';
 
-                        if (targetRefillIds.includes(String(pid))) {
+                        if (isRefillProduct(pid, name, category)) {
                             if (isPaid) {
                                 totalGallons += qty;
                                 saleGallonsForPeriod += qty;
                             }
                         }
-            
+
                         if (productId) {
                             if (String(pid) !== String(productId)) return;
                         } else if (productName) {
                             if (!name.toLowerCase().includes(productName.toLowerCase())) return;
                         }
-            
-                        // Accumulate Revenue/Profit ONLY if paid
+
                         if (isPaid) {
                             totalProfit += (revenue - cost);
                         }
-            
-                        // Ensure the existing productQuantities accumulation inside sale_items.forEach runs regardless of isPaid status.
+
                         if (pid) {
                             if (!productQuantities[pid]) {
-                                productQuantities[pid] = { name: name, quantity: 0 };
+                                productQuantities[pid] = { name, quantity: 0 };
                             }
                             productQuantities[pid].quantity += qty;
                         }
                     });
-            
+
                     if (isPaid) {
                         totalRevenue += (sale.totalamount || 0);
                         saleRevenueForPeriod += (sale.totalamount || 0);
@@ -237,7 +241,7 @@ export function useSalesSummary({ startDate, endDate, productName, productId } =
                     totalRevenue += (sale.totalamount || 0);
                     saleRevenueForPeriod += (sale.totalamount || 0);
                 }
-            
+
                 if (isPaid) {
                     monthlyRevenue[monthKey] += saleRevenueForPeriod;
                     weeklyRevenue[weekKey] += saleRevenueForPeriod;

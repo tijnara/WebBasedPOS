@@ -49,7 +49,7 @@ export async function login(credentials, fallbackPassword) {
         // Support both nested { success: true, user: { ... } } and flat { id: 1, ... }
         const user = data?.user || (data?.id ? data : null);
 
-        // 1. Check Pending Administrator Approval FIRST (RPC returns success: false with PENDING_APPROVAL status)
+        // 1. Check Pending Administrator Approval FIRST
         const isPendingApproval =
             data?.status === 'PENDING_APPROVAL' ||
             (typeof data?.message === 'string' &&
@@ -76,12 +76,19 @@ export async function login(credentials, fallbackPassword) {
             };
         }
 
-        // 3. Sync readable password_plain so Admins can view account passwords in User Management
+        // 3. Sync readable password_plain & ensure store_id is resolved from public.users
+        let resolvedStoreId = user.store_id || null;
         try {
-            await supabase
+            const { data: updatedUser } = await supabase
                 .from('users')
                 .update({ password_plain: password })
-                .eq('id', user.id);
+                .eq('id', user.id)
+                .select('store_id')
+                .maybeSingle();
+
+            if (updatedUser?.store_id) {
+                resolvedStoreId = updatedUser.store_id;
+            }
         } catch {
             // Non-blocking if password_plain column hasn't been added yet
         }
@@ -103,6 +110,7 @@ export async function login(credentials, fallbackPassword) {
 
         const finalUser = {
             ...user,
+            store_id: resolvedStoreId || 1,
             status: 'SUCCESS',
             role,
             isAdmin: role === 'Admin',
@@ -127,7 +135,7 @@ export async function login(credentials, fallbackPassword) {
 
 /**
  * Registers a new staff user via create_new_user RPC with server-side bcrypt hashing,
- * and stores password_plain for Admin visibility in User Management.
+ * assigns store_id, and stores password_plain for Admin visibility in User Management.
  */
 export async function register({
                                    name,
@@ -137,11 +145,14 @@ export async function register({
                                    categoryId = 2,
                                    color = '#3B82F6',
                                    isAdmin = false,
-                                   isApproved = false
+                                   isApproved = false,
+                                   storeId = 1
                                }) {
     if (!name || !password) {
         throw new Error('Name and password are required.');
     }
+
+    const targetStoreId = Number(storeId) || 1;
 
     try {
         const { data, error } = await supabase.rpc('create_new_user', {
@@ -165,10 +176,13 @@ export async function register({
             try {
                 await supabase
                     .from('users')
-                    .update({ password_plain: password })
+                    .update({
+                        password_plain: password,
+                        store_id: targetStoreId
+                    })
                     .eq('id', createdId);
             } catch {
-                // Non-blocking if password_plain column hasn't been added yet
+                // Non-blocking if column hasn't been added yet
             }
         }
 
@@ -177,7 +191,8 @@ export async function register({
                 id: createdId,
                 name: name.trim(),
                 email: email ? email.trim() : null,
-                role: isAdmin ? 'Admin' : 'Staff'
+                role: isAdmin ? 'Admin' : 'Staff',
+                store_id: targetStoreId
             },
             action: 'CREATE',
             entity_type: 'USER',

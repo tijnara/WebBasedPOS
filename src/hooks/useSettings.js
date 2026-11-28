@@ -4,15 +4,18 @@ import { supabase } from '../lib/supabaseClient';
 import { useStore } from '../store/useStore';
 import { logActivity } from './useActivityLogs';
 
-export function useSettings() {
+export function useSettings(storeIdOverride) {
+    const currentUser = useStore((s) => s.user);
+    const targetStoreId = storeIdOverride || currentUser?.store_id || 1;
+
     return useQuery({
-        queryKey: ['business-settings'],
+        queryKey: ['business-settings', targetStoreId],
         queryFn: async () => {
             const { data, error } = await supabase
                 .from('business_settings')
                 .select('*')
-                .eq('id', 1)
-                .single();
+                .eq('store_id', targetStoreId)
+                .maybeSingle();
 
             if (error && error.code !== 'PGRST116') throw error;
             return data || null;
@@ -23,22 +26,45 @@ export function useSettings() {
 
 export function useUpdateSettings() {
     const queryClient = useQueryClient();
-    const currentUser = useStore(s => s.user);
+    const currentUser = useStore((s) => s.user);
 
     return useMutation({
         mutationFn: async (payload) => {
-            const record = { id: 1, ...payload };
-            const { data, error } = await supabase
-                .from('business_settings')
-                .upsert(record, { onConflict: 'id' })
-                .select()
-                .single();
+            const targetStoreId = payload?.store_id || currentUser?.store_id || 1;
+            const record = { ...payload, store_id: targetStoreId };
 
-            if (error) {
-                if (error.code === 'PGRST204') {
-                    throw new Error('Please run the business_settings SQL migration in Supabase first so the new columns exist.');
+            // Check if a settings row already exists for this store
+            const { data: existing, error: fetchError } = await supabase
+                .from('business_settings')
+                .select('id')
+                .eq('store_id', targetStoreId)
+                .maybeSingle();
+
+            if (fetchError && fetchError.code !== 'PGRST116') throw fetchError;
+
+            let result;
+            if (existing?.id) {
+                result = await supabase
+                    .from('business_settings')
+                    .update(record)
+                    .eq('id', existing.id)
+                    .select()
+                    .single();
+            } else {
+                result = await supabase
+                    .from('business_settings')
+                    .insert(record)
+                    .select()
+                    .single();
+            }
+
+            if (result.error) {
+                if (result.error.code === 'PGRST204') {
+                    throw new Error(
+                        'Please run the business_settings SQL migration in Supabase first so the new columns exist.'
+                    );
                 }
-                throw error;
+                throw result.error;
             }
 
             logActivity({
@@ -48,10 +74,11 @@ export function useUpdateSettings() {
                 description: `Updated store & page settings`
             });
 
-            return data;
+            return result.data;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['business-settings'] });
+            queryClient.invalidateQueries({ queryKey: ['public-store'] });
             queryClient.invalidateQueries({ queryKey: ['activity-logs'] });
         }
     });

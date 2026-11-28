@@ -18,12 +18,18 @@ const FEATURES = [
     { icon: Share2, label: 'Social Media Integration' }
 ];
 
-export default function LandingHero() {
+export default function LandingHero({ store, settings }) {
+    const businessName = store?.name || settings?.business_name || 'Seaside';
+    const subtitle =
+        store?.branding?.heroSubtitle ||
+        settings?.hero_subtitle ||
+        'Complete business management platform for modern water refilling stations. Streamline your operations from sales to delivery.';
+
     return (
         <div className="hidden lg:flex flex-col justify-center space-y-6 select-none pr-4">
             <div>
                 <h1 className="text-5xl xl:text-6xl font-black tracking-tight leading-[1.06] text-slate-900 dark:text-white">
-                    Seaside
+                    {businessName}
                     <span className="block text-emerald-500 dark:text-[#10b981]">
                         Sales
                     </span>
@@ -31,7 +37,7 @@ export default function LandingHero() {
                 </h1>
 
                 <p className="mt-4 text-sm xl:text-base text-slate-600 dark:text-slate-300 max-w-lg leading-relaxed font-medium">
-                    Complete business management platform for modern water refilling stations. Streamline your operations from sales to delivery.
+                    {subtitle}
                 </p>
             </div>
 

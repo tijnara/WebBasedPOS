@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useStore } from '../store/useStore';
+import { usePublicStore } from '../hooks/usePublicStore';
 import { useSettings } from '../hooks/useSettings';
 import { login, register as registerAccount } from '../lib/api';
 
@@ -68,13 +69,23 @@ function StaticLandingFallback() {
 
 export default function SeasideNewLanding() {
     const router = useRouter();
+    const storeSlug = typeof router.query.store === 'string' ? router.query.store : undefined;
 
-    const { data: settings } = useSettings() || {};
+    const { data: store } = usePublicStore(storeSlug);
+    const { data: settings } = useSettings(store?.id) || {};
+
+    const businessName = store?.name || settings?.business_name || 'Seaside';
+    const logoUrl = store?.logo_url || settings?.logo_url || '/seaside.png';
     const businessHours =
+        store?.branding?.operatingHours ||
         settings?.business_hours ||
         'Monday - Saturday: 8:00 AM - 5:00 PM for Delivery\nMonday, Wednesday, Friday and Saturday: 8:00 AM - 5:00 PM';
-    const physicalAddress = settings?.physical_address || 'Laois, Labrador, Pangasinan';
-    const facebookLink = settings?.facebook_link || 'https://www.facebook.com/61587059323111/';
+    const physicalAddress =
+        store?.address || settings?.physical_address || 'Laois, Labrador, Pangasinan';
+    const facebookLink =
+        store?.branding?.facebookUrl ||
+        settings?.facebook_link ||
+        'https://www.facebook.com/61587059323111/';
 
     const setAuth = useStore((state) => state.setAuth);
     const darkMode = useStore((state) => state.darkMode);
@@ -135,7 +146,8 @@ export default function SeasideNewLanding() {
                 role: 'Admin',
                 isadmin: true,
                 isAdmin: true,
-                isDemo: true
+                isDemo: true,
+                store_id: store?.id || 1
             });
         } catch {
             setIsDemoLoading(false);
@@ -159,7 +171,8 @@ export default function SeasideNewLanding() {
                     role: 'Admin',
                     isadmin: true,
                     isAdmin: true,
-                    isDemo: true
+                    isDemo: true,
+                    store_id: store?.id || 1
                 });
                 return;
             }
@@ -217,7 +230,8 @@ export default function SeasideNewLanding() {
                 password: data.password,
                 isAdmin: false,
                 isApproved: false,
-                categoryId: 2
+                categoryId: 2,
+                storeId: store?.id || 1
             });
 
             setActiveCard('login');
@@ -255,7 +269,7 @@ export default function SeasideNewLanding() {
         const prefillEmail = identifier.includes('@') ? identifier : '';
         setContactPrefill({
             email: prefillEmail,
-            message: `Hello Admin, I recently registered my staff account (${identifier || 'Staff'}) and would like to request access approval for Seaside POS.`,
+            message: `Hello Admin, I recently registered my staff account (${identifier || 'Staff'}) and would like to request access approval for ${businessName} POS.`,
             focus: prefillEmail ? 'message' : 'email',
             nonce: Date.now()
         });
@@ -271,8 +285,9 @@ export default function SeasideNewLanding() {
     return (
         <div className="seaside-landing-shell min-h-[100dvh] bg-[#070d18] bg-gradient-to-br from-[#f3fae6] via-[#ecfdf5] to-[#e0f2fe] dark:from-[#060b13] dark:via-[#08101c] dark:to-[#060b13] relative overflow-x-hidden font-sans text-slate-800 dark:text-slate-100 flex flex-col justify-between perspective-wrapper transition-colors duration-300">
             <Head>
-                <title>Seaside | Welcome</title>
-                <meta name="description" content="Seaside Enterprise Management System" />
+                <title>{`${businessName} | Welcome`}</title>
+                <link rel="icon" href={logoUrl} />
+                <meta name="description" content={`${businessName} Enterprise Management System`} />
                 <link rel="preconnect" href="https://fonts.googleapis.com" />
                 <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
                 <link
@@ -310,13 +325,15 @@ export default function SeasideNewLanding() {
                     onToggleContact={handleContactToggle}
                     darkMode={darkMode}
                     toggleDarkMode={toggleDarkMode}
+                    store={store}
+                    settings={settings}
                 />
             </div>
 
             <main className="relative z-20 flex-1 flex items-center justify-center px-3 py-2 sm:px-6 lg:px-12">
                 <div className="seaside-landing-grid max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-0 lg:gap-12 items-center">
                     <div data-tour="hero-features" className="hidden lg:block">
-                        <LandingHero />
+                        <LandingHero store={store} settings={settings} />
                     </div>
 
                     <div className="seaside-volt-mobile-fit w-full flex justify-center lg:justify-end">
@@ -339,6 +356,7 @@ export default function SeasideNewLanding() {
                             facebookLink={facebookLink}
                             contactPrefill={contactPrefill}
                             isDarkMode={darkMode}
+                            storeId={store?.id || 1}
                         />
                     </div>
                 </div>
@@ -350,7 +368,7 @@ export default function SeasideNewLanding() {
             >
                 <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-center text-center text-xs text-slate-300 tracking-wide font-medium">
                     <p className="leading-relaxed">
-                        &copy; {new Date().getFullYear()} Seaside Purified Water Refilling Station. All rights reserved. &bull; By{' '}
+                        &copy; {new Date().getFullYear()} {businessName}. All rights reserved. &bull; By{' '}
                         <span className="font-extrabold text-[#8DB600] text-lime-400 drop-shadow-[0_0_8px_rgba(141,182,0,0.5)]">
                             tijnara
                         </span>

@@ -4,15 +4,19 @@ import { supabase } from '../lib/supabaseClient';
 import { useStore } from '../store/useStore';
 import { logActivity } from './useActivityLogs';
 
-// 1. Fetches all active employees to populate your dropdown and table
-export function useEmployees() {
+// 1. Fetches all active employees for the current store
+export function useEmployees(storeId = null) {
+    const userStoreId = useStore(s => s.user?.store_id);
+    const targetStoreId = Number(storeId || userStoreId) || 1;
+
     return useQuery({
-        queryKey: ['employees'],
+        queryKey: ['employees', targetStoreId],
         queryFn: async () => {
             const { data, error } = await supabase
                 .from('employees')
                 .select('*')
-                .eq('is_active', true) // Re-enabled
+                .eq('store_id', targetStoreId)
+                .eq('is_active', true)
                 .order('name', { ascending: true });
 
             if (error) throw error;
@@ -28,9 +32,11 @@ export function useManageEmployee() {
     return useMutation({
         mutationFn: async ({ action, employee }) => {
             const currentUser = useStore.getState().user;
+            const storeId = Number(currentUser?.store_id) || 1;
 
             if (action === 'ADD') {
                 const { error } = await supabase.from('employees').insert([{
+                    store_id: storeId,
                     name: employee.name,
                     default_salary: parseFloat(employee.default_salary || 0),
                     salary_type: employee.salary_type || 'per_day',
@@ -39,7 +45,6 @@ export function useManageEmployee() {
                 }]);
                 if (error) throw error;
 
-                // --- Log Activity ---
                 logActivity({
                     user: currentUser,
                     action: 'CREATE',
@@ -55,10 +60,10 @@ export function useManageEmployee() {
                         salary_type: employee.salary_type,
                         container_multiplier: employee.container_multiplier ? parseInt(employee.container_multiplier) : null
                     })
-                    .eq('id', employee.id);
+                    .eq('id', employee.id)
+                    .eq('store_id', storeId);
                 if (error) throw error;
 
-                // --- Log Activity ---
                 logActivity({
                     user: currentUser,
                     action: 'UPDATE',
@@ -67,18 +72,20 @@ export function useManageEmployee() {
                 });
             }
             else if (action === 'DELETE') {
-                // Fetch name for the log before deleting
                 const { data: empToDelete } = await supabase
                     .from('employees')
                     .select('name')
                     .eq('id', employee.id)
+                    .eq('store_id', storeId)
                     .single();
 
-                // Hard deletes the employee record
-                const { error } = await supabase.from('employees').delete().eq('id', employee.id);
+                const { error } = await supabase
+                    .from('employees')
+                    .delete()
+                    .eq('id', employee.id)
+                    .eq('store_id', storeId);
                 if (error) throw error;
 
-                // --- Log Activity ---
                 if (empToDelete) {
                     logActivity({
                         user: currentUser,
@@ -90,7 +97,6 @@ export function useManageEmployee() {
             }
         },
         onSuccess: () => {
-            // Automatically refreshes the UI after a change is made
             queryClient.invalidateQueries({ queryKey: ['employees'] });
             queryClient.invalidateQueries({ queryKey: ['activity-logs'] });
         }

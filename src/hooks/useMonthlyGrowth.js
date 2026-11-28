@@ -3,21 +3,21 @@ import { useMemo } from 'react';
 import { useSalesSummary } from './useSalesSummary';
 import { startOfMonth, endOfMonth, subMonths } from 'date-fns';
 
-export function useMonthlyGrowth(date = new Date()) {
-    // This month's data
+export function useMonthlyGrowth(date = new Date(), storeId = null) {
     const thisMonthStart = startOfMonth(date);
     const thisMonthEnd = endOfMonth(date);
     const { data: thisMonthData, isLoading: isThisMonthLoading } = useSalesSummary({
         startDate: thisMonthStart,
         endDate: thisMonthEnd,
+        storeId,
     });
 
-    // Previous month's data
     const lastMonthStart = startOfMonth(subMonths(date, 1));
     const lastMonthEnd = endOfMonth(subMonths(date, 1));
     const { data: lastMonthData, isLoading: isLastMonthLoading } = useSalesSummary({
         startDate: lastMonthStart,
         endDate: lastMonthEnd,
+        storeId,
     });
 
     const monthlyGrowth = useMemo(() => {
@@ -26,7 +26,7 @@ export function useMonthlyGrowth(date = new Date()) {
         const thisMonthGallons = thisMonthData?.totalGallons || 0;
         const lastMonthGallons = lastMonthData?.totalGallons || 0;
 
-        const salesGrowth = lastMonthSales > 0 
+        const salesGrowth = lastMonthSales > 0
             ? parseFloat((((thisMonthSales - lastMonthSales) / lastMonthSales) * 100).toFixed(2))
             : thisMonthSales > 0 ? 100 : 0;
 

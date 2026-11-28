@@ -3,21 +3,21 @@ import { useMemo } from 'react';
 import { useSalesSummary } from './useSalesSummary';
 import { startOfWeek, endOfWeek, subWeeks } from 'date-fns';
 
-export function useWeeklyGrowth(date = new Date()) {
-    // This week's data
+export function useWeeklyGrowth(date = new Date(), storeId = null) {
     const thisWeekStart = startOfWeek(date, { weekStartsOn: 1 });
     const thisWeekEnd = endOfWeek(date, { weekStartsOn: 1 });
     const { data: thisWeekData, isLoading: isThisWeekLoading } = useSalesSummary({
         startDate: thisWeekStart,
         endDate: thisWeekEnd,
+        storeId,
     });
 
-    // Previous week's data
     const lastWeekStart = startOfWeek(subWeeks(date, 1), { weekStartsOn: 1 });
     const lastWeekEnd = endOfWeek(subWeeks(date, 1), { weekStartsOn: 1 });
     const { data: lastWeekData, isLoading: isLastWeekLoading } = useSalesSummary({
         startDate: lastWeekStart,
         endDate: lastWeekEnd,
+        storeId,
     });
 
     const weeklyGrowth = useMemo(() => {
@@ -26,7 +26,7 @@ export function useWeeklyGrowth(date = new Date()) {
         const thisWeekGallons = thisWeekData?.totalGallons || 0;
         const lastWeekGallons = lastWeekData?.totalGallons || 0;
 
-        const salesGrowth = lastWeekSales > 0 
+        const salesGrowth = lastWeekSales > 0
             ? parseFloat((((thisWeekSales - lastWeekSales) / lastWeekSales) * 100).toFixed(2))
             : thisWeekSales > 0 ? 100 : 0;
 

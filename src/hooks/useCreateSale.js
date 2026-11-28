@@ -35,6 +35,7 @@ export function useCreateSale() {
                 };
             }
 
+            const storeId = Number(user?.store_id) || 1;
             const staffId = user?.id || null;
             const staffName = user?.name || user?.username || 'Staff';
 
@@ -57,6 +58,7 @@ export function useCreateSale() {
 
             // --- 2. Insert Sale Record ---
             const saleDataToInsert = {
+                store_id: storeId,
                 saletimestamp: salePayload.saleTimestamp,
                 totalamount: salePayload.totalAmount,
                 customerid: salePayload.customerId,
@@ -86,6 +88,7 @@ export function useCreateSale() {
                 const { error: debtLogError } = await supabase
                     .from('customer_debts')
                     .insert({
+                        store_id: storeId,
                         customer_id: salePayload.customerId,
                         sale_id: newSaleId,
                         amount: salePayload.totalAmount,
@@ -116,6 +119,7 @@ export function useCreateSale() {
                 );
 
                 return {
+                    store_id: storeId,
                     sale_id: newSaleId,
                     product_id: isCustom ? null : Number(item.productId),
                     product_name: item.productName || item.name,
@@ -187,6 +191,9 @@ export function useCreateSale() {
 
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['sales'] });
+            queryClient.invalidateQueries({ queryKey: ['sales-summary'] });
+            queryClient.invalidateQueries({ queryKey: ['weekly-growth'] });
+            queryClient.invalidateQueries({ queryKey: ['monthly-growth'] });
             queryClient.invalidateQueries({ queryKey: ['customer_debts'] });
             queryClient.invalidateQueries({ queryKey: ['products'] });
             queryClient.invalidateQueries({ queryKey: ['customers'] });

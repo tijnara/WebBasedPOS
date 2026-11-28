@@ -44,11 +44,13 @@ const MOCK_SALES = [
     }
 ];
 
-export function useSales({ searchTerm, startDate, endDate, productName, productId, page = 1, itemsPerPage = 10, fetchAll = false } = {}) {
+export function useSales({ searchTerm, startDate, endDate, productName, productId, page = 1, itemsPerPage = 10, fetchAll = false, storeId = null } = {}) {
     const isDemo = useStore(s => s.user?.isDemo);
+    const userStoreId = useStore(s => s.user?.store_id);
+    const targetStoreId = Number(storeId || userStoreId) || 1;
 
     return useQuery({
-        queryKey: ['sales', isDemo, searchTerm, startDate, endDate, productName, productId, page, itemsPerPage, fetchAll],
+        queryKey: ['sales', targetStoreId, isDemo, searchTerm, startDate, endDate, productName, productId, page, itemsPerPage, fetchAll],
         queryFn: async () => {
             if (isDemo) {
                 await new Promise(resolve => setTimeout(resolve, 400));
@@ -101,6 +103,7 @@ export function useSales({ searchTerm, startDate, endDate, productName, productI
                 let query = supabase
                     .from('sales')
                     .select(selectString, { count: 'exact' })
+                    .eq('store_id', targetStoreId)
                     .order('saletimestamp', { ascending: false });
 
                 if (!fetchAll) {
@@ -169,6 +172,7 @@ export function useSales({ searchTerm, startDate, endDate, productName, productI
 export function useSettleSale() {
     const queryClient = useQueryClient();
     const { addToast, user } = useStore();
+    const storeId = Number(user?.store_id) || 1;
 
     return useMutation({
         mutationFn: async ({ saleId, customerId, amount }) => {
@@ -182,7 +186,8 @@ export function useSettleSale() {
                     amountreceived: payAmount,
                     changegiven: 0
                 })
-                .eq('id', saleId);
+                .eq('id', saleId)
+                .eq('store_id', storeId);
 
             if (saleError) throw saleError;
 
@@ -193,7 +198,8 @@ export function useSettleSale() {
                     remaining_balance: 0,
                     status: 'Paid'
                 })
-                .eq('sale_id', saleId);
+                .eq('sale_id', saleId)
+                .eq('store_id', storeId);
 
             // 3. Reduce Customer Debt
             if (customerId) {
@@ -201,6 +207,7 @@ export function useSettleSale() {
                     .from('customers')
                     .select('credit_balance')
                     .eq('id', customerId)
+                    .eq('store_id', storeId)
                     .single();
 
                 if (cust) {
@@ -208,7 +215,8 @@ export function useSettleSale() {
                     await supabase
                         .from('customers')
                         .update({ credit_balance: newBal })
-                        .eq('id', customerId);
+                        .eq('id', customerId)
+                        .eq('store_id', storeId);
                 }
             }
 
@@ -235,6 +243,7 @@ export function useSettleSale() {
 export function useDeleteSale() {
     const queryClient = useQueryClient();
     const { addToast, user } = useStore();
+    const storeId = Number(user?.store_id) || 1;
 
     return useMutation({
         mutationFn: async (sale) => {
@@ -248,6 +257,7 @@ export function useDeleteSale() {
                             .from('products')
                             .select('stock_quantity, track_stock')
                             .eq('id', item.product_id)
+                            .eq('store_id', storeId)
                             .single();
 
                         if (prod && prod.track_stock !== false && prod.stock_quantity !== null) {
@@ -256,7 +266,8 @@ export function useDeleteSale() {
                                 .update({
                                     stock_quantity: Number(prod.stock_quantity) + Number(item.quantity)
                                 })
-                                .eq('id', item.product_id);
+                                .eq('id', item.product_id)
+                                .eq('store_id', storeId);
                         }
                     }
                 }
@@ -264,18 +275,18 @@ export function useDeleteSale() {
 
             // 2. Reverse credit / utang if sale was charged
             if (sale.paymentMethod === 'Charge') {
-                // Delete from customer_debts ledger
                 await supabase
                     .from('customer_debts')
                     .delete()
-                    .eq('sale_id', saleId);
+                    .eq('sale_id', saleId)
+                    .eq('store_id', storeId);
 
-                // Deduct from customer credit balance
                 if (sale.customerId) {
                     const { data: cust } = await supabase
                         .from('customers')
                         .select('credit_balance')
                         .eq('id', sale.customerId)
+                        .eq('store_id', storeId)
                         .single();
 
                     if (cust) {
@@ -283,7 +294,8 @@ export function useDeleteSale() {
                         await supabase
                             .from('customers')
                             .update({ credit_balance: newBal })
-                            .eq('id', sale.customerId);
+                            .eq('id', sale.customerId)
+                            .eq('store_id', storeId);
                     }
                 }
             }
@@ -292,7 +304,8 @@ export function useDeleteSale() {
             const { error: itemsErr } = await supabase
                 .from('sale_items')
                 .delete()
-                .eq('sale_id', saleId);
+                .eq('sale_id', saleId)
+                .eq('store_id', storeId);
 
             if (itemsErr) throw itemsErr;
 
@@ -300,7 +313,8 @@ export function useDeleteSale() {
             const { error: saleErr } = await supabase
                 .from('sales')
                 .delete()
-                .eq('id', saleId);
+                .eq('id', saleId)
+                .eq('store_id', storeId);
 
             if (saleErr) throw saleErr;
 
@@ -334,6 +348,7 @@ export function useDeleteSale() {
 export function useUpdateSale() {
     const queryClient = useQueryClient();
     const { addToast, user } = useStore();
+    const storeId = Number(user?.store_id) || 1;
 
     return useMutation({
         mutationFn: async ({ saleId, originalSale, updates }) => {
@@ -345,23 +360,33 @@ export function useUpdateSale() {
 
             // 1. Handle payment method transition (Charge <-> Cash/GCash)
             if (originalSale.paymentMethod === 'Charge' && newPaymentMethod !== 'Charge') {
-                // Was utang, converted to paid: delete or settle debt
                 await supabase
                     .from('customer_debts')
                     .update({ status: 'Paid', remaining_balance: 0 })
-                    .eq('sale_id', saleId);
+                    .eq('sale_id', saleId)
+                    .eq('store_id', storeId);
 
                 if (originalSale.customerId) {
-                    const { data: cust } = await supabase.from('customers').select('credit_balance').eq('id', originalSale.customerId).single();
+                    const { data: cust } = await supabase
+                        .from('customers')
+                        .select('credit_balance')
+                        .eq('id', originalSale.customerId)
+                        .eq('store_id', storeId)
+                        .single();
+
                     if (cust) {
                         const newBal = Math.max(0, Number(cust.credit_balance || 0) - Number(originalSale.totalAmount || 0));
-                        await supabase.from('customers').update({ credit_balance: newBal }).eq('id', originalSale.customerId);
+                        await supabase
+                            .from('customers')
+                            .update({ credit_balance: newBal })
+                            .eq('id', originalSale.customerId)
+                            .eq('store_id', storeId);
                     }
                 }
             } else if (originalSale.paymentMethod !== 'Charge' && newPaymentMethod === 'Charge') {
-                // Was paid, converted to utang: add debt
                 if (originalSale.customerId) {
                     await supabase.from('customer_debts').insert({
+                        store_id: storeId,
                         customer_id: originalSale.customerId,
                         sale_id: saleId,
                         amount: originalSale.totalAmount,
@@ -373,9 +398,19 @@ export function useUpdateSale() {
                         notes: `Converted to Charge by Admin ${user?.name || ''}`
                     });
 
-                    const { data: cust } = await supabase.from('customers').select('credit_balance').eq('id', originalSale.customerId).single();
+                    const { data: cust } = await supabase
+                        .from('customers')
+                        .select('credit_balance')
+                        .eq('id', originalSale.customerId)
+                        .eq('store_id', storeId)
+                        .single();
+
                     if (cust) {
-                        await supabase.from('customers').update({ credit_balance: Number(cust.credit_balance || 0) + Number(originalSale.totalAmount) }).eq('id', originalSale.customerId);
+                        await supabase
+                            .from('customers')
+                            .update({ credit_balance: Number(cust.credit_balance || 0) + Number(originalSale.totalAmount) })
+                            .eq('id', originalSale.customerId)
+                            .eq('store_id', storeId);
                     }
                 }
             }
@@ -391,7 +426,8 @@ export function useUpdateSale() {
                     customername: newCustomerName,
                     ...(updates.saleTimestamp ? { saletimestamp: updates.saleTimestamp.toISOString() } : {})
                 })
-                .eq('id', saleId);
+                .eq('id', saleId)
+                .eq('store_id', storeId);
 
             if (updateErr) throw updateErr;
 

@@ -8,13 +8,14 @@ import AnimatedLandingIcon from './AnimatedLandingIcon';
 
 const FALLBACK_GALLERY_IMAGE = '/seasideHD_.png';
 
-export default function Gallery() {
-    const { data: items = [], isLoading } = useGallery();
+export default function Gallery({ storeId, settings }) {
+    const { data: items = [], isLoading } = useGallery(storeId);
     const darkMode = useStore((s) => s.darkMode);
     const [[currentIndex, direction], setCurrentIndex] = useState([0, 0]);
     const [isLightboxOpen, setIsLightboxOpen] = useState(false);
     const [failedUrls, setFailedUrls] = useState({});
 
+    const businessName = settings?.business_name || 'Seaside';
     const totalItems = items.length;
     const safeIndex = totalItems > 0 ? ((currentIndex % totalItems) + totalItems) % totalItems : 0;
     const currentItem = totalItems > 0 ? items[safeIndex] : null;
@@ -137,7 +138,7 @@ export default function Gallery() {
                                 >
                                     <Image
                                         src={currentDisplaySrc}
-                                        alt={currentItem?.title || 'Seaside Station Gallery'}
+                                        alt={currentItem?.title || `${businessName} Station Gallery`}
                                         fill
                                         unoptimized
                                         sizes="(max-width: 1024px) 100vw, 1152px"

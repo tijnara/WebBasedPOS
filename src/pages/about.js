@@ -1,9 +1,10 @@
 // src/pages/about.js
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 import { useSettings } from '../hooks/useSettings';
+import { usePublicStore } from '../hooks/usePublicStore';
 import { useStore } from '../store/useStore';
 
 import SafeWebGL from '../components/SafeWebGL';
@@ -58,11 +59,39 @@ function RevealSection({ children, delay = 0 }) {
 }
 
 export default function SeasideWaterLanding() {
-    const { data: settings } = useSettings();
+    const router = useRouter();
+    const storeSlug = typeof router.query.store === 'string' ? router.query.store : undefined;
+
+    const { data: store } = usePublicStore(storeSlug);
+    const { data: settings } = useSettings(store?.id);
     const darkMode = useStore((s) => s.darkMode);
     const toggleDarkMode = useStore((s) => s.toggleDarkMode);
-    const router = useRouter();
     const [scrolled, setScrolled] = useState(false);
+
+    // Merge store record + business_settings so every child component gets unified tenant branding
+    const effectiveSettings = useMemo(() => {
+        const branding = store?.branding || {};
+        return {
+            ...settings,
+            store_id: store?.id ?? settings?.store_id ?? 1,
+            store_slug: store?.slug ?? settings?.store_slug ?? null,
+            business_name: store?.name || settings?.business_name || 'Seaside',
+            tagline: store?.tagline || settings?.tagline || 'Water Refilling Station',
+            logo_url: store?.logo_url || settings?.logo_url || '/seaside.png',
+            physical_address: store?.address || settings?.physical_address || 'Barangay Laois, Labrador, 2402 Pangasinan',
+            contact_number: store?.contact_number || settings?.contact_number || '+639602196388',
+            email: branding.email || settings?.email || 'seasidewrs@gmail.com',
+            business_hours: branding.operatingHours || settings?.business_hours || 'Mon - Sat: 8:00 AM - 5:00 PM',
+            location_embed: branding.mapEmbedUrl || settings?.location_embed || '',
+            location_description: branding.locationDescription || settings?.location_description || '',
+            delivery_areas: branding.deliveryAreas || settings?.delivery_areas || null,
+            station_label: branding.stationLabel || settings?.station_label || '',
+            messenger_link: branding.messengerUrl || settings?.messenger_link || '',
+            facebook_link: branding.facebookUrl || settings?.facebook_link || '',
+            about_content: branding.aboutContent || settings?.about_content || '',
+            primary_color: store?.primary_color || settings?.primary_color || '#8DB600'
+        };
+    }, [store, settings]);
 
     useEffect(() => {
         const onScroll = () => setScrolled(window.scrollY > 20);
@@ -93,11 +122,17 @@ export default function SeasideWaterLanding() {
         return () => router.events.off('hashChangeComplete', handleHashChangeComplete);
     }, [router.isReady, router.events]);
 
-    const contactPhone = settings?.contact_number || '+639602196388';
+    const businessName = effectiveSettings.business_name;
+    const logoUrl = effectiveSettings.logo_url;
+    const isExternalLogo = typeof logoUrl === 'string' && logoUrl.startsWith('http');
+    const contactPhone = effectiveSettings.contact_number;
     const cleanSmsNumber = contactPhone.replace(/[^0-9+]/g, '');
+    const smsBody = encodeURIComponent(
+        `Hi ${businessName}, I would like to inquire about water refills.`
+    );
     const messengerLink =
-        settings?.messenger_link ||
-        settings?.facebook_link ||
+        effectiveSettings.messenger_link ||
+        effectiveSettings.facebook_link ||
         'https://www.facebook.com/share/1CSQtnEWYf/';
 
     return (
@@ -106,8 +141,8 @@ export default function SeasideWaterLanding() {
             <SafeWebGL fallback={null}>
                 <LandingBackground />
             </SafeWebGL>
-            <Meta />
-            <ViewCounter />
+            <Meta settings={effectiveSettings} store={store} />
+            <ViewCounter storeId={effectiveSettings.store_id} />
 
             {/* Navigation Header */}
             <header
@@ -125,20 +160,21 @@ export default function SeasideWaterLanding() {
                                 className="pointer-events-none absolute inset-0 seaside-brand-sheen"
                             />
                             <Image
-                                src={settings?.logo_url || '/seaside.png'}
-                                alt="Seaside Logo"
+                                src={logoUrl}
+                                alt={`${businessName} Logo`}
                                 width={36}
                                 height={36}
+                                unoptimized={isExternalLogo}
                                 className="relative z-10 object-contain w-full h-full seaside-palm-breeze"
                                 priority
                             />
                         </div>
                         <div className="seaside-wordmark-enter">
                             <span className="text-lg font-black tracking-tight text-slate-900 dark:text-slate-100 block leading-tight">
-                                {settings?.business_name || 'Seaside'}
+                                {businessName}
                             </span>
                             <span className="text-[10px] font-black tracking-widest uppercase text-[#659000] dark:text-[#a3d100] block">
-                                Water Refilling Station
+                                {effectiveSettings.tagline}
                             </span>
                         </div>
                     </Link>
@@ -148,7 +184,7 @@ export default function SeasideWaterLanding() {
                             Services
                         </a>
                         <a href="#why-choose" className="hover:text-[#659000] dark:hover:text-[#a3d100] transition-colors">
-                            Why Seaside
+                            Why {businessName}
                         </a>
                         <a href="#process" className="hover:text-[#659000] dark:hover:text-[#a3d100] transition-colors">
                             Our Process
@@ -200,33 +236,33 @@ export default function SeasideWaterLanding() {
                 className="relative z-10 pt-20 md:pt-24 pb-20 md:pb-0 flex flex-col flex-grow"
             >
                 <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 space-y-16 sm:space-y-24">
-                    <Hero settings={settings} />
+                    <Hero settings={effectiveSettings} store={store} />
 
                     <RevealSection>
-                        <WhyChooseUs />
+                        <WhyChooseUs settings={effectiveSettings} store={store} />
                     </RevealSection>
 
                     <RevealSection>
-                        <Services settings={settings} />
+                        <Services settings={effectiveSettings} store={store} />
                     </RevealSection>
 
                     <RevealSection>
-                        <ProcessSection />
+                        <ProcessSection settings={effectiveSettings} store={store} />
                     </RevealSection>
 
                     <RevealSection>
-                        <Gallery />
+                        <Gallery storeId={effectiveSettings.store_id} settings={effectiveSettings} />
                     </RevealSection>
 
                     <RevealSection>
-                        <Location settings={settings} />
+                        <Location settings={effectiveSettings} store={store} />
                     </RevealSection>
 
                     <RevealSection>
-                        <Contact settings={settings} />
+                        <Contact settings={effectiveSettings} store={store} />
                     </RevealSection>
                 </div>
-                <Footer settings={settings} />
+                <Footer settings={effectiveSettings} store={store} />
             </main>
 
             <ScrollToTop />
@@ -236,7 +272,7 @@ export default function SeasideWaterLanding() {
                 <Button
                     className="flex-1 bg-[#8DB600] hover:bg-[#7ca000] text-white font-bold h-11 rounded-xl shadow-xs flex items-center justify-center gap-2 text-xs active:scale-95 transition-all"
                     onClick={() => {
-                        window.location.href = `sms:${cleanSmsNumber}?body=Hi%20Seaside%20WRS,%20I%20would%20like%20to%20inquire%20about%20water%20refills.`;
+                        window.location.href = `sms:${cleanSmsNumber}?body=${smsBody}`;
                     }}
                 >
                     <AnimatedLandingIcon name="mail" size={18} strokeColor="#ffffff" />

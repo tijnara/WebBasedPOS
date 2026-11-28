@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { Button, Input, Textarea } from '../ui.js';
 import AnimatedLandingIcon from './AnimatedLandingIcon';
 
-const ContactForm = ({ settings }) => {
+const ContactForm = ({ settings, storeId }) => {
     const [sendTick, setSendTick] = useState(0);
     const [fbTick, setFbTick] = useState(0);
 
@@ -33,7 +33,11 @@ const ContactForm = ({ settings }) => {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ email: data.email, message: data.message })
+                body: JSON.stringify({
+                    email: data.email,
+                    message: data.message,
+                    store_id: storeId || settings?.store_id || 1
+                })
             });
 
             if (response.ok) {

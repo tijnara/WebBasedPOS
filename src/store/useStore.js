@@ -1,3 +1,4 @@
+// src/store/useStore.js
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import api from '../lib/api';
@@ -36,6 +37,9 @@ export const useStore = create(
 
             // Internal action to be called once hydration is complete
             _setSessionLoaded: () => set({ sessionLoaded: true }),
+
+            // Helper to always resolve the active tenant store_id
+            getStoreId: () => Number(get().user?.store_id) || 1,
 
             setCurrentCustomer: (cust) => set({ currentCustomer: cust }),
 
@@ -141,10 +145,14 @@ export const useStore = create(
             dismissToast: (id) => set((s) => ({ toasts: s.toasts.filter(x => x.id !== id) })),
 
             setAuth: (user) => {
+                const normalizedUser = user
+                    ? { ...user, store_id: Number(user.store_id) || 1 }
+                    : null;
+
                 if (typeof window !== 'undefined') {
                     try {
                         sessionStorage.setItem('pos_tab_initialized', 'true');
-                        if (user) {
+                        if (normalizedUser) {
                             localStorage.setItem('seaside_last_active_at', String(Date.now()));
                         } else {
                             clearAuthAndShiftStorage();
@@ -153,7 +161,7 @@ export const useStore = create(
                         // Ignore storage errors
                     }
                 }
-                set({ user: user || null, sessionLoaded: true });
+                set({ user: normalizedUser, sessionLoaded: true });
             },
 
             logout: async () => {
@@ -175,6 +183,9 @@ export const useStore = create(
             partialize: (state) => ({ user: state.user, darkMode: state.darkMode }),
             onRehydrateStorage: () => (state) => {
                 if (state && typeof state._setSessionLoaded === 'function') {
+                    if (state.user && !state.user.store_id) {
+                        state.user = { ...state.user, store_id: 1 };
+                    }
                     state._setSessionLoaded();
                 } else {
                     useStore.setState({ sessionLoaded: true });

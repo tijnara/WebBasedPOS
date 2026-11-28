@@ -21,12 +21,15 @@ export function useProducts({
                                 itemsPerPage = 10,
                                 fetchAll = false,
                                 excludeHidden = false,
-                                sortBy = 'highest_sold'
+                                sortBy = 'highest_sold',
+                                storeId = null
                             } = {}) {
     const isDemo = useStore(s => s.user?.isDemo);
+    const userStoreId = useStore(s => s.user?.store_id);
+    const targetStoreId = Number(storeId || userStoreId) || 1;
 
     return useQuery({
-        queryKey: ['products', isDemo, searchTerm, category, page, itemsPerPage, fetchAll, excludeHidden, sortBy],
+        queryKey: ['products', targetStoreId, isDemo, searchTerm, category, page, itemsPerPage, fetchAll, excludeHidden, sortBy],
         queryFn: async () => {
             const term = searchTerm.trim().toLowerCase();
             const cat = (category || '').trim();
@@ -85,7 +88,8 @@ export function useProducts({
             try {
                 const { data: saleItemsData, error: saleItemsError } = await supabase
                     .from('sale_items')
-                    .select('product_id, quantity');
+                    .select('product_id, quantity')
+                    .eq('store_id', targetStoreId);
 
                 if (!saleItemsError && Array.isArray(saleItemsData)) {
                     saleItemsData.forEach(item => {
@@ -97,7 +101,8 @@ export function useProducts({
                 } else {
                     const { data: salesData, error: salesError } = await supabase
                         .from('sales')
-                        .select('items');
+                        .select('items')
+                        .eq('store_id', targetStoreId);
 
                     if (!salesError && Array.isArray(salesData)) {
                         salesData.forEach(sale => {
@@ -118,7 +123,8 @@ export function useProducts({
 
             let query = supabase
                 .from('products')
-                .select('*', { count: 'exact' });
+                .select('*', { count: 'exact' })
+                .eq('store_id', targetStoreId);
 
             if (term) {
                 query = query.or(`name.ilike.%${term}%,barcode.eq.${term}`);

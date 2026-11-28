@@ -8,7 +8,7 @@ import WaterStation3DModel from './WaterStation3DModel';
 import RefillSimulatorGame from './RefillSimulatorGame';
 import AnimatedLandingIcon from './AnimatedLandingIcon';
 
-function WaterStation2DFallback({ darkMode, stationName, onPlaySim }) {
+function WaterStation2DFallback({ darkMode, stationName, logoUrl, onPlaySim }) {
     return (
         <div className="w-full h-full flex flex-col items-center justify-center px-4 py-2 text-center select-none">
             <div className="relative flex items-center justify-center mb-3">
@@ -72,7 +72,11 @@ function WaterStation2DFallback({ darkMode, stationName, onPlaySim }) {
 
                 {/* Center Station Emblem Badge */}
                 <div className="absolute bottom-2 px-2.5 py-1 rounded-full bg-white/95 dark:bg-slate-900/95 border border-lime-300/80 dark:border-lime-700/60 shadow-sm flex items-center gap-1.5">
-                    <img src="/seaside.png" alt="Seaside WRS" className="w-4 h-4 object-contain" />
+                    <img
+                        src={logoUrl || '/seaside.png'}
+                        alt={stationName || 'Water Station'}
+                        className="w-4 h-4 object-contain"
+                    />
                     <span className="text-[10px] font-black text-slate-800 dark:text-slate-100">
                         20.0L {stationName || 'Seaside'}
                     </span>
@@ -91,8 +95,10 @@ function WaterStation2DFallback({ darkMode, stationName, onPlaySim }) {
     );
 }
 
-export default function Hero({ settings }) {
-    const { data: customersData, isLoading } = useCustomers();
+export default function Hero({ settings, store }) {
+    const { data: customersData, isLoading } = useCustomers({
+        storeId: store?.id ?? settings?.store_id
+    });
     const darkMode = useStore((s) => s.darkMode);
 
     // Stage Mode: '3d-model' | 'game'
@@ -129,7 +135,8 @@ export default function Hero({ settings }) {
         compactDisplay: 'short'
     }).format(displayCount || targetCount);
 
-    const rawBusinessName = (settings?.business_name || 'Seaside').trim();
+    const rawBusinessName = (store?.name || settings?.business_name || 'Seaside').trim();
+    const logoUrl = store?.logo_url || settings?.logo_url || '/seaside.png';
     const stationBadgeLabel = /station$/i.test(rawBusinessName)
         ? rawBusinessName
         : `${rawBusinessName} Station`;
@@ -140,7 +147,9 @@ export default function Hero({ settings }) {
         : `TDS: ${rawTds} • 21-STAGE`;
 
     const jugPriceLabel = (settings?.jug_price_range || '₱20-₱30 / Jug').trim();
-    const heroTagline = (settings?.hero_tagline || 'Always Fresh, Cold & Pure').trim();
+    const heroTagline = (store?.tagline || settings?.hero_tagline || 'Always Fresh, Cold & Pure').trim();
+    const heroTitle = store?.branding?.heroTitle || settings?.hero_title;
+    const heroSubtitle = store?.branding?.heroSubtitle || settings?.hero_subtitle;
 
     // Framer Motion 3D Spring Tilt for Showcase Stage
     const mouseX = useMotionValue(0);
@@ -201,22 +210,22 @@ export default function Hero({ settings }) {
 
                         {/* Main Headline */}
                         <h1 className="text-3xl sm:text-5xl lg:text-5xl xl:text-6xl font-black text-slate-900 dark:text-white tracking-tight leading-[1.12]">
-                            {settings?.hero_title ? (
-                                settings.hero_title
+                            {heroTitle ? (
+                                heroTitle
                             ) : (
                                 <>
                                     Your Family&apos;s Health,{' '}
                                     <span className="bg-gradient-to-r from-[#659000] via-emerald-500 to-cyan-500 dark:from-[#a3d100] dark:via-emerald-400 dark:to-cyan-400 bg-clip-text text-transparent animate-gradient-x">
                                         Flowing Crystal Clear
                                     </span>{' '}
-                                    from Seaside.
+                                    from {rawBusinessName}.
                                 </>
                             )}
                         </h1>
 
                         {/* Subheading */}
                         <p className="text-base sm:text-lg text-slate-600 dark:text-slate-300 font-medium leading-relaxed max-w-xl">
-                            {settings?.hero_subtitle ||
+                            {heroSubtitle ||
                                 'We combine commercial-grade 21-stage reverse osmosis filtration with warm local care, delivering 100% pure, remineralized drinking water straight to your home and business.'}
                         </p>
 
@@ -442,6 +451,7 @@ export default function Hero({ settings }) {
                                                     <WaterStation2DFallback
                                                         darkMode={darkMode}
                                                         stationName={rawBusinessName}
+                                                        logoUrl={logoUrl}
                                                         onPlaySim={() => setStageView('game')}
                                                     />
                                                 }

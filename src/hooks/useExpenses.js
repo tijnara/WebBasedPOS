@@ -31,14 +31,28 @@ const parseRecurringDay = (value) => {
     return Number.isInteger(parsed) && parsed >= 0 && parsed <= 6 ? parsed : 1;
 };
 
-export function useExpenses({ startDate, endDate, page = 1, pageSize = 20, searchTerm = '', category = 'All', employeeName = 'all' } = {}) {
+export function useExpenses({
+                                startDate,
+                                endDate,
+                                page = 1,
+                                pageSize = 20,
+                                searchTerm = '',
+                                category = 'All',
+                                employeeName = 'all',
+                                storeId = null
+                            } = {}) {
+    const userStoreId = useStore(s => s.user?.store_id);
+    const targetStoreId = Number(storeId || userStoreId) || 1;
+
     return useQuery({
-        queryKey: [...EXPENSES_KEY, startDate, endDate, page, pageSize, searchTerm, category, employeeName],
+        queryKey: [...EXPENSES_KEY, targetStoreId, startDate, endDate, page, pageSize, searchTerm, category, employeeName],
         queryFn: async () => {
             const from = (page - 1) * pageSize;
             const to = from + pageSize - 1;
 
             const applyFilters = (query) => {
+                query = query.eq('store_id', targetStoreId);
+
                 if (startDate) query = query.gte('expense_date', getManilaStartOfDay(startDate));
                 if (endDate) query = query.lte('expense_date', getManilaEndOfDay(endDate));
 
@@ -98,12 +112,16 @@ export function useCreateExpense() {
 
     return useMutation({
         mutationFn: async (expenseData) => {
+            const currentUser = useStore.getState().user;
+            const storeId = Number(expenseData.store_id || currentUser?.store_id || user?.store_id) || 1;
+
             const rawDate = String(expenseData.expense_date || '').trim();
             const normalizedIso = /^\d{4}-\d{2}-\d{2}$/.test(rawDate)
                 ? new Date(`${rawDate}T12:00:00+08:00`).toISOString()
                 : new Date(rawDate).toISOString();
 
             const payload = {
+                store_id: storeId,
                 amount: parseFloat(expenseData.amount),
                 category: expenseData.category,
                 description: expenseData.description,
@@ -114,7 +132,6 @@ export function useCreateExpense() {
             const { error } = await supabase.from('expenses').insert([payload]);
             if (error) throw error;
 
-            const currentUser = useStore.getState().user;
             logActivity({
                 user: currentUser,
                 action: 'CREATE',
@@ -130,13 +147,17 @@ export function useCreateExpense() {
     });
 }
 
-export function useExpenseSummary(dateFrom, dateTo, selectedMonth) {
+export function useExpenseSummary(dateFrom, dateTo, selectedMonth, storeId = null) {
+    const userStoreId = useStore(s => s.user?.store_id);
+    const targetStoreId = Number(storeId || userStoreId) || 1;
+
     return useQuery({
-        queryKey: ['expense-summary', dateFrom, dateTo, selectedMonth],
+        queryKey: ['expense-summary', targetStoreId, dateFrom, dateTo, selectedMonth],
         queryFn: async () => {
             const { data: allTimeData, error: allTimeError } = await supabase
                 .from('expenses')
                 .select('amount')
+                .eq('store_id', targetStoreId)
                 .gte('expense_date', '2026-04-20T00:00:00+08:00');
 
             if (allTimeError) throw allTimeError;
@@ -153,6 +174,7 @@ export function useExpenseSummary(dateFrom, dateTo, selectedMonth) {
                 const { data: monthData, error: monthError } = await supabase
                     .from('expenses')
                     .select('amount')
+                    .eq('store_id', targetStoreId)
                     .gte('expense_date', getManilaStartOfDay(startOfMonthStr))
                     .lte('expense_date', getManilaEndOfDay(endOfMonthStr));
 
@@ -165,6 +187,7 @@ export function useExpenseSummary(dateFrom, dateTo, selectedMonth) {
                 const { data: weekData, error: weekError } = await supabase
                     .from('expenses')
                     .select('amount')
+                    .eq('store_id', targetStoreId)
                     .gte('expense_date', getManilaStartOfDay(dateFrom))
                     .lte('expense_date', getManilaEndOfDay(dateTo));
 
@@ -184,11 +207,18 @@ export function useExpenseSummary(dateFrom, dateTo, selectedMonth) {
 
 // --- CATEGORY HOOKS ---
 
-export function useExpenseCategories() {
+export function useExpenseCategories(storeId = null) {
+    const userStoreId = useStore(s => s.user?.store_id);
+    const targetStoreId = Number(storeId || userStoreId) || 1;
+
     return useQuery({
-        queryKey: CATEGORIES_KEY,
+        queryKey: [...CATEGORIES_KEY, targetStoreId],
         queryFn: async () => {
-            const { data, error } = await supabase.from('expense_categories').select('*').order('name');
+            const { data, error } = await supabase
+                .from('expense_categories')
+                .select('*')
+                .eq('store_id', targetStoreId)
+                .order('name');
             if (error) throw error;
             return (data || []).filter(
                 (cat) => String(cat?.name || '').trim().toLowerCase() !== 'maintenance'
@@ -203,7 +233,11 @@ export function useCreateExpenseCategory() {
 
     return useMutation({
         mutationFn: async ({ name, default_amount, default_description, is_recurring, is_recurring_daily, recurring_day }) => {
+            const currentUser = useStore.getState().user;
+            const storeId = Number(currentUser?.store_id || user?.store_id) || 1;
+
             const { error } = await supabase.from('expense_categories').insert([{
+                store_id: storeId,
                 name,
                 default_amount: default_amount ? parseFloat(default_amount) : null,
                 default_description: default_description || null,
@@ -214,7 +248,6 @@ export function useCreateExpenseCategory() {
             }]);
             if (error) throw error;
 
-            const currentUser = useStore.getState().user;
             logActivity({
                 user: currentUser,
                 action: 'CREATE',
@@ -234,6 +267,9 @@ export function useUpdateExpenseCategory() {
 
     return useMutation({
         mutationFn: async ({ id, name, default_amount, default_description, is_recurring, is_recurring_daily, recurring_day }) => {
+            const currentUser = useStore.getState().user;
+            const storeId = Number(currentUser?.store_id) || 1;
+
             const { error } = await supabase
                 .from('expense_categories')
                 .update({
@@ -244,10 +280,10 @@ export function useUpdateExpenseCategory() {
                     is_recurring_daily: !!is_recurring_daily,
                     recurring_day: parseRecurringDay(recurring_day)
                 })
-                .eq('id', id);
+                .eq('id', id)
+                .eq('store_id', storeId);
             if (error) throw error;
 
-            const currentUser = useStore.getState().user;
             logActivity({
                 user: currentUser,
                 action: 'UPDATE',
@@ -267,6 +303,9 @@ export function useUpdateExpense() {
 
     return useMutation({
         mutationFn: async ({ id, ...expenseData }) => {
+            const currentUser = useStore.getState().user;
+            const storeId = Number(currentUser?.store_id) || 1;
+
             const rawDate = String(expenseData.expense_date || '').trim();
             const normalizedIso = /^\d{4}-\d{2}-\d{2}$/.test(rawDate)
                 ? new Date(`${rawDate}T12:00:00+08:00`).toISOString()
@@ -281,10 +320,10 @@ export function useUpdateExpense() {
                     expense_date: normalizedIso,
                     employee_name: expenseData.employee_name || null
                 })
-                .eq('id', id);
+                .eq('id', id)
+                .eq('store_id', storeId);
             if (error) throw error;
 
-            const currentUser = useStore.getState().user;
             logActivity({
                 user: currentUser,
                 action: 'UPDATE',
@@ -305,17 +344,24 @@ export function useDeleteExpense() {
 
     return useMutation({
         mutationFn: async (id) => {
+            const currentUser = useStore.getState().user;
+            const storeId = Number(currentUser?.store_id) || 1;
+
             const { data: expenseToDelete } = await supabase
                 .from('expenses')
                 .select('category, amount, description')
                 .eq('id', id)
+                .eq('store_id', storeId)
                 .single();
 
-            const { error } = await supabase.from('expenses').delete().eq('id', id);
+            const { error } = await supabase
+                .from('expenses')
+                .delete()
+                .eq('id', id)
+                .eq('store_id', storeId);
             if (error) throw error;
 
             if (expenseToDelete) {
-                const currentUser = useStore.getState().user;
                 logActivity({
                     user: currentUser,
                     action: 'DELETE',

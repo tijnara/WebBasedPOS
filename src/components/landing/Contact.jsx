@@ -5,14 +5,21 @@ import ContactForm from './ContactForm';
 import { useStore } from '../../store/useStore';
 import AnimatedLandingIcon from './AnimatedLandingIcon';
 
-export default function Contact({ settings }) {
+export default function Contact({ settings, store }) {
     const darkMode = useStore((s) => s.darkMode);
     const [hoverRow, setHoverRow] = useState(-1);
     const [rowTick, setRowTick] = useState(0);
 
-    const businessHours = settings?.business_hours || 'Monday - Saturday: 8:00 AM - 5:00 PM';
-    const phone = settings?.contact_number || '+63 960 219 6388';
-    const messengerLink = settings?.messenger_link || 'https://m.me/61587059323111';
+    const businessName = store?.name || settings?.business_name || 'Seaside';
+    const businessHours =
+        store?.branding?.operatingHours ||
+        settings?.business_hours ||
+        'Monday - Saturday: 8:00 AM - 5:00 PM';
+    const phone = store?.contact_number || settings?.contact_number || '+63 960 219 6388';
+    const messengerLink =
+        store?.branding?.messengerUrl ||
+        settings?.messenger_link ||
+        'https://m.me/61587059323111';
 
     return (
         <motion.section
@@ -41,7 +48,7 @@ export default function Contact({ settings }) {
                     >
                         Get in Touch with{' '}
                         <span className="bg-gradient-to-r from-[#8DB600] to-[#6abf45] bg-clip-text text-transparent">
-                            {settings?.business_name || 'Seaside'}
+                            {businessName}
                         </span>
                     </h2>
                     <p className="text-slate-600 dark:text-slate-300 text-sm sm:text-base font-medium mt-3">
@@ -108,7 +115,7 @@ export default function Contact({ settings }) {
                                             Facebook Messenger
                                         </span>
                                         <span className="font-bold text-slate-900 dark:text-white text-sm sm:text-base">
-                                            {settings?.business_name || 'Seaside'} Water Refilling
+                                            {businessName} Water Refilling
                                         </span>
                                     </div>
                                 </a>
@@ -144,13 +151,13 @@ export default function Contact({ settings }) {
                         <div className="p-5 rounded-2xl bg-gradient-to-r from-[#8DB600] to-[#6abf45] text-white shadow-sm flex items-center gap-3">
                             <AnimatedLandingIcon name="truck" size={26} strokeColor="#ffffff" loop />
                             <p className="text-xs font-semibold leading-relaxed">
-                                Deliveries sent via form or messenger during operating hours are dispatched promptly with our multicab team.
+                                Deliveries sent via form or messenger during operating hours are dispatched promptly with our delivery team.
                             </p>
                         </div>
                     </div>
 
                     <div className="lg:col-span-7 bg-white/85 dark:bg-slate-900/75 backdrop-blur-xl rounded-3xl border border-slate-200/90 dark:border-white/10 shadow-sm p-6 sm:p-8">
-                        <ContactForm settings={settings} />
+                        <ContactForm settings={settings} storeId={store?.id ?? settings?.store_id} />
                     </div>
                 </div>
             </div>

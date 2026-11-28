@@ -1,8 +1,9 @@
 // src/hooks/useActivityLogs.js
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient';
+import { useStore } from '../store/useStore';
 
-export const logActivity = async ({ user, action, entity_type, description, created_at }) => {
+export const logActivity = async ({ user, action, entity_type, description, created_at, store_id }) => {
     if (!user || user.isDemo) return;
 
     const resolvedName = user.name || user.username || user.email || 'Staff User';
@@ -19,9 +20,11 @@ export const logActivity = async ({ user, action, entity_type, description, crea
             : /^\d+$/.test(String(user.id || ''))
                 ? Number(user.id)
                 : null;
+    const resolvedStoreId = Number(store_id || user.store_id) || 1;
 
     try {
         const payload = {
+            store_id: resolvedStoreId,
             user_id: numericUserId,
             user_name: resolvedName,
             user_role: resolvedRole,
@@ -38,22 +41,30 @@ export const logActivity = async ({ user, action, entity_type, description, crea
     }
 };
 
-export const useActivityLogs = ({ page = 1, pageSize = 20, searchTerm = '', filterAction = 'ALL', filterType = 'ALL' } = {}) => {
+export const useActivityLogs = ({
+                                    page = 1,
+                                    pageSize = 20,
+                                    searchTerm = '',
+                                    filterAction = 'ALL',
+                                    filterType = 'ALL',
+                                    storeId = null
+                                } = {}) => {
+    const userStoreId = useStore(s => s.user?.store_id);
+    const targetStoreId = Number(storeId || userStoreId) || 1;
+
     return useQuery({
-        queryKey: ['activity-logs', page, pageSize, searchTerm, filterAction, filterType],
+        queryKey: ['activity-logs', targetStoreId, page, pageSize, searchTerm, filterAction, filterType],
         queryFn: async () => {
-            // 1. Calculate database OFFSET and LIMIT
             const startIndex = (page - 1) * pageSize;
             const endIndex = startIndex + pageSize - 1;
 
-            // 2. Perform Database-level Pagination
             let query = supabase
                 .from('activity_logs')
                 .select('*', { count: 'exact' })
+                .eq('store_id', targetStoreId)
                 .order('created_at', { ascending: false })
                 .range(startIndex, endIndex);
 
-            // Apply Database-level Filters
             if (filterAction !== 'ALL') {
                 if (filterAction === 'SCAN') {
                     query = query.in('action', ['SCAN', 'DELIVERY_LOG_SCAN']);
@@ -81,7 +92,6 @@ export const useActivityLogs = ({ page = 1, pageSize = 20, searchTerm = '', filt
 
             let enrichedLogs = logsData || [];
 
-            // 3. Optimized Color Fetch: Ask database ONLY for the users in these 20 logs
             if (enrichedLogs.length > 0) {
                 const uniqueUserIds = [...new Set(enrichedLogs.map(log => log.user_id).filter(Boolean))];
 
@@ -89,9 +99,9 @@ export const useActivityLogs = ({ page = 1, pageSize = 20, searchTerm = '', filt
                     const { data: usersData } = await supabase
                         .from('users')
                         .select('id, color')
-                        .in('id', uniqueUserIds); // Only fetches colors for the specific users on this page
+                        .eq('store_id', targetStoreId)
+                        .in('id', uniqueUserIds);
 
-                    // Attach the colors to the logs
                     enrichedLogs = enrichedLogs.map(log => {
                         const matchedUser = usersData?.find(u => u.id === log.user_id);
                         return {

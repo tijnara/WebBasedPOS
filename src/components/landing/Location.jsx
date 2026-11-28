@@ -7,8 +7,16 @@ import AnimatedLandingIcon from './AnimatedLandingIcon';
 const DEFAULT_EMBED_URL =
     'https://maps.google.com/maps?q=16.0432862,120.1322205+(SEASIDE+Water+Refilling+Station)&z=16&output=embed';
 
-function resolveSafeMapEmbedUrl(rawValue, fallbackAddress) {
+const DEFAULT_DELIVERY_AREAS = ['Laois', 'Poblacion', 'Uyong', 'Dulig', 'Bolo', 'San Jose'];
+
+function resolveSafeMapEmbedUrl(rawValue, fallbackAddress, businessName) {
+    const label = businessName || 'Water Refilling Station';
+
     if (!rawValue || typeof rawValue !== 'string') {
+        if (fallbackAddress) {
+            const query = encodeURIComponent(`${label}, ${fallbackAddress}`);
+            return `https://maps.google.com/maps?q=${query}&z=16&output=embed`;
+        }
         return DEFAULT_EMBED_URL;
     }
 
@@ -28,33 +36,56 @@ function resolveSafeMapEmbedUrl(rawValue, fallbackAddress) {
         return candidate;
     }
 
-    // 3. If a regular Google Maps share/place URL was saved (which triggers frame-ancestors 'self'),
-    //    extract coordinates if present or fall back to an embed-safe query URL
+    // 3. Extract coordinates if a standard Google Maps share/place URL was saved
     const coordMatch = candidate.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
     if (coordMatch) {
         const [, lat, lng] = coordMatch;
-        return `https://maps.google.com/maps?q=${lat},${lng}+(SEASIDE+Water+Refilling+Station)&z=16&output=embed`;
+        const encodedLabel = encodeURIComponent(label);
+        return `https://maps.google.com/maps?q=${lat},${lng}+(${encodedLabel})&z=16&output=embed`;
     }
 
     const query = encodeURIComponent(
-        `SEASIDE Water Refilling Station, ${fallbackAddress || 'Laois, Labrador, Pangasinan'}`
+        `${label}, ${fallbackAddress || 'Laois, Labrador, Pangasinan'}`
     );
     return `https://maps.google.com/maps?q=${query}&z=16&output=embed`;
 }
 
-export default function Location({ settings }) {
+export default function Location({ settings, store }) {
     const darkMode = useStore((s) => s.darkMode);
     const [hoverRow, setHoverRow] = useState(-1);
     const [rowTick, setRowTick] = useState(0);
 
-    const physicalAddress = settings?.physical_address || 'Barangay Laois, Labrador, 2402 Pangasinan';
-    const businessHours = settings?.business_hours || 'Mon - Sat: 8:00 AM - 5:00 PM';
-    const phone = settings?.contact_number || '+63 960 219 6388';
+    const businessName = store?.name || settings?.business_name || 'Seaside';
+    const physicalAddress =
+        store?.address || settings?.physical_address || 'Barangay Laois, Labrador, 2402 Pangasinan';
+    const businessHours =
+        store?.branding?.operatingHours ||
+        settings?.business_hours ||
+        'Mon - Sat: 8:00 AM - 5:00 PM';
+    const phone =
+        store?.contact_number || settings?.contact_number || '+63 960 219 6388';
+    const locationDescription =
+        store?.branding?.locationDescription ||
+        settings?.location_description ||
+        `Conveniently located at ${physicalAddress}. Drive in for walk-in refills or schedule doorstep delivery.`;
+
+    const deliveryAreas = useMemo(() => {
+        const raw = store?.branding?.deliveryAreas || settings?.delivery_areas;
+        if (Array.isArray(raw) && raw.length > 0) return raw;
+        if (typeof raw === 'string' && raw.trim()) {
+            return raw.split(',').map((s) => s.trim()).filter(Boolean);
+        }
+        return DEFAULT_DELIVERY_AREAS;
+    }, [store?.branding?.deliveryAreas, settings?.delivery_areas]);
 
     const googleMapsEmbedUrl = useMemo(
-        () => resolveSafeMapEmbedUrl(settings?.location_embed, physicalAddress),
-        [settings?.location_embed, physicalAddress]
+        () => resolveSafeMapEmbedUrl(settings?.location_embed, physicalAddress, businessName),
+        [settings?.location_embed, physicalAddress, businessName]
     );
+
+    const directionsUrl = `https://maps.google.com/?q=${encodeURIComponent(
+        `${businessName} ${physicalAddress}`
+    )}`;
 
     const iconStroke = darkMode ? '#a3d100' : '#659000';
 
@@ -80,7 +111,7 @@ export default function Location({ settings }) {
                         </span>
                     </h2>
                     <p className="text-slate-600 dark:text-slate-300 text-sm sm:text-base font-medium mt-3">
-                        Conveniently located along the provincial highway in Labrador, Pangasinan. Drive in for walk-in refills or schedule doorstep delivery.
+                        {locationDescription}
                     </p>
                 </div>
 
@@ -89,7 +120,7 @@ export default function Location({ settings }) {
                         <div className="space-y-6">
                             <div>
                                 <h3 className="text-lg font-black text-slate-900 dark:text-white">
-                                    {settings?.business_name || 'Seaside'} Main Bay
+                                    {businessName} Main Bay
                                 </h3>
                                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                                     DOH Inspected &amp; Sanitary Certified Station
@@ -171,7 +202,7 @@ export default function Location({ settings }) {
                                     Doorstep Delivery Coverage
                                 </span>
                                 <div className="flex flex-wrap gap-2 text-xs font-semibold text-slate-700 dark:text-slate-200">
-                                    {['Laois', 'Poblacion', 'Uyong', 'Dulig', 'Bolo', 'San Jose'].map((brgy) => (
+                                    {deliveryAreas.map((brgy) => (
                                         <span
                                             key={brgy}
                                             className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-white/10"
@@ -189,7 +220,7 @@ export default function Location({ settings }) {
                         </div>
 
                         <a
-                            href="https://maps.google.com/?q=SEASIDE+Water+Refilling+Station+Laois+Labrador+Pangasinan"
+                            href={directionsUrl}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center justify-center gap-2 w-full h-12 rounded-xl bg-[#8DB600] hover:bg-[#7ca000] text-white font-bold text-sm shadow-sm transition-all duration-200 active:scale-95 group"
@@ -208,7 +239,7 @@ export default function Location({ settings }) {
                             allowFullScreen
                             loading="lazy"
                             referrerPolicy="no-referrer-when-downgrade"
-                            title="Station Location"
+                            title={`${businessName} Location`}
                         />
                     </div>
                 </div>

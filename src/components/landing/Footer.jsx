@@ -5,15 +5,22 @@ import Image from 'next/image';
 import { useStore } from '../../store/useStore';
 import AnimatedLandingIcon from './AnimatedLandingIcon';
 
-export default function Footer({ settings }) {
+export default function Footer({ settings, store }) {
     const darkMode = useStore((s) => s.darkMode);
-    const businessName = settings?.business_name || 'Seaside';
-    const address = settings?.physical_address || 'Laois, Labrador, Pangasinan, Philippines';
-    const phone = settings?.contact_number || '+63 960 219 6388';
-    const email = settings?.email || 'seasidewrs@gmail.com';
+    const businessName = store?.name || settings?.business_name || 'Seaside';
+    const tagline = store?.tagline || settings?.tagline || 'Water Refilling Station';
+    const logoUrl = store?.logo_url || settings?.logo_url || '/seaside.png';
+    const isExternalLogo = typeof logoUrl === 'string' && logoUrl.startsWith('http');
+    const address =
+        store?.address || settings?.physical_address || 'Laois, Labrador, Pangasinan, Philippines';
+    const phone = store?.contact_number || settings?.contact_number || '+63 960 219 6388';
+    const email = store?.branding?.email || settings?.email || 'seasidewrs@gmail.com';
+    const stationLabel =
+        store?.branding?.stationLabel || settings?.station_label || `${businessName} Station`;
     const aboutContent =
+        store?.branding?.aboutContent ||
         settings?.about_content ||
-        'Providing Labrador, Pangasinan and nearby communities with commercial 21-stage reverse osmosis drinking water, container sterilization, and doorstep delivery.';
+        `Providing ${address} and nearby communities with commercial 21-stage reverse osmosis drinking water, container sterilization, and doorstep delivery.`;
 
     const iconStroke = darkMode ? '#a3e635' : '#8DB600';
 
@@ -27,10 +34,11 @@ export default function Footer({ settings }) {
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-900 p-1 flex items-center justify-center shadow-xs border border-lime-400/40 dark:border-slate-700 shrink-0">
                                 <Image
-                                    src={settings?.logo_url || '/seaside.png'}
-                                    alt="Seaside Logo"
+                                    src={logoUrl}
+                                    alt={`${businessName} Logo`}
                                     width={36}
                                     height={36}
+                                    unoptimized={isExternalLogo}
                                     className="object-contain"
                                 />
                             </div>
@@ -39,7 +47,7 @@ export default function Footer({ settings }) {
                                     {businessName}
                                 </span>
                                 <span className="text-[10px] font-black uppercase tracking-widest text-[#8DB600] dark:text-lime-400 block">
-                                    Water Refilling Station
+                                    {tagline}
                                 </span>
                             </div>
                         </div>
@@ -107,7 +115,7 @@ export default function Footer({ settings }) {
                                     href="/resources/staying-hydrated-in-labrador-summer-tips"
                                     className="hover:text-[#8DB600] dark:hover:text-lime-400 transition-colors"
                                 >
-                                    Hydration in Labrador Climate
+                                    Hydration Tips
                                 </Link>
                             </li>
                             <li>
@@ -132,7 +140,7 @@ export default function Footer({ settings }) {
                     {/* Station Direct Contacts */}
                     <div className="lg:col-span-3 space-y-3">
                         <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
-                            Labrador Station
+                            {stationLabel}
                         </h4>
                         <div className="space-y-2.5 text-xs text-slate-600 dark:text-slate-400">
                             <div className="flex items-start gap-2.5">

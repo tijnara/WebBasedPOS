@@ -6,11 +6,13 @@ import { logActivity } from './useActivityLogs';
 
 const DEBTS_KEY = ['debts'];
 
-export function useDebts() {
+export function useDebts(storeId = null) {
     const isDemo = useStore(s => s.user?.isDemo);
+    const userStoreId = useStore(s => s.user?.store_id);
+    const targetStoreId = Number(storeId || userStoreId) || 1;
 
     return useQuery({
-        queryKey: DEBTS_KEY,
+        queryKey: [...DEBTS_KEY, targetStoreId, isDemo],
         queryFn: async () => {
             if (isDemo) {
                 return [
@@ -53,6 +55,7 @@ export function useDebts() {
             const { data, error } = await supabase
                 .from('debts')
                 .select('*, debt_payments(id, amount_paid, date_paid)')
+                .eq('store_id', targetStoreId)
                 .order('debt_date', { ascending: false });
 
             if (error) throw error;
@@ -65,16 +68,17 @@ export function useCreateDebt() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async (newDebt) => {
+            const currentUser = useStore.getState().user;
+            const storeId = Number(newDebt?.store_id || currentUser?.store_id) || 1;
+
             const { data, error } = await supabase
                 .from('debts')
-                .insert([newDebt])
+                .insert([{ ...newDebt, store_id: storeId }])
                 .select()
                 .single();
 
             if (error) throw error;
 
-            // --- Log Activity ---
-            const currentUser = useStore.getState().user;
             logActivity({
                 user: currentUser,
                 action: 'CREATE',
@@ -95,16 +99,17 @@ export function useCreateDebtPayment() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async (newPayment) => {
+            const currentUser = useStore.getState().user;
+            const storeId = Number(newPayment?.store_id || currentUser?.store_id) || 1;
+
             const { data, error } = await supabase
                 .from('debt_payments')
-                .insert([newPayment])
+                .insert([{ ...newPayment, store_id: storeId }])
                 .select()
                 .single();
 
             if (error) throw error;
 
-            // --- Log Activity ---
-            const currentUser = useStore.getState().user;
             logActivity({
                 user: currentUser,
                 action: 'UPDATE',
