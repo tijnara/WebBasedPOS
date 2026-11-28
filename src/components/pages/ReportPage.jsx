@@ -39,10 +39,11 @@ import {
     UserX
 } from 'lucide-react';
 
-// Extracted Modular Tabs
+// Extracted Modular Tabs & Product Tour
 import SalesTab from '../reports/SalesTab';
 import FrequentOrdersTab from '../reports/FrequentOrdersTab';
 import LapsedCustomersTab from '../reports/LapsedCustomersTab';
+import ReportProductTour from '../reports/ReportProductTour';
 
 const formatCurrency = (amount) => {
     return currency(amount, { symbol: '₱', precision: 2 }).format();
@@ -130,13 +131,12 @@ const ExecutiveKpiCard = ({
 
 // Admin Edit Modal for Reports
 const EditSaleModal = ({ sale, isOpen, onClose }) => {
-    if (!sale) return null;
     const updateSaleMutation = useUpdateSale();
 
-    const [status, setStatus] = useState(sale.status || 'Completed');
-    const [paymentMethod, setPaymentMethod] = useState(sale.paymentMethod || 'Cash');
-    const [customerName, setCustomerName] = useState(sale.customerName || '');
-    const [amountReceived, setAmountReceived] = useState(String(sale.amountReceived || sale.totalAmount || 0));
+    const [status, setStatus] = useState(sale?.status || 'Completed');
+    const [paymentMethod, setPaymentMethod] = useState(sale?.paymentMethod || 'Cash');
+    const [customerName, setCustomerName] = useState(sale?.customerName || '');
+    const [amountReceived, setAmountReceived] = useState(String(sale?.amountReceived || sale?.totalAmount || 0));
 
     useEffect(() => {
         if (sale) {
@@ -146,6 +146,8 @@ const EditSaleModal = ({ sale, isOpen, onClose }) => {
             setAmountReceived(String(sale.amountReceived || sale.totalAmount || 0));
         }
     }, [sale]);
+
+    if (!sale) return null;
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -483,11 +485,18 @@ const ReportPage = () => {
             if (!frequentMonth) return { customers: [], totalPages: 0, totalCount: 0 };
 
             const [year, month] = frequentMonth.split('-');
-            const startDate = new Date(Number(year), Number(month) - 1, 1).toISOString();
-            const endDate = new Date(Number(year), Number(month), 0, 23, 59, 59, 999).toISOString();
+            const lastDay = new Date(Number(year), Number(month), 0).getDate();
+            const paddedMonth = String(month).padStart(2, '0');
+            const paddedLastDay = String(lastDay).padStart(2, '0');
 
-            const weekStartIso = startOfWeek(new Date(), { weekStartsOn: 1 }).toISOString();
-            const weekEndIso = endOfWeek(new Date(), { weekStartsOn: 1 }).toISOString();
+            // Explicit Asia/Manila (+08:00) boundaries
+            const startDate = new Date(`${year}-${paddedMonth}-01T00:00:00+08:00`).toISOString();
+            const endDate = new Date(`${year}-${paddedMonth}-${paddedLastDay}T23:59:59.999+08:00`).toISOString();
+
+            const weekStartStr = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
+            const weekEndStr = format(endOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
+            const weekStartIso = new Date(`${weekStartStr}T00:00:00+08:00`).toISOString();
+            const weekEndIso = new Date(`${weekEndStr}T23:59:59.999+08:00`).toISOString();
 
             const from = (frequentPage - 1) * FREQUENT_PAGE_SIZE;
             const to = from + FREQUENT_PAGE_SIZE - 1;
@@ -931,14 +940,17 @@ const ReportPage = () => {
                     </div>
                 </div>
 
-                <div className="inline-flex items-center gap-2 self-start sm:self-auto px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs text-xs font-bold text-slate-700 dark:text-slate-200">
+                <div
+                    id="tour-report-range"
+                    className="inline-flex items-center gap-2 self-start sm:self-auto px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs text-xs font-bold text-slate-700 dark:text-slate-200"
+                >
                     <Calendar className="w-3.5 h-3.5 text-[#8DB600] shrink-0" />
                     <span className="truncate">{activeRangeLabel}</span>
                 </div>
             </div>
 
             {/* Compact 2x2 Mobile / 4-Column Desktop KPI Grid */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+            <div id="tour-report-kpis" className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
                 <ExecutiveKpiCard
                     title="Monthly Sales"
                     isLoading={isMonthlyGrowthLoading}
@@ -989,7 +1001,10 @@ const ReportPage = () => {
             </div>
 
             {/* Segmented Report Domain Switcher */}
-            <div className="flex bg-white dark:bg-slate-900 p-1 rounded-2xl w-full sm:w-max border border-slate-200 dark:border-slate-800 shadow-2xs">
+            <div
+                id="tour-report-tabs"
+                className="flex bg-white dark:bg-slate-900 p-1 rounded-2xl w-full sm:w-max border border-slate-200 dark:border-slate-800 shadow-2xs"
+            >
                 <button
                     type="button"
                     onClick={() => handleTabChange('sales')}
@@ -1040,65 +1055,67 @@ const ReportPage = () => {
             </div>
 
             {/* Active Tab View */}
-            {activeTab === 'frequent' && (
-                <FrequentOrdersTab
-                    customerSearch={customerSearch}
-                    setCustomerSearch={setCustomerSearch}
-                    frequentMonth={frequentMonth}
-                    setFrequentMonth={setFrequentMonth}
-                    frequentPage={frequentPage}
-                    setFrequentPage={setFrequentPage}
-                    isLoadingFrequent={isLoadingFrequent}
-                    frequentData={frequentData}
-                    handleFrequentSort={handleFrequentSort}
-                    frequentSortCol={frequentSortCol}
-                    frequentSortDesc={frequentSortDesc}
-                    FREQUENT_PAGE_SIZE={FREQUENT_PAGE_SIZE}
-                />
-            )}
+            <div id="tour-report-content">
+                {activeTab === 'frequent' && (
+                    <FrequentOrdersTab
+                        customerSearch={customerSearch}
+                        setCustomerSearch={setCustomerSearch}
+                        frequentMonth={frequentMonth}
+                        setFrequentMonth={setFrequentMonth}
+                        frequentPage={frequentPage}
+                        setFrequentPage={setFrequentPage}
+                        isLoadingFrequent={isLoadingFrequent}
+                        frequentData={frequentData}
+                        handleFrequentSort={handleFrequentSort}
+                        frequentSortCol={frequentSortCol}
+                        frequentSortDesc={frequentSortDesc}
+                        FREQUENT_PAGE_SIZE={FREQUENT_PAGE_SIZE}
+                    />
+                )}
 
-            {activeTab === 'sales' && (
-                <SalesTab
-                    elevated={elevated}
-                    totalRevenue={totalRevenue}
-                    isLoading={isLoading}
-                    activeRangeLabel={activeRangeLabel}
-                    fromDate={fromDate}
-                    handleFromDateChange={handleFromDateChange}
-                    toDate={toDate}
-                    handleToDateChange={handleToDateChange}
-                    handlePresetRange={handlePresetRange}
-                    selectedProductId={selectedProductId}
-                    setSelectedProductId={setSelectedProductId}
-                    availableProducts={availableProducts}
-                    customerSearch={customerSearch}
-                    setCustomerSearch={setCustomerSearch}
-                    handleClearRange={handleClearRange}
-                    chartSalesData={chartSalesData}
-                    interval={interval}
-                    reportTitle={reportTitle}
-                    totalSalesCount={totalSalesCount}
-                    totalGallonsSold={totalGallonsSold}
-                    summaryData={summaryData}
-                    error={error}
-                    processedSales={processedSales}
-                    safeCurrentPage={safeCurrentPage}
-                    totalPages={totalPages}
-                    setCurrentPage={setCurrentPage}
-                    openDeleteModal={openDeleteModal}
-                    openEditModal={openEditModal}
-                    onEditSale={openEditModal}
-                    isAdmin={isAdmin}
-                    currentDateKey={currentDateKey}
-                    selectedSaleIds={selectedSaleIds}
-                    onToggleSelectSale={handleToggleSelectSale}
-                    onSelectAllDay={handleSelectAllDay}
-                    onClearSelection={handleClearSelection}
-                    onOpenBulkDelete={openBulkDeleteModal}
-                />
-            )}
+                {activeTab === 'sales' && (
+                    <SalesTab
+                        elevated={elevated}
+                        totalRevenue={totalRevenue}
+                        isLoading={isLoading}
+                        activeRangeLabel={activeRangeLabel}
+                        fromDate={fromDate}
+                        handleFromDateChange={handleFromDateChange}
+                        toDate={toDate}
+                        handleToDateChange={handleToDateChange}
+                        handlePresetRange={handlePresetRange}
+                        selectedProductId={selectedProductId}
+                        setSelectedProductId={setSelectedProductId}
+                        availableProducts={availableProducts}
+                        customerSearch={customerSearch}
+                        setCustomerSearch={setCustomerSearch}
+                        handleClearRange={handleClearRange}
+                        chartSalesData={chartSalesData}
+                        interval={interval}
+                        reportTitle={reportTitle}
+                        totalSalesCount={totalSalesCount}
+                        totalGallonsSold={totalGallonsSold}
+                        summaryData={summaryData}
+                        error={error}
+                        processedSales={processedSales}
+                        safeCurrentPage={safeCurrentPage}
+                        totalPages={totalPages}
+                        setCurrentPage={setCurrentPage}
+                        openDeleteModal={openDeleteModal}
+                        openEditModal={openEditModal}
+                        onEditSale={openEditModal}
+                        isAdmin={isAdmin}
+                        currentDateKey={currentDateKey}
+                        selectedSaleIds={selectedSaleIds}
+                        onToggleSelectSale={handleToggleSelectSale}
+                        onSelectAllDay={handleSelectAllDay}
+                        onClearSelection={handleClearSelection}
+                        onOpenBulkDelete={openBulkDeleteModal}
+                    />
+                )}
 
-            {activeTab === 'inactive' && <LapsedCustomersTab enabled={activeTab === 'inactive'} />}
+                {activeTab === 'inactive' && <LapsedCustomersTab enabled={activeTab === 'inactive'} />}
+            </div>
 
             <BulkDeleteSalesModal
                 salesToDelete={salesToDelete}
@@ -1112,6 +1129,12 @@ const ReportPage = () => {
                 sale={editingSale}
                 isOpen={!!editingSale}
                 onClose={closeEditModal}
+            />
+
+            <ReportProductTour
+                isDataLoading={isLoading}
+                isAdmin={isAdmin}
+                activeTab={activeTab}
             />
         </div>
     );
