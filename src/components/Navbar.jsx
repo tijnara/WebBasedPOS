@@ -11,6 +11,7 @@ import { useStore } from '../store/useStore';
 import { useNotes } from '../hooks/useNotes';
 import { useMaintenanceAlerts } from '../hooks/useVehicles';
 import { useSettings } from '../hooks/useSettings';
+import { usePublicStore } from '../hooks/usePublicStore';
 import { Button } from './ui';
 import {
     CartIcon,
@@ -135,6 +136,8 @@ export default function Navbar() {
         return next;
     });
 
+    const targetStoreId = Number(clientUser?.store_id || user?.store_id) || 1;
+
     const isAdmin = useMemo(() => {
         if (!clientUser) return false;
         if (clientUser.isAdmin || clientUser.isadmin || clientUser.is_admin || clientUser.isSuperAdmin) return true;
@@ -164,26 +167,27 @@ export default function Navbar() {
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
-            const storedMsgTime = localStorage.getItem('last_seen_contact_message_time');
+            const storedMsgTime = localStorage.getItem(`last_seen_contact_message_time_${targetStoreId}`)
+                || localStorage.getItem('last_seen_contact_message_time');
             if (storedMsgTime) setLastSeenMessageTime(storedMsgTime);
             if (clientUser?.id) {
                 const storedNotesTime = parseInt(localStorage.getItem(`notes_last_seen_${clientUser.id}`) || '0', 10);
                 setLastSeenNotesTime(storedNotesTime);
             }
         }
-    }, [clientUser?.id]);
+    }, [clientUser?.id, targetStoreId]);
 
     useEffect(() => {
         if (router.pathname.toLowerCase() === '/messages') {
             const now = new Date().toISOString();
-            localStorage.setItem('last_seen_contact_message_time', now);
+            localStorage.setItem(`last_seen_contact_message_time_${targetStoreId}`, now);
             setLastSeenMessageTime(now);
         }
-    }, [router.pathname]);
+    }, [router.pathname, targetStoreId]);
 
     const markMessagesAsSeen = () => {
         const now = new Date().toISOString();
-        localStorage.setItem('last_seen_contact_message_time', now);
+        localStorage.setItem(`last_seen_contact_message_time_${targetStoreId}`, now);
         setLastSeenMessageTime(now);
     };
 
@@ -205,12 +209,13 @@ export default function Navbar() {
     }, [isMenuOpen]);
 
     const { data: pendingUsers = [] } = useQuery({
-        queryKey: ['pending-approvals-count', clientUser?.id, isAdmin],
+        queryKey: ['pending-approvals-count', targetStoreId, clientUser?.id, isAdmin],
         queryFn: async () => {
             if (!isAdmin || isDemo) return [];
             const { data, error } = await supabase
                 .from('users')
                 .select('id, name, email, phone, dateadded')
+                .eq('store_id', targetStoreId)
                 .eq('is_approved', false)
                 .eq('isadmin', false)
                 .order('dateadded', { ascending: false });
@@ -221,13 +226,14 @@ export default function Navbar() {
     });
 
     const { data: recentMessages = [] } = useQuery({
-        queryKey: ['recent-contact-messages-count', clientUser?.id, isAdmin],
+        queryKey: ['recent-contact-messages-count', targetStoreId, clientUser?.id, isAdmin],
         queryFn: async () => {
             if (!isAdmin || isDemo) return [];
             const fortyEightHoursAgo = subHours(new Date(), 48).toISOString();
             const { data, error } = await supabase
                 .from('contact_messages')
                 .select('id, email, message, created_at')
+                .eq('store_id', targetStoreId)
                 .gte('created_at', fortyEightHoursAgo)
                 .order('created_at', { ascending: false });
             return error ? [] : data || [];
@@ -237,12 +243,13 @@ export default function Navbar() {
     });
 
     const { data: lowStockProducts = [] } = useQuery({
-        queryKey: ['navbar-low-stock-products', clientUser?.id, isDemo],
+        queryKey: ['navbar-low-stock-products', targetStoreId, clientUser?.id, isDemo],
         queryFn: async () => {
             if (!clientUser || isDemo) return [];
             const { data, error } = await supabase
                 .from('products')
                 .select('id, name, stock_quantity, min_stock_level')
+                .eq('store_id', targetStoreId)
                 .gt('min_stock_level', 0);
 
             if (error || !Array.isArray(data)) return [];
@@ -256,7 +263,20 @@ export default function Navbar() {
 
     const { data: maintenanceAlerts } = useMaintenanceAlerts();
     const { data: businessSettings } = useSettings();
+    const { data: publicStore } = usePublicStore();
     const { data: notes = [] } = useNotes();
+
+    // Dynamic Store Branding
+    const brandName = (
+        businessSettings?.business_name ||
+        publicStore?.name ||
+        'Seaside'
+    ).trim();
+
+    const brandLogo =
+        businessSettings?.logo_url ||
+        publicStore?.logo_url ||
+        '/seaside.png';
 
     const pendingCount = pendingUsers.length;
     const unreadMessages = useMemo(() => {
@@ -345,7 +365,12 @@ export default function Navbar() {
     useEffect(() => {
         if (!clientUser?.id || isDemo) return;
 
-        const basePrefix = `rt:navbar-${clientUser.id}`;
+        const isSameStore = (payload) => {
+            const eventStoreId = payload?.new?.store_id ?? payload?.old?.store_id;
+            return eventStoreId === undefined || eventStoreId === null || Number(eventStoreId) === targetStoreId;
+        };
+
+        const basePrefix = `rt:navbar-${targetStoreId}-${clientUser.id}`;
         supabase.getChannels().forEach((ch) => {
             if (
                 ch.topic === basePrefix ||
@@ -362,43 +387,47 @@ export default function Navbar() {
 
         if (isAdmin) {
             navChannel
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => {
-                    queryClient.invalidateQueries({ queryKey: ['pending-approvals-count'] });
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, (payload) => {
+                    if (isSameStore(payload)) {
+                        queryClient.invalidateQueries({ queryKey: ['pending-approvals-count'] });
+                    }
                 })
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'contact_messages' }, () => {
-                    queryClient.invalidateQueries({ queryKey: ['recent-contact-messages-count'] });
-                    queryClient.invalidateQueries({ queryKey: ['contact-messages'] });
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'contact_messages' }, (payload) => {
+                    if (isSameStore(payload)) {
+                        queryClient.invalidateQueries({ queryKey: ['recent-contact-messages-count'] });
+                        queryClient.invalidateQueries({ queryKey: ['contact-messages'] });
+                    }
                 });
         }
 
         navChannel
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'notes' }, () => {
-                queryClient.invalidateQueries({ queryKey: ['notes'] });
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'notes' }, (payload) => {
+                if (isSameStore(payload)) queryClient.invalidateQueries({ queryKey: ['notes'] });
             })
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'water_test_schedules' }, () => {
-                queryClient.invalidateQueries({ queryKey: ['maintenance-alerts'] });
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'water_test_schedules' }, (payload) => {
+                if (isSameStore(payload)) queryClient.invalidateQueries({ queryKey: ['maintenance-alerts'] });
             })
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'maintenance_history' }, () => {
-                queryClient.invalidateQueries({ queryKey: ['maintenance-alerts'] });
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'maintenance_history' }, (payload) => {
+                if (isSameStore(payload)) queryClient.invalidateQueries({ queryKey: ['maintenance-alerts'] });
             })
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'filter_configs' }, () => {
-                queryClient.invalidateQueries({ queryKey: ['maintenance-alerts'] });
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'filter_configs' }, (payload) => {
+                if (isSameStore(payload)) queryClient.invalidateQueries({ queryKey: ['maintenance-alerts'] });
             })
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'vehicles' }, () => {
-                queryClient.invalidateQueries({ queryKey: ['maintenance-alerts'] });
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'vehicles' }, (payload) => {
+                if (isSameStore(payload)) queryClient.invalidateQueries({ queryKey: ['maintenance-alerts'] });
             })
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'business_settings' }, () => {
-                queryClient.invalidateQueries({ queryKey: ['business-settings'] });
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'business_settings' }, (payload) => {
+                if (isSameStore(payload)) queryClient.invalidateQueries({ queryKey: ['business-settings'] });
             })
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => {
-                queryClient.invalidateQueries({ queryKey: ['navbar-low-stock-products'] });
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, (payload) => {
+                if (isSameStore(payload)) queryClient.invalidateQueries({ queryKey: ['navbar-low-stock-products'] });
             })
             .subscribe();
 
         return () => {
             supabase.removeChannel(navChannel);
         };
-    }, [isAdmin, clientUser?.id, isDemo, queryClient]);
+    }, [isAdmin, clientUser?.id, targetStoreId, isDemo, queryClient]);
 
     const navCategories = useMemo(() => {
         if (isDemo) {
@@ -440,7 +469,8 @@ export default function Navbar() {
 
     const checkActiveShift = async () => {
         if (!user) return;
-        const promptKey = `pos_shift_prompted_${user.id}`;
+        const storeId = Number(user.store_id) || 1;
+        const promptKey = `pos_shift_prompted_${storeId}_${user.id}`;
         if (sessionStorage.getItem(promptKey) === 'true') return;
 
         try {
@@ -452,7 +482,13 @@ export default function Navbar() {
                 }
                 return;
             }
-            const { data: shifts, error } = await supabase.from('shifts').select('id').eq('staff_id', user.id).eq('status', 'OPEN').limit(1);
+            const { data: shifts, error } = await supabase
+                .from('shifts')
+                .select('id')
+                .eq('store_id', storeId)
+                .eq('staff_id', user.id)
+                .eq('status', 'OPEN')
+                .limit(1);
             if (error && error.code !== 'PGRST116') return;
             if (!shifts?.[0]) {
                 setStartingCash('');
@@ -460,7 +496,7 @@ export default function Navbar() {
             }
             sessionStorage.setItem(promptKey, 'true');
         } catch (err) {
-            console.error("Shift check error:", err);
+            console.error('Shift check error:', err);
         }
     };
 
@@ -475,7 +511,14 @@ export default function Navbar() {
             await queryClient.invalidateQueries({ queryKey: ['sales', 'active-shift'] });
             return;
         }
-        const { error } = await supabase.from('shifts').insert({ staff_id: user.id, start_time: new Date().toISOString(), starting_cash: parsedStart, status: 'OPEN' });
+        const storeId = Number(user?.store_id) || 1;
+        const { error } = await supabase.from('shifts').insert({
+            store_id: storeId,
+            staff_id: user.id,
+            start_time: new Date().toISOString(),
+            starting_cash: parsedStart,
+            status: 'OPEN'
+        });
         if (!error) {
             setIsStartShiftModalOpen(false);
             await queryClient.invalidateQueries({ queryKey: ['sales', 'active-shift'] });
@@ -495,9 +538,23 @@ export default function Navbar() {
             setIsShiftModalOpen(true);
             return;
         }
-        const { data: shifts } = await supabase.from('shifts').select('*').eq('staff_id', user.id).eq('status', 'OPEN').order('start_time', { ascending: false }).limit(1);
+        const storeId = Number(user?.store_id) || 1;
+        const { data: shifts } = await supabase
+            .from('shifts')
+            .select('*')
+            .eq('store_id', storeId)
+            .eq('staff_id', user.id)
+            .eq('status', 'OPEN')
+            .order('start_time', { ascending: false })
+            .limit(1);
         if (!shifts?.[0]) return handleLogout();
-        const { data: sales } = await supabase.from('sales').select('totalamount').eq('created_by', user.id).eq('paymentmethod', 'Cash').gte('saletimestamp', shifts[0].start_time);
+        const { data: sales } = await supabase
+            .from('sales')
+            .select('totalamount')
+            .eq('store_id', storeId)
+            .eq('created_by', user.id)
+            .eq('paymentmethod', 'Cash')
+            .gte('saletimestamp', shifts[0].start_time);
         const totalSales = Array.isArray(sales) ? sales.reduce((sum, s) => sum.add(s.totalamount || 0), currency(0)).value : 0;
         const expected = currency(shifts[0].starting_cash || 0).add(totalSales).value;
         setShiftStats({ start: shifts[0].starting_cash || 0, sales: totalSales, expected });
@@ -521,6 +578,7 @@ export default function Navbar() {
         const activeUser = user || clientUser;
         if (!activeUser || isEndingShift) return;
 
+        const storeId = Number(activeUser.store_id) || 1;
         const rawCash =
             submittedCash !== undefined && submittedCash !== null && submittedCash !== ''
                 ? submittedCash
@@ -532,7 +590,7 @@ export default function Navbar() {
         try {
             if (activeUser.isDemo) {
                 sessionStorage.removeItem(`demo_shift_${activeUser.id}`);
-                sessionStorage.removeItem(`pos_shift_prompted_${activeUser.id}`);
+                sessionStorage.removeItem(`pos_shift_prompted_${storeId}_${activeUser.id}`);
             } else {
                 await supabase
                     .from('shifts')
@@ -541,9 +599,10 @@ export default function Navbar() {
                         ending_cash: endingCashValue,
                         status: 'CLOSED'
                     })
+                    .eq('store_id', storeId)
                     .eq('staff_id', activeUser.id)
                     .eq('status', 'OPEN');
-                sessionStorage.removeItem(`pos_shift_prompted_${activeUser.id}`);
+                sessionStorage.removeItem(`pos_shift_prompted_${storeId}_${activeUser.id}`);
             }
         } catch (err) {
             console.error('End shift error:', err);
@@ -692,8 +751,8 @@ export default function Navbar() {
                         onClick={() => handleNavigate('/pos', 'Sales & Operations', false)}
                     >
                         <img
-                            src="/seaside.png"
-                            alt="Seaside Logo"
+                            src={brandLogo}
+                            alt={`${brandName} Logo`}
                             width={32}
                             height={32}
                             style={MOBILE_LOGO_STYLE}
@@ -811,14 +870,16 @@ export default function Navbar() {
             >
                 <div className="h-16 flex items-center px-6 border-b border-slate-200/80 dark:border-slate-800 shrink-0 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors" onClick={() => router.push('/')}>
                     <img
-                        src="/seaside.png"
-                        alt="Seaside Logo"
+                        src={brandLogo}
+                        alt={`${brandName} Logo`}
                         width={36}
                         height={36}
                         style={DESKTOP_LOGO_STYLE}
                         className="w-9 h-9 max-w-[36px] max-h-[36px] object-contain shrink-0 block"
                     />
-                    <span className="font-black text-lg text-green-800 dark:text-lime-400 ml-3 tracking-tight">Seaside</span>
+                    <span className="font-black text-lg text-green-800 dark:text-lime-400 ml-3 tracking-tight truncate">
+                        {brandName}
+                    </span>
                 </div>
                 <nav className="flex-1 overflow-y-auto py-4 menu-scrollbar flex flex-col gap-1">{renderLinks(true)}</nav>
             </aside>

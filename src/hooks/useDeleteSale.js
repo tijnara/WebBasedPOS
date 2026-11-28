@@ -10,25 +10,31 @@ export function useDeleteSale() {
 
     return useMutation({
         mutationFn: async ({ saleId, reason }) => {
+            const currentUser = useStore.getState().user || user;
+            const storeId = Number(currentUser?.store_id) || 1;
+
             // 0. Fetch sale details BEFORE deletion for activity logging
             const { data: saleToDelete } = await supabase
                 .from('sales')
                 .select('customername, totalamount')
                 .eq('id', saleId)
+                .eq('store_id', storeId)
                 .single();
 
             // 1. Fetch items to identify what to restore
             const { data: items, error: fetchError } = await supabase
                 .from('sale_items')
                 .select('product_id, quantity, product_name')
-                .eq('sale_id', saleId);
+                .eq('sale_id', saleId)
+                .eq('store_id', storeId);
 
             if (fetchError) throw fetchError;
 
             // 2. Restore Inventory and Log Stock Movements
             if (items && items.length > 0) {
                 for (const item of items) {
-                    // Restore stock quantity
+                    if (!item.product_id) continue;
+
                     const { error: stockError } = await supabase.rpc('increment_stock', {
                         p_product_id: item.product_id,
                         p_quantity: item.quantity
@@ -36,12 +42,12 @@ export function useDeleteSale() {
 
                     if (stockError) console.error(`Stock restore failed for ${item.product_name}`);
 
-                    // Log restoration in audit trail (stock_movements)
                     await supabase.from('stock_movements').insert({
+                        store_id: storeId,
                         product_id: item.product_id,
                         quantity_change: item.quantity,
-                        type: 'correction', // or 'cancellation'
-                        staff_id: user?.id,
+                        type: 'correction',
+                        staff_id: currentUser?.id,
                         remarks: `Sale ${saleId} deleted. Reason: ${reason}`
                     });
                 }
@@ -51,20 +57,21 @@ export function useDeleteSale() {
             const { error: itemsDeleteError } = await supabase
                 .from('sale_items')
                 .delete()
-                .eq('sale_id', saleId);
+                .eq('sale_id', saleId)
+                .eq('store_id', storeId);
 
             if (itemsDeleteError) throw itemsDeleteError;
 
             const { error: saleError } = await supabase
                 .from('sales')
                 .delete()
-                .eq('id', saleId);
+                .eq('id', saleId)
+                .eq('store_id', storeId);
 
             if (saleError) throw saleError;
 
             // 4. Fire activity log
             if (saleToDelete) {
-                const currentUser = useStore.getState().user;
                 logActivity({
                     user: currentUser,
                     action: 'DELETE',
@@ -76,11 +83,12 @@ export function useDeleteSale() {
             return saleId;
         },
         onSuccess: () => {
-            // Invalidate queries to refresh UI across Dashboard, POS, and Reports
             queryClient.invalidateQueries({ queryKey: ['sales'] });
             queryClient.invalidateQueries({ queryKey: ['sales-summary'] });
+            queryClient.invalidateQueries({ queryKey: ['daily-sales'] });
             queryClient.invalidateQueries({ queryKey: ['products'] });
             queryClient.invalidateQueries({ queryKey: ['spoilage-report'] });
+            queryClient.invalidateQueries({ queryKey: ['activity-logs'] });
 
             addToast({
                 title: 'Transaction deleted successfully',

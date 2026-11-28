@@ -1,28 +1,28 @@
+// src/hooks/useIncentives.js
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient';
 import { useStore } from '../store/useStore';
 
-export function useIncentives({ startDate, endDate, page = 1, pageSize = 10 } = {}) {
+export function useIncentives({ startDate, endDate, page = 1, pageSize = 10, storeId = null } = {}) {
     const queryClient = useQueryClient();
     const user = useStore(s => s.user);
+    const targetStoreId = Number(storeId || user?.store_id) || 1;
 
     const { data, isLoading } = useQuery({
-        // Include pagination and date filters in query key so it refetches automatically
-        queryKey: ['incentives-history', startDate, endDate, page, pageSize],
+        queryKey: ['incentives-history', targetStoreId, startDate, endDate, page, pageSize],
         queryFn: async () => {
             let query = supabase
                 .from('incentives')
-                .select('*', { count: 'exact' }); // Fetch exact count for pagination
+                .select('*', { count: 'exact' })
+                .eq('store_id', targetStoreId);
 
-            // DB-side filtering for the specific week
             if (startDate) {
-                query = query.gte('payout_date', `${startDate}T00:00:00.000Z`);
+                query = query.gte('payout_date', new Date(`${startDate}T00:00:00+08:00`).toISOString());
             }
             if (endDate) {
-                query = query.lte('payout_date', `${endDate}T23:59:59.999Z`);
+                query = query.lte('payout_date', new Date(`${endDate}T23:59:59.999+08:00`).toISOString());
             }
 
-            // DB-side pagination logic
             const from = (page - 1) * pageSize;
             const to = from + pageSize - 1;
 
@@ -37,9 +37,13 @@ export function useIncentives({ startDate, endDate, page = 1, pageSize = 10 } = 
 
     const createIncentive = useMutation({
         mutationFn: async (payload) => {
+            const currentUser = useStore.getState().user || user;
+            const resolvedStoreId = Number(payload?.store_id || currentUser?.store_id) || 1;
+
             const { error } = await supabase.from('incentives').insert([{
                 ...payload,
-                created_by: user?.id || null
+                store_id: resolvedStoreId,
+                created_by: currentUser?.id || null
             }]);
             if (error) throw error;
         },
@@ -48,10 +52,10 @@ export function useIncentives({ startDate, endDate, page = 1, pageSize = 10 } = 
         }
     });
 
-    return { 
-        history: data?.history || [], 
+    return {
+        history: data?.history || [],
         totalCount: data?.totalCount || 0,
-        isLoading, 
-        createIncentive 
+        isLoading,
+        createIncentive
     };
 }

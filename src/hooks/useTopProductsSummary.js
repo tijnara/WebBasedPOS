@@ -9,25 +9,30 @@ const MOCK_TOP_PRODUCTS = [
     { product_id: 'mock-p-3', name: 'Mock Mineral (1L)', total_quantity: 20, total_revenue: 25125.32 },
 ];
 
-export function useTopProductsSummary(limit = 5) {
+export function useTopProductsSummary(limit = 5, storeId = null) {
     const isDemo = useStore(s => s.user?.isDemo);
+    const userStoreId = useStore(s => s.user?.store_id);
+    const targetStoreId = Number(storeId || userStoreId) || 1;
 
     return useQuery({
-        queryKey: ['top-products-summary', isDemo, limit],
+        queryKey: ['top-products-summary', targetStoreId, isDemo, limit],
         queryFn: async () => {
             if (isDemo) {
                 return MOCK_TOP_PRODUCTS.slice(0, limit);
             }
 
-            const { data, error } = await supabase.rpc('get_top_products', { limit_val: limit });
+            const { data, error } = await supabase.rpc('get_top_products', {
+                limit_val: limit,
+                p_store_id: targetStoreId
+            });
 
             if (error) {
-                console.error("Error fetching top products:", error);
+                console.error('Error fetching top products:', error);
                 throw error;
             }
-            
+
             return data;
         },
-        staleTime: 1000 * 60 * 5, // 5 minutes
+        staleTime: 1000 * 60 * 5,
     });
 }

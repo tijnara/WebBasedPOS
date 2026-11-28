@@ -50,7 +50,6 @@ const DOMAIN_QUERY_KEYS = {
     ]
 };
 
-// Map Supabase table names to query domains (unmapped tables are safely ignored)
 const TABLE_DOMAIN = {
     sales: 'sales',
     sale_items: 'sales',
@@ -74,6 +73,8 @@ export function useRealtimeSync() {
     const timersRef = useRef({});
     const hiddenAtRef = useRef(null);
 
+    const storeId = Number(user?.store_id) || 1;
+
     useEffect(() => {
         if (!user?.id || user?.isDemo) return;
 
@@ -92,20 +93,25 @@ export function useRealtimeSync() {
         };
 
         const channel = supabase
-            .channel(`rt:pos-global-sync-${user.id}`)
+            .channel(`rt:pos-global-sync-${storeId}-${user.id}`)
             .on(
                 'postgres_changes',
                 { event: '*', schema: 'public' },
                 (payload) => {
                     const domain = TABLE_DOMAIN[payload.table];
-                    if (domain) {
-                        scheduleInvalidate(domain);
+                    if (!domain) return;
+
+                    // Ignore realtime events belonging to other stores
+                    const eventStoreId = payload.new?.store_id ?? payload.old?.store_id;
+                    if (eventStoreId !== undefined && eventStoreId !== null && Number(eventStoreId) !== storeId) {
+                        return;
                     }
+
+                    scheduleInvalidate(domain);
                 }
             )
             .subscribe();
 
-        // Catch up missed events if a mobile browser/PWA was backgrounded
         const handleVisibilityChange = () => {
             if (document.visibilityState === 'hidden') {
                 hiddenAtRef.current = Date.now();
@@ -130,5 +136,5 @@ export function useRealtimeSync() {
             timersRef.current = {};
             supabase.removeChannel(channel);
         };
-    }, [user?.id, user?.isDemo, queryClient]);
+    }, [user?.id, user?.isDemo, storeId, queryClient]);
 }

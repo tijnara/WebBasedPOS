@@ -1,17 +1,21 @@
-// C:\Users\tijna\WebstormProjects\WebBasedPOS\src\hooks\useArticles.js
+// src/hooks/useArticles.js
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient';
 import { useStore } from '../store/useStore';
 import { logActivity } from './useActivityLogs';
 
 // --- Fetch Articles ---
-export const useArticles = () => {
+export const useArticles = (storeId = null) => {
+    const userStoreId = useStore(s => s.user?.store_id);
+    const targetStoreId = Number(storeId || userStoreId) || 1;
+
     return useQuery({
-        queryKey: ['articles'],
+        queryKey: ['articles', targetStoreId],
         queryFn: async () => {
             const { data, error } = await supabase
                 .from('articles')
                 .select('*')
+                .eq('store_id', targetStoreId)
                 .order('created_at', { ascending: false });
             if (error) throw new Error(error.message);
             return data;
@@ -26,11 +30,17 @@ export const useCreateArticle = () => {
 
     return useMutation({
         mutationFn: async (article) => {
-            const { data, error } = await supabase.from('articles').insert([article]).select();
+            const user = useStore.getState().user || currentUser;
+            const storeId = Number(article?.store_id || user?.store_id) || 1;
+
+            const { data, error } = await supabase
+                .from('articles')
+                .insert([{ ...article, store_id: storeId }])
+                .select();
             if (error) throw new Error(error.message);
 
             logActivity({
-                user: currentUser,
+                user,
                 action: 'CREATE',
                 entity_type: 'ARTICLE',
                 description: `Created new article: ${article.title || 'Untitled'}`
@@ -52,11 +62,19 @@ export const useUpdateArticle = () => {
 
     return useMutation({
         mutationFn: async ({ id, ...updateData }) => {
-            const { data, error } = await supabase.from('articles').update(updateData).eq('id', id).select();
+            const user = useStore.getState().user || currentUser;
+            const storeId = Number(user?.store_id) || 1;
+
+            const { data, error } = await supabase
+                .from('articles')
+                .update(updateData)
+                .eq('id', id)
+                .eq('store_id', storeId)
+                .select();
             if (error) throw new Error(error.message);
 
             logActivity({
-                user: currentUser,
+                user,
                 action: 'UPDATE',
                 entity_type: 'ARTICLE',
                 description: `Updated article: ${updateData.title || `ID ${id}`}`
@@ -78,14 +96,26 @@ export const useDeleteArticle = () => {
 
     return useMutation({
         mutationFn: async (id) => {
-            const { data: art } = await supabase.from('articles').select('title').eq('id', id).single();
+            const user = useStore.getState().user || currentUser;
+            const storeId = Number(user?.store_id) || 1;
 
-            const { error } = await supabase.from('articles').delete().eq('id', id);
+            const { data: art } = await supabase
+                .from('articles')
+                .select('title')
+                .eq('id', id)
+                .eq('store_id', storeId)
+                .single();
+
+            const { error } = await supabase
+                .from('articles')
+                .delete()
+                .eq('id', id)
+                .eq('store_id', storeId);
             if (error) throw new Error(error.message);
 
             if (art) {
                 logActivity({
-                    user: currentUser,
+                    user,
                     action: 'DELETE',
                     entity_type: 'ARTICLE',
                     description: `Deleted article: ${art.title}`
@@ -105,9 +135,12 @@ export const useUploadArticleImage = () => {
 
     return useMutation({
         mutationFn: async (file) => {
+            const user = useStore.getState().user || currentUser;
+            const storeId = Number(user?.store_id) || 1;
+
             const fileExt = file.name.split('.').pop();
             const fileName = `article-${Date.now()}.${fileExt}`;
-            const filePath = `articles/${fileName}`;
+            const filePath = `store-${storeId}/articles/${fileName}`;
 
             const { error: uploadError } = await supabase.storage.from('gallery').upload(filePath, file);
             if (uploadError) throw new Error(uploadError.message);
@@ -115,7 +148,7 @@ export const useUploadArticleImage = () => {
             const { data } = supabase.storage.from('gallery').getPublicUrl(filePath);
 
             logActivity({
-                user: currentUser,
+                user,
                 action: 'UPLOAD',
                 entity_type: 'ARTICLE',
                 description: `Uploaded article image: ${fileName}`

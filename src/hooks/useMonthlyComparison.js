@@ -3,12 +3,15 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { startOfMonth, endOfMonth, subMonths, format } from 'date-fns';
 import { supabase } from '../lib/supabaseClient';
+import { useStore } from '../store/useStore';
 
-export function useMonthlyComparison(selectedMonthStr) {
+export function useMonthlyComparison(selectedMonthStr, storeId = null) {
+    const userStoreId = useStore(s => s.user?.store_id);
+    const targetStoreId = Number(storeId || userStoreId) || 1;
+
     const { data: monthlyComparisonData, isLoading } = useQuery({
-        queryKey: ['monthly-performance-comparison', selectedMonthStr],
+        queryKey: ['monthly-performance-comparison', targetStoreId, selectedMonthStr],
         queryFn: async () => {
-            // Use the explicitly selected month, localized to Asia/Manila
             const baseDate = selectedMonthStr ? new Date(`${selectedMonthStr}-01T00:00:00+08:00`) : new Date();
 
             const curStart = format(startOfMonth(baseDate), 'yyyy-MM-dd');
@@ -17,36 +20,42 @@ export function useMonthlyComparison(selectedMonthStr) {
             const prevStart = format(startOfMonth(prevMonthDate), 'yyyy-MM-dd');
             const prevEnd = format(endOfMonth(prevMonthDate), 'yyyy-MM-dd');
 
-            // Sales queries
-            const { data: curSales } = await supabase
-                .from('sales')
-                .select('totalamount')
-                .gte('saletimestamp', `${curStart}T00:00:00+08:00`)
-                .lte('saletimestamp', `${curEnd}T23:59:59+08:00`);
+            const curStartIso = new Date(`${curStart}T00:00:00+08:00`).toISOString();
+            const curEndIso = new Date(`${curEnd}T23:59:59.999+08:00`).toISOString();
+            const prevStartIso = new Date(`${prevStart}T00:00:00+08:00`).toISOString();
+            const prevEndIso = new Date(`${prevEnd}T23:59:59.999+08:00`).toISOString();
 
-            const { data: prevSales } = await supabase
-                .from('sales')
-                .select('totalamount')
-                .gte('saletimestamp', `${prevStart}T00:00:00+08:00`)
-                .lte('saletimestamp', `${prevEnd}T23:59:59+08:00`);
+            const [curSalesRes, prevSalesRes, curExpensesRes, prevExpensesRes] = await Promise.all([
+                supabase
+                    .from('sales')
+                    .select('totalamount')
+                    .eq('store_id', targetStoreId)
+                    .gte('saletimestamp', curStartIso)
+                    .lte('saletimestamp', curEndIso),
+                supabase
+                    .from('sales')
+                    .select('totalamount')
+                    .eq('store_id', targetStoreId)
+                    .gte('saletimestamp', prevStartIso)
+                    .lte('saletimestamp', prevEndIso),
+                supabase
+                    .from('expenses')
+                    .select('amount')
+                    .eq('store_id', targetStoreId)
+                    .gte('expense_date', curStartIso)
+                    .lte('expense_date', curEndIso),
+                supabase
+                    .from('expenses')
+                    .select('amount')
+                    .eq('store_id', targetStoreId)
+                    .gte('expense_date', prevStartIso)
+                    .lte('expense_date', prevEndIso),
+            ]);
 
-            // Expenses queries
-            const { data: curExpenses } = await supabase
-                .from('expenses')
-                .select('amount')
-                .gte('expense_date', curStart)
-                .lte('expense_date', `${curEnd}T23:59:59`);
-
-            const { data: prevExpenses } = await supabase
-                .from('expenses')
-                .select('amount')
-                .gte('expense_date', prevStart)
-                .lte('expense_date', `${prevEnd}T23:59:59`);
-
-            const curGross = (curSales || []).reduce((acc, s) => acc + (Number(s.totalamount) || 0), 0);
-            const prevGross = (prevSales || []).reduce((acc, s) => acc + (Number(s.totalamount) || 0), 0);
-            const curExp = (curExpenses || []).reduce((acc, e) => acc + (Number(e.amount) || 0), 0);
-            const prevExp = (prevExpenses || []).reduce((acc, e) => acc + (Number(e.amount) || 0), 0);
+            const curGross = (curSalesRes.data || []).reduce((acc, s) => acc + (Number(s.totalamount) || 0), 0);
+            const prevGross = (prevSalesRes.data || []).reduce((acc, s) => acc + (Number(s.totalamount) || 0), 0);
+            const curExp = (curExpensesRes.data || []).reduce((acc, e) => acc + (Number(e.amount) || 0), 0);
+            const prevExp = (prevExpensesRes.data || []).reduce((acc, e) => acc + (Number(e.amount) || 0), 0);
 
             const curNet = curGross - curExp;
             const prevNet = prevGross - prevExp;
@@ -70,7 +79,7 @@ export function useMonthlyComparison(selectedMonthStr) {
                 }
             };
         },
-        staleTime: 1000 * 60 * 5 // Cache for 5 mins
+        staleTime: 1000 * 60 * 5
     });
 
     const momNetGrowth = useMemo(() => {

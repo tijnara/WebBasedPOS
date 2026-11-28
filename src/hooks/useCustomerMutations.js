@@ -4,7 +4,6 @@ import { supabase } from '../lib/supabaseClient';
 import { useStore } from '../store/useStore';
 import { logActivity } from './useActivityLogs';
 
-// The base key used for invalidation
 const customersKey = ['customers'];
 
 // --- Hook for CREATING or MERGING to Existing Customer ---
@@ -23,6 +22,8 @@ export function useSaveCustomerEntry() {
                                email,
                                linkSales = true
                            }) => {
+            const user = useStore.getState().user || currentUser;
+            const storeId = Number(user?.store_id) || 1;
             let targetCustomerId = existingCustomerId;
             let customerName = name?.trim() || '';
 
@@ -31,6 +32,7 @@ export function useSaveCustomerEntry() {
                 if (!customerName) throw new Error('Customer name is required.');
 
                 const payload = {
+                    store_id: storeId,
                     name: customerName,
                     phone: phone?.trim() || null,
                     address: address?.trim() || null,
@@ -53,7 +55,7 @@ export function useSaveCustomerEntry() {
                 customerName = newCust.name;
 
                 logActivity({
-                    user: currentUser,
+                    user,
                     action: 'CREATE',
                     entity_type: 'CUSTOMER',
                     description: `Registered new customer: ${customerName}`
@@ -74,25 +76,27 @@ export function useSaveCustomerEntry() {
                     const { error: updateErr } = await supabase
                         .from('customers')
                         .update(updates)
-                        .eq('id', targetCustomerId);
+                        .eq('id', targetCustomerId)
+                        .eq('store_id', storeId);
 
                     if (updateErr) throw updateErr;
                 }
 
                 logActivity({
-                    user: currentUser,
+                    user,
                     action: 'UPDATE',
                     entity_type: 'CUSTOMER',
                     description: `Merged/updated customer profile #${targetCustomerId} (${customerName})`
                 });
             }
 
-            // 3. Retroactively link past unlinked sales matching customer name
+            // 3. Retroactively link past unlinked sales matching customer name (scoped to this store)
             let linkedSalesCount = 0;
             if (linkSales && customerName && targetCustomerId) {
                 const { data: updatedSales, error: salesErr } = await supabase
                     .from('sales')
                     .update({ customerid: targetCustomerId })
+                    .eq('store_id', storeId)
                     .is('customerid', null)
                     .ilike('customername', customerName)
                     .select('id');
@@ -123,9 +127,12 @@ export function useCreateCustomer() {
 
     return useMutation({
         mutationFn: async (customerPayload) => {
+            const currentUser = useStore.getState().user;
+            const storeId = Number(customerPayload?.store_id || currentUser?.store_id) || 1;
             const capitalizeFirst = str => str ? str.charAt(0).toUpperCase() + str.slice(1) : '';
 
             const payload = {
+                store_id: storeId,
                 name: capitalizeFirst(customerPayload.name),
                 email: customerPayload.email || null,
                 phone: customerPayload.phone || null,
@@ -145,7 +152,6 @@ export function useCreateCustomer() {
 
             if (error) throw error;
 
-            const currentUser = useStore.getState().user;
             logActivity({
                 user: currentUser,
                 action: 'CREATE',
@@ -168,17 +174,20 @@ export function useUpdateCustomer() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async (customer) => {
+            const currentUser = useStore.getState().user;
+            const storeId = Number(currentUser?.store_id) || 1;
             const { id, dateAdded, ...payload } = customer;
+
             const { data, error } = await supabase
                 .from('customers')
                 .update(payload)
                 .eq('id', id)
+                .eq('store_id', storeId)
                 .select()
                 .single();
 
             if (error) throw error;
 
-            const currentUser = useStore.getState().user;
             logActivity({
                 user: currentUser,
                 action: 'UPDATE',
@@ -201,21 +210,25 @@ export function useDeleteCustomer() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async (customerId) => {
+            const currentUser = useStore.getState().user;
+            const storeId = Number(currentUser?.store_id) || 1;
+
             const { data: customerToDelete } = await supabase
                 .from('customers')
                 .select('name')
                 .eq('id', customerId)
+                .eq('store_id', storeId)
                 .single();
 
             const { error } = await supabase
                 .from('customers')
                 .delete()
-                .eq('id', customerId);
+                .eq('id', customerId)
+                .eq('store_id', storeId);
 
             if (error) throw error;
 
             if (customerToDelete) {
-                const currentUser = useStore.getState().user;
                 logActivity({
                     user: currentUser,
                     action: 'DELETE',
@@ -241,10 +254,14 @@ export function useRepayDebt() {
 
     return useMutation({
         mutationFn: async ({ customerId, amount }) => {
+            const currentUser = useStore.getState().user;
+            const storeId = Number(currentUser?.store_id) || 1;
+
             const { data: customer } = await supabase
                 .from('customers')
                 .select('name')
                 .eq('id', customerId)
+                .eq('store_id', storeId)
                 .single();
 
             const { error } = await supabase.rpc('update_customer_credit', {
@@ -254,7 +271,6 @@ export function useRepayDebt() {
 
             if (error) throw error;
 
-            const currentUser = useStore.getState().user;
             logActivity({
                 user: currentUser,
                 action: 'UPDATE',

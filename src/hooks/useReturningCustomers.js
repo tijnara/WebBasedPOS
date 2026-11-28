@@ -1,33 +1,45 @@
+// src/hooks/useReturningCustomers.js
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient';
+import { useStore } from '../store/useStore';
 import { subWeeks, startOfDay, endOfDay } from 'date-fns';
 
-export function useReturningCustomers(startDate, endDate) {
+const normalizeManilaDate = (val, isEnd = false) => {
+    if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(val.trim())) {
+        return new Date(`${val.trim()}T${isEnd ? '23:59:59.999' : '00:00:00.000'}+08:00`);
+    }
+    const d = new Date(val);
+    return isEnd ? endOfDay(d) : startOfDay(d);
+};
+
+export function useReturningCustomers(startDate, endDate, storeId = null) {
+    const userStoreId = useStore(s => s.user?.store_id);
+    const targetStoreId = Number(storeId || userStoreId) || 1;
+
     return useQuery({
-        queryKey: ['returning-customers', startDate, endDate],
+        queryKey: ['returning-customers', targetStoreId, startDate, endDate],
         queryFn: async () => {
             if (!startDate || !endDate) return [];
 
-            const twoWeeksBeforeStart = startOfDay(subWeeks(new Date(startDate), 2)).toISOString();
-            const queryEndDate = endOfDay(new Date(endDate)).toISOString();
-            const currentPeriodStart = new Date(startDate);
+            const currentPeriodStart = normalizeManilaDate(startDate, false);
+            const twoWeeksBeforeStart = subWeeks(currentPeriodStart, 2).toISOString();
+            const queryEndDate = normalizeManilaDate(endDate, true).toISOString();
 
-            // 1. Fetch sales from the last 2 weeks + current period using exact schema columns
             const { data: recentSales, error } = await supabase
                 .from('sales')
                 .select('customername, saletimestamp, totalamount')
+                .eq('store_id', targetStoreId)
                 .gte('saletimestamp', twoWeeksBeforeStart)
                 .lte('saletimestamp', queryEndDate)
                 .eq('status', 'Completed');
 
             if (error) {
-                console.error("Supabase Error in Returning Customers:", error.message);
+                console.error('Supabase Error in Returning Customers:', error.message);
                 throw error;
             }
 
-            // 2. Process data to find returning customers
             const customerStats = {};
-            recentSales.forEach(sale => {
+            (recentSales || []).forEach(sale => {
                 if (!sale.customername || sale.customername === 'Walk-in') return;
 
                 if (!customerStats[sale.customername]) {
@@ -45,7 +57,6 @@ export function useReturningCustomers(startDate, endDate) {
                     customerStats[sale.customername].orderedCurrent = true;
                     customerStats[sale.customername].currentTotal += Number(sale.totalamount) || 0;
 
-                    // Track the exact date they ordered in this current period
                     if (!customerStats[sale.customername].lastOrderDate || saleDate > new Date(customerStats[sale.customername].lastOrderDate)) {
                         customerStats[sale.customername].lastOrderDate = saleDate.toISOString();
                     }
@@ -54,7 +65,6 @@ export function useReturningCustomers(startDate, endDate) {
                 }
             });
 
-            // 3. Filter customers who ordered currently, but NOT in the previous 2 weeks
             return Object.entries(customerStats)
                 .filter(([_, stats]) => stats.orderedCurrent && !stats.orderedPrevious)
                 .map(([name, stats]) => ({
@@ -62,7 +72,7 @@ export function useReturningCustomers(startDate, endDate) {
                     currentTotal: stats.currentTotal,
                     lastOrderDate: stats.lastOrderDate,
                     missedPeriodStart: twoWeeksBeforeStart,
-                    missedPeriodEnd: startOfDay(new Date(startDate)).toISOString() // Up to the start of the current period
+                    missedPeriodEnd: currentPeriodStart.toISOString()
                 }));
         },
         enabled: !!startDate && !!endDate

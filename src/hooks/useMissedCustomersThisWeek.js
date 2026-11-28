@@ -40,21 +40,23 @@ export function useMissedCustomersThisWeek({
                                                enabled = true,
                                                startDate,
                                                endDate,
-                                               currentSales = []
+                                               currentSales = [],
+                                               storeId = null
                                            } = {}) {
     const isDemo = useStore((s) => s.user?.isDemo);
+    const userStoreId = useStore((s) => s.user?.store_id);
+    const targetStoreId = Number(storeId || userStoreId) || 1;
 
     const startIso = toManilaIso(startDate, false);
     const endIso = toManilaIso(endDate, true);
 
     return useQuery({
-        queryKey: ['missed-customers-v3', page, itemsPerPage, startIso, endIso, isDemo, (currentSales || []).length],
+        queryKey: ['missed-customers-v3', targetStoreId, page, itemsPerPage, startIso, endIso, isDemo, (currentSales || []).length],
         enabled: enabled && !!startIso && !!endIso,
         queryFn: async () => {
             const startIndex = (page - 1) * itemsPerPage;
             const endIndex = startIndex + itemsPerPage;
 
-            // 1. Compute exact 7-day prior window (Oct 26 - Nov 1)
             const startYmd = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila' }).format(new Date(startIso));
             const [y, m, d] = startYmd.split('-').map(Number);
             const anchorDate = new Date(y, m - 1, d, 12, 0, 0);
@@ -79,21 +81,23 @@ export function useMissedCustomersThisWeek({
                 };
             }
 
-            // 2. Fetch sales using exact columns matching useSales.js
             const [currentSalesRes, priorSalesRes, customersRes] = await Promise.all([
                 supabase
                     .from('sales')
                     .select('id, customerid, customername, totalamount, saletimestamp, status')
+                    .eq('store_id', targetStoreId)
                     .gte('saletimestamp', startIso)
                     .lte('saletimestamp', endIso),
                 supabase
                     .from('sales')
                     .select('id, customerid, customername, totalamount, saletimestamp, status')
+                    .eq('store_id', targetStoreId)
                     .gte('saletimestamp', priorStartIso)
                     .lte('saletimestamp', priorEndIso),
                 supabase
                     .from('customers')
                     .select('id, name, phone')
+                    .eq('store_id', targetStoreId)
             ]);
 
             if (currentSalesRes.error) throw currentSalesRes.error;
@@ -108,7 +112,6 @@ export function useMissedCustomersThisWeek({
                 if (c.name) customerByName.set(normalizeName(c.name), c);
             });
 
-            // 3. Collect active customers from frontend report sales + database query
             const activeCustomerNames = new Set();
             const activeCustomerIds = new Set();
 
@@ -125,21 +128,18 @@ export function useMissedCustomersThisWeek({
                 }
             };
 
-            // Ingest frontend sales
             (currentSales || []).forEach((s) => {
                 const status = (s.status || '').toLowerCase();
                 if (status === 'voided' || status === 'cancelled') return;
                 registerActive(s.customerId || s.customerid, s.customerName || s.customername);
             });
 
-            // Ingest database sales
             (currentSalesRes.data || []).forEach((s) => {
                 const status = (s.status || '').toLowerCase();
                 if (status === 'voided' || status === 'cancelled') return;
                 registerActive(s.customerid, s.customername);
             });
 
-            // 4. Identify customers who ordered in prior 7 days but NOT in the active week
             const missedMap = new Map();
 
             (priorSalesRes.data || []).forEach((s) => {
@@ -156,7 +156,6 @@ export function useMissedCustomersThisWeek({
 
                 const matchedCustomer = (rawId && customerById.get(rawId)) || customerByName.get(normName);
 
-                // Check if customer ordered in the active week
                 const hasOrderedCurrent =
                     (rawId && activeCustomerIds.has(rawId)) ||
                     (normName && activeCustomerNames.has(normName)) ||
@@ -165,7 +164,6 @@ export function useMissedCustomersThisWeek({
                         activeCustomerNames.has(normalizeName(matchedCustomer.name))
                     ));
 
-                // If ordered this week, exclude from dropped-off list
                 if (hasOrderedCurrent) {
                     return;
                 }
@@ -194,7 +192,6 @@ export function useMissedCustomersThisWeek({
                 }
             });
 
-            // Sort by prior 7 days spending
             const droppedOffList = Array.from(missedMap.values()).sort(
                 (a, b) => b.last_week_total - a.last_week_total
             );

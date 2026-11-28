@@ -1,36 +1,51 @@
+// src/hooks/useDailySales.js
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient';
 import { useStore } from '../store/useStore';
 
-export function useDailySales() {
+function getManilaDateStr(offsetDays = 0) {
+    const target = new Date(Date.now() + offsetDays * 86400000);
+    return new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Manila',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    }).format(target);
+}
+
+export function useDailySales(storeId = null) {
     const isDemo = useStore(s => s.user?.isDemo);
+    const userStoreId = useStore(s => s.user?.store_id);
+    const targetStoreId = Number(storeId || userStoreId) || 1;
 
     return useQuery({
-        queryKey: ['daily-sales', isDemo],
+        queryKey: ['daily-sales', targetStoreId, isDemo],
         queryFn: async () => {
             if (isDemo) {
                 return { todaySales: 3160.46, yesterdaySales: 2896.50 };
             }
 
-            const now = new Date();
-            const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
-            const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-            const yesterdayStart = new Date(todayStart);
-            yesterdayStart.setDate(yesterdayStart.getDate() - 1);
-            const yesterdayEnd = new Date(todayEnd);
-            yesterdayEnd.setDate(yesterdayEnd.getDate() - 1);
+            const todayStr = getManilaDateStr(0);
+            const yesterdayStr = getManilaDateStr(-1);
+
+            const todayStart = new Date(`${todayStr}T00:00:00+08:00`).toISOString();
+            const todayEnd = new Date(`${todayStr}T23:59:59.999+08:00`).toISOString();
+            const yesterdayStart = new Date(`${yesterdayStr}T00:00:00+08:00`).toISOString();
+            const yesterdayEnd = new Date(`${yesterdayStr}T23:59:59.999+08:00`).toISOString();
 
             const [todayRes, yesterdayRes] = await Promise.all([
                 supabase
                     .from('sales')
                     .select('totalamount')
-                    .gte('saletimestamp', todayStart.toISOString())
-                    .lte('saletimestamp', todayEnd.toISOString()),
+                    .eq('store_id', targetStoreId)
+                    .gte('saletimestamp', todayStart)
+                    .lte('saletimestamp', todayEnd),
                 supabase
                     .from('sales')
                     .select('totalamount')
-                    .gte('saletimestamp', yesterdayStart.toISOString())
-                    .lte('saletimestamp', yesterdayEnd.toISOString()),
+                    .eq('store_id', targetStoreId)
+                    .gte('saletimestamp', yesterdayStart)
+                    .lte('saletimestamp', yesterdayEnd),
             ]);
 
             if (todayRes.error) throw todayRes.error;

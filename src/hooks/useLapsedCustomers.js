@@ -1,3 +1,4 @@
+// src/hooks/useLapsedCustomers.js
 import { useQuery } from '@tanstack/react-query';
 import { subMonths } from 'date-fns';
 import { supabase } from '../lib/supabaseClient';
@@ -27,7 +28,7 @@ const MOCK_LAPSED_CUSTOMERS = [
     },
 ];
 
-async function fetchAllCustomers(cutoff) {
+async function fetchAllCustomers(cutoff, storeId) {
     const customers = [];
     let offset = 0;
 
@@ -35,6 +36,7 @@ async function fetchAllCustomers(cutoff) {
         const { data, error } = await supabase
             .from('customers')
             .select('id, name, phone, created_at')
+            .eq('store_id', storeId)
             .lt('created_at', cutoff)
             .order('created_at', { ascending: false })
             .order('id', { ascending: true })
@@ -49,13 +51,14 @@ async function fetchAllCustomers(cutoff) {
     }
 }
 
-async function accumulateCustomerOrders(customerIds, orderStats) {
+async function accumulateCustomerOrders(customerIds, orderStats, storeId) {
     let offset = 0;
 
     while (true) {
         const { data, error } = await supabase
             .from('sales')
             .select('customerid, saletimestamp, sale_items(quantity, product:products(category))')
+            .eq('store_id', storeId)
             .in('customerid', customerIds)
             .order('saletimestamp', { ascending: true })
             .order('id', { ascending: true })
@@ -86,8 +89,8 @@ async function accumulateCustomerOrders(customerIds, orderStats) {
     }
 }
 
-async function fetchLapsedCustomers(cutoff) {
-    const customers = await fetchAllCustomers(cutoff.toISOString());
+async function fetchLapsedCustomers(cutoff, storeId) {
+    const customers = await fetchAllCustomers(cutoff.toISOString(), storeId);
     const orderStats = new Map(customers.map(customer => [
         customer.id,
         { orderCount: 0, lastOrderAt: null, waterQuantity: 0, containerQuantity: 0 },
@@ -97,7 +100,8 @@ async function fetchLapsedCustomers(cutoff) {
     for (let offset = 0; offset < customerIds.length; offset += CUSTOMER_BATCH_SIZE) {
         await accumulateCustomerOrders(
             customerIds.slice(offset, offset + CUSTOMER_BATCH_SIZE),
-            orderStats
+            orderStats,
+            storeId
         );
     }
 
@@ -126,15 +130,17 @@ async function fetchLapsedCustomers(cutoff) {
         });
 }
 
-export function useLapsedCustomers(enabled = true) {
+export function useLapsedCustomers(enabled = true, storeId = null) {
     const isDemo = useStore(state => state.user?.isDemo);
+    const userStoreId = useStore(state => state.user?.store_id);
+    const targetStoreId = Number(storeId || userStoreId) || 1;
     const cutoff = subMonths(new Date(), 1);
 
     return useQuery({
-        queryKey: ['lapsed-customers', isDemo, cutoff.toISOString().slice(0, 10)],
+        queryKey: ['lapsed-customers', targetStoreId, isDemo, cutoff.toISOString().slice(0, 10)],
         queryFn: async () => {
             if (isDemo) return MOCK_LAPSED_CUSTOMERS;
-            return fetchLapsedCustomers(cutoff);
+            return fetchLapsedCustomers(cutoff, targetStoreId);
         },
         enabled,
         staleTime: 1000 * 60 * 5,

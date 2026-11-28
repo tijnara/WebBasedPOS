@@ -348,6 +348,8 @@ export function useAssignProduct3DIcon() {
 
     return useMutation({
         mutationFn: async ({ productId, assetKey }) => {
+            const currentUser = useStore.getState().user;
+            const storeId = Number(currentUser?.store_id) || 1;
             const encodedUrl = assetKey ? `3d:${assetKey}` : null;
 
             const { data, error } = await supabase
@@ -357,6 +359,7 @@ export function useAssignProduct3DIcon() {
                     image_url: encodedUrl
                 })
                 .eq('id', productId)
+                .eq('store_id', storeId)
                 .select()
                 .single();
 
@@ -365,6 +368,7 @@ export function useAssignProduct3DIcon() {
                     .from('products')
                     .update({ image_url: encodedUrl })
                     .eq('id', productId)
+                    .eq('store_id', storeId)
                     .select()
                     .single();
                 if (fallback.error) throw fallback.error;
@@ -385,6 +389,9 @@ export function useDeleteProduct3DAsset() {
         mutationFn: async (asset) => {
             if (!asset) throw new Error('No 3D icon selected.');
 
+            const currentUser = useStore.getState().user;
+            const storeId = Number(currentUser?.store_id) || 1;
+
             let query = supabase.from('product_3d_assets').delete();
             if (asset.id) {
                 query = query.eq('id', asset.id);
@@ -399,10 +406,10 @@ export function useDeleteProduct3DAsset() {
                 await supabase
                     .from('products')
                     .update({ icon_3d_key: null })
-                    .eq('icon_3d_key', asset.asset_key);
+                    .eq('icon_3d_key', asset.asset_key)
+                    .eq('store_id', storeId);
             }
 
-            const currentUser = useStore.getState().user;
             logActivity({
                 user: currentUser,
                 action: 'DELETE',

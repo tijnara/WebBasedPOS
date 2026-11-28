@@ -5,8 +5,10 @@ import { supabase } from '../../lib/supabaseClient';
 import currency from 'currency.js';
 
 export default function ActiveShiftIndicator({ user, onOpenStartShift }) {
+    const targetStoreId = Number(user?.store_id) || 1;
+
     const { data: shiftStats, isLoading } = useQuery({
-        queryKey: ['sales', 'active-shift', user?.id],
+        queryKey: ['sales', 'active-shift', targetStoreId, user?.id],
         queryFn: async () => {
             if (!user) return null;
 
@@ -22,6 +24,7 @@ export default function ActiveShiftIndicator({ user, onOpenStartShift }) {
             const { data: shifts, error } = await supabase
                 .from('shifts')
                 .select('*')
+                .eq('store_id', targetStoreId)
                 .eq('staff_id', user.id)
                 .eq('status', 'OPEN')
                 .order('start_time', { ascending: false })
@@ -33,6 +36,7 @@ export default function ActiveShiftIndicator({ user, onOpenStartShift }) {
             const { data: sales } = await supabase
                 .from('sales')
                 .select('totalamount')
+                .eq('store_id', targetStoreId)
                 .eq('created_by', user.id)
                 .eq('paymentmethod', 'Cash')
                 .gte('saletimestamp', shift.start_time);

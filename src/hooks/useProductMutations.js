@@ -4,7 +4,6 @@ import { supabase } from '../lib/supabaseClient';
 import { useStore } from '../store/useStore';
 import { logActivity } from './useActivityLogs';
 
-// Key for product queries
 const productsKey = ['products'];
 
 // --- Hook for CREATING Products ---
@@ -12,8 +11,12 @@ export function useCreateProduct() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async (newProduct) => {
+            const currentUser = useStore.getState().user;
+            const storeId = Number(newProduct?.store_id || currentUser?.store_id) || 1;
             const now = new Date().toISOString();
+
             const payload = {
+                store_id: storeId,
                 name: newProduct.name,
                 price: newProduct.price,
                 image_url: newProduct.image_url,
@@ -28,6 +31,7 @@ export function useCreateProduct() {
                 created_at: now,
                 updated_at: now,
             };
+
             const { data, error } = await supabase
                 .from('products')
                 .insert([payload])
@@ -35,8 +39,6 @@ export function useCreateProduct() {
                 .single();
             if (error) throw error;
 
-            // --- Log Activity ---
-            const currentUser = useStore.getState().user;
             logActivity({
                 user: currentUser,
                 action: 'CREATE',
@@ -58,8 +60,11 @@ export function useUpdateProduct() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async (product) => {
+            const currentUser = useStore.getState().user;
+            const storeId = Number(currentUser?.store_id) || 1;
             const { id, ...payload } = product;
             const now = new Date().toISOString();
+
             const dbPayload = {
                 name: payload.name,
                 price: payload.price,
@@ -78,19 +83,17 @@ export function useUpdateProduct() {
                 dbPayload.is_hidden = payload.is_hidden;
             }
 
-            // Remove undefined fields so they are not sent to Supabase
             Object.keys(dbPayload).forEach(key => dbPayload[key] === undefined && delete dbPayload[key]);
 
             const { data, error } = await supabase
                 .from('products')
                 .update(dbPayload)
                 .eq('id', id)
+                .eq('store_id', storeId)
                 .select()
                 .single();
             if (error) throw error;
 
-            // --- Log Activity ---
-            const currentUser = useStore.getState().user;
             logActivity({
                 user: currentUser,
                 action: 'UPDATE',
@@ -112,19 +115,24 @@ export function useDeleteProduct() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async (productId) => {
-            // Fetch product name first for the log
+            const currentUser = useStore.getState().user;
+            const storeId = Number(currentUser?.store_id) || 1;
+
             const { data: productToDelete } = await supabase
                 .from('products')
                 .select('name')
                 .eq('id', productId)
+                .eq('store_id', storeId)
                 .single();
 
-            const { error } = await supabase.from('products').delete().eq('id', productId);
+            const { error } = await supabase
+                .from('products')
+                .delete()
+                .eq('id', productId)
+                .eq('store_id', storeId);
             if (error) throw error;
 
-            // --- Log Activity ---
             if (productToDelete) {
-                const currentUser = useStore.getState().user;
                 logActivity({
                     user: currentUser,
                     action: 'DELETE',

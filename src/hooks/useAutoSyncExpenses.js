@@ -79,7 +79,7 @@ function getManilaWeekDateForDay(recurringDay, manilaNow) {
             ? Number(recurringDay)
             : 1;
 
-    const offsetFromMonday = (normalizedTarget + 6) % 7; // Mon -> 0 .. Sat -> 5, Sun -> 6
+    const offsetFromMonday = (normalizedTarget + 6) % 7;
     const daysSinceMonday = (manilaNow.dayOfWeek + 6) % 7;
     const mondayUtc = new Date(
         Date.UTC(manilaNow.year, manilaNow.month - 1, manilaNow.day - daysSinceMonday)
@@ -122,9 +122,10 @@ export function clearSyncedMarker(key) {
     }
 }
 
-export function clearAutoSyncMarkersForExpense(exp) {
+export function clearAutoSyncMarkersForExpense(exp, storeId = null) {
     if (!exp?.category || typeof window === 'undefined') return;
     const catName = String(exp.category).trim();
+    const resolvedStoreId = Number(storeId || exp.store_id) || 1;
     const manilaNow = getManilaNowParts(new Date());
     let dateStr = manilaNow.dateStr;
 
@@ -139,6 +140,8 @@ export function clearAutoSyncMarkersForExpense(exp) {
         }
     }
 
+    clearSyncedMarker(`store:${resolvedStoreId}:daily:${dateStr}:${catName}`);
+    clearSyncedMarker(`store:${resolvedStoreId}:weekly:${dateStr}:${catName}`);
     clearSyncedMarker(`daily:${dateStr}:${catName}`);
     clearSyncedMarker(`weekly:${dateStr}:${catName}`);
 
@@ -146,7 +149,11 @@ export function clearAutoSyncMarkersForExpense(exp) {
         const keysToRemove = [];
         for (let i = 0; i < window.localStorage.length; i += 1) {
             const fullKey = window.localStorage.key(i);
-            if (fullKey && fullKey.startsWith(STORAGE_PREFIX) && fullKey.endsWith(`:${catName}`)) {
+            if (
+                fullKey &&
+                fullKey.startsWith(`${STORAGE_PREFIX}store:${resolvedStoreId}:`) &&
+                fullKey.endsWith(`:${catName}`)
+            ) {
                 keysToRemove.push(fullKey);
             }
         }
@@ -156,13 +163,14 @@ export function clearAutoSyncMarkersForExpense(exp) {
     }
 }
 
-async function hasExistingExpenseOnManilaDate(categoryName, dateStr) {
+async function hasExistingExpenseOnManilaDate(categoryName, dateStr, storeId) {
     const dayStart = `${dateStr}T00:00:00.000+08:00`;
     const dayEnd = `${dateStr}T23:59:59.999+08:00`;
 
     const { data, error } = await supabase
         .from('expenses')
         .select('id, category, expense_date')
+        .eq('store_id', storeId)
         .eq('category', categoryName)
         .gte('expense_date', dayStart)
         .lte('expense_date', dayEnd)
@@ -194,6 +202,7 @@ export function useAutoSyncExpenses({
     }, [createExpense, queryClient, addToast]);
 
     const userId = user?.id ?? null;
+    const storeId = Number(user?.store_id) || 1;
     const isDemo = Boolean(user?.isDemo);
     const categoriesSignature = Array.isArray(categories)
         ? categories
@@ -226,10 +235,10 @@ export function useAutoSyncExpenses({
 
                 for (const cat of recurringDailyCategories) {
                     if (cancelled) break;
-                    const key = `daily:${todayStr}:${cat.name}`;
+                    const key = `store:${storeId}:daily:${todayStr}:${cat.name}`;
                     if (hasSyncedMarker(key)) continue;
 
-                    const exists = await hasExistingExpenseOnManilaDate(cat.name, todayStr);
+                    const exists = await hasExistingExpenseOnManilaDate(cat.name, todayStr, storeId);
                     if (exists) {
                         markSyncedMarker(key);
                         continue;
@@ -238,6 +247,7 @@ export function useAutoSyncExpenses({
                     markSyncedMarker(key);
                     try {
                         await createExpenseRef.current.mutateAsync({
+                            store_id: storeId,
                             amount: Number(cat.default_amount) || 0,
                             category: cat.name,
                             description: cat.default_description || `Daily ${cat.name}`,
@@ -270,10 +280,10 @@ export function useAutoSyncExpenses({
 
                         for (const cat of cats) {
                             if (cancelled) break;
-                            const key = `weekly:${dateStr}:${cat.name}`;
+                            const key = `store:${storeId}:weekly:${dateStr}:${cat.name}`;
                             if (hasSyncedMarker(key)) continue;
 
-                            const exists = await hasExistingExpenseOnManilaDate(cat.name, dateStr);
+                            const exists = await hasExistingExpenseOnManilaDate(cat.name, dateStr, storeId);
                             if (exists) {
                                 markSyncedMarker(key);
                                 continue;
@@ -282,6 +292,7 @@ export function useAutoSyncExpenses({
                             markSyncedMarker(key);
                             try {
                                 await createExpenseRef.current.mutateAsync({
+                                    store_id: storeId,
                                     amount: Number(cat.default_amount) || 0,
                                     category: cat.name,
                                     description: cat.default_description || `Weekly ${cat.name}`,
@@ -330,5 +341,5 @@ export function useAutoSyncExpenses({
         return () => {
             cancelled = true;
         };
-    }, [categoriesSignature, userId, isDemo, isFetching, syncTick, categories]);
+    }, [categoriesSignature, userId, storeId, isDemo, isFetching, syncTick, categories]);
 }

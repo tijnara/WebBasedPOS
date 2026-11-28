@@ -1,19 +1,23 @@
+// src/hooks/useScannedLogs.js
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient';
 import { useStore } from '../store/useStore';
 import { logActivity } from './useActivityLogs';
 
-export function useScannedLogs({ startDate, endDate, searchTerm = '' } = {}) {
+export function useScannedLogs({ startDate, endDate, searchTerm = '', storeId = null } = {}) {
     const isDemo = useStore((s) => s.user?.isDemo);
+    const userStoreId = useStore((s) => s.user?.store_id);
+    const targetStoreId = Number(storeId || userStoreId) || 1;
 
     return useQuery({
-        queryKey: ['scanned-sales-logs', isDemo, startDate, endDate, searchTerm],
+        queryKey: ['scanned-sales-logs', targetStoreId, isDemo, startDate, endDate, searchTerm],
         queryFn: async () => {
             if (isDemo) return [];
 
             let query = supabase
                 .from('scanned_sales_logs')
                 .select('*')
+                .eq('store_id', targetStoreId)
                 .order('delivery_date', { ascending: false })
                 .order('created_at', { ascending: false })
                 .limit(200);
@@ -55,10 +59,14 @@ export function useDeleteScannedLog() {
 
     return useMutation({
         mutationFn: async (log) => {
+            const currentUser = useStore.getState().user || user;
+            const storeId = Number(currentUser?.store_id) || 1;
+
             const { error } = await supabase
                 .from('scanned_sales_logs')
                 .delete()
-                .eq('id', log.id);
+                .eq('id', log.id)
+                .eq('store_id', storeId);
 
             if (error) throw error;
 
@@ -70,7 +78,7 @@ export function useDeleteScannedLog() {
             }
 
             logActivity({
-                user,
+                user: currentUser,
                 action: 'DELETE_SCANNED_LOG',
                 entity_type: 'SCANNED_LOG',
                 description: `Deleted scanned sheet #${log.id} (${log.delivery_date})`

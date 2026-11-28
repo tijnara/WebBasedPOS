@@ -8,33 +8,13 @@ import { logActivity } from './useActivityLogs';
 const GUEST_STORAGE_KEY = 'seaside_refill_guest_profile_v1';
 
 const ADJECTIVES = [
-    'Aqua',
-    'Crystal',
-    'Seaside',
-    'Pure',
-    'Coastal',
-    'Splash',
-    'Glacier',
-    'Fresh',
-    'Ocean',
-    'Mist',
-    'Tidal',
-    'Spring'
+    'Aqua', 'Crystal', 'Seaside', 'Pure', 'Coastal', 'Splash',
+    'Glacier', 'Fresh', 'Ocean', 'Mist', 'Tidal', 'Spring'
 ];
 
 const NOUNS = [
-    'Hydrator',
-    'Drop',
-    'Wave',
-    'Refiller',
-    'Ripple',
-    'Stream',
-    'Sprinter',
-    'Bubble',
-    'Cascade',
-    'Pourer',
-    'Surfer',
-    'Oasis'
+    'Hydrator', 'Drop', 'Wave', 'Refiller', 'Ripple', 'Stream',
+    'Sprinter', 'Bubble', 'Cascade', 'Pourer', 'Surfer', 'Oasis'
 ];
 
 export function generateRandomGuestName() {
@@ -51,14 +31,14 @@ function createGuestKey() {
     return `guest_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 }
 
-export function useRefillGamePlayer() {
+export function useRefillGamePlayer(storeId = null) {
     const user = useStore((s) => s.user);
+    const targetStoreId = Number(storeId || user?.store_id) || 1;
     const [identity, setIdentity] = useState(null);
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
 
-        // If a real staff/admin account is logged in, use their user ID & name
         if (user && user.id && !user.isDemo) {
             setIdentity({
                 playerKey: `user_${user.id}`,
@@ -68,7 +48,6 @@ export function useRefillGamePlayer() {
             return;
         }
 
-        // Otherwise, load or auto-generate a persistent random Guest profile
         try {
             const raw = window.localStorage.getItem(GUEST_STORAGE_KEY);
             if (raw) {
@@ -101,12 +80,13 @@ export function useRefillGamePlayer() {
     }, [user]);
 
     const playerQuery = useQuery({
-        queryKey: ['refill-game-player', identity?.playerKey],
+        queryKey: ['refill-game-player', targetStoreId, identity?.playerKey],
         enabled: Boolean(identity?.playerKey),
         queryFn: async () => {
             const { data, error } = await supabase
                 .from('refill_game_players')
                 .select('*')
+                .eq('store_id', targetStoreId)
                 .eq('player_key', identity.playerKey)
                 .maybeSingle();
 
@@ -132,9 +112,10 @@ export function useRefillGamePlayer() {
             await supabase
                 .from('refill_game_players')
                 .update({ player_name: nextName, updated_at: new Date().toISOString() })
+                .eq('store_id', targetStoreId)
                 .eq('player_key', identity.playerKey);
         }
-    }, [identity, playerQuery.data]);
+    }, [identity, playerQuery.data, targetStoreId]);
 
     return {
         identity,
@@ -144,13 +125,17 @@ export function useRefillGamePlayer() {
     };
 }
 
-export function useRefillGameLeaderboard(limit = 10) {
+export function useRefillGameLeaderboard(limit = 10, storeId = null) {
+    const userStoreId = useStore((s) => s.user?.store_id);
+    const targetStoreId = Number(storeId || userStoreId) || 1;
+
     return useQuery({
-        queryKey: ['refill-game-leaderboard', limit],
+        queryKey: ['refill-game-leaderboard', targetStoreId, limit],
         queryFn: async () => {
             const { data, error } = await supabase
                 .from('refill_game_players')
                 .select('*')
+                .eq('store_id', targetStoreId)
                 .gt('total_score', 0)
                 .order('total_score', { ascending: false })
                 .order('jugs_completed', { ascending: false })
@@ -176,13 +161,17 @@ export function useRecordRefillRun() {
                                streakCount,
                                newTotalScore,
                                newJugsCompleted,
-                               isPerfectSeal
+                               isPerfectSeal,
+                               storeId = null
                            }) => {
             if (!identity?.playerKey) return null;
 
+            const currentUser = useStore.getState().user;
+            const resolvedStoreId = Number(storeId || currentUser?.store_id) || 1;
             const nowIso = new Date().toISOString();
 
             const { error: logError } = await supabase.from('refill_game_logs').insert({
+                store_id: resolvedStoreId,
                 player_key: identity.playerKey,
                 player_name: identity.playerName,
                 is_guest: Boolean(identity.isGuest),
@@ -199,10 +188,12 @@ export function useRecordRefillRun() {
             const { data: existing } = await supabase
                 .from('refill_game_players')
                 .select('*')
+                .eq('store_id', resolvedStoreId)
                 .eq('player_key', identity.playerKey)
                 .maybeSingle();
 
             const updatedRecord = {
+                store_id: resolvedStoreId,
                 player_key: identity.playerKey,
                 player_name: identity.playerName,
                 is_guest: Boolean(identity.isGuest),
@@ -227,10 +218,8 @@ export function useRecordRefillRun() {
             if (upsertError) throw upsertError;
             return savedPlayer;
         },
-        onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({
-                queryKey: ['refill-game-player', variables?.identity?.playerKey]
-            });
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['refill-game-player'] });
             queryClient.invalidateQueries({ queryKey: ['refill-game-leaderboard'] });
             queryClient.invalidateQueries({ queryKey: ['refill-game-dashboard'] });
         }
@@ -240,24 +229,27 @@ export function useRecordRefillRun() {
 /**
  * Authenticated Dashboard Analytics Hook (Asia/Manila UTC+8 aligned)
  */
-export function useRefillGameDashboardData({ dateFrom = '', dateTo = '' } = {}) {
+export function useRefillGameDashboardData({ dateFrom = '', dateTo = '', storeId = null } = {}) {
+    const userStoreId = useStore((s) => s.user?.store_id);
+    const targetStoreId = Number(storeId || userStoreId) || 1;
+
     return useQuery({
-        queryKey: ['refill-game-dashboard', dateFrom, dateTo],
+        queryKey: ['refill-game-dashboard', targetStoreId, dateFrom, dateTo],
         queryFn: async () => {
-            // 1. Fetch all registered/guest player profiles
             const { data: players, error: playersError } = await supabase
                 .from('refill_game_players')
                 .select('*')
+                .eq('store_id', targetStoreId)
                 .order('total_score', { ascending: false })
                 .order('jugs_completed', { ascending: false })
                 .limit(200);
 
             if (playersError) throw playersError;
 
-            // 2. Fetch refill attempt logs with Asia/Manila (+08:00) date boundaries
             let logsQuery = supabase
                 .from('refill_game_logs')
                 .select('*')
+                .eq('store_id', targetStoreId)
                 .order('created_at', { ascending: false })
                 .limit(300);
 
@@ -276,7 +268,6 @@ export function useRefillGameDashboardData({ dateFrom = '', dateTo = '' } = {}) 
             const safePlayers = players || [];
             const safeLogs = logs || [];
 
-            // 3. Aggregate KPI metrics
             const guestPlayersCount = safePlayers.filter((p) => p.is_guest).length;
             const staffPlayersCount = safePlayers.filter((p) => !p.is_guest).length;
 
@@ -333,7 +324,7 @@ export function useRefillGameDashboardData({ dateFrom = '', dateTo = '' } = {}) 
 }
 
 /**
- * Admin-only mutation to clear test leaderboard & simulation logs
+ * Admin-only mutation to clear THIS store's leaderboard & simulation logs
  */
 export function useResetRefillGameData() {
     const queryClient = useQueryClient();
@@ -341,20 +332,23 @@ export function useResetRefillGameData() {
 
     return useMutation({
         mutationFn: async () => {
+            const user = useStore.getState().user || currentUser;
+            const storeId = Number(user?.store_id) || 1;
+
             const { error: logsError } = await supabase
                 .from('refill_game_logs')
                 .delete()
-                .neq('id', 0);
+                .eq('store_id', storeId);
             if (logsError) throw logsError;
 
             const { error: playersError } = await supabase
                 .from('refill_game_players')
                 .delete()
-                .neq('id', 0);
+                .eq('store_id', storeId);
             if (playersError) throw playersError;
 
             logActivity({
-                user: currentUser,
+                user,
                 action: 'DELETE',
                 entity_type: 'REFILL_GAME',
                 description: 'Cleared Refill Simulator leaderboard and attempt logs'

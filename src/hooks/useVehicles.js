@@ -5,21 +5,13 @@ import { addMonths, addDays, isSameDay } from 'date-fns';
 import { useStore } from '../store/useStore';
 import { FILTER_CONFIG } from '../config/constants';
 
-/**
- * Determines whether a target due date is within the 24-hour (1 whole day) alert window.
- * Matches if:
- * 1. Target date is today (12:00am to 11:59pm - same calendar day)
- * 2. Target date was reached within the last 24 hours (0 to 24 hours elapsed)
- */
 export const isWithin24HoursOfDate = (now, targetDate) => {
     if (!targetDate) return false;
     const target = new Date(targetDate);
     if (isNaN(target.getTime())) return false;
 
-    // Check 1: Same calendar day (12:00am to 11:59pm)
     if (isSameDay(now, target)) return true;
 
-    // Check 2: Within 24 hours of target timestamp (0 to 24 hours elapsed)
     const diffMs = now.getTime() - target.getTime();
     if (diffMs >= 0 && diffMs <= 24 * 60 * 60 * 1000) return true;
 
@@ -37,15 +29,20 @@ function buildManilaTargetDate(dateStr, timeStr = '09:00') {
     return Number.isNaN(target.getTime()) ? null : target;
 }
 
-export function useVehicles() {
+export function useVehicles(storeId = null) {
     const user = useStore(s => s.user);
     const isDemo = user?.isDemo;
+    const targetStoreId = Number(storeId || user?.store_id) || 1;
 
     return useQuery({
-        queryKey: ['vehicles', user?.id, isDemo],
+        queryKey: ['vehicles', targetStoreId, user?.id, isDemo],
         queryFn: async () => {
             if (!user || isDemo) return [];
-            const { data, error } = await supabase.from('vehicles').select('*').order('created_at', { ascending: true });
+            const { data, error } = await supabase
+                .from('vehicles')
+                .select('*')
+                .eq('store_id', targetStoreId)
+                .order('created_at', { ascending: true });
             if (error) throw error;
             return data || [];
         },
@@ -54,12 +51,13 @@ export function useVehicles() {
     });
 }
 
-export function useMaintenanceAlerts() {
+export function useMaintenanceAlerts(storeId = null) {
     const user = useStore(s => s.user);
     const isDemo = user?.isDemo;
+    const targetStoreId = Number(storeId || user?.store_id) || 1;
 
     return useQuery({
-        queryKey: ['maintenance-alerts', user?.id, isDemo],
+        queryKey: ['maintenance-alerts', targetStoreId, user?.id, isDemo],
         queryFn: async () => {
             if (!user || isDemo) {
                 return {
@@ -78,10 +76,26 @@ export function useMaintenanceAlerts() {
             }
 
             const [vehiclesRes, historyRes, configsRes, waterTestRes] = await Promise.all([
-                supabase.from('vehicles').select('*').order('created_at', { ascending: true }),
-                supabase.from('maintenance_history').select('*').order('replaced_at', { ascending: false }),
-                supabase.from('filter_configs').select('*'),
-                supabase.from('water_test_schedules').select('*').eq('id', 1).maybeSingle()
+                supabase
+                    .from('vehicles')
+                    .select('*')
+                    .eq('store_id', targetStoreId)
+                    .order('created_at', { ascending: true }),
+                supabase
+                    .from('maintenance_history')
+                    .select('*')
+                    .eq('store_id', targetStoreId)
+                    .order('replaced_at', { ascending: false }),
+                supabase
+                    .from('filter_configs')
+                    .select('*')
+                    .eq('store_id', targetStoreId),
+                supabase
+                    .from('water_test_schedules')
+                    .select('*')
+                    .eq('store_id', targetStoreId)
+                    .limit(1)
+                    .maybeSingle()
             ]);
 
             if (vehiclesRes.error) throw vehiclesRes.error;
@@ -132,7 +146,7 @@ export function useMaintenanceAlerts() {
             const dueSoonVehicles = processedVehicles.filter(v => v.isDueSoon);
             const dueVehicles = processedVehicles.filter(v => v.isDueWithin24h);
 
-            // 2. Process Filters (incorporating filter_configs overrides)
+            // 2. Process Filters
             const activeFilters = FILTER_CONFIG.map(defaultFilter => {
                 const matched = dbConfigs.find(c => String(c.id) === String(defaultFilter.id));
                 if (!matched) return defaultFilter;
@@ -161,15 +175,23 @@ export function useMaintenanceAlerts() {
                 if (latestDates[filter.id]) {
                     const { data: salesData, error: salesError } = await supabase
                         .from('sale_items')
-                        .select('quantity, sales!inner(saletimestamp, status)')
-                        .in('product_id', [2, 3, 30])
+                        .select('quantity, product_id, products(name, category), sales!inner(saletimestamp, status, store_id)')
+                        .eq('store_id', targetStoreId)
+                        .eq('sales.store_id', targetStoreId)
                         .eq('sales.status', 'Completed')
                         .gte('sales.saletimestamp', latestDates[filter.id]);
 
                     if (salesError) throw salesError;
 
                     if (salesData && salesData.length > 0) {
-                        const sortedSales = [...salesData].sort((a, b) =>
+                        const refillSales = salesData.filter((item) => {
+                            if ([2, 3, 30].includes(Number(item.product_id))) return true;
+                            const pName = String(item.products?.name || '').toLowerCase();
+                            const pCat = String(item.products?.category || '').toLowerCase();
+                            return pName.includes('refill') || pCat.includes('refill');
+                        });
+
+                        const sortedSales = [...refillSales].sort((a, b) =>
                             new Date(a.sales?.saletimestamp || 0) - new Date(b.sales?.saletimestamp || 0)
                         );
                         let runningTotal = 0;
@@ -237,7 +259,9 @@ export function useMaintenanceAlerts() {
             let waterTestSchedule = !waterTestRes.error && waterTestRes.data ? waterTestRes.data : null;
             if (!waterTestSchedule && typeof window !== 'undefined') {
                 try {
-                    const cached = localStorage.getItem('seaside_water_test_schedule');
+                    const cached =
+                        localStorage.getItem(`seaside_water_test_schedule_${targetStoreId}`) ||
+                        (targetStoreId === 1 ? localStorage.getItem('seaside_water_test_schedule') : null);
                     if (cached) waterTestSchedule = JSON.parse(cached);
                 } catch {
                     // Ignore parse error
@@ -313,18 +337,27 @@ export function useMaintenanceAlerts() {
 
 export const useDueMaintenance = useMaintenanceAlerts;
 
-export function useOverdueVehicles() {
+export function useOverdueVehicles(storeId = null) {
     const user = useStore(s => s.user);
     const isDemo = user?.isDemo;
+    const targetStoreId = Number(storeId || user?.store_id) || 1;
 
     return useQuery({
-        queryKey: ['overdue-vehicles', user?.id, isDemo],
+        queryKey: ['overdue-vehicles', targetStoreId, user?.id, isDemo],
         queryFn: async () => {
             if (!user || isDemo) return [];
 
             const [vehiclesRes, historyRes] = await Promise.all([
-                supabase.from('vehicles').select('*').order('created_at', { ascending: true }),
-                supabase.from('maintenance_history').select('*').order('replaced_at', { ascending: false })
+                supabase
+                    .from('vehicles')
+                    .select('*')
+                    .eq('store_id', targetStoreId)
+                    .order('created_at', { ascending: true }),
+                supabase
+                    .from('maintenance_history')
+                    .select('*')
+                    .eq('store_id', targetStoreId)
+                    .order('replaced_at', { ascending: false })
             ]);
 
             if (vehiclesRes.error) throw vehiclesRes.error;
@@ -342,7 +375,9 @@ export function useOverdueVehicles() {
 
             const now = new Date();
             const processedVehicles = dbVehicles.map(vehicle => {
-                const lastReplaced = latestDates[vehicle.id] ? new Date(latestDates[vehicle.id]) : new Date(vehicle.created_at || now);
+                const lastReplaced = latestDates[vehicle.id]
+                    ? new Date(latestDates[vehicle.id])
+                    : new Date(vehicle.created_at || now);
                 const totalLifespanDays = Number(
                     vehicle.lifespan_days || (vehicle.lifespan_months ? vehicle.lifespan_months * 30 : 180)
                 );
